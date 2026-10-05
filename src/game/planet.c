@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "engine/collect.h"
 #include "engine/entity_registry.h"
@@ -67,7 +68,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.fold_anchor = 0;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.shake = self->archetype->shake;
-    self->planet_id = NULL;
+    memset(self->planet_id, 0, sizeof self->planet_id);
     self->slipways = (entity_id_list_t){0};
     self->project = RESEARCH_PROJECT_ID_NONE;
     self->description = NULL;
@@ -95,20 +96,37 @@ static planet_t *planet_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     planet_init_instance(self, &planet_class_def, &planet_archetype);
-    if (keys != NULL) {
-        if (keys->map_pos != NULL) {
-            entity_set_map_pos(&self->header, *keys->map_pos);
-        }
-        if (keys->pos != NULL) {
-            entity_set_pos(&self->header, *keys->pos);
-        }
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
+}
+
+void planet_keys_set_id(planet_keys_t *keys, const char *id) {
+    assert(strlen(id) < PLANET_ID_SIZE && "planet_keys_set_id: a planet id is \"p\"/\"s\" plus a counter -- stop, measure before widening");
+    strcpy(keys->planet_id, id);
+    keys->has_planet_id = 1;
+}
+
+const char *planet_id_or_null(const planet_t *self) {
+    return (self->has & PLANET_HAS_ID) ? self->planet_id : NULL;
+}
+
+void planet_copy_keys(planet_t *self, const planet_keys_t *keys) {
+    if (keys == NULL) {
+        return;
+    }
+    if (keys->has_map_pos) {
+        entity_set_map_pos(&self->header, keys->map_pos);
+    }
+    if (keys->has_pos) {
+        entity_set_pos(&self->header, keys->pos);
+    }
+    if (keys->has_planet_id) {
+        assert(memchr(keys->planet_id, '\0', PLANET_ID_SIZE) != NULL && "planet_copy_keys: set the id with planet_keys_set_id");
+        memcpy(self->planet_id, keys->planet_id, PLANET_ID_SIZE);
+        self->has |= PLANET_HAS_ID;
+    }
 }
 
 void planet_init(void) {

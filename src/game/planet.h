@@ -13,10 +13,24 @@
 #include "game/trade.h"
 #include "engine/entity_class.h"
 
+/* "s" plus the widest structure counter ("-32768"), plus the terminator. */
+enum { PLANET_ID_SIZE = 8 };
+
+struct planet_keys {
+    char planet_id[PLANET_ID_SIZE];
+    int has_planet_id;
+    vec_t map_pos;
+    int has_map_pos;
+    vec_t pos;
+    int has_pos;
+};
+
+void planet_keys_set_id(planet_keys_t *keys, const char *id);
+
 typedef struct {
     entity_t header;
     const planet_archetype_t *archetype;
-    const char *planet_id;
+    char planet_id[PLANET_ID_SIZE];
     entity_id_list_t slipways;
     research_project_id_t project;
     const char *description;
@@ -49,6 +63,13 @@ typedef struct {
 #define PLANET_HAS_NEEDS (1u << 3)
 #define PLANET_HAS_INCOMING_ROUTES (1u << 4)
 #define PLANET_HAS_OUTGOING_ROUTES (1u << 5)
+#define PLANET_HAS_ID (1u << 6)
+
+/* NULL without PLANET_HAS_ID; otherwise points into self. */
+const char *planet_id_or_null(const planet_t *self);
+
+/* Copies the keys' id and positions that are given; NULL keys copy nothing. */
+void planet_copy_keys(planet_t *self, const planet_keys_t *keys);
 
 /* GAP-8 */
 void planet_init(void);

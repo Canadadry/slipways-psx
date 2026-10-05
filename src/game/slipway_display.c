@@ -29,7 +29,7 @@ void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_
     }
 
     /* The mouse point slipway_drag hangs the end on is not a planet. */
-    t_id = t != NULL && planet_is_family(t) ? ((const planet_t *)t)->planet_id : NULL;
+    t_id = t != NULL && planet_is_family(t) ? planet_id_or_null((const planet_t *)t) : NULL;
     if (slipway_served_planets_has(&self->served_planets, t_id)) {
         vec_t f_pos = slipway_end_pos(f);
         vec_t t_pos = slipway_end_pos(t);

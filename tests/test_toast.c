@@ -321,7 +321,8 @@ static void test_toast_keeps_a_copy_of_its_text(void) {
 static planet_t *planet_at(vec_t at) {
     planet_keys_t keys = {0};
 
-    keys.pos = &at;
+    keys.pos = at;
+    keys.has_pos = 1;
     return planet_new(&keys);
 }
 

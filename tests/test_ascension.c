@@ -55,9 +55,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 }
 
 
-/* The first vector copies the second: another box, same x and y; NULL for NULL. */
-static int pos_copies(const vec_t *ra, const vec_t *mp) {
-    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+static int pos_copies(const vec_t *ra, vec_t mp) {
+    return ra != NULL && ra->x == mp.x && ra->y == mp.y;
 }
 
 
@@ -248,12 +247,6 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
     return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
@@ -335,7 +328,7 @@ static uint32_t fold_ascension(uint32_t hash, void *entity) {
     const planet_t *planet = structure;
     size_t index;
 
-    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, ascension->archetype->required_tech);
@@ -401,7 +394,7 @@ static uint32_t fold_ascension(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
@@ -527,7 +520,7 @@ static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *placed;
     void *idle;
-    vec_t *mouse_world;
+    vec_t mouse_world;
     const vec_t *main_camera_pos;
     int index;
 
@@ -537,8 +530,8 @@ static void test_life(void) {
     assert(main_camera_typed() != NULL);
     main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
-    mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(28, 104)));
-    class_of(placed)->drag(placed, mouse_pos(*mouse_world, vec_xy(64, 64)));
+    mouse_world = vec_add(*main_camera_pos, vec_xy(28, 104));
+    class_of(placed)->drag(placed, mouse_pos(mouse_world, vec_xy(64, 64)));
     assert(pos_copies(pos_ref(&as_ascension(placed)->header), mouse_world));
     hash = fold_vec(hash, map_pos_ref(&as_ascension(placed)->header));
     hash = fnv(hash, target_state(as_ascension(placed)));
@@ -590,7 +583,7 @@ static uint32_t fold_heir(uint32_t h, void *e, const entity_class_t *cls) {
     assert(class_of(e)->spawn_particle == ascension_class()->spawn_particle);
     assert(pointer_list_size(particles_of(&hj->emitter)) == 0);
     assert(hj->archetype->is_structure == 0);
-    h = fold_string_member(h, hj->planet_id);
+    h = fold_string_member(h, planet_id_or_null(hj));
     h = fold_string_member(h, entity_state_name(hj->header.state));
     h = fold_structure(h, hj);
     h = fold_string_member(h, hj->archetype->required_tech);
@@ -607,15 +600,17 @@ static uint32_t fold_heir(uint32_t h, void *e, const entity_class_t *cls) {
 
 static void test_heirs(void) {
     uint32_t h = 2166136261u;
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     void *pm;
     void *mx;
 
     start_game();
     mx = build(synthesizer_kind());
-    keys.map_pos = vec_ref(vec_xy(40, 50));
-    keys.pos = vec_ref(vec_xy(7700, 7600));
-    keys.planet_id = "s77";
+    keys.map_pos = vec_xy(40, 50);
+    keys.has_map_pos = 1;
+    keys.pos = vec_xy(7700, 7600);
+    keys.has_pos = 1;
+    planet_keys_set_id(&keys, "s77");
     pm = protostar_new(&keys);
 
     assert(strcmp(as_ascension(pm)->archetype->required_tech, "ascension") == 0 && as_ascension(pm)->emitter.archetype->quarter_turn == 0);
@@ -643,11 +638,10 @@ static void must_abort(void (*write)(void *), void *e) {
 }
 
 static void build_with_unknown_key(void *e) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     (void)e;
-    keys.planet_id = NULL;
-    keys.map_pos = vec_ref(vec_xy(1, 1));
-    keys.pos = NULL;
+    keys.map_pos = vec_xy(1, 1);
+    keys.has_map_pos = 1;
     (void)ascension_new(&keys);
 }
 
@@ -681,7 +675,7 @@ static void test_ascension_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = ascension_new(NULL);
-        assert(is_an_ascension_struct(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL &&
+        assert(is_an_ascension_struct(bare) && planet_id_or_null(bare) == NULL && bare->slipways.zone != NULL &&
                pointer_list_size(particles_of(&bare->emitter)) == 0 && entity_list_listed(entities_by_tag(TAG_ASCENSION), bare));
     }
 }

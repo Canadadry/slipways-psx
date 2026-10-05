@@ -431,7 +431,7 @@ static void test_accept_drop(void) {
     background_t *bg;
     planet_t *ly;
     void *nr;
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     down_t r;
 
     start_game();
@@ -443,9 +443,10 @@ static void test_accept_drop(void) {
     assert(r.stop && entity_get(r.held) == NULL);
     assert(is_state(&ly->header, ENTITY_STATE_SETTLED));
 
-    keys.planet_id = NULL;
-    keys.map_pos = &ly->header.map_pos;
-    keys.pos = &ly->header.pos;
+    keys.map_pos = ly->header.map_pos;
+    keys.has_map_pos = entity_has_map_pos(&ly->header);
+    keys.pos = ly->header.pos;
+    keys.has_pos = entity_has_pos(&ly->header);
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &bg->header);
     assert(r.stop && entity_get(r.held) == NULL);

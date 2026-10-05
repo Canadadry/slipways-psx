@@ -605,12 +605,6 @@ static void test_functions(void) {
     }
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
@@ -618,15 +612,19 @@ static vec_t vec_xy(int x, int y) {
 /* A bare planet on its `planet_id`, `map_pos` and `pos`, the screen
  * position offset from the main camera's. */
 static void *new_planet(const char *id, int x, int y) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     const vec_t *main_camera_pos;
 
     assert(main_camera_typed() != NULL);
     main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
-    keys.planet_id = id;
-    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(vec_add(*main_camera_pos, vec_xy(x + 16, y - 4)));
+    if (id != NULL) {
+        planet_keys_set_id(&keys, id);
+    }
+    keys.map_pos = vec_xy(x / 2, y / 2);
+    keys.has_map_pos = 1;
+    keys.pos = vec_add(*main_camera_pos, vec_xy(x + 16, y - 4));
+    keys.has_pos = 1;
     return planet_new(&keys);
 }
 

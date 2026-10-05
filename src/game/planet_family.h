@@ -58,7 +58,6 @@ const entity_class_t *burst_class(void);
 
 typedef struct {
     planet_keys_t planet;
-    const vec_t *pos_copy;
     const burst_construct_keys_t *construct;
 } burst_keys_t;
 

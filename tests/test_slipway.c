@@ -416,10 +416,8 @@ static void *build_slipway(void *qu) {
     return slipway_new(&keys);
 }
 
-static vec_t *vec_ref(int x, int y) {
-    vec_t *v = malloc(sizeof *v);
-    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return v;
+static vec_t vec_at(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 /* slipway_drag reads the hovered entity off the main user interface. */
@@ -762,8 +760,8 @@ static int same_vec(vec_t a, vec_t b) {
 }
 
 /* The point holds a copy of the mouse vector: equal, never the same box. */
-static int holds_copy_of(const vec_t *ra, const vec_t *m) {
-    return ra != NULL && ra != m && same_vec(*ra, *m);
+static int holds_copy_of(const vec_t *ra, vec_t m) {
+    return ra != NULL && same_vec(*ra, m);
 }
 
 /* Over nothing, slipway_drag hangs the end on the slipway's own mouse
@@ -772,8 +770,8 @@ static int holds_copy_of(const vec_t *ra, const vec_t *m) {
  * slipway has its own; the game zone does not grow. */
 static void test_drag_mouse_point(void) {
     uint32_t hash = 2166136261u;
-    vec_t *first_mouse;
-    vec_t *second_mouse;
+    vec_t first_mouse;
+    vec_t second_mouse;
     vec_t first_pos;
     vec_t on_camera;
     void *start_planet;
@@ -790,39 +788,38 @@ static void test_drag_mouse_point(void) {
     start_planet = slipway_start(the_slipway());
     target = slipway_end(the_slipway());
     first = build_slipway(start_planet);
-    first_mouse = vec_ref(-640, -640);
-    drag_over(first, NULL, mouse_world_only(*first_mouse));
+    first_mouse = vec_at(-640, -640);
+    drag_over(first, NULL, mouse_world_only(first_mouse));
     first_end = slipway_end(as_slipway(first));
     assert(first_end != NULL && end_kind(first) == END_THROWAWAY);
     assert(holds_copy_of(mouse_point_pos(first_end), first_mouse));
     first_pos = vec_of(mouse_point_map_pos(first_end));
     assert(same_vec(first_pos, vec_div(vec_of(mouse_point_pos(first_end)), p8_fixed_from_int(128))));
-    assert(mouse_point_map_pos(first_end) != first_mouse);
     assert(!entity_geom_is_on_screen(first_end));
     assert(!entity_list_listed(live_entities(), first_end) && !entity_list_listed(entities_by_tag(TAG_SLIPWAY), first_end) && !entity_list_listed(entities_by_tag(TAG_NODE), first_end));
     hash = fnv(hash, (uint32_t)first_pos.x);
     hash = fnv(hash, (uint32_t)first_pos.y);
     hash = fold_slipway(hash, first);
 
-    second_mouse = vec_ref(40, -24);
-    drag_over(first, NULL, mouse_world_only(*second_mouse));
+    second_mouse = vec_at(40, -24);
+    drag_over(first, NULL, mouse_world_only(second_mouse));
     second_end = slipway_end(as_slipway(first));
     assert(second_end == first_end && end_kind(first) == END_THROWAWAY && "the mouse point is the slipway's own, rewritten in place");
     assert(holds_copy_of(mouse_point_pos(second_end), second_mouse));
-    assert(same_vec(vec_of(mouse_point_map_pos(second_end)), vec_div(*second_mouse, p8_fixed_from_int(128))));
+    assert(same_vec(vec_of(mouse_point_map_pos(second_end)), vec_div(second_mouse, p8_fixed_from_int(128))));
     assert(!same_vec(vec_of(mouse_point_map_pos(second_end)), first_pos));
     hash = fold_slipway(hash, first);
 
     used_before = game_zone_used();
     for (index = 0; index < 10; index++) {
-        drag_over(first, NULL, mouse_world_only(*(index % 2 ? first_mouse : second_mouse)));
+        drag_over(first, NULL, mouse_world_only(index % 2 ? first_mouse : second_mouse));
         assert(slipway_end(as_slipway(first)) == first_end);
     }
     assert(game_zone_used() == used_before && "a held slipway allocates nothing per drag");
-    drag_over(first, NULL, mouse_world_only(*second_mouse));
+    drag_over(first, NULL, mouse_world_only(second_mouse));
 
     second = build_slipway(start_planet);
-    drag_over(second, NULL, mouse_world_only(*first_mouse));
+    drag_over(second, NULL, mouse_world_only(first_mouse));
     other_end = slipway_end(as_slipway(second));
     assert(other_end != NULL && other_end != first_end && slipway_end(as_slipway(first)) == first_end);
     assert(holds_copy_of(mouse_point_pos(other_end), first_mouse) && same_vec(vec_of(mouse_point_map_pos(other_end)), first_pos));
@@ -990,7 +987,7 @@ static void served_planets_add_too_long(void *hg) {
 static void test_served_planets_is_a_set_of_ids(void) {
     static char ids[SLIPWAY_SERVED_PLANETS_CAP][8];
     slipway_served_planets_t hg = {0};
-    char buffer[SLIPWAY_PLANET_ID_SIZE];
+    char buffer[PLANET_ID_SIZE];
     int i;
 
     slipway_served_planets_add(&hg, "p1");

@@ -68,7 +68,7 @@ void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id) {
         return;
     }
     assert(hg->count < SLIPWAY_SERVED_PLANETS_CAP && "slipway_served_planets_add: more planets than the galaxy holds (90) -- stop, do not widen the member");
-    assert(strlen(id) < SLIPWAY_PLANET_ID_SIZE &&
+    assert(strlen(id) < PLANET_ID_SIZE &&
            "slipway_served_planets_add: a planet id wider than any the cart makes -- stop, do not widen the copy");
     strcpy(hg->ids[hg->count], id);
     hg->count++;

@@ -195,12 +195,6 @@ static void start_game(void) {
     cart_flush_exit_queue();
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
     return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
@@ -235,7 +229,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
 
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
-    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
     hash = fold_fixed_member(hash, planet->archetype->layer);
@@ -260,7 +254,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
@@ -463,13 +457,51 @@ static void test_daughters(void) {
     check("daughters", h, DAUGHTERS_HASH);
 }
 
-static void *new_planet(const char *id, int x, int y) {
-    planet_keys_t keys;
+static planet_keys_t planet_keys_at(const char *id, int x, int y) {
+    planet_keys_t keys = {0};
 
-    keys.planet_id = id;
-    keys.map_pos = vec_ref(vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y)));
-    keys.pos = vec_ref(vec_make(p8_fixed_from_int(x * 128), p8_fixed_from_int(y * 128)));
+    planet_keys_set_id(&keys, id);
+    keys.map_pos = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+    keys.has_map_pos = 1;
+    keys.pos = vec_make(p8_fixed_from_int(x * 128), p8_fixed_from_int(y * 128));
+    keys.has_pos = 1;
+    return keys;
+}
+
+static void *new_planet(const char *id, int x, int y) {
+    planet_keys_t keys = planet_keys_at(id, x, y);
     return planet_new(&keys);
+}
+
+/* The planet copies its id and positions: overwriting the keys afterwards changes nothing. */
+static void test_new_planet_copies_its_keys(void) {
+    planet_keys_t keys;
+    planet_t *made;
+
+    start_title();
+    keys = planet_keys_at("p77", 3, 4);
+    made = planet_new(&keys);
+    keys = planet_keys_at("p1", 9, 9);
+    assert(strcmp(planet_id_or_null(made), "p77") == 0 && (made->has & PLANET_HAS_ID));
+    assert(entity_map_pos(&made->header).x == p8_fixed_from_int(3) && entity_map_pos(&made->header).y == p8_fixed_from_int(4));
+    assert(entity_pos(&made->header).x == p8_fixed_from_int(384) && entity_pos(&made->header).y == p8_fixed_from_int(512));
+}
+
+/* Keys without an id, nor positions, make a planet without them. */
+static void test_new_planet_without_keys_has_no_id(void) {
+    planet_keys_t keys = {0};
+    planet_t *made;
+
+    start_title();
+    made = planet_new(&keys);
+    assert(planet_id_or_null(made) == NULL && !(made->has & PLANET_HAS_ID));
+    assert(!entity_has_pos(&made->header) && !entity_has_map_pos(&made->header));
+}
+
+static void set_too_long_id(void) {
+    planet_keys_t keys = {0};
+    assert(freopen("/dev/null", "w", stderr) != NULL);
+    planet_keys_set_id(&keys, "p1234567");
 }
 
 static void test_new_planet(void) {
@@ -635,7 +667,7 @@ static void test_planet_is_a_struct(void) {
     assert(is_a_planet_struct(a));
     {
         planet_t *bare = planet_new(NULL);
-        assert(is_a_planet_struct(bare) && bare->planet_id == NULL && pos_ref(&bare->header) == NULL && bare->slipways.zone != NULL);
+        assert(is_a_planet_struct(bare) && planet_id_or_null(bare) == NULL && pos_ref(&bare->header) == NULL && bare->slipways.zone != NULL);
     }
 
     (void)bought(structure_kind());
@@ -801,6 +833,13 @@ static void in_fresh_child(void (*test)(void)) {
     reap(spawn(test));
 }
 
+static void aborts_in_child(void (*test)(void)) {
+    int status;
+    pid_t child = spawn(test);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -814,6 +853,9 @@ int main(void) {
     in_fresh_child(test_galaxy);
     in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);
+    in_fresh_child(test_new_planet_copies_its_keys);
+    in_fresh_child(test_new_planet_without_keys_has_no_id);
+    aborts_in_child(set_too_long_id);
     in_fresh_child(test_entities_by_tag_null_until_seen);
     in_fresh_child(test_update_vanishing);
     in_fresh_child(test_production_shared);

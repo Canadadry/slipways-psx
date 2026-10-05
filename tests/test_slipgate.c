@@ -50,9 +50,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 }
 
 
-/* The first vector copies the second: another box, same x and y; NULL for NULL. */
-static int pos_copies(const vec_t *ra, const vec_t *mp) {
-    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+static int pos_copies(const vec_t *ra, vec_t mp) {
+    return ra != NULL && ra->x == mp.x && ra->y == mp.y;
 }
 
 
@@ -192,12 +191,6 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
     return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
@@ -291,7 +284,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     slipgate = entity;
     structure = slipgate;
     planet = structure;
-    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, slipgate->archetype->required_tech);
@@ -338,7 +331,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
@@ -472,7 +465,7 @@ static void test_life(void) {
     void *idle;
     void *infraspace_gate;
     void *bare;
-    vec_t *mouse_world;
+    vec_t mouse_world;
     down_t slipway;
     entity_id_list_t slipways;
     const vec_t *main_camera_pos;
@@ -487,8 +480,8 @@ static void test_life(void) {
     assert(main_camera_typed() != NULL);
     main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
-    mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(28, 104)));
-    class_of(placed)->drag(placed, mouse_pos(*mouse_world, vec_xy(64, 64)));
+    mouse_world = vec_add(*main_camera_pos, vec_xy(28, 104));
+    class_of(placed)->drag(placed, mouse_pos(mouse_world, vec_xy(64, 64)));
     assert(pos_copies(pos_ref(&as_structure(placed)->header), mouse_world));
     set_credits(200);
     assert(class_of(placed)->drop == targeting_confirm_method);
@@ -537,19 +530,20 @@ static void test_life(void) {
     assert(as_structure(infraspace_gate)->sprite == p8_fixed_from_int(78));
 
     bare = slipgate_new(NULL);
-    assert(gate_kind(bare) == SLIPGATE && as_structure(bare)->planet_id == NULL && as_structure(bare)->slipways.zone != NULL &&
+    assert(gate_kind(bare) == SLIPGATE && planet_id_or_null(as_structure(bare)) == NULL && as_structure(bare)->slipways.zone != NULL &&
            (as_structure(bare)->has & PLANET_HAS_PRODUCTION));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_SLIPGATE), bare));
     {
-        planet_keys_t keys;
-        vec_t *pos = vec_ref(vec_xy(3, 4));
-        vec_t *ra = vec_ref(vec_xy(5, 6));
+        planet_keys_t keys = {0};
+        vec_t pos = vec_xy(3, 4);
+        vec_t ra = vec_xy(5, 6);
         void *with;
-        keys.planet_id = NULL;
         keys.map_pos = pos;
+        keys.has_map_pos = 1;
         keys.pos = ra;
+        keys.has_pos = 1;
         with = slipgate_new(&keys);
-        assert(pos_copies(map_pos_ref(&as_structure(with)->header), pos) && pos_copies(pos_ref(&as_structure(with)->header), ra) && as_structure(with)->planet_id == NULL);
+        assert(pos_copies(map_pos_ref(&as_structure(with)->header), pos) && pos_copies(pos_ref(&as_structure(with)->header), ra) && planet_id_or_null(as_structure(with)) == NULL);
         hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), with));
     }
     check("life", hash, LIFE_HASH);
@@ -583,7 +577,7 @@ static void test_slipgate_is_a_struct(void) {
     assert(slipgate_ready() && infraspace_gate_ready());
     {
         planet_t *bare = slipgate_new(NULL);
-        assert(is_a_slipgate_struct(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL && (bare->has & PLANET_HAS_PRODUCTION));
+        assert(is_a_slipgate_struct(bare) && planet_id_or_null(bare) == NULL && bare->slipways.zone != NULL && (bare->has & PLANET_HAS_PRODUCTION));
     }
     fr = build(infraspace_gate_kind());
     assert(fr != NULL &&

@@ -104,8 +104,7 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     p8_fixed_t new_id;
     const entity_kind_t *entity_kind;
     char *id_num_str;
-    char *id_str;
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     entity_t *held;
     down_t out = {0, ENTITY_ID_NONE};
 
@@ -120,13 +119,9 @@ down_t structure_icon_left_press(structure_icon_t *self) {
         return out;
     }
 
-    /* The grab opens before `id_str` is made: the planet keeps that pointer, so it lives and dies with the grab arena. */
     id_num_str = p8_tostr_fixed(frame_zone(), new_id);
-    grab_arena_open(ZONE_BYTES(1 + strlen(id_num_str) + 1) + planet_kind_construction_bytes(entity_kind));
-    id_str = p8_concat2(grab_arena_construction_zone(), "s", id_num_str);
-    keys.planet_id = id_str;
-    keys.map_pos = NULL;
-    keys.pos = NULL;
+    planet_keys_set_id(&keys, p8_concat2(frame_zone(), "s", id_num_str));
+    grab_arena_open(planet_kind_construction_bytes(entity_kind));
     held = entity_kind->new_entity(&keys);
     grab_arena_close();
     out.held = entity_id_link(held);

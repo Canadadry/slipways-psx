@@ -281,12 +281,6 @@ static void start_game(void) {
     cart_flush_exit_queue();
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
     return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
@@ -517,7 +511,7 @@ static vec_t planet_map_pos(void) {
 /* A slipway between two bare planets far from each other and from the
  * rest, its end set directly; its middle is the returned point. */
 static slipway_t *a_slipway(vec_t *middle) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     slipway_keys_t slipway_keys = {0};
     void *qu;
     void *re;
@@ -526,12 +520,13 @@ static slipway_t *a_slipway(vec_t *middle) {
     vec_t start_p = vec_add(base, vec_xy(0, 1));
     vec_t end_p = vec_add(base, vec_xy(1, 1));
 
-    keys.map_pos = vec_ref(start_p);
-    keys.pos = NULL;
-    keys.planet_id = "s91";
+    keys.map_pos = start_p;
+    keys.has_map_pos = 1;
+    planet_keys_set_id(&keys, "s91");
     qu = planet_new(&keys);
-    keys.map_pos = vec_ref(end_p);
-    keys.planet_id = "s92";
+    keys.map_pos = end_p;
+    keys.has_map_pos = 1;
+    planet_keys_set_id(&keys, "s92");
     re = planet_new(&keys);
     slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);

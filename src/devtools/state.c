@@ -79,7 +79,7 @@ static const char *planet_state(state_t state) {
 
 static const char *id_of(const entity_t *e) {
     if (e == NULL || class_of(e) == NULL) return "-";
-    const char *id = ((const planet_t *)e)->planet_id;
+    const char *id = planet_id_or_null((const planet_t *)e);
     return id != NULL ? id : "-";
 }
 

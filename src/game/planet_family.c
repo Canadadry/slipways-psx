@@ -58,14 +58,10 @@ static planet_t *structure_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &structure_class_def, &structure_archetype);
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "structure_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "structure_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -117,14 +113,10 @@ static planet_t *trading_hub_create(const planet_keys_t *keys) {
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &trading_hub_class_def, &trading_hub_archetype);
     self->palette_block = self->archetype->palette_block;
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "trading_hub_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "trading_hub_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -157,14 +149,10 @@ static planet_t *processor_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &processor_class_def, &processor_archetype);
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "processor_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "processor_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -233,14 +221,10 @@ static planet_t *ascension_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &ascension_class_def, &ascension_archetype);
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "ascension_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "ascension_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);
@@ -248,20 +232,15 @@ static planet_t *ascension_create(const planet_keys_t *keys) {
 }
 
 void protostar_construct(planet_t *self) {
-    vec_t spawn_pos;
-    burst_keys_t keys;
+    burst_keys_t keys = {0};
     planet_t *spawned;
 
     if (self == NULL) {
         return;
     }
 
-    spawn_pos = vec_add(entity_pos(&self->header), self->archetype->spawn_offset);
-
-    keys.planet.planet_id = NULL;
-    keys.planet.map_pos = NULL;
-    keys.planet.pos = NULL;
-    keys.pos_copy = &spawn_pos;
+    keys.planet.pos = vec_add(entity_pos(&self->header), self->archetype->spawn_offset);
+    keys.planet.has_pos = 1;
     keys.construct = &protostar_burst_construct_keys;
 
     spawned = burst_new(&keys);
@@ -296,17 +275,7 @@ static planet_t *protostar_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &protostar_class_def, &protostar_archetype);
-    if (keys != NULL) {
-        if (keys->map_pos != NULL) {
-            entity_set_map_pos(&self->header, *keys->map_pos);
-        }
-        if (keys->pos != NULL) {
-            entity_set_pos(&self->header, *keys->pos);
-        }
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    planet_copy_keys(self, keys);
     protostar_construct(self);
     emitter_init((entity_t *)self);
     planet_construct(self);
@@ -458,19 +427,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
     self->emitter.has = 0;
     self->has |= PLANET_HAS_OUTGOING_ROUTES;
     if (keys != NULL) {
-        if (keys->planet.map_pos != NULL) {
-            entity_set_map_pos(&self->header, *keys->planet.map_pos);
-        }
-        if (keys->planet.pos != NULL) {
-            entity_set_pos(&self->header, *keys->planet.pos);
-        }
-        if (keys->pos_copy != NULL) {
-            assert(keys->planet.pos == NULL && "burst_create: a burst takes its position from the planet keys or from pos_copy, not both");
-            entity_set_pos(&self->header, *keys->pos_copy);
-        }
-        if (keys->planet.planet_id != NULL) {
-            self->planet_id = keys->planet.planet_id;
-        }
+        planet_copy_keys(self, &keys->planet);
         if (keys->construct != NULL) {
             self->emitter.matrix_xx = keys->construct->matrix_xx;
             self->emitter.matrix_xy = keys->construct->matrix_xy;
@@ -619,7 +576,6 @@ static entity_t *burst_kind_new(const planet_keys_t *keys) {
         return &burst_create(NULL)->header;
     }
     burst_keys.planet = *keys;
-    burst_keys.pos_copy = NULL;
     burst_keys.construct = NULL;
     return &burst_create(&burst_keys)->header;
 }

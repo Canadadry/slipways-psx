@@ -79,7 +79,7 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
             planet_val = entity_id_list_at(planets, index + 1);
             assert(planet_is_family(planet_val) && "rebuild_incoming_routes_route_visit: a trade's planets list holds planets only");
             planet = (const planet_t *)planet_val;
-            if (planet->planet_id == NULL) {
+            if (!(planet->has & PLANET_HAS_ID)) {
                 continue;
             }
             assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");

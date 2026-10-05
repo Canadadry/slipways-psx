@@ -180,11 +180,7 @@ struct entity_class {
     void (*release)(entity_t *self);
 };
 
-typedef struct {
-    const char *planet_id;
-    vec_t *map_pos;
-    vec_t *pos;
-} planet_keys_t;
+typedef struct planet_keys planet_keys_t;
 
 typedef struct {
     entity_t *(*new_entity)(const planet_keys_t *keys);

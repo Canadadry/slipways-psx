@@ -607,9 +607,8 @@ static size_t route_list_bytes(const planet_t *planet, uint16_t present, const t
     return bytes;
 }
 
-/* Footprint of the planets under the planet tag: struct, the galaxy's
- * map_pos and pos boxes, planet_id, and the slipways, outgoing_routes and incoming_routes
- * lists. No needs list nor copies of needs, which the planets of
+/* Footprint of the planets under the planet tag: struct, and the slipways,
+ * outgoing_routes and incoming_routes lists. No needs list nor copies of needs, which the planets of
  * galaxy_populate lack before any action. */
 static size_t planets_bytes(void) {
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
@@ -617,8 +616,7 @@ static size_t planets_bytes(void) {
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
         assert(!(p->has & PLANET_HAS_NEEDS) && "a planet has needs, which planets_bytes does not count");
-        bytes += block_bytes(sizeof *p) + 2 * block_bytes(sizeof(vec_t)) +
-                  block_bytes(strlen(p->planet_id) + 1) + id_list_bytes(&p->slipways) +
+        bytes += block_bytes(sizeof *p) + id_list_bytes(&p->slipways) +
                   route_list_bytes(p, PLANET_HAS_OUTGOING_ROUTES, &p->outgoing_routes) +
                   route_list_bytes(p, PLANET_HAS_INCOMING_ROUTES, &p->incoming_routes);
     }
@@ -793,7 +791,7 @@ static const planet_t *planet_with_id(const char *id) {
     const entity_list_t *np = entities_by_tag(TAG_NODE);
     for (int i = 0; np != NULL && i < np->count; i++) {
         const planet_t *p = (const planet_t *)np->items[i];
-        if (p->planet_id != NULL && strcmp(p->planet_id, id) == 0) return p;
+        if (planet_id_or_null(p) != NULL && strcmp(planet_id_or_null(p), id) == 0) return p;
     }
     assert(0 && "planet not found under the node tag");
     return NULL;
@@ -886,7 +884,7 @@ static const planet_t *placed_grab(void) {
     const planet_t *placed = NULL;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
-        if (p->planet_id[0] != 's') continue;
+        if (planet_id_or_null(p)[0] != 's') continue;
         assert(placed == NULL && "a single grab was placed");
         placed = p;
     }
@@ -1049,7 +1047,7 @@ static void offscreen_planet_forgets_refused_slipway(void) {
     play_until(354);
     assert(entity_get(p->targeted_by) == &held->header && "off screen, the draw leaves targeted_by set");
     play_until(355);
-    printf("  refused slipway: targeted_by of %s cleared by the f355 flush\n", p->planet_id);
+    printf("  refused slipway: targeted_by of %s cleared by the f355 flush\n", planet_id_or_null(p));
     assert(entity_get(p->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
 }
 

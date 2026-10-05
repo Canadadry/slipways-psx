@@ -739,7 +739,7 @@ static void test_accept_drop(void) {
     wormhole_t *mz;
     planet_t *ly;
     void *nr;
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     down_t r;
 
     world();
@@ -749,9 +749,10 @@ static void test_accept_drop(void) {
     r = planet_accept_drop(ly, &mz->header);
     assert(r.stop && entity_get(r.held) == NULL);
 
-    keys.planet_id = NULL;
-    keys.map_pos = &ly->header.map_pos;
-    keys.pos = &ly->header.pos;
+    keys.map_pos = ly->header.map_pos;
+    keys.has_map_pos = entity_has_map_pos(&ly->header);
+    keys.pos = ly->header.pos;
+    keys.has_pos = entity_has_pos(&ly->header);
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &mz->header);
     assert(r.stop && entity_get(r.held) == NULL);

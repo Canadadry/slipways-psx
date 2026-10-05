@@ -49,9 +49,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 }
 
 
-/* The first vector copies the second: another box, same x and y; NULL for NULL. */
-static int pos_copies(const vec_t *ra, const vec_t *mp) {
-    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+static int pos_copies(const vec_t *ra, vec_t mp) {
+    return ra != NULL && ra->x == mp.x && ra->y == mp.y;
 }
 
 
@@ -235,12 +234,6 @@ static void clicked_game(void) {
     assert(buttons == 2 && economy_score_difficulty() != NULL);
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
     return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
@@ -319,7 +312,7 @@ static uint32_t fold_processor(uint32_t hash, void *entity) {
     const planet_t *planet = structure;
     size_t index;
 
-    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_structure(hash, structure);
@@ -362,7 +355,7 @@ static uint32_t fold_processor(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
@@ -518,14 +511,14 @@ static void test_life(void) {
     uint32_t hash = 2166136261u;
     void *placed;
     void *idle;
-    vec_t *mp;
+    vec_t mp;
     int index;
 
     clicked_game();
 
     placed = build_processor();
-    mp = vec_ref(vec_xy(7680, 7552));
-    class_of(placed)->drag(placed, mouse_pos(*mp, vec_xy(64, 64)));
+    mp = vec_xy(7680, 7552);
+    class_of(placed)->drag(placed, mouse_pos(mp, vec_xy(64, 64)));
     assert(pos_copies(pos_ref(&as_structure(placed)->header), mp));
     hash = fold_vec(hash, map_pos_ref(&as_structure(placed)->header));
     hash = fnv(hash, target_state(as_structure(placed)));
@@ -568,11 +561,10 @@ static void must_abort(void (*write)(void *), void *e) {
 }
 
 static void build_with_unknown_key(void *e) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     (void)e;
-    keys.planet_id = NULL;
-    keys.map_pos = vec_ref(vec_xy(1, 1));
-    keys.pos = NULL;
+    keys.map_pos = vec_xy(1, 1);
+    keys.has_map_pos = 1;
     (void)processor_new(&keys);
 }
 
@@ -599,7 +591,7 @@ static void test_processor_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = processor_new(NULL);
-        assert(is_a_processor_struct(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL &&
+        assert(is_a_processor_struct(bare) && planet_id_or_null(bare) == NULL && bare->slipways.zone != NULL &&
                entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }

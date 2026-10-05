@@ -519,9 +519,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
 
     if (research_project_instance != NULL && research_project_instance->class_name != NULL) {
         const entity_kind_t *target_kind = NULL;
-        planet_keys_t keys;
-        vec_t map_pos = self->header.map_pos;
-        vec_t pos = self->header.pos;
+        planet_keys_t keys = {0};
 
         assert(self->slipways.count == 0 &&
                "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
@@ -529,9 +527,13 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
 
         target_kind = planet_kind_named(research_project_instance->class_name);
 
-        keys.map_pos = entity_has_map_pos(&self->header) ? &map_pos : NULL;
-        keys.pos = entity_has_pos(&self->header) ? &pos : NULL;
-        keys.planet_id = self->planet_id;
+        keys.map_pos = self->header.map_pos;
+        keys.has_map_pos = entity_has_map_pos(&self->header);
+        keys.pos = self->header.pos;
+        keys.has_pos = entity_has_pos(&self->header);
+        if (self->has & PLANET_HAS_ID) {
+            planet_keys_set_id(&keys, self->planet_id);
+        }
 
         result_planet = (target_kind != NULL) ? (planet_t *)target_kind->new_entity(&keys) : NULL;
     } else if (research_project_instance != NULL && research_project_instance->next_type != NULL) {

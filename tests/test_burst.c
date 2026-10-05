@@ -209,12 +209,6 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
     return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
@@ -282,14 +276,18 @@ static void *harvest_recipe(void) {
 /* First road: a bare planet on planet_id, map_pos and pos, harvested by
  * planet_apply_project; the burst is the one the live entities gained. */
 static void *harvest(int x, int y, const char *id) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     planet_t *planet;
     void *made;
     int before = live_entities()->count;
 
-    keys.planet_id = id;
-    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(near_main_camera(x, y));
+    if (id != NULL) {
+        planet_keys_set_id(&keys, id);
+    }
+    keys.map_pos = vec_xy(x / 2, y / 2);
+    keys.has_map_pos = 1;
+    keys.pos = near_main_camera(x, y);
+    keys.has_pos = 1;
     planet = planet_new(&keys);
     assert(!is_burst(planet) && live_entities()->count == before + 1);
     planet_apply_project(planet, harvest_recipe());
@@ -302,20 +300,24 @@ static void *harvest(int x, int y, const char *id) {
 /* Second road: protostar_new on map_pos, pos and planet_id; its burst is
  * registered just before the protostar. */
 static void *spawn(int x, int y, const char *id, void **protostar) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     void *pm;
     int at;
 
-    keys.planet_id = id;
-    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(near_main_camera(x, y));
+    if (id != NULL) {
+        planet_keys_set_id(&keys, id);
+    }
+    keys.map_pos = vec_xy(x / 2, y / 2);
+    keys.has_map_pos = 1;
+    keys.pos = near_main_camera(x, y);
+    keys.has_pos = 1;
     pm = protostar_new(&keys);
     at = entity_list_rank_in(live_entities(), pm);
     assert(at >= 1 && is_burst(live_entities()->items[at - 1]));
     {
         const vec_t *ra = pos_ref(&as_burst(live_entities()->items[at - 1])->header);
-        vec_t want = vec_add(*keys.pos, ((planet_t *)pm)->archetype->spawn_offset);
-        assert(ra != keys.pos && ra->x == want.x && ra->y == want.y);
+        vec_t want = vec_add(keys.pos, ((planet_t *)pm)->archetype->spawn_offset);
+        assert(ra != NULL && ra->x == want.x && ra->y == want.y);
     }
     if (protostar != NULL) {
         *protostar = pm;
@@ -349,7 +351,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_is_planet(hash, planet);
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
-    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
     hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_is_dead(hash, planet);
     hash = fold_vec(hash, pos_ref(&planet->header));
@@ -388,7 +390,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
@@ -469,7 +471,7 @@ static void test_built(void) {
            (as_burst(c)->has & PLANET_HAS_OUTGOING_ROUTES));
     assert(trade_route_list_count(&as_burst(a)->outgoing_routes) == 0 && trade_route_list_count(&as_burst(b)->outgoing_routes) == 0 &&
            trade_route_list_count(&as_burst(c)->outgoing_routes) == 0);
-    assert(pos_ref(&as_burst(c)->header) == NULL && map_pos_ref(&as_burst(c)->header) == NULL && as_burst(c)->planet_id == NULL);
+    assert(pos_ref(&as_burst(c)->header) == NULL && map_pos_ref(&as_burst(c)->header) == NULL && planet_id_or_null(as_burst(c)) == NULL);
     assert(as_burst(a)->archetype->layer == p8_fixed_from_int(3) && as_burst(a)->speed == p8_fixed_from_int(3));
     assert(as_burst(a)->archetype->is_planet == 0);
     assert(as_burst(b)->speed == P8_FIXED_LIT(0x00018000, 1.5));
@@ -808,10 +810,29 @@ static void test_the_largest_bursts_fit_their_slot(void) {
     printf("burst slot: %lu bytes at most\n", (unsigned long)particle_zone_max_bytes(PARTICLE_SLOT_BURST));
 }
 
+/* burst_new copies the id and positions of its planet keys: overwriting the keys afterwards changes nothing. */
+static void test_burst_copies_its_keys(void) {
+    burst_keys_t keys = {0};
+    planet_t *made;
+
+    start_game();
+    planet_keys_set_id(&keys.planet, "s70");
+    keys.planet.map_pos = vec_xy(5, 6);
+    keys.planet.has_map_pos = 1;
+    keys.planet.pos = vec_xy(7, 8);
+    keys.planet.has_pos = 1;
+    made = burst_new(&keys);
+    keys.planet = (planet_keys_t){0};
+    planet_keys_set_id(&keys.planet, "s1");
+    assert(strcmp(planet_id_or_null(made), "s70") == 0);
+    assert(pos_ref(&made->header) != NULL && pos_ref(&made->header)->x == p8_fixed_from_int(7) && pos_ref(&made->header)->y == p8_fixed_from_int(8));
+    assert(map_pos_ref(&made->header) != NULL && map_pos_ref(&made->header)->x == p8_fixed_from_int(5));
+}
+
 /* A burst can be hovered, so a dragged slipway can end on it; the flush
  * that gives the burst back lets go of that end too. */
 static void test_leaving_lets_go_of_a_dragged_slipway(void) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     slipway_keys_t slipway_keys;
     slipway_t *jc;
     vec_t mp = vec_xy(40, 40);
@@ -819,9 +840,11 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
 
     start_game();
     cart_flush_exit_queue();
-    keys.planet_id = "s85";
-    keys.map_pos = vec_ref(vec_xy(30, 30));
-    keys.pos = vec_ref(near_main_camera(60, 60));
+    planet_keys_set_id(&keys, "s85");
+    keys.map_pos = vec_xy(30, 30);
+    keys.has_map_pos = 1;
+    keys.pos = near_main_camera(60, 60);
+    keys.has_pos = 1;
     slipway_keys.start = entity_id_link(&planet_new(&keys)->header);
     jc = slipway_new(&slipway_keys);
     e = harvest(40, 40, "s86");
@@ -852,6 +875,7 @@ int main(void) {
     in_fresh_child(test_leaving_gives_back_its_particles);
     in_fresh_child(test_the_largest_bursts_fit_their_slot);
     in_fresh_child(test_leaving_lets_go_of_a_dragged_slipway);
+    in_fresh_child(test_burst_copies_its_keys);
 
     printf("test_burst: all tests passed\n");
     return 0;

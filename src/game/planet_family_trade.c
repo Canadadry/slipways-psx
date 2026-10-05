@@ -176,17 +176,7 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &slipgate_class_def, &slipgate_archetype);
-    if (keys != NULL) {
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-        if (keys->map_pos != NULL) {
-            entity_set_map_pos(&self->header, *keys->map_pos);
-        }
-        if (keys->pos != NULL) {
-            entity_set_pos(&self->header, *keys->pos);
-        }
-    }
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -221,14 +211,10 @@ static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
     slipgate_init_instance(self, &infraspace_gate_class_def, &infraspace_gate_archetype);
     self->header.has |= ENTITY_HAS_INFRASPACE;
     self->header.infraspace = self->archetype->infraspace;
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "infraspace_gate_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "infraspace_gate_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -311,14 +297,10 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     ascension_init_instance(self, &synthesizer_class_def, &synthesizer_archetype);
     self->synthesizable_resources = self->archetype->synthesizable_resources;
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "synthesizer_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "synthesizer_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);

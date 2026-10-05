@@ -7,17 +7,15 @@
 #include "game/targeting.h"
 #include "engine/pointer_list.h"
 #include "engine/entity_class.h"
+#include "game/planet.h"
 
 enum { SLIPWAY_SERVED_PLANETS_CAP = 90 };
 
 enum { SLIPWAY_TRANSIT_DOTS_RESERVE = 24 };
 
-/* "s" plus the widest structure counter ("-32768"), plus the terminator. */
-enum { SLIPWAY_PLANET_ID_SIZE = 8 };
-
 typedef struct {
     int count;
-    char ids[SLIPWAY_SERVED_PLANETS_CAP][SLIPWAY_PLANET_ID_SIZE];
+    char ids[SLIPWAY_SERVED_PLANETS_CAP][PLANET_ID_SIZE];
 } slipway_served_planets_t;
 
 /* Copies id; the caller keeps its own string. */

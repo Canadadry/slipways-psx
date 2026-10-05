@@ -467,14 +467,14 @@ static void test_directed(void) {
     first_id = shared_id_fixed(as_structure_icon(all_icons[0]));
     made = class_of(all_icons[0])->left_press(all_icons[0], (mouse_pos_t){0});
     assert(made.stop && entity_get(made.held) != NULL && planet_is_family(entity_get(made.held)));
-    assert(strcmp(((const planet_t *)entity_get(made.held))->planet_id, "s1") == 0);
+    assert(strcmp(planet_id_or_null((const planet_t *)entity_get(made.held)), "s1") == 0);
     assert(shared_id_fixed(as_structure_icon(all_icons[count - 1])) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
-    hash = fold_string(hash, ((const planet_t *)entity_get(made.held))->planet_id);
+    hash = fold_string(hash, planet_id_or_null((const planet_t *)entity_get(made.held)));
     made = class_of(all_icons[count - 1])->left_press(all_icons[count - 1], (mouse_pos_t){0});
     assert(entity_get(made.held) != NULL && planet_is_family(entity_get(made.held)));
-    assert(strcmp(((const planet_t *)entity_get(made.held))->planet_id, "s2") == 0);
+    assert(strcmp(planet_id_or_null((const planet_t *)entity_get(made.held)), "s2") == 0);
     assert(shared_id_fixed(as_structure_icon(all_icons[0])) == p8_fixed_add(first_id, p8_fixed_from_int(2)));
-    hash = fold_string(hash, ((const planet_t *)entity_get(made.held))->planet_id);
+    hash = fold_string(hash, planet_id_or_null((const planet_t *)entity_get(made.held)));
     hash = fold_shared(hash, all_icons[3]);
 
     assert(pos_ref(&as_structure_icon(shown)->header) != NULL);

@@ -153,8 +153,7 @@ static size_t route_list_bytes(const planet_t *planet, uint16_t present, const t
     return bytes;
 }
 
-/* Footprint of the tagged planets: struct, the galaxy's map position and position boxes,
- * identifier and the slipways, outgoing and incoming route lists. No needs
+/* Footprint of the tagged planets: struct and the slipways, outgoing and incoming route lists. No needs
  * nor copies of needs, which populated planets lack before an action. */
 static size_t planets_bytes(void) {
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
@@ -162,8 +161,7 @@ static size_t planets_bytes(void) {
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
         assert(!(p->has & PLANET_HAS_NEEDS) && "a planet has needs, which planets_bytes does not count");
-        bytes += block_bytes(sizeof *p) + 2 * block_bytes(sizeof(vec_t)) +
-                  block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(&p->slipways) +
+        bytes += block_bytes(sizeof *p) + planet_list_bytes(&p->slipways) +
                   route_list_bytes(p, PLANET_HAS_OUTGOING_ROUTES, &p->outgoing_routes) +
                   route_list_bytes(p, PLANET_HAS_INCOMING_ROUTES, &p->incoming_routes);
     }

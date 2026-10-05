@@ -53,9 +53,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 }
 
 
-/* The first vector copies the second: another box, same x and y; NULL for NULL. */
-static int pos_copies(const vec_t *ra, const vec_t *mp) {
-    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+static int pos_copies(const vec_t *ra, vec_t mp) {
+    return ra != NULL && ra->x == mp.x && ra->y == mp.y;
 }
 
 
@@ -214,12 +213,6 @@ static void start_game(void) {
     cart_flush_exit_queue();
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
     return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
@@ -290,7 +283,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     const planet_t *planet = structure;
     size_t index;
 
-    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_fixed_member(hash, structure->archetype->project_index);
@@ -333,7 +326,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
@@ -402,7 +395,7 @@ static void set_credits(int n) {
 
 /* What targeting_track left on a laboratory: its pos (a copy of the mouse
  * position passed), its map_pos, and what its target is. */
-static uint32_t fold_held(uint32_t h, void *e, const vec_t *mp) {
+static uint32_t fold_held(uint32_t h, void *e, vec_t mp) {
     const planet_t *qh = as_structure(e);
 
     assert(pos_copies(pos_ref(&qh->header), mp));
@@ -427,7 +420,7 @@ static void test_life(void) {
     void *in_lab;
     void *refused_lab;
     void *planet;
-    vec_t *mouse_world;
+    vec_t mouse_world;
     const vec_t *planet_map_pos;
     const vec_t *pos_before;
     p8_fixed_t before;
@@ -437,8 +430,8 @@ static void test_life(void) {
     start_game();
 
     out_lab = build_lab();
-    mouse_world = vec_ref(vec_xy(7680, 7680));
-    class_of(out_lab)->drag(out_lab, mouse_pos(*mouse_world, vec_xy(0, 0)));
+    mouse_world = vec_xy(7680, 7680);
+    class_of(out_lab)->drag(out_lab, mouse_pos(mouse_world, vec_xy(0, 0)));
     hash = fold_held(hash, out_lab, mouse_world);
     assert(target_state(as_structure(out_lab)) == 3 && !entity_list_listed(live_entities(), targeting_target(&as_structure(out_lab)->targeting)));
 
@@ -446,15 +439,15 @@ static void test_life(void) {
     assert(planet_is_family(planet));
     planet_map_pos = map_pos_ref(&((const planet_t *)planet)->header);
     assert(planet_map_pos != NULL);
-    mouse_world = vec_ref(vec_add(vec_mul(*planet_map_pos, p8_fixed_from_int(128)), vec_xy(6, 0)));
-    class_of(out_lab)->drag(out_lab, mouse_pos(*mouse_world, vec_xy(64, 64)));
+    mouse_world = vec_add(vec_mul(*planet_map_pos, p8_fixed_from_int(128)), vec_xy(6, 0));
+    class_of(out_lab)->drag(out_lab, mouse_pos(mouse_world, vec_xy(64, 64)));
     hash = fold_held(hash, out_lab, mouse_world);
     assert(targeting_target(&as_structure(out_lab)->targeting) == planet &&
            entity_get(((const planet_t *)planet)->targeted_by) == out_lab);
 
     refused_lab = build_lab();
-    mouse_world = vec_ref(vec_xy(7680, 7680));
-    class_of(refused_lab)->drag(refused_lab, mouse_pos(*mouse_world, vec_xy(64, 64)));
+    mouse_world = vec_xy(7680, 7680);
+    class_of(refused_lab)->drag(refused_lab, mouse_pos(mouse_world, vec_xy(64, 64)));
     hash = fold_held(hash, refused_lab, mouse_world);
     assert(target_state(as_structure(refused_lab)) == 1);
     set_credits(3);
@@ -467,8 +460,8 @@ static void test_life(void) {
     assert(is_dead_state(as_structure(refused_lab)) == 2 && credits() == p8_fixed_from_int(3));
 
     in_lab = build_lab();
-    mouse_world = vec_ref(vec_xy(7680, 7552));
-    class_of(in_lab)->drag(in_lab, mouse_pos(*mouse_world, vec_xy(64, 64)));
+    mouse_world = vec_xy(7680, 7552);
+    class_of(in_lab)->drag(in_lab, mouse_pos(mouse_world, vec_xy(64, 64)));
     set_credits(100);
     assert(class_of(in_lab)->drop == targeting_confirm_method);
     hash = targeting_confirm(in_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
@@ -647,11 +640,10 @@ static void must_abort(void (*write)(void *), void *e) {
 }
 
 static void build_with_unknown_key(void *e) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     (void)e;
-    keys.planet_id = NULL;
-    keys.map_pos = vec_ref(vec_xy(1, 1));
-    keys.pos = NULL;
+    keys.map_pos = vec_xy(1, 1);
+    keys.has_map_pos = 1;
     (void)structure_new(&keys);
 }
 
@@ -688,14 +680,12 @@ static void test_structure_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = structure_new(NULL);
-        assert(is_a_structure_struct(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL && entity_list_listed(entities_by_tag(TAG_STRUCTURE), bare));
+        assert(is_a_structure_struct(bare) && planet_id_or_null(bare) == NULL && bare->slipways.zone != NULL && entity_list_listed(entities_by_tag(TAG_STRUCTURE), bare));
     }
     for (index = 0; index < sizeof descendant_kinds / sizeof descendant_kinds[0]; index++) {
-        planet_keys_t keys;
+        planet_keys_t keys = {0};
         void *d;
-        keys.planet_id = "s99";
-        keys.map_pos = NULL;
-        keys.pos = NULL;
+        planet_keys_set_id(&keys, "s99");
         d = descendant_kinds[index]->new_entity(&keys);
         if (descendant_kinds[index] == trading_hub_kind()) {
             assert(d != NULL &&
@@ -745,10 +735,11 @@ static void test_lineage_of_each_class(void) {
     const unsigned qh = jo | LINEAGE(LINEAGE_STRUCTURE);
     const entity_kind_t *const lineage[] = {structure_kind(), trading_hub_kind(), processor_kind(), ascension_kind(),
                                                   protostar_kind(), synthesizer_kind(), slipgate_kind(), infraspace_gate_kind()};
-    planet_keys_t keys = {"s99", NULL, NULL};
+    planet_keys_t keys = {0};
     const entity_t *e;
     size_t i;
 
+    planet_keys_set_id(&keys, "s99");
     start_game();
     for (i = 0; i < sizeof lineage / sizeof lineage[0]; i++) {
         e = lineage[i]->new_entity(&keys);
