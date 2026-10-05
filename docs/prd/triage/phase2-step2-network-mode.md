@@ -6,6 +6,8 @@ status: needs-triage
 
 ## Hypotheses on step 2.1
 
+Checked against step 2.1 as landed (its step note in `docs/plan-15.md`): every hypothesis holds. The free-mode × filter is the static `cross_reaches_background` in `pad_nav.c`; the engagement flag is `cross_engaged`. `pad_probe` also pans Up before the probe, and presses neither △ nor ○ with a menu open.
+
 Step 2.1 (free mode, `docs/prd/triage/phase2-step1-free-mode.md`) is being implemented while this PRD is written. This PRD reads only committed code: `pad_nav` at `HEAD` still has no free mode. Every assumption about 2.1's outcome is listed here.
 
 **Rule for the implementer:** if step 2.1 landed with a different name or spelling, use what landed. Only a hypothesis whose *behavior* turns out false needs a line in this step's note. When that happens, its fallback applies.
