@@ -22,10 +22,16 @@ typedef struct {
 
 typedef struct {
     entity_t header;
-    const vec_t *fixed_pos;
-    const vec_t *row_step;
+    uint16_t has;
+    vec_t fixed_pos;
+    vec_t row_step;
     p8_fixed_t back_color;
 } score_panel_layout_block_t;
+
+enum {
+    SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS = 1u << 0,
+    SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP = 1u << 1,
+};
 
 enum { SCORE_PANEL_TEXT_CAP = 16 };
 

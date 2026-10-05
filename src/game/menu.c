@@ -168,15 +168,15 @@ void menu_show_tech_tree_screen(void) {
         ep = p8_concat2(frame_zone(), tmp2, ")");
 
         open_box_frame_set_description(&frame, ep);
-        if (layout_block->fixed_pos != NULL) {
+        if (layout_block->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS) {
             frame.has_fixed_pos = 1;
-            frame.fixed_pos = *layout_block->fixed_pos;
+            frame.fixed_pos = layout_block->fixed_pos;
         }
         frame.has_back_color = 1;
         frame.back_color = layout_block->back_color;
-        if (layout_block->row_step != NULL) {
+        if (layout_block->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP) {
             frame.has_row_step = 1;
-            frame.row_step = *layout_block->row_step;
+            frame.row_step = layout_block->row_step;
         }
         message_box_open_box(&frame, buttons, row_count);
     }

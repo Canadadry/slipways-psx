@@ -244,12 +244,12 @@ static uint32_t fold_tech_tree_screen(uint32_t h, const score_panel_layout_block
 
     assert(cr != NULL);
     h = fnv(fnv(h, 1u), 0x7Au);
-    if (cr->fixed_pos != NULL) {
-        h = fold_ref(fnv_str(h, "fixed_pos"), cr->fixed_pos);
+    if (cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS) {
+        h = fold_ref(fnv_str(h, "fixed_pos"), &cr->fixed_pos);
         count++;
     }
-    if (cr->row_step != NULL) {
-        h = fold_ref(fnv_str(h, "row_step"), cr->row_step);
+    if (cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP) {
+        h = fold_ref(fnv_str(h, "row_step"), &cr->row_step);
         count++;
     }
     h = fnv(fnv(fnv_str(h, "back_color"), 0xF1u), (uint32_t)cr->back_color);
@@ -704,8 +704,9 @@ static void test_tech_tree_screen_is_a_struct(void) {
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
-    assert(cr->fixed_pos != NULL);
-    assert(cr->row_step != NULL && cr->row_step != cr->fixed_pos);
+    assert(cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS);
+    assert(cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP);
+    assert(cr->row_step.x == 0 && cr->row_step.y == p8_fixed_from_int(11));
     assert(cr->back_color == p8_fixed_from_int(10));
 
     menu_show_tech_tree_screen();

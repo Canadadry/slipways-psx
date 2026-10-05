@@ -5,8 +5,8 @@
 # included; a line `entity-lists <file> <count>` gives its fields and
 # variables of type entity_list_t. A file with neither has no line. Strict
 # equality: plan 13 lowers these counts, and no step may raise one.
-# Pending user validation (plan 13, section 7): each file holds a pointer that
-# is neither const static data nor allowed by the user's decisions.
+# Validated by the user (plan 13, section 7): rows aimed at static tables, or
+# at call-scoped memory never kept past the call.
 src/game/layout.h 4
 src/game/map_tables.h 21
 # Files whose remaining pointers are const static data, owned variable-size
@@ -31,7 +31,7 @@ src/game/planet_family.h 1
 src/game/probe.h 1
 src/game/research.c 2
 src/game/research.h 10
-src/game/score_panel.h 3
+src/game/score_panel.h 1
 src/game/scroll.h 1
 src/game/slipway.h 2
 src/game/targeting.h 1

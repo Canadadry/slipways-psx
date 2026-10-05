@@ -46,8 +46,9 @@ static const entity_class_t score_panel_layout_block_class_def = {0};
 
 static score_panel_layout_block_t g_score_panel_layout_block = {
     {.class = &score_panel_layout_block_class_def},
-    &(const vec_t){0x0, 0xb0000},
-    &(const vec_t){0x0, 0xb0000},
+    SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS | SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP,
+    {0x0, 0xb0000},
+    {0x0, 0xb0000},
     0xa0000,
 };
 

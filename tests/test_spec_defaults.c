@@ -200,8 +200,8 @@ static void test_score_panel_defaults_and_ready(void) {
 
     assert(pj->archetype == &score_panel_archetype && pj->header.layer == pj->archetype->layer);
     assert(score_panel_last_box(pj) == NULL);
-    assert(cr->fixed_pos->x == 0 && cr->fixed_pos->y == p8_fixed_from_int(11));
-    assert(cr->row_step->x == 0 && cr->row_step->y == p8_fixed_from_int(11));
+    assert((cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS) && cr->fixed_pos.x == 0 && cr->fixed_pos.y == p8_fixed_from_int(11));
+    assert((cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP) && cr->row_step.x == 0 && cr->row_step.y == p8_fixed_from_int(11));
     assert(cr->back_color == p8_fixed_from_int(10));
     assert(pj->header.state == pj->archetype->state && pj->header.state == ENTITY_STATE_NORMAL && pj->header.state_time == 0);
     assert(score_panel_ready());
