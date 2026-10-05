@@ -68,7 +68,9 @@ void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id) {
         return;
     }
     assert(hg->count < SLIPWAY_SERVED_PLANETS_CAP && "slipway_served_planets_add: more planets than the galaxy holds (90) -- stop, do not widen the member");
-    hg->ids[hg->count] = id;
+    assert(strlen(id) < SLIPWAY_PLANET_ID_SIZE &&
+           "slipway_served_planets_add: a planet id wider than any the cart makes -- stop, do not widen the copy");
+    strcpy(hg->ids[hg->count], id);
     hg->count++;
 }
 
@@ -87,20 +89,12 @@ int slipway_served_planets_has(const slipway_served_planets_t *hg, const char *i
 }
 
 void slipway_construct(slipway_t *self) {
-    const allocator_t *zone;
-    pointer_list_t *ts;
-
     if (self == NULL) {
         return;
     }
 
-    zone = grab_arena_construction_zone();
-    ts = (pointer_list_t *)allocator_alloc(zone, sizeof *ts);
-    pointer_list_init_reserve(ts, zone, SLIPWAY_TRANSIT_DOTS_RESERVE);
-    self->transit_dots = ts;
-
-    self->served_planets_own.count = 0;
-    self->served_planets = &self->served_planets_own;
+    pointer_list_init_reserve(&self->transit_dots, grab_arena_construction_zone(), SLIPWAY_TRANSIT_DOTS_RESERVE);
+    self->served_planets.count = 0;
 }
 
 void slipway_drag(slipway_t *self, vec_t *mp) {
@@ -249,7 +243,7 @@ entity_t *slipway_obstruction(slipway_t *self) {
 
         if (start_node != NULL) {
             assert(planet_is_family(start_node) && "a slipway's start is a planet: slipway_create asserts it");
-            oe = ((const planet_t *)start_node)->slipways;
+            oe = &((const planet_t *)start_node)->slipways;
         }
         if (oe != NULL) {
             entity_id_list_iter_t it = entity_id_list_all(oe);
@@ -328,11 +322,11 @@ static void slipway_draw_overlay_method(entity_t *self, const vec_t *screen_pos)
 
 static void slipway_release_method(entity_t *self) {
     slipway_t *jc = (slipway_t *)self;
-    const allocator_t *zone = jc->transit_dots->zone;
+    const allocator_t *zone = jc->transit_dots.zone;
 
-    for (int i = 0; i < jc->transit_dots->count; i++)
-        allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), jc->transit_dots->items[i]);
-    jc->transit_dots->count = 0;
+    for (int i = 0; i < jc->transit_dots.count; i++)
+        allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), jc->transit_dots.items[i]);
+    jc->transit_dots.count = 0;
     grab_arena_give_back_if_placing(zone, jc->header.state);
 }
 
@@ -362,8 +356,8 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->targeting.archetype = &self->archetype->targeting;
     self->fade_in_step = self->archetype->fade_in_step;
     self->start = ENTITY_ID_NONE;
-    self->transit_dots = NULL;
-    self->served_planets = NULL;
+    self->transit_dots = (pointer_list_t){0};
+    self->served_planets.count = 0;
     self->end = ENTITY_ID_NONE;
     self->end_is_point = 0;
     self->targeting.cost = self->archetype->targeting.cost;

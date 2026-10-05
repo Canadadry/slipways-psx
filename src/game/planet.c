@@ -68,7 +68,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.shake = self->archetype->shake;
     self->planet_id = NULL;
-    self->slipways = NULL;
+    self->slipways = (entity_id_list_t){0};
     self->project = RESEARCH_PROJECT_ID_NONE;
     self->description = NULL;
     self->needs = NULL;
@@ -172,7 +172,7 @@ planet_t *planet_new(const planet_keys_t *keys) {
 }
 
 void planet_grab_arena_released(const planet_t *self) {
-    grab_arena_give_back_if_placing(self->slipways != NULL ? self->slipways->zone : NULL, self->header.state);
+    grab_arena_give_back_if_placing(self->slipways.zone, self->header.state);
 }
 
 void planet_construct(planet_t *self) {
@@ -180,15 +180,11 @@ void planet_construct(planet_t *self) {
 }
 
 void planet_construct_in(planet_t *self, const allocator_t *zone) {
-    entity_id_list_t *oe;
-
     if (self == NULL) {
         return;
     }
 
-    oe = (entity_id_list_t *)allocator_alloc(zone, sizeof *oe);
-    entity_id_list_init(oe, zone);
-    self->slipways = oe;
+    entity_id_list_init(&self->slipways, zone);
 
     if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
         research_project_t *target = research_projects_at(p8_fixed_flr_int(self->archetype->project_index));
@@ -218,8 +214,7 @@ size_t planet_kind_construction_bytes(const entity_kind_t *kind) {
     const planet_archetype_t *archetype = kind->record->archetype;
     const research_project_t *target = research_projects_at(p8_fixed_flr_int(archetype->project_index));
 
-    return ZONE_BYTES(sizeof(planet_t)) + ZONE_BYTES(sizeof(entity_id_list_t)) +
-           (target != NULL ? planet_project_bytes(target) : 0);
+    return ZONE_BYTES(sizeof(planet_t)) + (target != NULL ? planet_project_bytes(target) : 0);
 }
 
 void planet_install_project(planet_t *self, research_project_t *research_project_instance) {
@@ -284,7 +279,7 @@ void planet_update_vanishing(planet_t *self, p8_fixed_t t) {
         return;
     }
     self->header.is_dead = t > p8_fixed_from_int(60);
-    assert((!self->header.is_dead || self->slipways == NULL || self->slipways->count == 0) &&
+    assert((!self->header.is_dead || self->slipways.count == 0) &&
            "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
 }
 

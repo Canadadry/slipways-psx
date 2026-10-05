@@ -76,8 +76,8 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
 
         if (slipways != NULL && planets != NULL) {
             for (index = 0; index < slipways->count; index++) {
-                const entity_t *w_val = entity_id_list_at(slipways, index);
-                const slipway_t *w;
+                entity_t *w_val = entity_id_list_at(slipways, index);
+                slipway_t *w;
                 const entity_t *planet_val;
                 const planet_t *planet;
 
@@ -91,13 +91,8 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
                     continue;
                 }
                 assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
-                w = (const slipway_t *)w_val;
-                /* GAP-15 */
-                /* Skipped, never fatal: never make this absent set fail alone. */
-                if (w->served_planets == NULL) {
-                    continue;
-                }
-                slipway_served_planets_add(w->served_planets, planet->planet_id);
+                w = (slipway_t *)w_val;
+                slipway_served_planets_add(&w->served_planets, planet->planet_id);
             }
         }
 

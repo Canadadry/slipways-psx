@@ -34,6 +34,11 @@ static void release_particle(particle_t *p) {
 }
 
 /* A particle list of the kind, in its slot, reserved to `capacity`. */
+static void give_particles(emitter_t *emitter, particle_slot_kind_t slot_kind, int capacity) {
+    pointer_list_init_reserve(&emitter->particles, particle_zone_slot(slot_kind), capacity);
+    emitter->has |= EMITTER_HAS_PARTICLES;
+}
+
 static pointer_list_t *list(particle_slot_kind_t slot_kind, int capacity) {
     const allocator_t *slot = particle_zone_slot(slot_kind);
     pointer_list_t *qy = (pointer_list_t *)allocator_alloc(slot, sizeof *qy);
@@ -148,16 +153,16 @@ static int case_maxima_keep_the_peak(void) {
 static int case_particles_release_gives_back_particles_then_list(void) {
     emitter_t emitter;
     memset(&emitter, 0, sizeof emitter);
-    emitter.particles = list(PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
-    pointer_list_add(emitter.particles, particle());
-    pointer_list_add(emitter.particles, NULL);
-    pointer_list_add(emitter.particles, particle());
+    give_particles(&emitter, PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
+    pointer_list_add(&emitter.particles, particle());
+    pointer_list_add(&emitter.particles, NULL);
+    pointer_list_add(&emitter.particles, particle());
     particle_t *kept = particle();
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 3);
 
     emitter_release_particles(&emitter);
 
-    assert(emitter.particles == NULL && "the host no longer points at the given-back list");
+    assert(!(emitter.has & EMITTER_HAS_PARTICLES) && "the host no longer holds the given-back list");
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 &&
            "the list's particles are given back, not the others");
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
@@ -171,10 +176,10 @@ static int case_particles_release_gives_back_particles_then_list(void) {
 static int case_particles_release_releases_the_arena(void) {
     emitter_t emitter;
     memset(&emitter, 0, sizeof emitter);
-    emitter.particles = list(PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
-    const pointer_list_t *qy = emitter.particles;
+    give_particles(&emitter, PARTICLE_SLOT_LIST, PARTICLES_CAPACITY);
+    void *const *items = emitter.particles.items;
     emitter_release_particles(&emitter);
-    sink = ((const volatile unsigned char *)qy)[0];
+    sink = ((const volatile unsigned char *)items)[0];
     return 0;
 }
 
@@ -205,14 +210,14 @@ static particle_t *dying(entity_t *h) {
     particle_t *p = particle_take();
     memset(p, 0, sizeof *p);
     p->life = (1 << 16) + 6554;
-    pointer_list_add(emitter_of(h)->particles, p);
+    pointer_list_add(&emitter_of(h)->particles, p);
     return p;
 }
 
 static int case_emitter_init_takes_a_particles_list(void) {
     entity_t *h = host();
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1);
-    assert(emitter_of(h)->particles != NULL && emitter_of(h)->particles->count == 0);
+    assert((emitter_of(h)->has & EMITTER_HAS_PARTICLES) && emitter_of(h)->particles.count == 0);
     emitter_release_particles(emitter_of(h));
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
     return 0;
@@ -234,7 +239,7 @@ static int case_second_emitter_init_gives_back_the_old_list(void) {
     emitter_init(h);
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1 && "the old list is given back");
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 0 && "and its particles with it");
-    assert(emitter_of(h)->particles->count == 0);
+    assert(emitter_of(h)->particles.count == 0);
     return 0;
 }
 
@@ -245,7 +250,7 @@ static int case_emitter_update_gives_back_a_dying_particle(void) {
     surviving->life = 5 << 16;
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 2);
     emitter_update(&g_gfx, &g_mem, h);
-    assert(emitter_of(h)->particles->count == 1);
+    assert(emitter_of(h)->particles.count == 1);
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "emitter_update gives back the particle it removes");
     return 0;
 }
@@ -266,7 +271,7 @@ static int case_emitter_spawn_notes_the_list_length(void) {
     g_host.emitter.archetype = &archetype;
     g_host.emitter.angle_slices = 1 << 16;
     emitter_spawn(h, 3 << 16);
-    assert(emitter_of(h)->particles->count == 3);
+    assert(emitter_of(h)->particles.count == 3);
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 3 && "probe_spawn_particle takes from the particle handle");
     assert(particle_zone_max_elements(PARTICLE_SLOT_LIST) == 3);
     return 0;

@@ -180,9 +180,9 @@ static void test_wormhole_scan_skips_a_live_toast(void) {
     fresh_world();
     e = build(&ra, "+1$", 11);
     mz = wormhole_new();
-    assert(mz->anchors != NULL);
-    assert(!entity_id_list_has(mz->anchors, entity_id_of(e)));
-    assert(mz->anchors->count == 0);
+    assert(mz->anchors.zone != NULL);
+    assert(!entity_id_list_has(&mz->anchors, entity_id_of(e)));
+    assert(mz->anchors.count == 0);
 }
 
 /* update_entities() on an entity struct: the method of its state is called

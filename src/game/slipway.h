@@ -12,11 +12,15 @@ enum { SLIPWAY_SERVED_PLANETS_CAP = 90 };
 
 enum { SLIPWAY_TRANSIT_DOTS_RESERVE = 24 };
 
+/* "s" plus the widest structure counter ("-32768"), plus the terminator. */
+enum { SLIPWAY_PLANET_ID_SIZE = 8 };
+
 typedef struct {
     int count;
-    const char *ids[SLIPWAY_SERVED_PLANETS_CAP];
+    char ids[SLIPWAY_SERVED_PLANETS_CAP][SLIPWAY_PLANET_ID_SIZE];
 } slipway_served_planets_t;
 
+/* Copies id; the caller keeps its own string. */
 void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id);
 
 int slipway_served_planets_has(const slipway_served_planets_t *hg, const char *id);
@@ -30,9 +34,8 @@ typedef struct {
     const slipway_archetype_t *archetype;
     p8_fixed_t fade_in_step;
     entity_id_t start;
-    pointer_list_t *transit_dots;
-    slipway_served_planets_t *served_planets;
-    slipway_served_planets_t served_planets_own;
+    pointer_list_t transit_dots;
+    slipway_served_planets_t served_planets;
     entity_id_t end;
     int end_is_point;
     entity_id_t targeted_by;
@@ -40,9 +43,8 @@ typedef struct {
     slipway_mouse_point_t point;
 } slipway_t;
 
-#define SLIPWAY_CONSTRUCTION_BYTES                                         \
-    (ZONE_BYTES(sizeof(slipway_t)) + ZONE_BYTES(sizeof(pointer_list_t)) + \
-     ZONE_BYTES(SLIPWAY_TRANSIT_DOTS_RESERVE * sizeof(void *)))
+#define SLIPWAY_CONSTRUCTION_BYTES \
+    (ZONE_BYTES(sizeof(slipway_t)) + ZONE_BYTES(SLIPWAY_TRANSIT_DOTS_RESERVE * sizeof(void *)))
 
 typedef struct {
     entity_t header;

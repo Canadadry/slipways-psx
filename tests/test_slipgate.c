@@ -341,7 +341,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
@@ -379,7 +379,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     assert(planet->has & PLANET_HAS_PRODUCTION);
     assert(research_projects_at(1) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(1));
-    hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
     hash = fnv(hash, (uint32_t)list_size(planet->needs));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
@@ -401,7 +401,7 @@ static void test_built(void) {
     start_game();
     a = build_slipgate();
     b = build_slipgate();
-    assert(a != b && as_structure(a)->slipways != as_structure(b)->slipways && planet_production_read(as_structure(a)) != planet_production_read(as_structure(b)));
+    assert(a != b && as_structure(a)->slipways.zone != as_structure(b)->slipways.zone && planet_production_read(as_structure(a)) != planet_production_read(as_structure(b)));
     hash = fold_slipgate(hash, a);
     hash = fold_slipgate(hash, b);
     check("built", hash, BUILT_HASH);
@@ -474,7 +474,7 @@ static void test_life(void) {
     void *bare;
     vec_t *mouse_world;
     down_t slipway;
-    entity_id_list_t *slipways;
+    entity_id_list_t slipways;
     const vec_t *main_camera_pos;
     int index;
 
@@ -515,7 +515,7 @@ static void test_life(void) {
 
     slipways = as_structure(placed)->slipways;
     for (index = 0; index <= 3; index++) {
-        as_structure(placed)->slipways = list_of(index, idle);
+        as_structure(placed)->slipways = *list_of(index, idle);
         class_of(placed)->refresh(placed);
         hash = fold_fixed_member(hash, as_structure(placed)->sprite);
         hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
@@ -537,7 +537,7 @@ static void test_life(void) {
     assert(as_structure(infraspace_gate)->sprite == p8_fixed_from_int(78));
 
     bare = slipgate_new(NULL);
-    assert(gate_kind(bare) == SLIPGATE && as_structure(bare)->planet_id == NULL && as_structure(bare)->slipways != NULL &&
+    assert(gate_kind(bare) == SLIPGATE && as_structure(bare)->planet_id == NULL && as_structure(bare)->slipways.zone != NULL &&
            (as_structure(bare)->has & PLANET_HAS_PRODUCTION));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_SLIPGATE), bare));
     {
@@ -583,7 +583,7 @@ static void test_slipgate_is_a_struct(void) {
     assert(slipgate_ready() && infraspace_gate_ready());
     {
         planet_t *bare = slipgate_new(NULL);
-        assert(is_a_slipgate_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL && (bare->has & PLANET_HAS_PRODUCTION));
+        assert(is_a_slipgate_struct(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL && (bare->has & PLANET_HAS_PRODUCTION));
     }
     fr = build(infraspace_gate_kind());
     assert(fr != NULL &&
@@ -630,8 +630,8 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     slipway_keys.start = entity_id_link(&self->header);
     slipway = slipway_new(&slipway_keys);
     slipway->end = entity_id_link(&other->header);
-    assert(self->slipways != NULL && self->slipways->count == 0);
-    entity_id_list_add(self->slipways, entity_id_link(&slipway->header));
+    assert(self->slipways.zone != NULL && self->slipways.count == 0);
+    entity_id_list_add(&self->slipways, entity_id_link(&slipway->header));
 
     entity_id_list_init(with_w, &heap_allocator);
     entity_id_list_add(with_w, entity_id_of(&slipway->header));

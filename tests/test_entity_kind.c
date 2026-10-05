@@ -166,7 +166,7 @@ static void test_kind_fills_its_grab_arena(void) {
         arena = grab_arena_construction_zone();
         made = kind_build(i);
         grab_arena_close();
-        assert(made != NULL && ((const planet_t *)made)->slipways->zone == arena);
+        assert(made != NULL && ((const planet_t *)made)->slipways.zone == arena);
         if (arena_used(arena) != arena_size(arena))
             fprintf(stderr, "kind %d: arena %lu, used %lu\n", i, (unsigned long)arena_size(arena),
                     (unsigned long)arena_used(arena));

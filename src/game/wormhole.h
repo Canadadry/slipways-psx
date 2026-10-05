@@ -18,7 +18,7 @@ typedef struct {
     const wormhole_archetype_t *archetype;
     uint16_t has;
     p8_fixed_t radius;
-    entity_id_list_t *anchors;
+    entity_id_list_t anchors;
     entity_id_t anchor;
     targeting_t targeting;
 } wormhole_t;

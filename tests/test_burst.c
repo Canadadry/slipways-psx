@@ -43,6 +43,11 @@
 #include "engine/game_zone.h"
 
 /* The burst copies the planet's position and map position, values and presence. */
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
 static int same_positions(const entity_t *a, const entity_t *b) {
     return entity_has_pos(a) == entity_has_pos(b) && entity_has_map_pos(a) == entity_has_map_pos(b) && a->pos.x == b->pos.x && a->pos.y == b->pos.y && a->map_pos.x == b->map_pos.x && a->map_pos.y == b->map_pos.y;
 }
@@ -344,8 +349,8 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(emitter->trail_colors == NULL ? -1 : emitter->trail_colors->count));
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
     hash = fnv(hash, (uint32_t)trade_route_list_count(planet->outgoing_routes));
-    hash = fnv(hash, (uint32_t)pointer_list_size(emitter->particles));
-    hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)pointer_list_size(particles_of(emitter)));
+    hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
     assert(main_camera_typed() != NULL);
     hash = fold_fixed_member(hash, main_camera_typed()->header.shake);
     /* The 1s of spawn_rate, the four matrix entries, acceleration_factor,
@@ -361,7 +366,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
+    hash = fnv(hash, (uint32_t)(particles_of(emitter) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -378,7 +383,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
@@ -449,9 +454,9 @@ static void test_built(void) {
     c = burst_new(NULL);
     hash = fold_burst(hash, c, 0);
     assert(a != b && b != c && a != c);
-    assert(as_burst(a)->emitter.particles != as_burst(b)->emitter.particles &&
-           as_burst(b)->emitter.particles != as_burst(c)->emitter.particles);
-    assert(as_burst(a)->slipways != as_burst(b)->slipways);
+    assert(particles_of(&as_burst(a)->emitter)->zone != particles_of(&as_burst(b)->emitter)->zone &&
+           particles_of(&as_burst(b)->emitter)->zone != particles_of(&as_burst(c)->emitter)->zone);
+    assert(as_burst(a)->slipways.zone != as_burst(b)->slipways.zone);
     assert(as_burst(a)->outgoing_routes == as_burst(b)->outgoing_routes && as_burst(b)->outgoing_routes == as_burst(c)->outgoing_routes);
     assert(pos_ref(&as_burst(c)->header) == NULL && map_pos_ref(&as_burst(c)->header) == NULL && as_burst(c)->planet_id == NULL);
     assert(as_burst(a)->archetype->layer == p8_fixed_from_int(3) && as_burst(a)->speed == p8_fixed_from_int(3));
@@ -559,7 +564,7 @@ static void cut_particles(pointer_list_t *qy, int n) {
 /* The draw method on a burst whose particle list is cut in place to the given count: is_dead after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     planet_t *g = as_burst(e);
-    pointer_list_t *qy = g->emitter.particles;
+    pointer_list_t *qy = particles_of(&g->emitter);
 
     assert(qy != NULL && qy->count >= n);
     cut_particles(qy, n);
@@ -602,10 +607,10 @@ static void test_life(void) {
         hash = fold_is_dead(hash, as_burst(first));
         hash = fold_is_dead(hash, as_burst(second));
         hash = fold_is_dead(hash, as_burst(third));
-        hash = fnv(hash, (uint32_t)pointer_list_size(as_burst(second)->emitter.particles));
+        hash = fnv(hash, (uint32_t)pointer_list_size(particles_of(&as_burst(second)->emitter)));
     }
 
-    cut_particles(as_burst(second)->emitter.particles, 3);
+    cut_particles(particles_of(&as_burst(second)->emitter), 3);
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
@@ -698,7 +703,7 @@ static void test_emitter_update_moves_a_particle_in_place(void) {
     particle->has_acceleration = 1;
     particle->acceleration = a0;
     particle->life = p8_fixed_from_int(5);
-    qy = em->particles;
+    qy = particles_of(em);
     cut_particles(qy, 0);
     pointer_list_add(qy, particle);
 
@@ -795,7 +800,7 @@ static void test_leaving_gives_back_its_particles(void) {
     start_game();
     cart_flush_exit_queue();
     e = as_burst(harvest(40, 40, "s74"));
-    count = e->emitter.particles->count;
+    count = particles_of(&e->emitter)->count;
     assert(count == 140);
     built = held_now();
     entity_unregister(&e->header);

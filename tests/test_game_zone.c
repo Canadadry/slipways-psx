@@ -139,13 +139,11 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Bytes of a planet list made in the generation: its container, then its
- * blocks as for a registry. */
+/* Bytes of the items of a planet list grown in the generation, block by block as for a registry. */
 static size_t planet_list_bytes(const entity_id_list_t *list) {
     size_t bytes = 0;
-    if (list == NULL) return 0;
     for (int k = 4; k <= list->capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(entity_id_t));
-    return block_bytes(sizeof *list) + bytes;
+    return bytes;
 }
 
 static size_t route_list_bytes(const trade_route_list_t *list) {
@@ -165,7 +163,7 @@ static size_t planets_bytes(void) {
         const planet_t *p = (const planet_t *)jo->items[i];
         assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
         bytes += block_bytes(sizeof *p) + 2 * block_bytes(sizeof(vec_t)) +
-                  block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
+                  block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(&p->slipways) +
                   route_list_bytes(p->outgoing_routes) + route_list_bytes(p->incoming_routes);
     }
     return bytes;

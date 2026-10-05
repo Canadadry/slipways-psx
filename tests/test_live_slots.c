@@ -70,6 +70,11 @@ typedef struct {
     size_t game_zone;
 } reading_t;
 
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
 static void take_reading(reading_t *r, int frame) {
     cart_flush_exit_queue();
     r->frame = frame;
@@ -100,16 +105,16 @@ static registered_t count_registered(void) {
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         entity_t *e = hv->items[i];
         const emitter_t *emitter = emitter_of(e);
-        if (emitter != NULL && emitter->particles != NULL) {
+        if (emitter != NULL && particles_of(emitter) != NULL) {
             n.lists++;
-            n.particle += emitter->particles->count;
+            n.particle += particles_of(emitter)->count;
         }
         if (e->class == burst_class()) n.bursts++;
     }
     const entity_list_t *jc = entities_by_tag(TAG_SLIPWAY);
     for (int i = 0; jc != NULL && i < jc->count; i++) {
         const slipway_t *s = (const slipway_t *)jc->items[i];
-        if (s->transit_dots != NULL) n.trails += s->transit_dots->count;
+        n.trails += s->transit_dots.count;
     }
     return n;
 }
@@ -595,11 +600,6 @@ static size_t id_list_bytes(const entity_id_list_t *list) {
     return bytes;
 }
 
-static size_t planet_list_bytes(const entity_id_list_t *list) {
-    if (list == NULL) return 0;
-    return block_bytes(sizeof *list) + id_list_bytes(list);
-}
-
 static size_t route_list_bytes(const trade_route_list_t *list) {
     if (list == NULL) return 0;
     size_t bytes = block_bytes(sizeof *list);
@@ -618,7 +618,7 @@ static size_t planets_bytes(void) {
         const planet_t *p = (const planet_t *)jo->items[i];
         assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
         bytes += block_bytes(sizeof *p) + 2 * block_bytes(sizeof(vec_t)) +
-                  block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
+                  block_bytes(strlen(p->planet_id) + 1) + id_list_bytes(&p->slipways) +
                   route_list_bytes(p->outgoing_routes) + route_list_bytes(p->incoming_routes);
     }
     return bytes;
@@ -827,7 +827,7 @@ static void trade_rich_mine_rebuild_gives_back_frame(void) {
     start_e2e("trade_rich_mine");
     play_until(139);
     planet_t *p27 = (planet_t *)planet_with_id("p27");
-    assert(p27->slipways != NULL && p27->slipways->count > 0 && "f139: p27 is linked");
+    assert(p27->slipways.zone != NULL && p27->slipways.count > 0 && "f139: p27 is linked");
     const trade_route_list_t *by = p27->outgoing_routes;
     assert(by != NULL && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
     const int n = trade_route_list_count(by);
@@ -903,7 +903,7 @@ static void placed_grab_does_not_fit_dead_wormhole_arena(void) {
     play_until(174);
     const size_t after = game_without_registries();
     const planet_t *placed = placed_grab();
-    const allocator_t *arena = placed->slipways->zone;
+    const allocator_t *arena = placed->slipways.zone;
     const size_t lists = route_list_bytes(placed->outgoing_routes) + route_list_bytes(placed->incoming_routes);
     printf("  placed grab: game - registries = %lu -> %lu (arena %lu, outgoing_routes/incoming_routes %lu)\n",
            (unsigned long)before, (unsigned long)after, (unsigned long)arena_size(arena), (unsigned long)lists);
@@ -1001,7 +1001,7 @@ static void refused_slipways_do_not_grow_game(void) {
 }
 
 static size_t slipways_of_p27_and_p48_bytes(void) {
-    return id_list_bytes(planet_with_id("p27")->slipways) + id_list_bytes(planet_with_id("p48")->slipways);
+    return id_list_bytes(&planet_with_id("p27")->slipways) + id_list_bytes(&planet_with_id("p48")->slipways);
 }
 
 /* The f4 wormhole's arena, free since f48, is too small for a slipway: the
@@ -1188,14 +1188,14 @@ static void wormhole_targets_only_placed_probe(void) {
     play_until(90);
     const wormhole_t *mz = held_wormhole();
     const probe_t *placed = NULL;
-    for (int i = 0; i < mz->anchors->count; i++) {
-        const entity_t *e = entity_id_list_at(mz->anchors, i);
+    for (int i = 0; i < mz->anchors.count; i++) {
+        const entity_t *e = entity_id_list_at(&mz->anchors, i);
         if (e->class != probe_class()) continue;
         assert(placed == NULL && e->state == ENTITY_STATE_SETTLED && "the anchors keep a single probe, a placed one");
         placed = (const probe_t *)e;
     }
     assert(placed != NULL && "f86: the placed probe is an anchor of the wormhole");
-    assert(placed->grab_arena != NULL && placed->grab_arena != mz->anchors->zone && "the placed probe keeps its arena");
+    assert(placed->grab_arena != NULL && placed->grab_arena != mz->anchors.zone && "the placed probe keeps its arena");
 }
 
 static void refused_probe_crosses_new_game(void) {

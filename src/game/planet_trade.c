@@ -40,17 +40,13 @@ static void planet_rebuild_trades_attach_slipway_closure(trade_offer_t *self, co
 }
 
 void planet_attach_slipway(planet_t *self, entity_t *slipway) {
-    entity_id_list_t *oe = NULL;
     entity_t *other = NULL;
 
     if (self == NULL) {
         return;
     }
 
-    oe = self->slipways;
-    if (oe != NULL) {
-        entity_id_list_add(oe, entity_id_link(slipway));
-    }
+    entity_id_list_add(&self->slipways, entity_id_link(slipway));
 
     if (slipway != NULL) {
         assert(slipway->class == slipway_class() && "planet_attach_slipway: the slipway is one slipway_drop registers");
@@ -195,7 +191,7 @@ trade_route_list_t *planet_rebuild_trades(planet_t *self) {
         amount = kw->amount;
     }
 
-    slipways = self->slipways;
+    slipways = &self->slipways;
 
     offers = frame_zone_mark();
     iter = entity_id_list_all(slipways);

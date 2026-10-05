@@ -17,7 +17,7 @@ typedef struct {
     entity_t header;
     const planet_archetype_t *archetype;
     const char *planet_id;
-    entity_id_list_t *slipways;
+    entity_id_list_t slipways;
     research_project_id_t project;
     const char *description;
     pointer_list_t *needs;

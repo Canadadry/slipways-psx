@@ -509,7 +509,7 @@ static void test_held_links_read_null_after_the_flush(void) {
 }
 
 static int slipways_count(void *planet) {
-    const entity_id_list_t *oe = as_planet(planet)->slipways;
+    const entity_id_list_t *oe = &as_planet(planet)->slipways;
     return oe == NULL ? 0 : oe->count;
 }
 

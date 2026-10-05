@@ -183,7 +183,7 @@ static void write_structures(FILE *out, vec_t camera) {
         fprintf(out, "structure %s %s", id_of(&g->header),
                 g->header.class == infraspace_gate_class() ? "infragate" : "slipgate");
         write_position(out, &g->header, camera);
-        fprintf(out, " links %d\n", g->slipways != NULL ? entity_id_list_count(g->slipways) : 0);
+        fprintf(out, " links %d\n", g->slipways.count);
     }
 }
 

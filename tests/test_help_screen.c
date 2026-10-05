@@ -38,6 +38,11 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
 static const vec_t *slide_target_ref(const button_t *b) {
     return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
 }
@@ -371,8 +376,8 @@ static void test_built(void) {
     assert(probe->archetype->rows == &help_screen_rows_row);
     hash = fold_string_member(hash, entity_state_name(probe->header.state));
     hash = fold_fixed_member(hash, probe->header.state_time);
-    hash = fnv(hash, (uint32_t)size_of(emitter->particles));
-    assert(size_of(emitter->particles) == 0);
+    hash = fnv(hash, (uint32_t)size_of(particles_of(emitter)));
+    assert(size_of(particles_of(emitter)) == 0);
     assert(!help_screen->header.is_hovered && map_pos_ref(&probe->header) == NULL && targeting_target(targeting) == NULL && !probe->header.is_dead);
     assert(class_of(help_screen)->new_year == NULL && class_of(help_screen)->refresh == NULL && class_of(help_screen)->states[ENTITY_STATE_NORMAL] == NULL &&
            class_of(help_screen)->left_press == NULL);
@@ -431,7 +436,7 @@ static void test_life(void) {
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
-        hash = fnv(hash, (uint32_t)size_of(fv->emitter.particles));
+        hash = fnv(hash, (uint32_t)size_of(particles_of(&fv->emitter)));
     }
     draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
     hash = fnv(hash, screen_hash());
@@ -453,7 +458,7 @@ static void test_life(void) {
         assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left, box_top), vec_ref(box_left, box_top)) == 1);
         assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left - 1, box_top), vec_ref(box_left - 1, box_top)) == 0);
     }
-    hash = fnv(hash, (uint32_t)size_of(fv->emitter.particles));
+    hash = fnv(hash, (uint32_t)size_of(particles_of(&fv->emitter)));
     check("life", hash, LIFE_HASH);
 }
 
@@ -556,7 +561,7 @@ static void test_particle_takes_the_help_palette(void) {
     particle->velocity = vec_make(0, 0);
     particle->has_acceleration = 0;
     particle->life = P8_FIXED_LIT(0x00068000, 6.5);
-    qy = fv->emitter.particles;
+    qy = particles_of(&fv->emitter);
     empty_particles(qy);
     pointer_list_add(qy, particle);
     p8_camera_reset(&graphics);
@@ -706,13 +711,13 @@ static void test_start_game_gives_back_the_help_particles(void) {
     fv = the_help();
     emitter_spawn(&fv->header, p8_fixed_from_int(5));
     title = held_now();
-    assert(title.particles_help_screen == 1 && fv->emitter.particles->count >= 5);
-    assert(title.particle == fv->emitter.particles->count);
+    assert(title.particles_help_screen == 1 && particles_of(&fv->emitter)->count >= 5);
+    assert(title.particle == particles_of(&fv->emitter)->count);
     cart_start_game(NULL);
     cart_flush_exit_queue();
     after = held_now();
     assert(after.particles_help_screen == 0 && after.particle == 0);
-    assert(fv->emitter.particles == NULL);
+    assert(particles_of(&fv->emitter) == NULL);
 }
 
 int main(void) {

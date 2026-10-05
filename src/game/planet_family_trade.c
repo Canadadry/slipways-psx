@@ -31,7 +31,7 @@ down_t slipgate_accept_drop(const planet_t *self, const entity_t *s) {
     start_not_self = !(s != NULL && s->class == slipway_class() &&
                     slipway_start((const slipway_t *)s) == &self->header);
 
-    slipways_count = self->slipways != NULL ? self->slipways->count : 0;
+    slipways_count = self->slipways.count;
 
     out.stop = start_not_self && slipways_count < 3;
     return out;
@@ -86,7 +86,7 @@ void slipgate_refresh(planet_t *self) {
         return;
     }
 
-    slipways_count = self->slipways != NULL ? self->slipways->count : 0;
+    slipways_count = self->slipways.count;
 
     if (self->archetype->link_sprites != NULL) {
         int entry;
@@ -113,7 +113,7 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
     }
     route = &trade_offer->route;
 
-    slipways = self->slipways;
+    slipways = &self->slipways;
 
     iter = entity_id_list_all(slipways);
     while (entity_id_list_iter_next(&iter, &slipway)) {

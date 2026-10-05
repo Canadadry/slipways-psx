@@ -405,7 +405,7 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->header.fold_anchor = self->archetype->fold_anchor;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->emitter.archetype = &self->archetype->emitter;
-    self->emitter.particles = NULL;
+    self->emitter.has = 0;
     if (self->archetype->has_pos) {
         entity_set_pos(&self->header, self->archetype->pos);
     }

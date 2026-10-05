@@ -253,11 +253,8 @@ static int id_list_count(const entity_id_list_t *l) {
 
 /* The count, then each served planet's identifier. */
 static uint32_t fold_served_planets(uint32_t h, const void *jc) {
-    const slipway_served_planets_t *hg = as_slipway(jc)->served_planets;
+    const slipway_served_planets_t *hg = &as_slipway(jc)->served_planets;
     int i;
-    if (hg == NULL) {
-        return fnv(h, 0xDEADu);
-    }
     h = fnv(h, (uint32_t)hg->count);
     for (i = 0; i < hg->count; i++) {
         h = fnv_str(h, hg->ids[i]);
@@ -286,7 +283,7 @@ static uint32_t fold_slipway(uint32_t h, const void *e) {
     h = fold_ref(h, targeting_target(&jc->targeting));
     h = fold_ref(h, entity_get(jc->targeted_by));
     h = fnv(h, (uint32_t)holder_kind(entity_get(jc->targeted_by)));
-    h = fnv(h, (uint32_t)pointer_list_count(jc->transit_dots));
+    h = fnv(h, (uint32_t)pointer_list_count(&jc->transit_dots));
     return fold_served_planets(h, jc);
 }
 
@@ -301,7 +298,7 @@ static uint32_t fold_planets(uint32_t h, int with_other_end) {
 
     for (i = 0; np != NULL && i < np->count; i++) {
         void *p = np->items[i];
-        const entity_id_list_t *oe = as_planet(p)->slipways;
+        const entity_id_list_t *oe = &as_planet(p)->slipways;
         h = fnv(h, (uint32_t)id_list_count(oe));
         h = fold_ref(h, entity_get(as_planet(p)->targeted_by));
         h = fnv(h, (uint32_t)holder_kind(entity_get(as_planet(p)->targeted_by)));
@@ -471,9 +468,9 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     assert(jc->header.class->tags == TAG(TAG_SLIPWAY));
     assert(slipway_start(jc) == qu);
 
-    assert(pointer_list_count(jc->transit_dots) == 0);
-    hg = jc->served_planets;
-    assert(hg == &jc->served_planets_own && hg->count == 0);
+    assert(pointer_list_count(&jc->transit_dots) == 0);
+    hg = &jc->served_planets;
+    assert(hg->count == 0);
 
     assert(slipway_end(jc) == NULL && !jc->targeting.has_cost && jc->targeting.cost == 0 && !entity_has(&jc->header, ENTITY_HAS_INFRASPACE) && targeting_target(&jc->targeting) == NULL);
     assert(entity_get(jc->targeted_by) == NULL && !jc->header.is_dead);
@@ -505,8 +502,7 @@ static void test_construction(void) {
 
     assert(as_slipway(by_left_press)->archetype == as_slipway(by_lookup)->archetype);
     assert(as_slipway(by_left_press)->header.class->tags == as_slipway(by_lookup)->header.class->tags);
-    assert(as_slipway(by_left_press)->transit_dots != as_slipway(by_lookup)->transit_dots);
-    assert(as_slipway(by_left_press)->served_planets != as_slipway(by_lookup)->served_planets);
+    assert(as_slipway(by_left_press)->transit_dots.zone != as_slipway(by_lookup)->transit_dots.zone);
 }
 
 /* Without an end, slipway_drop only sets is_dead; with one, the slipway
@@ -525,7 +521,7 @@ static void test_drop(void) {
     assert(entity_list_listed(entities_by_tag(TAG_SLIPWAY), held));
     assert(slipway_start(as_slipway(held)) == origin && slipway_end(as_slipway(held)) == target);
     assert(end_kind(held) == END_PLANET && target_kind(held) == TARGET_ABSENT);
-    assert(id_list_count(as_planet(origin)->slipways) == 0 && id_list_count(as_planet(target)->slipways) == 0);
+    assert(id_list_count(&as_planet(origin)->slipways) == 0 && id_list_count(&as_planet(target)->slipways) == 0);
     before = credits();
     assert(as_slipway(held)->targeting.has_cost);
     od = as_slipway(held)->targeting.cost;
@@ -534,14 +530,14 @@ static void test_drop(void) {
     refused = build_slipway(origin);
     class_of(refused)->drop(refused, NULL);
     assert(is_dead_state(as_slipway(refused)) == 2 && credits() == before);
-    assert(id_list_count(as_planet(origin)->slipways) == 0);
+    assert(id_list_count(&as_planet(origin)->slipways) == 0);
     hash = fold_slipway(hash, refused);
 
     class_of(held)->drop(held, target);
     assert(as_slipway(held)->fade_in_step == p8_fixed_from_int(1));
     assert(slipway_end(as_slipway(held)) == target);
     assert(is_dead_state(as_slipway(held)) == 0);
-    assert(id_list_count(as_planet(origin)->slipways) == 1 && id_list_count(as_planet(target)->slipways) == 1);
+    assert(id_list_count(&as_planet(origin)->slipways) == 1 && id_list_count(&as_planet(target)->slipways) == 1);
     assert(credits() == p8_fixed_sub(before, od));
     hash = fold_slipway(hash, held);
     hash = fold_planets(hash, 1);
@@ -745,11 +741,11 @@ static void test_too_far(void) {
     before = credits();
     fade_in_step = as_slipway(far_slipway)->fade_in_step;
     end_before_drop = slipway_end(as_slipway(far_slipway));
-    assert(id_list_count(as_planet(start_planet)->slipways) == 1 && id_list_count(as_planet(target)->slipways) == 1);
+    assert(id_list_count(&as_planet(start_planet)->slipways) == 1 && id_list_count(&as_planet(target)->slipways) == 1);
     class_of(far_slipway)->drop(far_slipway, target);
     assert(is_dead_state(as_slipway(far_slipway)) == 2);
     assert(credits() == before);
-    assert(id_list_count(as_planet(start_planet)->slipways) == 1 && id_list_count(as_planet(target)->slipways) == 1);
+    assert(id_list_count(&as_planet(start_planet)->slipways) == 1 && id_list_count(&as_planet(target)->slipways) == 1);
     assert(slipway_end(as_slipway(far_slipway)) == end_before_drop && end_kind(far_slipway) == END_THROWAWAY);
     assert(as_slipway(far_slipway)->fade_in_step == fade_in_step);
     assert(target_kind(far_slipway) == TARGET_STATUS_TEXT);
@@ -979,15 +975,20 @@ static void served_planets_add_nil(void *hg) {
 }
 
 static void served_planets_add_one_more(void *hg) {
-    slipway_served_planets_add(hg, "one more");
+    slipway_served_planets_add(hg, "p91");
+}
+
+static void served_planets_add_too_long(void *hg) {
+    slipway_served_planets_add(hg, "s1234567");
 }
 
 /* slipway_served_planets_add keeps each identifier once and in order,
  * slipway_served_planets_has reads anything else as absent; a NULL
- * identifier and a 91st planet are refused. */
+ * identifier, one too long for the copy and a 91st planet are refused. */
 static void test_served_planets_is_a_set_of_ids(void) {
     static char ids[SLIPWAY_SERVED_PLANETS_CAP][8];
-    slipway_served_planets_t hg = {0, {NULL}};
+    slipway_served_planets_t hg = {0};
+    char buffer[SLIPWAY_PLANET_ID_SIZE];
     int i;
 
     slipway_served_planets_add(&hg, "p1");
@@ -997,6 +998,13 @@ static void test_served_planets_is_a_set_of_ids(void) {
     assert(slipway_served_planets_has(&hg, "p2") && !slipway_served_planets_has(&hg, "p3"));
     assert(!slipway_served_planets_has(&hg, NULL) && !slipway_served_planets_has(NULL, "p1"));
     must_abort(served_planets_add_nil, &hg);
+
+    snprintf(buffer, sizeof buffer, "s-32768");
+    slipway_served_planets_add(&hg, buffer);
+    snprintf(buffer, sizeof buffer, "p9");
+    assert(slipway_served_planets_has(&hg, "s-32768") && !slipway_served_planets_has(&hg, "p9") &&
+           "the set holds a copy of the id, not the caller's buffer");
+    must_abort(served_planets_add_too_long, &hg);
 
     hg.count = 0;
     for (i = 0; i < SLIPWAY_SERVED_PLANETS_CAP; i++) {
@@ -1137,15 +1145,15 @@ static void test_placed_slipway_grows_past_its_arena(void) {
 
     world();
     jc = as_slipway(the_slipway());
-    arena = jc->transit_dots->zone;
+    arena = jc->transit_dots.zone;
     assert(arena_used(arena) == arena_size(arena) && "a fresh grab arena is full at close");
     used_before = game_zone_used();
-    for (i = jc->transit_dots->count; i <= SLIPWAY_TRANSIT_DOTS_RESERVE; i++) {
-        pointer_list_add(jc->transit_dots, &memory);
+    for (i = jc->transit_dots.count; i <= SLIPWAY_TRANSIT_DOTS_RESERVE; i++) {
+        pointer_list_add(&jc->transit_dots, &memory);
     }
     assert(game_zone_used() == used_before + 2 * SLIPWAY_TRANSIT_DOTS_RESERVE * sizeof(void *) &&
            "past its reserve, the list grows in the game zone");
-    jc->transit_dots->count = 0;
+    jc->transit_dots.count = 0;
 }
 
 static void test_placed_slipway_reserves_24_transit_dots(void) {
@@ -1153,7 +1161,7 @@ static void test_placed_slipway_reserves_24_transit_dots(void) {
 
     world();
     jc = as_slipway(the_slipway());
-    assert(jc->transit_dots->capacity == 24);
+    assert(jc->transit_dots.capacity == 24);
 }
 
 static void test_links_resolve_until_the_flush(void) {

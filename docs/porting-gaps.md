@@ -164,14 +164,12 @@ and `src/engine/bootstrap.c` for the GAP-5 variant.
 
 ## GAP-15 — Where Lua would crash, this port ignores it
 
-Lua: `bd()`, `hg`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
+Lua: `bd()`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
 
 This is a general convention of the port, not a local oversight. When the
 cart indexes a missing table, Lua raises an error. This port reads the
 field as absent and carries on. The known sites:
 
-- `economy_tiers_rebuild_incoming_routes` writes into the `served_planets`
-  set of a slipway that has none: the write is ignored.
 - `entity_register`/`entity_unregister` test the **presence** of the
   class's message member, not its Lua truthiness: a member set to false
   still registers the entity.
@@ -186,8 +184,7 @@ happen on malformed data. Recorded because a reader who "fixes" only one
 of them by making it fatal would make the port less tolerant than the cart
 in one place and not in the others.
 
-Files: `src/game/economy_tiers.c`, `src/game/economy_formulas.c`,
-`src/engine/entity.c`.
+Files: `src/game/economy_formulas.c`, `src/engine/entity.c`.
 
 ## GAP-16 — The weighted pick reads out of bounds if its pool runs empty
 

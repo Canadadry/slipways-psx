@@ -340,7 +340,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
@@ -372,7 +372,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     assert(research_projects_at(6) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(6));
     hash = fold_production(hash, planet);
-    hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
     hash = fnv(hash, (uint32_t)list_size(planet->needs));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
@@ -547,7 +547,7 @@ static void test_trading_hub_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = trading_hub_new(NULL);
-        assert(is_a_trading_hub_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
+        assert(is_a_trading_hub_struct(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL &&
                entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }

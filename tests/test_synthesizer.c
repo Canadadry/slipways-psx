@@ -43,6 +43,11 @@
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
 
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
 }
@@ -365,7 +370,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
+    hash = fnv(hash, (uint32_t)(particles_of(emitter) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
     hash = fnv(hash, (uint32_t)(structure->targeting.archetype->confirmed_state != ENTITY_STATE_NONE));
@@ -392,7 +397,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
@@ -407,7 +412,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
     hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
-    assert(pointer_list_size(emitter->particles) == 0);
+    assert(pointer_list_size(particles_of(emitter)) == 0);
     assert_structure_shape(class_of(entity));
     assert_members_of(class_of(entity), ascension_cls, 1, 1);
     assert(class_of(entity)->attach_slipway != ascension_cls->attach_slipway && class_of(entity)->attach_slipway != planet_class()->attach_slipway);
@@ -426,7 +431,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     assert(research_projects_at(5) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(5));
     hash = fold_production(hash, planet);
-    hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
     hash = fnv(hash, (uint32_t)pointer_list_size(planet->needs));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
@@ -450,7 +455,7 @@ static void test_built(void) {
     a = build_synthesizer();
     b = build_synthesizer();
     assert(a != b && is_synthesizer(a) && is_synthesizer(b));
-    assert(as_ascension(a)->emitter.particles != NULL && as_ascension(a)->emitter.particles != as_ascension(b)->emitter.particles);
+    assert(particles_of(&as_ascension(a)->emitter) != NULL && particles_of(&as_ascension(a)->emitter)->zone != particles_of(&as_ascension(b)->emitter)->zone);
     hash = fold_synthesizer(hash, a);
     hash = fold_synthesizer(hash, b);
     check("built", hash, BUILT_HASH);
@@ -500,7 +505,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static uint32_t fold_draw(uint32_t h, void *e) {
     draw_layers(ENTITY_MESSAGE_DRAW);
     h = fnv(h, screen_hash());
-    return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter.particles));
+    return fnv(h, (uint32_t)pointer_list_size(particles_of(&as_ascension(e)->emitter)));
 }
 
 /* Placed on screen by the drag method (targeting_track) and the drop method
@@ -542,8 +547,8 @@ static void test_life(void) {
 
     hash = fold_particle(hash, class_of(placed)->spawn_particle(placed));
     emitter_spawn(placed, P8_FIXED_LIT(0x00028000, 2.5));
-    hash = fnv(hash, (uint32_t)pointer_list_size(as_ascension(placed)->emitter.particles));
-    assert(pointer_list_size(as_ascension(placed)->emitter.particles) >= 2);
+    hash = fnv(hash, (uint32_t)pointer_list_size(particles_of(&as_ascension(placed)->emitter)));
+    assert(pointer_list_size(particles_of(&as_ascension(placed)->emitter)) >= 2);
 
     hash = fold_draw(hash, placed);
     hash = fold_draw(hash, placed);
@@ -567,7 +572,7 @@ static void *join(void *qu, void *synthesizer) {
     assert(jc != NULL);
     set_credits(999);
     class_of(jc)->drop(jc, synthesizer);
-    assert(entity_id_list_has(as_ascension(synthesizer)->slipways, entity_id_of(jc)));
+    assert(entity_id_list_has(&as_ascension(synthesizer)->slipways, entity_id_of(jc)));
     return jc;
 }
 
@@ -593,7 +598,7 @@ static uint32_t fold_attach_slipway(uint32_t h, void *e) {
     h = fold_production(h, jo);
     h = fold_fixed_member(h, jo->header.shake);
     h = (jo->header.fold_anchor != 0) ? fold_bool_member(h, jo->header.fold_anchor) : fold_absent(h);
-    return fnv(h, (uint32_t)id_list_count(jo->slipways));
+    return fnv(h, (uint32_t)id_list_count(&jo->slipways));
 }
 
 /* synthesizer_attach_slipway on a slipway from an ascension whose needs
@@ -696,8 +701,8 @@ static void test_synthesizer_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = synthesizer_new(NULL);
-        assert(is_a_synthesizer_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
-               (bare->has & PLANET_HAS_PRODUCTION) && pointer_list_size(bare->emitter.particles) == 0 &&
+        assert(is_a_synthesizer_struct(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL &&
+               (bare->has & PLANET_HAS_PRODUCTION) && pointer_list_size(particles_of(&bare->emitter)) == 0 &&
                entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }
@@ -759,13 +764,13 @@ static void test_leaving_gives_back_its_particles(void) {
     e = as_ascension(build_synthesizer());
     emitter_spawn(&e->header, p8_fixed_from_int(5));
     class_of(e)->refresh(&e->header);
-    assert(e->emitter.particles->count == 5);
+    assert(particles_of(&e->emitter)->count == 5);
     assert(held_now().particle == before.particle + 5 && held_now().particles == before.particles + 1);
     entity_unregister(&e->header);
     cart_flush_exit_queue();
     after = held_now();
     assert(after.particle == before.particle && after.particles == before.particles && after.rows == before.rows);
-    assert(e->emitter.particles == NULL && e->layout_row_slot == NULL);
+    assert(particles_of(&e->emitter) == NULL && e->layout_row_slot == NULL);
 }
 
 int main(void) {

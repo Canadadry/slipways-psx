@@ -322,7 +322,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
@@ -363,7 +363,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     assert(planet->has & PLANET_HAS_PRODUCTION);
     assert(research_projects_at(1) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(1));
-    hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
     hash = fnv(hash, (uint32_t)list_size(planet->needs));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
@@ -388,7 +388,7 @@ static void test_built(void) {
     a = build_gate();
     slipgate = build(slipgate_kind());
     b = build_gate();
-    assert(a != b && as_structure(a)->slipways != as_structure(b)->slipways && planet_production_read(as_structure(a)) != planet_production_read(as_structure(b)));
+    assert(a != b && as_structure(a)->slipways.zone != as_structure(b)->slipways.zone && planet_production_read(as_structure(a)) != planet_production_read(as_structure(b)));
     hash = fold_gate(hash, a, slipgate);
     hash = fold_gate(hash, b, slipgate);
     check("built", hash, BUILT_HASH);
@@ -491,7 +491,7 @@ static void test_life(void) {
     void *idle;
     void *slipgate;
     down_t slipway;
-    entity_id_list_t *slipways;
+    entity_id_list_t slipways;
     int index;
 
     start_game();
@@ -526,7 +526,7 @@ static void test_life(void) {
 
     slipways = as_structure(placed)->slipways;
     for (index = 0; index <= 3; index++) {
-        as_structure(placed)->slipways = list_of(index, idle);
+        as_structure(placed)->slipways = *list_of(index, idle);
         class_of(placed)->refresh(placed);
         hash = fold_fixed_member(hash, as_structure(placed)->sprite);
         hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
@@ -604,7 +604,7 @@ static void test_infraspace_gate_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = infraspace_gate_new(NULL);
-        assert(is_an_infraspace_gate_struct(bare) && is_a_gate(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
+        assert(is_an_infraspace_gate_struct(bare) && is_a_gate(bare) && bare->planet_id == NULL && bare->slipways.zone != NULL &&
                (bare->has & PLANET_HAS_PRODUCTION));
         assert(entity_list_listed(entities_by_tag(TAG_SLIPGATE), bare));
     }

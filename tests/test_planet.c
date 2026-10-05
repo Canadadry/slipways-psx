@@ -263,7 +263,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
     hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
@@ -319,7 +319,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->description);
     h = fnv(h, is_dead_state(jo));
     h = fold_production(h, jo);
-    h = fnv(h, (uint32_t)id_list_count(jo->slipways));
+    h = fnv(h, (uint32_t)id_list_count(&jo->slipways));
     h = fnv(h, (uint32_t)list_size(jo->needs));
     h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL ? trade_route_list_count(jo->outgoing_routes) : -1));
     h = fnv(h, (uint32_t)(jo->incoming_routes != NULL ? trade_route_list_count(jo->incoming_routes) : -1));
@@ -614,7 +614,7 @@ static void test_planet_is_a_struct(void) {
     assert(is_a_planet_struct(a));
     {
         planet_t *bare = planet_new(NULL);
-        assert(is_a_planet_struct(bare) && bare->planet_id == NULL && pos_ref(&bare->header) == NULL && bare->slipways != NULL);
+        assert(is_a_planet_struct(bare) && bare->planet_id == NULL && pos_ref(&bare->header) == NULL && bare->slipways.zone != NULL);
     }
 
     (void)bought(structure_kind());

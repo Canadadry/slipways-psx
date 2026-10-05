@@ -40,6 +40,11 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
 }
@@ -389,8 +394,8 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     hash = fold_seq(hash, emitter->trail_colors);
     assert(entity->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(emitter->trail_colors == &probe_trail_colors_seq);
-    hash = fnv(hash, (uint32_t)size_of(emitter->particles));
-    assert(size_of(emitter->particles) == 0);
+    hash = fnv(hash, (uint32_t)size_of(particles_of(emitter)));
+    assert(size_of(particles_of(emitter)) == 0);
     assert(pos_ref(&entity->header) == NULL && map_pos_ref(&entity->header) == NULL && targeting_target(targeting) == NULL && !entity->header.is_dead);
     assert(class_of(entity)->hit_test == NULL && class_of(entity)->new_year == NULL && class_of(entity)->refresh == NULL &&
            class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL && class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL);
@@ -426,7 +431,7 @@ static void test_built(void) {
     c = keyed();
     hash = fold_probe(hash, c);
     assert(a != b && b != c && a != c);
-    assert(a->emitter.particles != b->emitter.particles && b->emitter.particles != c->emitter.particles);
+    assert(particles_of(&a->emitter)->zone != particles_of(&b->emitter)->zone && particles_of(&b->emitter)->zone != particles_of(&c->emitter)->zone);
     assert(a->archetype->layer == p8_fixed_from_int(2) && a->emitter.archetype->lifetime == p8_fixed_from_int(9));
     assert(a->targeting.archetype->attach_distance == 0x666);
     assert(c->emitter.angle_slices == p8_fixed_from_int(7) && c->header.state_time == p8_fixed_from_int(3) &&
@@ -593,8 +598,8 @@ static void test_life(void) {
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
-        hash = fnv(hash, (uint32_t)size_of(first->emitter.particles));
-        hash = fnv(hash, (uint32_t)size_of(second->emitter.particles));
+        hash = fnv(hash, (uint32_t)size_of(particles_of(&first->emitter)));
+        hash = fnv(hash, (uint32_t)size_of(particles_of(&second->emitter)));
     }
     for (index = 0; index < 3; index++) {
         update_entities();
@@ -727,8 +732,8 @@ static void test_help_screen(void) {
     assert(class_of(help_screen)->draw == help_screen_draw_method);
     assert(class_of(help_screen)->hit_test != NULL);
     assert(probe_ready());
-    assert(size_of(help_screen->emitter.particles) >= 0);
-    hash = fnv(hash, (uint32_t)size_of(help_screen->emitter.particles));
+    assert(size_of(particles_of(&help_screen->emitter)) >= 0);
+    hash = fnv(hash, (uint32_t)size_of(particles_of(&help_screen->emitter)));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live, help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
@@ -737,7 +742,7 @@ static void test_help_screen(void) {
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
-        hash = fnv(hash, (uint32_t)size_of(help_screen->emitter.particles));
+        hash = fnv(hash, (uint32_t)size_of(particles_of(&help_screen->emitter)));
     }
     check("help_screen", hash, HELP_SCREEN_HASH);
 }
@@ -890,13 +895,13 @@ static void test_leaving_gives_back_its_particles(void) {
     before = held_now();
     a = left_press();
     emitter_spawn(&a->header, p8_fixed_from_int(5));
-    assert(a->emitter.particles->count == 5);
+    assert(particles_of(&a->emitter)->count == 5);
     assert(held_now().particle == before.particle + 5 && held_now().particles == before.particles + 1);
     entity_unregister(&a->header);
     cart_flush_exit_queue();
     after = held_now();
     assert(after.particle == before.particle && after.particles == before.particles);
-    assert(a->emitter.particles == NULL);
+    assert(particles_of(&a->emitter) == NULL);
 }
 
 static void test_target_links_resolve_until_the_flush(void) {

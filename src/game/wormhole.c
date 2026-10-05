@@ -37,7 +37,6 @@ static int wormhole_anchor_count(void) {
 }
 
 void wormhole_construct(wormhole_t *self) {
-    const allocator_t *zone = grab_arena_construction_zone();
     entity_id_list_t *ox;
     entity_list_iter_t it;
     entity_t *p;
@@ -48,8 +47,8 @@ void wormhole_construct(wormhole_t *self) {
     }
 
     n = wormhole_anchor_count();
-    ox = (entity_id_list_t *)allocator_alloc(zone, sizeof *ox);
-    entity_id_list_init_reserve(ox, zone, n);
+    ox = &self->anchors;
+    entity_id_list_init_reserve(ox, grab_arena_construction_zone(), n);
     it = entity_list_all(live_entities());
     while (entity_list_iter_next(&it, &p)) {
         if (wormhole_is_anchor(p)) {
@@ -57,7 +56,6 @@ void wormhole_construct(wormhole_t *self) {
         }
     }
     assert(ox->count == n && ox->capacity == n);
-    self->anchors = ox;
 }
 
 void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
@@ -72,7 +70,7 @@ void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
     }
 
     p_vec = entity_map_pos(&self->header);
-    nq = entity_geom_nearest_in_ids(p_vec, self->anchors, &nearest);
+    nq = entity_geom_nearest_in_ids(p_vec, &self->anchors, &nearest);
     self->anchor = entity_id_link(nearest);
 
     threshold = tech_gate_if_unlocked("space folding", P8_FIXED_LIT(0x000030a3, 0.19), P8_FIXED_LIT(0x0000451e, 0.27));
@@ -195,7 +193,7 @@ p8_fixed_t wormhole_reveal_radius(wormhole_t *self, p8_fixed_t t) {
 }
 
 static void wormhole_release_method(entity_t *self) {
-    grab_arena_give_back(((wormhole_t *)self)->anchors->zone);
+    grab_arena_give_back(((wormhole_t *)self)->anchors.zone);
 }
 
 static const entity_class_t wormhole_class_def = {
@@ -216,8 +214,7 @@ static const entity_class_t wormhole_class_def = {
 static wormhole_t *wormhole_create(void) {
     wormhole_t *self;
 
-    grab_arena_open(ZONE_BYTES(sizeof *self) + ZONE_BYTES(sizeof(entity_id_list_t)) +
-                           ZONE_BYTES((size_t)wormhole_anchor_count() * sizeof(entity_id_t)));
+    grab_arena_open(ZONE_BYTES(sizeof *self) + ZONE_BYTES((size_t)wormhole_anchor_count() * sizeof(entity_id_t)));
     self = (wormhole_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     entity_init_instance(&self->header, &wormhole_class_def, wormhole_archetype.state, wormhole_archetype.state_time);
@@ -229,7 +226,7 @@ static wormhole_t *wormhole_create(void) {
     self->targeting.cost = self->archetype->targeting.cost;
     self->targeting.has_cost = self->archetype->targeting.has_cost;
     self->has = WORMHOLE_HAS_TOO_FAR_TARGET;
-    self->anchors = NULL;
+    self->anchors = (entity_id_list_t){0};
     targeting_set_target(&self->targeting, NULL);
     self->anchor = ENTITY_ID_NONE;
     self->header.has |= ENTITY_HAS_IS_DEAD;

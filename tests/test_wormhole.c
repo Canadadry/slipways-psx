@@ -334,7 +334,7 @@ static void check_fresh_wormhole(void *e) {
     assert(jj != NULL && jj->status_text != NULL && strcmp(jj->status_text, "-too far-") == 0);
 
     assert(pos_ref(&mz->header) == NULL && map_pos_ref(&mz->header) == NULL && targeting_target(&mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
-    assert(mz->anchors != NULL);
+    assert(mz->anchors.zone != NULL);
 
     assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
     assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
@@ -367,8 +367,8 @@ static uint32_t fold_anchors(uint32_t h, const wormhole_t *mz) {
     const entity_id_list_t *ox;
     int i;
 
-    assert(mz->anchors != NULL);
-    ox = mz->anchors;
+    assert(mz->anchors.zone != NULL);
+    ox = &mz->anchors;
     h = fnv(h, (uint32_t)ox->count);
     for (i = 0; i < ox->count; i++) {
         h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), entity_id_list_at(ox, i)));
@@ -401,21 +401,21 @@ static void test_anchors(void) {
     h = fold_anchors(h, first);
     second = build_wormhole();
     h = fold_anchors(h, second);
-    assert(second->anchors != NULL);
-    assert(!entity_id_list_has(second->anchors, entity_id_of(&first->header)) &&
-           !entity_id_list_has(second->anchors, entity_id_of(&unlit->header)));
-    printf("[anchors] %d entries\n", second->anchors->count);
-    assert(second->anchors->count > 0);
+    assert(second->anchors.zone != NULL);
+    assert(!entity_id_list_has(&second->anchors, entity_id_of(&first->header)) &&
+           !entity_id_list_has(&second->anchors, entity_id_of(&unlit->header)));
+    printf("[anchors] %d entries\n", second->anchors.count);
+    assert(second->anchors.count > 0);
     check("anchors", h, ANCHORS_HASH);
 
     /* A probe's fold_anchor is 1, from its archetype: it joins the anchors
      * list. */
     probe = probe_new(NULL);
-    assert(entity_id_list_has(build_wormhole()->anchors, entity_id_of(&probe->header)));
+    assert(entity_id_list_has(&build_wormhole()->anchors, entity_id_of(&probe->header)));
 
     lit = structure_new(NULL);
     lit->header.fold_anchor = p8_fixed_from_int(1);
-    assert(entity_id_list_has(build_wormhole()->anchors, entity_id_of(&lit->header)));
+    assert(entity_id_list_has(&build_wormhole()->anchors, entity_id_of(&lit->header)));
 }
 
 /* Bytes a registry has taken from the generation: capacities 4, 8, ... up
@@ -448,13 +448,13 @@ static void test_arena(void) {
     before = generation_but_registries();
     mz = build_wormhole();
     printf("[arena] generation +%lu, anchors %d/%d\n", (unsigned long)(generation_but_registries() - before),
-           mz->anchors->count, mz->anchors->capacity);
-    assert(generation_but_registries() == before + arena_size(mz->anchors->zone));
-    assert(arena_used(mz->anchors->zone) == arena_size(mz->anchors->zone) && "the arena holds the wormhole exactly");
-    assert(mz->anchors->count > 0 && mz->anchors->count == mz->anchors->capacity);
-    for (i = 1; i < mz->anchors->count; i++) {
-        assert(entity_list_rank_in(live_entities(), entity_id_list_at(mz->anchors, i - 1)) <
-               entity_list_rank_in(live_entities(), entity_id_list_at(mz->anchors, i)));
+           mz->anchors.count, mz->anchors.capacity);
+    assert(generation_but_registries() == before + arena_size(mz->anchors.zone));
+    assert(arena_used(mz->anchors.zone) == arena_size(mz->anchors.zone) && "the arena holds the wormhole exactly");
+    assert(mz->anchors.count > 0 && mz->anchors.count == mz->anchors.capacity);
+    for (i = 1; i < mz->anchors.count; i++) {
+        assert(entity_list_rank_in(live_entities(), entity_id_list_at(&mz->anchors, i - 1)) <
+               entity_list_rank_in(live_entities(), entity_id_list_at(&mz->anchors, i)));
     }
 
     drop(mz);
@@ -872,7 +872,7 @@ static void test_anchor_resolves_until_the_flush(void) {
     mz = build_wormhole();
     drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     anchor = entity_get(mz->anchor);
-    assert(anchor != NULL && entity_id_list_has(mz->anchors, entity_id_of(anchor)));
+    assert(anchor != NULL && entity_id_list_has(&mz->anchors, entity_id_of(anchor)));
     entity_unregister(anchor);
     assert(entity_get(mz->anchor) == anchor);
     cart_flush_exit_queue();

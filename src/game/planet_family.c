@@ -228,7 +228,7 @@ void ascension_init_instance(planet_t *self, const entity_class_t *cls, const pl
     self->emitter.matrix_xy = self->archetype->emitter.matrix_xy;
     self->emitter.matrix_yx = self->archetype->emitter.matrix_yx;
     self->emitter.matrix_yy = self->archetype->emitter.matrix_yy;
-    self->emitter.particles = NULL;
+    self->emitter.has = 0;
 }
 
 static planet_t *ascension_create(const planet_keys_t *keys) {
@@ -379,7 +379,9 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
         return;
     }
 
-    particles = self->emitter.particles;
+    if (self->emitter.has & EMITTER_HAS_PARTICLES) {
+        particles = &self->emitter.particles;
+    }
 
     screen_x = p8_fixed_flr_int(screen_pos.x);
     screen_y = p8_fixed_flr_int(screen_pos.y);
@@ -419,7 +421,7 @@ static void burst_draw_method(entity_t *self, const vec_t *screen_pos) {
 
 /* Read the slot first: arena_release() frees the struct and the list with it. */
 static void burst_release_method(entity_t *self) {
-    const allocator_t *slot = ((planet_t *)self)->slipways->zone;
+    const allocator_t *slot = ((planet_t *)self)->slipways.zone;
 
     ascension_release_method(self);
     arena_release(slot);
@@ -457,7 +459,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
     self->acceleration_factor = self->archetype->acceleration_factor;
     self->emitter.speed_factor = self->archetype->emitter.speed_factor;
     self->speed = self->archetype->speed;
-    self->emitter.particles = NULL;
+    self->emitter.has = 0;
     self->outgoing_routes = &g_burst_outgoing_routes;
     if (keys != NULL) {
         if (keys->planet.map_pos != NULL) {

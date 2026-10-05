@@ -519,7 +519,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
         vec_t map_pos = self->header.map_pos;
         vec_t pos = self->header.pos;
 
-        assert((self->slipways == NULL || self->slipways->count == 0) &&
+        assert(self->slipways.count == 0 &&
                "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
         self->header.is_dead = 1;
 

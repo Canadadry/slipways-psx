@@ -18,6 +18,8 @@ static int to_int(p8_fixed_t x) {
 }
 
 void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_t *t) {
+    const char *t_id;
+
     if (self == NULL) {
         return;
     }
@@ -26,26 +28,21 @@ void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_
         return;
     }
 
-    if (self->served_planets != NULL) {
-        /* The mouse point slipway_drag hangs the end on is not a planet. */
-        const char *t_id = t != NULL && planet_is_family(t) ? ((const planet_t *)t)->planet_id : NULL;
-        if (slipway_served_planets_has(self->served_planets, t_id)) {
-            if (self->transit_dots != NULL) {
-                vec_t f_pos = slipway_end_pos(f);
-                vec_t t_pos = slipway_end_pos(t);
-                vec_t d = vec_sub(t_pos, f_pos);
-                vec_t v = vec_normalize(d);
-                transit_dot_t *particle = (transit_dot_t *)allocator_alloc(particle_zone(PARTICLE_SLOT_TRANSIT_DOT),
-                                                                      sizeof *particle);
+    /* The mouse point slipway_drag hangs the end on is not a planet. */
+    t_id = t != NULL && planet_is_family(t) ? ((const planet_t *)t)->planet_id : NULL;
+    if (slipway_served_planets_has(&self->served_planets, t_id)) {
+        vec_t f_pos = slipway_end_pos(f);
+        vec_t t_pos = slipway_end_pos(t);
+        vec_t d = vec_sub(t_pos, f_pos);
+        vec_t v = vec_normalize(d);
+        transit_dot_t *particle = (transit_dot_t *)allocator_alloc(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), sizeof *particle);
 
-                particle->pos = vec_add(f_pos, vec_perpendicular(v));
-                particle->velocity = v;
-                particle->life = vec_length(d);
+        particle->pos = vec_add(f_pos, vec_perpendicular(v));
+        particle->velocity = v;
+        particle->life = vec_length(d);
 
-                pointer_list_add(self->transit_dots, particle);
-                particle_zone_record_elements(PARTICLE_SLOT_TRANSIT_DOT, self->transit_dots->count);
-            }
-        }
+        pointer_list_add(&self->transit_dots, particle);
+        particle_zone_record_elements(PARTICLE_SLOT_TRANSIT_DOT, self->transit_dots.count);
     }
 }
 
@@ -133,36 +130,34 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
                     to_int(line_color));
 
         {
-            pointer_list_t *ts = self->transit_dots;
-            if (ts != NULL) {
-                int i;
-                for (i = 0; i < ts->count; i++) {
-                    transit_dot_t *t = ts->items[i];
-                    vec_t new_pos;
-                    p8_fixed_t new_l;
+            pointer_list_t *ts = &self->transit_dots;
+            int i;
+            for (i = 0; i < ts->count; i++) {
+                transit_dot_t *t = ts->items[i];
+                vec_t new_pos;
+                p8_fixed_t new_l;
 
-                    if (t == NULL) {
-                        continue;
-                    }
+                if (t == NULL) {
+                    continue;
+                }
 
-                    new_pos = vec_add(t->pos, t->velocity);
-                    t->pos = new_pos;
+                new_pos = vec_add(t->pos, t->velocity);
+                t->pos = new_pos;
 
-                    new_l = p8_fixed_sub(t->life, p8_fixed_from_int(1));
-                    t->life = new_l;
+                new_l = p8_fixed_sub(t->life, p8_fixed_from_int(1));
+                t->life = new_l;
 
-                    /* No `else`: an expired particle is still drawn once more at its final position. */
-                    if (new_l <= p8_fixed_from_int(0)) {
-                        pointer_list_del(ts, t);
-                        allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);
-                    }
+                /* No `else`: an expired particle is still drawn once more at its final position. */
+                if (new_l <= p8_fixed_from_int(0)) {
+                    pointer_list_del(ts, t);
+                    allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);
+                }
 
-                    {
-                        int x = to_int(new_pos.x);
-                        int y = to_int(new_pos.y);
-                        p8_rectfill(graphics, memory, x, y, x + 1, y + 1, 0);
-                        p8_pset(graphics, memory, x, y, to_int(dot_color));
-                    }
+                {
+                    int x = to_int(new_pos.x);
+                    int y = to_int(new_pos.y);
+                    p8_rectfill(graphics, memory, x, y, x + 1, y + 1, 0);
+                    p8_pset(graphics, memory, x, y, to_int(dot_color));
                 }
             }
         }

@@ -36,6 +36,7 @@ void entity_id_list_free(entity_id_list_t *list) {
 
 static void grow(entity_id_list_t *list) {
     int new_capacity = list->capacity == 0 ? ENTITY_ID_LIST_INITIAL_CAPACITY : list->capacity * 2;
+    assert(list->zone != NULL && "entity_id_list_add on a list entity_id_list_init never gave a zone");
     list->items = (entity_id_t *)allocator_grow(list->zone, (unsigned char *)list->items,
                                                 (size_t)list->capacity * sizeof *list->items,
                                                 (size_t)new_capacity * sizeof *list->items);

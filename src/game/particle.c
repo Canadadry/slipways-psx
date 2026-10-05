@@ -54,9 +54,7 @@ void emitter_init(entity_t *self) {
 }
 
 void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind) {
-    const allocator_t *slot;
     emitter_t *emitter;
-    pointer_list_t *qy;
 
     if (self == NULL) {
         return;
@@ -66,27 +64,26 @@ void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind) {
     assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST) && "emitter_init_in: a particle list is a list or a help screen list");
 
     emitter_release_particles(emitter);
-    slot = particle_zone_slot(slot_kind);
-    qy = (pointer_list_t *)allocator_alloc(slot, sizeof *qy);
-    pointer_list_init_reserve(qy, slot,
-                            slot_kind == PARTICLE_SLOT_HELP_LIST ? PARTICLES_HELP_SCREEN_CAPACITY : PARTICLES_CAPACITY);
-    emitter->particles = qy;
+    pointer_list_init_reserve(&emitter->particles, particle_zone_slot(slot_kind),
+                              slot_kind == PARTICLE_SLOT_HELP_LIST ? PARTICLES_HELP_SCREEN_CAPACITY : PARTICLES_CAPACITY);
+    emitter->has |= EMITTER_HAS_PARTICLES;
     emitter->particles_slot_kind = slot_kind;
 }
 
 void emitter_release_particles(emitter_t *emitter) {
-    pointer_list_t *qy = emitter->particles;
+    pointer_list_t *qy = &emitter->particles;
     const allocator_t *particle = particle_zone(PARTICLE_SLOT_PARTICLE);
     int i;
 
-    if (qy == NULL) {
+    if (!(emitter->has & EMITTER_HAS_PARTICLES)) {
         return;
     }
     for (i = 0; i < qy->count; i++) {
         allocator_release(particle, qy->items[i]);
     }
     arena_release(qy->zone);
-    emitter->particles = NULL;
+    emitter->particles = (pointer_list_t){0};
+    emitter->has &= (uint16_t)~EMITTER_HAS_PARTICLES;
 }
 
 void emitter_spawn(entity_t *self, p8_fixed_t n) {
@@ -97,7 +94,7 @@ void emitter_spawn(entity_t *self, p8_fixed_t n) {
         return;
     }
     emitter = emitter_of(self);
-    qy = emitter != NULL ? emitter->particles : NULL;
+    qy = emitter != NULL && (emitter->has & EMITTER_HAS_PARTICLES) ? &emitter->particles : NULL;
 
     while (p8_fixed_rnd_default() < n) {
         if (qy != NULL && self->class->spawn_particle != NULL) {
@@ -109,7 +106,7 @@ void emitter_spawn(entity_t *self, p8_fixed_t n) {
 }
 
 void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *self) {
-    const emitter_t *emitter;
+    emitter_t *emitter;
     p8_fixed_t layer;
     vec_t screen_pos;
     p8_fixed_t center_x;
@@ -141,8 +138,8 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
     matrix_yy = emitter->matrix_yy;
     colors = emitter->trail_colors;
 
-    particles = emitter->particles;
-    if (particles != NULL) {
+    if (emitter->has & EMITTER_HAS_PARTICLES) {
+        particles = &emitter->particles;
         for (index = 0; index < particles->count; index++) {
             particle_t *particle = particles->items[index];
             vec_t pv;
