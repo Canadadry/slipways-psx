@@ -14,22 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-9 — No deletion of a named field
-
-Lua: `t[nom]=nil`.
-
-The port's dynamic-key table could remove an element by index, but not a
-named field: no call site needed it. Clearing a named field therefore has
-no exact equivalent. Writing a false value is not the same thing as an
-absent field.
-
-One site: the button of an opened box (`message_box_open_box`) takes the
-frame's background color only if the frame has one, instead of writing an
-absent color (in Lua, writing nil would clear the field). Pinned by
-`test_open_box_layer_only_from_back_color` in `tests/test_button.c`.
-
-File: `src/game/message_box.c`.
-
 ## GAP-12 — The wormhole's first ring is black instead of keeping the pen color
 
 Lua: `mz:kj`, `self.kk[flr(sr/self.oi*8)]`, `kk`, `kk[0]`, `self.t`, `dt`.

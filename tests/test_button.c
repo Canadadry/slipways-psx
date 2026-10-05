@@ -1785,7 +1785,7 @@ static void test_pause_menu_open_box_is_a_struct(void) {
     assert(pause_menu_open_box() == o);
 }
 
-/* GAP-9: a button's layer is the frame's back color when the frame has
+/* A button's layer is the frame's back color when the frame has
  * one, else the button's own. */
 static void test_open_box_layer_only_from_back_color(void) {
     open_box_frame_t frame = {0};

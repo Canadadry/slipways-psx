@@ -404,7 +404,6 @@ static button_t *open_box_step(open_box_ctx_t *ctx, const open_box_frame_t *fram
     b.has_slide_target = 1;
     b.slide_target = ctx->button_pos;
 
-    /* GAP-9 */
     if (frame->has_back_color) {
         b.layer = frame->back_color;
         b.has_layer = 1;
