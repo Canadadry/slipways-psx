@@ -187,7 +187,6 @@ const entity_registry_reserve_t cart_game_registry_reserve = {
         [TAG_WORMHOLE] = 3,
         [TAG_PLANET] = 110,
         [TAG_NODE] = 110,
-        [TAG_TARGETING] = 110,
     },
 };
 

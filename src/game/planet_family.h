@@ -9,7 +9,6 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* GAP-8 */
 void planet_family_init(void);
 
 void planet_family_shutdown(void);

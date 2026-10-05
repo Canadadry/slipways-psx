@@ -51,7 +51,7 @@ static const entity_class_t planet_class_def = {
     .attach_slipway = planet_attach_slipway_method,
     .offer_trade = planet_offer_trade_method,
     .states = {[ENTITY_STATE_VANISHING] = planet_update_vanishing_method},
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET),
 };
 

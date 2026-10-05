@@ -98,7 +98,7 @@ static const entity_class_t help_screen_class_def = {
     .drop = targeting_confirm_method,
     .spawn_particle = probe_spawn_particle,
     .release = probe_release_method,
-    .tags = TAG(TAG_PROBE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PROBE),
     .lineage = LINEAGE(LINEAGE_PROBE),
 };
 

@@ -74,7 +74,7 @@ static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING, TAG_ASCENSION, TAG_STRUCTURE};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_ASCENSION, TAG_STRUCTURE};
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 
 static int tag_count(unsigned tags) {

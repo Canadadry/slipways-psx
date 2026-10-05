@@ -28,7 +28,6 @@ typedef enum {
     TAG_WORMHOLE,
     TAG_PLANET,
     TAG_NODE,
-    TAG_TARGETING,
     TAG_COUNT
 } tag_t;
 

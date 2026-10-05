@@ -39,7 +39,7 @@ static const entity_class_t structure_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -103,7 +103,7 @@ static const entity_class_t trading_hub_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = trading_hub_update_settled_method,
         },
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE) | LINEAGE(LINEAGE_TRADING_HUB),
 };
 
@@ -140,7 +140,7 @@ static const entity_class_t processor_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -197,7 +197,7 @@ static const entity_class_t ascension_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -266,7 +266,7 @@ static const entity_class_t protostar_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 

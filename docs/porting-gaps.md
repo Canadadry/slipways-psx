@@ -72,14 +72,6 @@ frame.
 
 File: `src/engine/bootstrap.c`.
 
-## GAP-8 — The `targeting` tag has no reader
-
-Lua: `g_`, `jo`, `prober`, `cg("prober")`.
-
-The probe (`probe`), the help screen and the whole planet family register
-under the `TAG_TARGETING` tag, but nothing ever calls
-`entities_by_tag(TAG_TARGETING)`. Kept for fidelity, not for usefulness.
-
 ## GAP-9 — No deletion of a named field
 
 Lua: `t[nom]=nil`.
