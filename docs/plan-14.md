@@ -105,16 +105,18 @@ These come from an inventory of the code; the file:line references are as of thi
 - Asserts are kept for C contract violations only, for example an encode that exceeds 8 KiB.
 
 ### Guardrails
-- Every existing `*.sha256` in `tests/e2e/` stays unchanged at every step. If an existing replay acts and then restarts, its title screen would gain the `resume` row: check each such replay at step 5 (`pause_restart` restarts before any action, so it is unaffected).
+- Every existing `*.sha256` in `tests/e2e/` stays unchanged at every step. `pause_restart` and `keyboard_menus` restart before any action, so they are unaffected. `game_end_final_score` and `keyboard_game_end` act and then return to the title through "again?": their last action both sets `save_pending` and ends the game in the same frame, so their title screen stays unchanged only if the erase wins over that frame's end-of-frame write.
 - `make test` and `make e2e` must not get slower.
 - The raylib app is never launched; verification is headless.
 - New e2e replays respect the 180-frame limit, or get a line in `tools/e2e_long_exceptions.txt` (up to 600).
 
 ## 3. Phases and steps
 
-### Phase 1 — Plumbing
-1. **Storage.** Add the `save_storage` interface with its in-memory backend (headless/devtools) and its atomic file backend (raylib, `save/slipways.sav`, gitignored). Add `"initial_save"` to `events.json`: written by the recorder, read by `replay_source` to seed the storage. No visible change. Verified by unit tests (write, read, erase, overwrite, an empty read, a JSON round trip of `initial_save`), with every `*.sha256` unchanged.
-2. **Accessors.** Add get/set for `rnd_state`, for the type picker and both random walks (exposing what `galaxy.c:14` keeps static as `picker_random`), and a setter for the structure id counter. Verified by unit tests: a set followed by a get returns the value, and setting `rnd_state` reproduces the same `p8_fixed_rnd` sequence.
+### Phase 1 — The RNG bet
+1. **Accessors.** Add get/set for `rnd_state`, for the type picker and both random walks (exposing what `galaxy.c:14` keeps static as `picker_random`), and a setter for the structure id counter. Verified by unit tests: a set followed by a get returns the value, and setting `rnd_state` reproduces the same `p8_fixed_rnd` sequence.
+2. **RNG sync probe.** Before any format or loader exists, test the bet that saving `rnd_state` is enough. The global RNG is shared with drawing (`emitter_spawn`, `particle.c:99`; bursts, `planet_family.c:292-332`; `slipway_spawn_transit_dot`, `slipway_display.c:27`; on-screen vanishing planets, `planet_display.c:365`), and none of that visual state is saved. Play the same recording twice from boot (the game is deterministic). In the second run only, at the save frame, clear the state the save never holds (live particles and bursts, transit dots, `served_planets`, and so on). Advance both runs by the same number of frames and compare `rnd_state`. Do it once just after a colonization while its burst is still live, and once at a quiet frame. Verified by a unit test that passes in both cases.
+
+   If it fails, stop the plan: record the result as a step note and an open question for the human. Do not work around it in the loader or a harness, since keeping the RNG in sync would mean a content decision that section 2 does not make.
 
 ### Phase 2 — State
 3. **Format.** Write `save_state_encode`/`save_state_decode` for the layout in section 2, including validation, and `docs/save-format.md`. Verified by unit tests:
@@ -124,16 +126,22 @@ These come from an inventory of the code; the file:line references are as of thi
    - a wrong magic or version fails;
    - each out-of-range index fails;
    - the encode-size assert holds on the largest case in `worst-case/`.
-4. **Loader.** Rebuild a running game from a decoded save. Verified by a round trip on games played through several actions: colonization, every structure kind, a slipgate chain, a synthesizer, a revealed wormhole area, a protostar, research, and a vanishing planet. In each case:
+4. **Loader, thin slice.** Build the comparison harness and the loader for the smallest game: one colonization, saved, then after load one wormhole reveal (RNG and picker) and one year end (needs and routes). Verified by:
    - `encode → load → encode` gives identical bytes;
-   - the `devtools/state.c` dump after load equals the dump before save.
+   - **behavior after load**: game A is played to the save point and encoded, and the save is loaded into a fresh game B. Both then receive the same later actions and must give the same `devtools/state.c` dump, without its zone and cap lines (those follow the session's history), and the same framebuffer apart from particles.
+5. **Loader, every kind.** Extend the loader and the step 4 checks to colonization, every structure kind, a slipgate chain, a synthesizer, a revealed wormhole area, a protostar, research, and a vanishing planet. Each case later receives at least one wormhole reveal and one year end.
+
+   In steps 4, 5 and 8, a missing field that a check finds goes back into the step 3 format and `docs/save-format.md`, with a step note. It is never patched in the loader alone.
 
 ### Phase 3 — Game
-5. **Integration in `cart`.** Add `save_pending` in the three economy functions, the end-of-frame write, the wormhole hold-back, the lifecycle (erase at game end, keep on restart, overwrite at the first action of a new game) and the conditional `resume` row at y=41. Verified by:
-   - unit tests for the lifecycle and the hold-back;
+6. **Storage.** Add the `save_storage` interface with its in-memory backend (headless/devtools) and its atomic file backend (raylib, `save/slipways.sav`, gitignored). Add `"initial_save"` to `events.json`: written by the recorder, read by `replay_source` to seed the storage. No visible change. Verified by unit tests (write, read, erase, overwrite, an empty read, a JSON round trip of `initial_save`), with every `*.sha256` unchanged.
+7. **Integration in `cart`.** Add `save_pending` in the three economy functions, the end-of-frame write, the wormhole hold-back, the lifecycle (erase at game end, keep on restart, overwrite at the first action of a new game) and the conditional `resume` row at y=41. Verified by:
+   - unit tests for the lifecycle and the hold-back, including an action that ends the game: no save remains after that frame's end-of-frame write;
+   - `game_end_final_score` and `keyboard_game_end` unchanged (erase at game end);
    - a headless dump of the title screen with a save present: the row is at y=41–51 and rows 52–95 are unchanged;
    - every existing `*.sha256` unchanged.
-6. **E2e replays.** Two new replays in `tests/e2e/`, each with its `.txt` notes and `.sha256`:
+8. **Full-game save fuzz.** Add a target outside `make test`, `make e2e` and `make test-all` (like `make state`) that replays `worst-case/full_game.json`. At every frame where the game writes a save, it encodes the save, loads it into a fresh game, feeds both games the rest of the recording, and compares them with the step 4 criteria. Verified by the target passing; a mismatch names the save point that broke.
+9. **E2e replays.** Two new replays in `tests/e2e/`, each with its `.txt` notes and `.sha256`:
    - act, restart, then `resume`: the camera position and the map match the frame before the restart, apart from particles and animations;
    - a `resume` at frame 0 from a ready-made `initial_save`.
 
@@ -142,7 +150,7 @@ These come from an inventory of the code; the file:line references are as of thi
 ## 4. Done when
 
 - `make test-all` passes, with every pre-existing `*.sha256` unchanged and the two new e2e replays green.
-- The round-trip tests of step 4 pass for every listed action.
+- The checks of steps 2, 4 and 5 pass for every listed action, and the step 8 full-game save fuzz passes.
 - `docs/save-format.md` matches the encoder.
 - A human plays on PC, quits, relaunches, and resumes the same game.
 
