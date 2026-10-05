@@ -1,4 +1,4 @@
-# Plan 15 — Save and resume
+# Plan 16 — Save and resume
 
 ## 1. Goal
 
