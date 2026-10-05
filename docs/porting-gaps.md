@@ -14,40 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-20 — An explicit `nil` as the color of `circ` is not verified on PICO-8
-
-Lua: `ga:kj`, `circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])`, `1 < l < 2`,
-`k_`, `k_[0]`, `nil`, `circ`, `color(8) circ(64,64,10,nil)`, `rk`,
-`rk_default`.
-
-In `burst_draw`, each particle is drawn by `p8_circ`, in the color of the
-trail ramp at index flr(life/2) (lua.lua:1091). Particles whose life is
-between 1 and 2 give index 0. The cart's ramp is indexed from 1, so index
-0 is nil there and `circ` receives an **explicit nil** fourth argument,
-not an omitted one. This port then draws in color 0 (black).
-
-This is probably not a divergence. The manual says nothing about an
-explicit nil. Two emulators convert it to 0 and also set the pen to 0:
-zepto8 (only lua_isnone marks the argument as absent; nil gives
-lua_tonumber(nil) = 0) and fake-08 (lua_tonumber(L,4) as soon as there
-are more than 3 arguments). The port therefore draws as they do. It does
-not set the pen, which has no visible effect here.
-
-Not verified on the PICO-8 binary. The check: in a cart, draw a circle
-with a nil color after setting the pen to 8, and look at the color. If
-PICO-8 kept the pen, the port would first need real pen state (see the
-note on `pen_color` below); only 22 frames of `geoharvest_burst` would
-change.
-
-Related note: in both emulators, **every** colored draw updates the pen,
-whereas the port's `pen_color` is written only by `hud_draw_bar`. A
-colored draw between a `hud_draw_bar` and a `hud_draw_bar_default` would
-make the port diverge. Not investigated.
-
-Premise refuted by diagnosis in the emulators.
-
-File: `src/game/planet_family.c`.
-
 ## GAP-22 — `tostr` below 0.0001 is not sourced
 
 Lua: `tostr`.
