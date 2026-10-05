@@ -6,7 +6,6 @@
 #include "p8/fixed.h"
 #include "engine/entity.h"
 #include "game/mouse.h"
-#include "game/research.h"
 #include "game/scroll.h"
 #include "game/ui.h"
 
@@ -20,7 +19,6 @@ void reset_world(const entity_registry_reserve_t *reserve) {
     }
     entity_registry_abandon_live_entities();
     entity_registry_init(reserve);
-    research_expire_project_ids();
 
     if (!entity_ready()) {
         entity_init();

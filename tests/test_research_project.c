@@ -1086,6 +1086,7 @@ static void test_project_id_resolves_until_reset_or_rebuild(void) {
     assert(research_project_get(research_project_id_of(NULL)) == NULL);
 
     reset_world(NULL);
+    research_expire_project_ids();
     assert(research_project_get(id) == NULL);
     assert(research_projects_at(COLONY) == b);
     assert(research_project_get(research_project_id_of(b)) == b);
@@ -1112,7 +1113,8 @@ static void test_project_links_resolve_until_reset(void) {
     assert(research_project_get(as_planet(a)->project) == project(COLONY));
     assert(research_project_get(row->project) == project(EXPORTER));
 
-    reset_world(NULL);
+    cart_update60();
+    cart_start_game(NULL);
     assert(research_project_get(as_planet(a)->project) == NULL);
     assert(research_project_get(row->project) == NULL);
 }

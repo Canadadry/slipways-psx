@@ -29,6 +29,7 @@
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 #include "game/probe.h"
+#include "game/research.h"
 #include "game/structure_icon.h"
 #include "game/score_panel.h"
 #include "game/scroll.h"
@@ -149,6 +150,7 @@ void cart_init(void) {
     /* An empty generation needs no flip, and flipping it would trip flip_zone_flip's assert. */
     if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
     reset_world(NULL);
+    research_expire_project_ids();
 
     structure_icon_set_cursor(structure_icon_rest_cursor());
     message_box_set_shown(NULL);
@@ -198,6 +200,7 @@ void cart_start_game(button_t *chosen_option) {
 
     /* Not redundant with cart_init()'s call: the registries, camera, mouse and UI must be rebuilt. */
     reset_world(&cart_game_registry_reserve);
+    research_expire_project_ids();
     (void)background_new();
     galaxy_populate(p8_fixed_from_int(90));
 
