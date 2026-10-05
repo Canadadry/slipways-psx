@@ -140,12 +140,10 @@ static p8_fixed_t quarter_wave_at(uint32_t f) {
     return (quadrant & 2u) ? -v : v;
 }
 
-/* GAP-1 */
 p8_fixed_t p8_fixed_cos(p8_fixed_t x) {
     return quarter_wave_at(((uint32_t)x + 0x4000u) & 0xFFFFu);
 }
 
-/* GAP-1 */
 p8_fixed_t p8_fixed_sin(p8_fixed_t x) {
     return -quarter_wave_at((uint32_t)x & 0xFFFFu);
 }

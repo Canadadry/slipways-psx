@@ -421,7 +421,6 @@ static void test_rnd_default_behaves_as_rnd_one(void) {
 }
 
 /* sin/cos are bit-exact only at the 64 probed points, every 1/64 turn. */
-/* GAP-1 */
 static void test_sin_matches_probe_block_e(void) {
     /* Block E (sin) of tools/pico8_reference_probe_out.txt: copied from the
      * probe, never derived. The arguments step by 1/64 turn, raw 0x400. */

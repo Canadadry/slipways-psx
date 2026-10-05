@@ -50,10 +50,8 @@ p8_fixed_t p8_fixed_rnd(p8_fixed_t x);
 
 p8_fixed_t p8_fixed_rnd_default(void);
 
-/* GAP-1 */
 p8_fixed_t p8_fixed_cos(p8_fixed_t x);
 
-/* GAP-1 */
 p8_fixed_t p8_fixed_sin(p8_fixed_t x);
 
 #endif

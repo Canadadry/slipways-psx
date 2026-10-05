@@ -14,28 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-1 — `sin`/`cos` are not bit-exact outside the 64 measured points
-
-Lua: `sin`, `cos`.
-
-`p8_fixed_cos`/`p8_fixed_sin` read a 16.16 quarter-wave table
-(`p8_quarter_wave` in `src/p8/quarter_wave.h`, 16,385 entries, one per
-turn fraction r/65536 of the first quarter, no interpolation), generated
-on the host by `tools/gen_quarter_wave.c` (`make sin-table`). They are
-bit-exact on the 64 points i/64 of the probe
-(`tools/pico8_reference_probe_out.txt`, block E, asserted by `make test`).
-Everywhere else they return the true value rounded to nearest, which is
-what the old libc `double` computation returned. This has **no PICO-8
-source**: PICO-8's own approximation is not published.
-
-The pseudo-random generator falls under GAP-17.
-
-Consequence: a game replayed here can diverge from the same game replayed
-in real PICO-8. The internal replays stay deterministic, since they compare
-this port with itself.
-
-Files: `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
-
 ## GAP-9 — No deletion of a named field
 
 Lua: `t[nom]=nil`.
@@ -107,7 +85,7 @@ Lua: `rnd`.
 `p8_fixed_rnd` draws from a home-made generator (`rnd_next_u32`), not
 from PICO-8's. No sequence matches.
 
-Direct consequence, and stronger than GAP-1: the agreed goal "same seed →
+Direct consequence, and stronger than the `sin`/`cos` rounding outside the 64 probed points: the agreed goal "same seed →
 same galaxy" **does not hold** against the real cart, and not only because
 floating point drifts. Here the very first value drawn already differs.
 
