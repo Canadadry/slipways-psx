@@ -18,8 +18,6 @@ static p8_fixed_t picker_random(void *ctx) {
 void galaxy_populate(p8_fixed_t planet_count) {
     p8_fixed_t fixed_one = p8_fixed_from_int(1);
     p8_fixed_t threshold = P8_FIXED_LIT(0x00000ccc, 0.05);
-    p8_fixed_t map_span = P8_FIXED_LIT(0x0002c000, 2.75);
-    p8_fixed_t map_margin = P8_FIXED_LIT(0x00002000, 0.125);
     p8_fixed_t planet_id;
     const button_t *difficulty;
     p8_fixed_t difficulty_type_bias = p8_fixed_from_int(0);
@@ -36,8 +34,8 @@ void galaxy_populate(p8_fixed_t planet_count) {
 
         /* Not an inert loop: every accepted planet registers under the planet tag, so later candidates are rejected against it. */
         do {
-            p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
-            p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(map_span), map_margin);
+            p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(GALAXY_MAP_SPAN), GALAXY_MAP_MARGIN);
+            p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(GALAXY_MAP_SPAN), GALAXY_MAP_MARGIN);
             p_vec = vec_make(rx, ry);
         } while (entity_geom_nearest(p_vec, entities_by_tag(TAG_PLANET), &nearest) <= threshold);
 
@@ -45,7 +43,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
         planet_keys_set_id(&keys, p8_concat2(frame_zone(), "p", id_num_str));
         keys.map_pos = p_vec;
         keys.has_map_pos = 1;
-        keys.pos = vec_mul(p_vec, p8_fixed_from_int(128));
+        keys.pos = vec_mul(p_vec, p8_fixed_from_int(GALAXY_MAP_SCALE));
         keys.has_pos = 1;
 
         made = planet_new(&keys);

@@ -258,9 +258,10 @@ static void run_pad_session(const char *snapshot_path, int noisy) {
     input_step_t step;
     input_step_init(&step, P8_INPUT_PAD, 0);
     for (int i = 0; i < HEADLESS_FRAME_COUNT; i++) {
-        p8_input_frame_t raw = { 0, 0, 0, { 0, 0, 0, 0, 0, 0 }, 0 };
-        if (noisy) {
-            raw = noisy_pad_session_frame(i);
+        p8_input_frame_t raw = noisy_pad_session_frame(i);
+        if (!noisy) {
+            p8_input_frame_t quiet = { 0, 0, 0, { 0, 0, 0, 0, 0, 0 }, raw.pad_buttons };
+            raw = quiet;
         }
         input_step_run(&step, &raw);
         cart_update60();
@@ -279,7 +280,7 @@ static void assert_files_identical(const char *a_path, const char *b_path) {
     do {
         ca = fgetc(a);
         cb = fgetc(b);
-        assert(ca == cb && "headless pad run: mouse, dpad or pad D-pad noise changed the game");
+        assert(ca == cb && "headless pad run: mouse or dpad noise changed the game");
     } while (ca != EOF);
     fclose(a);
     fclose(b);

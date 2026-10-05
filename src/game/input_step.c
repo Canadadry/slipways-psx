@@ -44,6 +44,7 @@ int input_step_run(input_step_t *step, const p8_input_frame_t *raw) {
     step->played.frames = &step->played_frame;
     step->played.frame_count = 1;
     step->played.current_frame = 0;
+    step->played.mode = step->mode;
     int fired = run_cheat(&step->cheat, step->mode, raw);
     dispatch_context_set_input(&step->played);
     return fired;

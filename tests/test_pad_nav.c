@@ -159,16 +159,18 @@ static void test_cross_held_across_the_click_leaves_nothing_held(void) {
     assert(ui_left_held(main_ui()) == NULL);
 }
 
-static void test_no_panel_open_leaves_the_cursor_still(void) {
+/* TODO step 2.1 chunk 2: × on empty space puts the left button down. */
+static void test_free_mode_holds_the_cursor_at_the_centre(void) {
     input_step_t step;
     start_title(&step);
+    assert(!pad_nav_free_mode());
     run_frame(&step, P8_PAD_CROSS);
     assert(!pad_nav_panel_open());
-    const p8_input_frame_t still = *input_step_played_frame(&step);
+    assert(pad_nav_free_mode());
     for (int i = 0; i < 24; i++) {
         run_frame(&step, (i * 0x2a5) & 2047);
         const p8_input_frame_t *played = input_step_played_frame(&step);
-        assert(played->mouse_x == still.mouse_x && played->mouse_y == still.mouse_y);
+        assert(played->mouse_x == P8_SCREEN_WIDTH / 2 && played->mouse_y == P8_SCREEN_HEIGHT / 2);
         assert(played->mouse_buttons == 0);
         assert(pad_nav_focus(&step.pad_nav) == NULL);
     }
@@ -257,6 +259,204 @@ static void start_game(input_step_t *step) {
     cart_start_game((button_t *)title_button("forgiving"));
     settle(step);
     assert(main_economy_typed() != NULL && !pad_nav_panel_open());
+}
+
+/* Returns 1 in a child that copies the current world, 0 in the parent once that child ended cleanly;
+ * the child ends with end_forked_copy. */
+static int in_forked_copy(void) {
+    int status;
+    fflush(stdout);
+    pid_t child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        return 1;
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    return 0;
+}
+
+static void end_forked_copy(void) {
+    fflush(stdout);
+    _exit(0);
+}
+
+static vec_t camera_at(void) {
+    return camera_pos_before_shake(main_camera_typed());
+}
+
+static void assert_camera_still(void) {
+    const camera_t *camera = main_camera_typed();
+    assert(camera->velocity.x == 0 && camera->velocity.y == 0);
+}
+
+/* Holds the direction for the given frames, then releases it; returns the camera's move along its axis. */
+static int hold_and_measure(input_step_t *step, int direction, int frames) {
+    vec_t from = camera_at();
+    for (int i = 0; i < frames; i++) {
+        run_frame(step, direction);
+        assert_camera_still();
+        const p8_input_frame_t *played = input_step_played_frame(step);
+        assert(played->mouse_x == P8_SCREEN_WIDTH / 2 && played->mouse_y == P8_SCREEN_HEIGHT / 2);
+    }
+    run_frame(step, 0);
+    vec_t to = camera_at();
+    vec_t moved = vec_sub(to, from);
+    if (direction == P8_PAD_LEFT || direction == P8_PAD_RIGHT) {
+        assert(moved.y == 0);
+        return p8_fixed_flr_int(moved.x);
+    }
+    assert(moved.x == 0);
+    return p8_fixed_flr_int(moved.y);
+}
+
+/* 10 × 1 + 30 × 2 + 10 × 4: the camera's start is far enough from every pad bound. */
+static void test_free_mode_pans_with_the_speed_curve(void) {
+    static const int directions[4] = { P8_PAD_RIGHT, P8_PAD_LEFT, P8_PAD_DOWN, P8_PAD_UP };
+    static const int signs[4] = { 1, -1, 1, -1 };
+    static const int frames[4] = { 1, 10, 11, 50 };
+    static const int pixels[4] = { 1, 10, 12, 110 };
+    input_step_t step;
+    start_game(&step);
+    for (int d = 0; d < 4; d++) {
+        for (int f = 0; f < 4; f++) {
+            if (in_forked_copy()) {
+                assert(hold_and_measure(&step, directions[d], frames[f]) == signs[d] * pixels[f]);
+                end_forked_copy();
+            }
+        }
+    }
+}
+
+static void hold(input_step_t *step, int pad_buttons, int frames) {
+    for (int i = 0; i < frames; i++) {
+        run_frame(step, pad_buttons);
+        assert_camera_still();
+    }
+}
+
+static void assert_moved(vec_t from, int dx, int dy) {
+    vec_t moved = vec_sub(camera_at(), from);
+    assert(moved.x == p8_fixed_from_int(dx) && moved.y == p8_fixed_from_int(dy));
+}
+
+static void test_free_mode_diagonal_cancel_and_reset(void) {
+    input_step_t step;
+    start_game(&step);
+    vec_t from = camera_at();
+    hold(&step, P8_PAD_UP | P8_PAD_LEFT, 12);
+    assert_moved(from, -14, -14);
+
+    hold(&step, 0, 1);
+    from = camera_at();
+    hold(&step, P8_PAD_LEFT | P8_PAD_RIGHT, 50);
+    assert_moved(from, 0, 0);
+
+    from = camera_at();
+    hold(&step, 0, 1);
+    hold(&step, P8_PAD_RIGHT, 1);
+    assert_moved(from, 1, 0);
+
+    hold(&step, 0, 1);
+    from = camera_at();
+    hold(&step, P8_PAD_RIGHT, 19);
+    hold(&step, P8_PAD_RIGHT | P8_PAD_DOWN, 1);
+    assert_moved(from, 10 + 2 * 10, 1);
+}
+
+/* Holds the direction until the camera stops; returns where it stopped. */
+static vec_t pan_to_bound(input_step_t *step, int direction) {
+    vec_t last = camera_at();
+    for (int i = 0; i < 200; i++) {
+        run_frame(step, direction);
+        assert_camera_still();
+        vec_t now = camera_at();
+        if (now.x == last.x && now.y == last.y) {
+            return now;
+        }
+        last = now;
+    }
+    assert(0 && "pan_to_bound: the camera never stopped");
+    return last;
+}
+
+/* The centre reaches 16 to 368 on both axes, the galaxy's planet area: x -64..288, y -44..308. */
+static void test_free_mode_bound_brings_every_planet_under_the_centre(void) {
+    input_step_t step;
+    start_game(&step);
+    vec_t high = vec_make(pan_to_bound(&step, P8_PAD_RIGHT).x, pan_to_bound(&step, P8_PAD_DOWN).y);
+    vec_t low = vec_make(pan_to_bound(&step, P8_PAD_LEFT).x, pan_to_bound(&step, P8_PAD_UP).y);
+    assert(low.x == p8_fixed_from_int(-64) && high.x == p8_fixed_from_int(288));
+    assert(low.y == p8_fixed_from_int(-44) && high.y == p8_fixed_from_int(308));
+    vec_t centre = vec_make(p8_fixed_from_int(P8_SCREEN_WIDTH / 2), p8_fixed_from_int(P8_SCREEN_HEIGHT / 2));
+    vec_t reach_low = vec_add(low, centre);
+    vec_t reach_high = vec_add(high, centre);
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    assert(planets->count > 0);
+    for (int i = 0; i < planets->count; i++) {
+        vec_t p = entity_pos(planets->items[i]);
+        assert(p.x >= reach_low.x && p.x <= reach_high.x && p.y >= reach_low.y && p.y <= reach_high.y);
+    }
+}
+
+static int tagged_count(int tag) {
+    const entity_list_t *tagged = entities_by_tag(tag);
+    return tagged != NULL ? tagged->count : 0;
+}
+
+static void test_free_mode_other_buttons_do_nothing(void) {
+    static const int buttons[6] = { P8_PAD_CIRCLE, P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START };
+    input_step_t step;
+    start_game(&step);
+    vec_t from = camera_at();
+    int live = live_entities()->count;
+    int boxes = tagged_count(TAG_MESSAGE_BOX);
+    for (int b = 0; b < 6; b++) {
+        for (int i = 0; i < 3; i++) {
+            run_frame(&step, i == 1 ? 0 : buttons[b]);
+            const p8_input_frame_t *played = input_step_played_frame(&step);
+            assert(played->mouse_x == P8_SCREEN_WIDTH / 2 && played->mouse_y == P8_SCREEN_HEIGHT / 2);
+            assert(played->mouse_buttons == 0);
+            assert(pad_nav_free_mode());
+        }
+    }
+    assert_moved(from, 0, 0);
+    assert_camera_still();
+    assert(live_entities()->count == live);
+    assert(tagged_count(TAG_PROBE) == 0 && tagged_count(TAG_WORMHOLE) == 0);
+    assert(tagged_count(TAG_MESSAGE_BOX) == boxes && main_ui()->ephemerals.count == 0);
+}
+
+/* A held direction pans nothing under a panel, and its speed starts over once free mode resumes. */
+static void test_panel_takes_precedence_then_the_cursor_returns_to_the_centre(void) {
+    entity_t *entries[ITEMS_CAP];
+    input_step_t step;
+    start_game(&step);
+    hold(&step, P8_PAD_RIGHT, 20);
+    galaxy_menu_on_click(4)(NULL);
+    vec_t from = camera_at();
+    hold(&step, P8_PAD_RIGHT, SETTLE_FRAMES);
+    assert(pad_nav_panel_open() && !pad_nav_free_mode());
+    assert_moved(from, 0, 0);
+    assert(box_entries(entries) == 4);
+    const p8_input_frame_t *played = input_step_played_frame(&step);
+    assert(played->mouse_x != P8_SCREEN_WIDTH / 2 || played->mouse_y != P8_SCREEN_HEIGHT / 2);
+    assert(pad_nav_focus(&step.pad_nav) == pad_nav_first_item() && ui_hovered(main_ui()) == pad_nav_first_item());
+
+    for (int i = 0; i < 3; i++) {
+        tap(&step, P8_PAD_UP | P8_PAD_RIGHT);
+        run_frame(&step, P8_PAD_RIGHT);
+    }
+    run_frame(&step, P8_PAD_CROSS | P8_PAD_RIGHT);
+    while (pad_nav_panel_open()) {
+        run_frame(&step, P8_PAD_RIGHT);
+    }
+    assert(pad_nav_free_mode());
+    from = camera_at();
+    run_frame(&step, P8_PAD_RIGHT);
+    played = input_step_played_frame(&step);
+    assert(played->mouse_x == P8_SCREEN_WIDTH / 2 && played->mouse_y == P8_SCREEN_HEIGHT / 2);
+    assert_moved(from, 1, 0);
 }
 
 static void test_pause_menu_is_reachable(void) {
@@ -503,7 +703,12 @@ int main(void) {
     in_fresh_child(test_title_cross_starts_the_focused_difficulty);
     in_fresh_child(test_title_cross_with_a_move_clicks_the_new_focus);
     in_fresh_child(test_cross_held_across_the_click_leaves_nothing_held);
-    in_fresh_child(test_no_panel_open_leaves_the_cursor_still);
+    in_fresh_child(test_free_mode_holds_the_cursor_at_the_centre);
+    in_fresh_child(test_free_mode_pans_with_the_speed_curve);
+    in_fresh_child(test_free_mode_diagonal_cancel_and_reset);
+    in_fresh_child(test_free_mode_bound_brings_every_planet_under_the_centre);
+    in_fresh_child(test_free_mode_other_buttons_do_nothing);
+    in_fresh_child(test_panel_takes_precedence_then_the_cursor_returns_to_the_centre);
     in_fresh_child(test_pause_menu_is_reachable);
     in_fresh_child(test_planet_menu_is_reachable);
     in_fresh_child(test_tech_panel_is_reachable);

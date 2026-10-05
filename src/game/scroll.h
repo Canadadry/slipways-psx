@@ -28,6 +28,9 @@ void camera_update(const p8_input_t *input, camera_t *self);
 
 void camera_set_velocity(camera_t *self, vec_t v);
 
+/* Moves the map position and the position by whole pixels, within the pad-mode bound. */
+void camera_pan(camera_t *self, int dx, int dy);
+
 void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax);
 
 camera_t *main_camera_typed(void);

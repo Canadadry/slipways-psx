@@ -7,6 +7,7 @@
 #include "game/scroll.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
+#include "p8/vram.h"
 
 #include <assert.h>
 
@@ -33,6 +34,10 @@ int pad_nav_panel_open(void) {
         return 0;
     }
     return main_economy_typed() == NULL || ui->ephemerals.count > 0 || modal_backdrop_registered();
+}
+
+int pad_nav_free_mode(void) {
+    return main_economy_typed() != NULL && !pad_nav_panel_open();
 }
 
 /* Mirrors ui_update: while a box is open, a left press reaches only its ephemerals. */
@@ -220,11 +225,48 @@ static int pressed_direction(int pressed) {
     return 0;
 }
 
+enum { HELD_FRAMES_CAP = 41 };
+
+static const int pan_directions[4] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
+
+static void reset_held_frames(pad_nav_t *nav) {
+    for (int i = 0; i < 4; i++) {
+        nav->held_frames[i] = 0;
+    }
+}
+
+static int pan_speed(int held_frames) {
+    if (held_frames == 0) {
+        return 0;
+    }
+    if (held_frames <= 10) {
+        return 1;
+    }
+    return held_frames <= 40 ? 2 : 4;
+}
+
+static void free_mode_pan(pad_nav_t *nav, int pad_buttons) {
+    int speed[4];
+    for (int i = 0; i < 4; i++) {
+        if (!(pad_buttons & pan_directions[i])) {
+            nav->held_frames[i] = 0;
+        } else if (nav->held_frames[i] < HELD_FRAMES_CAP) {
+            nav->held_frames[i]++;
+        }
+        speed[i] = pan_speed(nav->held_frames[i]);
+    }
+    camera_t *camera = main_camera_typed();
+    if (camera != NULL) {
+        camera_pan(camera, speed[3] - speed[2], speed[1] - speed[0]);
+    }
+}
+
 void pad_nav_init(pad_nav_t *nav) {
     nav->focus = ENTITY_ID_NONE;
     nav->previous_pad = 0;
     nav->cursor_x = 0;
     nav->cursor_y = 0;
+    reset_held_frames(nav);
 }
 
 entity_t *pad_nav_focus(const pad_nav_t *nav) {
@@ -232,28 +274,44 @@ entity_t *pad_nav_focus(const pad_nav_t *nav) {
     return pad_nav_is_item(focus) ? focus : NULL;
 }
 
+static void panel_step(pad_nav_t *nav, int pad_buttons, int direction, p8_input_frame_t *played) {
+    entity_t *focus = pad_nav_focus(nav);
+    if (focus == NULL) {
+        focus = pad_nav_first_item();
+    }
+    if (focus != NULL && direction != 0) {
+        entity_t *next = pad_nav_neighbor(focus, direction);
+        if (next != NULL) {
+            focus = next;
+        }
+    }
+    nav->focus = entity_id_link(focus);
+    if (focus != NULL) {
+        focus_point(focus, &nav->cursor_x, &nav->cursor_y);
+    }
+    if (pad_buttons & P8_PAD_CROSS) {
+        played->mouse_buttons = P8_MOUSE_LEFT;
+    }
+}
+
+static void free_mode_step(pad_nav_t *nav, int pad_buttons) {
+    nav->focus = ENTITY_ID_NONE;
+    nav->cursor_x = P8_SCREEN_WIDTH / 2;
+    nav->cursor_y = P8_SCREEN_HEIGHT / 2;
+    free_mode_pan(nav, pad_buttons);
+}
+
 void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
     int direction = pressed_direction(pad_buttons & ~nav->previous_pad);
     nav->previous_pad = pad_buttons;
     played->mouse_buttons = 0;
     if (pad_nav_panel_open()) {
-        entity_t *focus = pad_nav_focus(nav);
-        if (focus == NULL) {
-            focus = pad_nav_first_item();
-        }
-        if (focus != NULL && direction != 0) {
-            entity_t *next = pad_nav_neighbor(focus, direction);
-            if (next != NULL) {
-                focus = next;
-            }
-        }
-        nav->focus = entity_id_link(focus);
-        if (focus != NULL) {
-            focus_point(focus, &nav->cursor_x, &nav->cursor_y);
-        }
-        if (pad_buttons & P8_PAD_CROSS) {
-            played->mouse_buttons = P8_MOUSE_LEFT;
-        }
+        reset_held_frames(nav);
+        panel_step(nav, pad_buttons, direction, played);
+    } else if (pad_nav_free_mode()) {
+        free_mode_step(nav, pad_buttons);
+    } else {
+        reset_held_frames(nav);
     }
     played->mouse_x = nav->cursor_x;
     played->mouse_y = nav->cursor_y;

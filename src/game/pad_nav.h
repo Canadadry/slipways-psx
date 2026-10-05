@@ -10,6 +10,7 @@ typedef struct {
     int previous_pad;
     int cursor_x;
     int cursor_y;
+    int held_frames[4];
 } pad_nav_t;
 
 void pad_nav_init(pad_nav_t *nav);
@@ -21,6 +22,9 @@ void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played);
 entity_t *pad_nav_focus(const pad_nav_t *nav);
 
 int pad_nav_panel_open(void);
+
+/* A game is running and no panel is open: the cursor is the screen centre and the D-pad pans the camera. */
+int pad_nav_free_mode(void);
 
 /* NULL when no panel is open or the panel has no item. */
 entity_t *pad_nav_first_item(void);
