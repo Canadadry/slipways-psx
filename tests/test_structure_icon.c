@@ -272,10 +272,9 @@ static void *build_icon(const entity_kind_t *ke, tooltip_t *jb) {
 static uint32_t fold_hit_box(uint32_t h, void *icon) {
     static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
                                    {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
-    const box_t *kq = &as_structure_icon(icon)->archetype->hit_box;
+    box_t kq = as_structure_icon(icon)->archetype->hit_box;
     size_t i;
 
-    assert(kq != NULL);
     for (i = 0; i < sizeof probe / sizeof probe[0]; i++) {
         h = fnv(h, (uint32_t)box_contains(kq, vec_at(probe[i][0], probe[i][1])));
     }
@@ -419,7 +418,7 @@ static void test_hovered_icon_tooltip_starts_at_the_top(void) {
     as_structure_icon(shown)->header.is_hovered = 1;
     p8_camera(&graphics, 0, 0);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
-    class_of(shown)->draw(shown, pos_ref(&as_structure_icon(shown)->header));
+    class_of(shown)->draw(shown, entity_pos(&as_structure_icon(shown)->header));
     assert(memory.screen[0][0] != 7);
 }
 
@@ -511,7 +510,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_alone(void *icon) {
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(icon)->draw(icon, pos_ref(&as_structure_icon(icon)->header));
+    class_of(icon)->draw(icon, entity_pos(&as_structure_icon(icon)->header));
     return screen_hash();
 }
 

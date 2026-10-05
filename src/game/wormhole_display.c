@@ -68,7 +68,6 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
     }
 }
 
-void wormhole_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    wormhole_draw(dispatch_context_gfx(), dispatch_context_mem(), (wormhole_t *)self, p);
+void wormhole_draw_method(entity_t *self, vec_t screen_pos) {
+    wormhole_draw(dispatch_context_gfx(), dispatch_context_mem(), (wormhole_t *)self, screen_pos);
 }

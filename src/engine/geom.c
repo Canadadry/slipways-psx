@@ -1,7 +1,5 @@
 #include "engine/geom.h"
 
-#include <assert.h>
-
 side_of_line_t geom_side_of_line(vec_t a, vec_t b, vec_t c) {
     p8_fixed_t kl = p8_fixed_sub(
         p8_fixed_mul(p8_fixed_sub(b.y, a.y), p8_fixed_sub(c.x, b.x)),
@@ -42,7 +40,6 @@ box_t *box_make(const allocator_t *zone, p8_fixed_t xl, p8_fixed_t yt,
     return box;
 }
 
-int box_contains(const box_t *box, vec_t p) {
-    assert(box != NULL && "box_contains: the box is the caller's to check, not this call's");
-    return p8_fixed_mid(box->left, box->right, p.x) == p.x && p8_fixed_mid(box->top, box->bottom, p.y) == p.y;
+int box_contains(box_t box, vec_t p) {
+    return p8_fixed_mid(box.left, box.right, p.x) == p.x && p8_fixed_mid(box.top, box.bottom, p.y) == p.y;
 }

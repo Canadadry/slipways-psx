@@ -87,7 +87,7 @@ void planet_release_row(entity_t *self);
 void planet_release_method(entity_t *self);
 down_t planet_accept_drop_method(entity_t *self, const entity_t *s);
 void planet_new_year_method(entity_t *self, p8_fixed_t year);
-void planet_draw_method(entity_t *self, const vec_t *screen_pos);
+void planet_draw_method(entity_t *self, vec_t screen_pos);
 down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
 void planet_attach_slipway_method(entity_t *self, entity_t *slipway);
 

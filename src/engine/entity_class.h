@@ -131,8 +131,8 @@ struct str_seq;
 struct kind_record;
 
 struct entity_class {
-    void (*draw)(entity_t *self, const vec_t *screen_pos);
-    void (*draw_overlay)(entity_t *self, const vec_t *screen_pos);
+    void (*draw)(entity_t *self, vec_t screen_pos);
+    void (*draw_overlay)(entity_t *self, vec_t screen_pos);
     int (*hit_test)(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);
     void (*new_year)(entity_t *self, p8_fixed_t year);
     void (*refresh)(entity_t *self);

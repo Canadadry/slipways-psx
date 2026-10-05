@@ -232,11 +232,10 @@ void draw_layers(entity_message_t message) {
 
         for (index = 0; index < bucket->count; index++) {
             entity_t *qc = bucket->items[index];
-            void (*draw)(entity_t *self, const vec_t *ra) = is_draw ? qc->class->draw : qc->class->draw_overlay;
-            vec_t ra = entity_pos(qc);
+            void (*draw)(entity_t *self, vec_t screen_pos) = is_draw ? qc->class->draw : qc->class->draw_overlay;
 
             if (draw != NULL) {
-                draw(qc, entity_has_pos(qc) ? &ra : NULL);
+                draw(qc, entity_pos(qc));
             }
         }
     }

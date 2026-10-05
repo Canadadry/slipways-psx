@@ -42,7 +42,7 @@ void message_box_construct(message_box_t *self) {
     message_box_set_shown(self);
 }
 
-static void message_box_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+static void message_box_draw_overlay_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     message_box_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (message_box_t *)self);
 }
@@ -313,7 +313,7 @@ void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, v
     hud_select_palette_block_default(mem);
 }
 
-static void toast_draw_method(entity_t *self, const vec_t *screen_pos) {
+static void toast_draw_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     toast_follow_source((toast_t *)self);
     toast_draw(dispatch_context_gfx(), dispatch_context_mem(), (const toast_t *)self, entity_pos(self));

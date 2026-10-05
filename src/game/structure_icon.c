@@ -172,9 +172,8 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *s
     p8_palt(mem, 3, 1);
 }
 
-static void structure_icon_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, p);
+static void structure_icon_draw_method(entity_t *self, vec_t screen_pos) {
+    structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, screen_pos);
 }
 
 static int structure_icon_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {

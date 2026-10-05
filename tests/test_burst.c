@@ -542,7 +542,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
 
     assert(qy != NULL && qy->count >= n);
     cut_particles(qy, n);
-    class_of(e)->draw(e, pos_ref(&g->header));
+    class_of(e)->draw(e, entity_pos(&g->header));
     h = fold_is_dead(h, g);
     return fnv(h, (uint32_t)qy->count);
 }

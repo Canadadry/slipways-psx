@@ -474,9 +474,8 @@ down_t planet_accept_drop_method(entity_t *self, const entity_t *s) {
     return planet_accept_drop((const planet_t *)self, s);
 }
 
-void planet_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
+void planet_draw_method(entity_t *self, vec_t screen_pos) {
+    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
 down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {

@@ -90,6 +90,6 @@ entity_t *slipway_other_end(const slipway_t *self, const entity_t *planet_instan
 
 void slipway_draw_overlay(slipway_t *self);
 
-void slipway_draw_method(entity_t *self, const vec_t *screen_pos);
+void slipway_draw_method(entity_t *self, vec_t screen_pos);
 
 #endif

@@ -341,7 +341,7 @@ static uint32_t fold_built_side_tooltip(uint32_t h, const button_t *b) {
 
 static uint32_t fold_hit_box(uint32_t h, const button_t *b) {
     static const int dy[] = {-2, -1, 0, 5, 9, 10, 11};
-    const box_t *kq = &b->header.hit_box;
+    box_t kq = b->header.hit_box;
     int mb = p8_fixed_flr_int(b->width);
     int dx[6];
     size_t i;
@@ -730,7 +730,7 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
 
         p8_camera(&graphics, 0, 0);
         p8_cls(&memory);
-        class_of(next_year)->draw(&next_year->header, pos_ref(&next_year->header));
+        class_of(next_year)->draw(&next_year->header, entity_pos(&next_year->header));
         for (y = 0; y < 11; y++) {
             touches |= memory.screen[y][P8_SCREEN_WIDTH - 1] != 0;
         }
@@ -1075,8 +1075,8 @@ static void test_tech_tree_screen_on_click(void) {
 static uint32_t draw_alone(void *b) {
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(b)->draw(b, pos_ref(&button_of(b)->header));
-    class_of(b)->draw_overlay(b, NULL);
+    class_of(b)->draw(b, entity_pos(&button_of(b)->header));
+    class_of(b)->draw_overlay(b, (vec_t){0, 0});
     return screen_hash();
 }
 
@@ -1157,7 +1157,7 @@ static void test_hovered_tooltip_rests_on_the_bottom_edge(void) {
     n = button_of(b)->tooltip->rows_count;
     p8_camera(&graphics, 0, 0);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
-    class_of(b)->draw_overlay(b, NULL);
+    class_of(b)->draw_overlay(b, (vec_t){0, 0});
     painted_rows(7, &first, &last);
     printf("[hovered_tooltip] %d line(s), rows %d-%d\n", n, first, last);
     assert(last == P8_SCREEN_HEIGHT - 1);

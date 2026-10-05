@@ -73,6 +73,15 @@ static void test_near_segment_within_margin_but_outside_distance_is_false(void) 
     assert(!geom_near_segment(a, b, c, fh));
 }
 
+static void test_box_contains_includes_its_edges_and_excludes_outside_points(void) {
+    box_t box = {p8_fixed_from_int(0), p8_fixed_from_int(-1), p8_fixed_from_int(20), p8_fixed_from_int(11)};
+
+    assert(box_contains(box, vec_make(p8_fixed_from_int(5), p8_fixed_from_int(5))));
+    assert(box_contains(box, vec_make(p8_fixed_from_int(20), p8_fixed_from_int(-1))));
+    assert(!box_contains(box, vec_make(p8_fixed_from_int(21), p8_fixed_from_int(5))));
+    assert(!box_contains(box, vec_make(p8_fixed_from_int(5), p8_fixed_from_int(12))));
+}
+
 int main(void) {
     test_side_positive_side();
     test_side_negative_side();
@@ -83,6 +92,7 @@ int main(void) {
     test_near_segment_outside_margin_near_start_is_false();
     test_near_segment_outside_margin_near_end_is_false();
     test_near_segment_within_margin_but_outside_distance_is_false();
+    test_box_contains_includes_its_edges_and_excludes_outside_points();
 
     printf("test_geom: all tests passed\n");
     return 0;

@@ -652,7 +652,7 @@ static void test_draw(void) {
     for (i = 0; i < 3; i++) {
         as_slipway(old)->targeted_by = entity_id_of(old);
         p8_cls(&memory);
-        class_of(old)->draw(old, NULL);
+        class_of(old)->draw(old, (vec_t){0, 0});
         assert(entity_get(as_slipway(old)->targeted_by) == NULL);
         assert(screen_hash() != blank);
         hash = fnv(hash, screen_hash());
@@ -660,11 +660,11 @@ static void test_draw(void) {
     }
 
     p8_cls(&memory);
-    class_of(origin)->draw(origin, vec_ref_fixed(vec_of(pos_ref(&as_planet(origin)->header))));
+    class_of(origin)->draw(origin, entity_pos(&as_planet(origin)->header));
     plain = screen_hash();
     as_planet(origin)->targeted_by = entity_id_of(old);
     p8_cls(&memory);
-    class_of(origin)->draw(origin, vec_ref_fixed(vec_of(pos_ref(&as_planet(origin)->header))));
+    class_of(origin)->draw(origin, entity_pos(&as_planet(origin)->header));
     circled = screen_hash();
     assert(entity_get(as_planet(origin)->targeted_by) == NULL);
     assert(circled != plain);
@@ -709,7 +709,7 @@ static void test_too_far(void) {
     p8_cls(&memory);
     empty = screen_hash();
 
-    class_of(far_slipway)->draw(far_slipway, NULL);
+    class_of(far_slipway)->draw(far_slipway, (vec_t){0, 0});
     assert(screen_hash() != empty);
     hash = fnv(hash, screen_hash());
 
@@ -724,13 +724,13 @@ static void test_too_far(void) {
     mouse = vec_of(pos_ref(&main_mouse_typed()->header));
     p8_camera(&graphics, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
     p8_cls(&memory);
-    class_of(far_slipway)->draw_overlay(far_slipway, NULL);
+    class_of(far_slipway)->draw_overlay(far_slipway, (vec_t){0, 0});
     too_far = screen_hash();
     p8_cls(&memory);
-    class_of(second_slipway)->draw_overlay(second_slipway, NULL);
+    class_of(second_slipway)->draw_overlay(second_slipway, (vec_t){0, 0});
     sprite = screen_hash();
     p8_cls(&memory);
-    class_of(near)->draw_overlay(near, NULL);
+    class_of(near)->draw_overlay(near, (vec_t){0, 0});
     cost = screen_hash();
     assert(too_far != empty && sprite != empty && cost != empty);
     assert(too_far != sprite && too_far != cost);

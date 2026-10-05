@@ -203,7 +203,7 @@ void score_panel_draw(p8_graphics_t *gfx, p8_vram_t *mem, score_panel_t *self) {
     }
 }
 
-static void score_panel_draw_method(entity_t *self, const vec_t *screen_pos) {
+static void score_panel_draw_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     score_panel_draw(dispatch_context_gfx(), dispatch_context_mem(), (score_panel_t *)self);
 }

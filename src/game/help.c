@@ -88,9 +88,8 @@ void help_screen_draw(p8_graphics_t *gfx, p8_vram_t *mem, probe_t *self, vec_t p
     }
 }
 
-void help_screen_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    help_screen_draw(dispatch_context_gfx(), dispatch_context_mem(), (probe_t *)self, p);
+void help_screen_draw_method(entity_t *self, vec_t screen_pos) {
+    help_screen_draw(dispatch_context_gfx(), dispatch_context_mem(), (probe_t *)self, screen_pos);
 }
 
 static const entity_class_t help_screen_class_def = {

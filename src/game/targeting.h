@@ -55,7 +55,7 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_vram_t *mem, entity_t *self)
 
 void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t state, const targeting_t *pb);
 
-void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos);
+void targeting_tooltip_method(entity_t *self, vec_t screen_pos);
 
 int targeting_confirm(entity_t *self);
 

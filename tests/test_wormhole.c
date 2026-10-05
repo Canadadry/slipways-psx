@@ -687,8 +687,8 @@ static uint32_t draw(void *mz) {
 
     p8_gfx_init(&graphics);
     p8_cls(&memory);
-    cls->draw(mz, vec_ref(64, 64));
-    cls->draw_overlay(mz, NULL);
+    cls->draw(mz, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    cls->draw_overlay(mz, (vec_t){0, 0});
     return screen_hash();
 }
 

@@ -180,9 +180,8 @@ void ascension_draw(p8_graphics_t *gfx, p8_vram_t *mem, planet_t *self, vec_t p)
     planet_draw(gfx, mem, self, p);
 }
 
-void ascension_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    ascension_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
+void ascension_draw_method(entity_t *self, vec_t screen_pos) {
+    ascension_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
 void ascension_release_method(entity_t *self) {
@@ -412,9 +411,8 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
     self->header.is_dead = !third_taken;
 }
 
-static void burst_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    burst_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
+static void burst_draw_method(entity_t *self, vec_t screen_pos) {
+    burst_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
 /* Read the slot first: arena_release() frees the struct and the list with it. */

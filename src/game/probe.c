@@ -73,7 +73,7 @@ static int probe_panel_box_contains(vec_t rp) {
     if (hw == NULL) {
         return 0;
     }
-    return box_contains(hw, rp);
+    return box_contains(*hw, rp);
 }
 
 static int probe_is_target_class(const entity_class_t *cls) {
@@ -283,7 +283,7 @@ void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t st
     }
 }
 
-void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos) {
+void targeting_tooltip_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     targeting_tooltip(dispatch_context_gfx(), dispatch_context_mem(), self);
 }

@@ -478,7 +478,7 @@ static void test_life(void) {
     hash = fnv_str(hash, opened_box_description());
 
     for (index = 0; index < 2; index++) {
-        class_of(score_panel)->draw(&score_panel->header, NULL);
+        class_of(score_panel)->draw(&score_panel->header, (vec_t){0, 0});
         hash = fnv(hash, screen_hash());
     }
     assert(!score_panel->has_curtain);
@@ -502,7 +502,7 @@ static void test_life(void) {
     assert(score_panel_last_box(score_panel) == shown_message_box());
 
     for (index = 0; index < 3; index++) {
-        class_of(score_panel)->draw(&score_panel->header, NULL);
+        class_of(score_panel)->draw(&score_panel->header, (vec_t){0, 0});
         hash = fold_opt_fixed(hash, score_panel->has_curtain, score_panel->curtain);
         hash = fnv(hash, screen_hash());
     }

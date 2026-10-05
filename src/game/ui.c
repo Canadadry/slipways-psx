@@ -80,7 +80,7 @@ static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
     return b != NULL && b->has_held ? b : NULL;
 }
 
-static void ui_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+static void ui_draw_overlay_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     ui_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (const ui_t *)self);
 }

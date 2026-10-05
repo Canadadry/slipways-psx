@@ -315,7 +315,7 @@ static void slipway_drop_method(entity_t *self, entity_t *dropped) {
     slipway_drop((slipway_t *)self, dropped);
 }
 
-static void slipway_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+static void slipway_draw_overlay_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     slipway_draw_overlay((slipway_t *)self);
 }

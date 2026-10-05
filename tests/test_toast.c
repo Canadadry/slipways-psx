@@ -350,7 +350,7 @@ static void test_toast_follows_its_source_until_its_first_update(void) {
     planet_bob(&planet->header, p8_fixed_from_int(50));
     moved = planet->header.pos;
     assert(moved.y != p8_fixed_from_int(100));
-    e->header.class->draw(&e->header, NULL);
+    e->header.class->draw(&e->header, (vec_t){0, 0});
     assert(same_vec(e->header.pos, moved));
     planet_bob(&planet->header, p8_fixed_from_int(60));
     moved = planet->header.pos;
@@ -358,7 +358,7 @@ static void test_toast_follows_its_source_until_its_first_update(void) {
     after = vec_add(moved, e->archetype->velocity);
     assert(same_vec(e->header.pos, after));
     planet_bob(&planet->header, p8_fixed_from_int(70));
-    e->header.class->draw(&e->header, NULL);
+    e->header.class->draw(&e->header, (vec_t){0, 0});
     assert(same_vec(e->header.pos, after));
 }
 

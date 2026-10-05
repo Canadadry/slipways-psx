@@ -587,12 +587,12 @@ static void test_life(void) {
 
     entity_set_state(&first->header, ENTITY_STATE_PLACING);
     entity_set_state(&second->header, ENTITY_STATE_PLACING);
-    class_of(first)->draw_overlay(&first->header, NULL);
+    class_of(first)->draw_overlay(&first->header, (vec_t){0, 0});
     hash = fnv(hash, screen_hash());
-    class_of(second)->draw_overlay(&second->header, NULL);
+    class_of(second)->draw_overlay(&second->header, (vec_t){0, 0});
     hash = fnv(hash, screen_hash());
     class_of(first)->drag(&first->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
-    class_of(first)->draw_overlay(&first->header, NULL);
+    class_of(first)->draw_overlay(&first->header, (vec_t){0, 0});
     hash = fnv(hash, screen_hash());
 
     for (index = 0; index < 3; index++) {

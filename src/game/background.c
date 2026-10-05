@@ -23,7 +23,7 @@ static int background_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-static void background_draw_method(entity_t *self, const vec_t *screen_pos) {
+static void background_draw_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     background_draw(dispatch_context_gfx(), dispatch_context_mem(), (const background_t *)self);
 }

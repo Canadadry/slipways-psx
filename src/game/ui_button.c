@@ -35,14 +35,13 @@ static void button_update_method(entity_t *self, p8_fixed_t t) {
     button_update((button_t *)self);
 }
 
-static void button_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+static void button_draw_overlay_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     button_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self);
 }
 
-static void button_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, p);
+static void button_draw_method(entity_t *self, vec_t screen_pos) {
+    button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, screen_pos);
 }
 
 static int button_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {

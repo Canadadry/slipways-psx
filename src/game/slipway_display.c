@@ -169,7 +169,7 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
     self->targeted_by = ENTITY_ID_NONE;
 }
 
-void slipway_draw_method(entity_t *self, const vec_t *screen_pos) {
+void slipway_draw_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     slipway_draw(dispatch_context_gfx(), dispatch_context_mem(), (slipway_t *)self);
 }

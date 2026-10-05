@@ -184,7 +184,7 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
     emitter_spawn(self, emitter->archetype->spawn_rate);
 }
 
-void emitter_update_method(entity_t *self, const vec_t *screen_pos) {
+void emitter_update_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     emitter_update(dispatch_context_gfx(), dispatch_context_mem(), self);
 }

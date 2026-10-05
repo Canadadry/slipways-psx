@@ -51,6 +51,6 @@ void emitter_spawn(entity_t *self, p8_fixed_t n);
 
 void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *self);
 
-void emitter_update_method(entity_t *self, const vec_t *screen_pos);
+void emitter_update_method(entity_t *self, vec_t screen_pos);
 
 #endif
