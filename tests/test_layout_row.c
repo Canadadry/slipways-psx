@@ -337,7 +337,7 @@ static layout_row_keys_t with_pos(layout_row_keys_t k, vec_t at) {
 
 /* Every kind of item row_measure_item() knows, the named keys each
  * constructor passes, no keys at all, the score row the score panel
- * passes, its hole already closed (GAP-25), and the stars' row in index
+ * passes, its hole already closed, and the stars' row in index
  * order. */
 static void test_constructions(void) {
     uint32_t hash = 2166136261u;

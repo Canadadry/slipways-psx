@@ -14,37 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-25 — The end panel's "score 0" row has a hole, and the port draws both of its elements
-
-Lua: `o("",score=0,ra=v(64,21),c=5)`, `bz`, `pj:ph`, `st[3]`, `st[1]`, `lq`,
-`lq:pq`, `nv`, `all(self)`, `#t`, `all`, `fs`, `w`, `a=0.5`, `pi.ld`, `[1]`,
-`[3]`, `t[1]`.
-
-The line for the panel's "score 0" row (lua.lua:803) has only one
-positional entry, index 1. `score_panel_update` (lua.lua:885-891) writes index 3
-into it (the empty string `score_panel_final_score_text` returns for index 0), then rewrites index 1, and passes it to
-a layout row. The row therefore carries indices 1 and 3, with no 2.
-
-In the cart, building the row walks it up to its border
-(lua.lua:289-290). The port instead takes every index key in ascending
-order (the loop in `score_panel_update` over `has_value`) and closes the
-hole: the row's cells hold both elements, so its `placed_items` keep
-both and `width` counts both. The row's centering (alignment 0.5) depends
-on it. Reached by the e2e (`game_end`, 4 constructions).
-
-Verified in the cart source: the row's line, the order of the writes in
-`score_panel_update`, and the walk done when building the row. Not
-verified on PICO-8: the border of this table. In the Lua 5.2
-implementation, a table built with index 1 and then given index 3 has a
-border of 1, and the walk would see only index 1. PICO-8 may return 3,
-the other valid border (since index 1 is not nil, 0 is not a border).
-
-Pre-existing: the row instance already walked every index key. The
-conversion to a struct preserves the divergence.
-
-Files: `src/game/layout.c` (row construction, `layout_row_construct`),
-`src/game/score_panel_display.c` (`score_panel_update_add_row`).
-
 ## GAP-26 — An off-screen planet's target is cut off when the held object is released
 
 Lua: `fo`, `jo:kj`, `self.fo=nil`, `gd()`, `ll`, `jc`, `dw`, `kj`, `np`.

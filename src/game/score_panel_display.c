@@ -177,7 +177,6 @@ static void score_panel_update_add_row(message_box_t *box, const score_rows_entr
         }
     }
 
-    /* GAP-25 */
     for (index = 0; index < 5; index++) {
         if (has_value[index]) {
             layout_row_keys_append(&keys, layout_row_cell_item(&values[index]));

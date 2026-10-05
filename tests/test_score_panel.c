@@ -816,7 +816,7 @@ static void test_update_rows_show_final_score(void) {
 
 /* Each update rebuilds the score lines from the static table: a second
  * box, opened after the frame zone was reset, lays out the same items, and
- * the "score 0" line keeps its two elements (GAP-25). */
+ * the "score 0" line keeps its two elements. */
 static void test_update_rebuilds_rows_from_the_table(void) {
     score_panel_t *ju = start_game();
     const message_box_t *first = open_final_box(ju);
