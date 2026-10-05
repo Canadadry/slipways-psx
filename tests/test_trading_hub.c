@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -35,9 +36,17 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* The first vector copies the second: another box, same x and y; NULL for NULL. */
-static int pos_copies(const vec_t *ra, const vec_t *mp) {
-    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
+static int pos_copies(const vec_t *ra, vec_t mp) {
+    return ra != NULL && ra->x == mp.x && ra->y == mp.y;
 }
 
 
@@ -129,16 +138,12 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pointer_list_t *l) {
-    return l == NULL ? -1 : l->count;
-}
-
-static int entity_list_count(const entity_list_t *l) {
+static int id_list_count(const entity_id_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
 static uint32_t fold_production(uint32_t h, const planet_t *jo) {
-    const production_t *k = jo->production;
+    const production_t *k = planet_production_read(jo);
 
     if (k == NULL) {
         return fnv(h, 0xA0u);
@@ -162,7 +167,7 @@ static uint32_t fold_structure(uint32_t h, const planet_t *qh) {
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t target_state(const planet_t *qh) {
-    return qh->targeting->target == NULL ? 1u : 3u;
+    return targeting_target(&qh->targeting) == NULL ? 1u : 3u;
 }
 
 /* The laboratory's target as its targeting holds it: false or the target. */
@@ -171,7 +176,7 @@ static uint32_t fold_target(uint32_t h, const planet_t *qh) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), qh->targeting->target);
+        return fold_ref(fnv(h, 1u), targeting_target(&qh->targeting));
     }
 }
 
@@ -190,10 +195,8 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
 
 static vec_t vec_xy(int x, int y) {
@@ -253,9 +256,9 @@ static void *build_trading_hub(void) {
     down_t made;
 
     assert(icon != NULL);
-    made = class_of(icon)->left_press(icon, NULL, NULL);
-    assert(made.stop && made.held != NULL);
-    return made.held;
+    made = class_of(icon)->left_press(icon, (mouse_pos_t){0});
+    assert(made.stop && entity_get(made.held) != NULL);
+    return entity_get(made.held);
 }
 
 /* A trading hub is the only entity of the trading hub lineage, and its is_trading_hub is 1. */
@@ -278,7 +281,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
 
     structure = trading_hub;
     planet = structure;
-    hash = fold_string_member(hash, planet->planet_id);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, trading_hub->archetype->required_tech);
@@ -286,16 +289,16 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fold_structure(hash, structure);
     hash = fold_fixed_member(hash, structure->archetype->project_index);
     hash = fold_fixed_member(hash, structure->sprite);
-    hash = fold_fixed_member(hash, structure->targeting->cost);
+    hash = fold_fixed_member(hash, structure->targeting.cost);
     hash = fold_fixed_member(hash, trading_hub->palette_block);
-    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
-    hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
-    hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting.archetype->confirmed_state));
+    hash = fold_fixed_member(hash, structure->targeting.archetype->clock_ticks);
+    hash = fold_fixed_member(hash, structure->targeting.archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
     hash = fold_fixed_member(hash, planet->archetype->layer);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
     /* The 1s of is_trading_hub, palette_block, project_index, is_structure, cost,
@@ -306,14 +309,14 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
+    hash = fnv(hash, (uint32_t)(structure->targeting.archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->accepted_resources != NULL));
-    hash = fnv(hash, structure->targeting->target != NULL ? 1u : 0u);
+    hash = fnv(hash, targeting_target(&structure->targeting) != NULL ? 1u : 0u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -323,28 +326,28 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
-    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, (uint32_t)(planet_production_read(planet) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
-    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
+    hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
-    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) != 0));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
-    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
-    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
-    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
-    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_INCOMING_ROUTES) != 0));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(planet_is_family(entity));
     assert_structure_shape(class_of(entity));
     assert_members_of(class_of(entity), structure_class(), 1, 0);
@@ -358,12 +361,12 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     assert(planet->archetype == &trading_hub_archetype);
     assert(planet->archetype->spacer == &planet_spacer_row && planet->archetype->ring_colors == &planet_ring_colors_seq && planet->archetype->mood_rows == planet_mood_rows_rows &&
            planet->archetype->made_resources == &planet_made_resources_seq);
-    assert(planet->production != NULL && planet->production != planet_shared_production());
+    assert(planet->has & PLANET_HAS_PRODUCTION);
     assert(research_projects_at(6) != NULL);
-    assert(planet->project == research_projects_at(6));
+    assert(research_project_get(planet->project) == research_projects_at(6));
     hash = fold_production(hash, planet);
-    hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
-    hash = fnv(hash, (uint32_t)list_size(planet->needs));
+    hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) ? planet->needs.count : -1));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
@@ -400,7 +403,7 @@ static void set_credits(int n) {
 }
 
 static uint32_t fold_pos_y(uint32_t h, const planet_t *nl) {
-    const vec_t *ra = nl->pos;
+    const vec_t *ra = pos_ref(&nl->header);
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -417,7 +420,7 @@ static uint32_t fold_update_entities(uint32_t h, const void *e) {
 
 /* planet_rebuild_trades's list, folded as fold_ref folded the tagged list
  * it was: never a live entity, so the tag branch. */
-static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
+static uint32_t fold_rebuild_trades(uint32_t h, const trade_route_list_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -428,7 +431,7 @@ static uint32_t fold_rebuild_trades(uint32_t h, const entity_list_t *ib) {
  * planet_rebuild_trades, planet_is_colonized and economy_score_planet_upkeep
  * (is_structure false) give on a trading hub. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    entity_list_t *ib = planet_rebuild_trades(e);
+    trade_route_list_t *ib = planet_rebuild_trades(e);
     h = fnv(h, (uint32_t)economy_tiers_compute_tier(e));
     h = fold_rebuild_trades(h, ib);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(e) ? 1u : 0u);
@@ -445,16 +448,16 @@ static void test_life(void) {
     uint32_t hash = 2166136261u;
     planet_t *placed;
     planet_t *idle;
-    vec_t *mouse_world;
+    vec_t mouse_world;
     int index;
 
     start_game();
 
     placed = build_trading_hub();
-    mouse_world = vec_ref(vec_xy(7680, 7552));
-    class_of(placed)->drag(&placed->header, mouse_world, vec_ref(vec_xy(64, 64)));
-    assert(pos_copies(placed->pos, mouse_world));
-    hash = fold_vec(hash, placed->map_pos);
+    mouse_world = vec_xy(7680, 7552);
+    class_of(placed)->drag(&placed->header, mouse_pos(mouse_world, vec_xy(64, 64)));
+    assert(pos_copies(pos_ref(&placed->header), mouse_world));
+    hash = fold_vec(hash, map_pos_ref(&placed->header));
     hash = fnv(hash, target_state(placed));
     hash = fold_target(hash, placed);
     set_credits(100);
@@ -505,11 +508,10 @@ static void must_abort(void (*write)(void *), void *e) {
 }
 
 static void build_with_unknown_key(void *e) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     (void)e;
-    keys.planet_id = NULL;
-    keys.map_pos = vec_ref(vec_xy(1, 1));
-    keys.pos = NULL;
+    keys.map_pos = vec_xy(1, 1);
+    keys.has_map_pos = 1;
     (void)trading_hub_new(&keys);
 }
 
@@ -537,7 +539,7 @@ static void test_trading_hub_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         planet_t *bare = trading_hub_new(NULL);
-        assert(is_a_trading_hub_struct(bare) && bare->planet_id == NULL && bare->slipways != NULL &&
+        assert(is_a_trading_hub_struct(bare) && planet_id_or_null(bare) == NULL && bare->slipways.zone != NULL &&
                entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }

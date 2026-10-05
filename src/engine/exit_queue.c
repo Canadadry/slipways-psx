@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "engine/entity_id.h"
 #include "p8/fatal.h"
 
 typedef struct {
@@ -26,7 +27,7 @@ static void put(entry_t entry) {
 
 void exit_queue_put(entity_t *e) {
     entry_t entry = {e, NULL};
-    assert(e->class->release != NULL && "exit queue: the class has nothing to release");
+    assert(e != NULL);
     put(entry);
 }
 
@@ -44,15 +45,17 @@ int exit_queue_max(void) {
     return g_max;
 }
 
-void exit_queue_flush(void (*forget)(const entity_t *e)) {
+void exit_queue_flush(void) {
     for (int i = 0; i < g_count; i++) {
         entity_t *e = g_queue[i].entity;
         if (e == NULL) {
             arena_release(g_queue[i].arena);
             continue;
         }
-        forget(e);
-        e->class->release(e);
+        void (*release)(entity_t *self) = e->class->release;
+        /* The slot goes before the memory: no slot may point at a returned block. */
+        entity_id_release(e);
+        if (release != NULL) release(e);
     }
     g_count = 0;
 }

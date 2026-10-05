@@ -34,27 +34,23 @@ static void for_each_tagged(tag_t tag, entities_by_tag_visit_fn_t fn, void *ctx)
 
 static void rebuild_incoming_routes_reset_visit(entity_t *pt, void *ctx) {
     planet_t *jo;
-    entity_list_t *cc;
     (void)ctx;
     if (pt == NULL) {
         return;
     }
     assert(planet_is_family(pt) && "rebuild_incoming_routes_reset_visit: the planet tag holds planets only");
     jo = (planet_t *)pt;
-    if (jo->incoming_routes != NULL) {
-        entity_list_clear(jo->incoming_routes);
+    if (jo->has & PLANET_HAS_INCOMING_ROUTES) {
+        trade_route_list_clear(&jo->incoming_routes);
         return;
     }
-    cc = (entity_list_t *)allocator_alloc(game_zone(), sizeof *cc);
-    entity_list_init(cc, game_zone());
-    jo->incoming_routes = cc;
+    trade_route_list_init(&jo->incoming_routes, game_zone());
+    jo->has |= PLANET_HAS_INCOMING_ROUTES;
 }
 
 static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context) {
     planet_t *from_planet;
-    entity_list_t *outgoing;
-    entity_list_iter_t iter;
-    entity_t *element;
+    trade_route_list_t *outgoing;
     (void)context;
     if (entity == NULL) {
         return;
@@ -63,68 +59,41 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
     assert(planet_is_family(entity) && "rebuild_incoming_routes_route_visit: the planet tag holds planets only");
     from_planet = (planet_t *)entity;
     outgoing = planet_rebuild_trades(from_planet);
-    from_planet->outgoing_routes = outgoing;
 
-    if (outgoing == NULL) {
-        return;
-    }
-
-    iter = entity_list_all(outgoing);
-    while (entity_list_iter_next(&iter, &element)) {
-        const trade_route_t *route;
-        const entity_list_t *slipways;
-        const entity_list_t *planets;
+    for (int route_index = 0; route_index < trade_route_list_count(outgoing); route_index++) {
+        const trade_route_t *route = trade_route_list_at(outgoing, route_index);
+        const entity_id_list_t *slipways = &route->slipways;
+        const entity_id_list_t *planets = &route->planets;
         entity_t *to_val;
         int index;
 
-        if (element == NULL) {
-            continue;
-        }
-        assert(element->class == trade_class() && "rebuild_incoming_routes_route_visit: outgoing_routes holds trades only");
-        route = (const trade_route_t *)element;
-        slipways = route->slipways;
-        planets = route->planets;
+        for (index = 0; index < slipways->count; index++) {
+            entity_t *w_val = entity_id_list_at(slipways, index);
+            slipway_t *w;
+            const entity_t *planet_val;
+            const planet_t *planet;
 
-        if (slipways != NULL && planets != NULL) {
-            for (index = 0; index < slipways->count; index++) {
-                const entity_t *w_val = slipways->items[index];
-                const slipway_t *w;
-                const entity_t *planet_val;
-                const planet_t *planet;
-
-                if (w_val == NULL) {
-                    continue;
-                }
-                if (index + 1 >= planets->count) {
-                    continue;
-                }
-                planet_val = planets->items[index + 1];
-                if (planet_val == NULL) {
-                    continue;
-                }
-                assert(planet_is_family(planet_val) && "rebuild_incoming_routes_route_visit: a trade's planets list holds planets only");
-                planet = (const planet_t *)planet_val;
-                if (planet->planet_id == NULL) {
-                    continue;
-                }
-                assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
-                w = (const slipway_t *)w_val;
-                /* GAP-15 */
-                /* Skipped, never fatal: never make this absent set fail alone. */
-                if (w->served_planets == NULL) {
-                    continue;
-                }
-                slipway_served_planets_add(w->served_planets, planet->planet_id);
+            if (index + 1 >= planets->count) {
+                continue;
             }
+            planet_val = entity_id_list_at(planets, index + 1);
+            assert(planet_is_family(planet_val) && "rebuild_incoming_routes_route_visit: a trade's planets list holds planets only");
+            planet = (const planet_t *)planet_val;
+            if (!(planet->has & PLANET_HAS_ID)) {
+                continue;
+            }
+            assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
+            w = (slipway_t *)w_val;
+            slipway_served_planets_add(&w->served_planets, planet->planet_id);
         }
 
-        if (trade_last_planet(route, &to_val) && to_val != NULL) {
+        if (trade_last_planet(route, &to_val)) {
             planet_t *dest;
 
             assert(planet_is_family(to_val) && "rebuild_incoming_routes_route_visit: a trade leads to a planet");
             dest = (planet_t *)to_val;
-            if (dest->incoming_routes != NULL) {
-                entity_list_add(dest->incoming_routes, element);
+            if (dest->has & PLANET_HAS_INCOMING_ROUTES) {
+                trade_route_list_add(&dest->incoming_routes, route);
             }
         }
     }
@@ -155,11 +124,11 @@ static void update_tiers_visit(entity_t *entity, void *context) {
 
     if (!has_development_tier || tier > development_tier) {
         if (has_development_tier && development_tier == p8_fixed_from_int(1)) {
-            research_project_t *hn = planet->project;
+            research_project_t *hn = research_project_get(planet->project);
             if (hn != NULL && hn->has_byproduct) {
-                if (planet->needs != NULL) {
-                    need_t *entry = need_new(game_zone(), &hn->byproduct);
-                    pointer_list_add(planet->needs, entry);
+                if (planet->has & PLANET_HAS_NEEDS) {
+                    need_t *entry = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = hn->byproduct});
+                    pointer_list_add(&planet->needs, entry);
                 }
             }
         }
@@ -170,7 +139,7 @@ static void update_tiers_visit(entity_t *entity, void *context) {
     }
 
     if (development_tier != p8_fixed_from_int(0)) {
-        research_project_t *hn = planet->project;
+        research_project_t *hn = research_project_get(planet->project);
         if (hn != NULL) {
             const production_tables_entry_t *po = research_project_production(hn);
             if (po != NULL) {
@@ -185,9 +154,7 @@ static void update_tiers_visit(entity_t *entity, void *context) {
                 if (planet->has_production_bonus) {
                     jh = planet->production_bonus;
                 }
-                if (planet->production != NULL) {
-                    planet->production->amount = p8_fixed_add(base, jh);
-                }
+                planet_production(planet)->amount = p8_fixed_add(base, jh);
             }
         }
     }
@@ -202,7 +169,7 @@ int economy_tiers_update_tiers(void) {
 p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
     const planet_t *planet;
     const pointer_list_t *needs;
-    const entity_list_t *incoming_routes;
+    const trade_route_list_t *incoming_routes;
     p8_fixed_t tier = p8_fixed_from_int(1);
     int index;
 
@@ -215,8 +182,8 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
         return p8_fixed_from_int(0);
     }
 
-    needs = planet->needs;
-    incoming_routes = planet->incoming_routes;
+    needs = (planet->has & PLANET_HAS_NEEDS) ? &planet->needs : NULL;
+    incoming_routes = (planet->has & PLANET_HAS_INCOMING_ROUTES) ? &planet->incoming_routes : NULL;
     if (needs != NULL) {
         for (index = 0; index < needs->count; index++) {
             void *i_val = needs->items[index];
@@ -231,14 +198,8 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
             want = i_val;
             resource_val = need_resource(want);
             if (incoming_routes != NULL) {
-                for (j = 0; j < incoming_routes->count; j++) {
-                    const entity_t *incoming = incoming_routes->items[j];
-                    const trade_route_t *im;
-                    if (incoming == NULL) {
-                        continue;
-                    }
-                    assert(incoming->class == trade_class() && "economy_tiers_compute_tier: incoming_routes holds trades only");
-                    im = (const trade_route_t *)incoming;
+                for (j = 0; j < trade_route_list_count(incoming_routes); j++) {
+                    const trade_route_t *im = trade_route_list_at(incoming_routes, j);
                     /* GAP-24 */
                     if (im->has_resource && resource_equal(trade_resource(im), resource_val)) {
                         gc++;
@@ -287,9 +248,9 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
     }
 
     {
-        const entity_list_t *by = planet->outgoing_routes;
-        int by_count = (by != NULL) ? by->count : 0;
-        int incoming_routes_count = (incoming_routes != NULL) ? incoming_routes->count : 0;
+        const trade_route_list_t *by = (planet->has & PLANET_HAS_OUTGOING_ROUTES) ? &planet->outgoing_routes : NULL;
+        int by_count = (by != NULL) ? trade_route_list_count(by) : 0;
+        int incoming_routes_count = (incoming_routes != NULL) ? trade_route_list_count(incoming_routes) : 0;
         p8_fixed_t mid_val =
             p8_fixed_mid(p8_fixed_from_int(by_count), p8_fixed_from_int(incoming_routes_count), p8_fixed_from_int(1));
         return fixed_min(p8_fixed_from_int(4), p8_fixed_add(p8_fixed_from_int(1), mid_val));

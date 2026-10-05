@@ -19,21 +19,17 @@ typedef void (*button_fn_t)(button_t *self);
 struct button {
     entity_t header;
     const allocator_t *slot;
-    vec_t pos_box;
-    vec_t slide_target_box;
+    uint16_t has;
     const button_archetype_t *archetype;
-    p8_fixed_t layer;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
     p8_fixed_t width;
     layout_row_t *side_tooltip;
     int has_side_tooltip;
     tooltip_t *tooltip;
-    const vec_t *pos;
-    vec_t *slide_target;
+    vec_t slide_target;
     button_fn_t on_click;
     int has_on_click;
-    int is_hovered;
     button_fn_t refresh;
     const char *name;
     p8_fixed_t trade;
@@ -41,11 +37,13 @@ struct button {
     p8_fixed_t type_bias;
     int has_type_bias;
     const technologies_entry_t *technology;
-    planet_t *project_planet;
-    research_project_t *project;
+    entity_id_t project_planet;
+    research_project_id_t project;
     p8_fixed_t project_cost;
     int has_project_cost;
 };
+
+#define BUTTON_HAS_SLIDE_TARGET (1u << 0)
 
 void button_init(void);
 void button_shutdown(void);
@@ -56,17 +54,20 @@ const entity_class_t *button_class(void);
 typedef struct {
     int has_layer;
     p8_fixed_t layer;
-    const layout_row_t *layout_row_copy;
-    const layout_row_keys_t *layout_row_keys;
+    layout_row_keys_t layout_row_keys;
     /* GAP-23 */
     int has_side_tooltip;
     int side_tooltip_is_false;
-    const layout_row_keys_t *side_tooltip_row;
+    int has_side_tooltip_row;
+    layout_row_keys_t side_tooltip_row;
     /* GAP-23 */
     int has_tooltip;
-    const data_row_t *tooltip_row;
-    const vec_t *pos;
-    const vec_t *slide_target;
+    int has_tooltip_row;
+    data_row_t tooltip_row;
+    int has_pos;
+    vec_t pos;
+    int has_slide_target;
+    vec_t slide_target;
     int has_on_click;
     button_fn_t on_click;
     button_fn_t refresh;
@@ -76,11 +77,14 @@ typedef struct {
     int has_type_bias;
     p8_fixed_t type_bias;
     const technologies_entry_t *technology;
-    planet_t *project_planet;
-    research_project_t *project;
+    entity_id_t project_planet;
+    research_project_id_t project;
     int has_project_cost;
     p8_fixed_t project_cost;
 } button_keys_t;
+
+/* Copies `*row` into the keys; NULL leaves the tooltip row absent. */
+void button_keys_set_tooltip_row(button_keys_t *keys, const data_row_t *row);
 
 button_t *button_new(const button_keys_t *keys);
 
@@ -103,8 +107,6 @@ struct modal_backdrop {
     const allocator_t *slot;
     const modal_backdrop_archetype_t *archetype;
     modal_backdrop_on_click_fn_t on_click;
-    int is_dead;
-    int is_hovered;
 };
 
 void modal_backdrop_init(void);

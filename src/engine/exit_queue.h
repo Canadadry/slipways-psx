@@ -13,6 +13,6 @@ void exit_queue_put_arena(const allocator_t *arena);
 int exit_queue_count(void);
 int exit_queue_max(void);
 
-void exit_queue_flush(void (*forget)(const entity_t *e));
+void exit_queue_flush(void);
 
 #endif

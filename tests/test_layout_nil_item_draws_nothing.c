@@ -96,29 +96,28 @@ static int pixels_drawn(void) {
 
 /* One real row holding one item shaped as in the data tables, its keys
  * taken by layout_row_keys_of_row(), drawn at (DRAW_X, DRAW_Y) on a cleared
- * screen. Returns its one cell, as the keys sorted the item into it. */
-static layout_row_cell_t render_one_item(data_item_t item) {
+ * screen. Returns its one placed item. */
+static layout_row_item_t render_one_item(data_item_t item) {
     const data_row_t row = {.count = 1, .items = &item};
-    layout_row_cell_t cells[1];
-    layout_row_keys_t keys = layout_row_keys_of_row(&row, cells, 1);
+    layout_row_keys_t keys = layout_row_keys_of_row(&row);
     layout_row_t *line;
 
     line = layout_row_new(&heap_allocator, &keys);
-    assert(line != NULL && line->items_count == 1);
+    assert(line != NULL && line->placed_items_count == 1);
 
     p8_cls(&memory);
     layout_row_draw_at_default(&graphics, &memory, line, vec_make(p8_fixed_from_int(DRAW_X), p8_fixed_from_int(DRAW_Y)));
-    return line->items[0];
+    return line->placed_items[0];
 }
 
 /* THE SUBJECT: a row holding one absent item must draw nothing at all. */
 static void test_nil_item_draws_nothing(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
-    layout_row_cell_t cell;
+    layout_row_item_t placed;
 
-    cell = render_one_item((data_item_t){.is_ref = 1});
-    assert(cell.kind == LAYOUT_ROW_CELL_NOTHING);
+    placed = render_one_item((data_item_t){.is_nil = 1});
+    assert(placed.kind == LAYOUT_ROW_ITEM_NONE);
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();
@@ -141,10 +140,10 @@ static void test_nil_item_draws_nothing(void) {
 static void test_numeric_item_still_draws_its_sprite(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
-    layout_row_cell_t cell;
+    layout_row_item_t placed;
 
-    cell = render_one_item((data_item_t){.number = 0});
-    assert(cell.kind == LAYOUT_ROW_CELL_FIXED && cell.as.fixed == p8_fixed_from_int(0));
+    placed = render_one_item((data_item_t){.number = 0});
+    assert(placed.kind == LAYOUT_ROW_ITEM_SPRITE && placed.sprite_id == p8_fixed_from_int(0));
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();

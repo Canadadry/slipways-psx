@@ -5,15 +5,13 @@
 
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
+#include "engine/entity_id.h"
 #include "game/wormhole.h"
 
 static vec_t nearest_anchor_pos(const wormhole_t *self) {
-    const vec_t *ra = NULL;
+    const entity_t *anchor = entity_get(self->anchor);
 
-    if (self->anchor != NULL && self->anchor->pos != NULL) {
-        ra = *self->anchor->pos;
-    }
-    return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return anchor != NULL ? entity_pos(anchor) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self, vec_t screen_pos) {
@@ -30,7 +28,7 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
     if (self->header.state == ENTITY_STATE_PLACING) {
         vec_t cp;
 
-        if (self->targeting->target == NULL) {
+        if (targeting_target(&self->targeting) == NULL) {
             p8_fixed_t oi = self->radius;
             if (graphics != NULL && memory != NULL) {
                 p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(oi), 1);
@@ -70,7 +68,6 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
     }
 }
 
-void wormhole_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    wormhole_draw(dispatch_context_gfx(), dispatch_context_mem(), (wormhole_t *)self, p);
+void wormhole_draw_method(entity_t *self, vec_t screen_pos) {
+    wormhole_draw(dispatch_context_gfx(), dispatch_context_mem(), (wormhole_t *)self, screen_pos);
 }

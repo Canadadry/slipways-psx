@@ -43,7 +43,7 @@ planet_t *ascension_new(const planet_keys_t *keys);
 void ascension_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype);
 
 void structure_update_settled_method(entity_t *self, p8_fixed_t t);
-void ascension_draw_method(entity_t *self, const vec_t *screen_pos);
+void ascension_draw_method(entity_t *self, vec_t screen_pos);
 void ascension_release_method(entity_t *self);
 
 int protostar_ready(void);
@@ -58,7 +58,6 @@ const entity_class_t *burst_class(void);
 
 typedef struct {
     planet_keys_t planet;
-    const vec_t *pos_copy;
     const burst_construct_keys_t *construct;
 } burst_keys_t;
 

@@ -15,6 +15,7 @@
 
 #include "p8/assets.h"
 #include "game/background.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -38,6 +39,23 @@
 #include "game/wormhole.h"
 #include "engine/zone.h"
 #include "engine/game_zone.h"
+
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
 
 /* Ticks after the slipway is paid, long enough for the colonizing and
  * paying effects to leave the live entities: update_entities skips the
@@ -118,7 +136,7 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
 
 /* 0 absent or false, 2 true. */
 static uint32_t is_dead_state(const wormhole_t *mz) {
-    return mz->is_dead ? 2 : 0;
+    return mz->header.is_dead ? 2 : 0;
 }
 
 static uint32_t fold_string(uint32_t h, const char *s) {
@@ -138,11 +156,11 @@ static int is_targeting_track_target(const void *e) {
 /* The throwaway target's targeted_by, NULL when absent. */
 static const void *throwaway_targeted_by(const void *t) {
     assert(is_targeting_track_target(t));
-    return ((const targeting_track_target_t *)t)->targeted_by;
+    return entity_get(((const targeting_track_target_t *)t)->targeted_by);
 }
 
 static int target_kind(const wormhole_t *mz) {
-    const void *et = mz->targeting->target;
+    const void *et = targeting_target(&mz->targeting);
 
     if (et == NULL) {
         return TARGET_FALSE;
@@ -191,8 +209,8 @@ static void start_game(void) {
 
 static vec_t pos_of(void *e) {
     const planet_t *jo = as_planet(e);
-    assert(jo->map_pos != NULL);
-    return *jo->map_pos;
+    assert(map_pos_ref(&jo->header) != NULL);
+    return *map_pos_ref(&jo->header);
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -202,11 +220,11 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 
 /* Two generated planets colonized and joined by a paid slipway, the rest
  * of the galaxy left unknown, then left to settle. The slipway's drag reads
- * the hovered planet off main_ui()->hovered. */
+ * the hovered planet off ui_hovered(main_ui()). */
 static void world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    vec_t mp;
     void *qu;
     void *re = NULL;
     slipway_t *jc;
@@ -225,18 +243,18 @@ static void world(void) {
     planet_apply_project(qu, research_project_new(NULL));
     planet_apply_project(re, research_project_new(NULL));
 
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
-    slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                       vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    main_ui()->hovered = entity_id_link(re);
+    slipway_class()->drag(&jc->header, mouse_world_only(mp));
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
     slipway_class()->drop(&jc->header, re);
-    assert((void *)jc->end == re);
+    assert((void *)slipway_end(jc) == re);
     for (i = 0; i < SETTLE_TICKS; i++) {
         update_entities();
     }
@@ -246,20 +264,12 @@ static wormhole_t *build_wormhole(void) {
     return wormhole_new();
 }
 
-static vec_t *vec_ref(int x, int y) {
-    vec_t *v = malloc(sizeof *v);
-    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return v;
+static vec_t point(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static vec_t *vec_ref_fixed(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
-static void drag(void *mz, vec_t *mp, vec_t *rp) {
-    wormhole_class()->drag(mz, mp, rp);
+static void drag(void *mz, vec_t world, vec_t screen) {
+    wormhole_class()->drag(mz, mouse_pos(world, screen));
 }
 
 static void drop(void *mz) {
@@ -288,7 +298,7 @@ static planet_t *first_planet_with_state(state_t state) {
 
 /* The middle of the slipway, in world units. */
 static vec_t slipway_mid(slipway_t *jc) {
-    return vec_mul(vec_div(vec_add(pos_of(jc->start), pos_of(jc->end)), p8_fixed_from_int(2)),
+    return vec_mul(vec_div(vec_add(pos_of(slipway_start(jc)), pos_of(slipway_end(jc))), p8_fixed_from_int(2)),
                          p8_fixed_from_int(128));
 }
 
@@ -304,14 +314,14 @@ static void check_fresh_wormhole(void *e) {
 
     assert(is_state(&mz->header, ENTITY_STATE_PLACING));
     assert(mz->header.state_time == 0);
-    assert(mz->targeting->archetype->attach_distance == 0);
-    assert(mz->targeting->archetype->confirmed_state == ENTITY_STATE_UNFOLDING);
+    assert(mz->targeting.archetype->attach_distance == 0);
+    assert(mz->targeting.archetype->confirmed_state == ENTITY_STATE_UNFOLDING);
     assert(mz->archetype->spawn_snd == p8_fixed_from_int(52));
     assert(mz->radius == 0);
-    assert(mz->targeting->cost == p8_fixed_from_int(3));
-    assert(mz->targeting->archetype->clock_ticks == p8_fixed_from_int(1));
+    assert(mz->targeting.cost == p8_fixed_from_int(3));
+    assert(mz->targeting.archetype->clock_ticks == p8_fixed_from_int(1));
     assert(mz->archetype->layer == p8_fixed_from_int(5));
-    assert(mz->header.layer == &mz->archetype->layer);
+    assert(entity_has(&mz->header, ENTITY_HAS_LAYER) && mz->header.layer == mz->archetype->layer);
 
     kk = mz->archetype->color_ramp;
     assert(kk == &wormhole_color_ramp_seq && kk->count == 9);
@@ -319,12 +329,12 @@ static void check_fresh_wormhole(void *e) {
         assert(kk->items[i] == want_color_ramp[i]);
     }
     assert(mz->header.class->tags == TAG(TAG_WORMHOLE));
-    jj = mz->too_far_target;
+    assert(mz->has & WORMHOLE_HAS_TOO_FAR_TARGET);
+    jj = wormhole_too_far_target_wrapper();
     assert(jj != NULL && jj->status_text != NULL && strcmp(jj->status_text, "-too far-") == 0);
-    assert(wormhole_too_far_target_wrapper() == jj);
 
-    assert(mz->pos == NULL && mz->map_pos == NULL && mz->targeting->target == NULL && mz->anchor == NULL && !mz->is_dead);
-    assert(mz->anchors != NULL);
+    assert(pos_ref(&mz->header) == NULL && map_pos_ref(&mz->header) == NULL && targeting_target(&mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
+    assert(mz->anchors.zone != NULL);
 
     assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
     assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), mz));
@@ -341,27 +351,27 @@ static void test_construction(void) {
     mzs = entities_by_tag(TAG_WORMHOLE);
     before = mzs == NULL ? 0 : mzs->count;
     made = background_left_press(NULL);
-    assert(made.stop && made.held != NULL);
-    assert(entity_list_listed(entities_by_tag(TAG_PROBE), made.held));
+    assert(made.stop && entity_get(made.held) != NULL);
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity_get(made.held)));
     mzs = entities_by_tag(TAG_WORMHOLE);
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
     made = background_left_press(NULL);
-    assert(made.stop && made.held != NULL);
-    check_fresh_wormhole(made.held);
+    assert(made.stop && entity_get(made.held) != NULL);
+    check_fresh_wormhole(entity_get(made.held));
     check_fresh_wormhole(build_wormhole());
     check_fresh_wormhole(wormhole_new());
 }
 
 static uint32_t fold_anchors(uint32_t h, const wormhole_t *mz) {
-    const entity_list_t *ox;
+    const entity_id_list_t *ox;
     int i;
 
-    assert(mz->anchors != NULL);
-    ox = mz->anchors;
+    assert(mz->anchors.zone != NULL);
+    ox = &mz->anchors;
     h = fnv(h, (uint32_t)ox->count);
     for (i = 0; i < ox->count; i++) {
-        h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ox->items[i]));
+        h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), entity_id_list_at(ox, i)));
     }
     return h;
 }
@@ -382,7 +392,7 @@ static void test_anchors(void) {
     jos = entities_by_tag(TAG_PLANET);
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
         planet_t *jo = as_planet(jos->items[i]);
-        if (jo->fold_anchor == 0) {
+        if (jo->header.fold_anchor == 0) {
             unlit = jo;
         }
     }
@@ -391,20 +401,21 @@ static void test_anchors(void) {
     h = fold_anchors(h, first);
     second = build_wormhole();
     h = fold_anchors(h, second);
-    assert(second->anchors != NULL);
-    assert(!entity_list_listed(second->anchors, first) && !entity_list_listed(second->anchors, unlit));
-    printf("[anchors] %d entries\n", second->anchors->count);
-    assert(second->anchors->count > 0);
+    assert(second->anchors.zone != NULL);
+    assert(!entity_id_list_has(&second->anchors, entity_id_of(&first->header)) &&
+           !entity_id_list_has(&second->anchors, entity_id_of(&unlit->header)));
+    printf("[anchors] %d entries\n", second->anchors.count);
+    assert(second->anchors.count > 0);
     check("anchors", h, ANCHORS_HASH);
 
     /* A probe's fold_anchor is 1, from its archetype: it joins the anchors
      * list. */
     probe = probe_new(NULL);
-    assert(entity_list_listed(build_wormhole()->anchors, probe));
+    assert(entity_id_list_has(&build_wormhole()->anchors, entity_id_of(&probe->header)));
 
     lit = structure_new(NULL);
-    lit->fold_anchor = p8_fixed_from_int(1);
-    assert(entity_list_listed(build_wormhole()->anchors, lit));
+    lit->header.fold_anchor = p8_fixed_from_int(1);
+    assert(entity_id_list_has(&build_wormhole()->anchors, entity_id_of(&lit->header)));
 }
 
 /* Bytes a registry has taken from the generation: capacities 4, 8, ... up
@@ -437,16 +448,17 @@ static void test_arena(void) {
     before = generation_but_registries();
     mz = build_wormhole();
     printf("[arena] generation +%lu, anchors %d/%d\n", (unsigned long)(generation_but_registries() - before),
-           mz->anchors->count, mz->anchors->capacity);
-    assert(generation_but_registries() == before + arena_size(mz->anchors->zone));
-    assert(arena_used(mz->anchors->zone) == arena_size(mz->anchors->zone) && "the arena holds the wormhole exactly");
-    assert(mz->anchors->count > 0 && mz->anchors->count == mz->anchors->capacity);
-    for (i = 1; i < mz->anchors->count; i++) {
-        assert(entity_list_rank_in(live_entities(), mz->anchors->items[i - 1]) < entity_list_rank_in(live_entities(), mz->anchors->items[i]));
+           mz->anchors.count, mz->anchors.capacity);
+    assert(generation_but_registries() == before + arena_size(mz->anchors.zone));
+    assert(arena_used(mz->anchors.zone) == arena_size(mz->anchors.zone) && "the arena holds the wormhole exactly");
+    assert(mz->anchors.count > 0 && mz->anchors.count == mz->anchors.capacity);
+    for (i = 1; i < mz->anchors.count; i++) {
+        assert(entity_list_rank_in(live_entities(), entity_id_list_at(&mz->anchors, i - 1)) <
+               entity_list_rank_in(live_entities(), entity_id_list_at(&mz->anchors, i)));
     }
 
     drop(mz);
-    assert(mz->is_dead);
+    assert(mz->header.is_dead);
     update_entities();
     assert(!entity_list_listed(live_entities(), mz));
     cart_flush_exit_queue();
@@ -457,25 +469,24 @@ static void test_arena(void) {
 
 /* The targeted_by of the wormhole's target, a slipway or the throwaway. */
 static const void *target_targeted_by(const wormhole_t *mz) {
-    entity_t *et = mz->targeting->target;
+    entity_t *et = targeting_target(&mz->targeting);
 
     assert(et != NULL);
     if (et->class == slipway_class()) {
-        return ((const slipway_t *)et)->targeted_by;
+        return entity_get(((const slipway_t *)et)->targeted_by);
     }
     return throwaway_targeted_by(et);
 }
 
 static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
-    const entity_t *et = mz->targeting->target;
+    const entity_t *et = targeting_target(&mz->targeting);
     int kind = target_kind(mz);
 
     printf("[drag] target kind %d\n", kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(mz->header.pos == &mz->pos && mz->header.map_pos == &mz->map_pos);
-    h = fold_vec(h, mz->pos);
-    h = fold_vec(h, mz->map_pos);
+    h = fold_vec(h, pos_ref(&mz->header));
+    h = fold_vec(h, map_pos_ref(&mz->header));
     h = fnv(h, (uint32_t)kind);
     if (et != NULL) {
         if (et->class == wormhole_too_far_target_class() && ((const wormhole_too_far_target_t *)et)->status_text != NULL) {
@@ -488,8 +499,8 @@ static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
             assert(target_targeted_by(mz) == mz);
         }
     }
-    assert(mz->anchor != NULL);
-    return fnv(h, (uint32_t)entity_list_rank_in(live_entities(), mz->anchor));
+    assert(entity_get(mz->anchor) != NULL);
+    return fnv(h, (uint32_t)entity_list_rank_in(live_entities(), entity_get(mz->anchor)));
 }
 
 /* A quarter of the slipway's length past its start end: near that
@@ -502,8 +513,8 @@ static vec_t near_anchor(void) {
 
     assert(jcs != NULL && jcs->count == 1);
     jc = as_slipway(jcs->items[0]);
-    qu = pos_of(jc->start);
-    re = pos_of(jc->end);
+    qu = pos_of(slipway_start(jc));
+    re = pos_of(slipway_end(jc));
     return vec_mul(vec_add(qu, vec_div(vec_sub(qu, re), p8_fixed_from_int(4))),
                          p8_fixed_from_int(128));
 }
@@ -519,13 +530,13 @@ static void test_drag(void) {
     jcs = entities_by_tag(TAG_SLIPWAY);
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_slipway(jcs->items[0]));
-    drag(mz, vec_ref_fixed(mid), vec_ref(64, 64));
+    drag(mz, mid, point(64, 64));
     h = fold_drag(h, mz, TARGET_SLIPWAY);
-    drag(mz, vec_ref(-640, -640), vec_ref(64, 64));
+    drag(mz, point(-640, -640), point(64, 64));
     h = fold_drag(h, mz, TARGET_TOO_FAR);
-    drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    drag(mz, near_anchor(), point(64, 64));
     h = fold_drag(h, mz, TARGET_FALSE);
-    drag(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
+    drag(mz, near_anchor(), point(2, 2));
     h = fold_drag(h, mz, TARGET_THROWAWAY);
     check("drag", h, DRAG_HASH);
 }
@@ -577,7 +588,7 @@ static void test_drop(void) {
 
     targeted = build_wormhole();
     until_state_time(targeted, 15);
-    drag(targeted, vec_ref(-640, -640), vec_ref(64, 64));
+    drag(targeted, point(-640, -640), point(64, 64));
     assert(target_kind(targeted) == TARGET_TOO_FAR);
     drop(targeted);
     assert(is_dead_state(targeted) == 2 && credits() == before);
@@ -585,7 +596,7 @@ static void test_drop(void) {
 
     paid = build_wormhole();
     until_state_time(paid, 15);
-    drag(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    drag(paid, near_anchor(), point(64, 64));
     assert(target_kind(paid) == TARGET_FALSE);
     drop(paid);
     assert(is_state(&paid->header, ENTITY_STATE_UNFOLDING) && paid->header.state_time == 0 && is_dead_state(paid) == 0);
@@ -594,7 +605,7 @@ static void test_drop(void) {
 
     broke = build_wormhole();
     until_state_time(broke, 15);
-    drag(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    drag(broke, near_anchor(), point(64, 64));
     main_economy_typed()->credits = p8_fixed_from_int(2);
     drop(broke);
     assert(is_state(&broke->header, ENTITY_STATE_PLACING) && is_dead_state(broke) == 2);
@@ -620,17 +631,15 @@ static int unknown_count(void) {
 static wormhole_t *paid_wormhole_on_unknown(void) {
     wormhole_t *mz = build_wormhole();
     planet_t *unknown = first_planet_with_state(ENTITY_STATE_UNKNOWN);
-    vec_t *p = malloc(sizeof *p);
 
     assert(unknown != NULL);
     until_state_time(mz, 15);
-    drag(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    drag(mz, near_anchor(), point(64, 64));
     assert(target_kind(mz) == TARGET_FALSE);
     drop(mz);
     assert(is_state(&mz->header, ENTITY_STATE_UNFOLDING));
-    assert(unknown->map_pos != NULL);
-    *p = *unknown->map_pos;
-    mz->map_pos = p;
+    assert(entity_has_map_pos(&unknown->header));
+    entity_set_map_pos(&mz->header, unknown->header.map_pos);
     return mz;
 }
 
@@ -678,8 +687,8 @@ static uint32_t draw(void *mz) {
 
     p8_gfx_init(&graphics);
     p8_cls(&memory);
-    cls->draw(mz, vec_ref(64, 64));
-    cls->draw_overlay(mz, NULL);
+    cls->draw(mz, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    cls->draw_overlay(mz, (vec_t){0, 0});
     return screen_hash();
 }
 
@@ -700,14 +709,14 @@ static void test_draw(void) {
 
     bare = build_wormhole();
     until_state_time(bare, 5);
-    drag(bare, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    drag(bare, near_anchor(), point(64, 64));
     assert(target_kind(bare) == TARGET_FALSE);
     assert(draw(bare) != blank);
     hash = fnv(hash, draw(bare));
 
     far = build_wormhole();
     until_state_time(far, 5);
-    drag(far, vec_ref(-640, -640), vec_ref(64, 64));
+    drag(far, point(-640, -640), point(64, 64));
     assert(target_kind(far) == TARGET_TOO_FAR);
     assert(draw(far) != draw(bare));
     hash = fnv(hash, draw(far));
@@ -730,7 +739,7 @@ static void test_accept_drop(void) {
     wormhole_t *mz;
     planet_t *ly;
     void *nr;
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     down_t r;
 
     world();
@@ -738,14 +747,15 @@ static void test_accept_drop(void) {
     ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &mz->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
 
-    keys.planet_id = NULL;
-    keys.map_pos = ly->map_pos;
-    keys.pos = ly->pos;
+    keys.map_pos = ly->header.map_pos;
+    keys.has_map_pos = entity_has_map_pos(&ly->header);
+    keys.pos = ly->header.pos;
+    keys.has_pos = entity_has_pos(&ly->header);
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &mz->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
 }
 
 /* The wormhole's too-far target: status_text and nothing else, never
@@ -777,32 +787,32 @@ static void test_too_far_target_wrapper(void) {
            ((const entity_t *)wrapper)->class->drag == NULL);
 
     wormhole = build_wormhole();
-    drag(wormhole, vec_ref(-640, -640), vec_ref(64, 64));
+    drag(wormhole, point(-640, -640), point(64, 64));
     assert(target_kind(wormhole) == TARGET_TOO_FAR);
     check_too_far_target_untouched();
 
     jcs = entities_by_tag(TAG_SLIPWAY);
     assert(jcs != NULL && jcs->count > 0);
     mid = slipway_mid(as_slipway(jcs->items[0]));
-    drag(wormhole, vec_ref_fixed(mid), vec_ref(64, 64));
+    drag(wormhole, mid, point(64, 64));
     assert(target_kind(wormhole) == TARGET_SLIPWAY);
     check_targeted_by_is(wormhole);
     check_too_far_target_untouched();
 
-    drag(wormhole, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
+    drag(wormhole, near_anchor(), point(2, 2));
     assert(target_kind(wormhole) == TARGET_THROWAWAY);
     check_targeted_by_is(wormhole);
     check_too_far_target_untouched();
 
-    drag(wormhole, vec_ref(-640, -640), vec_ref(64, 64));
+    drag(wormhole, point(-640, -640), point(64, 64));
     assert(target_kind(wormhole) == TARGET_TOO_FAR);
     check_too_far_target_untouched();
 
     other = build_wormhole();
-    drag(other, vec_ref(640, 640), vec_ref(64, 64));
+    drag(other, point(640, 640), point(64, 64));
     assert(target_kind(other) == TARGET_TOO_FAR);
-    assert(wormhole->targeting->target != NULL && other->targeting->target != NULL);
-    assert(wormhole->targeting->target == other->targeting->target && (void *)wormhole->targeting->target == wrapper);
+    assert(targeting_target(&wormhole->targeting) != NULL && targeting_target(&other->targeting) != NULL);
+    assert(targeting_target(&wormhole->targeting) == targeting_target(&other->targeting) && (void *)targeting_target(&wormhole->targeting) == wrapper);
     check_too_far_target_untouched();
 }
 
@@ -816,8 +826,7 @@ static int is_a_wormhole_struct(const void *e) {
 
 /* Built through the background's left_press or directly, a wormhole is a
  * struct whose class has drag, drop, draw, draw_overlay and its two state
- * methods; the too-far target is a struct too, the very object of the
- * too_far_target member. */
+ * methods; the too-far target is a struct too, and the wormhole has one. */
 static void test_wormhole_is_a_struct(void) {
     down_t made;
     wormhole_t *mz;
@@ -826,7 +835,7 @@ static void test_wormhole_is_a_struct(void) {
     (void)background_left_press(NULL);
     made = background_left_press(NULL);
     mz = wormhole_new();
-    assert(is_a_wormhole_struct(made.held) && is_a_wormhole_struct(build_wormhole()) && is_a_wormhole_struct(mz));
+    assert(is_a_wormhole_struct(entity_get(made.held)) && is_a_wormhole_struct(build_wormhole()) && is_a_wormhole_struct(mz));
     assert(wormhole_class()->drag != NULL && wormhole_class()->drop != NULL);
     assert(wormhole_class()->draw_at == NULL);
     assert(wormhole_class()->states[ENTITY_STATE_PLACING] != NULL &&
@@ -835,7 +844,7 @@ static void test_wormhole_is_a_struct(void) {
     assert(wormhole_class()->states[ENTITY_STATE_NORMAL] == NULL && wormhole_class()->left_press == NULL);
 
     assert(is_a_struct_of(wormhole_too_far_target_wrapper(), wormhole_too_far_target_class()));
-    assert(mz->too_far_target == wormhole_too_far_target_wrapper());
+    assert(mz->has & WORMHOLE_HAS_TOO_FAR_TARGET);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
@@ -856,6 +865,21 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+static void test_anchor_resolves_until_the_flush(void) {
+    wormhole_t *mz;
+    entity_t *anchor;
+
+    world();
+    mz = build_wormhole();
+    drag(mz, near_anchor(), point(64, 64));
+    anchor = entity_get(mz->anchor);
+    assert(anchor != NULL && entity_id_list_has(&mz->anchors, entity_id_of(anchor)));
+    entity_unregister(anchor);
+    assert(entity_get(mz->anchor) == anchor);
+    cart_flush_exit_queue();
+    assert(entity_get(mz->anchor) == NULL);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -868,6 +892,7 @@ int main(void) {
     in_fresh_child(test_anchors);
     in_fresh_child(test_arena);
     in_fresh_child(test_drag);
+    in_fresh_child(test_anchor_resolves_until_the_flush);
     in_fresh_child(test_update_placing_ticks);
     in_fresh_child(test_drop);
     in_fresh_child(test_update_unfolding_ticks);

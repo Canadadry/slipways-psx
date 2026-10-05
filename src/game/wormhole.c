@@ -5,6 +5,7 @@
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/targeting.h"
@@ -20,8 +21,8 @@ static wormhole_too_far_target_t g_wormhole_too_far_target_wrapper = {
     wormhole_too_far_target_status_text,
 };
 
-static int wormhole_anchor(const entity_t *p) {
-    return p != NULL && p->fold_anchor != NULL && *p->fold_anchor != 0;
+static int wormhole_is_anchor(const entity_t *p) {
+    return p != NULL && entity_has(p, ENTITY_HAS_FOLD_ANCHOR) && p->fold_anchor != 0;
 }
 
 static int wormhole_anchor_count(void) {
@@ -30,14 +31,13 @@ static int wormhole_anchor_count(void) {
     int n = 0;
 
     while (entity_list_iter_next(&it, &p)) {
-        n += wormhole_anchor(p);
+        n += wormhole_is_anchor(p);
     }
     return n;
 }
 
 void wormhole_construct(wormhole_t *self) {
-    const allocator_t *zone = grab_arena_construction_zone();
-    entity_list_t *ox;
+    entity_id_list_t *ox;
     entity_list_iter_t it;
     entity_t *p;
     int n;
@@ -47,42 +47,41 @@ void wormhole_construct(wormhole_t *self) {
     }
 
     n = wormhole_anchor_count();
-    ox = (entity_list_t *)allocator_alloc(zone, sizeof *ox);
-    entity_list_init_reserve(ox, zone, n);
+    ox = &self->anchors;
+    entity_id_list_init_reserve(ox, grab_arena_construction_zone(), n);
     it = entity_list_all(live_entities());
     while (entity_list_iter_next(&it, &p)) {
-        if (wormhole_anchor(p)) {
-            entity_list_add(ox, p);
+        if (wormhole_is_anchor(p)) {
+            entity_id_list_add(ox, entity_id_link(p));
         }
     }
     assert(ox->count == n && ox->capacity == n);
-    self->anchors = ox;
 }
 
-void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
+void wormhole_drag(wormhole_t *self, mouse_pos_t mouse) {
     vec_t p_vec;
     entity_t *nearest = NULL;
     p8_fixed_t nq;
     p8_fixed_t threshold;
 
-    targeting_track((entity_t *)self, mp, rp);
+    targeting_track((entity_t *)self, mouse);
     if (self == NULL) {
         return;
     }
 
-    p_vec = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    nq = entity_geom_nearest(p_vec, self->anchors, &nearest);
-    self->anchor = nearest;
+    p_vec = entity_map_pos(&self->header);
+    nq = entity_geom_nearest_in_ids(p_vec, &self->anchors, &nearest);
+    self->anchor = entity_id_link(nearest);
 
     threshold = tech_gate_if_unlocked("space folding", P8_FIXED_LIT(0x000030a3, 0.19), P8_FIXED_LIT(0x0000451e, 0.27));
 
     if (nq > threshold) {
-        self->targeting->target = (entity_t *)wormhole_too_far_target_wrapper();
+        targeting_set_target(&self->targeting, &wormhole_too_far_target_wrapper()->header);
     }
 }
 
-static void wormhole_drag_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    wormhole_drag((wormhole_t *)self, mouse_world, mouse_screen);
+static void wormhole_drag_method(entity_t *self, mouse_pos_t mouse) {
+    wormhole_drag((wormhole_t *)self, mouse);
 }
 
 void wormhole_update_placing(wormhole_t *self, p8_fixed_t t) {
@@ -130,7 +129,7 @@ void wormhole_drop(wormhole_t *self) {
         result = !targeting_confirm((entity_t *)self);
     }
 
-    self->is_dead = result;
+    self->header.is_dead = result;
 }
 
 static void wormhole_drop_method(entity_t *self, entity_t *dropped) {
@@ -151,7 +150,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
     sr = p8_fixed_add(p8_fixed_div(wormhole_reveal_radius(self, t), p8_fixed_from_int(128)),
                           P8_FIXED_LIT(0x000007ef, 0.031));
 
-    self_p = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self_p = entity_map_pos(&self->header);
     planet_list = entities_by_tag(TAG_PLANET);
     if (planet_list != NULL) {
         for (i = 0; i < planet_list->count; i++) {
@@ -165,8 +164,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
             pt = (planet_t *)planet;
 
             if (pt->header.state == ENTITY_STATE_UNKNOWN) {
-                vec_t planet_map_pos =
-                    pt->map_pos != NULL ? *pt->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+                vec_t planet_map_pos = entity_map_pos(&pt->header);
                 vec_t diff = vec_sub(planet_map_pos, self_p);
                 if (vec_length(diff) < sr) {
                     planet_roll_type(pt);
@@ -175,7 +173,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
         }
     }
 
-    self->is_dead = t > p8_fixed_from_int(25);
+    self->header.is_dead = t > p8_fixed_from_int(25);
 }
 
 static void wormhole_update_unfolding_method(entity_t *self, p8_fixed_t t) {
@@ -195,7 +193,7 @@ p8_fixed_t wormhole_reveal_radius(wormhole_t *self, p8_fixed_t t) {
 }
 
 static void wormhole_release_method(entity_t *self) {
-    grab_arena_give_back(((wormhole_t *)self)->anchors->zone);
+    grab_arena_give_back(((wormhole_t *)self)->anchors.zone);
 }
 
 static const entity_class_t wormhole_class_def = {
@@ -216,29 +214,23 @@ static const entity_class_t wormhole_class_def = {
 static wormhole_t *wormhole_create(void) {
     wormhole_t *self;
 
-    grab_arena_open(ZONE_BYTES(sizeof *self) + ZONE_BYTES(sizeof(entity_list_t)) +
-                           ZONE_BYTES((size_t)wormhole_anchor_count() * sizeof(entity_t *)));
+    grab_arena_open(ZONE_BYTES(sizeof *self) + ZONE_BYTES((size_t)wormhole_anchor_count() * sizeof(entity_id_t)));
     self = (wormhole_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     entity_init_instance(&self->header, &wormhole_class_def, wormhole_archetype.state, wormhole_archetype.state_time);
     self->archetype = &wormhole_archetype;
-    self->header.layer = &self->archetype->layer;
-    self->header.pos = &self->pos;
-    self->header.map_pos = &self->map_pos;
-    self->header.targeting = &self->targeting_own;
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->targeting.archetype = &self->archetype->targeting;
     self->radius = self->archetype->radius;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
-    self->too_far_target = &g_wormhole_too_far_target_wrapper;
-    self->anchors = NULL;
-    self->pos = NULL;
-    self->map_pos = NULL;
-    self->targeting->target = NULL;
-    self->anchor = NULL;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
+    self->has = WORMHOLE_HAS_TOO_FAR_TARGET;
+    self->anchors = (entity_id_list_t){0};
+    targeting_set_target(&self->targeting, NULL);
+    self->anchor = ENTITY_ID_NONE;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
     wormhole_construct(self);
     grab_arena_close();
     entity_construct(&self->header);

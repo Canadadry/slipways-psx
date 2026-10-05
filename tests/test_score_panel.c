@@ -36,11 +36,21 @@
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
+#include "engine/frame_zone.h"
+
+static const vec_t *slide_target_ref(const button_t *b) {
+    return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
 
 #define BUILT_HASH 0x455004CBu
 #define SHARED_HASH 0xAAACD2E4u
 #define LIFE_HASH 0x7647D312u
-#define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
+#define TECH_TREE_SCREEN_HASH 0x1F0B418Bu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -92,7 +102,7 @@ static uint32_t is_shown_state(const score_panel_t *pj) {
 
 /* A NULL last_box reads as the class's default, the number 1. */
 static p8_fixed_t last_box_fixed(const score_panel_t *pj) {
-    assert(pj->last_box == NULL);
+    assert(score_panel_last_box(pj) == NULL);
     return p8_fixed_from_int(1);
 }
 
@@ -102,12 +112,12 @@ static int is_layout_row(const void *e) {
 }
 
 static int row_count(const void *lq) {
-    return ((const layout_row_t *)lq)->items_count;
+    return ((const layout_row_t *)lq)->placed_items_count;
 }
 
-static layout_row_cell_t row_item(const void *lq, int i) {
+static layout_row_item_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const layout_row_t *)lq)->items[i];
+    return ((const layout_row_t *)lq)->placed_items[i];
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
@@ -134,8 +144,8 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item) {
     if (item->is_false) {
         return fold_bool(h, 0);
     }
-    if (item->is_ref) {
-        return fold_ref(h, item->ref);
+    if (item->is_nil) {
+        return fold_ref(h, NULL);
     }
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
@@ -222,32 +232,28 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 static uint32_t fold_last_box(uint32_t h, const score_panel_t *pj) {
-    assert(pj->last_box == NULL && "fold_last_box: no test folds a score panel holding a last box: to fold one, fold 1 then its rank in the live entities (0x4E, rank) as fold_ref does, or outside them 0xEEEE then the frozen struct tag 0x9E5C57C7");
+    assert(score_panel_last_box(pj) == NULL && "fold_last_box: no test folds a score panel holding a last box: to fold one, fold 1 then its rank in the live entities (0x4E, rank) as fold_ref does, or outside them 0xEEEE then the frozen struct tag 0x9E5C57C7");
     return fold_fixed_member(h, last_box_fixed(pj));
 }
 
 /* The layout block as the spec table it was: its entries in spec order,
- * then their count; the 0xF1 of back_color and the 0x57 of description are
- * constant by the struct's shape. */
+ * then their count; the 0xF1 of back_color is constant by the struct's
+ * shape. */
 static uint32_t fold_tech_tree_screen(uint32_t h, const score_panel_layout_block_t *cr) {
     int count = 0;
 
     assert(cr != NULL);
     h = fnv(fnv(h, 1u), 0x7Au);
-    if (cr->fixed_pos != NULL) {
-        h = fold_ref(fnv_str(h, "fixed_pos"), cr->fixed_pos);
+    if (cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS) {
+        h = fold_ref(fnv_str(h, "fixed_pos"), &cr->fixed_pos);
         count++;
     }
-    if (cr->row_step != NULL) {
-        h = fold_ref(fnv_str(h, "row_step"), cr->row_step);
+    if (cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP) {
+        h = fold_ref(fnv_str(h, "row_step"), &cr->row_step);
         count++;
     }
     h = fnv(fnv(fnv_str(h, "back_color"), 0xF1u), (uint32_t)cr->back_color);
     count++;
-    if (cr->description != NULL) {
-        h = fnv_str(fnv(fnv_str(h, "description"), 0x57u), cr->description);
-        count++;
-    }
     return fnv(h, (uint32_t)count);
 }
 
@@ -327,7 +333,7 @@ static int layer15_button_count(void) {
     int i;
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i];
-        n += is_of(e, button_class()) && ((const button_t *)e)->layer == p8_fixed_from_int(15);
+        n += is_of(e, button_class()) && ((const button_t *)e)->header.layer == p8_fixed_from_int(15);
     }
     return n;
 }
@@ -343,7 +349,7 @@ static button_t *panel_toggle_button(void) {
     int i;
     for (i = hv->count - 1; i >= 0; i--) {
         button_t *e = (button_t *)hv->items[i];
-        if (is_of(e, button_class()) && e->layer == p8_fixed_from_int(15) &&
+        if (is_of(e, button_class()) && e->header.layer == p8_fixed_from_int(15) &&
             e->on_click != score_panel_init_field_value()) {
             return e;
         }
@@ -370,9 +376,9 @@ static void test_built(void) {
         assert(!entity_list_listed(entities_by_tag(tags[index]), ju));
     }
 
-    assert(ju->layer == p8_fixed_from_int(10));
-    assert(ju->archetype == &score_panel_archetype && ju->layer == ju->archetype->layer);
-    assert(ju->last_box == NULL);
+    assert(ju->header.layer == p8_fixed_from_int(10));
+    assert(ju->archetype == &score_panel_archetype && ju->header.layer == ju->archetype->layer);
+    assert(score_panel_last_box(ju) == NULL);
     assert(ju->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed_member(hash, ju->header.state_time);
     assert(!ju->has_is_shown && !ju->has_curtain);
@@ -415,15 +421,29 @@ static void test_shared(void) {
     main_economy_typed()->end_status = "final score";
     main_economy_typed()->has_end_status = 1;
     class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
-    assert(ju->layer == p8_fixed_from_int(13));
+    assert(ju->header.layer == p8_fixed_from_int(13));
     assert(is_shown_state(ju) == 2);
-    assert(other->layer == p8_fixed_from_int(10));
+    assert(other->header.layer == p8_fixed_from_int(10));
     assert(last_box_fixed(other) == p8_fixed_from_int(1));
     assert(!other->has_is_shown && !other->has_curtain);
-    h = fold_fixed_member(h, other->layer);
+    h = fold_fixed_member(h, other->header.layer);
     h = fold_last_box(h, other);
     h = fold_opt_fixed(h, ju->has_curtain, ju->curtain);
     check("shared", h, SHARED_HASH);
+}
+
+static const button_t *as_button(const void *e) {
+    assert(is_of(e, button_class()));
+    return e;
+}
+
+static const char *opened_box_description(void) {
+    const layout_row_t *lq;
+
+    assert(main_ui() != NULL && main_ui()->ephemerals.count >= 1);
+    lq = as_button(entity_id_list_at(&main_ui()->ephemerals, 0))->layout_row;
+    assert(lq != NULL && row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_ITEM_TEXT);
+    return row_item(lq, 0).text;
 }
 
 /* refresh; new_year on a year with a message and two without; the tech-tree
@@ -455,11 +475,10 @@ static void test_life(void) {
 
     menu_show_tech_tree_screen();
     assert(layout_block == score_panel_layout_block());
-    assert(layout_block->description != NULL);
-    hash = fnv_str(hash, layout_block->description);
+    hash = fnv_str(hash, opened_box_description());
 
     for (index = 0; index < 2; index++) {
-        class_of(score_panel)->draw(&score_panel->header, NULL);
+        class_of(score_panel)->draw(&score_panel->header, (vec_t){0, 0});
         hash = fnv(hash, screen_hash());
     }
     assert(!score_panel->has_curtain);
@@ -471,19 +490,19 @@ static void test_life(void) {
     class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
     assert(is_shown_state(score_panel) == 2);
     assert(score_panel->has_curtain && score_panel->curtain == 0);
-    assert(score_panel->layer == p8_fixed_from_int(13));
+    assert(score_panel->header.layer == p8_fixed_from_int(13));
     assert(modal_backdrop_count() == modal_backdrop_before + 1 && layer15_button_count() == button_before + 2);
-    assert(score_panel->last_box == shown_message_box() && shown_message_box() != NULL);
+    assert(score_panel_last_box(score_panel) == shown_message_box() && shown_message_box() != NULL);
     boxes = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), shown_message_box()));
     hash = fnv(hash, (uint32_t)live_entities()->count);
 
     class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
     assert(entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX)) == boxes);
-    assert(score_panel->last_box == shown_message_box());
+    assert(score_panel_last_box(score_panel) == shown_message_box());
 
     for (index = 0; index < 3; index++) {
-        class_of(score_panel)->draw(&score_panel->header, NULL);
+        class_of(score_panel)->draw(&score_panel->header, (vec_t){0, 0});
         hash = fold_opt_fixed(hash, score_panel->has_curtain, score_panel->curtain);
         hash = fnv(hash, screen_hash());
     }
@@ -501,13 +520,8 @@ static void test_life(void) {
         de->on_click(de);
         assert(is_shown_state(score_panel) == 2);
     }
-    hash = fold_fixed_member(hash, score_panel->layer);
+    hash = fold_fixed_member(hash, score_panel->header.layer);
     check("life", hash, LIFE_HASH);
-}
-
-static const button_t *as_button(const void *e) {
-    assert(is_of(e, button_class()));
-    return e;
 }
 
 static vec_t vec_of(const vec_t *v) {
@@ -515,23 +529,25 @@ static vec_t vec_of(const vec_t *v) {
     return *v;
 }
 
-/* A cell as the value it was sorted from folded: a row as any REF, NOTHING
- * as false (no row folded here holds an absent cell at the top level). */
-static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fnv(h, 0x12u);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
-    case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_placed_item(uint32_t h, layout_row_item_t item) {
+    h = fnv(h, (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        break;
     }
+    return fold_fixed(h, item.offset.x);
 }
 
 /* A button's layout row as its construction built it: its width, its color,
- * its items. */
+ * its placed items. */
 static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     int i;
 
@@ -540,7 +556,7 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     h = fold_opt_fixed(h, lq->has_color, lq->color);
     for (i = 0; i < row_count(lq); i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_cell(h, row_item(lq, i));
+        h = fold_placed_item(h, row_item(lq, i));
     }
     return h;
 }
@@ -549,28 +565,28 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
  * head row, then one row per tech, all at the layer of the back color, each
  * at the fixed position, its slide_target stepped by the row step. */
 static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const layout_row_t *lq;
     const vec_t *ra;
     int i;
 
-    assert(main_ui() != NULL && main_ui()->ephemerals != NULL);
-    le = main_ui()->ephemerals;
+    assert(main_ui() != NULL);
+    le = &main_ui()->ephemerals;
     assert(le->count >= 2);
     h = fnv(h, (uint32_t)le->count);
-    lq = as_button(le->items[0])->layout_row;
+    lq = as_button(entity_id_list_at(le, 0))->layout_row;
     assert(lq != NULL && lq->has_color && lq->color == p8_fixed_from_int(13));
-    assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
-    *head = row_item(lq, 0).as.text;
+    assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_ITEM_TEXT);
+    *head = row_item(lq, 0).text;
     h = fnv_str(h, *head);
-    ra = as_button(le->items[0])->pos;
+    ra = pos_ref(&as_button(entity_id_list_at(le, 0))->header);
     for (i = 0; i < le->count; i++) {
-        const button_t *b = as_button(le->items[i]);
-        vec_t qf = vec_of(b->slide_target);
-        assert(b->pos != NULL && b->pos->x == ra->x && b->pos->y == ra->y);
-        assert(b->layer == p8_fixed_from_int(10));
+        const button_t *b = as_button(entity_id_list_at(le, i));
+        vec_t qf = vec_of(slide_target_ref(b));
+        assert(pos_ref(&b->header) != NULL && pos_ref(&b->header)->x == ra->x && pos_ref(&b->header)->y == ra->y);
+        assert(b->header.layer == p8_fixed_from_int(10));
         assert(qf.x == 0 && qf.y == p8_fixed_from_int(11 * (i + 1)));
-        h = fold_fixed_member(h, b->layer);
+        h = fold_fixed_member(h, b->header.layer);
         h = fnv(fnv(h, (uint32_t)qf.x), (uint32_t)qf.y);
         assert(b->layout_row != NULL);
         h = fold_layout_row(h, b->layout_row);
@@ -580,8 +596,7 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
 }
 
 /* The tech-tree screen twice on one game, then on the next game started in
- * the same process: one shared layout block, its description absent until
- * the first screen and kept across games, the same head row each time. */
+ * the same process: one shared layout block, the same head row each time. */
 static void test_tech_tree_screen(void) {
     uint32_t h = 2166136261u;
     const score_panel_layout_block_t *cr;
@@ -593,15 +608,15 @@ static void test_tech_tree_screen(void) {
 
     (void)start_game();
     cr = score_panel_layout_block();
-    assert(cr != NULL && cr->description == NULL);
+    assert(cr != NULL);
     menu_show_tech_tree_screen();
     h = fold_tech_tree_screen_ephemerals(h, &head);
     snprintf(head1, sizeof head1, "%s", head);
-    assert(cr->description != NULL && strcmp(cr->description, head1) == 0);
     /* As in the game: the first screen closes, and its buttons go, a frame
      * before the second opens. */
     ui_clear_ephemerals(main_ui());
     cart_flush_exit_queue();
+    frame_zone_reset();
     menu_show_tech_tree_screen();
     h = fold_tech_tree_screen_ephemerals(h, &head);
     snprintf(head2, sizeof head2, "%s", head);
@@ -610,7 +625,7 @@ static void test_tech_tree_screen(void) {
 
     (void)start_game();
     assert(score_panel_layout_block() == cr);
-    assert(cr->description != NULL && strcmp(cr->description, head2) == 0);
+    frame_zone_reset();
     menu_show_tech_tree_screen();
     h = fold_tech_tree_screen_ephemerals(h, &head);
     check("tech_tree_screen", h, TECH_TREE_SCREEN_HASH);
@@ -673,8 +688,7 @@ static void test_score_panel_is_a_struct(void) {
 }
 
 /* The layout block is one static struct without method, holding fixed_pos,
- * row_step, back_color and, once the tech-tree screen ran, description; the
- * init resets description, the shutdown hides the block. */
+ * row_step and back_color; the shutdown hides the block. */
 static void test_tech_tree_screen_is_a_struct(void) {
     const entity_class_t *cls = score_panel_layout_block_class();
     score_panel_layout_block_t *cr;
@@ -690,17 +704,16 @@ static void test_tech_tree_screen_is_a_struct(void) {
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
-    assert(cr->fixed_pos != NULL);
-    assert(cr->row_step != NULL && cr->row_step != cr->fixed_pos);
+    assert(cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS);
+    assert(cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP);
+    assert(cr->row_step.x == 0 && cr->row_step.y == p8_fixed_from_int(11));
     assert(cr->back_color == p8_fixed_from_int(10));
-    assert(cr->description == NULL);
 
     menu_show_tech_tree_screen();
-    assert(cr->description != NULL);
     assert(score_panel_new() != NULL && score_panel_layout_block() == cr);
 
     score_panel_init();
-    assert(score_panel_layout_block() == cr && cr->description == NULL);
+    assert(score_panel_layout_block() == cr);
     score_panel_shutdown();
     assert(score_panel_layout_block() == NULL);
 }
@@ -734,43 +747,55 @@ static void test_final_score_reads_invented_and_happiness(void) {
     (void)start_game();
     fm = main_economy_typed();
     for (i = 0; i < 10; i++) {
-        pointer_list_add(fm->invented, "a tech");
+        pointer_list_add(&fm->invented, "a tech");
     }
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
     s = economy_score_final();
     assert(s.development == 0 && s.population == 0 && s.technology == p8_fixed_from_int(1430));
-    assert(strcmp(s.happiness, "1%") == 0);
+    assert(s.happiness == p8_fixed_from_int(1));
     assert(s.total == p8_fixed_from_int(14) && s.tier == 0);
 }
 
-/* The given item (1-based) of the line that score_panel_update() put in the
- * box's given row (0-based), a draw_row article. */
-static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) {
-    const data_row_t *ld;
-    const layout_row_t *lq;
-
-    assert(k < mh->items_count);
-    ld = mh->items[k];
-    assert(ld->draw_function == DRAW_FUNCTION_DRAW_ROW && ld->items[0].is_ref);
-    lq = ld->items[0].ref;
-    assert(i <= lq->items_count);
-    return lq->items[i - 1];
+/* The final score box, as score_panel_update() opened it at the game's end. */
+static const message_box_t *open_final_box(score_panel_t *ju) {
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
+    class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
+    assert(shown_message_box() != NULL && shown_message_box()->articles_count == SCORE_ROWS_COUNT);
+    return shown_message_box();
 }
 
-/* score_panel_update() shows economy_score_final(): the score-5 row (box
- * row 10) carries the total, and the tier row (11) lights as many of its
- * five icons as the tier. */
+/* The layout row of the box's given article (0-based), a layout-row one. */
+static const layout_row_t *article_row(const message_box_t *mh, int k) {
+    assert(k < mh->articles_count && mh->articles[k].draw_function == DRAW_FUNCTION_DRAW_ROW);
+    return &mh->articles[k].as.layout.row;
+}
+
+/* The given item (1-based) of the line that score_panel_update() put in the
+ * box's given article (0-based), a layout-row article. */
+static layout_row_item_t update_row_item(const message_box_t *mh, int k, int i) {
+    const layout_row_t *lq = article_row(mh, k);
+
+    assert(i <= lq->placed_items_count);
+    return lq->placed_items[i - 1];
+}
+
+/* score_panel_update() shows economy_score_final(): the score-4 row (box
+ * row 9) prints the happiness with its percent sign, the score-5 row (10)
+ * carries the total, and the tier row (11) lights as many of its five icons
+ * as the tier. */
 static void test_update_rows_show_final_score(void) {
     void *ju = start_game();
     economy_t *fm = main_economy_typed();
     const message_box_t *mh;
-    layout_row_cell_t total;
-    layout_row_cell_t icon;
+    layout_row_item_t happiness;
+    layout_row_item_t total;
+    layout_row_item_t icon;
     int i;
 
     for (i = 0; i < 10; i++) {
-        pointer_list_add(fm->invented, "a tech");
+        pointer_list_add(&fm->invented, "a tech");
     }
     fm->happiness = p8_fixed_from_int(1);
     fm->has_happiness = 1;
@@ -778,13 +803,50 @@ static void test_update_rows_show_final_score(void) {
     fm->has_end_status = 1;
     class_of(ju)->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
     mh = shown_message_box();
-    assert(mh != NULL && mh->items_count == SCORE_ROWS_COUNT);
+    assert(mh != NULL && mh->articles_count == SCORE_ROWS_COUNT);
+    happiness = update_row_item(mh, 9, 3);
+    assert(happiness.kind == LAYOUT_ROW_ITEM_TEXT && strcmp(happiness.text, "1%") == 0);
     total = update_row_item(mh, 10, 3);
-    assert(total.kind == LAYOUT_ROW_CELL_STRING && strcmp(total.as.text, "14") == 0);
+    assert(total.kind == LAYOUT_ROW_ITEM_TEXT && strcmp(total.text, "14") == 0);
     for (i = 1; i <= 5; i++) {
         icon = update_row_item(mh, 11, i);
-        assert(icon.kind == LAYOUT_ROW_CELL_FIXED && icon.as.fixed == p8_fixed_from_int(57));
+        assert(icon.kind == LAYOUT_ROW_ITEM_SPRITE && icon.sprite_id == p8_fixed_from_int(57));
     }
+}
+
+/* Each update rebuilds the score lines from the static table: a second
+ * box, opened after the frame zone was reset, lays out the same items, and
+ * the "score 0" line keeps its two elements (GAP-25). */
+static void test_update_rebuilds_rows_from_the_table(void) {
+    score_panel_t *ju = start_game();
+    const message_box_t *first = open_final_box(ju);
+    const message_box_t *second;
+    const layout_row_t *rows[2][7];
+    int k;
+    int i;
+
+    frame_zone_reset();
+    score_panel_set_last_box(ju, NULL);
+    class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
+    second = shown_message_box();
+    assert(second != NULL && second != first && second->articles_count == SCORE_ROWS_COUNT);
+    for (k = 0; k < 7; k++) {
+        rows[0][k] = article_row(first, 5 + k);
+        rows[1][k] = article_row(second, 5 + k);
+        assert(rows[0][k]->placed_items_count == rows[1][k]->placed_items_count);
+        assert(rows[0][k]->width == rows[1][k]->width);
+        for (i = 0; i < rows[0][k]->placed_items_count; i++) {
+            layout_row_item_t a = rows[0][k]->placed_items[i];
+            layout_row_item_t b = rows[1][k]->placed_items[i];
+            assert(a.kind == b.kind && a.offset.x == b.offset.x);
+            if (a.kind == LAYOUT_ROW_ITEM_SPRITE) {
+                assert(a.sprite_id == b.sprite_id && a.sprite_palette_block == b.sprite_palette_block);
+            }
+            assert(a.kind != LAYOUT_ROW_ITEM_TEXT || (strcmp(a.text, b.text) == 0 && a.color == b.color));
+        }
+    }
+    assert(rows[1][0]->placed_items_count == 2);
+    assert(strcmp(rows[1][0]->placed_items[0].text, "final score ()") == 0);
 }
 
 /* The frame rows drawn alone: the bottom rule fills the last two lines,
@@ -854,33 +916,30 @@ static void test_year_banner_is_centered(void) {
  * x = W/2, y = H/2 + (y128 - 64). */
 static void test_score_lines_are_centered(void) {
     static const int y128[7] = {21, 34, 43, 52, 61, 74, 82};
-    const score_row_t *rows;
+    const message_box_t *mh = open_final_box(start_game());
     int i;
 
-    (void)start_game();
-    rows = score_panel_rows();
-    assert(rows != NULL);
     for (i = 0; i < 7; i++) {
-        const score_row_t *r = &rows[5 + i];
-        assert(r->entry->has_pos);
-        assert(r->pos.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
-        assert(r->pos.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
+        const message_box_article_t *article = &mh->articles[5 + i];
+        assert(article->draw_function == DRAW_FUNCTION_DRAW_ROW && article->as.layout.has_pos);
+        assert(article->as.layout.pos.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
+        assert(article->as.layout.pos.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
     }
 }
 
 /* The five backgrounds of the score table, drawn alone, cover lines
  * H/2 - 40 to H/2 + 22: the cart's table (24 to 86) moved with the
- * center. */
+ * center. Each states its draw function in its static row, and the box copies
+ * its arguments. */
 static void test_score_backgrounds_follow_the_center(void) {
-    const score_row_t *rows;
     const data_row_t *backgrounds[5];
+    const message_box_t *mh;
     int y;
     int i;
 
-    (void)start_game();
-    rows = score_panel_rows();
     for (i = 0; i < 5; i++) {
-        backgrounds[i] = &rows[i].row;
+        backgrounds[i] = &score_rows_table[i].row;
+        assert(backgrounds[i]->draw_function == DRAW_FUNCTION_DRAW_BAR);
     }
     p8_gfx_init(&graphics);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
@@ -888,6 +947,17 @@ static void test_score_backgrounds_follow_the_center(void) {
     for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
         int in_table = y >= P8_SCREEN_HEIGHT / 2 - 40 && y <= P8_SCREEN_HEIGHT / 2 + 22;
         assert((memory.screen[y][0] != 7) == in_table);
+    }
+    mh = open_final_box(start_game());
+    for (i = 0; i < 5; i++) {
+        const message_box_article_t *article = &mh->articles[i];
+        int j;
+
+        assert(article->draw_function == DRAW_FUNCTION_DRAW_BAR && article->as.scalars.count == backgrounds[i]->count);
+        for (j = 0; j < backgrounds[i]->count; j++) {
+            assert(article->as.scalars.arguments[j].kind == MESSAGE_BOX_ARGUMENT_NUMBER &&
+                   article->as.scalars.arguments[j].number == p8_fixed_from_int(backgrounds[i]->items[j].number));
+        }
     }
 }
 
@@ -905,14 +975,14 @@ static void test_end_buttons_are_centered(void) {
     hv = live_entities();
     for (i = 0; i < hv->count; i++) {
         const button_t *b = (const button_t *)hv->items[i];
-        if (!is_of(b, button_class()) || b->layer != p8_fixed_from_int(15) || b->layout_row == NULL) {
+        if (!is_of(b, button_class()) || b->header.layer != p8_fixed_from_int(15) || b->layout_row == NULL) {
             continue;
         }
-        assert(b->pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
+        assert(pos_ref(&b->header)->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
         if (b->on_click == score_panel_init_field_value()) {
-            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 13));
+            assert(pos_ref(&b->header)->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 13));
         } else {
-            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 25));
+            assert(pos_ref(&b->header)->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 25));
         }
         found++;
     }
@@ -963,6 +1033,7 @@ int main(void) {
     in_fresh_child(test_tech_tree_screen_is_a_struct);
     in_fresh_child(test_final_score_reads_invented_and_happiness);
     in_fresh_child(test_update_rows_show_final_score);
+    in_fresh_child(test_update_rebuilds_rows_from_the_table);
 
     printf("test_score_panel: all tests passed\n");
     return 0;

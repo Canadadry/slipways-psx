@@ -2,7 +2,8 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + data-guard + p8-guard, the fast loop
+#                       alloc-guard + pointer-guard + data-guard + p8-guard,
+#                       the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -67,6 +68,12 @@
 #                       object of the core; fails on any difference, higher or
 #                       lower, from tools/alloc_guard_exceptions.txt (a
 #                       ratchet, updated by hand), in make test
+# make pointer-guard -> counts the data pointers and entity_list_t
+#                       declarations in the struct fields and file-scope
+#                       variables of src/game/ and entity_class.h; fails on
+#                       any difference, higher or lower, from
+#                       tools/pointer_guard_exceptions.txt (a ratchet,
+#                       updated by hand), in make test
 # make float-grep    -> searches the core (CORE_SRCS and the headers that `-MM`
 #                       finds for them) for any floating-point type or call,
 #                       the rest of src/ excluded by
@@ -161,6 +168,8 @@ ENGINE_SRCS := \
     src/game/economy_tiers.c \
     src/engine/entity_registry.c \
     src/engine/entity_geom.c \
+    src/engine/entity_id.c \
+    src/engine/entity_id_list.c \
     src/engine/exit_queue.c \
     src/platform/fatal_pc.c \
     src/p8/fixed.c \
@@ -176,6 +185,7 @@ ENGINE_SRCS := \
     src/engine/entity.c \
     src/game/layout.c \
     src/engine/entity_list.c \
+    src/engine/value_list.c \
     src/engine/pointer_list.c \
     src/game/map_tables.c \
     src/p8/vram.c \
@@ -331,6 +341,9 @@ $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_g
 $(TMP_DIR)/test_alloc_guard: $(call objs,tests/test_alloc_guard.c) tools/alloc_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_pointer_guard: $(call objs,tests/test_pointer_guard.c) tools/pointer_guard.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_grep.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -356,6 +369,15 @@ $(TMP_DIR)/test_pointer_list: $(call objs,tests/test_pointer_list.c tests/heap_a
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_arena: $(call objs,tests/test_arena.c tests/heap_allocator.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_entity_id: $(call objs,tests/test_entity_id.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_entity_id_list: $(call objs,tests/test_entity_id_list.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_value_list: $(call objs,tests/test_value_list.c tests/heap_allocator.c src/engine/value_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_entity_list: $(call objs,tests/test_entity_list.c tests/heap_allocator.c src/engine/entity_list.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
@@ -554,6 +576,9 @@ UNIT_TESTS := \
     test_geom \
     test_pointer_list \
     test_entity_list \
+    test_entity_id \
+    test_entity_id_list \
+    test_value_list \
     test_str \
     test_data_init \
     test_map_tables \
@@ -577,6 +602,7 @@ UNIT_TESTS := \
     test_state_peaks \
     test_float_guard \
     test_alloc_guard \
+    test_pointer_guard \
     test_float_grep \
     test_float_link \
     test_constants_check \
@@ -691,7 +717,7 @@ endif
 replay: $(TMP_DIR)/replay
 	./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -850,6 +876,14 @@ alloc-guard: tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(call objs,$(CORE_S
 	@sh tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(OBJ_DIR) $(call objs,$(CORE_SRCS))
 
 .PHONY: alloc-guard
+
+POINTER_GUARD_EXCEPTIONS := tools/pointer_guard_exceptions.txt
+POINTER_GUARD_SRCS := $(wildcard src/game/*.[ch]) src/engine/entity_class.h
+
+pointer-guard: tools/pointer_guard.sh $(POINTER_GUARD_EXCEPTIONS) $(POINTER_GUARD_SRCS)
+	@sh tools/pointer_guard.sh $(POINTER_GUARD_EXCEPTIONS) $(POINTER_GUARD_SRCS)
+
+.PHONY: pointer-guard
 
 FLOAT_GREP_EXCLUSIONS := tools/float_grep_exclusions.txt
 

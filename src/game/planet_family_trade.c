@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/particle.h"
 #include "game/grab_arena.h"
 #include "game/planet.h"
@@ -21,16 +22,16 @@ static int g_family_trade_up = 0;
 down_t slipgate_accept_drop(const planet_t *self, const entity_t *s) {
     int start_not_self;
     int slipways_count = 0;
-    down_t out = {0, NULL};
+    down_t out = {0, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;
     }
 
     start_not_self = !(s != NULL && s->class == slipway_class() &&
-                    ((const slipway_t *)s)->start == &self->header);
+                    slipway_start((const slipway_t *)s) == &self->header);
 
-    slipways_count = self->slipways != NULL ? self->slipways->count : 0;
+    slipways_count = self->slipways.count;
 
     out.stop = start_not_self && slipways_count < 3;
     return out;
@@ -49,8 +50,9 @@ typedef struct {
 static const slipgate_left_press_empty_t slipgate_left_press_empty = {{.class = &slipgate_left_press_empty_class_def}};
 
 down_t slipgate_left_press(planet_t *self) {
-    down_t accept_drop_result = {0, NULL};
+    down_t accept_drop_result = {0, ENTITY_ID_NONE};
     slipway_keys_t keys = {0};
+    slipway_t *made;
 
     if (self == NULL) {
         return accept_drop_result;
@@ -63,15 +65,15 @@ down_t slipgate_left_press(planet_t *self) {
     }
 
     assert(slipway_ready() && "slipway_init() must run before slipgate_left_press builds a slipway");
-    keys.start = (entity_t *)self;
-    accept_drop_result.held = (entity_t *)slipway_new(&keys);
-    accept_drop_result.stop = accept_drop_result.held != NULL;
+    keys.start = entity_id_link(&self->header);
+    made = slipway_new(&keys);
+    accept_drop_result.held = entity_id_link(made != NULL ? &made->header : NULL);
+    accept_drop_result.stop = made != NULL;
     return accept_drop_result;
 }
 
-static down_t slipgate_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t slipgate_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return slipgate_left_press((planet_t *)self);
 }
 
@@ -83,7 +85,7 @@ void slipgate_refresh(planet_t *self) {
         return;
     }
 
-    slipways_count = self->slipways != NULL ? self->slipways->count : 0;
+    slipways_count = self->slipways.count;
 
     if (self->archetype->link_sprites != NULL) {
         int entry;
@@ -100,43 +102,33 @@ static void slipgate_refresh_method(entity_t *self) {
 }
 
 void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
-    trade_route_t *route;
-    const entity_list_t *slipways = NULL;
-    entity_list_iter_t iter;
+    const trade_route_t *route;
+    const entity_id_list_t *slipways = NULL;
+    entity_id_list_iter_t iter;
     entity_t *slipway;
 
     if (self == NULL || trade_offer == NULL) {
         return;
     }
-    route = trade_offer->route;
+    route = &trade_offer->route;
 
-    slipways = self->slipways;
+    slipways = &self->slipways;
 
-    iter = entity_list_all(slipways);
-    while (entity_list_iter_next(&iter, &slipway)) {
-        const entity_list_t *t_slipways = NULL;
-
-        if (slipway == NULL) {
-            continue;
-        }
-
+    iter = entity_id_list_all(slipways);
+    while (entity_id_list_iter_next(&iter, &slipway)) {
         if (trade_offer->amount <= p8_fixed_from_int(0)) {
             continue;
         }
 
-        if (route != NULL && route->slipways != NULL) {
-            t_slipways = route->slipways;
-        }
-        if (entity_list_has(t_slipways, slipway)) {
+        if (entity_id_list_has(&route->slipways, entity_id_of(slipway))) {
             continue;
         }
 
         {
             trade_offer_t gf = *trade_offer;
-            trade_route_t *extended = trade_extend(frame_zone(), route, &self->header, slipway);
             entity_t *other;
 
-            gf.route = extended;
+            gf.route = trade_extend(frame_zone(), route, &self->header, slipway);
             assert(slipway->class == slipway_class() && "a slipgate's slipways list holds slipways only: planet_attach_slipway adds to it");
             other = slipway_other_end((const slipway_t *)slipway, (const entity_t *)self);
             /* The copy is on the stack: no offer_trade method may store its offer. */
@@ -144,6 +136,7 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
                 other->class->offer_trade(other, &gf);
             }
             trade_offer->amount = gf.amount;
+            trade_offer->accepted_routes = gf.accepted_routes;
         }
     }
 }
@@ -183,17 +176,7 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &slipgate_class_def, &slipgate_archetype);
-    if (keys != NULL) {
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-        if (keys->map_pos != NULL) {
-            self->map_pos = keys->map_pos;
-        }
-        if (keys->pos != NULL) {
-            self->pos = keys->pos;
-        }
-    }
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -226,15 +209,12 @@ static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &infraspace_gate_class_def, &infraspace_gate_archetype);
-    self->header.infraspace = &self->archetype->infraspace;
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "infraspace_gate_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    self->header.has |= ENTITY_HAS_INFRASPACE;
+    self->header.infraspace = self->archetype->infraspace;
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "infraspace_gate_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -254,7 +234,8 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
         void *i_val;
 
         assert(planet_is_family(other_end) && "synthesizer_attach_slipway: the other end of a registered slipway is a planet");
-        jy = ((const planet_t *)other_end)->needs;
+        assert((((const planet_t *)other_end)->has & PLANET_HAS_NEEDS) && "synthesizer_attach_slipway: the other end of a slipway to a synthesizer holds needs");
+        jy = &((const planet_t *)other_end)->needs;
 
         it = pointer_list_all(jy);
         while (pointer_list_iter_next(&it, &i_val)) {
@@ -272,11 +253,9 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
             }
 
             if (i->row.has_resource && self->synthesizable_resources != NULL && int_seq_has_fixed(self->synthesizable_resources, i->row.resource)) {
-                production_t *kw = self->production;
-                if (kw != NULL) {
-                    kw->has_resource = 1;
-                    kw->resource = i->row.resource;
-                }
+                production_t *kw = planet_production(self);
+                kw->has_resource = 1;
+                kw->resource = i->row.resource;
                 self->synthesizable_resources = &synthesizer_synthesizable_resources_spent;
             }
         }
@@ -318,14 +297,10 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     ascension_init_instance(self, &synthesizer_class_def, &synthesizer_archetype);
     self->synthesizable_resources = self->archetype->synthesizable_resources;
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "synthesizer_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "synthesizer_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);

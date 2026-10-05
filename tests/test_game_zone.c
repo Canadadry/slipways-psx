@@ -124,15 +124,10 @@ static size_t list_bytes_from(const entity_list_t *list, int first) {
     return bytes;
 }
 
-/* A list made empty: capacities 4, 8, ... NULL: none. */
-static size_t registry_bytes(const entity_list_t *list) {
-    return list != NULL ? list_bytes_from(list, 4) : 0;
-}
-
 /* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
     const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
-    size_t r = list_bytes_from(live_entities(), rv->live);
+    size_t r = ENTITY_TABLE_BYTES + list_bytes_from(live_entities(), rv->live);
     for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
         r += list_bytes_from(entities_by_message((entity_message_t)m), rv->by_message[m]);
     }
@@ -144,41 +139,46 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Bytes of a planet list made in the generation: its container, then its
- * blocks as for a registry. */
-static size_t planet_list_bytes(const entity_list_t *list) {
-    if (list == NULL) return 0;
-    return block_bytes(sizeof *list) + registry_bytes(list);
+/* Bytes of the items of a planet list grown in the generation, block by block as for a registry. */
+static size_t planet_list_bytes(const entity_id_list_t *list) {
+    size_t bytes = 0;
+    for (int k = 4; k <= list->capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(entity_id_t));
+    return bytes;
 }
 
-/* Footprint of the tagged planets: struct, map position, position,
- * identifier and the slipways, outgoing and incoming route lists. No needs
+static size_t route_list_bytes(const planet_t *planet, uint16_t present, const trade_route_list_t *list) {
+    if (!(planet->has & present)) return 0;
+    size_t bytes = 0;
+    for (int k = 4; k <= list->values.capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(trade_route_t));
+    return bytes;
+}
+
+/* Footprint of the tagged planets: struct and the slipways, outgoing and incoming route lists. No needs
  * nor copies of needs, which populated planets lack before an action. */
 static size_t planets_bytes(void) {
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
-        assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
-        bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->map_pos) + block_bytes(sizeof *p->pos) +
-                  block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
-                  planet_list_bytes(p->outgoing_routes) + planet_list_bytes(p->incoming_routes);
+        assert(!(p->has & PLANET_HAS_NEEDS) && "a planet has needs, which planets_bytes does not count");
+        bytes += block_bytes(sizeof *p) + planet_list_bytes(&p->slipways) +
+                  route_list_bytes(p, PLANET_HAS_OUTGOING_ROUTES, &p->outgoing_routes) +
+                  route_list_bytes(p, PLANET_HAS_INCOMING_ROUTES, &p->incoming_routes);
     }
     return bytes;
 }
 
-/* Bytes of the economy cart_start_game makes: its struct and the
- * `invented` container, with no element while nothing is invented. */
+/* Bytes of the economy cart_start_game makes: its struct, with no
+ * `invented` element while nothing is invented. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && fm->invented != NULL && "cart_start_game built the economy of the game");
-    assert(fm->invented->count == 0 && fm->invented->items == NULL && "an invention, which economy_bytes does not count");
-    return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
+    assert(fm != NULL && "cart_start_game built the economy of the game");
+    assert(fm->invented.count == 0 && fm->invented.items == NULL && "an invention, which economy_bytes does not count");
+    return block_bytes(sizeof *fm);
 }
 
 /* Bytes of the seven structure icons among the live entities, in table
- * order: struct, tooltip remade in a frame-zone arena, and the vector box
- * of each revealed icon. */
+ * order: struct and tooltip remade in a frame-zone arena. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
     const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
@@ -191,7 +191,6 @@ static size_t icons_bytes(void) {
         assert(k < ICON_TOOLTIPS_COUNT && "more icons than tooltips in icon_tooltips_table");
         (void)tooltip_new(measure_arena, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
-        if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one icon per tooltip of icon_tooltips_table");
@@ -310,28 +309,6 @@ static int case_load_zone_full(void) {
     return 0;
 }
 
-static size_t four_pointers_bytes(void) {
-    return ZONE_CELLS(4 * sizeof(entity_t *)) * sizeof(zone_cell_t);
-}
-
-static int case_static_lists_in_load_zone(void) {
-    static entity_t element;
-    load_cart_and_start();
-    const size_t start = load_zone_used();
-    entity_list_t *le = ui_ephemerals_shared();
-    entity_list_add(le, &element);
-    assert(load_zone_used() == start + four_pointers_bytes() &&
-           "the starting ui_ephemerals_shared list takes its capacity in the load sub-zone");
-    entity_list_t *by = burst_new(NULL)->outgoing_routes;
-    entity_list_add(by, &element);
-    assert(load_zone_used() == start + 2 * four_pointers_bytes() &&
-           "the outgoing_routes list bursts share takes its capacity in the load sub-zone");
-    cart_shutdown();
-    assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown forgets the starting list");
-    assert(by->items == NULL && by->count == 0 && by->capacity == 0 && "the shutdown forgets the shared outgoing_routes list");
-    return 0;
-}
-
 static int case_double_start_game_without_flush(void) {
     load_cart_and_start();
     cart_start_game(NULL);
@@ -354,7 +331,6 @@ static const struct {
     {"load_zone_dead_after_cart_load", case_load_zone_dead_after_cart_load},
     {"load_zone_grab_arena_and_max", case_load_zone_grab_arena_and_max},
     {"load_zone_full", case_load_zone_full},
-    {"static_lists_in_load_zone", case_static_lists_in_load_zone},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -447,8 +423,7 @@ int main(int argc, char **argv) {
     expect_clean("load_zone_survives_start_game");
     expect_poison_crash("load_zone_dead_after_cart_load");
     expect_clean("load_zone_grab_arena_and_max");
-    expect_fatal("load_zone_full", "zone load full, limit 24680 bytes");
-    expect_clean("static_lists_in_load_zone");
+    expect_fatal("load_zone_full", "zone load full, limit 24984 bytes");
     remove(STDERR_LOG);
     printf("test_game_zone: all tests passed\n");
     return 0;

@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "engine/bootstrap.h"
+#include "engine/entity_id.h"
 #include "game/data_init.h"
 #include "engine/entity_class.h"
 #include "engine/dispatch_context.h"
@@ -25,11 +26,10 @@
 #include "engine/vec.h"
 
 /* The buttons planet_inspection_panel just built. */
-static const entity_list_t *main_ui_ephemerals(void) {
+static const entity_id_list_t *main_ui_ephemerals(void) {
     const ui_t *ok = main_ui();
     assert(ok != NULL);
-    assert(ok->ephemerals != NULL);
-    return ok->ephemerals;
+    return &ok->ephemerals;
 }
 
 static const layout_row_t *button_layout_row(const void *button) {
@@ -43,12 +43,12 @@ static const layout_row_t *button_layout_row(const void *button) {
 }
 
 static const char *layout_row_index_string(const layout_row_t *lq, int index) {
-    layout_row_cell_t v;
-    if (index < 1 || index > lq->items_count) {
+    const layout_row_item_t *v;
+    if (index < 1 || index > lq->placed_items_count) {
         return NULL;
     }
-    v = lq->items[index - 1];
-    return (v.kind == LAYOUT_ROW_CELL_STRING) ? v.as.text : NULL;
+    v = &lq->placed_items[index - 1];
+    return (v->kind == LAYOUT_ROW_ITEM_TEXT) ? v->text : NULL;
 }
 
 static int layout_row_index_is_string(const layout_row_t *lq, int index, const char *expected) {
@@ -75,8 +75,8 @@ static void setup_panel_state(p8_vram_t *mem, p8_graphics_t *gfx) {
 
 /* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static entity_list_t *outgoing_routes_of(const planet_t *planet) {
-    return planet->outgoing_routes;
+static int outgoing_routes_present(const planet_t *planet) {
+    return (planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0;
 }
 
 static void test_burst_export_line_counts_the_outgoing_routes(void) {
@@ -84,11 +84,10 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     p8_graphics_t graphics;
     planet_t *planet;
     static production_t production;
-    vec_t *planet_pos;
-    entity_list_t *outgoing;
-    trade_route_t *route_a;
-    trade_route_t *route_b;
-    const entity_list_t *ephemerals;
+    trade_route_list_t *outgoing;
+    const trade_route_t route_a = trade_new(NULL);
+    const trade_route_t route_b = trade_new(NULL);
+    const entity_id_list_t *ephemerals;
     const layout_row_t *exports_layout_row = NULL;
     int index;
 
@@ -102,17 +101,16 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     production.has_resource = 1;
     production.resource = p8_fixed_from_int(99);
     production.amount = p8_fixed_from_int(2);
-    planet->production = &production;
+    planet->production = production;
+    planet->has |= PLANET_HAS_PRODUCTION;
 
-    planet_pos = malloc(sizeof *planet_pos);
-    *planet_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->pos = planet_pos;
+    entity_set_pos(&planet->header, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
 
     /* A fresh burst exports nothing, against a capacity of the production amount. */
     planet_inspection_panel(planet);
     ephemerals = main_ui_ephemerals();
     for (index = 0; index < ephemerals->count; index++) {
-        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
+        const layout_row_t *lq = button_layout_row(entity_id_list_at(ephemerals, index));
         if (layout_row_index_is_string(lq, 1, "exports:")) {
             exports_layout_row = lq;
         }
@@ -120,21 +118,19 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     assert(exports_layout_row != NULL);
     assert(layout_row_index_is_string(exports_layout_row, 2, "0/2"));
 
-    /* Two routes, added the way planet_rebuild_trades adds them: straight
-     * into whatever the outgoing routes list already holds, here the shared
-     * list burst_create installed. */
-    outgoing = outgoing_routes_of(planet);
-    assert(outgoing != NULL);
-    route_a = trade_new(game_zone(), NULL);
-    route_b = trade_new(game_zone(), NULL);
-    entity_list_add(outgoing, &route_a->header);
-    entity_list_add(outgoing, &route_b->header);
+    /* Two routes in the outgoing routes list; a burst's own list has no
+     * zone, since nothing in the game adds to it. */
+    assert(outgoing_routes_present(planet) && trade_route_list_count(&planet->outgoing_routes) == 0);
+    outgoing = &planet->outgoing_routes;
+    trade_route_list_init(outgoing, game_zone());
+    trade_route_list_add(outgoing, &route_a);
+    trade_route_list_add(outgoing, &route_b);
 
     exports_layout_row = NULL;
     planet_inspection_panel(planet);
     ephemerals = main_ui_ephemerals();
     for (index = 0; index < ephemerals->count; index++) {
-        const layout_row_t *lq = button_layout_row(ephemerals->items[index]);
+        const layout_row_t *lq = button_layout_row(entity_id_list_at(ephemerals, index));
         if (layout_row_index_is_string(lq, 1, "exports:")) {
             exports_layout_row = lq;
         }

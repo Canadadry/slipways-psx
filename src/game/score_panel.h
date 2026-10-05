@@ -13,8 +13,7 @@
 typedef struct {
     entity_t header;
     const score_panel_archetype_t *archetype;
-    p8_fixed_t layer;
-    message_box_t *last_box;
+    entity_id_t last_box;
     int is_shown;
     int has_is_shown;
     p8_fixed_t curtain;
@@ -23,11 +22,16 @@ typedef struct {
 
 typedef struct {
     entity_t header;
-    const vec_t *fixed_pos;
-    const vec_t *row_step;
+    uint16_t has;
+    vec_t fixed_pos;
+    vec_t row_step;
     p8_fixed_t back_color;
-    const char *description;
 } score_panel_layout_block_t;
+
+enum {
+    SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS = 1u << 0,
+    SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP = 1u << 1,
+};
 
 enum { SCORE_PANEL_TEXT_CAP = 16 };
 
@@ -48,14 +52,6 @@ typedef struct {
     message_box_keep_open_fn_t keep_open;
 } score_panel_year_banner_t;
 
-typedef struct {
-    data_row_t row;
-    data_item_t items[5];
-    int has_value[5];
-    vec_t pos;
-    const score_rows_entry_t *entry;
-} score_row_t;
-
 void score_panel_init(void);
 
 void score_panel_shutdown(void);
@@ -72,7 +68,8 @@ const data_row_t *score_panel_countdown_rows(void);
 
 score_panel_t *score_panel_new(void);
 
-score_row_t *score_panel_rows(void);
+message_box_t *score_panel_last_box(const score_panel_t *self);
+void score_panel_set_last_box(score_panel_t *self, message_box_t *box);
 
 button_fn_t score_panel_init_field_value(void);
 void score_panel_set_init(button_fn_t fn);

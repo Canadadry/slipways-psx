@@ -23,6 +23,11 @@
 #include "game/ui.h"
 #include "engine/vec.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+
 #define IS_ON_SCREEN_NEAR 1
 #define IS_ON_SCREEN_FAR 0
 #define UPDATE_MOUSE_WORLD_X 0
@@ -65,8 +70,8 @@ static void assert_placeholder(void) {
 static void assert_a_camera(void) {
     const vec_t *ra;
 
-    assert(main_camera_typed() != NULL && main_camera_typed()->pos != NULL);
-    ra = main_camera_typed()->pos;
+    assert(main_camera_typed() != NULL && pos_ref(&main_camera_typed()->header) != NULL);
+    ra = pos_ref(&main_camera_typed()->header);
     assert(ra->x == p8_fixed_from_int(CAMERA_X) && ra->y == p8_fixed_from_int(CAMERA_Y));
 }
 
@@ -76,11 +81,6 @@ static void test_placeholder_after_init(void) {
     assert(!entity_list_listed(live_entities(), main_camera()));
 }
 
-typedef struct {
-    entity_t header;
-    const vec_t *pos;
-} pos_only_t;
-
 static const entity_class_t pos_only_class_def = {0};
 
 /* entity_geom_is_on_screen reads the camera position as (0,0): 16 off the
@@ -88,16 +88,16 @@ static const entity_class_t pos_only_class_def = {0};
 static void test_is_on_screen_on_placeholder(void) {
     vec_t near_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
     vec_t far_pos = vec_make(p8_fixed_from_int(80 + 93), p8_fixed_from_int(64));
-    pos_only_t near_e = {{.class = &pos_only_class_def, .pos = &near_e.pos}, NULL};
-    pos_only_t far_e = {{.class = &pos_only_class_def, .pos = &far_e.pos}, NULL};
+    entity_t near_e = {.class = &pos_only_class_def};
+    entity_t far_e = {.class = &pos_only_class_def};
     int near_hit;
     int far_hit;
 
     entity_registry_init(NULL);
-    near_e.pos = &near_pos;
-    far_e.pos = &far_pos;
-    near_hit = entity_geom_is_on_screen(&near_e.header);
-    far_hit = entity_geom_is_on_screen(&far_e.header);
+    entity_set_pos(&near_e, near_pos);
+    entity_set_pos(&far_e, far_pos);
+    near_hit = entity_geom_is_on_screen(&near_e);
+    far_hit = entity_geom_is_on_screen(&far_e);
     printf("[is_on_screen] near %d far %d\n", near_hit, far_hit);
     fflush(stdout);
     assert(near_hit == IS_ON_SCREEN_NEAR && far_hit == IS_ON_SCREEN_FAR);
@@ -108,10 +108,10 @@ static void test_is_on_screen_on_placeholder(void) {
  * edges, under the placeholder camera at (0,0). */
 static int on_screen_at(int x, int y) {
     vec_t at = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    pos_only_t e = {{.class = &pos_only_class_def, .pos = &e.pos}, NULL};
+    entity_t e = {.class = &pos_only_class_def};
 
-    e.pos = &at;
-    return entity_geom_is_on_screen(&e.header);
+    entity_set_pos(&e, at);
+    return entity_geom_is_on_screen(&e);
 }
 
 static void test_is_on_screen_frame_is_the_screen_plus_12_on_each_edge(void) {
@@ -146,8 +146,8 @@ static void test_update_on_placeholder(void) {
     entity_registry_init(NULL);
     ok = ui_new();
     ui_update(&memory, ok);
-    assert(ok->mouse_world != NULL);
-    qa = ok->mouse_world;
+    assert(ok->has & UI_HAS_MOUSE_WORLD);
+    qa = &ok->mouse_world;
     printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);
     fflush(stdout);
     assert(qa->x == UPDATE_MOUSE_WORLD_X && qa->y == UPDATE_MOUSE_WORLD_Y);
@@ -208,26 +208,23 @@ static void test_is_on_screen_under_a_shaken_camera(void) {
     static vec_t shaken_pos;
     vec_t in_pos = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64));
     vec_t below_pos = vec_make(p8_fixed_from_int(200 + 64), p8_fixed_from_int(100 + 64 + 77));
-    pos_only_t in_e = {{.class = &pos_only_class_def, .pos = &in_e.pos}, NULL};
-    pos_only_t below_e = {{.class = &pos_only_class_def, .pos = &below_e.pos}, NULL};
+    entity_t in_e = {.class = &pos_only_class_def};
+    entity_t below_e = {.class = &pos_only_class_def};
     camera_t *qb;
-    const vec_t *saved_p;
-    const vec_t *saved_pos;
+    entity_t saved;
 
     reset_world(NULL);
     qb = main_camera_typed();
     assert(qb != NULL);
-    saved_p = qb->pos_before_shake;
-    saved_pos = qb->pos;
+    saved = qb->header;
     shaken_pos = vec_make(p8_fixed_from_int(200), p8_fixed_from_int(100));
-    qb->pos_before_shake = &zero_pos_before_shake;
-    qb->pos = &shaken_pos;
-    in_e.pos = &in_pos;
-    below_e.pos = &below_pos;
-    assert(entity_geom_is_on_screen(&in_e.header) == IS_ON_SCREEN_NEAR);
-    assert(entity_geom_is_on_screen(&below_e.header) == IS_ON_SCREEN_FAR);
-    qb->pos_before_shake = saved_p;
-    qb->pos = saved_pos;
+    entity_set_map_pos(&qb->header, zero_pos_before_shake);
+    entity_set_pos(&qb->header, shaken_pos);
+    entity_set_pos(&in_e, in_pos);
+    entity_set_pos(&below_e, below_pos);
+    assert(entity_geom_is_on_screen(&in_e) == IS_ON_SCREEN_NEAR);
+    assert(entity_geom_is_on_screen(&below_e) == IS_ON_SCREEN_FAR);
+    qb->header = saved;
     bootstrap_shutdown();
 }
 

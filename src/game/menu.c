@@ -19,31 +19,27 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
-#define MENU_ROW_CAP 4
-
 static int g_menu_up = 0;
 static vec_t g_galaxy_menu_pos[GALAXY_MENU_COUNT];
-static vec_t g_pause_menu_fixed_pos;
-static vec_t g_pause_menu_row_step;
 
 static void galaxy_menu_button4_on_click_method(button_t *self);
 
 typedef struct {
     entity_t header;
-    vec_t *fixed_pos;
-    vec_t *row_step;
+    uint16_t has;
+    vec_t fixed_pos;
+    vec_t row_step;
     p8_fixed_t back_color;
     int has_back_color;
 } pause_menu_open_box_t;
 
+#define PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS (1u << 0)
+#define PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP (1u << 1)
+
 static const entity_class_t pause_menu_open_box_class_def = {0};
 
 static pause_menu_open_box_t g_pause_menu_open_box = {
-    {.class = &pause_menu_open_box_class_def},
-    NULL,
-    NULL,
-    0,
-    0,
+    .header = {.class = &pause_menu_open_box_class_def},
 };
 
 static void tech_tree_screen_row_on_click_method(button_t *self) {
@@ -55,46 +51,33 @@ static void tech_tree_screen_row_on_click_method(button_t *self) {
     }
 }
 
-typedef struct {
-    button_keys_t row;
-    layout_row_keys_t layout_row;
-    layout_row_cell_t layout_row_items[2];
-    layout_row_keys_t cost_keys;
-    layout_row_cell_t cost_items[2];
-} tech_tree_screen_row_t;
-
-static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_screen_row_t *b) {
+static void tech_tree_screen_step(const technologies_entry_t *t, button_keys_t *b) {
     static const data_item_t pair_items[] = {{.number = 24}, {.number = 5}};
     static const data_row_t pair = {.count = 2, .items = pair_items};
     p8_fixed_t research_cost_result;
     char *research_cost_str;
 
-    b->layout_row_items[0] = layout_row_cell_fixed(p8_fixed_from_int(t->icon));
-    b->layout_row_items[1] = layout_row_cell_string(t->name);
-    b->layout_row.items = b->layout_row_items;
-    b->layout_row.count = 2;
-    b->layout_row.has_color = 1;
-    b->layout_row.color = p8_fixed_from_int(6);
-    b->row.layout_row_keys = &b->layout_row;
+    layout_row_keys_append(&b->layout_row_keys, layout_row_cell_fixed(p8_fixed_from_int(t->icon)));
+    layout_row_keys_append(&b->layout_row_keys, layout_row_cell_string(t->name));
+    b->layout_row_keys.has_color = 1;
+    b->layout_row_keys.color = p8_fixed_from_int(6);
 
     research_cost_result = tech_gate_research_cost(t);
     research_cost_str = p8_tostr_fixed(frame_zone(), research_cost_result);
 
-    b->cost_items[0] = layout_row_cell_row(&pair);
-    b->cost_items[1] = layout_row_cell_string(research_cost_str);
-    b->cost_keys.items = b->cost_items;
-    b->cost_keys.count = 2;
-    b->row.has_side_tooltip = 1;
-    b->row.side_tooltip_row = &b->cost_keys;
+    layout_row_keys_append(&b->side_tooltip_row, layout_row_cell_row(&pair));
+    layout_row_keys_append(&b->side_tooltip_row, layout_row_cell_string(research_cost_str));
+    b->has_side_tooltip = 1;
+    b->has_side_tooltip_row = 1;
 
-    b->row.has_tooltip = 1;
-    b->row.tooltip_row = t->tooltip_rows;
+    b->has_tooltip = 1;
+    button_keys_set_tooltip_row(b, t->tooltip_rows);
 
     /* An unaffordable tech gets on_click present but NULL, not absent. */
-    b->row.has_on_click = 1;
+    b->has_on_click = 1;
     if (tech_gate_affordable_flags(t)) {
-        b->row.technology = t;
-        b->row.on_click = tech_tree_screen_row_on_click_method;
+        b->technology = t;
+        b->on_click = tech_tree_screen_row_on_click_method;
     }
 }
 
@@ -121,7 +104,6 @@ void menu_show_tech_tree_screen(void) {
     p8_fixed_t next_threshold = p8_fixed_from_int(0);
     int tier_thresholds;
     available_technologies_kept_t available_technologies_list;
-    tech_tree_screen_row_t *rows;
     button_keys_t *buttons;
     int row_count = 0;
     int index;
@@ -131,8 +113,8 @@ void menu_show_tech_tree_screen(void) {
     if (economy != NULL) {
         current_era = economy->era;
     }
-    if (economy != NULL && economy->invented != NULL) {
-        invented_count = economy->invented->count;
+    if (economy != NULL) {
+        invented_count = economy->invented.count;
     }
 
     if (int_seq_at(tier_thresholds_table, TIER_THRESHOLDS_COUNT, p8_fixed_flr_int(current_era) - 1, &tier_thresholds)) {
@@ -141,30 +123,22 @@ void menu_show_tech_tree_screen(void) {
 
     /* 1 lists every tech of the era, affordable or not; the galaxy row's refresh must pass 0. */
     available_technologies_list = tech_gate_available_technologies(1);
-    rows = (tech_tree_screen_row_t *)allocator_alloc(frame_zone(), ((size_t)available_technologies_list.count + 1) * sizeof *rows);
     buttons = (button_keys_t *)allocator_alloc(frame_zone(), ((size_t)available_technologies_list.count + 1) * sizeof *buttons);
-    memset(rows, 0, ((size_t)available_technologies_list.count + 1) * sizeof *rows);
     memset(buttons, 0, ((size_t)available_technologies_list.count + 1) * sizeof *buttons);
     for (index = 0; index < available_technologies_list.count; index++) {
-        tech_tree_screen_step(available_technologies_list.items[index], &rows[row_count++]);
+        tech_tree_screen_step(available_technologies_list.items[index], &buttons[row_count++]);
     }
 
     if (invented_count > 0) {
-        tech_tree_screen_row_t *extra = &rows[row_count++];
+        button_keys_t *extra = &buttons[row_count++];
         char *invented_text = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(invented_count));
         char *label = p8_concat2(frame_zone(), invented_text, " invented");
-        extra->layout_row_items[0] = layout_row_cell_fixed(p8_fixed_from_int(30));
-        extra->layout_row_items[1] = layout_row_cell_string(label);
-        extra->layout_row.items = extra->layout_row_items;
-        extra->layout_row.count = 2;
-        extra->layout_row.has_color = 1;
-        extra->layout_row.color = p8_fixed_from_int(3);
-        extra->row.layout_row_keys = &extra->layout_row;
-        extra->row.has_tooltip = 1;
-        extra->row.tooltip_row = invented_lines(economy->invented);
-    }
-    for (index = 0; index < row_count; index++) {
-        buttons[index] = rows[index].row;
+        layout_row_keys_append(&extra->layout_row_keys, layout_row_cell_fixed(p8_fixed_from_int(30)));
+        layout_row_keys_append(&extra->layout_row_keys, layout_row_cell_string(label));
+        extra->layout_row_keys.has_color = 1;
+        extra->layout_row_keys.color = p8_fixed_from_int(3);
+        extra->has_tooltip = 1;
+        button_keys_set_tooltip_row(extra, invented_lines(&economy->invented));
     }
 
     layout_block = score_panel_layout_block();
@@ -193,12 +167,17 @@ void menu_show_tech_tree_screen(void) {
         tmp2 = p8_concat2(frame_zone(), tmp1, diff2_str);
         ep = p8_concat2(frame_zone(), tmp2, ")");
 
-        layout_block->description = ep;
-        frame.description = layout_block->description;
-        frame.fixed_pos = layout_block->fixed_pos;
+        open_box_frame_set_description(&frame, ep);
+        if (layout_block->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS) {
+            frame.has_fixed_pos = 1;
+            frame.fixed_pos = layout_block->fixed_pos;
+        }
         frame.has_back_color = 1;
         frame.back_color = layout_block->back_color;
-        frame.row_step = layout_block->row_step;
+        if (layout_block->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP) {
+            frame.has_row_step = 1;
+            frame.row_step = layout_block->row_step;
+        }
         message_box_open_box(&frame, buttons, row_count);
     }
 }
@@ -220,7 +199,6 @@ static void galaxy_menu_button2_on_click_method(button_t *self) {
 static void galaxy_menu_button2_refresh_method(button_t *self) {
     available_technologies_kept_t available_technologies_list;
     int available_technologies_count;
-    layout_row_cell_t item;
     layout_row_keys_t keys = {0};
     const allocator_t *slot;
 
@@ -232,9 +210,7 @@ static void galaxy_menu_button2_refresh_method(button_t *self) {
     available_technologies_list = tech_gate_available_technologies(0);
     available_technologies_count = available_technologies_list.count;
 
-    item = layout_row_cell_fixed(p8_fixed_from_int(available_technologies_count > 0 ? 24 : 37));
-    keys.items = &item;
-    keys.count = 1;
+    layout_row_keys_append(&keys, layout_row_cell_fixed(p8_fixed_from_int(available_technologies_count > 0 ? 24 : 37)));
     slot = ui_zone_slot(SLOT_KIND_ROW);
     self->layout_row = layout_row_new(slot, &keys);
     if (self->layout_row_slot != NULL) {
@@ -286,8 +262,6 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
         pause_menu_row4_on_click_method,
     };
     button_keys_t bs[PAUSE_MENU_COUNT];
-    layout_row_keys_t lq[PAUSE_MENU_COUNT];
-    layout_row_cell_t items[PAUSE_MENU_COUNT][MENU_ROW_CAP];
     open_box_frame_t frame = {0};
     int i;
     (void)self;
@@ -299,14 +273,15 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
         const pause_menu_entry_t *e = &pause_menu_table[i];
 
         memset(&bs[i], 0, sizeof bs[i]);
-        lq[i] = layout_row_keys_of_row(e->layout_row, items[i], MENU_ROW_CAP);
-        bs[i].layout_row_keys = &lq[i];
+        bs[i].layout_row_keys = layout_row_keys_of_row(e->layout_row);
         bs[i].has_on_click = 1;
         bs[i].on_click = my[i];
     }
+    frame.has_fixed_pos = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS) != 0;
     frame.fixed_pos = g_pause_menu_open_box.fixed_pos;
     frame.has_back_color = g_pause_menu_open_box.has_back_color;
     frame.back_color = g_pause_menu_open_box.back_color;
+    frame.has_row_step = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP) != 0;
     frame.row_step = g_pause_menu_open_box.row_step;
     message_box_open_box(&frame, bs, PAUSE_MENU_COUNT);
 }
@@ -314,14 +289,12 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
 button_t *galaxy_menu_button(int i) {
     const galaxy_menu_entry_t *e;
     button_keys_t keys = {0};
-    layout_row_keys_t lq;
-    layout_row_cell_t items[MENU_ROW_CAP];
 
     assert(g_menu_up && i >= 1 && i <= GALAXY_MENU_COUNT && "galaxy_menu_button: the galaxy menu has GALAXY_MENU_COUNT rows, after menu_init()");
     e = &galaxy_menu_table[i - 1];
-    lq = layout_row_keys_of_row(e->layout_row, items, MENU_ROW_CAP);
-    keys.layout_row_keys = &lq;
-    keys.pos = &g_galaxy_menu_pos[i - 1];
+    keys.layout_row_keys = layout_row_keys_of_row(e->layout_row);
+    keys.has_pos = 1;
+    keys.pos = g_galaxy_menu_pos[i - 1];
     keys.has_on_click = 1;
     keys.on_click = galaxy_menu_on_click_table[i - 1];
     keys.refresh = galaxy_menu_refresh_table[i - 1];
@@ -350,10 +323,9 @@ void menu_init(void) {
         g_galaxy_menu_pos[i] = vec_make(p8_fixed_from_int(galaxy_menu_table[i].pos_x),
                                  p8_fixed_from_int(galaxy_menu_table[i].pos_y));
     }
-    g_pause_menu_fixed_pos = vec_make(p8_fixed_from_int(pause_menu_tail.fixed_pos_x), p8_fixed_from_int(pause_menu_tail.fixed_pos_y));
-    g_pause_menu_row_step = vec_make(p8_fixed_from_int(pause_menu_tail.row_step_x), p8_fixed_from_int(pause_menu_tail.row_step_y));
-    g_pause_menu_open_box.fixed_pos = &g_pause_menu_fixed_pos;
-    g_pause_menu_open_box.row_step = &g_pause_menu_row_step;
+    g_pause_menu_open_box.fixed_pos = vec_make(p8_fixed_from_int(pause_menu_tail.fixed_pos_x), p8_fixed_from_int(pause_menu_tail.fixed_pos_y));
+    g_pause_menu_open_box.row_step = vec_make(p8_fixed_from_int(pause_menu_tail.row_step_x), p8_fixed_from_int(pause_menu_tail.row_step_y));
+    g_pause_menu_open_box.has |= PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS | PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP;
     g_pause_menu_open_box.back_color = p8_fixed_from_int(pause_menu_tail.back_color);
     g_pause_menu_open_box.has_back_color = 1;
     g_menu_up = 1;
@@ -361,8 +333,7 @@ void menu_init(void) {
 
 void menu_shutdown(void) {
     g_menu_up = 0;
-    g_pause_menu_open_box.fixed_pos = NULL;
-    g_pause_menu_open_box.row_step = NULL;
+    g_pause_menu_open_box.has &= (uint16_t)~(PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS | PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP);
     g_pause_menu_open_box.back_color = 0;
     g_pause_menu_open_box.has_back_color = 0;
 }

@@ -2,10 +2,12 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "engine/collect.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
+#include "engine/entity_id.h"
 #include "game/gen.h"
 #include "engine/entity.h"
 #include "game/message_box.h"
@@ -21,8 +23,8 @@ static random_walk_t *g_planet_vanish_roll = NULL;
 /* Shared by every bare planet, written in place, until planet_install_project gives it its own. */
 static production_t g_planet_production_shared;
 
-int planet_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+int planet_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
 
 void planet_new_year_method(entity_t *self, p8_fixed_t year) {
@@ -57,61 +59,74 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     assert(g_planet_up && "planet_init() must run first");
     entity_init_instance(&self->header, instance_class, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.layer = &self->archetype->layer;
-    self->header.pos = (const vec_t *const *)&self->pos;
-    self->header.map_pos = (const vec_t *const *)&self->map_pos;
-    self->header.hit_box = &self->archetype->hit_box;
-    self->header.shake = &self->shake;
-    self->header.fold_anchor = &self->fold_anchor;
-    self->header.is_dead = &self->is_dead;
-    self->shake = self->archetype->shake;
-    self->production = &g_planet_production_shared;
-    self->planet_id = NULL;
-    self->map_pos = NULL;
-    self->pos = NULL;
-    self->slipways = NULL;
-    self->project = NULL;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = self->archetype->hit_box;
+    self->header.has |= ENTITY_HAS_SHAKE;
+    self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
+    self->header.fold_anchor = 0;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.shake = self->archetype->shake;
+    memset(self->planet_id, 0, sizeof self->planet_id);
+    self->slipways = (entity_id_list_t){0};
+    self->project = RESEARCH_PROJECT_ID_NONE;
     self->description = NULL;
-    self->needs = NULL;
+    self->needs = (pointer_list_t){0};
     self->planet_type = NULL;
-    self->fold_anchor = 0;
     self->layout_row = NULL;
     self->layout_row_slot = NULL;
-    self->targeted_by = NULL;
+    self->targeted_by = ENTITY_ID_NONE;
     self->production_bonus = 0;
     self->has_production_bonus = 0;
-    self->is_dead = 0;
+    self->header.is_dead = 0;
     self->net_income = 0;
     self->has_net_income = 0;
-    self->incoming_routes = NULL;
-    self->outgoing_routes = NULL;
+    self->incoming_routes = (trade_route_list_t){0};
+    self->outgoing_routes = (trade_route_list_t){0};
     self->development_tier = self->archetype->development_tier;
     self->has_development_tier = self->archetype->has_development_tier;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
-    self->production_own = (production_t){0};
-    self->targeting = NULL;
-    self->emitter = NULL;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
+    self->production = (production_t){0};
+    self->has = 0;
 }
 
 static planet_t *planet_create(const planet_keys_t *keys) {
     planet_t *self = (planet_t *)allocator_alloc(grab_arena_construction_zone(), sizeof *self);
 
     planet_init_instance(self, &planet_class_def, &planet_archetype);
-    if (keys != NULL) {
-        if (keys->map_pos != NULL) {
-            self->map_pos = keys->map_pos;
-        }
-        if (keys->pos != NULL) {
-            self->pos = keys->pos;
-        }
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
+}
+
+void planet_keys_set_id(planet_keys_t *keys, const char *id) {
+    assert(strlen(id) < PLANET_ID_SIZE && "planet_keys_set_id: a planet id is \"p\"/\"s\" plus a counter -- stop, measure before widening");
+    strcpy(keys->planet_id, id);
+    keys->has_planet_id = 1;
+}
+
+const char *planet_id_or_null(const planet_t *self) {
+    return (self->has & PLANET_HAS_ID) ? self->planet_id : NULL;
+}
+
+void planet_copy_keys(planet_t *self, const planet_keys_t *keys) {
+    if (keys == NULL) {
+        return;
+    }
+    if (keys->has_map_pos) {
+        entity_set_map_pos(&self->header, keys->map_pos);
+    }
+    if (keys->has_pos) {
+        entity_set_pos(&self->header, keys->pos);
+    }
+    if (keys->has_planet_id) {
+        assert(memchr(keys->planet_id, '\0', PLANET_ID_SIZE) != NULL && "planet_copy_keys: set the id with planet_keys_set_id");
+        memcpy(self->planet_id, keys->planet_id, PLANET_ID_SIZE);
+        self->has |= PLANET_HAS_ID;
+    }
 }
 
 void planet_init(void) {
@@ -158,6 +173,14 @@ production_t *planet_shared_production(void) {
     return &g_planet_production_shared;
 }
 
+production_t *planet_production(planet_t *self) {
+    return (self->has & PLANET_HAS_PRODUCTION) ? &self->production : &g_planet_production_shared;
+}
+
+const production_t *planet_production_read(const planet_t *self) {
+    return (self->has & PLANET_HAS_PRODUCTION) ? &self->production : &g_planet_production_shared;
+}
+
 const entity_class_t *planet_class(void) {
     return &planet_class_def;
 }
@@ -167,21 +190,7 @@ planet_t *planet_new(const planet_keys_t *keys) {
 }
 
 void planet_grab_arena_released(const planet_t *self) {
-    grab_arena_give_back_if_placing(self->slipways != NULL ? self->slipways->zone : NULL, self->header.state);
-}
-
-/* GAP-26 */
-void planet_forget_targeted_by(const entity_t *e) {
-    const entity_list_t *np = entities_by_tag(TAG_NODE);
-
-    for (int i = 0; np != NULL && i < np->count; i++) {
-        planet_t *p = (planet_t *)np->items[i];
-
-        assert(planet_is_family(&p->header) && "the node tag holds planets only, and only planets have targeted_by");
-        if (p->targeted_by == e) {
-            p->targeted_by = NULL;
-        }
-    }
+    grab_arena_give_back_if_placing(self->slipways.zone, self->header.state);
 }
 
 void planet_construct(planet_t *self) {
@@ -189,15 +198,11 @@ void planet_construct(planet_t *self) {
 }
 
 void planet_construct_in(planet_t *self, const allocator_t *zone) {
-    entity_list_t *oe;
-
     if (self == NULL) {
         return;
     }
 
-    oe = (entity_list_t *)allocator_alloc(zone, sizeof *oe);
-    entity_list_init(oe, zone);
-    self->slipways = oe;
+    entity_id_list_init(&self->slipways, zone);
 
     if (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) {
         research_project_t *target = research_projects_at(p8_fixed_flr_int(self->archetype->project_index));
@@ -211,8 +216,8 @@ void planet_construct_in(planet_t *self, const allocator_t *zone) {
 static int planet_project_need_count(const research_project_t *project) {
     int n = 0;
 
-    for (int i = 0; project != NULL && project->inputs != NULL && i < project->inputs->count; i++) {
-        n += project->inputs->items[i] != NULL;
+    for (int i = 0; project != NULL && i < project->inputs.count; i++) {
+        n += project->inputs.items[i] != NULL;
     }
     return n;
 }
@@ -220,21 +225,19 @@ static int planet_project_need_count(const research_project_t *project) {
 static size_t planet_project_bytes(const research_project_t *project) {
     size_t n = (size_t)planet_project_need_count(project);
 
-    return ZONE_BYTES(n * sizeof(void *)) + n * ZONE_BYTES(sizeof(need_t)) + ZONE_BYTES(sizeof(pointer_list_t));
+    return ZONE_BYTES(n * sizeof(void *)) + n * ZONE_BYTES(sizeof(need_t));
 }
 
 size_t planet_kind_construction_bytes(const entity_kind_t *kind) {
     const planet_archetype_t *archetype = kind->record->archetype;
     const research_project_t *target = research_projects_at(p8_fixed_flr_int(archetype->project_index));
 
-    return ZONE_BYTES(sizeof(planet_t)) + ZONE_BYTES(sizeof(entity_list_t)) +
-           (target != NULL ? planet_project_bytes(target) : 0);
+    return ZONE_BYTES(sizeof(planet_t)) + (target != NULL ? planet_project_bytes(target) : 0);
 }
 
 void planet_install_project(planet_t *self, research_project_t *research_project_instance) {
     const allocator_t *zone = grab_arena_construction_zone();
     pointer_list_t jy;
-    pointer_list_t *needs_own;
     int n;
 
     research_project_assert(research_project_instance);
@@ -243,15 +246,15 @@ void planet_install_project(planet_t *self, research_project_t *research_project
     }
     n = planet_project_need_count(research_project_instance);
 
-    self->project = research_project_instance;
+    self->project = research_project_id_of(research_project_instance);
     self->description = NULL;
 
     pointer_list_init(&jy, zone);
     if (n > 0) {
         pointer_list_init_reserve(&jy, zone, n);
     }
-    for (int i = 0; n > 0 && i < research_project_instance->inputs->count; i++) {
-        const need_t *input = research_project_instance->inputs->items[i];
+    for (int i = 0; n > 0 && i < research_project_instance->inputs.count; i++) {
+        const need_t *input = research_project_instance->inputs.items[i];
         need_t *copy;
 
         if (input == NULL) {
@@ -261,14 +264,13 @@ void planet_install_project(planet_t *self, research_project_t *research_project
         *copy = *input;
         pointer_list_add(&jy, copy);
     }
-    needs_own = (pointer_list_t *)allocator_alloc(zone, sizeof *needs_own);
-    *needs_own = jy;
-    self->needs = needs_own;
+    self->needs = jy;
+    self->has |= PLANET_HAS_NEEDS;
 
-    self->production_own.has_resource = research_project_instance != NULL && research_project_instance->has_output;
-    self->production_own.resource = self->production_own.has_resource ? research_project_instance->output : 0;
-    self->production_own.amount = p8_fixed_from_int(0);
-    self->production = &self->production_own;
+    self->production.has_resource = research_project_instance != NULL && research_project_instance->has_output;
+    self->production.resource = self->production.has_resource ? research_project_instance->output : 0;
+    self->production.amount = p8_fixed_from_int(0);
+    self->has |= PLANET_HAS_PRODUCTION;
 }
 
 int planet_is_colonized(const planet_t *self) {
@@ -285,14 +287,16 @@ void planet_restart_shake(planet_t *self) {
     if (self == NULL) {
         return;
     }
-    self->shake = P8_FIXED_LIT(0x00014000, 1.25);
+    self->header.shake = P8_FIXED_LIT(0x00014000, 1.25);
 }
 
 void planet_update_vanishing(planet_t *self, p8_fixed_t t) {
     if (self == NULL) {
         return;
     }
-    self->is_dead = t > p8_fixed_from_int(60);
+    self->header.is_dead = t > p8_fixed_from_int(60);
+    assert((!self->header.is_dead || self->slipways.count == 0) &&
+           "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
 }
 
 void planet_roll_type(planet_t *self) {
@@ -336,22 +340,19 @@ void planet_new_year(const planet_t *self) {
         int color = 0;
         char *text;
 
-        keys.pos = self->pos;
+        keys.source = entity_id_link(&self->header);
         text = collect_format_signed(frame_zone(), self->net_income, 10, "$", &color);
-        keys.text = text;
+        toast_keys_set_text(&keys, text);
         keys.color = p8_fixed_from_int(color);
         toast_new(&keys);
     }
 }
 
 void planet_bob(entity_t *self, p8_fixed_t t) {
-    vec_t *pos_vec;
-
     assert((self == NULL || planet_is_family(self)) && "planet_bob: self is a planet (structure and trading hub settled updates) -- stop");
-    pos_vec = self != NULL ? ((planet_t *)self)->pos : NULL;
-    if (pos_vec != NULL) {
+    if (self != NULL && entity_has_pos(self)) {
         p8_fixed_t delta = p8_fixed_mul(p8_fixed_sin(p8_fixed_mul(t, P8_FIXED_LIT(0x00000147, 0.005))),
                                                P8_FIXED_LIT(0x00000f5c, 0.06));
-        pos_vec->y = p8_fixed_add(pos_vec->y, delta);
+        self->pos.y = p8_fixed_add(self->pos.y, delta);
     }
 }

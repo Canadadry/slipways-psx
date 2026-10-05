@@ -1,7 +1,5 @@
 #include "game/galaxy.h"
 
-#include <string.h>
-
 #include "game/economy_score.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
@@ -31,12 +29,9 @@ void galaxy_populate(p8_fixed_t planet_count) {
 
     for (planet_id = fixed_one; planet_id <= planet_count; planet_id = p8_fixed_add(planet_id, fixed_one)) {
         vec_t p_vec;
-        vec_t *p_box;
-        vec_t *pos_box;
         entity_t *nearest;
         char *id_num_str;
-        char *id_str;
-        planet_keys_t keys;
+        planet_keys_t keys = {0};
         planet_t *made;
 
         /* Not an inert loop: every accepted planet registers under the planet tag, so later candidates are rejected against it. */
@@ -46,17 +41,12 @@ void galaxy_populate(p8_fixed_t planet_count) {
             p_vec = vec_make(rx, ry);
         } while (entity_geom_nearest(p_vec, entities_by_tag(TAG_PLANET), &nearest) <= threshold);
 
-        p_box = (vec_t *)allocator_alloc(game_zone(), sizeof *p_box);
-        *p_box = p_vec;
-        pos_box = (vec_t *)allocator_alloc(game_zone(), sizeof *pos_box);
-        *pos_box = vec_mul(p_vec, p8_fixed_from_int(128));
-
         id_num_str = p8_tostr_fixed(frame_zone(), planet_id);
-        id_str = p8_concat2(game_zone(), "p", id_num_str);
-
-        keys.planet_id = id_str;
-        keys.map_pos = p_box;
-        keys.pos = pos_box;
+        planet_keys_set_id(&keys, p8_concat2(frame_zone(), "p", id_num_str));
+        keys.map_pos = p_vec;
+        keys.has_map_pos = 1;
+        keys.pos = vec_mul(p_vec, p8_fixed_from_int(128));
+        keys.has_pos = 1;
 
         made = planet_new(&keys);
         (void)made;

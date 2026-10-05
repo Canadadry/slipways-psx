@@ -12,6 +12,7 @@
 #include "game/game_data.h"
 #include "game/hud.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "game/map_tables.h"
 #include "game/message_box.h"
 #include "game/planet.h"
@@ -24,21 +25,25 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
-static const data_row_t *planet_production_tuple(const production_t *kw) {
-    data_row_t *t = (data_row_t *)allocator_alloc(frame_zone(), sizeof *t);
+static layout_row_cell_t planet_production_cell(const production_t *kw) {
+    layout_row_tuple_t tuple = {0};
 
-    memset(t, 0, sizeof *t);
-    t->has_resource = kw->has_resource;
-    t->resource = kw->resource;
-    return t;
+    if (kw->has_resource) {
+        tuple.count = 2;
+        tuple.scalars[0] = layout_row_scalar_fixed(kw->resource);
+        tuple.scalars[1] = layout_row_scalar_fixed(p8_fixed_from_int(5));
+    }
+    return layout_row_cell_tuple(tuple);
 }
 
 void planet_refresh(planet_t *self) {
     const pointer_list_t *needs_list;
-    const entity_list_t *by_list;
-    const p8_fixed_t *qe = NULL;
-    p8_fixed_t mu = p8_fixed_from_int(0);
-    layout_row_t *layout_row_result;
+    const trade_route_list_t *by_list;
+    int has_output;
+    p8_fixed_t output;
+    p8_fixed_t mu;
+    layout_row_keys_t keys;
+    layout_row_t *layout_row_result = NULL;
     const allocator_t *slot;
     frame_zone_mark_t scratch;
 
@@ -46,18 +51,22 @@ void planet_refresh(planet_t *self) {
         return;
     }
 
-    needs_list = self->needs;
-    if (self->production != NULL) {
-        qe = self->production->has_resource ? &self->production->resource : NULL;
-        mu = self->production->amount;
+    needs_list = (self->has & PLANET_HAS_NEEDS) ? &self->needs : NULL;
+    {
+        const production_t *kw = planet_production_read(self);
+        has_output = kw->has_resource;
+        output = kw->resource;
+        mu = kw->amount;
     }
-    by_list = self->outgoing_routes;
+    by_list = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
 
     scratch = frame_zone_mark();
     slot = ui_zone_slot(SLOT_KIND_ROW);
-    layout_row_result = research_display_planet_resource_row(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? by_list->count : 0),
-                            p8_fixed_from_int(0));
-    if (layout_row_result == NULL) {
+    if (research_display_planet_resource_row_keys(needs_list, has_output, output, mu,
+                                                  p8_fixed_from_int(by_list != NULL ? trade_route_list_count(by_list) : 0),
+                                                  p8_fixed_from_int(0), &keys)) {
+        layout_row_result = layout_row_new(slot, &keys);
+    } else {
         arena_release(slot);
         slot = NULL;
     }
@@ -66,7 +75,6 @@ void planet_refresh(planet_t *self) {
     }
     self->layout_row = layout_row_result;
     self->layout_row_slot = slot;
-    /* The row's items[] point into the rewound tuples: read only placed_items[] from here. */
     frame_zone_rewind(scratch);
 }
 
@@ -108,15 +116,7 @@ static int planet_inspection_panel_filter_step(void *e, void *ctx_ptr) {
     return gc == p8_fixed_from_int(0);
 }
 
-#define PLANET_ROW_CAP 8
-
 #define PLANET_INSPECTION_PANEL_ROWS 4
-
-#define PLANET_INSPECTION_PANEL_EXPORTS_CAP 4
-
-static layout_row_cell_t *planet_inspection_panel_row_items(int n) {
-    return (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)n * sizeof(layout_row_cell_t));
-}
 
 static char *planet_dollar(const char *s) {
     return p8_concat2(frame_zone(), s, "$");
@@ -125,25 +125,22 @@ static char *planet_dollar(const char *s) {
 static open_box_frame_t planet_open_box_frame(const planet_t *self) {
     open_box_frame_t frame = {0};
 
-    frame.description = self->description;
+    if (self->description != NULL) {
+        open_box_frame_set_description(&frame, self->description);
+    }
     frame.has_back_color = 1;
     frame.back_color = self->archetype->back_color;
-    frame.row_step = &self->archetype->row_step;
-    frame.pos = self->pos;
+    frame.has_row_step = 1;
+    frame.row_step = self->archetype->row_step;
+    frame.has_pos = entity_has_pos(&self->header);
+    frame.pos = self->header.pos;
     return frame;
 }
 
 void planet_inspection_panel(const planet_t *self) {
     button_keys_t buttons[PLANET_INSPECTION_PANEL_ROWS];
-    layout_row_keys_t icon;
-    layout_row_cell_t icon_items[PLANET_ROW_CAP];
-    layout_row_keys_t h_keys;
-    layout_row_cell_t h_item;
     int row_count = 0;
     const data_row_t *icon_row = NULL;
-    layout_row_keys_t row_keys[PLANET_INSPECTION_PANEL_ROWS];
-    layout_row_cell_t *row_items[PLANET_INSPECTION_PANEL_ROWS];
-    int row_cap[PLANET_INSPECTION_PANEL_ROWS];
     planet_inspection_panel_ctx_t filter_context;
     const pointer_list_t *needs;
     pointer_list_t unmet_needs;
@@ -155,7 +152,6 @@ void planet_inspection_panel(const planet_t *self) {
     }
 
     memset(buttons, 0, sizeof buttons);
-    memset(row_keys, 0, sizeof row_keys);
     if ((self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->archetype->name != NULL) {
         icon_row = self->archetype->name;
     } else if (self->has_development_tier) {
@@ -166,56 +162,49 @@ void planet_inspection_panel(const planet_t *self) {
         }
     }
     if (icon_row != NULL) {
-        icon = layout_row_keys_of_row(icon_row, icon_items, PLANET_ROW_CAP);
-        buttons[0].layout_row_keys = &icon;
+        buttons[0].layout_row_keys = layout_row_keys_of_row(icon_row);
     }
     buttons[0].has_side_tooltip = 1;
     if (self->has_net_income) {
         int discard_color = 0;
+        layout_row_keys_t *h_keys = &buttons[0].side_tooltip_row;
 
-        h_item = layout_row_cell_string(planet_dollar(collect_format_signed(frame_zone(), self->net_income, 0, NULL, &discard_color)));
-        memset(&h_keys, 0, sizeof h_keys);
-        h_keys.items = &h_item;
-        h_keys.count = 1;
-        h_keys.has_background = 1;
-        h_keys.background_is_bool = self->net_income < p8_fixed_from_int(0);
-        h_keys.background = self->net_income >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
-        buttons[0].side_tooltip_row = &h_keys;
+        layout_row_keys_append(h_keys, layout_row_cell_string(planet_dollar(collect_format_signed(frame_zone(), self->net_income, 0, NULL, &discard_color))));
+        h_keys->has_background = 1;
+        h_keys->background_is_bool = self->net_income < p8_fixed_from_int(0);
+        h_keys->background = self->net_income >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
+        buttons[0].has_side_tooltip_row = 1;
     }
     row_count = 1;
 
     pointer_list_init(&filter_context.received_needs, frame_zone());
 
-    needs = self->needs;
+    needs = (self->has & PLANET_HAS_NEEDS) ? &self->needs : NULL;
     unmet_needs = collect_filter_pointer_list(frame_zone(), needs, planet_inspection_panel_filter_step, &filter_context);
 
     if (unmet_needs.count > 0) {
-        row_cap[row_count] = 1 + unmet_needs.count + 1;
-        row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-        row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("needs:");
+        layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_string("needs:"));
         for (index = 0; index < unmet_needs.count; index++) {
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(unmet_needs.items[index]);
+            layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_row(unmet_needs.items[index]));
         }
         row_count++;
     } else {
         p8_fixed_t development_tier_fixed = self->has_development_tier ? self->development_tier : p8_fixed_from_int(0);
-        const production_t *kw = self->production;
+        const production_t *kw = planet_production_read(self);
         int r_w;
         int resource_is_r_w;
 
-        resource_is_r_w = kw != NULL && kw->has_resource && resource_code_lookup("w", &r_w) && kw->resource == p8_fixed_from_int(r_w);
+        resource_is_r_w = kw->has_resource && resource_code_lookup("w", &r_w) && kw->resource == p8_fixed_from_int(r_w);
 
         if (development_tier_fixed < p8_fixed_from_int(4) && needs != NULL && needs->count > 0 && !resource_is_r_w) {
             int last_only = (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->archetype->is_structure;
 
-            row_cap[row_count] = 1 + (last_only ? 1 : needs->count) + 1;
-            row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("wants more:");
+            layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_string("wants more:"));
             if (last_only) {
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(needs->items[needs->count - 1]);
+                layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_row(needs->items[needs->count - 1]));
             } else {
                 for (index = 0; index < needs->count; index++) {
-                    row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(needs->items[index]);
+                    layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_row(needs->items[index]));
                 }
             }
             row_count++;
@@ -223,39 +212,34 @@ void planet_inspection_panel(const planet_t *self) {
     }
 
     if (filter_context.received_needs.count >= 1) {
-        row_cap[row_count] = 1 + filter_context.received_needs.count + 1;
-        row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-        row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("receives:");
+        layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_string("receives:"));
         for (index = 0; index < filter_context.received_needs.count; index++) {
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(filter_context.received_needs.items[index]);
+            layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_row(filter_context.received_needs.items[index]));
         }
         row_count++;
     }
 
     {
-        const production_t *kw = self->production;
-        p8_fixed_t mu = kw != NULL ? kw->amount : p8_fixed_from_int(0);
+        const production_t *kw = planet_production_read(self);
+        p8_fixed_t mu = kw->amount;
 
         if (mu > p8_fixed_from_int(0)) {
             int makes = kw->has_resource && int_seq_has_fixed(planet_made_resources(), kw->resource);
 
-            row_cap[row_count] = PLANET_INSPECTION_PANEL_EXPORTS_CAP;
-            row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-
             if (makes) {
                 char *amount_str = p8_tostr_fixed(frame_zone(), mu);
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("makes:");
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(amount_str);
+                layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_string("makes:"));
+                layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_string(amount_str));
             } else {
-                const entity_list_t *by = self->outgoing_routes;
-                int by_count = (by != NULL) ? by->count : 0;
+                const trade_route_list_t *by = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
+                int by_count = (by != NULL) ? trade_route_list_count(by) : 0;
                 char *count_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(by_count));
                 char *amount_str = p8_tostr_fixed(frame_zone(), mu);
                 char *combined = p8_concat2(frame_zone(), p8_concat2(frame_zone(), count_str, "/"), amount_str);
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("exports:");
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(combined);
+                layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_string("exports:"));
+                layout_row_keys_append(&buttons[row_count].layout_row_keys, layout_row_cell_string(combined));
             }
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(planet_production_tuple(kw));
+            layout_row_keys_append(&buttons[row_count].layout_row_keys, planet_production_cell(kw));
             row_count++;
         }
     }
@@ -265,10 +249,7 @@ void planet_inspection_panel(const planet_t *self) {
         static const data_item_t gap_items[] = {{.is_false = 1}, {.number = 1}};
         static const data_row_t gap = {.count = 2, .items = gap_items};
 
-        assert(row_keys[index].count < row_cap[index] && "planet_inspection_panel: every row after the first keeps its last cell for the gap");
-        row_items[index][row_keys[index].count++] = layout_row_cell_row(&gap);
-        row_keys[index].items = row_items[index];
-        buttons[index].layout_row_keys = &row_keys[index];
+        layout_row_keys_append(&buttons[index].layout_row_keys, layout_row_cell_row(&gap));
     }
 
     frame = planet_open_box_frame(self);
@@ -276,7 +257,7 @@ void planet_inspection_panel(const planet_t *self) {
 }
 
 down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
-    down_t out = {0, NULL};
+    down_t out = {0, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;
@@ -284,7 +265,7 @@ down_t planet_accept_drop(const planet_t *self, const entity_t *s) {
     if (self->header.state != ENTITY_STATE_SETTLED) {
         return out;
     }
-    if (s != NULL && s->class == slipway_class() && ((const slipway_t *)s)->start == &self->header) {
+    if (s != NULL && s->class == slipway_class() && slipway_start((const slipway_t *)s) == &self->header) {
         planet_inspection_panel(self);
         return out;
     }
@@ -300,62 +281,50 @@ static void planet_projects_panel_on_click_method(button_t *self) {
     if (self == NULL) {
         return;
     }
-    pt = self->project_planet;
-    b = self->project;
+    pt = (planet_t *)entity_get(self->project_planet);
+    b = research_project_get(self->project);
     if (self->has_project_cost) {
         od = self->project_cost;
     }
 
-    assert(pt != NULL && "the projects panel button lost its captured planet");
+    assert(pt != NULL && planet_is_family(&pt->header) && "the projects panel button lost its captured planet");
     if (economy_spend(main_economy_typed(), od)) {
         planet_apply_project(pt, b);
     }
 }
 
-typedef struct {
-    layout_row_keys_t layout_row;
-    layout_row_cell_t layout_row_items[PLANET_ROW_CAP];
-    layout_row_keys_t cost_keys;
-    layout_row_cell_t cost_item;
-} planet_projects_panel_row_t;
-
-static void planet_projects_panel_keys(planet_t *self, research_project_t *b, button_keys_t *keys, planet_projects_panel_row_t *row) {
+static void planet_projects_panel_keys(planet_t *self, research_project_t *b, button_keys_t *keys) {
     p8_fixed_t od = research_project_cost(b);
 
     memset(keys, 0, sizeof *keys);
-    if (b->layout_row != NULL) {
-        row->layout_row = layout_row_keys_of_row(b->layout_row, row->layout_row_items, PLANET_ROW_CAP);
-        keys->layout_row_keys = &row->layout_row;
+    if (b->has_icon_sprite) {
+        keys->layout_row_keys = research_project_icon_row_keys(b);
     } else {
-        keys->layout_row_copy = research_project_layout_row(b);
+        (void)research_project_layout_row_keys(b, &keys->layout_row_keys);
     }
 
     keys->has_side_tooltip = 1;
     keys->side_tooltip_is_false = od <= p8_fixed_from_int(0);
     if (od > p8_fixed_from_int(0)) {
-        row->cost_item = layout_row_cell_string(planet_dollar(p8_tostr_fixed(frame_zone(), od)));
-        memset(&row->cost_keys, 0, sizeof row->cost_keys);
-        row->cost_keys.items = &row->cost_item;
-        row->cost_keys.count = 1;
-        row->cost_keys.has_color = 1;
-        row->cost_keys.color = p8_fixed_from_int(13);
-        keys->side_tooltip_row = &row->cost_keys;
+        layout_row_keys_append(&keys->side_tooltip_row, layout_row_cell_string(planet_dollar(p8_tostr_fixed(frame_zone(), od))));
+        keys->side_tooltip_row.has_color = 1;
+        keys->side_tooltip_row.color = p8_fixed_from_int(13);
+        keys->has_side_tooltip_row = 1;
     }
 
-    keys->project_planet = self;
-    keys->project = b;
+    keys->project_planet = entity_id_link(&self->header);
+    keys->project = research_project_id_of(b);
     keys->has_project_cost = 1;
     keys->project_cost = od;
     keys->has_on_click = 1;
     keys->on_click = planet_projects_panel_on_click_method;
     keys->has_tooltip = 1;
-    keys->tooltip_row = research_project_tooltip(b);
+    button_keys_set_tooltip_row(keys, research_project_tooltip(b));
 }
 
 void planet_projects_panel(planet_t *self) {
     available_projects_kept_t available_projects_list;
     button_keys_t *bs;
-    planet_projects_panel_row_t *rows;
     open_box_frame_t frame;
     size_t cap;
     int n = 0;
@@ -368,11 +337,9 @@ void planet_projects_panel(planet_t *self) {
     available_projects_list = research_display_available_projects((const entity_t *)self);
     cap = available_projects_list.count > 0 ? (size_t)available_projects_list.count : 1;
     bs = (button_keys_t *)allocator_alloc(frame_zone(), cap * sizeof *bs);
-    rows = (planet_projects_panel_row_t *)allocator_alloc(frame_zone(), cap * sizeof *rows);
     memset(bs, 0, cap * sizeof *bs);
-    memset(rows, 0, cap * sizeof *rows);
     for (i = 0; i < available_projects_list.count; i++) {
-        planet_projects_panel_keys(self, available_projects_list.items[i], &bs[n], &rows[n]);
+        planet_projects_panel_keys(self, research_project_get(available_projects_list.items[i]), &bs[n]);
         n++;
     }
 
@@ -435,13 +402,16 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
     }
 
     {
-        if (self->targeted_by != NULL) {
+        /* GAP-26 */
+        entity_t *targeted_by = entity_get(self->targeted_by);
+
+        if (targeted_by != NULL) {
             p8_fixed_t dw = p8_fixed_from_int(0);
             p8_fixed_t radius_f;
             int radius;
 
-            if (self->targeted_by->targeting != NULL) {
-                dw = self->targeted_by->targeting->archetype->attach_distance;
+            if (targeting_of(targeted_by) != NULL) {
+                dw = targeting_of(targeted_by)->archetype->attach_distance;
             }
             radius_f = p8_fixed_mul(p8_fixed_sqrt(dw), p8_fixed_from_int(128));
             radius = p8_fixed_flr_int(radius_f);
@@ -450,7 +420,7 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
             p8_fillp_transparent(graphics, 0xAAAAu);
             p8_circfill(graphics, memory, screen_x, screen_y, radius, 2);
             p8_fillp_reset(graphics);
-            self->targeted_by = NULL;
+            self->targeted_by = ENTITY_ID_NONE;
         }
     }
 }
@@ -463,19 +433,17 @@ down_t planet_accept_drop_method(entity_t *self, const entity_t *s) {
     return planet_accept_drop((const planet_t *)self, s);
 }
 
-void planet_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
+void planet_draw_method(entity_t *self, vec_t screen_pos) {
+    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
-down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+down_t planet_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return planet_left_press((planet_t *)self);
 }
 
 down_t planet_left_press(planet_t *self) {
-    down_t out = {0, NULL};
+    down_t out = {0, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;
@@ -487,11 +455,13 @@ down_t planet_left_press(planet_t *self) {
     }
     if (self->header.state == ENTITY_STATE_SETTLED) {
         slipway_keys_t keys = {0};
+        slipway_t *made;
 
         assert(slipway_ready() && "slipway_init() must run before planet_left_press builds a slipway");
-        keys.start = (entity_t *)self;
-        out.held = (entity_t *)slipway_new(&keys);
-        out.stop = out.held != NULL;
+        keys.start = entity_id_link(&self->header);
+        made = slipway_new(&keys);
+        out.held = entity_id_link(made != NULL ? &made->header : NULL);
+        out.stop = made != NULL;
     }
     return out;
 }
@@ -508,15 +478,21 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
 
     if (research_project_instance != NULL && research_project_instance->class_name != NULL) {
         const entity_kind_t *target_kind = NULL;
-        planet_keys_t keys;
+        planet_keys_t keys = {0};
 
-        self->is_dead = 1;
+        assert(self->slipways.count == 0 &&
+               "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
+        self->header.is_dead = 1;
 
         target_kind = planet_kind_named(research_project_instance->class_name);
 
-        keys.map_pos = self->map_pos;
-        keys.pos = self->pos;
-        keys.planet_id = self->planet_id;
+        keys.map_pos = self->header.map_pos;
+        keys.has_map_pos = entity_has_map_pos(&self->header);
+        keys.pos = self->header.pos;
+        keys.has_pos = entity_has_pos(&self->header);
+        if (self->has & PLANET_HAS_ID) {
+            planet_keys_set_id(&keys, self->planet_id);
+        }
 
         result_planet = (target_kind != NULL) ? (planet_t *)target_kind->new_entity(&keys) : NULL;
     } else if (research_project_instance != NULL && research_project_instance->next_type != NULL) {
@@ -524,7 +500,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
     } else {
         entity_set_state((entity_t *)self, ENTITY_STATE_SETTLED);
         planet_install_project(self, research_project_instance);
-        self->fold_anchor = p8_fixed_from_int(1);
+        self->header.fold_anchor = p8_fixed_from_int(1);
         fp = tech_gate_if_unlocked("autoassemblers", p8_fixed_from_int(3), p8_fixed_from_int(2));
     }
 

@@ -114,11 +114,11 @@ static const data_item_t score_rows_10_items[] = {{.row = &score_rows_10_1}, {.r
 static const data_item_t score_rows_11_items[] = {{.text = "total:"}, {.text = ""}};
 
 const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT] = {
-    {.row = {.count = 3, .items = score_rows_1_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
-    {.row = {.count = 3, .items = score_rows_2_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
-    {.row = {.count = 3, .items = score_rows_3_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
-    {.row = {.count = 3, .items = score_rows_4_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
-    {.row = {.count = 3, .items = score_rows_5_items}, .draw_function = DRAW_FUNCTION_DRAW_BAR},
+    {.row = {.count = 3, .items = score_rows_1_items, .draw_function = DRAW_FUNCTION_DRAW_BAR}},
+    {.row = {.count = 3, .items = score_rows_2_items, .draw_function = DRAW_FUNCTION_DRAW_BAR}},
+    {.row = {.count = 3, .items = score_rows_3_items, .draw_function = DRAW_FUNCTION_DRAW_BAR}},
+    {.row = {.count = 3, .items = score_rows_4_items, .draw_function = DRAW_FUNCTION_DRAW_BAR}},
+    {.row = {.count = 3, .items = score_rows_5_items, .draw_function = DRAW_FUNCTION_DRAW_BAR}},
     {.row = {.count = 1, .items = score_rows_6_items, .has_color = 1, .color = 5}, .has_score = 1, .score = 0, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2,
         .pos_y = P8_SCREEN_HEIGHT / 2 - 43},
     {.row = {.count = 2, .items = score_rows_7_items}, .has_score = 1, .score = 1, .has_pos = 1, .pos_x = P8_SCREEN_WIDTH / 2, .pos_y = P8_SCREEN_HEIGHT / 2 - 30},

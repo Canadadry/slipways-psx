@@ -10,6 +10,8 @@
 #include "game/main_economy.h"
 #include "engine/geom.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
+#include "engine/entity_id_list.h"
 #include "game/grab_arena.h"
 #include "game/planet.h"
 #include "game/targeting.h"
@@ -23,27 +25,39 @@ static int g_slipway_up = 0;
 
 static const entity_class_t slipway_too_far_class_def = {0};
 
-static slipway_too_far_t g_slipway_too_far = {{.class = &slipway_too_far_class_def}, "-too far-", NULL};
+static slipway_too_far_t g_slipway_too_far = {{.class = &slipway_too_far_class_def}, "-too far-", {0, 0}};
 
 static const entity_class_t slipway_mouse_point_class_def = {0};
 
 vec_t slipway_end_map_pos(const entity_t *end) {
-    const vec_t *p = end != NULL && end->map_pos != NULL ? *end->map_pos : NULL;
-
-    return p != NULL ? *p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return end != NULL ? entity_map_pos(end) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 vec_t slipway_end_pos(const entity_t *end) {
-    const vec_t *ra = end != NULL && end->pos != NULL ? *end->pos : NULL;
-
-    return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return end != NULL ? entity_pos(end) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-static int slipway_infraspace_of(const entity_t *e, p8_fixed_t *out) {
-    if (e == NULL || e->infraspace == NULL) {
+entity_t *slipway_start(const slipway_t *self) {
+    return entity_get(self->start);
+}
+
+entity_t *slipway_end(const slipway_t *self) {
+    if (self->end_is_point) {
+        return (entity_t *)&self->point.header;
+    }
+    return entity_get(self->end);
+}
+
+entity_t *slipway_too_far(void) {
+    return &g_slipway_too_far.header;
+}
+
+static int slipway_copy_infraspace(slipway_t *self, const entity_t *from) {
+    if (from == NULL || !entity_has(from, ENTITY_HAS_INFRASPACE)) {
         return 0;
     }
-    *out = *e->infraspace;
+    self->header.infraspace = from->infraspace;
+    self->header.has |= ENTITY_HAS_INFRASPACE;
     return 1;
 }
 
@@ -54,7 +68,9 @@ void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id) {
         return;
     }
     assert(hg->count < SLIPWAY_SERVED_PLANETS_CAP && "slipway_served_planets_add: more planets than the galaxy holds (90) -- stop, do not widen the member");
-    hg->ids[hg->count] = id;
+    assert(strlen(id) < PLANET_ID_SIZE &&
+           "slipway_served_planets_add: a planet id wider than any the cart makes -- stop, do not widen the copy");
+    strcpy(hg->ids[hg->count], id);
     hg->count++;
 }
 
@@ -73,23 +89,15 @@ int slipway_served_planets_has(const slipway_served_planets_t *hg, const char *i
 }
 
 void slipway_construct(slipway_t *self) {
-    const allocator_t *zone;
-    pointer_list_t *ts;
-
     if (self == NULL) {
         return;
     }
 
-    zone = grab_arena_construction_zone();
-    ts = (pointer_list_t *)allocator_alloc(zone, sizeof *ts);
-    pointer_list_init_reserve(ts, zone, SLIPWAY_TRANSIT_DOTS_RESERVE);
-    self->transit_dots = ts;
-
-    self->served_planets_own.count = 0;
-    self->served_planets = &self->served_planets_own;
+    pointer_list_init_reserve(&self->transit_dots, grab_arena_construction_zone(), SLIPWAY_TRANSIT_DOTS_RESERVE);
+    self->served_planets.count = 0;
 }
 
-void slipway_drag(slipway_t *self, vec_t *mp) {
+void slipway_drag(slipway_t *self, mouse_pos_t mouse) {
     ui_t *ok;
     entity_t *hovered;
 
@@ -98,31 +106,40 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
     }
 
     ok = main_ui();
-    hovered = ok != NULL ? ok->hovered : NULL;
+    hovered = ok != NULL ? ui_hovered(ok) : NULL;
 
     if (hovered != NULL && hovered->class->accept_drop != NULL) {
-        self->end = hovered;
+        self->end = entity_id_link(hovered);
+        self->end_is_point = 0;
     } else {
-        self->point_pos = mp != NULL ? *mp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-        self->point.pos = mp != NULL ? &self->point_pos : NULL;
-        self->point_map_pos = vec_div(self->point_pos, p8_fixed_from_int(128));
-        self->end = &self->point.header;
+        vec_t point_pos = mouse_pos_world(mouse);
+
+        if (mouse_pos_has_world(mouse)) {
+            entity_set_pos(&self->point.header, point_pos);
+        } else {
+            entity_clear_pos(&self->point.header);
+        }
+        entity_set_map_pos(&self->point.header, vec_div(point_pos, p8_fixed_from_int(128)));
+        self->end = ENTITY_ID_NONE;
+        self->end_is_point = 1;
     }
 
-    self->targeting->cost = economy_formulas_route_base_cost(slipway_end_map_pos(self->start), slipway_end_map_pos(self->end));
-    self->targeting->has_cost = 1;
+    self->targeting.cost = economy_formulas_route_base_cost(slipway_end_map_pos(slipway_start(self)), slipway_end_map_pos(slipway_end(self)));
+    self->targeting.has_cost = 1;
 
     /* An infraspace of 0 still counts as one. */
-    self->infraspace = p8_fixed_from_int(0);
-    self->has_infraspace = slipway_infraspace_of(self->start, &self->infraspace) || slipway_infraspace_of(self->end, &self->infraspace);
-    self->header.infraspace = self->has_infraspace ? &self->infraspace : NULL;
-
-    self->targeting->target = slipway_obstruction(self);
-    if (self->targeting->target != NULL) {
-        probe_link_target(self->targeting->target, &self->header);
+    self->header.infraspace = p8_fixed_from_int(0);
+    self->header.has &= (uint16_t)~ENTITY_HAS_INFRASPACE;
+    if (!slipway_copy_infraspace(self, slipway_start(self))) {
+        slipway_copy_infraspace(self, slipway_end(self));
     }
 
-    self->layer = self->has_infraspace ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
+    targeting_set_target(&self->targeting, slipway_obstruction(self));
+    if (targeting_target(&self->targeting) != NULL) {
+        probe_link_target(targeting_target(&self->targeting), &self->header);
+    }
+
+    self->header.layer = entity_has(&self->header, ENTITY_HAS_INFRASPACE) ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
 }
 
 void slipway_drop(slipway_t *self, entity_t *end_planet) {
@@ -135,15 +152,16 @@ void slipway_drop(slipway_t *self, entity_t *end_planet) {
     /* targeting_confirm charges the player and advances the clock: keep it behind the NULL test. */
     refused = (end_planet == NULL) || !targeting_confirm((entity_t *)self);
     if (refused) {
-        self->is_dead = 1;
+        self->header.is_dead = 1;
         return;
     }
 
     self->fade_in_step = p8_fixed_from_int(1);
-    self->end = end_planet;
+    self->end = entity_id_link(end_planet);
+    self->end_is_point = 0;
 
     {
-        entity_t *qu = self->start;
+        entity_t *qu = slipway_start(self);
         int start_registered = qu != NULL && qu->class->attach_slipway != NULL;
         int end_registered;
         if (start_registered) {
@@ -191,10 +209,11 @@ static int slipway_obstruction_slipway_predicate(entity_t *e, void *ctx_ptr) {
     }
     assert(e->class == slipway_class() && "the slipway tag holds slipways only");
     sw = (const slipway_t *)e;
-    if (sw->has_infraspace != ctx->self_has_infraspace || (sw->has_infraspace && sw->infraspace != ctx->self_infraspace)) {
+    if (entity_has(&sw->header, ENTITY_HAS_INFRASPACE) != ctx->self_has_infraspace ||
+        (entity_has(&sw->header, ENTITY_HAS_INFRASPACE) && sw->header.infraspace != ctx->self_infraspace)) {
         return 0;
     }
-    return geom_segments_cross(ctx->start_point, ctx->end_point, slipway_end_map_pos(sw->start), slipway_end_map_pos(sw->end));
+    return geom_segments_cross(ctx->start_point, ctx->end_point, slipway_end_map_pos(slipway_start(sw)), slipway_end_map_pos(slipway_end(sw)));
 }
 
 entity_t *slipway_obstruction(slipway_t *self) {
@@ -208,8 +227,8 @@ entity_t *slipway_obstruction(slipway_t *self) {
         return NULL;
     }
 
-    start_node = self->start;
-    end_node = self->end;
+    start_node = slipway_start(self);
+    end_node = slipway_end(self);
     start_point = slipway_end_map_pos(start_node);
     end_point = slipway_end_map_pos(end_node);
 
@@ -220,19 +239,16 @@ entity_t *slipway_obstruction(slipway_t *self) {
     }
 
     {
-        const entity_list_t *oe = NULL;
+        const entity_id_list_t *oe = NULL;
 
         if (start_node != NULL) {
             assert(planet_is_family(start_node) && "a slipway's start is a planet: slipway_create asserts it");
-            oe = ((const planet_t *)start_node)->slipways;
+            oe = &((const planet_t *)start_node)->slipways;
         }
         if (oe != NULL) {
-            entity_list_iter_t it = entity_list_all(oe);
+            entity_id_list_iter_t it = entity_id_list_all(oe);
             entity_t *w;
-            while (entity_list_iter_next(&it, &w)) {
-                if (w == NULL) {
-                    continue;
-                }
+            while (entity_id_list_iter_next(&it, &w)) {
                 assert(w->class == slipway_class() &&
                        "the start's slipways list holds slipways: only planet_attach_slipway adds to it, and only slipways");
                 if (slipway_other_end((const slipway_t *)w, start_node) == end_node) {
@@ -254,8 +270,8 @@ entity_t *slipway_obstruction(slipway_t *self) {
         node_ctx.end_point = end_point;
         slipway_ctx.start_point = start_point;
         slipway_ctx.end_point = end_point;
-        slipway_ctx.self_has_infraspace = self->has_infraspace;
-        slipway_ctx.self_infraspace = self->infraspace;
+        slipway_ctx.self_has_infraspace = entity_has(&self->header, ENTITY_HAS_INFRASPACE);
+        slipway_ctx.self_infraspace = self->header.infraspace;
 
         part1 = entity_list_filter(frame_zone(), entities_by_tag(TAG_NODE), slipway_obstruction_node_predicate, &node_ctx);
         part2 = entity_list_filter(frame_zone(), entities_by_tag(TAG_SLIPWAY), slipway_obstruction_slipway_predicate, &slipway_ctx);
@@ -274,10 +290,10 @@ entity_t *slipway_other_end(const slipway_t *self, const entity_t *planet_instan
     }
 
     /* A NULL end falls through to the start even when `planet_instance` is the start. */
-    if (planet_instance == self->start && self->end != NULL) {
-        return self->end;
+    if (planet_instance == slipway_start(self) && slipway_end(self) != NULL) {
+        return slipway_end(self);
     }
-    return self->start;
+    return slipway_start(self);
 }
 
 void slipway_draw_overlay(slipway_t *self) {
@@ -285,32 +301,31 @@ void slipway_draw_overlay(slipway_t *self) {
         return;
     }
 
-    if (self->start != self->end) {
+    if (slipway_start(self) != slipway_end(self)) {
         targeting_tooltip(dispatch_context_gfx(), dispatch_context_mem(), (entity_t *)self);
     }
 }
 
-static void slipway_drag_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_screen;
-    slipway_drag((slipway_t *)self, mouse_world);
+static void slipway_drag_method(entity_t *self, mouse_pos_t mouse) {
+    slipway_drag((slipway_t *)self, mouse);
 }
 
 static void slipway_drop_method(entity_t *self, entity_t *dropped) {
     slipway_drop((slipway_t *)self, dropped);
 }
 
-static void slipway_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+static void slipway_draw_overlay_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     slipway_draw_overlay((slipway_t *)self);
 }
 
 static void slipway_release_method(entity_t *self) {
     slipway_t *jc = (slipway_t *)self;
-    const allocator_t *zone = jc->transit_dots->zone;
+    const allocator_t *zone = jc->transit_dots.zone;
 
-    for (int i = 0; i < jc->transit_dots->count; i++)
-        allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), jc->transit_dots->items[i]);
-    jc->transit_dots->count = 0;
+    for (int i = 0; i < jc->transit_dots.count; i++)
+        allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), jc->transit_dots.items[i]);
+    jc->transit_dots.count = 0;
     grab_arena_give_back_if_placing(zone, jc->header.state);
 }
 
@@ -335,34 +350,26 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
 
     entity_init_instance(&self->header, &slipway_class_def, slipway_archetype.state, slipway_archetype.state_time);
     self->archetype = &slipway_archetype;
-    self->layer = self->archetype->layer;
-    self->header.layer = &self->layer;
-    self->header.targeting = &self->targeting_own;
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->targeting.archetype = &self->archetype->targeting;
     self->fade_in_step = self->archetype->fade_in_step;
-    self->start = NULL;
-    self->transit_dots = NULL;
-    self->served_planets = NULL;
-    self->end = NULL;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
-    self->infraspace = 0;
-    self->has_infraspace = 0;
-    self->header.infraspace = NULL;
-    self->targeting->target = NULL;
-    self->targeted_by = NULL;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
+    self->start = ENTITY_ID_NONE;
+    self->transit_dots = (pointer_list_t){0};
+    self->served_planets.count = 0;
+    self->end = ENTITY_ID_NONE;
+    self->end_is_point = 0;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
+    self->header.infraspace = 0;
+    targeting_set_target(&self->targeting, NULL);
+    self->targeted_by = ENTITY_ID_NONE;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
     entity_init_header(&self->point.header, &slipway_mouse_point_class_def);
-    self->point.header.pos = &self->point.pos;
-    self->point.header.map_pos = &self->point.map_pos;
-    self->point.pos = NULL;
-    self->point.map_pos = &self->point_map_pos;
-    self->point_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    self->point_map_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    if (keys != NULL && keys->start != NULL) {
-        assert(slipway_is_endpoint_class(keys->start->class) &&
+    entity_set_map_pos(&self->point.header, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
+    if (keys != NULL && entity_get(keys->start) != NULL) {
+        assert(slipway_is_endpoint_class(entity_get(keys->start)->class) &&
                "slipway_create: a start key that is neither NULL nor a planet or a structure "
                "does not fit the member's type -- stop, do not widen the member");
         self->start = keys->start;

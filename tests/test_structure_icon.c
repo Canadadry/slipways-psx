@@ -32,11 +32,22 @@
 #include "game/structure_icon.h"
 #include "game/slipway.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
 #include "game/wormhole.h"
+#include "engine/game_zone.h"
 #include "heap_allocator.h"
+
+static int same_pos(vec_t a, vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
 
 #define CONSTRUCTION_HASH 0x4639EF5Du
 #define START_HASH 0xC69B34A1u
@@ -86,9 +97,10 @@ static structure_icon_t *as_structure_icon(void *e) {
 
 /* The cursor and the counter are the module's shared state, no member of
  * any icon: the same answer whatever icon asks. */
-static const vec_t *shared_cursor(const structure_icon_t *icon) {
+static int shared_cursor(const structure_icon_t *icon, vec_t *out) {
     (void)icon;
-    return structure_icon_cursor();
+    *out = structure_icon_cursor();
+    return structure_icon_has_cursor();
 }
 
 /* 0 while the counter is unset. */
@@ -119,7 +131,7 @@ static uint32_t is_revealed_state(const void *icon) {
 
 static uint32_t is_hovered_state(const void *icon) {
     const structure_icon_t *ie = as_structure_icon((void *)icon);
-    return bool_state((ie->is_hovered != 0), ie->is_hovered);
+    return bool_state((ie->header.is_hovered != 0), ie->header.is_hovered);
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -187,8 +199,9 @@ static void fill_kind_table(const entity_kind_t *out[7]) {
  * them. */
 static uint32_t fold_shared(uint32_t h, void *icon) {
     p8_fixed_t id = 0;
+    vec_t cursor;
 
-    h = fold_vec(h, shared_cursor(as_structure_icon(icon)));
+    h = fold_vec(h, shared_cursor(as_structure_icon(icon), &cursor) ? &cursor : NULL);
     return shared_id(as_structure_icon(icon), &id) ? fold_fixed(h, id) : fnv(h, 0xDEADu);
 }
 
@@ -197,7 +210,7 @@ static uint32_t fold_shared(uint32_t h, void *icon) {
 static uint32_t fold_icon(uint32_t h, void *icon) {
     const structure_icon_t *ie = as_structure_icon(icon);
     h = fnv(h, is_revealed_state(ie));
-    h = fold_vec(h, ie->pos);
+    h = fold_vec(h, pos_ref(&ie->header));
     h = fnv(h, is_hovered_state(ie));
     return fold_fixed(h, ie->header.state_time);
 }
@@ -232,10 +245,8 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
 
 static vec_t vec_at(int x, int y) {
@@ -259,10 +270,9 @@ static void *build_icon(const entity_kind_t *ke, tooltip_t *jb) {
 static uint32_t fold_hit_box(uint32_t h, void *icon) {
     static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
                                    {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
-    const box_t *kq = &as_structure_icon(icon)->archetype->hit_box;
+    box_t kq = as_structure_icon(icon)->archetype->hit_box;
     size_t i;
 
-    assert(kq != NULL);
     for (i = 0; i < sizeof probe / sizeof probe[0]; i++) {
         h = fnv(h, (uint32_t)box_contains(kq, vec_at(probe[i][0], probe[i][1])));
     }
@@ -279,12 +289,12 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(ie->header.state_time == 0);
     assert(ie->archetype == &structure_icon_archetype);
     assert(ie->archetype->layer == p8_fixed_from_int(12));
-    assert(ie->pos == &ie->archetype->pos);
-    assert(ie->pos->x == p8_fixed_from_int(999) && ie->pos->y == p8_fixed_from_int(999));
+    assert(entity_has_pos(&ie->header));
+    assert(pos_ref(&ie->header)->x == p8_fixed_from_int(999) && pos_ref(&ie->header)->y == p8_fixed_from_int(999));
     assert(ie->archetype->rest_cursor.x == p8_fixed_from_int(P8_SCREEN_WIDTH - 10) && ie->archetype->rest_cursor.y == p8_fixed_from_int(P8_SCREEN_HEIGHT - 8));
     assert((const void *)ie->kind == ke);
     assert((const void *)ie->tooltip == jb);
-    assert(!ie->has_is_revealed && !ie->is_hovered);
+    assert(!ie->has_is_revealed && !ie->header.is_hovered);
     assert(class_of(icon)->states[ENTITY_STATE_NORMAL] == NULL && class_of(icon)->draw_overlay == NULL && class_of(icon)->new_year == NULL &&
            class_of(icon)->right_press == NULL && class_of(icon)->accept_drop == NULL);
     assert(class_of(icon)->hit_test != NULL && class_of(icon)->refresh != NULL && class_of(icon)->draw != NULL &&
@@ -296,7 +306,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     h = fold_string(h, entity_state_name(ie->header.state));
     h = fold_fixed(h, ie->archetype->layer);
     h = fold_hit_box(h, icon);
-    h = fold_vec(h, ie->pos);
+    h = fold_vec(h, pos_ref(&ie->header));
     h = fold_vec(h, &ie->archetype->rest_cursor);
     return fold_shared(h, icon);
 }
@@ -334,7 +344,7 @@ static void test_construction(void) {
     b = build_icon(classes[1], tooltip_b);
     h = check_fresh_icon(h, a, classes[0], tooltip_a);
     h = check_fresh_icon(h, b, classes[1], tooltip_b);
-    assert(as_structure_icon(a)->pos == as_structure_icon(b)->pos);
+    assert(same_pos(as_structure_icon(a)->header.pos, as_structure_icon(b)->header.pos));
     assert(as_structure_icon(a)->archetype == as_structure_icon(b)->archetype);
     assert(as_structure_icon(a)->archetype == as_structure_icon(all[0])->archetype);
     assert(icon_rank(a) == 7 && icon_rank(b) == 8);
@@ -361,10 +371,10 @@ static void test_start(void) {
     }
     printf("[start] first revealed icon %d\n", first);
     assert(first >= 0);
-    assert(as_structure_icon(all[first])->pos == &as_structure_icon(all[first])->archetype->rest_cursor);
+    assert(same_pos(as_structure_icon(all[first])->header.pos, as_structure_icon(all[first])->archetype->rest_cursor));
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) != 2) {
-            assert(as_structure_icon(all[i])->pos != as_structure_icon(all[first])->pos);
+            assert(!same_pos(as_structure_icon(all[i])->header.pos, as_structure_icon(all[first])->header.pos));
         }
     }
     h = fold_shared(h, all[0]);
@@ -382,7 +392,7 @@ static void test_revealed_icons_anchor_bottom_right(void) {
     start_game();
     n = icons(all, 16);
     for (i = 0; i < n; i++) {
-        const vec_t *pos = as_structure_icon(all[i])->pos;
+        const vec_t *pos = pos_ref(&as_structure_icon(all[i])->header);
         if (is_revealed_state(all[i]) != 2) {
             continue;
         }
@@ -403,10 +413,10 @@ static void test_hovered_icon_tooltip_starts_at_the_top(void) {
 
     start_game();
     shown = first_icon_with_is_revealed(2);
-    as_structure_icon(shown)->is_hovered = 1;
+    as_structure_icon(shown)->header.is_hovered = 1;
     p8_camera(&graphics, 0, 0);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
-    class_of(shown)->draw(shown, as_structure_icon(shown)->pos);
+    class_of(shown)->draw(shown, entity_pos(&as_structure_icon(shown)->header));
     assert(memory.screen[0][0] != 7);
 }
 
@@ -430,8 +440,9 @@ static void test_directed(void) {
     void *shown;
     void *hidden;
     void *all_icons[16];
-    const vec_t *cursor_before;
-    const vec_t *pos_before;
+    vec_t cursor_before;
+    vec_t cursor;
+    vec_t pos_before;
     down_t made;
     p8_fixed_t first_id;
     vec_t icon_pos;
@@ -443,40 +454,38 @@ static void test_directed(void) {
     hidden = first_icon_with_is_revealed(0);
     assert(shown != NULL && hidden != NULL);
 
-    cursor_before = shared_cursor(as_structure_icon(shown));
-    pos_before = as_structure_icon(shown)->pos;
+    assert(shared_cursor(as_structure_icon(shown), &cursor_before));
+    pos_before = as_structure_icon(shown)->header.pos;
     class_of(shown)->refresh(shown);
-    assert(as_structure_icon(shown)->pos == pos_before && shared_cursor(as_structure_icon(shown)) == cursor_before);
+    assert(same_pos(as_structure_icon(shown)->header.pos, pos_before) && shared_cursor(as_structure_icon(shown), &cursor) && same_pos(cursor, cursor_before));
     class_of(hidden)->refresh(hidden);
-    assert(is_revealed_state(hidden) == 0 && shared_cursor(as_structure_icon(hidden)) == cursor_before);
+    assert(is_revealed_state(hidden) == 0 && shared_cursor(as_structure_icon(hidden), &cursor) && same_pos(cursor, cursor_before));
     hash = fold_icon(hash, shown);
     hash = fold_icon(hash, hidden);
     hash = fold_shared(hash, hidden);
 
     first_id = shared_id_fixed(as_structure_icon(all_icons[0]));
-    made = class_of(all_icons[0])->left_press(all_icons[0], NULL, NULL);
-    assert(made.stop && made.held != NULL && planet_is_family(made.held));
-    assert(strcmp(((const planet_t *)made.held)->planet_id, "s1") == 0);
+    made = class_of(all_icons[0])->left_press(all_icons[0], (mouse_pos_t){0});
+    assert(made.stop && entity_get(made.held) != NULL && planet_is_family(entity_get(made.held)));
+    assert(strcmp(planet_id_or_null((const planet_t *)entity_get(made.held)), "s1") == 0);
     assert(shared_id_fixed(as_structure_icon(all_icons[count - 1])) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
-    hash = fold_string(hash, ((const planet_t *)made.held)->planet_id);
-    made = class_of(all_icons[count - 1])->left_press(all_icons[count - 1], NULL, NULL);
-    assert(made.held != NULL && planet_is_family(made.held));
-    assert(strcmp(((const planet_t *)made.held)->planet_id, "s2") == 0);
+    hash = fold_string(hash, planet_id_or_null((const planet_t *)entity_get(made.held)));
+    made = class_of(all_icons[count - 1])->left_press(all_icons[count - 1], (mouse_pos_t){0});
+    assert(entity_get(made.held) != NULL && planet_is_family(entity_get(made.held)));
+    assert(strcmp(planet_id_or_null((const planet_t *)entity_get(made.held)), "s2") == 0);
     assert(shared_id_fixed(as_structure_icon(all_icons[0])) == p8_fixed_add(first_id, p8_fixed_from_int(2)));
-    hash = fold_string(hash, ((const planet_t *)made.held)->planet_id);
+    hash = fold_string(hash, planet_id_or_null((const planet_t *)entity_get(made.held)));
     hash = fold_shared(hash, all_icons[3]);
 
-    assert(as_structure_icon(shown)->pos != NULL);
-    icon_pos = *as_structure_icon(shown)->pos;
-    assert(class_of(shown)->hit_test(shown, vec_ref(vec_at(-500, -500)), vec_ref(vec_add(icon_pos, vec_at(1, 1)))));
-    assert(!class_of(shown)->hit_test(shown, vec_ref(vec_add(icon_pos, vec_at(1, 1))),
-                              vec_ref(vec_add(icon_pos, vec_at(20, 20)))));
-    assert(!class_of(hidden)->hit_test(hidden, vec_ref(vec_at(0, 0)), vec_ref(vec_add(icon_pos, vec_at(1, 1)))));
+    assert(pos_ref(&as_structure_icon(shown)->header) != NULL);
+    icon_pos = *pos_ref(&as_structure_icon(shown)->header);
+    assert(class_of(shown)->hit_test(shown, mouse_pos(vec_at(-500, -500), vec_add(icon_pos, vec_at(1, 1)))));
+    assert(!class_of(shown)->hit_test(shown, mouse_pos(vec_add(icon_pos, vec_at(1, 1)), vec_add(icon_pos, vec_at(20, 20)))));
+    assert(!class_of(hidden)->hit_test(hidden, mouse_pos(vec_at(0, 0), vec_add(icon_pos, vec_at(1, 1)))));
     {
         int dx;
         for (dx = -2; dx <= 11; dx++) {
-            int hit = class_of(shown)->hit_test(shown, vec_ref(vec_at(0, 0)),
-                                        vec_ref(vec_add(icon_pos, vec_at(dx, dx - 1))));
+            int hit = class_of(shown)->hit_test(shown, mouse_pos(vec_at(0, 0), vec_add(icon_pos, vec_at(dx, dx - 1))));
             hash = fnv(hash, (uint32_t)hit);
         }
     }
@@ -497,7 +506,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_alone(void *icon) {
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(icon)->draw(icon, as_structure_icon(icon)->pos);
+    class_of(icon)->draw(icon, entity_pos(&as_structure_icon(icon)->header));
     return screen_hash();
 }
 
@@ -521,21 +530,17 @@ static void test_draw(void) {
 
     hidden_name = draw_alone(hidden);
     assert(hidden_name == blank);
-    as_structure_icon(hidden)->is_hovered = 1;
+    as_structure_icon(hidden)->header.is_hovered = 1;
     assert(is_hovered_state(hidden) == 2);
     assert(draw_alone(hidden) == blank);
     shown_name = draw_alone(shown);
     assert(shown_name != blank);
-    as_structure_icon(shown)->is_hovered = 1;
+    as_structure_icon(shown)->header.is_hovered = 1;
     assert(is_hovered_state(shown) == 2);
     hovered_name = draw_alone(shown);
     assert(hovered_name != shown_name);
-    as_structure_icon(shown)->is_hovered = 0;
+    as_structure_icon(shown)->header.is_hovered = 0;
     assert(draw_alone(shown) == shown_name);
-    *as_structure_icon(shown)->header.is_hovered = 1;
-    assert(is_hovered_state(shown) == 2);
-    *as_structure_icon(shown)->header.is_hovered = 0;
-    assert(is_hovered_state(shown) == 0);
 
     hash = fnv(hash, hidden_name);
     hash = fnv(hash, shown_name);
@@ -549,8 +554,8 @@ static char *const kind_table_required_tech[7] = {NULL, NULL, "slipgates", "infr
                                      "ascension"};
 
 static void invent(char *rr) {
-    assert(main_economy_typed() != NULL && main_economy_typed()->invented != NULL);
-    pointer_list_add(main_economy_typed()->invented, rr);
+    assert(main_economy_typed() != NULL);
+    pointer_list_add(&main_economy_typed()->invented, rr);
 }
 
 /* Per icon, in fill_kind_table() order: the refresh reveals it exactly when
@@ -582,15 +587,15 @@ static void test_kind_view(void) {
     {
         /* The targeting tooltip prints at the main mouse, (0,0) here: its
          * label would land off screen. */
-        assert(main_mouse_typed() != NULL && main_mouse_typed()->pos != NULL);
-        *main_mouse_typed()->pos = vec_at(64, 64);
+        assert(main_mouse_typed() != NULL);
+        entity_set_pos(&main_mouse_typed()->header, vec_at(64, 64));
     }
     for (i = 0; i < n; i++) {
         uint32_t plain = draw_alone(all[i]);
         uint32_t hovered;
-        as_structure_icon(all[i])->is_hovered = 1;
+        as_structure_icon(all[i])->header.is_hovered = 1;
         hovered = draw_alone(all[i]);
-        as_structure_icon(all[i])->is_hovered = 0;
+        as_structure_icon(all[i])->header.is_hovered = 0;
         printf("[kind view] icon %d: 0x%08Xu / 0x%08Xu\n", i, (unsigned)plain, (unsigned)hovered);
         assert(hovered != plain);
         hash = fnv(hash, plain);
@@ -605,34 +610,35 @@ static void test_kind_view(void) {
 static void test_restart(void) {
     uint32_t h = 2166136261u;
     void *all[16];
-    const vec_t *cursor_before;
+    vec_t cursor_before;
+    vec_t cursor;
     p8_fixed_t id;
     int n;
     int i;
 
     start_game();
     n = icons(all, 16);
-    (void)class_of(all[0])->left_press(all[0], NULL, NULL);
-    cursor_before = shared_cursor(as_structure_icon(all[0]));
+    (void)class_of(all[0])->left_press(all[0], (mouse_pos_t){0});
+    assert(shared_cursor(as_structure_icon(all[0]), &cursor_before));
     id = shared_id_fixed(as_structure_icon(all[0]));
     assert(id == p8_fixed_from_int(1));
-    assert(cursor_before != &as_structure_icon(all[0])->archetype->rest_cursor);
+    assert(!same_pos(cursor_before, as_structure_icon(all[0])->archetype->rest_cursor));
 
     new_game();
     n = icons(all, 16);
     check_int("restart icons", n, 7);
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
-    assert(shared_cursor(as_structure_icon(all[0])) != cursor_before);
+    assert(shared_cursor(as_structure_icon(all[0]), &cursor) && !same_pos(cursor, cursor_before));
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) == 2) {
-            assert(as_structure_icon(all[i])->pos != &as_structure_icon(all[i])->archetype->rest_cursor);
+            assert(!same_pos(as_structure_icon(all[i])->header.pos, as_structure_icon(all[i])->archetype->rest_cursor));
         }
         h = fold_icon(h, all[i]);
     }
     h = fold_shared(h, all[0]);
 
     cart_init();
-    assert(shared_cursor(as_structure_icon(all[0])) == &as_structure_icon(all[0])->archetype->rest_cursor);
+    assert(shared_cursor(as_structure_icon(all[0]), &cursor) && same_pos(cursor, as_structure_icon(all[0])->archetype->rest_cursor));
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
     h = fold_shared(h, all[0]);
     check("restart", h, RESTART_HASH);
@@ -641,6 +647,40 @@ static void test_restart(void) {
 static int is_a_structure_icon_struct(const void *e) {
     return e != NULL &&
            ((const entity_t *)e)->class == structure_icon_class();
+}
+
+static void test_reveals_step_the_cursor_in_place(void) {
+    void *all[16];
+    const entity_kind_t *unlocked = NULL;
+    void *a;
+    void *b;
+    vec_t start = vec_make(p8_fixed_from_int(60), p8_fixed_from_int(70));
+    vec_t cursor;
+    size_t used;
+    int n;
+    int i;
+
+    start_game();
+    n = icons(all, 16);
+    for (i = 0; i < n && unlocked == NULL; i++) {
+        if (is_revealed_state(all[i]) == 2) {
+            unlocked = as_structure_icon(all[i])->kind;
+        }
+    }
+    assert(unlocked != NULL);
+    a = build_icon(unlocked, tooltip_new(&heap_allocator, icon_tooltips_row(0)));
+    b = build_icon(unlocked, tooltip_new(&heap_allocator, icon_tooltips_row(1)));
+    structure_icon_set_cursor(start);
+    used = game_zone_used();
+    structure_icon_refresh(a);
+    structure_icon_refresh(b);
+    assert(game_zone_used() == used);
+    assert(same_pos(as_structure_icon(a)->header.pos, start));
+    assert(same_pos(as_structure_icon(b)->header.pos, vec_make(p8_fixed_from_int(50), p8_fixed_from_int(70))));
+    assert(shared_cursor(as_structure_icon(a), &cursor) && same_pos(cursor, vec_make(p8_fixed_from_int(40), p8_fixed_from_int(70))));
+    structure_icon_init();
+    assert(!structure_icon_has_cursor());
+    assert(same_pos(structure_icon_cursor(), vec_make(0, 0)));
 }
 
 /* Built by cart_start_game() or directly, an icon is a struct with its four
@@ -675,7 +715,7 @@ static void test_structure_icon_is_a_struct(void) {
         no_entity = structure_icon_new(&tooltip_only);
         assert(is_a_structure_icon_struct(no_entity) && no_entity->kind == NULL);
         assert(shared_id_fixed(no_entity) == first_id);
-        (void)class_of(no_entity)->left_press(&no_entity->header, NULL, NULL);
+        (void)class_of(no_entity)->left_press(&no_entity->header, (mouse_pos_t){0});
         assert(shared_id_fixed(as_structure_icon(built)) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
     }
 
@@ -764,6 +804,7 @@ int main(void) {
     in_fresh_child(test_directed);
     in_fresh_child(test_draw);
     in_fresh_child(test_restart);
+    in_fresh_child(test_reveals_step_the_cursor_in_place);
     in_fresh_child(test_kind_view);
     in_fresh_child(test_kind_view_is_a_struct);
     in_fresh_child(test_structure_icon_is_a_struct);

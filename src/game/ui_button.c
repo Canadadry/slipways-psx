@@ -35,23 +35,21 @@ static void button_update_method(entity_t *self, p8_fixed_t t) {
     button_update((button_t *)self);
 }
 
-static void button_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+static void button_draw_overlay_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     button_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self);
 }
 
-static void button_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, p);
+static void button_draw_method(entity_t *self, vec_t screen_pos) {
+    button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, screen_pos);
 }
 
-static int button_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+static int button_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
 
-static down_t button_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t button_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return button_left_press((button_t *)self);
 }
 
@@ -90,12 +88,12 @@ static button_t *button_create(const button_keys_t *keys) {
     self->side_tooltip = NULL;
     self->has_side_tooltip = 0;
     self->tooltip = NULL;
-    self->pos = NULL;
-    self->slide_target = NULL;
+    self->has = 0;
+    self->slide_target = vec_make(0, 0);
     self->on_click = NULL;
     self->has_on_click = 0;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     self->refresh = NULL;
     self->name = NULL;
     self->trade = 0;
@@ -103,25 +101,23 @@ static button_t *button_create(const button_keys_t *keys) {
     self->type_bias = 0;
     self->has_type_bias = 0;
     self->technology = NULL;
-    self->project_planet = NULL;
-    self->project = NULL;
+    self->project_planet = ENTITY_ID_NONE;
+    self->project = RESEARCH_PROJECT_ID_NONE;
     self->project_cost = 0;
     self->has_project_cost = 0;
     self->archetype = &button_archetype;
-    self->layer = self->archetype->layer;
-    self->header.layer = &self->layer;
-    self->header.pos = &self->pos;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     if (keys != NULL) {
         if (keys->has_layer) {
-            self->layer = keys->layer;
+            self->header.layer = keys->layer;
         }
-        if (keys->pos != NULL) {
-            self->pos_box = *keys->pos;
-            self->pos = &self->pos_box;
+        if (keys->has_pos) {
+            entity_set_pos(&self->header, keys->pos);
         }
-        if (keys->slide_target != NULL) {
-            self->slide_target_box = *keys->slide_target;
-            self->slide_target = &self->slide_target_box;
+        if (keys->has_slide_target) {
+            self->slide_target = keys->slide_target;
+            self->has |= BUTTON_HAS_SLIDE_TARGET;
         }
         self->on_click = keys->on_click;
         self->has_on_click = keys->has_on_click;
@@ -159,19 +155,15 @@ const entity_class_t *button_class(void) {
     return &button_class_def;
 }
 
-button_t *button_new(const button_keys_t *keys) {
-    return button_create(keys);
+void button_keys_set_tooltip_row(button_keys_t *keys, const data_row_t *row) {
+    keys->has_tooltip_row = row != NULL;
+    if (row != NULL) {
+        keys->tooltip_row = *row;
+    }
 }
 
-static layout_row_t *button_layout_row(const allocator_t *slot, const layout_row_t *copy,
-                               const layout_row_keys_t *row) {
-    if (row != NULL) {
-        return layout_row_new(slot, row);
-    }
-    if (copy == NULL) {
-        return layout_row_new(slot, NULL);
-    }
-    return layout_row_copy(slot, copy);
+button_t *button_new(const button_keys_t *keys) {
+    return button_create(keys);
 }
 
 void button_construct(button_t *self, const button_keys_t *keys) {
@@ -184,20 +176,21 @@ void button_construct(button_t *self, const button_keys_t *keys) {
         keys = &none;
     }
 
-    self->layout_row = button_layout_row(self->slot, keys->layout_row_copy, keys->layout_row_keys);
+    self->layout_row = layout_row_new(self->slot, &keys->layout_row_keys);
     self->width = p8_fixed_add(self->layout_row->width, p8_fixed_from_int(2));
-    self->header.hit_box = box_make(self->slot, p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11));
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = (box_t){p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11)};
 
     /* GAP-23 */
-    if (keys->side_tooltip_row != NULL || (keys->has_side_tooltip && !keys->side_tooltip_is_false)) {
-        self->side_tooltip = layout_row_new(self->slot, keys->side_tooltip_row);
+    if (keys->has_side_tooltip_row || (keys->has_side_tooltip && !keys->side_tooltip_is_false)) {
+        self->side_tooltip = layout_row_new(self->slot, keys->has_side_tooltip_row ? &keys->side_tooltip_row : NULL);
         self->has_side_tooltip = 1;
     } else if (keys->has_side_tooltip) {
         self->side_tooltip = NULL;
         self->has_side_tooltip = 1;
     }
-    if (keys->tooltip_row != NULL || keys->has_tooltip) {
-        self->tooltip = tooltip_new(self->slot, keys->tooltip_row);
+    if (keys->has_tooltip_row || keys->has_tooltip) {
+        self->tooltip = tooltip_new(self->slot, keys->has_tooltip_row ? &keys->tooltip_row : NULL);
     }
 }
 
@@ -206,14 +199,13 @@ void button_update(button_t *self) {
         return;
     }
 
-    if (self->slide_target != NULL) {
-        vec_t qf = *self->slide_target;
-        vec_t ra = self->pos != NULL ? *self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    if (self->has & BUTTON_HAS_SLIDE_TARGET) {
+        vec_t qf = self->slide_target;
+        vec_t ra = entity_pos(&self->header);
         vec_t d = vec_sub(qf, ra);
         p8_fixed_t length_squared = vec_length_squared(d);
         vec_t delta = (length_squared <= p8_fixed_from_int(1)) ? d : vec_mul(d, P8_FIXED_LIT(0x00006666, 0.4));
-        self->pos_box = vec_add(ra, delta);
-        self->pos = &self->pos_box;
+        entity_set_pos(&self->header, vec_add(ra, delta));
     }
 }
 
@@ -222,7 +214,7 @@ void button_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *sel
         return;
     }
 
-    if (self->tooltip != NULL && self->is_hovered) {
+    if (self->tooltip != NULL && self->header.is_hovered) {
         tooltip_draw_at(gfx, mem, self->tooltip, p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), p8_fixed_from_int(1));
     }
 }
@@ -246,7 +238,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
     right = p8_fixed_sub(p8_fixed_add(draw_pos.x, width), p8_fixed_from_int(1));
     bottom = p8_fixed_add(draw_pos.y, p8_fixed_from_int(9));
     has_on_click = self->on_click != NULL;
-    hovered = self->is_hovered;
+    hovered = self->header.is_hovered;
 
     left_pixel = ui_to_int(draw_pos.x);
     top_pixel = ui_to_int(draw_pos.y);
@@ -283,7 +275,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
 
 down_t button_left_press(button_t *self) {
     int has_on_click = self != NULL && self->on_click != NULL;
-    down_t out = {1, NULL};
+    down_t out = {1, ENTITY_ID_NONE};
 
     if (has_on_click) {
         self->on_click(self);
@@ -292,9 +284,8 @@ down_t button_left_press(button_t *self) {
     return out;
 }
 
-static down_t modal_backdrop_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t modal_backdrop_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return modal_backdrop_left_press((modal_backdrop_t *)self);
 }
 
@@ -311,12 +302,13 @@ static modal_backdrop_t *modal_backdrop_create(const modal_backdrop_keys_t *keys
     self->slot = slot;
     entity_init_instance(&self->header, &modal_backdrop_class_def, modal_backdrop_archetype.state, modal_backdrop_archetype.state_time);
     self->archetype = &modal_backdrop_archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->on_click = NULL;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     if (keys != NULL) {
         self->on_click = keys->on_click;
     }
@@ -346,14 +338,14 @@ modal_backdrop_t *modal_backdrop_new(const modal_backdrop_keys_t *keys) {
 }
 
 down_t modal_backdrop_left_press(modal_backdrop_t *self) {
-    down_t out = {1, NULL};
+    down_t out = {1, ENTITY_ID_NONE};
 
     if (self == NULL) {
         return out;
     }
-    self->is_dead = 0;
+    self->header.is_dead = 0;
     if (self->on_click != NULL) {
-        self->is_dead = self->on_click(self) != 0;
+        self->header.is_dead = self->on_click(self) != 0;
     }
     return out;
 }

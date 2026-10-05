@@ -1,4 +1,5 @@
 #include "game/structure_icon.h"
+#include "engine/entity_id.h"
 
 #include <assert.h>
 #include <string.h>
@@ -19,7 +20,13 @@
 
 static int g_structure_icon_up = 0;
 
-static const vec_t *g_cursor = NULL;
+static vec_t g_cursor;
+static int g_has_cursor = 0;
+
+static void structure_icon_clear_cursor(void) {
+    g_cursor = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    g_has_cursor = 0;
+}
 static p8_fixed_t g_id_counter = 0;
 static int g_has_id_counter = 0;
 
@@ -78,19 +85,15 @@ void structure_icon_refresh(structure_icon_t *self) {
 
     assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_refresh moves the shared cursor");
 
-    /* Rebind the cursor, never write through it: `self->pos` keeps the old vector. */
-    self->pos = g_cursor;
+    if (g_has_cursor) {
+        entity_set_pos(&self->header, g_cursor);
+    } else {
+        entity_clear_pos(&self->header);
+    }
     self->is_revealed = 1;
     self->has_is_revealed = 1;
 
-    {
-        vec_t current =
-            g_cursor != NULL ? *g_cursor : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-        vec_t delta = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
-        vec_t *box = (vec_t *)allocator_alloc(game_zone(), sizeof *box);
-        *box = vec_sub(current, delta);
-        g_cursor = box;
-    }
+    structure_icon_set_cursor(vec_sub(structure_icon_cursor(), vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0))));
 }
 
 static void structure_icon_refresh_method(entity_t *self) {
@@ -101,9 +104,9 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     p8_fixed_t new_id;
     const entity_kind_t *entity_kind;
     char *id_num_str;
-    char *id_str;
-    planet_keys_t keys;
-    down_t out = {0, NULL};
+    planet_keys_t keys = {0};
+    entity_t *held;
+    down_t out = {0, ENTITY_ID_NONE};
 
     assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_left_press bumps the shared identifier counter");
     new_id = p8_fixed_add(g_has_id_counter ? g_id_counter : p8_fixed_from_int(0),
@@ -116,22 +119,18 @@ down_t structure_icon_left_press(structure_icon_t *self) {
         return out;
     }
 
-    /* The grab opens before `id_str` is made: the planet keeps that pointer, so it lives and dies with the grab arena. */
     id_num_str = p8_tostr_fixed(frame_zone(), new_id);
-    grab_arena_open(ZONE_BYTES(1 + strlen(id_num_str) + 1) + planet_kind_construction_bytes(entity_kind));
-    id_str = p8_concat2(grab_arena_construction_zone(), "s", id_num_str);
-    keys.planet_id = id_str;
-    keys.map_pos = NULL;
-    keys.pos = NULL;
-    out.held = entity_kind->new_entity(&keys);
+    planet_keys_set_id(&keys, p8_concat2(frame_zone(), "s", id_num_str));
+    grab_arena_open(planet_kind_construction_bytes(entity_kind));
+    held = entity_kind->new_entity(&keys);
     grab_arena_close();
-    out.stop = out.held != NULL;
+    out.held = entity_id_link(held);
+    out.stop = held != NULL;
     return out;
 }
 
-static down_t structure_icon_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t structure_icon_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return structure_icon_left_press((structure_icon_t *)self);
 }
 
@@ -151,7 +150,7 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *s
     p8_spr_default(gfx, mem, view.has_sprite ? structure_icon_to_int(view.sprite) : 0, structure_icon_to_int(p.x),
                       structure_icon_to_int(p.y));
 
-    if (self->is_hovered) {
+    if (self->header.is_hovered) {
         if (structure_icon_own_kind(self) != NULL) {
             targeting_t pb = {.archetype = &targeting_archetype_none};
 
@@ -167,13 +166,12 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *s
     p8_palt(mem, 3, 1);
 }
 
-static void structure_icon_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, p);
+static void structure_icon_draw_method(entity_t *self, vec_t screen_pos) {
+    structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, screen_pos);
 }
 
-static int structure_icon_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+static int structure_icon_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
 
 static const entity_class_t structure_icon_class_def = {
@@ -189,16 +187,17 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
     assert(g_structure_icon_up && "structure_icon_init() must run before a structure icon is created");
     entity_init_instance(&self->header, &structure_icon_class_def, structure_icon_archetype.state, structure_icon_archetype.state_time);
     self->archetype = &structure_icon_archetype;
-    self->header.layer = &self->archetype->layer;
-    self->header.pos = &self->pos;
-    self->header.hit_box = &self->archetype->hit_box;
-    self->pos = &self->archetype->pos;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = self->archetype->hit_box;
+    entity_set_pos(&self->header, self->archetype->pos);
     self->kind = NULL;
     self->tooltip = NULL;
     self->is_revealed = 0;
     self->has_is_revealed = 0;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     if (keys != NULL) {
         self->kind = keys->kind;
         self->tooltip = keys->tooltip;
@@ -211,14 +210,14 @@ void structure_icon_init(void) {
     structure_icon_shutdown();
 
     g_structure_icon_up = 1;
-    g_cursor = NULL;
+    structure_icon_clear_cursor();
     g_id_counter = p8_fixed_from_int(0);
     g_has_id_counter = 1;
 }
 
 void structure_icon_shutdown(void) {
     g_structure_icon_up = 0;
-    g_cursor = NULL;
+    structure_icon_clear_cursor();
 }
 
 int structure_icon_ready(void) {
@@ -237,8 +236,12 @@ const vec_t *structure_icon_rest_cursor(void) {
     return g_structure_icon_up ? &structure_icon_archetype.rest_cursor : NULL;
 }
 
-const vec_t *structure_icon_cursor(void) {
-    return g_cursor;
+int structure_icon_has_cursor(void) {
+    return g_has_cursor;
+}
+
+vec_t structure_icon_cursor(void) {
+    return g_has_cursor ? g_cursor : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 int structure_icon_id_counter(p8_fixed_t *out) {
@@ -249,6 +252,7 @@ int structure_icon_id_counter(p8_fixed_t *out) {
     return 1;
 }
 
-void structure_icon_set_cursor(const vec_t *cursor) {
+void structure_icon_set_cursor(vec_t cursor) {
     g_cursor = cursor;
+    g_has_cursor = 1;
 }

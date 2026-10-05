@@ -14,6 +14,9 @@ void reset_world(const entity_registry_reserve_t *reserve) {
     mouse_t *real_main_mouse;
     ui_t *real_main_ui;
 
+    if (main_ui() != NULL) {
+        ui_forget_world(main_ui());
+    }
     entity_registry_abandon_live_entities();
     entity_registry_init(reserve);
 
@@ -59,7 +62,7 @@ void update_entities(void) {
             qc->class->states[qc->state](qc, qc->state_time);
         }
 
-        if (qc->is_dead != NULL && *qc->is_dead) {
+        if (entity_has(qc, ENTITY_HAS_IS_DEAD) && qc->is_dead) {
             entity_unregister(qc);
         }
 

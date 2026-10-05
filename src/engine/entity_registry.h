@@ -38,7 +38,7 @@ void entity_unregister(entity_t *e);
 
 void draw_layers(entity_message_t message);
 
-int entity_registry_hit_test_always(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);
+int entity_registry_hit_test_always(entity_t *self, mouse_pos_t mouse);
 
 entity_t *main_camera(void);
 

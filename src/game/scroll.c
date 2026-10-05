@@ -13,13 +13,6 @@
 
 static int g_camera_up = 0;
 
-static vec_t camera_vec(const vec_t *v) {
-    if (v != NULL) {
-        return *v;
-    }
-    return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-}
-
 static void camera_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
     camera_update(dispatch_context_input(), (camera_t *)self);
@@ -39,13 +32,11 @@ static camera_t *camera_create(void) {
 
     entity_init_instance(&self->header, &camera_class_def, camera_archetype.state, camera_archetype.state_time);
     self->archetype = &camera_archetype;
-    self->header.pos = &self->pos;
-    self->header.map_pos = &self->pos_before_shake;
-    self->header.shake = &self->shake;
-    self->velocity = &self->archetype->velocity;
-    self->shake = self->archetype->shake;
-    self->pos_before_shake = &self->archetype->pos_before_shake;
-    self->pos = &self->archetype->pos;
+    self->header.has |= ENTITY_HAS_SHAKE;
+    self->velocity = self->archetype->velocity;
+    self->header.shake = self->archetype->shake;
+    entity_set_map_pos(&self->header, self->archetype->pos_before_shake);
+    entity_set_pos(&self->header, self->archetype->pos);
     entity_construct(&self->header);
     return self;
 }
@@ -106,25 +97,22 @@ void camera_update(const p8_input_t *input, camera_t *self) {
         }
     }
 
-    p = camera_vec(self->pos_before_shake);
-    v = camera_vec(self->velocity);
+    p = camera_pos_before_shake(self);
+    v = self->velocity;
 
     p = vec_add(p, v);
     v = vec_add(v, vec_mul(vec_sub(direction, v), P8_FIXED_LIT(0x00003333, 0.2)));
 
     p = camera_bounded(p);
 
-    self->pos_before_shake_own = p;
-    self->pos_before_shake = &self->pos_before_shake_own;
+    entity_set_map_pos(&self->header, p);
     camera_set_velocity(self, v);
 
-    self->pos_own = camera_bounded(entity_geom_shake(p, (entity_t *)self));
-    self->pos = &self->pos_own;
+    entity_set_pos(&self->header, camera_bounded(entity_geom_shake(p, (entity_t *)self)));
 }
 
 void camera_set_velocity(camera_t *self, vec_t v) {
-    self->velocity_own = v;
-    self->velocity = &self->velocity_own;
+    self->velocity = v;
 }
 
 void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax) {
@@ -134,7 +122,7 @@ void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax) {
         return;
     }
 
-    cp = vec_mul(camera_vec(self->pos), parallax);
+    cp = vec_mul(entity_pos(&self->header), parallax);
     p8_camera(gfx, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y));
 }
 

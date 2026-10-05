@@ -1,6 +1,8 @@
 #ifndef GAME_RESEARCH_H
 #define GAME_RESEARCH_H
 
+#include <stdint.h>
+
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "game/map_tables.h"
@@ -16,7 +18,7 @@ typedef struct {
 
 resource_t need_resource(const need_t *i);
 
-need_t *need_new(const allocator_t *zone, const p8_fixed_t *qe);
+need_t *need_new(const allocator_t *zone, resource_t resource);
 
 typedef struct {
     entity_t header;
@@ -26,7 +28,7 @@ typedef struct {
     p8_fixed_t base_cost;
     int has_base_cost;
     const char *production_key;
-    pointer_list_t *inputs;
+    pointer_list_t inputs;
     p8_fixed_t output;
     int has_output;
     const char *upgrade_tech;
@@ -38,12 +40,23 @@ typedef struct {
     int has_icon_sprite;
     const char *class_name;
     const char *next_type;
-    const data_row_t *layout_row;
-    data_row_t layout_row_own;
-    data_item_t layout_row_own_items[3];
-    data_row_t layout_row_inner;
-    data_item_t layout_row_inner_items[2];
 } research_project_t;
+
+typedef struct {
+    uint16_t index;
+    uint16_t epoch;
+} research_project_id_t;
+
+#define RESEARCH_PROJECT_ID_NONE ((research_project_id_t){0, 0})
+
+/* NULL for no project, and for an id taken before the projects were last
+ * forgotten or the world last reset. */
+research_project_t *research_project_get(research_project_id_t id);
+
+/* RESEARCH_PROJECT_ID_NONE for NULL. */
+research_project_id_t research_project_id_of(const research_project_t *project);
+
+void research_expire_project_ids(void);
 
 void research_init(void);
 

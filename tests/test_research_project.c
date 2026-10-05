@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -38,10 +39,24 @@
 #include "engine/entity_class.h"
 #include "game/tech_gate.h"
 #include "game/ui.h"
+#include "game/ui_button.h"
 #include "engine/vec.h"
 #include "engine/zone.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
+
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
 
 /* Project 12, a colony that needs two resources and exports one; project 3,
  * a project with an output and no inputs, which exports to any planet a
@@ -53,8 +68,8 @@
 #define PROJECTS_NAMED 26
 #define PROJECTS_HASH 0xA4D742D8u
 #define DEFAULTS_HASH 0x4FE030B1u
-#define FUNCTIONS_HASH 0xA90BEF24u
-#define FUNCTIONS_INVENTED_HASH 0x5F2D2AD4u
+#define FUNCTIONS_HASH 0x6154CA4Fu
+#define FUNCTIONS_INVENTED_HASH 0xD71074AAu
 #define INSTALL_HASH 0x45B1D201u
 #define BUILT_WORLD_HASH 0x1FA5E0B2u
 #define HARVESTED_WORLD_HASH 0xAD954215u
@@ -105,7 +120,7 @@ static int projects_rank(const void *e) {
 }
 
 /* The kind words the frozen hashes fold before a value, FUNCTION_KIND the one
- * a project without `layout_row` folds in place of its row (PROJECTS_HASH);
+ * a project without an icon row folds in place of its row (PROJECTS_HASH);
  * the enum entries are gone. Any other value moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
@@ -236,8 +251,8 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item, int depth) {
     if (item->is_false) {
         return fold_bool(h, 0);
     }
-    if (item->is_ref) {
-        return fold_ref(h, item->ref, depth);
+    if (item->is_nil) {
+        return fold_ref(h, NULL, depth);
     }
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
@@ -272,39 +287,63 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
     return h;
 }
 
-/* A row's positional as the value it was sorted from folded; NOTHING as
- * false (no row folded here holds an absent item at the top level). */
-static uint32_t fold_layout_row_item(uint32_t h, layout_row_cell_t c, int depth) {
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fold_row(h, c.as.row, depth);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
+/* A cell folded as the frozen hashes folded the item it was: a string, a
+ * number, or a tuple as a row of numbers (nothing as false). */
+static uint32_t fold_cell(uint32_t h, layout_row_cell_t cell) {
+    int i;
+
+    switch (cell.kind) {
     case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+        return fold_string(h, cell.as.text);
+    case LAYOUT_ROW_CELL_FIXED:
+        return fold_fixed(h, cell.as.fixed);
+    case LAYOUT_ROW_CELL_TUPLE:
+        h = fold_view_head(h, cell.as.tuple.count);
+        for (i = 0; i < cell.as.tuple.count; i++) {
+            layout_row_scalar_t scalar = cell.as.tuple.scalars[i];
+
+            h = fold_view_index(h, i + 1);
+            h = scalar.kind == LAYOUT_ROW_SCALAR_FIXED ? fold_fixed(h, scalar.value) : fold_bool(h, 0);
+        }
+        return h;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        assert(0 && "fold_cell: the icon row holds a string, a number and a tuple");
+        return h;
     }
 }
 
-/* A row folded as the frozen hashes folded its table view: its first placed
- * items, then `color`, `score`, `pos`, `placed_items`, `width`, the rest. */
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_placed_item(uint32_t h, layout_row_item_t item) {
+    h = fnv(h, (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
+    default:
+        break;
+    }
+    return fold_fixed(h, item.offset.x);
+}
+
+/* A row by its placed items, then `color`, `score`, `pos` and `width`. */
 static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     const layout_row_t *lq = l;
-    int k;
     int i;
 
     if (l == NULL) {
         return fnv(h, 0xDEADu);
     }
-    assert(lq != NULL && lq->header.class == layout_row_class());
+    assert(lq->header.class == layout_row_class());
     assert(!lq->has_background);
     assert(lq->placed_items != NULL);
-    k = lq->placed_items_count;
-    h = fold_view_head(h, lq->items_count + (lq->has_color != 0) +
-                              (lq->has_score != 0) + (lq->pos != NULL) + 2);
-    for (i = 0; i < k; i++) {
-        h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
+    h = fold_view_head(h, lq->placed_items_count + (lq->has_color != 0) +
+                              (lq->has_score != 0) + (pos_ref(&lq->header) != NULL) + 1);
+    for (i = 0; i < lq->placed_items_count; i++) {
+        h = fold_placed_item(fold_view_index(h, i + 1), lq->placed_items[i]);
     }
     if (lq->has_color) {
         h = fold_fixed(fold_view_name(h, "color"), lq->color);
@@ -312,20 +351,17 @@ static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     if (lq->has_score) {
         h = fold_fixed(fold_view_name(h, "score"), lq->score);
     }
-    if (lq->pos != NULL) {
-        h = fold_ref(fold_view_name(h, "pos"), lq->pos, 3);
+    if (pos_ref(&lq->header) != NULL) {
+        h = fold_ref(fold_view_name(h, "pos"), pos_ref(&lq->header), 3);
     }
-    /* `placed_items` as the frozen hashes folded the tagged list it was: REF, its tag, its count, each entry a REF. */
-    h = fnv(fnv(fold_view_name(h, "placed_items"), (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
-    h = fnv(h, (uint32_t)lq->placed_items_count);
-    for (i = 0; i < lq->placed_items_count; i++) {
-        h = fold_ref(h, &lq->placed_items[i], 2);
-    }
-    h = fold_fixed(fold_view_name(h, "width"), lq->width);
-    for (i = k; i < lq->items_count; i++) {
-        h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
-    }
-    return h;
+    return fold_fixed(fold_view_name(h, "width"), lq->width);
+}
+
+/* The project's buy row laid out in the frame zone, NULL when it has none. */
+static const void *project_row(const research_project_t *b) {
+    layout_row_keys_t keys;
+
+    return research_project_layout_row_keys(b, &keys) ? layout_row_new(frame_zone(), &keys) : NULL;
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -366,7 +402,7 @@ static planet_t *as_planet(void *e) {
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_planet(e)->map_pos;
+    const vec_t *p = map_pos_ref(&as_planet(e)->header);
     assert(p != NULL);
     return *p;
 }
@@ -382,7 +418,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 static void built_world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    vec_t mp;
     void *qu;
     void *re = NULL;
     slipway_t *jc;
@@ -401,13 +437,13 @@ static void built_world(void) {
     planet_apply_project(qu, project(COLONY));
     planet_apply_project(re, project(EXPORTER));
 
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
-    slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                       vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    main_ui()->hovered = entity_id_link(re);
+    slipway_class()->drag(&jc->header, mouse_world_only(mp));
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -464,26 +500,25 @@ static void test_projects(void) {
         hash = fold_fixed_member(hash, built->has_icon_sprite, built->icon_sprite);
         hash = fold_string_member(hash, built->class_name);
         hash = fold_string_member(hash, built->next_type);
-        i_list = built->inputs;
-        assert(i_list != NULL);
+        i_list = &built->inputs;
         hash = fnv(hash, (uint32_t)i_list->count);
         for (inner_index = 0; inner_index < i_list->count; inner_index++) {
             resource_t qe;
             qe = need_resource(i_list->items[inner_index]);
             hash = fold_resource(hash, qe);
         }
-        if (built->layout_row != NULL) {
-            const data_row_t *lq = built->layout_row;
-            /* Constant by the struct's shape, kept so that PROJECTS_HASH
-             * still proves the typed reads. */
+        if (built->has_icon_sprite) {
+            layout_row_keys_t icon_keys = research_project_icon_row_keys(built);
+
+            /* Constant by the row's shape, kept so that PROJECTS_HASH still
+             * proves the typed reads. */
             hash = fnv(hash, (uint32_t)REF_KIND);
-            assert(lq == &built->layout_row_own && built->has_icon_sprite);
-            for (inner_index = 1; inner_index <= 3; inner_index++) {
-                hash = inner_index <= lq->count ? fold_item(hash, &lq->items[inner_index - 1], 2) : fnv(hash, 0xFFFFFFFFu);
+            assert(icon_keys.count == 3 && !icon_keys.has_color);
+            for (inner_index = 0; inner_index < 3; inner_index++) {
+                hash = fold_cell(hash, icon_keys.items[inner_index]);
             }
         } else {
             hash = fnv(hash, (uint32_t)FUNCTION_KIND);
-            assert(built->layout_row == NULL && !built->has_icon_sprite);
         }
 
         if (index == 1) {
@@ -508,7 +543,7 @@ static void test_projects(void) {
 
 /* Per project: its production as an entry of `production_tables_table`, its
  * cost, its tooltip and its layout row, the same each time it is built for a
- * project without `layout_row`. */
+ * project without an icon row. */
 static uint32_t fold_functions(uint32_t h) {
     int k;
 
@@ -524,10 +559,10 @@ static uint32_t fold_functions(uint32_t h) {
         h = fnv(h, (uint32_t)research_project_cost(b));
         h = jb == NULL ? fnv(h, 0xDEADu) : fold_row(h, jb, 4);
         assert((jb == NULL) == (b->has_icon_sprite != 0));
-        layout_row_h = fold_layout_row_instance(2166136261u, research_project_layout_row(b));
+        layout_row_h = fold_layout_row_instance(2166136261u, project_row(b));
         h = fnv(h, layout_row_h);
-        if (b->layout_row == NULL) {
-            assert(fold_layout_row_instance(2166136261u, research_project_layout_row(b)) == layout_row_h);
+        if (!b->has_icon_sprite) {
+            assert(fold_layout_row_instance(2166136261u, project_row(b)) == layout_row_h);
         }
     }
     return h;
@@ -561,13 +596,12 @@ static void test_functions(void) {
     check("functions_invented", fold_functions(2166136261u), FUNCTIONS_INVENTED_HASH);
 
     assert(research_project_production(NULL) == NULL && research_project_cost(NULL) == 0);
-    assert(research_project_tooltip(NULL) == NULL && research_project_layout_row(NULL) == NULL);
-}
+    {
+        layout_row_keys_t untouched = {.count = -1};
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
+        assert(research_project_tooltip(NULL) == NULL && !research_project_layout_row_keys(NULL, &untouched));
+        assert(untouched.count == -1);
+    }
 }
 
 static vec_t vec_xy(int x, int y) {
@@ -577,15 +611,19 @@ static vec_t vec_xy(int x, int y) {
 /* A bare planet on its `planet_id`, `map_pos` and `pos`, the screen
  * position offset from the main camera's. */
 static void *new_planet(const char *id, int x, int y) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     const vec_t *main_camera_pos;
 
     assert(main_camera_typed() != NULL);
-    main_camera_pos = main_camera_typed()->pos;
+    main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
-    keys.planet_id = id;
-    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(vec_add(*main_camera_pos, vec_xy(x + 16, y - 4)));
+    if (id != NULL) {
+        planet_keys_set_id(&keys, id);
+    }
+    keys.map_pos = vec_xy(x / 2, y / 2);
+    keys.has_map_pos = 1;
+    keys.pos = vec_add(*main_camera_pos, vec_xy(x + 16, y - 4));
+    keys.has_pos = 1;
     return planet_new(&keys);
 }
 
@@ -616,7 +654,7 @@ static void *project_with(int (*match)(const research_project_t *), int nth) {
 
 /* The production by content: a production_t has no tag to fold. */
 static uint32_t fold_production(uint32_t h, const planet_t *p) {
-    const production_t *k = p->production;
+    const production_t *k = planet_production_read(p);
 
     if (k == NULL) {
         return fnv(h, 0xFFFFFFFFu);
@@ -630,10 +668,10 @@ static uint32_t fold_production(uint32_t h, const planet_t *p) {
  * it was: each need, its resource (absent included), then `satisfied` when
  * written. */
 static uint32_t fold_needs(uint32_t h, const planet_t *p) {
-    const pointer_list_t *jy = p->needs;
+    const pointer_list_t *jy = &p->needs;
     int i;
 
-    if (jy == NULL) {
+    if (!(p->has & PLANET_HAS_NEEDS)) {
         return fnv(h, 0xFFFFFFFFu);
     }
     h = fnv(fnv(h, (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
@@ -653,15 +691,15 @@ static uint32_t fold_needs(uint32_t h, const planet_t *p) {
 static uint32_t fold_planet(uint32_t hash, void *entity) {
     const planet_t *p = as_planet(entity);
 
-    hash = fnv(hash, (uint32_t)projects_rank(p->project));
-    hash = fnv(hash, (uint32_t)(p->project != NULL));
+    hash = fnv(hash, (uint32_t)projects_rank(research_project_get(p->project)));
+    hash = fnv(hash, (uint32_t)(research_project_get(p->project) != NULL));
     hash = fold_string_member(hash, p->description);
     hash = fold_needs(hash, p);
     hash = fold_production(hash, p);
     hash = fold_string_member(hash, entity_state_name(p->header.state));
-    hash = fold_bool_member(hash, (p->fold_anchor != 0), p->fold_anchor);
-    hash = fold_bool_member(hash, (p->is_dead != 0), p->is_dead);
-    hash = fold_fixed_member(hash, 1, p->shake);
+    hash = fold_bool_member(hash, (p->header.fold_anchor != 0), p->header.fold_anchor);
+    hash = fold_bool_member(hash, (p->header.is_dead != 0), p->header.is_dead);
+    hash = fold_fixed_member(hash, 1, p->header.shake);
     hash = p->planet_type != NULL ? fnv(hash, (uint32_t)(p->planet_type - planet_types_table)) : fnv(hash, 0xFFFFFFFFu);
     return fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), p));
 }
@@ -687,18 +725,19 @@ static void test_wants(void) {
     ri.inputs = "pz";
     keys.record = &ri;
     b = research_project_new(&keys);
-    assert(b->inputs->count == 2 && resource_code_lookup("p", &p));
-    assert(((const need_t *)b->inputs->items[0])->row.has_resource);
-    assert(((const need_t *)b->inputs->items[0])->row.resource == p8_fixed_from_int(p));
-    assert(!((const need_t *)b->inputs->items[1])->row.has_resource);
+    assert(b->inputs.count == 2 && resource_code_lookup("p", &p));
+    assert(((const need_t *)b->inputs.items[0])->row.has_resource);
+    assert(((const need_t *)b->inputs.items[0])->row.resource == p8_fixed_from_int(p));
+    assert(!((const need_t *)b->inputs.items[1])->row.has_resource);
 
     a = new_planet("p950", 12, 16);
     planet_install_project(a, b);
-    jy = as_planet(a)->needs;
-    assert(jy != NULL && jy->count == 2);
+    assert(as_planet(a)->has & PLANET_HAS_NEEDS);
+    jy = &as_planet(a)->needs;
+    assert(jy->count == 2);
     for (k = 0; k < 2; k++) {
-        assert(jy->items[k] != b->inputs->items[k]);
-        assert(memcmp(jy->items[k], b->inputs->items[k], sizeof(need_t)) == 0);
+        assert(jy->items[k] != b->inputs.items[k]);
+        assert(memcmp(jy->items[k], b->inputs.items[k], sizeof(need_t)) == 0);
     }
 }
 
@@ -714,12 +753,12 @@ static void test_install(void) {
 
     first = new_planet("p901", 10, 12);
     planet_install_project(first, ordinary_project);
-    assert((void *)as_planet(first)->project == ordinary_project && as_planet(first)->description == NULL);
+    assert((void *)research_project_get(as_planet(first)->project) == ordinary_project && as_planet(first)->description == NULL);
     hash = fold_planet(hash, first);
 
     first = new_planet("p902", 30, 14);
     planet_apply_project(first, ordinary_project);
-    assert((void *)as_planet(first)->project == ordinary_project);
+    assert((void *)research_project_get(as_planet(first)->project) == ordinary_project);
     hash = fold_planet(hash, first);
 
     next_type_project = project_with(with_next_type, 0);
@@ -742,7 +781,7 @@ static void test_install(void) {
 
     first = new_planet("p906", 110, 20);
     planet_apply_project(first, NULL);
-    assert(as_planet(first)->project == NULL);
+    assert(research_project_get(as_planet(first)->project) == NULL);
     hash = fold_planet(hash, first);
     check("install", hash, INSTALL_HASH);
 }
@@ -758,7 +797,7 @@ static uint32_t fold_world(void) {
     cart_draw();
     jo = entities_by_tag(TAG_PLANET);
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        h = fnv(h, (uint32_t)projects_rank(as_planet(jo->items[i])->project));
+        h = fnv(h, (uint32_t)projects_rank(research_project_get(as_planet(jo->items[i])->project)));
     }
     return fnv(h, screen_hash());
 }
@@ -791,17 +830,17 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Each project, its `inputs` list, its items unless empty, its needs. */
+/* Each project's `inputs` items unless empty, and its needs: the projects
+ * themselves, list headers included, live in the project table. */
 static size_t projects_bytes(void) {
     size_t bytes = 0;
     int k;
 
     for (k = 1; k <= projects_count(); k++) {
         const research_project_t *b = project(k);
-        const int n = b->inputs->count;
+        const int n = b->inputs.count;
 
-        bytes += block_bytes(sizeof *b) + block_bytes(sizeof *b->inputs) +
-                  (size_t)n * block_bytes(sizeof(need_t));
+        bytes += (size_t)n * block_bytes(sizeof(need_t));
         if (n > 0) {
             bytes += block_bytes((size_t)n * sizeof(void *));
         }
@@ -809,31 +848,33 @@ static size_t projects_bytes(void) {
     return bytes;
 }
 
-/* The projects are all the load sub-zone holds after cart_load(), each
+/* The projects' needs are all the load sub-zone holds after cart_load(), each
  * `inputs` list reserved to its exact length. */
 static void test_projects_in_load_zone(void) {
     int k;
 
     for (k = 1; k <= projects_count(); k++) {
         const research_project_t *b = project(k);
-        assert(b->inputs->capacity == b->inputs->count && b->inputs->zone == game_zone_load_zone());
+        assert(b->inputs.capacity == b->inputs.count && b->inputs.zone == game_zone_load_zone());
     }
     printf("  load after cart_load: %lu\n", (unsigned long)load_zone_used());
     assert(load_zone_used() == projects_bytes());
 }
 
-/* A need is taken from the zone its caller passes. */
+/* A need is taken from the zone its caller passes, and gives back the resource it was made with. */
 static void test_needs_new_in_the_zone_passed(void) {
-    const p8_fixed_t qe = p8_fixed_from_int(3);
+    const resource_t qe = {.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(3)};
+    const resource_t nil = {.kind = RESOURCE_NIL};
     const size_t load_zone = load_zone_used();
     const size_t game_zone_used_before = game_zone_used();
-    need_t *a = need_new(game_zone_load_zone(), &qe);
-    need_t *b = need_new(game_zone(), NULL);
+    need_t *a = need_new(game_zone_load_zone(), qe);
+    need_t *b = need_new(game_zone(), nil);
 
     assert(load_zone_used() == load_zone + block_bytes(sizeof *a));
     assert(game_zone_used() == game_zone_used_before + block_bytes(sizeof *b));
-    assert(a->row.has_resource && a->row.resource == qe && !a->has_satisfied);
+    assert(a->row.has_resource && a->row.resource == qe.number && !a->has_satisfied);
     assert(!b->row.has_resource && !b->has_satisfied);
+    assert(resource_equal(need_resource(a), qe) && resource_equal(need_resource(b), nil));
 }
 
 /* The projects rebuilt from `project_records_table` forget the ones held
@@ -996,7 +1037,9 @@ static void tooltip_on_other(void *e) {
 }
 
 static void layout_row_on_other(void *e) {
-    (void)research_project_layout_row(e);
+    layout_row_keys_t keys;
+
+    (void)research_project_layout_row_keys(e, &keys);
 }
 
 static void install_project_on_other(void *e) {
@@ -1033,11 +1076,28 @@ static void test_research_project_is_a_struct(void) {
     bare = research_project_new(NULL);
     assert(bare != NULL && bare->header.class == cls);
     assert(bare->archetype == &research_project_archetype && bare->archetype == b->archetype);
-    assert(bare->inputs != NULL && bare->inputs->count == 0);
-    assert(bare->layout_row == NULL);
+    assert(bare->inputs.count == 0 && bare->inputs.zone == game_zone_load_zone());
     assert(bare->name == NULL && bare->planet_codes == NULL && !bare->has_base_cost && bare->production_key == NULL && !bare->has_output);
     assert(!bare->has_upgrade_tech && !bare->has_byproduct && bare->required_tech == NULL && !bare->has_icon_sprite && bare->class_name == NULL);
     assert(bare->next_type == NULL);
+
+    for (j = 1; j <= PROJECTS_COUNT; j++) {
+        research_project_t *with_icon = project(j);
+        layout_row_keys_t keys;
+        const layout_row_cell_t *cells;
+
+        if (!with_icon->has_icon_sprite) {
+            continue;
+        }
+        keys = research_project_icon_row_keys(with_icon);
+        cells = keys.items;
+        assert(keys.count == 3 && !keys.has_color && !keys.has_background && !keys.has_score && !keys.has_pos);
+        assert(cells[0].kind == LAYOUT_ROW_CELL_STRING && strcmp(cells[0].as.text, with_icon->name) == 0);
+        assert(cells[1].kind == LAYOUT_ROW_CELL_FIXED && cells[1].as.fixed == p8_fixed_from_int(32));
+        assert(cells[2].kind == LAYOUT_ROW_CELL_TUPLE && cells[2].as.tuple.count == 2);
+        assert(cells[2].as.tuple.scalars[0].kind == LAYOUT_ROW_SCALAR_FIXED && cells[2].as.tuple.scalars[0].value == with_icon->icon_sprite);
+        assert(cells[2].as.tuple.scalars[1].kind == LAYOUT_ROW_SCALAR_FIXED && cells[2].as.tuple.scalars[1].value == p8_fixed_from_int(8));
+    }
 
     start_game();
     must_abort(build_with_header, NULL);
@@ -1071,6 +1131,86 @@ static void test_projects_name_is_the_last_registered(void) {
     again = research_project_new(&keys);
     assert(again != first && research_projects_find(first->name) == again);
     assert(research_projects_at(1) == first && research_projects_count() == PROJECTS_COUNT);
+}
+
+static void test_project_id_resolves_until_reset_or_rebuild(void) {
+    research_project_t *b = project(COLONY);
+    const char *name = b->name;
+    research_project_id_t id = research_project_id_of(b);
+
+    assert(research_project_get(id) == b);
+    assert(research_project_get(RESEARCH_PROJECT_ID_NONE) == NULL);
+    assert(research_project_get(research_project_id_of(NULL)) == NULL);
+
+    reset_world(NULL);
+    research_expire_project_ids();
+    assert(research_project_get(id) == NULL);
+    assert(research_projects_at(COLONY) == b);
+    assert(research_project_get(research_project_id_of(b)) == b);
+
+    id = research_project_id_of(research_projects_find(name));
+    assert(research_project_get(id) != NULL);
+    game_zone_reset();
+    research_build_projects();
+    assert(research_project_get(id) == NULL);
+    assert(research_project_get(research_project_id_of(research_projects_find(name))) == research_projects_find(name));
+    assert(research_projects_find(name) != NULL && research_projects_count() == PROJECTS_COUNT);
+}
+
+static void test_project_links_resolve_until_reset(void) {
+    button_keys_t keys = {0};
+    button_t *row;
+    void *a;
+
+    start_game();
+    a = new_planet("p960", 14, 18);
+    planet_install_project(a, project(COLONY));
+    keys.project = research_project_id_of(project(EXPORTER));
+    row = button_new(&keys);
+    assert(research_project_get(as_planet(a)->project) == project(COLONY));
+    assert(research_project_get(row->project) == project(EXPORTER));
+
+    cart_update60();
+    cart_start_game(NULL);
+    assert(research_project_get(as_planet(a)->project) == NULL);
+    assert(research_project_get(row->project) == NULL);
+}
+
+static void fill_project_table(void) {
+    int i;
+
+    for (i = 0; i <= PROJECT_RECORDS_COUNT; i++) {
+        (void)research_project_new(NULL);
+    }
+}
+
+static void test_project_table_full_is_fatal(void) {
+    char said[512];
+    ssize_t n;
+    size_t got = 0;
+    int fds[2];
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    assert(pipe(fds) == 0);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        close(fds[0]);
+        assert(dup2(fds[1], 2) == 2);
+        fill_project_table();
+        _exit(0);
+    }
+    close(fds[1]);
+    while (got < sizeof said - 1 && (n = read(fds[0], said + got, sizeof said - 1 - got)) > 0) {
+        got += (size_t)n;
+    }
+    said[got] = '\0';
+    close(fds[0]);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 3);
+    assert(strstr(said, "research project table full") != NULL);
 }
 
 /* Each scenario runs in a child forked right after cart_load(), as a fresh
@@ -1112,6 +1252,9 @@ int main(void) {
     in_fresh_child(test_rebuild_and_shutdown);
     in_fresh_child(test_projects_in_load_zone);
     in_fresh_child(test_needs_new_in_the_zone_passed);
+    in_fresh_child(test_project_id_resolves_until_reset_or_rebuild);
+    in_fresh_child(test_project_links_resolve_until_reset);
+    in_fresh_child(test_project_table_full_is_fatal);
 
     printf("test_research_project: all tests passed\n");
     return 0;

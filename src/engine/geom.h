@@ -26,6 +26,6 @@ typedef struct {
 
 box_t *box_make(const allocator_t *zone, p8_fixed_t xl, p8_fixed_t yt, p8_fixed_t xr, p8_fixed_t yb);
 
-int box_contains(const box_t *box, vec_t p);
+int box_contains(box_t box, vec_t p);
 
 #endif

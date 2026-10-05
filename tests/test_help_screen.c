@@ -33,9 +33,28 @@
 #include "game/planet.h"
 #include "game/probe.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
+
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
+static const vec_t *slide_target_ref(const button_t *b) {
+    return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
 
 
 #define BUILT_HASH 0x5D3141B1u
@@ -78,7 +97,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const probe_t *fv) {
-    return fv->is_hovered ? 2 : 0;
+    return fv->header.is_hovered ? 2 : 0;
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
@@ -235,10 +254,12 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static vec_t *vec_ref(int x, int y) {
-    vec_t *v = malloc(sizeof *v);
-    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return v;
+static vec_t point(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+}
+
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
 
 static const entity_class_t *class_of(const void *e) {
@@ -275,12 +296,12 @@ static probe_t *the_help(void) {
 }
 
 static int in_layer(int layer, const void *e) {
-    const ui_hovered_by_layer_t *ic = main_ui()->hovered_by_layer;
+    const ui_hovered_by_layer_t *ic = &main_ui()->hovered_by_layer;
 
-    if (ic == NULL) {
+    if (!(main_ui()->has & UI_HAS_HOVERED_BY_LAYER)) {
         return 0;
     }
-    return entity_list_listed(&ic->layers[layer], e);
+    return entity_id_list_has(&ic->layers[layer], entity_id_of(e));
 }
 
 static const button_t *as_button(const void *e) {
@@ -310,18 +331,18 @@ static void test_built(void) {
     start_title();
     help_screen = the_help();
     probe = help_screen;
-    emitter = probe->emitter;
-    targeting = probe->targeting;
+    emitter = &probe->emitter;
+    targeting = &probe->targeting;
     live = live_entities();
 
     assert(probe->archetype->layer == p8_fixed_from_int(10));
     assert(emitter->archetype->lifetime == p8_fixed_from_int(17));
     assert(probe->archetype->back_color == p8_fixed_from_int(11));
     assert(probe->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(probe->pos != NULL && emitter->trail_colors != NULL);
+    assert(pos_ref(&probe->header) != NULL && emitter->trail_colors != NULL);
     assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != ENTITY_STATE_NONE);
     hash = fold_fixed_member(hash, probe->archetype->layer);
-    hash = fold_ref_member(hash, probe->pos);
+    hash = fold_ref_member(hash, pos_ref(&probe->header));
     hash = fold_ref_member(hash, &probe->archetype->fixed_pos);
     hash = fold_fixed_member(hash, probe->archetype->back_color);
     hash = fold_ref_member(hash, &probe->archetype->row_step);
@@ -346,19 +367,20 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, targeting->cost);
     hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
     hash = fold_fixed_member(hash, targeting->archetype->attach_distance);
-    hash = fold_vec(hash, probe->pos);
+    hash = fold_vec(hash, pos_ref(&probe->header));
     hash = fold_vec(hash, &probe->archetype->fixed_pos);
     hash = fold_vec(hash, &probe->archetype->row_step);
     hash = fold_box(hash, &probe->archetype->hit_box);
-    assert(probe->archetype == &help_screen_archetype && probe->pos == &help_screen_archetype.pos);
+    assert(probe->archetype == &help_screen_archetype && entity_has_pos(&probe->header) && probe->header.pos.x == help_screen_archetype.pos.x &&
+           probe->header.pos.y == help_screen_archetype.pos.y);
     assert(emitter->trail_colors == &help_screen_trail_colors_seq);
     assert(emitter->trail_colors != &probe_trail_colors_seq);
     assert(probe->archetype->rows == &help_screen_rows_row);
     hash = fold_string_member(hash, entity_state_name(probe->header.state));
     hash = fold_fixed_member(hash, probe->header.state_time);
-    hash = fnv(hash, (uint32_t)size_of(emitter->particles));
-    assert(size_of(emitter->particles) == 0);
-    assert(!help_screen->is_hovered && probe->map_pos == NULL && targeting->target == NULL && !probe->is_dead);
+    hash = fnv(hash, (uint32_t)size_of(particles_of(emitter)));
+    assert(size_of(particles_of(emitter)) == 0);
+    assert(!help_screen->header.is_hovered && map_pos_ref(&probe->header) == NULL && targeting_target(targeting) == NULL && !probe->header.is_dead);
     assert(class_of(help_screen)->new_year == NULL && class_of(help_screen)->refresh == NULL && class_of(help_screen)->states[ENTITY_STATE_NORMAL] == NULL &&
            class_of(help_screen)->left_press == NULL);
 
@@ -376,13 +398,13 @@ static void test_built(void) {
     for (key_index = 0; key_index < 4; key_index++) {
         const button_t *b = as_button(live->items[rank - 4 + key_index]);
         vec_t qf;
-        assert(b->layer == p8_fixed_from_int(11));
-        assert(b->slide_target != NULL);
-        qf = *b->slide_target;
+        assert(b->header.layer == p8_fixed_from_int(11));
+        assert(slide_target_ref(b) != NULL);
+        qf = *slide_target_ref(b);
         assert(qf.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 30) && qf.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 - 8 + 11 * key_index));
-        hash = fold_vec(hash, b->slide_target);
-        hash = fold_vec(hash, b->pos);
-        hash = fold_fixed_member(hash, b->layer);
+        hash = fold_vec(hash, slide_target_ref(b));
+        hash = fold_vec(hash, pos_ref(&b->header));
+        hash = fold_fixed_member(hash, b->header.layer);
     }
     for (index = 0; index < 5; index++) {
         static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
@@ -399,7 +421,7 @@ static void test_built(void) {
         assert(row->has_on_click);
         assert(row->on_click == help_start_game_field_value());
     }
-    assert(main_ui()->ephemerals != NULL && main_ui()->ephemerals->count == 0);
+    assert(main_ui()->ephemerals.count == 0);
     check("built", hash, BUILT_HASH);
 }
 
@@ -416,7 +438,7 @@ static void test_life(void) {
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
-        hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
+        hash = fnv(hash, (uint32_t)size_of(particles_of(&fv->emitter)));
     }
     draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
     hash = fnv(hash, screen_hash());
@@ -433,12 +455,12 @@ static void test_life(void) {
         const int box_left = P8_SCREEN_WIDTH / 2 - 40;
         const int box_top = P8_SCREEN_HEIGHT / 2 + 42;
 
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(link_x, logo_y), vec_ref(link_x, link_y)) == 1);
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(link_x, link_y), vec_ref(link_x, logo_y)) == 0);
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left, box_top), vec_ref(box_left, box_top)) == 1);
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left - 1, box_top), vec_ref(box_left - 1, box_top)) == 0);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(link_x, logo_y), point(link_x, link_y))) == 1);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(link_x, link_y), point(link_x, logo_y))) == 0);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(box_left, box_top), point(box_left, box_top))) == 1);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(box_left - 1, box_top), point(box_left - 1, box_top))) == 0);
     }
-    hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
+    hash = fnv(hash, (uint32_t)size_of(particles_of(&fv->emitter)));
     check("life", hash, LIFE_HASH);
 }
 
@@ -491,7 +513,7 @@ static void test_hover(void) {
     fv = the_help();
     mouse_at(P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 + 48);
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered == fv);
+    assert((void *)ui_hovered(main_ui()) == fv);
     assert(is_hovered_state(fv) == 2);
     assert(in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
@@ -506,7 +528,7 @@ static void test_hover(void) {
 
     mouse_at(P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 - 54);
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered != fv);
+    assert((void *)ui_hovered(main_ui()) != fv);
     assert(is_hovered_state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
@@ -535,13 +557,13 @@ static void test_particle_takes_the_help_palette(void) {
 
     start_title();
     fv = the_help();
-    assert(fv->pos != NULL);
-    ra = *fv->pos;
+    assert(pos_ref(&fv->header) != NULL);
+    ra = *pos_ref(&fv->header);
     particle->pos = vec_make(0, 0);
     particle->velocity = vec_make(0, 0);
     particle->has_acceleration = 0;
     particle->life = P8_FIXED_LIT(0x00068000, 6.5);
-    qy = fv->emitter->particles;
+    qy = particles_of(&fv->emitter);
     empty_particles(qy);
     pointer_list_add(qy, particle);
     p8_camera_reset(&graphics);
@@ -611,7 +633,7 @@ static void call_probe_spawn_particle(void *e) {
 }
 
 static void call_targeting_track(void *e) {
-    targeting_track(e, vec_ref(1, 1), vec_ref(2, 2));
+    targeting_track(e, mouse_pos(point(1, 1), point(2, 2)));
 }
 
 static void call_targeting_tooltip(void *e) {
@@ -623,7 +645,7 @@ static void call_targeting_confirm(void *e) {
 }
 
 static void call_contains_cursor(void *e) {
-    (void)entity_geom_contains_cursor(e, vec_ref(1, 1), vec_ref(2, 2));
+    (void)entity_geom_contains_cursor(e, mouse_pos(point(1, 1), point(2, 2)));
 }
 
 static void call_bob(void *e) {
@@ -691,13 +713,13 @@ static void test_start_game_gives_back_the_help_particles(void) {
     fv = the_help();
     emitter_spawn(&fv->header, p8_fixed_from_int(5));
     title = held_now();
-    assert(title.particles_help_screen == 1 && fv->emitter->particles->count >= 5);
-    assert(title.particle == fv->emitter->particles->count);
+    assert(title.particles_help_screen == 1 && particles_of(&fv->emitter)->count >= 5);
+    assert(title.particle == particles_of(&fv->emitter)->count);
     cart_start_game(NULL);
     cart_flush_exit_queue();
     after = held_now();
     assert(after.particles_help_screen == 0 && after.particle == 0);
-    assert(fv->emitter->particles == NULL);
+    assert(particles_of(&fv->emitter) == NULL);
 }
 
 int main(void) {

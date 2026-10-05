@@ -29,6 +29,15 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 #define SCRIPTED_TICKS 110
 #define SCRIPTED_HASH 0xD63EDC0Eu
 #define SHAKE_TICKS 31
@@ -91,10 +100,10 @@ static uint32_t fold_vec(uint32_t h, const vec_t *v) {
 static uint32_t fold_main_camera(uint32_t h) {
     const camera_t *mo = checked_main_camera();
 
-    h = fold_vec(h, mo->pos_before_shake);
-    h = fold_vec(h, mo->velocity);
-    h = fold_vec(h, mo->pos);
-    h = fnv(h, (uint32_t)mo->shake);
+    h = fold_vec(h, map_pos_ref(&mo->header));
+    h = fold_vec(h, &mo->velocity);
+    h = fold_vec(h, pos_ref(&mo->header));
+    h = fnv(h, (uint32_t)mo->header.shake);
     h = fnv(h, (uint32_t)graphics.camera_x);
     return fnv(h, (uint32_t)graphics.camera_y);
 }
@@ -137,18 +146,18 @@ static int is_vec(vec_t v, int x, int y) {
  * shake and the position two distinct vectors. */
 static void check_fresh_main_camera(const camera_t *mo) {
     const vec_seq_t *pc;
-    vec_t p = must_vec(mo->pos_before_shake);
-    vec_t ra = must_vec(mo->pos);
-    vec_t v = must_vec(mo->velocity);
+    vec_t p = must_vec(map_pos_ref(&mo->header));
+    vec_t ra = must_vec(pos_ref(&mo->header));
+    vec_t v = mo->velocity;
 
     assert(entity_list_listed(live_entities(), mo) && !in_any_entities_by_message(mo));
     assert(p.x == p8_fixed_from_int(176) && p.y == p8_fixed_from_int(196));
     assert(ra.x == p8_fixed_from_int(176) && ra.y == p8_fixed_from_int(196));
     assert(v.x == 0 && v.y == 0);
-    assert(mo->shake == 0);
+    assert(mo->header.shake == 0);
     assert(mo->header.state_time == 0);
     assert(mo->header.state == ENTITY_STATE_NORMAL);
-    assert(mo->pos_before_shake != mo->pos);
+    assert(map_pos_ref(&mo->header) != pos_ref(&mo->header));
 
     pc = mo->archetype->dpad_directions;
     assert(pc != NULL);
@@ -206,7 +215,7 @@ static void test_scripted_ticks(void) {
         update_entities();
         h = fold_main_camera(h);
         h = fnv(h, (uint32_t)checked_main_camera()->header.state_time);
-        if (must_vec(checked_main_camera()->pos_before_shake).y == p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - P8_SCREEN_HEIGHT), layer_fades_table[0])) {
+        if (must_vec(map_pos_ref(&checked_main_camera()->header)).y == p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - P8_SCREEN_HEIGHT), layer_fades_table[0])) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
@@ -253,7 +262,7 @@ static void hold_dpad_checking_each_tick(int left, int right, int up, int down) 
     script(SCRIPTED_TICKS);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         if (i % 20 == 0) {
-            checked_main_camera()->shake = p8_fixed_from_int(3);
+            checked_main_camera()->header.shake = p8_fixed_from_int(3);
         }
         update_entities();
         check_frame_in_grid();
@@ -287,16 +296,16 @@ static void test_shake_decays(void) {
 
     reset_world(NULL);
     mo = checked_main_camera();
-    checked_main_camera()->shake = p8_fixed_from_int(3);
-    assert(mo->shake == p8_fixed_from_int(3));
+    checked_main_camera()->header.shake = p8_fixed_from_int(3);
+    assert(mo->header.shake == p8_fixed_from_int(3));
     unscript();
-    while (mo->shake != 0) {
+    while (mo->header.shake != 0) {
         vec_t off;
         update_entities();
         ticks++;
         assert(ticks < 100);
-        off = vec_sub(must_vec(mo->pos), must_vec(mo->pos_before_shake));
-        h = fnv(h, (uint32_t)mo->shake);
+        off = vec_sub(must_vec(pos_ref(&mo->header)), must_vec(map_pos_ref(&mo->header)));
+        h = fnv(h, (uint32_t)mo->header.shake);
         h = fnv(h, (uint32_t)off.x);
         h = fnv(h, (uint32_t)off.y);
     }
@@ -351,13 +360,13 @@ static void test_right_drag_moves_the_camera(void) {
     }
     script(20);
     cart_update60();
-    before = must_vec(checked_main_camera()->pos_before_shake);
+    before = must_vec(map_pos_ref(&checked_main_camera()->header));
     for (i = 1; i < 20; i++) {
         p8_input_step(&input);
         cart_update60();
     }
     unscript();
-    after = must_vec(checked_main_camera()->pos_before_shake);
+    after = must_vec(map_pos_ref(&checked_main_camera()->header));
     assert(after.x != before.x || after.y != before.y);
 }
 
@@ -385,11 +394,11 @@ static void test_burst_shakes(void) {
     assert(!burst_alive());
     (void)burst_new(NULL);
     assert(burst_alive());
-    assert(checked_main_camera()->shake == p8_fixed_from_int(3));
+    assert(checked_main_camera()->header.shake == p8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
         update_entities();
     }
-    assert(checked_main_camera()->shake == 0);
+    assert(checked_main_camera()->header.shake == 0);
 }
 
 /* The galaxy depends on the rnd state, which the tests before it consume: run
@@ -418,7 +427,7 @@ static int is_a_camera_struct(const void *e) {
 
 /* The main camera of `reset_world()` and one built by camera_new are camera
  * structs among the live entities only, with an update and an apply as
- * methods and no draw; the update reads a NULL velocity as zero. */
+ * methods and no draw; the update keeps a zero velocity at zero. */
 static void test_camera_is_a_struct(void) {
     camera_t *generic;
 
@@ -427,18 +436,17 @@ static void test_camera_is_a_struct(void) {
     assert(is_a_camera_struct(main_camera()) && is_a_camera_struct(generic));
     assert(entity_list_listed(live_entities(), generic) && !in_any_entities_by_message(generic));
     check_fresh_main_camera(generic);
-    assert(generic->header.pos == &generic->pos);
-    assert(generic->header.map_pos == &generic->pos_before_shake);
+    assert(entity_has_pos(&generic->header) && entity_has_map_pos(&generic->header));
     camera_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
     camera_apply(dispatch_context_gfx(), generic, p8_fixed_from_int(1));
     assert(camera_class()->draw == NULL);
     {
-        vec_t p_before = must_vec(generic->pos_before_shake);
+        vec_t p_before = must_vec(map_pos_ref(&generic->header));
 
-        generic->velocity = NULL;
+        camera_set_velocity(generic, vec_make(0, 0));
         camera_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
-        assert(generic->velocity != NULL && generic->velocity->x == 0 && generic->velocity->y == 0);
-        assert(generic->pos_before_shake->x == p_before.x && generic->pos_before_shake->y == p_before.y);
+        assert(generic->velocity.x == 0 && generic->velocity.y == 0);
+        assert(map_pos_ref(&generic->header)->x == p_before.x && map_pos_ref(&generic->header)->y == p_before.y);
     }
 }
 

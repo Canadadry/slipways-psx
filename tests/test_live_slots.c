@@ -21,9 +21,11 @@
 #include "game/background.h"
 #include "game/cart.h"
 #include "game/cheat.h"
+#include "engine/entity_id.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
+#include "engine/zone_sizes.h"
 #include "game/main_economy.h"
 #include "game/game_data.h"
 #include "game/gen.h"
@@ -68,6 +70,11 @@ typedef struct {
     size_t game_zone;
 } reading_t;
 
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
 static void take_reading(reading_t *r, int frame) {
     cart_flush_exit_queue();
     r->frame = frame;
@@ -96,17 +103,18 @@ static registered_t count_registered(void) {
     registered_t n = {0, 0, 0, 0};
     const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
-        const entity_t *e = hv->items[i];
-        if (e->emitter != NULL && e->emitter->particles != NULL) {
+        entity_t *e = hv->items[i];
+        const emitter_t *emitter = emitter_of(e);
+        if (emitter != NULL && particles_of(emitter) != NULL) {
             n.lists++;
-            n.particle += e->emitter->particles->count;
+            n.particle += particles_of(emitter)->count;
         }
         if (e->class == burst_class()) n.bursts++;
     }
     const entity_list_t *jc = entities_by_tag(TAG_SLIPWAY);
     for (int i = 0; jc != NULL && i < jc->count; i++) {
         const slipway_t *s = (const slipway_t *)jc->items[i];
-        if (s->transit_dots != NULL) n.trails += s->transit_dots->count;
+        n.trails += s->transit_dots.count;
     }
     return n;
 }
@@ -569,15 +577,10 @@ static size_t list_bytes_from(const entity_list_t *list, int first) {
     return bytes;
 }
 
-/* A list made empty: capacities 4, 8, ... NULL: none. */
-static size_t registry_bytes(const entity_list_t *list) {
-    return list != NULL ? list_bytes_from(list, 4) : 0;
-}
-
 /* The registries of a game, each taken at its reserve by cart_start_game. */
 static size_t registries_bytes(void) {
     const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
-    size_t r = list_bytes_from(live_entities(), rv->live);
+    size_t r = ENTITY_TABLE_BYTES + list_bytes_from(live_entities(), rv->live);
     for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
         r += list_bytes_from(entities_by_message((entity_message_t)m), rv->by_message[m]);
     }
@@ -591,41 +594,47 @@ static size_t block_bytes(size_t size) {
 
 /* Bytes of a planet list made in the generation: its container, then its
  * blocks as for a registry. */
-static size_t planet_list_bytes(const entity_list_t *list) {
-    if (list == NULL) return 0;
-    return block_bytes(sizeof *list) + registry_bytes(list);
+static size_t id_list_bytes(const entity_id_list_t *list) {
+    size_t bytes = 0;
+    for (int k = 4; list != NULL && k <= list->capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(entity_id_t));
+    return bytes;
 }
 
-/* Footprint of the planets under the planet tag: struct, map_pos and pos
- * boxes, planet_id, and the slipways, outgoing_routes and incoming_routes
- * lists. No needs list nor copies of needs, which the planets of
+static size_t route_list_bytes(const planet_t *planet, uint16_t present, const trade_route_list_t *list) {
+    if (!(planet->has & present)) return 0;
+    size_t bytes = 0;
+    for (int k = 4; k <= list->values.capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(trade_route_t));
+    return bytes;
+}
+
+/* Footprint of the planets under the planet tag: struct, and the slipways,
+ * outgoing_routes and incoming_routes lists. No needs list nor copies of needs, which the planets of
  * galaxy_populate lack before any action. */
 static size_t planets_bytes(void) {
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     size_t bytes = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
-        assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
-        bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->map_pos) + block_bytes(sizeof *p->pos) +
-                  block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
-                  planet_list_bytes(p->outgoing_routes) + planet_list_bytes(p->incoming_routes);
+        assert(!(p->has & PLANET_HAS_NEEDS) && "a planet has needs, which planets_bytes does not count");
+        bytes += block_bytes(sizeof *p) + id_list_bytes(&p->slipways) +
+                  route_list_bytes(p, PLANET_HAS_OUTGOING_ROUTES, &p->outgoing_routes) +
+                  route_list_bytes(p, PLANET_HAS_INCOMING_ROUTES, &p->incoming_routes);
     }
     return bytes;
 }
 
-/* Bytes of the main economy made by cart_start_game: its struct and the
- * invented container, with no items while nothing is invented. */
+/* Bytes of the main economy made by cart_start_game: its struct, with no
+ * invented items while nothing is invented. */
 static size_t economy_bytes(void) {
     const economy_t *fm = main_economy_typed();
-    assert(fm != NULL && fm->invented != NULL && "cart_start_game made the game economy");
-    assert(fm->invented->count == 0 && fm->invented->items == NULL && "an invention, which economy_bytes does not count");
-    return block_bytes(sizeof *fm) + block_bytes(sizeof *fm->invented);
+    assert(fm != NULL && "cart_start_game made the game economy");
+    assert(fm->invented.count == 0 && fm->invented.items == NULL && "an invention, which economy_bytes does not count");
+    return block_bytes(sizeof *fm);
 }
 
 /* Bytes of the seven structure icons among the live entities, in the order
- * of icon_tooltips_table: struct, tooltip (rebuilt in a frame zone arena to
- * measure it), and for each revealed icon the box of the shared icon cursor
- * it moved. */
+ * of icon_tooltips_table: struct and tooltip (rebuilt in a frame zone arena
+ * to measure it). */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
     const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
@@ -638,7 +647,6 @@ static size_t icons_bytes(void) {
         assert(k < ICON_TOOLTIPS_COUNT && "more structure icons than icon tooltips");
         (void)tooltip_new(measure_arena, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
-        if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one structure icon per icon tooltip");
@@ -783,7 +791,7 @@ static const planet_t *planet_with_id(const char *id) {
     const entity_list_t *np = entities_by_tag(TAG_NODE);
     for (int i = 0; np != NULL && i < np->count; i++) {
         const planet_t *p = (const planet_t *)np->items[i];
-        if (p->planet_id != NULL && strcmp(p->planet_id, id) == 0) return p;
+        if (planet_id_or_null(p) != NULL && strcmp(planet_id_or_null(p), id) == 0) return p;
     }
     assert(0 && "planet not found under the node tag");
     return NULL;
@@ -792,21 +800,22 @@ static const planet_t *planet_with_id(const char *id) {
 /* A route of outgoing_routes kept by the f139 rebuild reads back at f151,
  * after twelve resets of the frame zone where its candidates are made. */
 static void trade_rich_mine_kept_route_survives_frame(void) {
-    entity_t *lp[16];
-    entity_t *rl[16];
+    entity_id_t lp[16];
+    entity_id_t rl[16];
     start_e2e("trade_rich_mine");
     play_until(139);
-    const entity_list_t *by = planet_with_id("p27")->outgoing_routes;
-    assert(by != NULL && by->count > 0 && "f139: p27 keeps a route");
-    const trade_route_t *t = (const trade_route_t *)by->items[by->count - 1];
-    const int nlp = t->planets->count;
-    const int nrl = t->slipways->count;
+    const planet_t *p27 = planet_with_id("p27");
+    const trade_route_list_t *by = &p27->outgoing_routes;
+    assert((p27->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
+    const trade_route_t *t = trade_route_list_at(by, trade_route_list_count(by) - 1);
+    const int nlp = t->planets.count;
+    const int nrl = t->slipways.count;
     assert(nlp <= 16 && nrl <= 16);
-    memcpy(lp, t->planets->items, (size_t)nlp * sizeof *lp);
-    memcpy(rl, t->slipways->items, (size_t)nrl * sizeof *rl);
+    memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
+    memcpy(rl, t->slipways.items, (size_t)nrl * sizeof *rl);
     play_until(151);
-    assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
-    assert(t->slipways->count == nrl && memcmp(rl, t->slipways->items, (size_t)nrl * sizeof *rl) == 0);
+    assert(t->planets.count == nlp && memcmp(lp, t->planets.items, (size_t)nlp * sizeof *lp) == 0);
+    assert(t->slipways.count == nrl && memcmp(rl, t->slipways.items, (size_t)nrl * sizeof *rl) == 0);
     printf("  trade_rich_mine: p27 route (%d planets, %d slipways) read back at f151\n", nlp, nrl);
 }
 
@@ -814,26 +823,26 @@ static void trade_rich_mine_kept_route_survives_frame(void) {
  * zone every candidate offer it made, and the routes it hands back still
  * read the same. */
 static void trade_rich_mine_rebuild_gives_back_frame(void) {
-    entity_t *lp[16];
+    entity_id_t lp[16];
     start_e2e("trade_rich_mine");
     play_until(139);
     planet_t *p27 = (planet_t *)planet_with_id("p27");
-    assert(p27->slipways != NULL && p27->slipways->count > 0 && "f139: p27 is linked");
-    const entity_list_t *by = p27->outgoing_routes;
-    assert(by != NULL && by->count > 0 && "f139: p27 keeps a route");
-    const int n = by->count;
-    const trade_route_t *t = (const trade_route_t *)by->items[n - 1];
-    const int nlp = t->planets->count;
+    assert(p27->slipways.zone != NULL && p27->slipways.count > 0 && "f139: p27 is linked");
+    const trade_route_list_t *by = &p27->outgoing_routes;
+    assert((p27->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
+    const int n = trade_route_list_count(by);
+    const trade_route_t *t = trade_route_list_at(by, n - 1);
+    const int nlp = t->planets.count;
     assert(nlp <= 16);
-    memcpy(lp, t->planets->items, (size_t)nlp * sizeof *lp);
+    memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
     const size_t before = frame_zone_used();
-    entity_list_t *out = planet_rebuild_trades(p27);
+    trade_route_list_t *out = planet_rebuild_trades(p27);
     const size_t after = frame_zone_used();
     printf("  trade_rich_mine f139: frame %lu -> %lu across a rebuild of p27\n", (unsigned long)before,
            (unsigned long)after);
     assert(after == before && "planet_rebuild_trades keeps its candidate offers in the frame zone");
-    assert(out == by && out->count == n && "the rebuild hands back the kept routes");
-    assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
+    assert(out == by && trade_route_list_count(out) == n && "the rebuild hands back the kept routes");
+    assert(t->planets.count == nlp && memcmp(lp, t->planets.items, (size_t)nlp * sizeof *lp) == 0);
 }
 
 /* The transit dots still alive at the end of the game go back to the
@@ -875,7 +884,7 @@ static const planet_t *placed_grab(void) {
     const planet_t *placed = NULL;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
-        if (p->planet_id[0] != 's') continue;
+        if (planet_id_or_null(p)[0] != 's') continue;
         assert(placed == NULL && "a single grab was placed");
         placed = p;
     }
@@ -894,8 +903,9 @@ static void placed_grab_does_not_fit_dead_wormhole_arena(void) {
     play_until(174);
     const size_t after = game_without_registries();
     const planet_t *placed = placed_grab();
-    const allocator_t *arena = placed->slipways->zone;
-    const size_t lists = planet_list_bytes(placed->outgoing_routes) + planet_list_bytes(placed->incoming_routes);
+    const allocator_t *arena = placed->slipways.zone;
+    const size_t lists = route_list_bytes(placed, PLANET_HAS_OUTGOING_ROUTES, &placed->outgoing_routes) +
+                         route_list_bytes(placed, PLANET_HAS_INCOMING_ROUTES, &placed->incoming_routes);
     printf("  placed grab: game - registries = %lu -> %lu (arena %lu, outgoing_routes/incoming_routes %lu)\n",
            (unsigned long)before, (unsigned long)after, (unsigned long)arena_size(arena), (unsigned long)lists);
     assert(arena_used(arena) == arena_size(arena) && "the placed structure fills its arena");
@@ -917,7 +927,7 @@ static planet_t *planet_targeted_by(const entity_t *held) {
     const entity_list_t *np = entities_by_tag(TAG_NODE);
     for (int i = 0; np != NULL && i < np->count; i++) {
         planet_t *p = (planet_t *)np->items[i];
-        if (p->targeted_by == held) return p;
+        if (entity_get(p->targeted_by) == held) return p;
     }
     return NULL;
 }
@@ -933,21 +943,21 @@ static void offscreen_planet_forgets_refused_grab(void) {
     dispatch_context_set_input(g_input);
     cheat_step(&g_cheat, g_input);
     cart_update60();
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && "f23: a structure is held");
     planet_t *p34 = planet_targeted_by(held);
     assert(p34 != NULL && "f23: the held structure sets a planet's targeted_by");
-    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
-    p34->pos = &far;
+    far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
+    entity_set_pos(&p34->header, far);
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
-    assert(p34->targeted_by == held && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 27) play_one_frame(1);
     play_one_frame(0);
-    assert(main_ui()->left_held == held && "f28: the next grab reuses the arena, at the same address");
-    assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
+    assert(ui_left_held(main_ui()) == held && "f28: the next grab reuses the arena, at the same address");
+    assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
 }
 
 static void refused_grab_crosses_new_game(void) {
@@ -965,7 +975,7 @@ static void refused_grab_crosses_new_game(void) {
  * grab (f371-377). A refusal is released on the 12th frame of its cycle and
  * freed by the flush of the 14th. */
 static const slipway_t *held_slipway(void) {
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == slipway_class() && "a slipway is held");
     return (const slipway_t *)held;
 }
@@ -976,7 +986,7 @@ static void held_slipway_does_not_grow_game(void) {
     const slipway_t *held = held_slipway();
     const size_t f36 = game_zone_used();
     play_until(45);
-    assert(held_slipway() == held && held->end == &held->point.header && "f45: held over empty space");
+    assert(held_slipway() == held && slipway_end(held) == &held->point.header && "f45: held over empty space");
     printf("  held slipway f36/f45: game = %lu/%lu\n", (unsigned long)f36, (unsigned long)game_zone_used());
     assert(game_zone_used() == f36 && "a held slipway allocates every frame");
 }
@@ -992,7 +1002,7 @@ static void refused_slipways_do_not_grow_game(void) {
 }
 
 static size_t slipways_of_p27_and_p48_bytes(void) {
-    return registry_bytes(planet_with_id("p27")->slipways) + registry_bytes(planet_with_id("p48")->slipways);
+    return id_list_bytes(&planet_with_id("p27")->slipways) + id_list_bytes(&planet_with_id("p48")->slipways);
 }
 
 /* The f4 wormhole's arena, free since f48, is too small for a slipway: the
@@ -1028,17 +1038,17 @@ static void offscreen_planet_forgets_refused_slipway(void) {
     const slipway_t *held = held_slipway();
     planet_t *p = planet_targeted_by(&held->header);
     assert(p != NULL && "f345: the held slipway sets a planet's targeted_by");
-    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
-    p->pos = &far;
+    far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
+    entity_set_pos(&p->header, far);
     assert(!entity_geom_is_on_screen(&p->header) && "the planet is off screen");
     cart_draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     play_until(354);
-    assert(p->targeted_by == &held->header && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p->targeted_by) == &held->header && "off screen, the draw leaves targeted_by set");
     play_until(355);
-    printf("  refused slipway: targeted_by of %s cleared by the f355 flush\n", p->planet_id);
-    assert(p->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
+    printf("  refused slipway: targeted_by of %s cleared by the f355 flush\n", planet_id_or_null(p));
+    assert(entity_get(p->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
 }
 
 static void refused_slipway_crosses_new_game(void) {
@@ -1047,7 +1057,7 @@ static void refused_slipway_crosses_new_game(void) {
     assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1);
     play_until(371);
     assert(entities_by_tag(TAG_SLIPWAY) == NULL || entities_by_tag(TAG_SLIPWAY)->count == 0);
-    assert(main_ui()->left_held != NULL && "f371: a grab in the new game");
+    assert(ui_left_held(main_ui()) != NULL && "f371: a grab in the new game");
     play_until(377);
 }
 
@@ -1061,7 +1071,7 @@ static void refused_slipway_crosses_new_game(void) {
  * (f218-224). A refusal is released on the 5th frame of its cycle and freed
  * by the flush of the 7th. */
 static const wormhole_t *held_wormhole(void) {
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == wormhole_class() && "a wormhole is held");
     return (const wormhole_t *)held;
 }
@@ -1120,7 +1130,7 @@ static void refused_wormhole_crosses_new_game(void) {
  * (f109-115). A refusal is released on the 5th frame of its cycle and freed
  * by the flush of the 7th. */
 static const probe_t *held_probe(void) {
-    const entity_t *held = main_ui()->left_held;
+    const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == probe_class() && "a probe is held");
     return (const probe_t *)held;
 }
@@ -1159,17 +1169,17 @@ static void offscreen_planet_forgets_refused_probe(void) {
     const entity_t *held = &held_probe()->header;
     planet_t *p34 = planet_targeted_by(held);
     assert(p34 != NULL && "f74: the held probe sets a planet's targeted_by");
-    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
-    p34->pos = &far;
+    far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
+    entity_set_pos(&p34->header, far);
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
-    assert(p34->targeted_by == held && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
     while (g_frame <= 78) play_one_frame(1);
     play_one_frame(0);
-    assert(main_ui()->left_held == held && "f79: the next probe reuses the arena, at the same address");
-    assert(p34->targeted_by == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
+    assert(ui_left_held(main_ui()) == held && "f79: the next probe reuses the arena, at the same address");
+    assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
 }
 
 /* f90: the anchors of the held wormhole keep only placed probes; the placed
@@ -1179,14 +1189,14 @@ static void wormhole_targets_only_placed_probe(void) {
     play_until(90);
     const wormhole_t *mz = held_wormhole();
     const probe_t *placed = NULL;
-    for (int i = 0; i < mz->anchors->count; i++) {
-        const entity_t *e = mz->anchors->items[i];
+    for (int i = 0; i < mz->anchors.count; i++) {
+        const entity_t *e = entity_id_list_at(&mz->anchors, i);
         if (e->class != probe_class()) continue;
         assert(placed == NULL && e->state == ENTITY_STATE_SETTLED && "the anchors keep a single probe, a placed one");
         placed = (const probe_t *)e;
     }
     assert(placed != NULL && "f86: the placed probe is an anchor of the wormhole");
-    assert(placed->grab_arena != NULL && placed->grab_arena != mz->anchors->zone && "the placed probe keeps its arena");
+    assert(placed->grab_arena != NULL && placed->grab_arena != mz->anchors.zone && "the placed probe keeps its arena");
 }
 
 static void refused_probe_crosses_new_game(void) {
@@ -1213,13 +1223,13 @@ static void abandoned_wormhole_rereads_during_click(void) {
     const wormhole_t *mz = abandoned_wormhole();
     play_until(26);
     assert(game_zone_pending() && "the f26 'restart' flips the game zone");
-    g_spend = (unsigned char)mz->is_dead;
+    g_spend = (unsigned char)mz->header.is_dead;
 }
 
 static void abandoned_wormhole_dies_with_its_game(void) {
     const wormhole_t *mz = abandoned_wormhole();
     play_until(27);
-    g_spend = (unsigned char)mz->is_dead;
+    g_spend = (unsigned char)mz->header.is_dead;
 }
 
 /* f11: title after 'restart'. Reloading gives back the slots of the live
@@ -1282,16 +1292,16 @@ static void message_box_hold_rewrites_boxes_in_place(void) {
     const mouse_t *je = main_mouse_typed();
     const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
-    const void *before[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
+    const void *before[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     size_t used_before = game_zone_used();
     play_until(45);
     assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
-    const void *after[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
+    const void *after[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     int stables = 0;
-    for (int i = 0; i < 5; i++) stables += before[i] == after[i];
-    printf("  message_box_hold f44-45: %d / 5 per-tick boxes at the same address\n", stables);
+    for (int i = 0; i < 3; i++) stables += before[i] == after[i];
+    printf("  message_box_hold f44-45: %d / 3 per-tick boxes at the same address\n", stables);
     fflush(stdout);
-    assert(stables == 5 && "the camera's pos_before_shake, velocity and pos, the mouse's pos and main_ui's mouse_world must be rewritten in place");
+    assert(stables == 3 && "the camera's pos_before_shake and pos and the mouse's pos must be rewritten in place");
     assert(game_zone_used() == used_before && "the game zone takes bytes every tick");
 }
 

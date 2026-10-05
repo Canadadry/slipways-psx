@@ -19,6 +19,7 @@
 
 #include "p8/assets.h"
 #include "game/cart.h"
+#include "engine/entity_id.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity.h"
 #include "engine/entity_registry.h"
@@ -41,9 +42,28 @@
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 
+/* The burst copies the planet's position and map position, values and presence. */
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
+static int same_positions(const entity_t *a, const entity_t *b) {
+    return entity_has_pos(a) == entity_has_pos(b) && entity_has_map_pos(a) == entity_has_map_pos(b) && a->pos.x == b->pos.x && a->pos.y == b->pos.y && a->map_pos.x == b->map_pos.x && a->map_pos.y == b->map_pos.y;
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0x2603AEA8u
+#define LIFE_HASH 0xD551CEA4u
 #define BURST_FRAMES 86
 
 /* The tag a layout row's placed items carried as a tagged list, which the
@@ -118,7 +138,7 @@ static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
 }
 
 static uint32_t fold_is_dead(uint32_t h, const planet_t *jo) {
-    return (jo->is_dead != 0) ? fold_bool_member(h, jo->is_dead) : fold_absent(h);
+    return (jo->header.is_dead != 0) ? fold_bool_member(h, jo->header.is_dead) : fold_absent(h);
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -139,7 +159,7 @@ static int pointer_list_size(const pointer_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
-static int entity_list_count(const entity_list_t *l) {
+static int id_list_count(const entity_id_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -189,10 +209,12 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
 }
 
 static vec_t vec_xy(int x, int y) {
@@ -203,7 +225,7 @@ static vec_t near_main_camera(int x, int y) {
     const vec_t *main_camera_pos;
 
     assert(main_camera_typed() != NULL);
-    main_camera_pos = main_camera_typed()->pos;
+    main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     return vec_add(*main_camera_pos, vec_xy(x + 16, y - 4));
 }
@@ -254,40 +276,48 @@ static void *harvest_recipe(void) {
 /* First road: a bare planet on planet_id, map_pos and pos, harvested by
  * planet_apply_project; the burst is the one the live entities gained. */
 static void *harvest(int x, int y, const char *id) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     planet_t *planet;
     void *made;
     int before = live_entities()->count;
 
-    keys.planet_id = id;
-    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(near_main_camera(x, y));
+    if (id != NULL) {
+        planet_keys_set_id(&keys, id);
+    }
+    keys.map_pos = vec_xy(x / 2, y / 2);
+    keys.has_map_pos = 1;
+    keys.pos = near_main_camera(x, y);
+    keys.has_pos = 1;
     planet = planet_new(&keys);
     assert(!is_burst(planet) && live_entities()->count == before + 1);
     planet_apply_project(planet, harvest_recipe());
     made = burst_from(before + 1);
     assert(made != NULL && live_entities()->count == before + 2 && burst_from(0) == made);
-    assert(as_burst(made)->pos == planet->pos && as_burst(made)->map_pos == planet->map_pos);
+    assert(same_positions(&as_burst(made)->header, &planet->header));
     return made;
 }
 
 /* Second road: protostar_new on map_pos, pos and planet_id; its burst is
  * registered just before the protostar. */
 static void *spawn(int x, int y, const char *id, void **protostar) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     void *pm;
     int at;
 
-    keys.planet_id = id;
-    keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));
-    keys.pos = vec_ref(near_main_camera(x, y));
+    if (id != NULL) {
+        planet_keys_set_id(&keys, id);
+    }
+    keys.map_pos = vec_xy(x / 2, y / 2);
+    keys.has_map_pos = 1;
+    keys.pos = near_main_camera(x, y);
+    keys.has_pos = 1;
     pm = protostar_new(&keys);
     at = entity_list_rank_in(live_entities(), pm);
     assert(at >= 1 && is_burst(live_entities()->items[at - 1]));
     {
-        const vec_t *ra = as_burst(live_entities()->items[at - 1])->pos;
-        vec_t want = vec_add(*keys.pos, ((planet_t *)pm)->archetype->spawn_offset);
-        assert(ra != keys.pos && ra->x == want.x && ra->y == want.y);
+        const vec_t *ra = pos_ref(&as_burst(live_entities()->items[at - 1])->header);
+        vec_t want = vec_add(keys.pos, ((planet_t *)pm)->archetype->spawn_offset);
+        assert(ra != NULL && ra->x == want.x && ra->y == want.y);
     }
     if (protostar != NULL) {
         *protostar = pm;
@@ -303,7 +333,7 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
  * and the messages, under no tag -- and the camera's shake. */
 static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     const planet_t *burst = as_burst(entity);
-    const emitter_t *emitter = burst->emitter;
+    const emitter_t *emitter = &burst->emitter;
     const planet_t *planet = burst;
     int inner_index;
 
@@ -321,18 +351,18 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_is_planet(hash, planet);
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
-    hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_string_member(hash, planet_id_or_null(planet));
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_is_dead(hash, planet);
-    hash = fold_vec(hash, planet->pos);
-    hash = fold_vec(hash, planet->map_pos);
+    hash = fold_vec(hash, pos_ref(&planet->header));
+    hash = fold_vec(hash, map_pos_ref(&planet->header));
     hash = fnv(hash, (uint32_t)(emitter->trail_colors == NULL ? -1 : emitter->trail_colors->count));
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
-    hash = fnv(hash, (uint32_t)entity_list_count(planet->outgoing_routes));
-    hash = fnv(hash, (uint32_t)pointer_list_size(emitter->particles));
-    hash = fnv(hash, (uint32_t)entity_list_count(planet->slipways));
+    hash = fnv(hash, (uint32_t)trade_route_list_count(&planet->outgoing_routes));
+    hash = fnv(hash, (uint32_t)pointer_list_size(particles_of(emitter)));
+    hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
     assert(main_camera_typed() != NULL);
-    hash = fold_fixed_member(hash, main_camera_typed()->shake);
+    hash = fold_fixed_member(hash, main_camera_typed()->header.shake);
     /* The 1s of spawn_rate, the four matrix entries, acceleration_factor,
      * speed_factor, speed (the burst's) and of is_planet, trade_multiplier, layer,
      * shake, back_color (the planet's): constant, so BUILT_HASH proves the reads. */
@@ -346,7 +376,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
+    hash = fnv(hash, (uint32_t)(particles_of(emitter) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -356,29 +386,29 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->archetype->ring_colors != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->mood_rows != NULL));
     hash = fnv(hash, (uint32_t)(planet->archetype->made_resources != NULL));
-    hash = fnv(hash, (uint32_t)(planet->production != NULL));
+    hash = fnv(hash, (uint32_t)(planet_production_read(planet) != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
-    hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
-    hash = fnv(hash, (uint32_t)(planet->project != NULL));
+    hash = fnv(hash, (uint32_t)(planet_id_or_null(planet) != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
+    hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
-    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) != 0));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
-    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
-    hash = fnv(hash, (uint32_t)(planet->targeted_by != NULL));
+    hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)(planet->has_production_bonus != 0));
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)(planet->has_net_income != 0));
-    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
-    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_INCOMING_ROUTES) != 0));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0));
     hash = fnv(hash, (uint32_t)(planet->has_development_tier != 0));
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
-    assert(planet->needs == NULL && !planet->has_net_income);
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
+    assert(!(planet->has & PLANET_HAS_NEEDS) && !planet->has_net_income);
     assert(class_of(entity)->attach_slipway == planet_class()->attach_slipway && class_of(entity)->offer_trade == planet_class()->offer_trade &&
            class_of(entity)->attach_slipway != NULL && class_of(entity)->offer_trade != NULL && planet_is_family(entity));
     assert(class_of(entity)->spawn_particle != planet_class()->spawn_particle && class_of(entity)->spawn_particle != NULL);
@@ -395,7 +425,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     assert(class_of(entity)->draw_at == NULL && class_of(entity)->drag == NULL && class_of(entity)->drop == NULL);
     assert(planet->header.class->tags == 0);
     assert(planet->archetype == &burst_archetype);
-    assert(planet->outgoing_routes != NULL);
+    assert(planet->has & PLANET_HAS_OUTGOING_ROUTES);
     if (from_protostar) {
         assert(emitter->trail_colors != &burst_trail_colors_seq);
         assert(emitter->trail_colors != &protostar_trail_colors_seq);
@@ -403,7 +433,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
         assert(emitter->trail_colors == &burst_trail_colors_seq);
     }
     assert(planet->archetype == &burst_archetype);
-    assert(planet->production == planet_shared_production());
+    assert(!(planet->has & PLANET_HAS_PRODUCTION));
     assert(planet->archetype->spacer == &planet_spacer_row);
     assert(planet->archetype->ring_colors == &planet_ring_colors_seq);
     assert(planet->archetype->mood_rows == planet_mood_rows_rows);
@@ -434,11 +464,14 @@ static void test_built(void) {
     c = burst_new(NULL);
     hash = fold_burst(hash, c, 0);
     assert(a != b && b != c && a != c);
-    assert(as_burst(a)->emitter->particles != as_burst(b)->emitter->particles &&
-           as_burst(b)->emitter->particles != as_burst(c)->emitter->particles);
-    assert(as_burst(a)->slipways != as_burst(b)->slipways);
-    assert(as_burst(a)->outgoing_routes == as_burst(b)->outgoing_routes && as_burst(b)->outgoing_routes == as_burst(c)->outgoing_routes);
-    assert(as_burst(c)->pos == NULL && as_burst(c)->map_pos == NULL && as_burst(c)->planet_id == NULL);
+    assert(particles_of(&as_burst(a)->emitter)->zone != particles_of(&as_burst(b)->emitter)->zone &&
+           particles_of(&as_burst(b)->emitter)->zone != particles_of(&as_burst(c)->emitter)->zone);
+    assert(as_burst(a)->slipways.zone != as_burst(b)->slipways.zone);
+    assert((as_burst(a)->has & PLANET_HAS_OUTGOING_ROUTES) && (as_burst(b)->has & PLANET_HAS_OUTGOING_ROUTES) &&
+           (as_burst(c)->has & PLANET_HAS_OUTGOING_ROUTES));
+    assert(trade_route_list_count(&as_burst(a)->outgoing_routes) == 0 && trade_route_list_count(&as_burst(b)->outgoing_routes) == 0 &&
+           trade_route_list_count(&as_burst(c)->outgoing_routes) == 0);
+    assert(pos_ref(&as_burst(c)->header) == NULL && map_pos_ref(&as_burst(c)->header) == NULL && planet_id_or_null(as_burst(c)) == NULL);
     assert(as_burst(a)->archetype->layer == p8_fixed_from_int(3) && as_burst(a)->speed == p8_fixed_from_int(3));
     assert(as_burst(a)->archetype->is_planet == 0);
     assert(as_burst(b)->speed == P8_FIXED_LIT(0x00018000, 1.5));
@@ -454,53 +487,27 @@ static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     return fnv(h, (uint32_t)q->life);
 }
 
-/* A row among a layout row's items: its items, resource, color, then the entry count. */
-static uint32_t fold_tuple(uint32_t h, const data_row_t *t) {
-    int i;
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_layout_row_placed_item(uint32_t h, const layout_row_t *lq, int i) {
+    layout_row_item_t item = lq->placed_items[i];
 
-    for (i = 0; i < t->count; i++) {
-        const data_item_t *item = &t->items[i];
-
-        h = fnv(h, (uint32_t)(i + 1));
-        if (item->text != NULL) {
-            h = fold_string(h, item->text);
-        } else if (item->is_false) {
-            h = fold_bool(h, 0);
-        } else {
-            assert(!item->is_ref && "fold_tuple: no test folds a tuple item that points: to fold one, fold 0xDEAD if NULL, else 0xEEEE then 0, as the frozen hashes did");
-            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
-        }
-    }
-    if (t->has_resource) {
-        h = fold_fixed(fnv_str(h, "resource"), t->resource);
-    }
-    if (t->has_color) {
-        h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(t->color));
-    }
-    return fnv(h, (uint32_t)(t->count + (t->has_resource != 0) + (t->has_color != 0)));
-}
-
-/* A positional as the value it was sorted from folded; NOTHING as false
- * (no row folded here holds an absent value at the top level). */
-static uint32_t fold_layout_row_positional(uint32_t h, const layout_row_t *lq, int i) {
-    layout_row_cell_t c = lq->items[i];
-
-    h = fnv(h, (uint32_t)(i + 1));
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fold_tuple(h, c.as.row);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
-    case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+    h = fnv(fnv(h, (uint32_t)(i + 1)), (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        break;
     }
+    return fold_fixed(h, item.offset.x);
 }
 
-/* The row planet_inspection_panel built into the layout row: its first
- * placed_items_count positionals, color, background, score, pos,
- * placed_items, width, the rest. */
+/* The row planet_inspection_panel built into the layout row: its placed
+ * items, color, score, width. */
 static uint32_t fold_layout_row(uint32_t h, void *e) {
     const layout_row_t *lq = as_burst(e)->layout_row;
     int n = 0;
@@ -513,7 +520,7 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
     assert(lq->placed_items != NULL);
     k = lq->placed_items_count;
     for (i = 0; i < k; i++) {
-        h = fold_layout_row_positional(h, lq, i);
+        h = fold_layout_row_placed_item(h, lq, i);
     }
     if (lq->has_color) {
         h = fold_fixed(fnv_str(h, "color"), lq->color);
@@ -523,14 +530,11 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
         h = fold_fixed(fnv_str(h, "score"), lq->score);
         n++;
     }
-    assert(lq->pos == NULL && "fold_layout_row: no test folds a layout row whose pos is set: to fold one, fold the key \"pos\", then 0xEEEE then 0, count it with the other keys, as the frozen hashes did");
+    assert(pos_ref(&lq->header) == NULL && "fold_layout_row: no test folds a layout row whose pos is set: to fold one, fold the key \"pos\", then 0xEEEE then 0, count it with the other keys, as the frozen hashes did");
     /* As fold_ref folded the tagged list placed_items was: never live, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "placed_items"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_fixed(fnv_str(h, "width"), lq->width);
-    for (i = k; i < lq->items_count; i++) {
-        h = fold_layout_row_positional(h, lq, i);
-    }
-    return fnv(h, (uint32_t)(lq->items_count + n + 2));
+    return fnv(h, (uint32_t)(k + n + 2));
 }
 
 /* Cuts the particle list to the given count, giving back the others. */
@@ -544,11 +548,11 @@ static void cut_particles(pointer_list_t *qy, int n) {
 /* The draw method on a burst whose particle list is cut in place to the given count: is_dead after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     planet_t *g = as_burst(e);
-    pointer_list_t *qy = g->emitter->particles;
+    pointer_list_t *qy = particles_of(&g->emitter);
 
     assert(qy != NULL && qy->count >= n);
     cut_particles(qy, n);
-    class_of(e)->draw(e, g->pos);
+    class_of(e)->draw(e, entity_pos(&g->header));
     h = fold_is_dead(h, g);
     return fnv(h, (uint32_t)qy->count);
 }
@@ -559,7 +563,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
  * emitter_update's dots in its own; is_dead once the particle list holds 3,
  * 2, 0 particles; hit_test on and off the burst, planet_is_colonized;
  * refresh on the planet's shared production (no row), then on one with a
- * resource, before and after two routes land in the shared outgoing
+ * resource, before and after two routes land in its own outgoing
  * routes; new_year with no net income. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
@@ -567,7 +571,8 @@ static void test_life(void) {
     void *second;
     void *third;
     void *protostar;
-    entity_list_t *outgoing;
+    trade_route_list_t *outgoing;
+    static const trade_route_t no_route = {0};
     static production_t production;
     uint32_t row_hash;
     int live_entities_count;
@@ -586,24 +591,24 @@ static void test_life(void) {
         hash = fold_is_dead(hash, as_burst(first));
         hash = fold_is_dead(hash, as_burst(second));
         hash = fold_is_dead(hash, as_burst(third));
-        hash = fnv(hash, (uint32_t)pointer_list_size(as_burst(second)->emitter->particles));
+        hash = fnv(hash, (uint32_t)pointer_list_size(particles_of(&as_burst(second)->emitter)));
     }
 
-    cut_particles(as_burst(second)->emitter->particles, 3);
+    cut_particles(particles_of(&as_burst(second)->emitter), 3);
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
     }
 
     hash = fold_cut(hash, first, 3);
-    assert(!as_burst(first)->is_dead);
+    assert(!as_burst(first)->header.is_dead);
     hash = fold_cut(hash, first, 2);
-    assert(as_burst(first)->is_dead);
+    assert(as_burst(first)->header.is_dead);
     hash = fold_cut(hash, first, 0);
-    assert(as_burst(first)->is_dead);
+    assert(as_burst(first)->header.is_dead);
 
-    hash = fold_bool(hash, class_of(second)->hit_test(second, as_burst(second)->pos, as_burst(second)->pos));
-    hash = fold_bool(hash, class_of(second)->hit_test(second, vec_ref(near_main_camera(0, 0)), vec_ref(near_main_camera(0, 0))));
+    hash = fold_bool(hash, class_of(second)->hit_test(second, mouse_pos(*pos_ref(&as_burst(second)->header), *pos_ref(&as_burst(second)->header))));
+    hash = fold_bool(hash, class_of(second)->hit_test(second, mouse_pos(near_main_camera(0, 0), near_main_camera(0, 0))));
     hash = fnv(fnv(hash, 0xB0u), planet_is_colonized(second) ? 1u : 0u);
     assert(planet_is_colonized(first) == 0);
 
@@ -613,20 +618,22 @@ static void test_life(void) {
     production.has_resource = 1;
     production.resource = p8_fixed_from_int(12);
     production.amount = p8_fixed_from_int(2);
-    as_burst(first)->production = &production;
+    as_burst(first)->production = production;
+    as_burst(first)->has |= PLANET_HAS_PRODUCTION;
     class_of(first)->refresh(first);
     row_hash = fold_layout_row(2166136261u, first);
     hash = fnv(hash, row_hash);
-    outgoing = as_burst(third)->outgoing_routes;
-    assert(outgoing == as_burst(first)->outgoing_routes && outgoing->count == 0);
-    entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
-    entity_list_add(outgoing, &trade_new(game_zone(), NULL)->header);
+    outgoing = &as_burst(first)->outgoing_routes;
+    assert(trade_route_list_count(outgoing) == 0 && outgoing->values.zone == NULL);
+    trade_route_list_init(outgoing, game_zone());
+    trade_route_list_add(outgoing, &no_route);
+    trade_route_list_add(outgoing, &no_route);
     class_of(first)->refresh(first);
     assert(fold_layout_row(2166136261u, first) != row_hash);
     hash = fold_layout_row(hash, first);
-    assert(entity_list_count(as_burst(second)->outgoing_routes) == 2);
-    /* planet_rebuild_trades reuses the outgoing routes held: routes kept, no fresh list. */
-    assert(planet_rebuild_trades(as_burst(second)) == outgoing && outgoing->count == 2);
+    assert(trade_route_list_count(&as_burst(second)->outgoing_routes) == 0 && trade_route_list_count(&as_burst(third)->outgoing_routes) == 0);
+    /* planet_rebuild_trades works on the outgoing routes held: routes kept, in place. */
+    assert(planet_rebuild_trades(as_burst(first)) == outgoing && trade_route_list_count(outgoing) == 2);
 
     live_entities_count = live_entities()->count;
     class_of(second)->new_year(second, p8_fixed_from_int(0));
@@ -674,14 +681,14 @@ static void test_emitter_update_moves_a_particle_in_place(void) {
 
     start_game();
     e = spawn(84, 60, "s73", NULL);
-    em = as_burst(e)->emitter;
+    em = &as_burst(e)->emitter;
     assert(em->matrix_yx != 0);
     particle->pos = p0;
     particle->velocity = v0;
     particle->has_acceleration = 1;
     particle->acceleration = a0;
     particle->life = p8_fixed_from_int(5);
-    qy = em->particles;
+    qy = particles_of(em);
     cut_particles(qy, 0);
     pointer_list_add(qy, particle);
 
@@ -778,7 +785,7 @@ static void test_leaving_gives_back_its_particles(void) {
     start_game();
     cart_flush_exit_queue();
     e = as_burst(harvest(40, 40, "s74"));
-    count = e->emitter->particles->count;
+    count = particles_of(&e->emitter)->count;
     assert(count == 140);
     built = held_now();
     entity_unregister(&e->header);
@@ -803,10 +810,29 @@ static void test_the_largest_bursts_fit_their_slot(void) {
     printf("burst slot: %lu bytes at most\n", (unsigned long)particle_zone_max_bytes(PARTICLE_SLOT_BURST));
 }
 
+/* burst_new copies the id and positions of its planet keys: overwriting the keys afterwards changes nothing. */
+static void test_burst_copies_its_keys(void) {
+    burst_keys_t keys = {0};
+    planet_t *made;
+
+    start_game();
+    planet_keys_set_id(&keys.planet, "s70");
+    keys.planet.map_pos = vec_xy(5, 6);
+    keys.planet.has_map_pos = 1;
+    keys.planet.pos = vec_xy(7, 8);
+    keys.planet.has_pos = 1;
+    made = burst_new(&keys);
+    keys.planet = (planet_keys_t){0};
+    planet_keys_set_id(&keys.planet, "s1");
+    assert(strcmp(planet_id_or_null(made), "s70") == 0);
+    assert(pos_ref(&made->header) != NULL && pos_ref(&made->header)->x == p8_fixed_from_int(7) && pos_ref(&made->header)->y == p8_fixed_from_int(8));
+    assert(map_pos_ref(&made->header) != NULL && map_pos_ref(&made->header)->x == p8_fixed_from_int(5));
+}
+
 /* A burst can be hovered, so a dragged slipway can end on it; the flush
  * that gives the burst back lets go of that end too. */
 static void test_leaving_lets_go_of_a_dragged_slipway(void) {
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     slipway_keys_t slipway_keys;
     slipway_t *jc;
     vec_t mp = vec_xy(40, 40);
@@ -814,19 +840,21 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
 
     start_game();
     cart_flush_exit_queue();
-    keys.planet_id = "s85";
-    keys.map_pos = vec_ref(vec_xy(30, 30));
-    keys.pos = vec_ref(near_main_camera(60, 60));
-    slipway_keys.start = &planet_new(&keys)->header;
+    planet_keys_set_id(&keys, "s85");
+    keys.map_pos = vec_xy(30, 30);
+    keys.has_map_pos = 1;
+    keys.pos = near_main_camera(60, 60);
+    keys.has_pos = 1;
+    slipway_keys.start = entity_id_link(&planet_new(&keys)->header);
     jc = slipway_new(&slipway_keys);
     e = harvest(40, 40, "s86");
-    main_ui()->left_held = &jc->header;
-    main_ui()->hovered = e;
-    slipway_drag(jc, &mp);
-    assert(jc->end == e);
+    main_ui()->left_held = entity_id_link(&jc->header);
+    main_ui()->hovered = entity_id_link(e);
+    slipway_drag(jc, mouse_world_only(mp));
+    assert(slipway_end(jc) == e);
     entity_unregister(e);
     cart_flush_exit_queue();
-    assert(jc->end == NULL);
+    assert(slipway_end(jc) == NULL);
 }
 
 int main(void) {
@@ -847,6 +875,7 @@ int main(void) {
     in_fresh_child(test_leaving_gives_back_its_particles);
     in_fresh_child(test_the_largest_bursts_fit_their_slot);
     in_fresh_child(test_leaving_lets_go_of_a_dragged_slipway);
+    in_fresh_child(test_burst_copies_its_keys);
 
     printf("test_burst: all tests passed\n");
     return 0;

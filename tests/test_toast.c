@@ -10,8 +10,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
@@ -23,6 +26,8 @@
 #include "p8/vram.h"
 #include "game/ui.h"
 #include "game/message_box.h"
+#include "game/planet.h"
+#include "engine/exit_queue.h"
 #include "game/mouse.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
@@ -30,12 +35,21 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+
 #define NO_MONEY_TICKS 51
 #define NO_MONEY_SEQUENCE_HASH 0xAD86C71Cu
 #define NO_MONEY_FIRST_DRAW_HASH 0x7487F35Du
 #define PRICE_TICKS 51
 #define PRICE_SEQUENCE_HASH 0x843EB6FBu
 #define PRICE_FIRST_DRAW_HASH 0xA9B7E9A6u
+
+static int same_vec(vec_t a, vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -72,7 +86,7 @@ static uint32_t draw_hash(void) {
 static uint32_t draw_hash_of(const toast_t *e) {
     p8_gfx_init(&graphics);
     p8_cls(&memory);
-    toast_draw(&graphics, &memory, e, *e->pos);
+    toast_draw(&graphics, &memory, e, *pos_ref(&e->header));
     return screen_hash();
 }
 
@@ -91,23 +105,19 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
  * mouse is put mid-screen, where a toast placed off it is drawn under the
  * main camera. */
 static void fresh_world(void) {
-    vec_t *mouse = malloc(sizeof *mouse);
-
     reset_world(NULL);
-    *mouse = vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60));
     assert(main_mouse() != NULL && main_mouse()->class == mouse_class());
-    ((mouse_t *)main_mouse())->pos = mouse;
+    entity_set_pos(main_mouse(), vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60)));
 }
 
 static toast_t *build(const vec_t *ra, const char *text, int color) {
     toast_keys_t keys = {0};
 
     if (ra != NULL) {
-        vec_t *heap_pos = malloc(sizeof *heap_pos);
-        *heap_pos = *ra;
-        keys.pos = heap_pos;
+        keys.pos = *ra;
+        keys.has_pos = 1;
     }
-    keys.text = text;
+    toast_keys_set_text(&keys, text);
     keys.color = p8_fixed_from_int(color);
     return toast_new(&keys);
 }
@@ -127,8 +137,8 @@ static void live(toast_t *e, int want_ticks, uint32_t want_sequence, uint32_t wa
 
     while (entity_list_listed(live_entities(), e)) {
         vec_t ra;
-        assert(e->pos != NULL);
-        ra = *e->pos;
+        assert(pos_ref(&e->header) != NULL);
+        ra = *pos_ref(&e->header);
         assert(ticks < 1000);
         h = fnv(h, (uint32_t)ra.x);
         h = fnv(h, (uint32_t)ra.y);
@@ -175,9 +185,9 @@ static void test_wormhole_scan_skips_a_live_toast(void) {
     fresh_world();
     e = build(&ra, "+1$", 11);
     mz = wormhole_new();
-    assert(mz->anchors != NULL);
-    assert(!entity_list_listed(mz->anchors, e));
-    assert(mz->anchors->count == 0);
+    assert(mz->anchors.zone != NULL);
+    assert(!entity_id_list_has(&mz->anchors, entity_id_of(e)));
+    assert(mz->anchors.count == 0);
 }
 
 /* update_entities() on an entity struct: the method of its state is called
@@ -185,7 +195,6 @@ static void test_wormhole_scan_skips_a_live_toast(void) {
  * non zero is_dead takes it out of the live entities. */
 typedef struct {
     entity_t header;
-    int is_dead;
 } fake_toast_t;
 
 static int g_fake_update_calls = 0;
@@ -196,7 +205,7 @@ static void fake_toast_update(entity_t *self, p8_fixed_t t) {
     g_fake_update_calls++;
     g_fake_update_last = t;
     if (t >= p8_fixed_from_int(2)) {
-        f->is_dead = 1;
+        f->header.is_dead = 1;
     }
 }
 
@@ -210,8 +219,8 @@ static void test_update_entities_drives_an_entity_struct(void) {
 
     fresh_world();
     entity_init_instance(&f->header, &fake_toast_class_def, ENTITY_STATE_NORMAL, 0);
-    f->header.is_dead = &f->is_dead;
-    f->is_dead = 0;
+    f->header.has |= ENTITY_HAS_IS_DEAD;
+    f->header.is_dead = 0;
     entity_construct(&f->header);
     assert(entity_list_listed(live_entities(), f));
 
@@ -257,7 +266,7 @@ static void test_toast_is_a_struct_registered_under_draw(void) {
     int i;
 
     fresh_world();
-    keys.text = "z";
+    toast_keys_set_text(&keys, "z");
     direct = build(NULL, "z", 7);
     generic = toast_new(&keys);
 
@@ -310,36 +319,126 @@ static void test_toast_keeps_a_copy_of_its_text(void) {
     frame_zone_reset();
     reuse = (char *)allocator_alloc(frame_zone(), 64);
     memset(reuse, 'X', 64);
-    assert(e->text != NULL && strcmp(e->text, "+12$") == 0);
+    assert(strcmp(e->text, "+12$") == 0);
     assert(draw_hash_of(e) == want);
 }
 
-/* planet_new_year() hands the toast its planet's position, which
- * planet_bob() moves in place in the next update_entities(), before the
- * toast's first update: the toast follows it until then, and no longer
- * after. */
-static void test_toast_follows_the_borrowed_pos_until_its_first_update(void) {
-    vec_t *planet_pos = malloc(sizeof *planet_pos);
+/* The keys hold the toast's text and position as values: rewriting them
+ * after the toast is built changes nothing it shows. */
+static void test_toast_copies_its_keys(void) {
     toast_keys_t keys = {0};
+    vec_t at = vec_make(p8_fixed_from_int(250), p8_fixed_from_int(260));
+    uint32_t want;
+    toast_t *e;
+
+    fresh_world();
+    want = draw_hash_of(build(&at, "+12$", 11));
+    fresh_world();
+    keys.pos = at;
+    keys.has_pos = 1;
+    toast_keys_set_text(&keys, "+12$");
+    keys.color = p8_fixed_from_int(11);
+    e = toast_new(&keys);
+    memset(&keys, 'X', sizeof keys);
+    assert(same_vec(e->header.pos, at) && strcmp(e->text, "+12$") == 0);
+    assert(draw_hash_of(e) == want);
+}
+
+/* A position given as zero is a position, not the mouse's. */
+static void test_toast_at_zero_is_not_placed_off_the_mouse(void) {
+    vec_t zero = vec_make(0, 0);
+    toast_t *e;
+
+    fresh_world();
+    e = build(&zero, "x", 7);
+    assert(same_vec(e->header.pos, zero));
+    e = build(NULL, "x", 7);
+    assert(!same_vec(e->header.pos, zero));
+}
+
+static void set_too_long_text(void) {
+    toast_keys_t keys = {0};
+
+    toast_keys_set_text(&keys, "12345678901234567");
+}
+
+/* A text past TOAST_TEXT_CAP stops on its assert. */
+static void test_toast_text_past_its_cap_aborts(void) {
+    int status;
+    pid_t child;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        set_too_long_text();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static planet_t *planet_at(vec_t at) {
+    planet_keys_t keys = {0};
+
+    keys.pos = at;
+    keys.has_pos = 1;
+    return planet_new(&keys);
+}
+
+static toast_t *toast_from(const planet_t *source) {
+    toast_keys_t keys = {0};
+
+    keys.source = entity_id_link(&source->header);
+    toast_keys_set_text(&keys, "+1$");
+    keys.color = p8_fixed_from_int(11);
+    return toast_new(&keys);
+}
+
+/* planet_new_year() names the toast's source planet, which planet_bob()
+ * moves in place in the next update_entities(): until its first update the
+ * toast is drawn at the planet's position, and no longer follows after. */
+static void test_toast_follows_its_source_until_its_first_update(void) {
+    planet_t *planet;
     vec_t moved;
     vec_t after;
     toast_t *e;
 
     fresh_world();
-    *planet_pos = vec_make(p8_fixed_from_int(100), p8_fixed_from_int(100));
-    keys.pos = planet_pos;
-    keys.text = "+1$";
-    keys.color = p8_fixed_from_int(11);
-    e = toast_new(&keys);
-    *planet_pos = vec_make(p8_fixed_from_int(110), P8_FIXED_LIT(0x00648000, 100.5));
-    moved = *planet_pos;
-    assert(e->pos->x == moved.x && e->pos->y == moved.y);
+    planet = planet_at(vec_make(p8_fixed_from_int(100), p8_fixed_from_int(100)));
+    e = toast_from(planet);
+    assert(same_vec(e->header.pos, planet->header.pos));
+    planet_bob(&planet->header, p8_fixed_from_int(50));
+    moved = planet->header.pos;
+    assert(moved.y != p8_fixed_from_int(100));
+    e->header.class->draw(&e->header, (vec_t){0, 0});
+    assert(same_vec(e->header.pos, moved));
+    planet_bob(&planet->header, p8_fixed_from_int(60));
+    moved = planet->header.pos;
     toast_update(e);
     after = vec_add(moved, e->archetype->velocity);
-    assert(e->pos->x == after.x && e->pos->y == after.y);
-    *planet_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    free(planet_pos);
-    assert(e->pos->x == after.x && e->pos->y == after.y);
+    assert(same_vec(e->header.pos, after));
+    planet_bob(&planet->header, p8_fixed_from_int(70));
+    e->header.class->draw(&e->header, (vec_t){0, 0});
+    assert(same_vec(e->header.pos, after));
+}
+
+/* A source flushed before the toast's first update leaves the toast where
+ * it last saw it. */
+static void test_toast_keeps_its_copy_once_its_source_is_flushed(void) {
+    planet_t *planet;
+    vec_t start = vec_make(p8_fixed_from_int(100), p8_fixed_from_int(100));
+    toast_t *e;
+
+    fresh_world();
+    planet = planet_at(start);
+    e = toast_from(planet);
+    entity_unregister(&planet->header);
+    exit_queue_flush();
+    assert(entity_get(entity_id_of(&e->header)) == &e->header);
+    toast_update(e);
+    assert(same_vec(e->header.pos, vec_add(start, e->archetype->velocity)));
 }
 
 int main(void) {
@@ -362,7 +461,11 @@ int main(void) {
     test_toast_is_a_struct_registered_under_draw();
     test_toast_gives_its_slot_back();
     test_toast_keeps_a_copy_of_its_text();
-    test_toast_follows_the_borrowed_pos_until_its_first_update();
+    test_toast_copies_its_keys();
+    test_toast_at_zero_is_not_placed_off_the_mouse();
+    test_toast_text_past_its_cap_aborts();
+    test_toast_follows_its_source_until_its_first_update();
+    test_toast_keeps_its_copy_once_its_source_is_flushed();
 
     printf("test_toast: all tests passed\n");
     return 0;

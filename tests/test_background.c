@@ -30,6 +30,7 @@
 #include "game/research.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
@@ -105,14 +106,13 @@ static const vec_t *drag_mouse_of(const background_t *bg) {
     return bg->has_drag_mouse ? &bg->drag_mouse : NULL;
 }
 
-/* `drag_mouse` holds the value of the given position, a copy. */
-static int drag_mouse_is(const background_t *bg, const vec_t *rp) {
-    return bg->has_drag_mouse && &bg->drag_mouse != rp && bg->drag_mouse.x == rp->x && bg->drag_mouse.y == rp->y;
+static int drag_mouse_is(const background_t *bg, vec_t rp) {
+    return bg->has_drag_mouse && bg->drag_mouse.x == rp.x && bg->drag_mouse.y == rp.y;
 }
 
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const background_t *bg) {
-    return bg->is_hovered ? 2 : 0;
+    return bg->header.is_hovered ? 2 : 0;
 }
 
 static const camera_t *checked_main_camera(void) {
@@ -173,10 +173,12 @@ static background_t *the_background(void) {
     return bg;
 }
 
-static vec_t *vec_ref(int x, int y) {
-    vec_t *v = malloc(sizeof *v);
-    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return v;
+static vec_t point(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+}
+
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
 
 static int mget(int x, int y) {
@@ -201,7 +203,7 @@ static void check_fresh_background(const background_t *bg) {
     for (i = 0; i < 15; i++) {
         assert(pl->items[i] == want_tile_choices[i]);
     }
-    assert(!bg->has_drag_mouse && !bg->is_hovered);
+    assert(!bg->has_drag_mouse && !bg->header.is_hovered);
     assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->drop == NULL);
@@ -266,8 +268,8 @@ static void test_map(void) {
     check("second_map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
 }
 
-static void drag(void *bg, vec_t *rp) {
-    background_class()->drag(bg, vec_ref(1, 2), rp);
+static void drag(void *bg, vec_t rp) {
+    background_class()->drag(bg, mouse_pos(point(1, 2), rp));
 }
 
 /* A drag with no `drag_mouse` yet reads the zero vector; the right press
@@ -276,35 +278,54 @@ static void drag(void *bg, vec_t *rp) {
 static void test_drag(void) {
     uint32_t h = 2166136261u;
     background_t *bg;
-    vec_t *rp;
+    vec_t rp;
     down_t out;
     vec_t v;
     int i;
 
     start_game();
     bg = the_background();
-    rp = vec_ref(10, 20);
+    rp = point(10, 20);
     drag(bg, rp);
-    assert(checked_main_camera()->velocity != NULL);
-    v = *checked_main_camera()->velocity;
+    v = checked_main_camera()->velocity;
     assert(v.x == p8_fixed_from_int(-10) && v.y == p8_fixed_from_int(-20));
     assert(drag_mouse_is(bg, rp));
-    h = fold_vec(h, checked_main_camera()->velocity);
+    h = fold_vec(h, &checked_main_camera()->velocity);
 
-    rp = vec_ref(30, 40);
-    out = background_class()->right_press(&bg->header, vec_ref(5, 6), rp);
-    assert(out.stop && (void *)out.held == bg);
+    rp = point(30, 40);
+    out = background_class()->right_press(&bg->header, mouse_pos(point(5, 6), rp));
+    assert(out.stop && (void *)entity_get(out.held) == bg);
     assert(drag_mouse_is(bg, rp));
     h = fold_vec(h, drag_mouse_of(bg));
 
     for (i = 0; i < 3; i++) {
-        rp = vec_ref(33 - 7 * i, 41 + 5 * i * i);
+        rp = point(33 - 7 * i, 41 + 5 * i * i);
         drag(bg, rp);
         assert(drag_mouse_is(bg, rp));
-        h = fold_vec(h, checked_main_camera()->velocity);
+        h = fold_vec(h, &checked_main_camera()->velocity);
         h = fold_vec(h, drag_mouse_of(bg));
     }
     check("drag", h, DRAG_HASH);
+}
+
+/* An absent screen point stores no drag mouse and moves the camera by the
+ * stored one alone; a screen point given as zero is stored. */
+static void test_drag_without_a_screen_point(void) {
+    background_t *bg;
+    mouse_pos_t world_only = {.world = point(5, 6), .has = MOUSE_POS_HAS_WORLD};
+    vec_t v;
+
+    start_game();
+    bg = the_background();
+    (void)background_class()->right_press(&bg->header, mouse_pos(point(5, 6), point(30, 40)));
+    background_class()->drag(&bg->header, world_only);
+    v = checked_main_camera()->velocity;
+    assert(v.x == p8_fixed_from_int(30) && v.y == p8_fixed_from_int(40));
+    assert(!bg->has_drag_mouse);
+    (void)background_class()->right_press(&bg->header, mouse_pos(point(5, 6), point(0, 0)));
+    assert(drag_mouse_is(bg, point(0, 0)));
+    (void)background_class()->right_press(&bg->header, world_only);
+    assert(!bg->has_drag_mouse);
 }
 
 /* The left press builds a probe while the probe tag is empty, a wormhole
@@ -322,28 +343,28 @@ static void test_left_press(void) {
     check_int("left_press_probe_before", probes_before, LEFT_PRESS_PROBE_BEFORE);
     check_int("left_press_wormhole_before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
-    out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
-    assert(out.stop && out.held != NULL);
-    assert(out.held->class == probe_class());
-    assert(entity_list_listed(entities_by_tag(TAG_PROBE), out.held));
+    out = background_class()->left_press(bg, mouse_pos(point(1, 1), point(2, 2)));
+    assert(out.stop && entity_get(out.held) != NULL);
+    assert(entity_get(out.held)->class == probe_class());
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity_get(out.held)));
 
-    out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
-    assert(out.stop && out.held != NULL);
-    assert(out.held->class == wormhole_class());
-    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), out.held));
-    assert(is_state(&((const wormhole_t *)out.held)->header, ENTITY_STATE_PLACING));
+    out = background_class()->left_press(bg, mouse_pos(point(1, 1), point(2, 2)));
+    assert(out.stop && entity_get(out.held) != NULL);
+    assert(entity_get(out.held)->class == wormhole_class());
+    assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), entity_get(out.held)));
+    assert(is_state(&((const wormhole_t *)entity_get(out.held))->header, ENTITY_STATE_PLACING));
 
     check_int("left_press_probe_after", entity_list_list_count(entities_by_tag(TAG_PROBE)), LEFT_PRESS_PROBE_AFTER);
     check_int("left_press_wormhole_after", entity_list_list_count(entities_by_tag(TAG_WORMHOLE)), LEFT_PRESS_WORMHOLE_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {
-    const ui_hovered_by_layer_t *ic = main_ui()->hovered_by_layer;
+    const ui_hovered_by_layer_t *ic = &main_ui()->hovered_by_layer;
 
-    if (ic == NULL) {
+    if (!(main_ui()->has & UI_HAS_HOVERED_BY_LAYER)) {
         return 0;
     }
-    return entity_list_listed(&ic->layers[layer], e);
+    return entity_id_list_has(&ic->layers[layer], entity_id_of(e));
 }
 
 /* Nothing else hovered: the background is `hovered`, marked `is_hovered`,
@@ -370,21 +391,21 @@ static void test_hover(void) {
     update_entities();
 
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered == bg);
+    assert((void *)ui_hovered(main_ui()) == bg);
     assert(is_hovered_state(bg) == 2);
     assert(in_layer(1, bg));
     h = fnv(h, is_hovered_state(bg));
 
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
-    assert((void *)kv == bg && kn.stop && kn.held != NULL && (void *)kn.held != bg);
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, mouse_pos(point(1, 1), point(2, 2)), NULL, &kv, &kn));
+    assert((void *)kv == bg && kn.stop && entity_get(kn.held) != NULL && (void *)entity_get(kn.held) != bg);
     kv = NULL;
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
-    assert((void *)kv == bg && kn.stop && (void *)kn.held == bg);
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, mouse_pos(point(1, 1), point(2, 2)), NULL, &kv, &kn));
+    assert((void *)kv == bg && kn.stop && (void *)entity_get(kn.held) == bg);
     h = fold_vec(h, drag_mouse_of(bg));
 
     veil = (void *)modal_backdrop_new(NULL);
     ui_update(&memory, main_ui());
-    assert((void *)main_ui()->hovered == veil);
+    assert((void *)ui_hovered(main_ui()) == veil);
     assert(is_hovered_state(bg) == 0);
     h = fnv(h, is_hovered_state(bg));
     check("hover", h, HOVER_HASH);
@@ -410,7 +431,7 @@ static void test_accept_drop(void) {
     background_t *bg;
     planet_t *ly;
     void *nr;
-    planet_keys_t keys;
+    planet_keys_t keys = {0};
     down_t r;
 
     start_game();
@@ -419,15 +440,16 @@ static void test_accept_drop(void) {
     ly = first_planet_with_state(ENTITY_STATE_SETTLED);
     assert(ly != NULL);
     r = planet_accept_drop(ly, &bg->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
     assert(is_state(&ly->header, ENTITY_STATE_SETTLED));
 
-    keys.planet_id = NULL;
-    keys.map_pos = ly->map_pos;
-    keys.pos = ly->pos;
+    keys.map_pos = ly->header.map_pos;
+    keys.has_map_pos = entity_has_map_pos(&ly->header);
+    keys.pos = ly->header.pos;
+    keys.has_pos = entity_has_pos(&ly->header);
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &bg->header);
-    assert(r.stop && r.held == NULL);
+    assert(r.stop && entity_get(r.held) == NULL);
 }
 
 /* The background alone under draw, drawn by draw_layers with the main
@@ -449,7 +471,7 @@ static void test_draw(void) {
 enum { HELD_ABSENT, HELD_PROBE_STRUCT, HELD_WORMHOLE_STRUCT, HELD_OTHER };
 
 static uint32_t left_held_kind(void) {
-    const void *held = main_ui()->left_held;
+    const void *held = ui_left_held(main_ui());
 
     if (held == NULL) {
         return HELD_ABSENT;
@@ -499,7 +521,7 @@ static void test_scripted_drags(void) {
         cart_update60();
         cart_draw();
         assert(find_background(&count) == bg && count == 1);
-        assert((main_ui()->right_held == bg) == (i < 3));
+        assert((ui_right_held(main_ui()) == bg) == (i < 3));
         if (i == 6) {
             assert(left_held_kind() == HELD_PROBE_STRUCT);
         }
@@ -570,6 +592,7 @@ int main(void) {
     in_fresh_child(test_construction);
     in_fresh_child(test_map);
     in_fresh_child(test_drag);
+    in_fresh_child(test_drag_without_a_screen_point);
     in_fresh_child(test_left_press);
     in_fresh_child(test_hover);
     in_fresh_child(test_accept_drop);

@@ -9,14 +9,21 @@
 #include "game/game_data.h"
 #include "engine/vec.h"
 #include "game/particle_zone.h"
+#include "game/planet.h"
+#include "game/probe.h"
 
 typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
 
+/* A class property, not the position bit: a probe dragged without a mouse position carries a position that is absent. */
+static int emitter_host_carries_pos(const entity_t *self) {
+    return (self->class->lineage & (LINEAGE(LINEAGE_PROBE) | LINEAGE(LINEAGE_PLANET))) != 0;
+}
+
 static p8_fixed_t emitter_host_layer_pos(const entity_t *self, vec_t *ra) {
-    assert(self->layer != NULL && self->pos != NULL &&
+    assert(entity_has(self, ENTITY_HAS_LAYER) && emitter_host_carries_pos(self) &&
            "emitter_update: a host that carries no layer or no pos, none of whose draw runs it -- stop");
-    *ra = *self->pos != NULL ? **self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    return *self->layer;
+    *ra = entity_pos(self);
+    return self->layer;
 }
 
 static int particle_to_int(p8_fixed_t x) {
@@ -31,44 +38,52 @@ const allocator_t *particle_burst_slot_take(void) {
     return particle_zone_slot(PARTICLE_SLOT_BURST);
 }
 
+emitter_t *emitter_of(entity_t *e) {
+    if (e->class->lineage & LINEAGE(LINEAGE_PROBE)) {
+        return &((probe_t *)e)->emitter;
+    }
+    if (planet_is_family(e)) {
+        planet_t *planet = (planet_t *)e;
+        return (planet->has & PLANET_HAS_EMITTER) ? &planet->emitter : NULL;
+    }
+    return NULL;
+}
+
 void emitter_init(entity_t *self) {
     emitter_init_in(self, PARTICLE_SLOT_LIST);
 }
 
 void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind) {
-    const allocator_t *slot;
     emitter_t *emitter;
-    pointer_list_t *qy;
 
     if (self == NULL) {
         return;
     }
-    assert(self->emitter != NULL && "emitter_init_in: a class that carries no particle emitter has no particle list -- stop");
+    emitter = emitter_of(self);
+    assert(emitter != NULL && "emitter_init_in: a class that carries no particle emitter has no particle list -- stop");
     assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST) && "emitter_init_in: a particle list is a list or a help screen list");
 
-    emitter = self->emitter;
     emitter_release_particles(emitter);
-    slot = particle_zone_slot(slot_kind);
-    qy = (pointer_list_t *)allocator_alloc(slot, sizeof *qy);
-    pointer_list_init_reserve(qy, slot,
-                            slot_kind == PARTICLE_SLOT_HELP_LIST ? PARTICLES_HELP_SCREEN_CAPACITY : PARTICLES_CAPACITY);
-    emitter->particles = qy;
+    pointer_list_init_reserve(&emitter->particles, particle_zone_slot(slot_kind),
+                              slot_kind == PARTICLE_SLOT_HELP_LIST ? PARTICLES_HELP_SCREEN_CAPACITY : PARTICLES_CAPACITY);
+    emitter->has |= EMITTER_HAS_PARTICLES;
     emitter->particles_slot_kind = slot_kind;
 }
 
 void emitter_release_particles(emitter_t *emitter) {
-    pointer_list_t *qy = emitter->particles;
+    pointer_list_t *qy = &emitter->particles;
     const allocator_t *particle = particle_zone(PARTICLE_SLOT_PARTICLE);
     int i;
 
-    if (qy == NULL) {
+    if (!(emitter->has & EMITTER_HAS_PARTICLES)) {
         return;
     }
     for (i = 0; i < qy->count; i++) {
         allocator_release(particle, qy->items[i]);
     }
     arena_release(qy->zone);
-    emitter->particles = NULL;
+    emitter->particles = (pointer_list_t){0};
+    emitter->has &= (uint16_t)~EMITTER_HAS_PARTICLES;
 }
 
 void emitter_spawn(entity_t *self, p8_fixed_t n) {
@@ -78,8 +93,8 @@ void emitter_spawn(entity_t *self, p8_fixed_t n) {
     if (self == NULL) {
         return;
     }
-    emitter = self->emitter;
-    qy = emitter != NULL ? emitter->particles : NULL;
+    emitter = emitter_of(self);
+    qy = emitter != NULL && (emitter->has & EMITTER_HAS_PARTICLES) ? &emitter->particles : NULL;
 
     while (p8_fixed_rnd_default() < n) {
         if (qy != NULL && self->class->spawn_particle != NULL) {
@@ -91,7 +106,7 @@ void emitter_spawn(entity_t *self, p8_fixed_t n) {
 }
 
 void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *self) {
-    const emitter_t *emitter;
+    emitter_t *emitter;
     p8_fixed_t layer;
     vec_t screen_pos;
     p8_fixed_t center_x;
@@ -107,9 +122,9 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
     if (self == NULL) {
         return;
     }
-    assert(self->emitter != NULL && "emitter_update: a class that carries no particle emitter is no receiver -- stop");
+    emitter = emitter_of(self);
+    assert(emitter != NULL && "emitter_update: a class that carries no particle emitter is no receiver -- stop");
 
-    emitter = self->emitter;
     layer = emitter_host_layer_pos(self, &screen_pos);
     if (layer < p8_fixed_from_int(10) && !entity_geom_is_on_screen(self)) {
         return;
@@ -123,8 +138,8 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
     matrix_yy = emitter->matrix_yy;
     colors = emitter->trail_colors;
 
-    particles = emitter->particles;
-    if (particles != NULL) {
+    if (emitter->has & EMITTER_HAS_PARTICLES) {
+        particles = &emitter->particles;
         for (index = 0; index < particles->count; index++) {
             particle_t *particle = particles->items[index];
             vec_t pv;
@@ -169,7 +184,7 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
     emitter_spawn(self, emitter->archetype->spawn_rate);
 }
 
-void emitter_update_method(entity_t *self, const vec_t *screen_pos) {
+void emitter_update_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     emitter_update(dispatch_context_gfx(), dispatch_context_mem(), self);
 }

@@ -7,6 +7,7 @@
 #include "game/targeting.h"
 #include "engine/pointer_list.h"
 #include "engine/entity_class.h"
+#include "game/planet.h"
 
 enum { SLIPWAY_SERVED_PLANETS_CAP = 90 };
 
@@ -14,48 +15,39 @@ enum { SLIPWAY_TRANSIT_DOTS_RESERVE = 24 };
 
 typedef struct {
     int count;
-    const char *ids[SLIPWAY_SERVED_PLANETS_CAP];
+    char ids[SLIPWAY_SERVED_PLANETS_CAP][PLANET_ID_SIZE];
 } slipway_served_planets_t;
 
+/* Copies id; the caller keeps its own string. */
 void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id);
 
 int slipway_served_planets_has(const slipway_served_planets_t *hg, const char *id);
 
 typedef struct {
     entity_t header;
-    const vec_t *pos;
-    const vec_t *map_pos;
 } slipway_mouse_point_t;
 
 typedef struct {
     entity_t header;
     const slipway_archetype_t *archetype;
-    p8_fixed_t layer;
     p8_fixed_t fade_in_step;
-    entity_t *start;
-    pointer_list_t *transit_dots;
-    slipway_served_planets_t *served_planets;
-    slipway_served_planets_t served_planets_own;
-    entity_t *end;
-    p8_fixed_t infraspace;
-    int has_infraspace;
-    entity_t *targeted_by;
-    int is_dead;
-    targeting_t *targeting;
-    targeting_t targeting_own;
+    entity_id_t start;
+    pointer_list_t transit_dots;
+    slipway_served_planets_t served_planets;
+    entity_id_t end;
+    int end_is_point;
+    entity_id_t targeted_by;
+    targeting_t targeting;
     slipway_mouse_point_t point;
-    vec_t point_pos;
-    vec_t point_map_pos;
 } slipway_t;
 
-#define SLIPWAY_CONSTRUCTION_BYTES                                         \
-    (ZONE_BYTES(sizeof(slipway_t)) + ZONE_BYTES(sizeof(pointer_list_t)) + \
-     ZONE_BYTES(SLIPWAY_TRANSIT_DOTS_RESERVE * sizeof(void *)))
+#define SLIPWAY_CONSTRUCTION_BYTES \
+    (ZONE_BYTES(sizeof(slipway_t)) + ZONE_BYTES(SLIPWAY_TRANSIT_DOTS_RESERVE * sizeof(void *)))
 
 typedef struct {
     entity_t header;
     const char *status_text;
-    slipway_t *targeted_by;
+    entity_id_t targeted_by;
 } slipway_too_far_t;
 
 void slipway_init(void);
@@ -68,14 +60,21 @@ vec_t slipway_end_map_pos(const entity_t *end);
 vec_t slipway_end_pos(const entity_t *end);
 
 typedef struct {
-    entity_t *start;
+    entity_id_t start;
 } slipway_keys_t;
 
 slipway_t *slipway_new(const slipway_keys_t *keys);
 
+/* NULL once the planet was flushed. */
+entity_t *slipway_start(const slipway_t *self);
+/* The planet, the slipway's own mouse point, or NULL. */
+entity_t *slipway_end(const slipway_t *self);
+
+entity_t *slipway_too_far(void);
+
 void slipway_construct(slipway_t *self);
 
-void slipway_drag(slipway_t *self, vec_t *mp);
+void slipway_drag(slipway_t *self, mouse_pos_t mouse);
 
 void slipway_drop(slipway_t *self, entity_t *end_planet);
 
@@ -89,6 +88,6 @@ entity_t *slipway_other_end(const slipway_t *self, const entity_t *planet_instan
 
 void slipway_draw_overlay(slipway_t *self);
 
-void slipway_draw_method(entity_t *self, const vec_t *screen_pos);
+void slipway_draw_method(entity_t *self, vec_t screen_pos);
 
 #endif

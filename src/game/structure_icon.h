@@ -11,12 +11,10 @@
 typedef struct {
     entity_t header;
     const structure_icon_archetype_t *archetype;
-    const vec_t *pos;
     const entity_kind_t *kind;
     tooltip_t *tooltip;
     int is_revealed;
     int has_is_revealed;
-    int is_hovered;
 } structure_icon_t;
 
 typedef struct {
@@ -45,11 +43,14 @@ structure_icon_t *structure_icon_new(const structure_icon_keys_t *keys);
 
 const vec_t *structure_icon_rest_cursor(void);
 
-const vec_t *structure_icon_cursor(void);
+int structure_icon_has_cursor(void);
+
+/* Zero while the cursor is absent. */
+vec_t structure_icon_cursor(void);
 
 int structure_icon_id_counter(p8_fixed_t *out);
 
-void structure_icon_set_cursor(const vec_t *cursor);
+void structure_icon_set_cursor(vec_t cursor);
 
 void structure_icon_refresh(structure_icon_t *self);
 

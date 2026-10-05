@@ -37,8 +37,7 @@ typedef struct {
     int is_false;
     int is_fixed;
     p8_fixed_t fixed;
-    int is_ref;
-    const void *ref;
+    int is_nil;
 } data_item_t;
 
 typedef enum {

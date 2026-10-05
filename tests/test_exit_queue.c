@@ -13,6 +13,9 @@
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "game/economy_score.h"
+#include "game/main_economy.h"
+#include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "p8/gfx.h"
@@ -45,18 +48,14 @@ static const entity_class_t freed_cls = {.release = release_frees};
 static const entity_class_t kept_cls = {0};
 
 /* A message box: the shown message box and the score panel's last box only
- * ever point to boxes. is_hovered points to a field of its own, so that
- * ui_update_hover can write it through previous_hovered. */
+ * ever point to boxes. It carries is_hovered, so that ui_update_hover can
+ * write it through previous_hovered. */
 static message_box_t *new_entity(const entity_class_t *cls) {
     message_box_t *mh = calloc(1, sizeof *mh);
     assert(mh != NULL);
     mh->header.class = cls;
-    mh->header.is_hovered = &mh->is_dead;
+    mh->header.has |= ENTITY_HAS_IS_HOVERED;
     return mh;
-}
-
-static void forget_nothing(const entity_t *e) {
-    (void)e;
 }
 
 static p8_vram_t memory;
@@ -84,7 +83,7 @@ static int case_entity_unregister_alive_until_flush(void) {
     entity_register(&e->header);
     entity_unregister(&e->header);
     assert(exit_queue_count() == 1 && "entity_unregister queues a live entity that has something to release");
-    sink = (unsigned char)e->is_dead;
+    sink = (unsigned char)e->header.is_dead;
     cart_update60();
     assert(exit_queue_count() == 0 && "cart_update60 flushes the queue");
     return 0;
@@ -96,44 +95,49 @@ static int case_entity_unregister_released_at_flush(void) {
     entity_register(&e->header);
     entity_unregister(&e->header);
     cart_update60();
-    sink = (unsigned char)e->is_dead;
+    sink = (unsigned char)e->header.is_dead;
     return 0;
 }
 
 /* ui_clear_ephemerals replaces the ui's ephemerals; the frame still reads
  * the old list. */
-static const entity_list_t *replaced_ephemerals(void) {
+static entity_id_list_t replaced_ephemerals(void) {
     load_cart_and_start();
-    const entity_list_t *old = main_ui()->ephemerals;
-    assert(old != ui_ephemerals_shared());
+    const entity_id_list_t old = main_ui()->ephemerals;
+    assert((main_ui()->has & UI_HAS_OWN_EPHEMERALS) && old.capacity > 0);
     ui_clear_ephemerals(main_ui());
     assert(exit_queue_count() == 1 && "ui_clear_ephemerals queues the list it replaces");
     return old;
 }
 
 static int case_ephemerals_alive_until_flush(void) {
-    const entity_list_t *old = replaced_ephemerals();
-    sink = (unsigned char)old->count;
+    const entity_id_list_t old = replaced_ephemerals();
+    sink = (unsigned char)old.items[0].index;
     cart_update60();
     assert(exit_queue_count() == 0);
     return 0;
 }
 
 static int case_ephemerals_released_at_flush(void) {
-    const entity_list_t *old = replaced_ephemerals();
+    const entity_id_list_t old = replaced_ephemerals();
     cart_update60();
-    sink = (unsigned char)old->count;
+    sink = (unsigned char)old.items[0].index;
     return 0;
 }
 
-static int case_entity_unregister_outside_live_entities_or_without_member(void) {
+static int case_entity_unregister_outside_live_entities_or_without_release(void) {
     load_cart_and_start();
     message_box_t *absent = new_entity(&counted_cls);
     message_box_t *kept = new_entity(&kept_cls);
     entity_unregister(&absent->header);
+    assert(exit_queue_count() == 0 && "an entity outside the live list is not queued");
     entity_register(&kept->header);
     entity_unregister(&kept->header);
-    assert(exit_queue_count() == 0);
+    assert(exit_queue_count() == 1 && "a class without release is queued too: the flush frees its id");
+    entity_unregister(&kept->header);
+    assert(exit_queue_count() == 1 && "unregistered twice, queued once");
+    cart_update60();
+    assert(exit_queue_count() == 0 && released == 0);
     return 0;
 }
 
@@ -176,11 +180,16 @@ static int case_reset_world_after_a_full_game(void) {
 static int case_shutdown_drains(void) {
     load_cart_and_start();
     message_box_t *e = new_entity(&counted_cls);
+    message_box_t *alive = new_entity(&kept_cls);
     entity_register(&e->header);
     entity_unregister(&e->header);
+    entity_construct(&alive->header);
+    entity_id_t alive_id = entity_id_of(&alive->header);
     cart_shutdown();
     assert(released == 1 && exit_queue_count() == 0 &&
            "cart_shutdown flushes the queue: no entry survives until the next cart_load");
+    assert(entity_get(alive_id) == NULL && entity_id_live() == 0 && "cart_shutdown leaves no table behind");
+    free(alive);
     return 0;
 }
 
@@ -188,20 +197,22 @@ static message_box_t *pointed_at_everywhere(void) {
     load_cart_and_start();
     cart_start_game(NULL);
     message_box_t *e = new_entity(&freed_cls);
-    entity_register(&e->header);
-    main_ui()->hovered = &e->header;
-    main_ui()->previous_hovered = &e->header;
+    entity_construct(&e->header);
+    main_ui()->hovered = entity_id_link(&e->header);
+    main_ui()->previous_hovered = entity_id_link(&e->header);
     message_box_set_shown(e);
-    main_score_panel()->last_box = e;
+    score_panel_set_last_box(main_score_panel(), e);
     entity_unregister(&e->header);
     return e;
 }
 
 static int case_flush_forgets_references(void) {
-    (void)pointed_at_everywhere();
+    message_box_t *e = pointed_at_everywhere();
+    assert(ui_hovered(main_ui()) == &e->header && ui_previous_hovered(main_ui()) == &e->header &&
+           "an unregistered entity still resolves until the flush");
     cart_flush_exit_queue();
-    assert(main_ui()->hovered == NULL && main_ui()->previous_hovered == NULL);
-    assert(shown_message_box() == NULL && main_score_panel()->last_box == NULL);
+    assert(ui_hovered(main_ui()) == NULL && ui_previous_hovered(main_ui()) == NULL);
+    assert(shown_message_box() == NULL && score_panel_last_box(main_score_panel()) == NULL);
     return 0;
 }
 
@@ -209,7 +220,7 @@ static int case_update60_after_forgetting(void) {
     (void)pointed_at_everywhere();
     cart_update60();
     cart_draw();
-    assert(shown_message_box() == NULL && main_score_panel()->last_box == NULL);
+    assert(shown_message_box() == NULL && score_panel_last_box(main_score_panel()) == NULL);
     return 0;
 }
 
@@ -234,6 +245,60 @@ static int case_difficulty_outlives_its_button(void) {
     return 0;
 }
 
+static int case_singletons_resolve_until_the_flush(void) {
+    load_cart_and_start();
+    cart_start_game(NULL);
+    score_panel_t *score_panel = main_score_panel();
+    ui_t *ui = main_ui();
+    entity_t *mouse = main_mouse();
+    assert(score_panel != NULL && ui != NULL && main_mouse_typed() != NULL);
+    entity_unregister(&score_panel->header);
+    entity_unregister(&ui->header);
+    entity_unregister(mouse);
+    assert(main_score_panel() == score_panel && main_ui() == ui && main_mouse() == mouse);
+    cart_flush_exit_queue();
+    assert(main_score_panel() == NULL && main_ui() == NULL && main_mouse() == NULL && main_mouse_typed() == NULL);
+    return 0;
+}
+
+static int case_singletons_of_a_previous_world_never_resolve(void) {
+    load_cart_and_start();
+    cart_start_game(NULL);
+    assert(main_economy_typed() != NULL && main_score_panel() != NULL);
+    message_box_t *box = message_box_new(NULL);
+    score_panel_set_last_box(main_score_panel(), box);
+    score_panel_t *score_panel = main_score_panel();
+    assert(shown_message_box() == box && score_panel_last_box(score_panel) == box);
+    reset_world(NULL);
+    assert(main_economy() == NULL && main_economy_typed() == NULL && main_economy_placeholder() == NULL);
+    assert(main_score_panel() == NULL && shown_message_box() == NULL && score_panel_last_box(score_panel) == NULL);
+    return 0;
+}
+
+static int case_main_economy_placeholder_survives_reset_world(void) {
+    load_cart_and_start();
+    assert(main_economy_placeholder() != NULL && main_economy() == &main_economy_placeholder()->header);
+    reset_world(NULL);
+    assert(main_economy_placeholder() != NULL && main_economy_typed() == NULL);
+    return 0;
+}
+
+static int case_difficulty_is_copied_at_the_choice(void) {
+    static button_t chosen;
+    load_cart_and_start();
+    chosen.name = "chosen";
+    chosen.has_type_bias = 1;
+    chosen.type_bias = p8_fixed_from_int(2);
+    economy_score_set_difficulty(&chosen);
+    memset(&chosen, 0, sizeof chosen);
+    const button_t *dk = economy_score_difficulty();
+    assert(dk != NULL && dk != &chosen && strcmp(dk->name, "chosen") == 0 && dk->has_type_bias &&
+           dk->type_bias == p8_fixed_from_int(2) && !dk->has_trade);
+    economy_score_set_difficulty(NULL);
+    assert(economy_score_difficulty() == NULL);
+    return 0;
+}
+
 static int case_full(void) {
     message_box_t *e = new_entity(&counted_cls);
     for (int i = 0; i <= EXIT_QUEUE_CAP; i++) exit_queue_put(&e->header);
@@ -245,11 +310,11 @@ static int case_max_survives_flush(void) {
     message_box_t *e = new_entity(&counted_cls);
     assert(exit_queue_max() == 0);
     for (int i = 0; i < 3; i++) exit_queue_put(&e->header);
-    exit_queue_flush(forget_nothing);
+    exit_queue_flush();
     assert(exit_queue_count() == 0);
     assert(exit_queue_max() == 3 && "the flush empties the queue, not its peak");
     exit_queue_put(&e->header);
-    exit_queue_flush(forget_nothing);
+    exit_queue_flush();
     assert(exit_queue_max() == 3 && "a smaller batch leaves the peak alone");
     assert(released == 4);
     free(e);
@@ -265,13 +330,17 @@ static const struct {
     {"entity_unregister_released_at_flush", case_entity_unregister_released_at_flush},
     {"ephemerals_alive_until_flush", case_ephemerals_alive_until_flush},
     {"ephemerals_released_at_flush", case_ephemerals_released_at_flush},
-    {"entity_unregister_outside_live_entities_or_without_member", case_entity_unregister_outside_live_entities_or_without_member},
+    {"entity_unregister_outside_live_entities_or_without_release", case_entity_unregister_outside_live_entities_or_without_release},
     {"reset_world_enqueues_registered", case_reset_world_enqueues_registered},
     {"reset_world_after_a_full_game", case_reset_world_after_a_full_game},
     {"shutdown_drains", case_shutdown_drains},
     {"flush_forgets_references", case_flush_forgets_references},
     {"update60_after_forgetting", case_update60_after_forgetting},
     {"difficulty_outlives_its_button", case_difficulty_outlives_its_button},
+    {"singletons_resolve_until_the_flush", case_singletons_resolve_until_the_flush},
+    {"singletons_of_a_previous_world_never_resolve", case_singletons_of_a_previous_world_never_resolve},
+    {"main_economy_placeholder_survives_reset_world", case_main_economy_placeholder_survives_reset_world},
+    {"difficulty_is_copied_at_the_choice", case_difficulty_is_copied_at_the_choice},
     {"full", case_full},
 };
 
@@ -360,13 +429,17 @@ int main(int argc, char **argv) {
     expect_freed_crash("entity_unregister_released_at_flush");
     expect_clean("ephemerals_alive_until_flush");
     expect_poison_crash("ephemerals_released_at_flush");
-    expect_clean("entity_unregister_outside_live_entities_or_without_member");
+    expect_clean("entity_unregister_outside_live_entities_or_without_release");
     expect_clean("reset_world_enqueues_registered");
     expect_clean("reset_world_after_a_full_game");
     expect_clean("shutdown_drains");
     expect_clean("flush_forgets_references");
     expect_clean("update60_after_forgetting");
     expect_clean("difficulty_outlives_its_button");
+    expect_clean("singletons_resolve_until_the_flush");
+    expect_clean("singletons_of_a_previous_world_never_resolve");
+    expect_clean("main_economy_placeholder_survives_reset_world");
+    expect_clean("difficulty_is_copied_at_the_choice");
     expect_fatal("full", "exit queue full, limit 315");
     expect_clean("max_survives_flush");
     remove(STDERR_LOG);

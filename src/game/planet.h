@@ -1,7 +1,7 @@
 #ifndef GAME_PLANET_H
 #define GAME_PLANET_H
 
-#include "engine/entity_list.h"
+#include "engine/entity_id_list.h"
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "game/gen.h"
@@ -10,45 +10,66 @@
 #include "game/targeting.h"
 #include "engine/pointer_list.h"
 #include "game/research.h"
+#include "game/trade.h"
 #include "engine/entity_class.h"
+
+/* "s" plus the widest structure counter ("-32768"), plus the terminator. */
+enum { PLANET_ID_SIZE = 8 };
+
+struct planet_keys {
+    char planet_id[PLANET_ID_SIZE];
+    int has_planet_id;
+    vec_t map_pos;
+    int has_map_pos;
+    vec_t pos;
+    int has_pos;
+};
+
+void planet_keys_set_id(planet_keys_t *keys, const char *id);
 
 typedef struct {
     entity_t header;
     const planet_archetype_t *archetype;
-    p8_fixed_t shake;
-    production_t *production;
-    const char *planet_id;
-    vec_t *map_pos;
-    vec_t *pos;
-    entity_list_t *slipways;
-    research_project_t *project;
+    char planet_id[PLANET_ID_SIZE];
+    entity_id_list_t slipways;
+    research_project_id_t project;
     const char *description;
-    pointer_list_t *needs;
+    pointer_list_t needs;
     const planet_types_entry_t *planet_type;
-    p8_fixed_t fold_anchor;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
-    entity_t *targeted_by;
+    entity_id_t targeted_by;
     p8_fixed_t production_bonus;
     int has_production_bonus;
-    int is_dead;
     p8_fixed_t net_income;
     int has_net_income;
-    entity_list_t *incoming_routes;
-    entity_list_t *outgoing_routes;
+    trade_route_list_t incoming_routes;
+    trade_route_list_t outgoing_routes;
     p8_fixed_t development_tier;
     int has_development_tier;
-    int is_hovered;
-    production_t production_own;
+    production_t production;
     p8_fixed_t sprite;
     p8_fixed_t palette_block;
     p8_fixed_t acceleration_factor, speed;
     const int_seq_t *synthesizable_resources;
-    targeting_t *targeting;
-    emitter_t *emitter;
-    targeting_t targeting_own;
-    emitter_t emitter_own;
+    uint16_t has;
+    targeting_t targeting;
+    emitter_t emitter;
 } planet_t;
+
+#define PLANET_HAS_TARGETING (1u << 0)
+#define PLANET_HAS_EMITTER (1u << 1)
+#define PLANET_HAS_PRODUCTION (1u << 2)
+#define PLANET_HAS_NEEDS (1u << 3)
+#define PLANET_HAS_INCOMING_ROUTES (1u << 4)
+#define PLANET_HAS_OUTGOING_ROUTES (1u << 5)
+#define PLANET_HAS_ID (1u << 6)
+
+/* NULL without PLANET_HAS_ID; otherwise points into self. */
+const char *planet_id_or_null(const planet_t *self);
+
+/* Copies the keys' id and positions that are given; NULL keys copy nothing. */
+void planet_copy_keys(planet_t *self, const planet_keys_t *keys);
 
 /* GAP-8 */
 void planet_init(void);
@@ -66,6 +87,10 @@ const data_row_t *planet_spacer(void);
 
 production_t *planet_shared_production(void);
 
+/* Without PLANET_HAS_PRODUCTION, the result is the shared production: a write through it shows on every such planet. Valid for the call only. */
+production_t *planet_production(planet_t *self);
+const production_t *planet_production_read(const planet_t *self);
+
 planet_t *planet_new(const planet_keys_t *keys);
 
 void planet_init_instance(planet_t *self, const entity_class_t *instance_class, const planet_archetype_t *archetype);
@@ -73,19 +98,18 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
 size_t planet_kind_construction_bytes(const entity_kind_t *kind);
 
 void planet_grab_arena_released(const planet_t *self);
-void planet_forget_targeted_by(const entity_t *e);
 
 void planet_construct(planet_t *self);
 void planet_construct_in(planet_t *self, const allocator_t *zone);
 
-int planet_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);
+int planet_hit_test_method(entity_t *self, mouse_pos_t mouse);
 void planet_refresh_method(entity_t *self);
 void planet_release_row(entity_t *self);
 void planet_release_method(entity_t *self);
 down_t planet_accept_drop_method(entity_t *self, const entity_t *s);
 void planet_new_year_method(entity_t *self, p8_fixed_t year);
-void planet_draw_method(entity_t *self, const vec_t *screen_pos);
-down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
+void planet_draw_method(entity_t *self, vec_t screen_pos);
+down_t planet_left_press_method(entity_t *self, mouse_pos_t mouse);
 void planet_attach_slipway_method(entity_t *self, entity_t *slipway);
 
 int planet_is_family(const entity_t *e);

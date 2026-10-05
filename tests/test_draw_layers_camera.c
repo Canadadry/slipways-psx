@@ -22,29 +22,32 @@
 static int g_draw_calls = 0;
 static int g_camera_x_at_draw;
 static int g_camera_y_at_draw;
+static vec_t g_pos_at_draw;
 
 /* Records the camera apply_camera has left by the time the planet's draw
  * runs, then forwards to the real planet_draw, so the order is observed
  * without stubbing the behaviour out. Installed on the planet alone, through
  * a copy of the planet class whose draw is this spy, so no other planet sees
  * it. */
-static void spy_draw(entity_t *self, const vec_t *ra) {
-    vec_t p = ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-
+static void spy_draw(entity_t *self, vec_t ra) {
     g_draw_calls++;
+    g_pos_at_draw = ra;
     g_camera_x_at_draw = dispatch_context_gfx()->camera_x;
     g_camera_y_at_draw = dispatch_context_gfx()->camera_y;
-    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
+    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, ra);
 }
 
 static entity_class_t g_spied_planet;
+
+static int vec_is(vec_t v, int x, int y) {
+    return v.x == p8_fixed_from_int(x) && v.y == p8_fixed_from_int(y);
+}
 
 static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw(void) {
     p8_vram_t memory;
     p8_graphics_t graphics;
     planet_t *planet;
     entity_t *camera;
-    vec_t *pos_heap;
     int screen_x;
     int screen_y;
     unsigned char pixel_after;
@@ -83,9 +86,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     /* A position inside the camera's default (176,196) viewport, so the
      * off-screen early return of planet_draw is not taken and the real draw
      * body runs. */
-    pos_heap = malloc(sizeof *pos_heap);
-    *pos_heap = vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256));
-    planet->pos = pos_heap;
+    entity_set_pos(&planet->header, vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256)));
 
     assert(camera->class == camera_class());
     g_spied_planet = *planet_class();
@@ -110,6 +111,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
      * the per-entity loop, so the real planet_draw already sees its camera. */
     assert(g_draw_calls == 1);
     assert(g_camera_x_at_draw == 176 && g_camera_y_at_draw == 196);
+    assert(vec_is(g_pos_at_draw, 256, 256));
 
     /* apply_camera really ran: the camera lands on its spec position
      * (176,196), its shake having decayed to its 0 default so it adds nothing. */
@@ -132,8 +134,42 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     bootstrap_shutdown();
 }
 
+static void test_draw_layers_passes_the_zero_vector_to_an_entity_without_a_position(void) {
+    p8_vram_t memory;
+    p8_graphics_t graphics;
+    planet_t *planet;
+
+    p8_vram_init(&memory);
+    p8_gfx_init(&graphics);
+    dispatch_context_set_gfx(&graphics);
+    dispatch_context_set_mem(&memory);
+    g_draw_calls = 0;
+
+    reset_world(NULL);
+    planet_init();
+    planet = planet_new(NULL);
+    assert(planet != NULL);
+    entity_set_pos(&planet->header, vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256)));
+    entity_clear_pos(&planet->header);
+
+    g_spied_planet = *planet_class();
+    g_spied_planet.draw = spy_draw;
+    planet->header.class = &g_spied_planet;
+    g_pos_at_draw = vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1));
+
+    draw_layers(ENTITY_MESSAGE_DRAW);
+
+    assert(g_draw_calls == 1);
+    assert(vec_is(g_pos_at_draw, 0, 0));
+
+    planet->header.class = planet_class();
+    planet_shutdown();
+    bootstrap_shutdown();
+}
+
 int main(void) {
     test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_planet_draw();
+    test_draw_layers_passes_the_zero_vector_to_an_entity_without_a_position();
 
     printf("test_draw_layers_camera: all tests passed\n");
     return 0;

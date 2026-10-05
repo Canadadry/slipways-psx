@@ -19,6 +19,7 @@
 #include "p8/vram.h"
 #include "game/score_panel_display.h"
 #include "engine/entity_class.h"
+#include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "game/ui_zone.h"
@@ -81,14 +82,14 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_veil(uint32_t h, const modal_backdrop_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.state_time);
-    h = fold_bool_member(h, (e->is_dead != 0), e->is_dead);
-    h = fold_bool_member(h, (e->is_hovered != 0), e->is_hovered);
+    h = fold_bool_member(h, (e->header.is_dead != 0), e->header.is_dead);
+    h = fold_bool_member(h, (e->header.is_hovered != 0), e->header.is_hovered);
     h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
     return fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), e));
 }
 
 static const void *main_ui_hovered(void) {
-    return main_ui()->hovered;
+    return ui_hovered(main_ui());
 }
 
 static int g_on_click_calls = 0;
@@ -110,9 +111,9 @@ static modal_backdrop_t *veil_with_on_click(int answer) {
 }
 
 static int left_press(void *veil) {
-    down_t out = modal_backdrop_class()->left_press(veil, NULL, NULL);
+    down_t out = modal_backdrop_class()->left_press(veil, (mouse_pos_t){0});
 
-    assert(out.held == NULL);
+    assert(entity_get(out.held) == NULL);
     return out.stop;
 }
 
@@ -164,7 +165,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LEFT_PRESS_TICK) {
             assert(left_press(veil));
-            assert(!veil->is_dead);
+            assert(!veil->header.is_dead);
         }
         update_entities();
         h = fold_veil(h, veil);
@@ -187,7 +188,7 @@ static void test_false_on_click_keeps_the_veil(void) {
         if (i == LEFT_PRESS_TICK) {
             assert(left_press(veil));
             assert(g_on_click_calls == 1);
-            assert(!veil->is_dead);
+            assert(!veil->header.is_dead);
         }
         update_entities();
         h = fold_veil(h, veil);
@@ -197,12 +198,12 @@ static void test_false_on_click_keeps_the_veil(void) {
 }
 
 static int in_layer(int layer, const void *e) {
-    const ui_hovered_by_layer_t *ic = main_ui()->hovered_by_layer;
+    const ui_hovered_by_layer_t *ic = &main_ui()->hovered_by_layer;
 
-    if (ic == NULL) {
+    if (!(main_ui()->has & UI_HAS_HOVERED_BY_LAYER)) {
         return 0;
     }
-    return entity_list_listed(&ic->layers[layer], e);
+    return entity_id_list_has(&ic->layers[layer], entity_id_of(e));
 }
 
 /* A started game, then a bare veil: the hover loop of `main_ui()` makes it
@@ -223,7 +224,7 @@ static void test_hover_loop_on_the_veil(void) {
     ui_update(&memory, main_ui());
     assert(main_ui_hovered() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
-    assert(veil->is_hovered);
+    assert(veil->header.is_hovered);
     h = fold_veil(h, veil);
 
     p8_gfx_init(&graphics);
@@ -231,10 +232,10 @@ static void test_hover_loop_on_the_veil(void) {
     ui_draw_overlay(&graphics, &memory, main_ui());
     check("hover_cursor", screen_hash(), HOVER_CURSOR_HASH);
 
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, NULL, NULL, NULL, &kv, &kn));
-    assert((void *)kv == veil && kn.stop && kn.held == NULL);
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn));
+    assert((void *)kv == veil && kn.stop && entity_get(kn.held) == NULL);
     kv = NULL;
-    if (ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, NULL, NULL, NULL, &kv, &kn)) {
+    if (ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn)) {
         assert((void *)kv != veil);
     }
     h = fold_veil(h, veil);
@@ -242,7 +243,7 @@ static void test_hover_loop_on_the_veil(void) {
     entity_unregister(&veil->header);
     ui_update(&memory, main_ui());
     assert(main_ui_hovered() != veil && !in_layer(14, veil));
-    assert(!veil->is_hovered);
+    assert(!veil->header.is_hovered);
     h = fold_veil(h, veil);
     check("hover_sequence", h, HOVER_SEQUENCE_HASH);
 }
@@ -292,7 +293,7 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), built) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
-    assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, NULL, NULL) == 1);
+    assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, (mouse_pos_t){0}) == 1);
     assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->right_press == NULL);
     assert(((const modal_backdrop_t *)built)->on_click == score_panel_toggle_on_click());
 }

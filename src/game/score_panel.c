@@ -12,6 +12,7 @@
 #include "game/game_data.h"
 #include "game/hud.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "game/map_tables.h"
 #include "game/draw_functions.h"
 #include "p8/str.h"
@@ -21,8 +22,7 @@
 #include "engine/game_zone.h"
 
 static int g_score_panel_up = 0;
-static score_row_t g_score_rows[SCORE_ROWS_COUNT];
-static score_panel_t *g_main_score_panel = NULL;
+static entity_id_t g_main_score_panel;
 
 static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
     return (a < b) ? a : b;
@@ -46,10 +46,10 @@ static const entity_class_t score_panel_layout_block_class_def = {0};
 
 static score_panel_layout_block_t g_score_panel_layout_block = {
     {.class = &score_panel_layout_block_class_def},
-    &(const vec_t){0x0, 0xb0000},
-    &(const vec_t){0x0, 0xb0000},
+    SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS | SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP,
+    {0x0, 0xb0000},
+    {0x0, 0xb0000},
     0xa0000,
-    NULL,
 };
 
 score_panel_readouts_t *score_panel_readouts(void) {
@@ -95,12 +95,12 @@ void score_panel_refresh(void) {
     const main_economy_placeholder_t *economy_placeholder = main_economy_placeholder();
     p8_fixed_t main_economy_income = economy != NULL ? economy->income : p8_fixed_from_int(0);
     p8_fixed_t main_economy_credits = p8_fixed_from_int(0);
-    data_item_t main_economy_research_points = {.is_ref = 1};
+    data_item_t main_economy_research_points = {.is_nil = 1};
     p8_fixed_t main_economy_happiness = economy != NULL && economy->has_happiness ? economy->happiness : p8_fixed_from_int(0);
     p8_fixed_t main_economy_year_ticks = economy != NULL ? economy->year_ticks : p8_fixed_from_int(0);
     data_item_t main_economy_year = economy != NULL ? (data_item_t){.is_fixed = 1, .fixed = economy->year}
-                                       : (data_item_t){.is_ref = 1};
-    const resource_map_t *main_economy_production = economy != NULL ? economy->production : NULL;
+                                       : (data_item_t){.is_nil = 1};
+    const resource_map_t *main_economy_production = economy != NULL && (economy->has & ECONOMY_HAS_PRODUCTION) ? &economy->production : NULL;
     score_panel_readouts_t *readouts_state;
     data_item_t readouts[7];
     char *text;
@@ -148,7 +148,7 @@ void score_panel_refresh(void) {
     {
         int lo = p8_fixed_flr_int(main_economy_year_ticks);
         readouts[5] = (lo >= 1 && lo <= PERIOD_NAMES_COUNT) ? (data_item_t){.text = period_names_table[lo - 1]}
-                                                  : (data_item_t){.is_ref = 1};
+                                                  : (data_item_t){.is_nil = 1};
     }
 
     readouts[6] = main_economy_year;
@@ -204,7 +204,7 @@ void score_panel_draw(p8_graphics_t *gfx, p8_vram_t *mem, score_panel_t *self) {
     }
 }
 
-static void score_panel_draw_method(entity_t *self, const vec_t *screen_pos) {
+static void score_panel_draw_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     score_panel_draw(dispatch_context_gfx(), dispatch_context_mem(), (score_panel_t *)self);
 }
@@ -223,9 +223,9 @@ static score_panel_t *score_panel_create(void) {
     self = (score_panel_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &score_panel_class_def, score_panel_archetype.state, score_panel_archetype.state_time);
     self->archetype = &score_panel_archetype;
-    self->layer = self->archetype->layer;
-    self->header.layer = &self->layer;
-    self->last_box = NULL;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->last_box = ENTITY_ID_NONE;
     self->is_shown = 0;
     self->has_is_shown = 0;
     self->curtain = 0;
@@ -239,20 +239,6 @@ void score_panel_init(void) {
 
     score_panel_shutdown();
 
-    for (i = 0; i < SCORE_ROWS_COUNT; i++) {
-        const score_rows_entry_t *e = &score_rows_table[i];
-        score_row_t *b = &g_score_rows[i];
-        int k;
-
-        score_panel_row_copy(&b->row, b->items, 5, &e->row);
-        b->row.draw_function = e->draw_function;
-        for (k = 0; k < 5; k++) {
-            b->has_value[k] = k < e->row.count;
-        }
-        b->pos = vec_make(p8_fixed_from_int(e->pos_x), p8_fixed_from_int(e->pos_y));
-        b->entry = e;
-    }
-
     g_score_panel_up = 1;
     score_panel_row_copy(&g_score_panel_readouts.row, g_score_panel_readouts.items, 7, &score_panel_readouts_row);
     for (i = 0; i < g_score_panel_readouts.row.count; i++) {
@@ -263,10 +249,9 @@ void score_panel_init(void) {
     score_panel_row_copy(&g_score_panel_year_banner.second, g_score_panel_year_banner.second_items, 5, score_panel_year_banner_row.items[1].row);
     g_score_panel_year_banner.items[1].row = &g_score_panel_year_banner.second;
     g_score_panel_year_banner.keep_open = NULL;
-    g_score_panel_layout_block.description = NULL;
 
     score_panel_set_init(NULL);
-    g_main_score_panel = NULL;
+    g_main_score_panel = ENTITY_ID_NONE;
 
     score_panel_display_init();
 }
@@ -275,7 +260,7 @@ void score_panel_shutdown(void) {
     score_panel_display_shutdown();
     g_score_panel_up = 0;
     score_panel_set_init(NULL);
-    g_main_score_panel = NULL;
+    g_main_score_panel = ENTITY_ID_NONE;
 }
 
 int score_panel_ready(void) {
@@ -290,14 +275,21 @@ score_panel_t *score_panel_new(void) {
     return score_panel_create();
 }
 
-score_row_t *score_panel_rows(void) {
-    return g_score_panel_up ? g_score_rows : NULL;
+message_box_t *score_panel_last_box(const score_panel_t *self) {
+    return (message_box_t *)entity_get(self->last_box);
+}
+
+void score_panel_set_last_box(score_panel_t *self, message_box_t *box) {
+    self->last_box = entity_id_link(box != NULL ? &box->header : NULL);
 }
 
 score_panel_t *main_score_panel(void) {
-    return g_main_score_panel;
+    entity_t *e = entity_get(g_main_score_panel);
+
+    assert((e == NULL || e->class == &score_panel_class_def) && "main_score_panel: only a score panel is ever stored");
+    return (score_panel_t *)e;
 }
 
 void score_panel_set_main(score_panel_t *instance) {
-    g_main_score_panel = instance;
+    g_main_score_panel = entity_id_link(instance != NULL ? &instance->header : NULL);
 }

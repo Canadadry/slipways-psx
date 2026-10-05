@@ -6,6 +6,7 @@
 #include "game/economy.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
+#include "engine/entity_id.h"
 #include "p8/fixed.h"
 #include "game/main_economy.h"
 #include "engine/geom.h"
@@ -22,7 +23,10 @@
 #include "engine/frame_zone.h"
 
 static int g_probe_up = 0;
-static entity_t *g_main_economy = NULL;
+typedef enum { MAIN_ECONOMY_NONE, MAIN_ECONOMY_PLACEHOLDER, MAIN_ECONOMY_REAL } main_economy_state_t;
+
+static main_economy_state_t g_main_economy_state = MAIN_ECONOMY_NONE;
+static entity_id_t g_main_economy;
 
 static const entity_class_t main_economy_placeholder_class_def = {0};
 
@@ -35,7 +39,7 @@ static int targeting_track_target_is_holder_class(const entity_class_t *cls) {
 
 static const entity_class_t targeting_track_target_class_def = {0};
 
-static targeting_track_target_t g_targeting_track_target = {{.class = &targeting_track_target_class_def}, NULL};
+static targeting_track_target_t g_targeting_track_target = {{.class = &targeting_track_target_class_def}, {0, 0}};
 
 static int probe_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
@@ -57,8 +61,8 @@ static int targeting_track_slipway_predicate(entity_t *e, void *ctx_ptr) {
     assert(e->class == slipway_class() && "the slipway tag holds slipways only");
     sw = (const slipway_t *)e;
 
-    start_p = slipway_end_map_pos(sw->start);
-    end_p = slipway_end_map_pos(sw->end);
+    start_p = slipway_end_map_pos(slipway_start(sw));
+    end_p = slipway_end_map_pos(slipway_end(sw));
 
     return geom_near_segment(start_p, end_p, ctx->self_map_pos, P8_FIXED_LIT(0x000000d1, 0.0032));
 }
@@ -69,31 +73,7 @@ static int probe_panel_box_contains(vec_t rp) {
     if (hw == NULL) {
         return 0;
     }
-    return box_contains(hw, rp);
-}
-
-static void probe_host_set_positions(entity_t *self, vec_t *ra, vec_t *p) {
-    probe_t *g_;
-    planet_t *jo;
-    wormhole_t *mz;
-
-    if (self->class->lineage & LINEAGE(LINEAGE_PROBE)) {
-        g_ = (probe_t *)self;
-        g_->pos = ra;
-        g_->map_pos = p;
-        return;
-    }
-    if (planet_is_family(self)) {
-        jo = (planet_t *)self;
-        jo->pos = ra;
-        jo->map_pos = p;
-        return;
-    }
-    assert(self->class == wormhole_class() &&
-           "targeting_track: a host neither a probe, of the planet family nor a wormhole, none of whose drag runs it -- stop");
-    mz = (wormhole_t *)self;
-    mz->pos = ra;
-    mz->map_pos = p;
+    return box_contains(*hw, rp);
 }
 
 static int probe_is_target_class(const entity_class_t *cls) {
@@ -106,7 +86,7 @@ void probe_link_target(entity_t *et, entity_t *self) {
         assert((self->class->drag == targeting_track_method || self->class == slipway_class()) &&
                "probe_link_target: a planet's targeted_by takes NULL, a host whose drag is targeting_track_method "
                "or a slipway, nothing else -- stop, do not widen the member");
-        ((planet_t *)et)->targeted_by = self;
+        ((planet_t *)et)->targeted_by = entity_id_link(self);
         return;
     }
     if (et->class == slipway_class()) {
@@ -114,24 +94,73 @@ void probe_link_target(entity_t *et, entity_t *self) {
                 self->class == wormhole_class()) &&
                "probe_link_target: a slipway's targeted_by takes NULL, a host whose drag is targeting_track_method, "
                "a wormhole or another slipway, nothing else -- stop");
-        ((slipway_t *)et)->targeted_by = self;
+        ((slipway_t *)et)->targeted_by = entity_id_link(self);
         return;
     }
     if (et->class == slipway_too_far_class()) {
         assert(self->class == slipway_class() &&
                "probe_link_target: the too-far slipway struct's targeted_by takes NULL or a slipway, nothing else "
                "-- stop, do not widen the member");
-        ((slipway_too_far_t *)et)->targeted_by = (slipway_t *)self;
+        ((slipway_too_far_t *)et)->targeted_by = entity_id_link(self);
         return;
     }
     assert(et == &g_targeting_track_target.header && "probe_link_target: the target is a planet, a slipway or the static throwaway struct, nothing else");
     assert(targeting_track_target_is_holder_class(self->class) &&
            "probe_link_target: the throwaway target's targeted_by takes NULL, a host whose drag is "
            "targeting_track_method or a wormhole, nothing else -- stop, do not widen the member");
-    g_targeting_track_target.targeted_by = self;
+    g_targeting_track_target.targeted_by = entity_id_link(self);
 }
 
-void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+entity_t *targeting_target(const targeting_t *self) {
+    switch (self->target.kind) {
+    case TARGETING_TARGET_ENTITY:
+        return entity_get(self->target.id);
+    case TARGETING_TARGET_TRACK_THROWAWAY:
+        return &g_targeting_track_target.header;
+    case TARGETING_TARGET_SLIPWAY_TOO_FAR:
+        return slipway_too_far();
+    case TARGETING_TARGET_WORMHOLE_TOO_FAR:
+        return &wormhole_too_far_target_wrapper()->header;
+    case TARGETING_TARGET_NONE:
+        break;
+    }
+    return NULL;
+}
+
+void targeting_set_target(targeting_t *self, entity_t *target) {
+    targeting_target_t value = {TARGETING_TARGET_NONE, ENTITY_ID_NONE};
+
+    if (target == &g_targeting_track_target.header) {
+        value.kind = TARGETING_TARGET_TRACK_THROWAWAY;
+    } else if (target == slipway_too_far()) {
+        value.kind = TARGETING_TARGET_SLIPWAY_TOO_FAR;
+    } else if (target == &wormhole_too_far_target_wrapper()->header) {
+        value.kind = TARGETING_TARGET_WORMHOLE_TOO_FAR;
+    } else if (target != NULL) {
+        value.kind = TARGETING_TARGET_ENTITY;
+        value.id = entity_id_link(target);
+    }
+    self->target = value;
+}
+
+targeting_t *targeting_of(entity_t *e) {
+    if (e->class->lineage & LINEAGE(LINEAGE_PROBE)) {
+        return &((probe_t *)e)->targeting;
+    }
+    if (planet_is_family(e)) {
+        planet_t *planet = (planet_t *)e;
+        return (planet->has & PLANET_HAS_TARGETING) ? &planet->targeting : NULL;
+    }
+    if (e->class == slipway_class()) {
+        return &((slipway_t *)e)->targeting;
+    }
+    if (e->class == wormhole_class()) {
+        return &((wormhole_t *)e)->targeting;
+    }
+    return NULL;
+}
+
+void targeting_track(entity_t *self, mouse_pos_t mouse) {
     targeting_t *targeting;
     vec_t mouse_world_vec;
     vec_t p_vec;
@@ -142,14 +171,19 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     if (self == NULL) {
         return;
     }
-    assert(self->targeting != NULL && "targeting_track: a class that carries no targeting is no receiver -- stop");
+    targeting = targeting_of(self);
+    assert(targeting != NULL && "targeting_track: a class that carries no targeting is no receiver -- stop");
 
-    targeting = self->targeting;
-    mouse_world_vec = mouse_world != NULL ? *mouse_world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    mouse_world_vec = mouse_pos_world(mouse);
     p_vec = vec_div(mouse_world_vec, p8_fixed_from_int(128));
-    targeting->track_pos = mouse_world_vec;
-    targeting->track_map_pos = p_vec;
-    probe_host_set_positions(self, mouse_world != NULL ? &targeting->track_pos : NULL, &targeting->track_map_pos);
+    assert(((self->class->lineage & LINEAGE(LINEAGE_PROBE)) || planet_is_family(self) || self->class == wormhole_class()) &&
+           "targeting_track: a host neither a probe, of the planet family nor a wormhole, none of whose drag runs it -- stop");
+    if (mouse_pos_has_world(mouse)) {
+        entity_set_pos(self, mouse_world_vec);
+    } else {
+        entity_clear_pos(self);
+    }
+    entity_set_map_pos(self, p_vec);
 
     candidate = NULL;
     distance = entity_geom_nearest(p_vec, entities_by_tag(TAG_NODE), &candidate);
@@ -174,8 +208,7 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
         if (have_first && first != NULL) {
             target = first;
         } else {
-            vec_t mouse_screen_vec = mouse_screen != NULL ? *mouse_screen : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-            if (!probe_panel_box_contains(mouse_screen_vec)) {
+            if (!probe_panel_box_contains(mouse_pos_screen(mouse))) {
                 target = &g_targeting_track_target.header;
             } else {
                 target = NULL;
@@ -187,15 +220,15 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
             probe_is_target_class(target->class)) &&
            "targeting_track: the target is NULL or what it aims at (a planet, a class with a settled state, a slipway, "
            "or the static throwaway struct), nothing else");
-    targeting->target = target;
+    targeting_set_target(targeting, target);
 
-    if (targeting->target != NULL) {
-        probe_link_target(targeting->target, self);
+    if (targeting_target(targeting) != NULL) {
+        probe_link_target(targeting_target(targeting), self);
     }
 }
 
-void targeting_track_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    targeting_track(self, mouse_world, mouse_screen);
+void targeting_track_method(entity_t *self, mouse_pos_t mouse) {
+    targeting_track(self, mouse);
 }
 
 static const char *probe_target_status_text(const entity_t *et) {
@@ -212,9 +245,9 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_vram_t *mem, entity_t *self)
     if (self == NULL) {
         return;
     }
-    assert(self->targeting != NULL && "targeting_tooltip: a class that carries no targeting is no receiver -- stop");
+    assert(targeting_of(self) != NULL && "targeting_tooltip: a class that carries no targeting is no receiver -- stop");
 
-    targeting_tooltip_show(gfx, mem, self->state, self->targeting);
+    targeting_tooltip_show(gfx, mem, self->state, targeting_of(self));
 }
 
 void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t state, const targeting_t *pb) {
@@ -227,10 +260,10 @@ void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t st
     }
 
     je = main_mouse_typed();
-    mp = je != NULL && je->pos != NULL ? *je->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    mp = je != NULL ? entity_pos(&je->header) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
-    if (pb->target != NULL) {
-        const char *qs = probe_target_status_text(pb->target);
+    if (targeting_target(pb) != NULL) {
+        const char *qs = probe_target_status_text(targeting_target(pb));
         if (qs != NULL) {
             display = qs;
         } else {
@@ -245,18 +278,18 @@ void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t st
 
     if (gfx != NULL && mem != NULL) {
         p8_fixed_t a = P8_FIXED_LIT(0x00008000, 0.5);
-        hud_print_outlined(gfx, mem, display, mp.x, p8_fixed_sub(mp.y, p8_fixed_from_int(8)), 8, &a);
+        hud_print_outlined(gfx, mem, display, mp.x, p8_fixed_sub(mp.y, p8_fixed_from_int(8)), 8, a);
     }
 }
 
-void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos) {
+void targeting_tooltip_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     targeting_tooltip(dispatch_context_gfx(), dispatch_context_mem(), self);
 }
 
 static void probe_host_raise_is_dead(entity_t *self) {
-    assert(self->is_dead != NULL && "targeting_confirm: a host that carries no is_dead, none of whose drop runs it -- stop");
-    *self->is_dead = 1;
+    assert(entity_has(self, ENTITY_HAS_IS_DEAD) && "targeting_confirm: a host that carries no is_dead, none of whose drop runs it -- stop");
+    self->is_dead = 1;
 }
 
 int targeting_confirm(entity_t *self) {
@@ -268,10 +301,10 @@ int targeting_confirm(entity_t *self) {
     if (self == NULL) {
         return 0;
     }
-    assert(self->targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
+    targeting = targeting_of(self);
+    assert(targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
 
-    targeting = self->targeting;
-    has_target = targeting->target != NULL;
+    has_target = targeting_target(targeting) != NULL;
 
     fm = main_economy_typed();
     if (!has_target) {
@@ -308,8 +341,8 @@ particle_t *probe_spawn_particle(entity_t *self) {
     particle_t *particle;
 
     if (self != NULL) {
-        assert(self->emitter != NULL && "probe_spawn_particle: a class that carries no particle emitter spawns nothing -- stop");
-        emitter = self->emitter;
+        emitter = emitter_of(self);
+        assert(emitter != NULL && "probe_spawn_particle: a class that carries no particle emitter spawns nothing -- stop");
         angle_slices = emitter->angle_slices;
         state_time = self->state_time;
         base_radius = emitter->base_radius;
@@ -345,7 +378,7 @@ particle_t *probe_spawn_particle(entity_t *self) {
 void probe_release_method(entity_t *self) {
     const probe_t *g_ = (const probe_t *)self;
 
-    emitter_release_particles(self->emitter);
+    emitter_release_particles(emitter_of(self));
     if (g_->grab_arena != NULL && self->state != ENTITY_STATE_SETTLED) {
         grab_arena_give_back(g_->grab_arena);
     }
@@ -365,33 +398,30 @@ static const entity_class_t probe_class_def = {
 void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype) {
     entity_init_instance(&self->header, cls, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.layer = &self->archetype->layer;
-    self->header.pos = &self->pos;
-    self->header.map_pos = &self->map_pos;
-    self->header.fold_anchor = &self->archetype->fold_anchor;
-    self->header.is_dead = &self->is_dead;
-    self->header.emitter = &self->emitter_own;
-    self->header.targeting = &self->targeting_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->archetype = &self->archetype->emitter;
-    self->emitter->particles = NULL;
-    self->pos = self->archetype->has_pos ? &self->archetype->pos : NULL;
-    self->map_pos = NULL;
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
-    self->targeting->target = NULL;
-    self->is_dead = 0;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
+    self->header.fold_anchor = self->archetype->fold_anchor;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->emitter.archetype = &self->archetype->emitter;
+    self->emitter.has = 0;
+    if (self->archetype->has_pos) {
+        entity_set_pos(&self->header, self->archetype->pos);
+    }
+    self->targeting.archetype = &self->archetype->targeting;
+    targeting_set_target(&self->targeting, NULL);
+    self->header.is_dead = 0;
     self->grab_arena = NULL;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
-    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
-    self->emitter->angle_slices = self->archetype->emitter.angle_slices;
-    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
-    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
-    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
-    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
-    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
-    self->emitter->base_radius = self->archetype->emitter.base_radius;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
+    self->emitter.speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter.angle_slices = self->archetype->emitter.angle_slices;
+    self->emitter.trail_colors = self->archetype->emitter.trail_colors;
+    self->emitter.matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter.matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter.matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter.matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter.base_radius = self->archetype->emitter.base_radius;
 }
 
 static probe_t *probe_create(const probe_keys_t *keys) {
@@ -406,13 +436,13 @@ static probe_t *probe_create(const probe_keys_t *keys) {
     if (keys != NULL) {
         self->header.state_time = keys->state_time;
         if (keys->has_angle_slices) {
-            self->emitter->angle_slices = keys->angle_slices;
+            self->emitter.angle_slices = keys->angle_slices;
         }
         if (keys->has_base_radius) {
-            self->emitter->base_radius = keys->base_radius;
+            self->emitter.base_radius = keys->base_radius;
         }
         if (keys->has_speed_factor) {
-            self->emitter->speed_factor = keys->speed_factor;
+            self->emitter.speed_factor = keys->speed_factor;
         }
     }
     emitter_init((entity_t *)self);
@@ -429,12 +459,12 @@ void probe_init(void) {
     g_main_economy_placeholder.has_research_points = 0;
     g_main_economy_placeholder.credits = 0;
     g_main_economy_placeholder.has_credits = 0;
-    g_main_economy = (entity_t *)&g_main_economy_placeholder;
+    probe_set_main_economy(&g_main_economy_placeholder.header);
 }
 
 void probe_shutdown(void) {
     g_probe_up = 0;
-    g_main_economy = NULL;
+    probe_set_main_economy(NULL);
 }
 
 int probe_ready(void) {
@@ -454,23 +484,38 @@ const entity_class_t *main_economy_placeholder_class(void) {
 }
 
 entity_t *main_economy(void) {
-    return g_main_economy;
+    switch (g_main_economy_state) {
+    case MAIN_ECONOMY_PLACEHOLDER:
+        return &g_main_economy_placeholder.header;
+    case MAIN_ECONOMY_REAL:
+        return entity_get(g_main_economy);
+    default:
+        return NULL;
+    }
 }
 
 economy_t *main_economy_typed(void) {
-    if (g_main_economy == NULL || g_main_economy == &g_main_economy_placeholder.header) {
-        return NULL;
-    }
-    assert(g_main_economy->class == economy_class() && "main_economy_typed: only the placeholder or an economy is ever stored");
-    return (economy_t *)g_main_economy;
+    entity_t *e = g_main_economy_state == MAIN_ECONOMY_REAL ? entity_get(g_main_economy) : NULL;
+
+    assert((e == NULL || e->class == economy_class()) && "main_economy_typed: only the placeholder or an economy is ever stored");
+    return (economy_t *)e;
 }
 
 const main_economy_placeholder_t *main_economy_placeholder(void) {
-    return g_main_economy == &g_main_economy_placeholder.header ? &g_main_economy_placeholder : NULL;
+    return g_main_economy_state == MAIN_ECONOMY_PLACEHOLDER ? &g_main_economy_placeholder : NULL;
 }
 
 void probe_set_main_economy(entity_t *instance) {
-    g_main_economy = instance;
+    if (instance == NULL) {
+        g_main_economy_state = MAIN_ECONOMY_NONE;
+        g_main_economy = ENTITY_ID_NONE;
+    } else if (instance == &g_main_economy_placeholder.header) {
+        g_main_economy_state = MAIN_ECONOMY_PLACEHOLDER;
+        g_main_economy = ENTITY_ID_NONE;
+    } else {
+        g_main_economy_state = MAIN_ECONOMY_REAL;
+        g_main_economy = entity_id_link(instance);
+    }
 }
 
 const entity_class_t *targeting_track_target_class(void) {

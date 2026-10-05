@@ -19,6 +19,7 @@ typedef struct particle {
 
 typedef struct emitter {
     const emitter_archetype_t *archetype;
+    uint16_t has;
     p8_fixed_t angle_slices;
     p8_fixed_t base_radius;
     p8_fixed_t speed_factor;
@@ -27,9 +28,15 @@ typedef struct emitter {
     p8_fixed_t matrix_xy;
     p8_fixed_t matrix_yx;
     p8_fixed_t matrix_yy;
-    pointer_list_t *particles;
+    pointer_list_t particles;
     particle_slot_kind_t particles_slot_kind;
 } emitter_t;
+
+#define EMITTER_HAS_PARTICLES (1u << 0)
+
+/* Points into the host: a probe, a help screen or a planet that carries one;
+ * NULL for any other class. Valid while the host lives: never store it. */
+emitter_t *emitter_of(entity_t *e);
 
 void emitter_init(entity_t *self);
 void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind);
@@ -44,6 +51,6 @@ void emitter_spawn(entity_t *self, p8_fixed_t n);
 
 void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *self);
 
-void emitter_update_method(entity_t *self, const vec_t *screen_pos);
+void emitter_update_method(entity_t *self, vec_t screen_pos);
 
 #endif

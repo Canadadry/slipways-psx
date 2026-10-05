@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "p8/fixed.h"
 
@@ -51,5 +52,6 @@ const char *entity_state_name(state_t state) {
 }
 
 void entity_construct(entity_t *self) {
+    entity_id_take(self);
     entity_register(self);
 }

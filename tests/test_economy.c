@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "game/cheat.h"
@@ -39,6 +40,10 @@
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
+
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
 
 /* Project 12, a colony that needs two resources and exports one; project 3,
  * a project with an output and no inputs, which exports to any planet a
@@ -86,9 +91,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
 }
 
 static const pointer_list_t *invented_of(const economy_t *hy) {
-    const pointer_list_t *l = hy->invented;
-    assert(l != NULL);
-    return l;
+    return &hy->invented;
 }
 
 static uint32_t fold_string(uint32_t h, const char *s) {
@@ -152,8 +155,8 @@ static uint32_t fold_list_member(uint32_t h, const pointer_list_t *l) {
     return h;
 }
 
-static uint32_t fold_resource_member(uint32_t h, const resource_map_t *map) {
-    return map == NULL ? fold_absent(h) : fold_resource_map(h, map);
+static uint32_t fold_resource_member(uint32_t h, int has, const resource_map_t *map) {
+    return has ? fold_resource_map(h, map) : fold_absent(h);
 }
 
 /* No end yet is `has_end_status` with a NULL `end_status`. */
@@ -173,11 +176,11 @@ static uint32_t fold_economy(uint32_t h, const economy_t *hy) {
     h = fold_fixed_member(h, 1, hy->income);
     h = fold_fixed_member(h, 1, hy->research_points);
     h = fold_fixed_member(h, 1, hy->era);
-    h = fold_list_member(h, hy->invented);
+    h = fold_list_member(h, &hy->invented);
     h = fold_fixed_member(h, 1, hy->year_ticks);
     h = fold_fixed_member(h, 1, hy->year);
-    h = fold_resource_member(h, hy->production);
-    h = fold_resource_member(h, hy->demand);
+    h = fold_resource_member(h, (hy->has & ECONOMY_HAS_PRODUCTION) != 0, &hy->production);
+    h = fold_resource_member(h, (hy->has & ECONOMY_HAS_DEMAND) != 0, &hy->demand);
     h = fold_fixed_member(h, hy->has_happiness, hy->happiness);
     return fold_end_status(h, hy);
 }
@@ -211,9 +214,8 @@ static planet_t *as_planet(void *e) {
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_planet(e)->map_pos;
-    assert(p != NULL);
-    return *p;
+    assert(entity_has_map_pos(&as_planet(e)->header));
+    return as_planet(e)->header.map_pos;
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -232,7 +234,7 @@ static research_project_t *project(int k) {
 static void built_world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    vec_t mp;
     void *qu;
     void *re = NULL;
     slipway_t *jc;
@@ -251,13 +253,13 @@ static void built_world(void) {
     planet_apply_project(qu, project(COLONY));
     planet_apply_project(re, project(EXPORTER));
 
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
-    slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                       vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    main_ui()->hovered = entity_id_link(re);
+    slipway_class()->drag(&jc->header, mouse_world_only(mp));
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -273,7 +275,7 @@ static const entity_class_t *toast_descriptor(void) {
     toast_keys_t keys = {0};
     const toast_t *ref;
 
-    keys.text = "ref";
+    toast_keys_set_text(&keys, "ref");
     ref = toast_new(&keys);
     return ref->header.class;
 }
@@ -290,8 +292,7 @@ static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *to
         h = fnv(h, FROZEN_STRUCT_TAG);
         if (((const entity_t *)e)->class == toast_cls) {
             const toast_t *iv = e;
-            h = iv->text != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->text)
-                                : fnv(fnv(h, (uint32_t)REF_KIND), 0xDEADu);
+            h = fold_string(fnv(h, (uint32_t)STRING_KIND), iv->text);
             h = fold_fixed(h, iv->color);
         }
     }
@@ -308,22 +309,23 @@ static void test_construction(void) {
 
     cart_init();
     bare = economy_new();
-    assert(bare->invented != NULL && bare->production == NULL && bare->demand == NULL && !bare->has_happiness);
+    assert(!(bare->has & ECONOMY_HAS_PRODUCTION) && !(bare->has & ECONOMY_HAS_DEMAND) && !bare->has_happiness);
     assert(!bare->has_end_status);
     h = fold_economy(h, bare);
     assert(invented_of(bare)->count == 0);
     assert(bare->credits == p8_fixed_from_int(100) && bare->year == p8_fixed_from_int(3401));
 
     new_game();
-    assert(checked_main_economy()->invented != NULL && checked_main_economy()->production != NULL && checked_main_economy()->demand != NULL);
+    assert((checked_main_economy()->has & ECONOMY_HAS_PRODUCTION) && (checked_main_economy()->has & ECONOMY_HAS_DEMAND));
     assert(checked_main_economy()->has_happiness && checked_main_economy()->has_end_status);
     h = fold_main_economy(h);
     first = invented_of(checked_main_economy());
     assert(first != invented_of(bare));
+    pointer_list_add(&checked_main_economy()->invented, "a tech");
 
     cart_flush_exit_queue();
     new_game();
-    assert(invented_of(checked_main_economy()) != first && invented_of(checked_main_economy())->count == 0);
+    assert(invented_of(checked_main_economy())->count == 0);
     h = fold_main_economy(h);
     check("construction", h, CONSTRUCTION_HASH);
 }
@@ -354,7 +356,7 @@ static void test_advance_clock(void) {
     assert(checked_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
     h = fold_main_economy(h);
 
-    pointer_list_add(checked_main_economy()->invented, "time compression");
+    pointer_list_add(&checked_main_economy()->invented, "time compression");
     economy_advance_clock(main_economy_self(), p8_fixed_from_int(14));
     assert(checked_main_economy()->year_ticks == p8_fixed_from_int(15));
     assert(checked_main_economy()->year == p8_fixed_add(yr, p8_fixed_from_int(1)));
@@ -468,7 +470,7 @@ static planet_t *a_maker(void) {
 
     for (i = 0; i < jos->count; i++) {
         planet_t *p = as_planet(jos->items[i]);
-        if (p->needs != NULL && p->production != NULL && p->production->has_resource) {
+        if ((p->has & PLANET_HAS_NEEDS) && (p->has & PLANET_HAS_PRODUCTION) && p->production.has_resource) {
             return p;
         }
     }
@@ -496,21 +498,20 @@ static void test_recompute(void) {
     p8_fixed_t resource;
 
     built_world();
-    production = checked_main_economy()->production;
-    demand = checked_main_economy()->demand;
-    assert(production != NULL && demand != NULL);
+    production = &checked_main_economy()->production;
+    demand = &checked_main_economy()->demand;
+    assert((checked_main_economy()->has & ECONOMY_HAS_PRODUCTION) && (checked_main_economy()->has & ECONOMY_HAS_DEMAND));
     maker = a_maker();
-    resource = maker->production->resource;
-    assert(resource_map_get(production, resource, &made) && maker->production->amount > 0);
-    maker->production->resource = p8_fixed_from_int(99);
+    resource = maker->production.resource;
+    assert(resource_map_get(production, resource, &made) && maker->production.amount > 0);
+    maker->production.resource = p8_fixed_from_int(99);
     economy_recompute(main_economy_self());
-    assert(resource_map_get(production, p8_fixed_from_int(99), &amount) && amount == maker->production->amount);
-    assert(resource_map_get(production, resource, &amount) && amount == p8_fixed_sub(made, maker->production->amount));
-    maker->production->resource = resource;
+    assert(resource_map_get(production, p8_fixed_from_int(99), &amount) && amount == maker->production.amount);
+    assert(resource_map_get(production, resource, &amount) && amount == p8_fixed_sub(made, maker->production.amount));
+    maker->production.resource = resource;
     economy_recompute(main_economy_self());
     assert(!resource_map_get(production, p8_fixed_from_int(99), &amount));
     assert(resource_map_get(production, resource, &amount) && amount == made);
-    assert(checked_main_economy()->production == production && checked_main_economy()->demand == demand);
     assert(end_status_string() == NULL);
     hash = fold_main_economy(hash);
     hash = fold_planets_net_income(hash);
@@ -542,15 +543,16 @@ static void test_recompute(void) {
     hash = fold_main_economy(hash);
     check("recompute", hash, RECOMPUTE_HASH);
 
-    demand = checked_main_economy()->demand;
-    need = need_new(game_zone(), &need_amount);
+    demand = &checked_main_economy()->demand;
+    need = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = need_amount});
     structure = structure_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
     pointer_list_add(&needs, need);
-    structure->needs = &needs;
+    structure->needs = needs;
+    structure->has |= PLANET_HAS_NEEDS;
     economy_recompute(main_economy_self());
     assert(resource_map_get(demand, p8_fixed_from_int(99), &amount) && amount == p8_fixed_from_int(1) - 0x2666);
-    structure->needs = NULL;
+    structure->has &= (uint16_t)~PLANET_HAS_NEEDS;
     economy_recompute(main_economy_self());
     assert(!resource_map_get(demand, p8_fixed_from_int(99), &amount));
 }

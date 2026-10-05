@@ -29,16 +29,12 @@ void help_set_start_game(button_fn_t fn) {
     g_start_game_method = (fn != NULL) ? fn : screen_start_game_placeholder;
 }
 
-static int help_screen_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+static int help_screen_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
-
-#define HELP_DIFFICULTY_OPTIONS_ROW_CAP 4
 
 void help_screen_construct(probe_t *self) {
     button_keys_t bs[DIFFICULTY_OPTIONS_COUNT];
-    layout_row_keys_t lq[DIFFICULTY_OPTIONS_COUNT];
-    layout_row_cell_t items[DIFFICULTY_OPTIONS_COUNT][HELP_DIFFICULTY_OPTIONS_ROW_CAP];
     open_box_frame_t frame = {0};
     int i;
 
@@ -49,8 +45,7 @@ void help_screen_construct(probe_t *self) {
         const difficulty_options_entry_t *e = &difficulty_options_table[i];
 
         memset(&bs[i], 0, sizeof bs[i]);
-        lq[i] = layout_row_keys_of_row(e->layout_row, items[i], HELP_DIFFICULTY_OPTIONS_ROW_CAP);
-        bs[i].layout_row_keys = &lq[i];
+        bs[i].layout_row_keys = layout_row_keys_of_row(e->layout_row);
         bs[i].name = e->name;
         bs[i].has_trade = 1;
         bs[i].trade = p8_fixed_from_int(e->trade);
@@ -59,12 +54,15 @@ void help_screen_construct(probe_t *self) {
         bs[i].has_on_click = 1;
         bs[i].on_click = help_start_game_field_value();
     }
-    frame.fixed_pos = &self->archetype->fixed_pos;
+    frame.has_fixed_pos = 1;
+    frame.fixed_pos = self->archetype->fixed_pos;
     frame.clear_ephemerals_after = 1;
     frame.has_back_color = 1;
     frame.back_color = self->archetype->back_color;
-    frame.row_step = &self->archetype->row_step;
-    frame.pos = self->pos;
+    frame.has_row_step = 1;
+    frame.row_step = self->archetype->row_step;
+    frame.has_pos = entity_has_pos(&self->header);
+    frame.pos = self->header.pos;
     message_box_open_box(&frame, bs, DIFFICULTY_OPTIONS_COUNT);
 }
 
@@ -88,9 +86,8 @@ void help_screen_draw(p8_graphics_t *gfx, p8_vram_t *mem, probe_t *self, vec_t p
     }
 }
 
-void help_screen_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    help_screen_draw(dispatch_context_gfx(), dispatch_context_mem(), (probe_t *)self, p);
+void help_screen_draw_method(entity_t *self, vec_t screen_pos) {
+    help_screen_draw(dispatch_context_gfx(), dispatch_context_mem(), (probe_t *)self, screen_pos);
 }
 
 static const entity_class_t help_screen_class_def = {
@@ -111,10 +108,12 @@ static probe_t *screen_create(void) {
     assert(g_help_screen_up && "help_init() must run first");
     self = (probe_t *)allocator_alloc(game_zone(), sizeof *self);
     probe_init_instance(self, &help_screen_class_def, &help_screen_archetype);
-    self->header.hit_box = &self->archetype->hit_box;
-    self->header.cursor_sprite = &self->archetype->cursor_sprite;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = self->archetype->hit_box;
+    self->header.has |= ENTITY_HAS_CURSOR_SPRITE;
+    self->header.cursor_sprite = self->archetype->cursor_sprite;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     help_screen_construct(self);
     emitter_init_in((entity_t *)self, PARTICLE_SLOT_HELP_LIST);
     entity_construct(&self->header);

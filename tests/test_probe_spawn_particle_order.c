@@ -23,6 +23,11 @@
 #include "game/probe.h"
 #include "engine/vec.h"
 
+/* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
+static pointer_list_t *particles_of(const emitter_t *emitter) {
+    return (emitter->has & EMITTER_HAS_PARTICLES) ? (pointer_list_t *)&emitter->particles : NULL;
+}
+
 static probe_t *new_probe(p8_fixed_t pn, p8_fixed_t t, p8_fixed_t du, p8_fixed_t py) {
     probe_keys_t keys = {0};
 
@@ -43,8 +48,8 @@ static vec_t emitted_particle_pos(probe_t *probe) {
 
     emitter_spawn((entity_t *)probe, p8_fixed_from_int(1));
 
-    assert(probe->emitter != NULL && probe->emitter->particles != NULL);
-    it = pointer_list_all(probe->emitter->particles);
+    assert(particles_of(&probe->emitter) != NULL);
+    it = pointer_list_all(particles_of(&probe->emitter));
     assert(pointer_list_iter_next(&it, &particle) && particle != NULL);
     q = particle;
     return q->pos;

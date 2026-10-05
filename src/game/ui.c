@@ -6,6 +6,7 @@
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "engine/entity.h"
+#include "engine/entity_id.h"
 #include "game/mouse_button.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
@@ -17,34 +18,49 @@
 #include "engine/game_zone.h"
 
 static int g_ui_up = 0;
-static entity_t *g_main_mouse = NULL;
-static ui_t *g_main_ui = NULL;
-static entity_list_t g_shared_ephemerals;
+typedef enum { MAIN_MOUSE_NONE, MAIN_MOUSE_PLACEHOLDER, MAIN_MOUSE_REAL } main_mouse_state_t;
+
+static main_mouse_state_t g_main_mouse_state = MAIN_MOUSE_NONE;
+static entity_id_t g_main_mouse;
+static entity_id_t g_main_ui;
 
 const box_t *ui_panel_box(void) {
     return g_ui_up ? &ui_archetype.panel_box : NULL;
 }
 
-entity_list_t *ui_ephemerals_shared(void) {
-    return &g_shared_ephemerals;
+entity_id_list_t ui_ephemerals_new(void) {
+    entity_id_list_t list;
+
+    entity_id_list_init_reserve(&list, ui_zone_slot(SLOT_KIND_EPHEMERALS), UI_EPHEMERALS_RESERVE);
+    return list;
 }
 
-entity_list_t *ui_ephemerals_new(void) {
-    const allocator_t *slot = ui_zone_slot(SLOT_KIND_EPHEMERALS);
-    entity_list_t *le = (entity_list_t *)allocator_alloc(slot, sizeof *le);
+void ui_set_ephemerals(ui_t *self, entity_id_list_t list) {
+    const allocator_t *old_zone = self->ephemerals.zone;
+    int owned_before = (self->has & UI_HAS_OWN_EPHEMERALS) != 0;
 
-    entity_list_init_reserve(le, slot, UI_EPHEMERALS_RESERVE);
-    return le;
-}
-
-void ui_set_ephemerals(ui_t *self, entity_list_t *le) {
-    entity_list_t *old = self->ephemerals;
-
-    if (le != &g_shared_ephemerals) ui_zone_record_ephemerals(le->count);
-    self->ephemerals = le;
-    if (old != NULL && old != &g_shared_ephemerals) {
-        exit_queue_put_arena(old->zone);
+    ui_zone_record_ephemerals(list.count);
+    self->ephemerals = list;
+    self->has |= UI_HAS_OWN_EPHEMERALS;
+    self->ephemerals_serial++;
+    if (owned_before) {
+        exit_queue_put_arena(old_zone);
     }
+}
+
+/* The screen point is the mouse's raw header pos, as the old &mouse->header.pos: entity_pos() would zero it when the position bit is absent. */
+static mouse_pos_t ui_mouse_pos(const ui_t *self, const mouse_t *mouse) {
+    mouse_pos_t out = {0};
+
+    if (self->has & UI_HAS_MOUSE_WORLD) {
+        out.world = self->mouse_world;
+        out.has |= MOUSE_POS_HAS_WORLD;
+    }
+    if (mouse != NULL) {
+        out.screen = mouse->header.pos;
+        out.has |= MOUSE_POS_HAS_SCREEN;
+    }
+    return out;
 }
 
 static const entity_class_t main_mouse_placeholder_class_def = {0};
@@ -59,14 +75,14 @@ static int ui_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-static vec_t ui_vec_or_zero(const vec_t *v) {
-    return v != NULL ? *v : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+static vec_t ui_pos_or_zero(const entity_t *e) {
+    return e != NULL ? entity_pos(e) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
     const mouse_button_t *b;
 
-    assert(g_main_mouse != NULL && "ui_main_mouse_button: reading a button of an absent main mouse stops the run");
+    assert(main_mouse() != NULL && "ui_main_mouse_button: reading a button of an absent main mouse stops the run");
     if (main_mouse_typed() == NULL) {
         return NULL;
     }
@@ -74,16 +90,17 @@ static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
     return b != NULL && b->has_held ? b : NULL;
 }
 
-static void ui_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
+static void ui_draw_overlay_method(entity_t *self, vec_t screen_pos) {
     (void)screen_pos;
     ui_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (const ui_t *)self);
 }
 
 static void ui_ephemerals_release(ui_t *self) {
-    if (self->ephemerals != NULL && self->ephemerals != &g_shared_ephemerals) {
-        arena_release(self->ephemerals->zone);
+    if (self->has & UI_HAS_OWN_EPHEMERALS) {
+        arena_release(self->ephemerals.zone);
     }
-    self->ephemerals = NULL;
+    self->has &= (uint16_t)~UI_HAS_OWN_EPHEMERALS;
+    self->ephemerals = (entity_id_list_t){0};
 }
 
 static void ui_release_method(entity_t *self) {
@@ -103,36 +120,37 @@ static ui_t *ui_create(void) {
     self = (ui_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &ui_class_def, ui_archetype.state, ui_archetype.state_time);
     self->archetype = &ui_archetype;
-    self->header.layer = &self->archetype->layer;
-    self->header.cursor_sprite = &self->archetype->cursor_sprite;
-    self->ephemerals = &g_shared_ephemerals;
-    self->mouse_world = NULL;
-    self->hovered_by_layer = NULL;
-    self->hovered_by_layer_own.layer_count = UI_HOVER_LAYERS;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->header.has |= ENTITY_HAS_CURSOR_SPRITE;
+    self->header.cursor_sprite = self->archetype->cursor_sprite;
+    self->has = 0;
+    self->ephemerals_serial = 0;
+    self->ephemerals = (entity_id_list_t){0};
+    self->mouse_world = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self->hovered_by_layer.layer_count = UI_HOVER_LAYERS;
     for (i = 0; i < UI_HOVER_LAYERS; i++) {
-        entity_list_init(&self->hovered_by_layer_own.layers[i], frame_zone());
+        entity_id_list_init(&self->hovered_by_layer.layers[i], frame_zone());
     }
-    self->hovered = NULL;
-    self->previous_hovered = NULL;
-    self->left_held = NULL;
-    self->right_held = NULL;
+    self->hovered = ENTITY_ID_NONE;
+    self->previous_hovered = ENTITY_ID_NONE;
+    self->left_held = ENTITY_ID_NONE;
+    self->right_held = ENTITY_ID_NONE;
     entity_construct(&self->header);
     return self;
 }
 
 void ui_init(void) {
     ui_shutdown();
-    entity_list_init(&g_shared_ephemerals, game_zone_load_zone());
     g_ui_up = 1;
 
-    g_main_mouse = (entity_t *)&g_main_mouse_placeholder;
+    ui_set_main_mouse(&g_main_mouse_placeholder.header);
 }
 
 void ui_shutdown(void) {
     g_ui_up = 0;
-    entity_list_free(&g_shared_ephemerals);
-    g_main_mouse = NULL;
-    g_main_ui = NULL;
+    ui_set_main_mouse(NULL);
+    g_main_ui = ENTITY_ID_NONE;
 }
 
 const entity_class_t *main_mouse_placeholder_class(void) {
@@ -151,41 +169,83 @@ ui_t *ui_new(void) {
     return ui_create();
 }
 
+entity_t *ui_hovered(const ui_t *self) {
+    return entity_get(self->hovered);
+}
+
+entity_t *ui_previous_hovered(const ui_t *self) {
+    return entity_get(self->previous_hovered);
+}
+
+entity_t *ui_left_held(const ui_t *self) {
+    return entity_get(self->left_held);
+}
+
+background_t *ui_right_held(const ui_t *self) {
+    entity_t *held = entity_get(self->right_held);
+
+    assert((held == NULL || held->class == background_class()) && "ui_right_held: only the background is ever held on the right");
+    return (background_t *)held;
+}
+
+void ui_forget_world(ui_t *self) {
+    int index;
+
+    if (self->has & UI_HAS_OWN_EPHEMERALS) {
+        entity_id_list_clear(&self->ephemerals);
+    }
+    for (index = 0; index < UI_HOVER_LAYERS; index++) {
+        entity_id_list_clear(&self->hovered_by_layer.layers[index]);
+    }
+}
+
 entity_t *main_mouse(void) {
-    return g_main_mouse;
+    switch (g_main_mouse_state) {
+    case MAIN_MOUSE_PLACEHOLDER:
+        return &g_main_mouse_placeholder.header;
+    case MAIN_MOUSE_REAL:
+        return entity_get(g_main_mouse);
+    default:
+        return NULL;
+    }
 }
 
 mouse_t *main_mouse_typed(void) {
-    if (g_main_mouse == NULL || g_main_mouse == &g_main_mouse_placeholder.header) {
-        return NULL;
-    }
-    assert(g_main_mouse->class == mouse_class() && "main_mouse_typed: only the placeholder or a mouse is ever stored");
-    return (mouse_t *)g_main_mouse;
+    entity_t *e = g_main_mouse_state == MAIN_MOUSE_REAL ? entity_get(g_main_mouse) : NULL;
+
+    assert((e == NULL || e->class == mouse_class()) && "main_mouse_typed: only the placeholder or a mouse is ever stored");
+    return (mouse_t *)e;
 }
 
 /* Never frees the outgoing instance: a click inside ui_update replaces it while `self` is still the old one. */
 void ui_set_main_mouse(entity_t *instance) {
-    if (instance == g_main_mouse) {
-        return;
+    if (instance == NULL) {
+        g_main_mouse_state = MAIN_MOUSE_NONE;
+        g_main_mouse = ENTITY_ID_NONE;
+    } else if (instance == &g_main_mouse_placeholder.header) {
+        g_main_mouse_state = MAIN_MOUSE_PLACEHOLDER;
+        g_main_mouse = ENTITY_ID_NONE;
+    } else {
+        g_main_mouse_state = MAIN_MOUSE_REAL;
+        g_main_mouse = entity_id_link(instance);
     }
-    g_main_mouse = instance;
 }
 
 ui_t *main_ui(void) {
-    return g_main_ui;
+    entity_t *e = entity_get(g_main_ui);
+
+    assert((e == NULL || e->class == &ui_class_def) && "main_ui: only a ui is ever stored");
+    return (ui_t *)e;
 }
 
 /* Never frees the outgoing ui, for the same reason as ui_set_main_mouse(). */
 void ui_set_main_ui(ui_t *ui) {
-    if (ui == g_main_ui) {
-        return;
-    }
-    g_main_ui = ui;
+    g_main_ui = entity_id_link(ui != NULL ? &ui->header : NULL);
 }
 
 void ui_update(p8_vram_t *mem, ui_t *self) {
-    entity_list_t *ephemerals_ptr_before;
-    int ephemerals_count;
+    entity_id_list_t ephemerals_before;
+    uint16_t serial_before;
     vec_t qa;
     int hit;
     const mouse_button_t *left;
@@ -197,19 +257,19 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
         return;
     }
 
-    ephemerals_ptr_before = self->ephemerals;
-    ephemerals_count = self->ephemerals != NULL ? self->ephemerals->count : 0;
+    ephemerals_before = self->ephemerals;
+    serial_before = self->ephemerals_serial;
 
     je = main_mouse_typed();
     mo = main_camera_typed();
-    qa = vec_add(ui_vec_or_zero(je != NULL ? je->pos : NULL),
-                       ui_vec_or_zero(mo != NULL ? mo->pos : NULL));
-    self->mouse_world_own = qa;
-    self->mouse_world = &self->mouse_world_own;
+    qa = vec_add(ui_pos_or_zero(je != NULL ? &je->header : NULL),
+                       ui_pos_or_zero(mo != NULL ? &mo->header : NULL));
+    self->mouse_world = qa;
+    self->has |= UI_HAS_MOUSE_WORLD;
 
     ui_update_hover(self);
 
-    hit = (ephemerals_count == 0) || entity_list_has(ephemerals_ptr_before, self->hovered);
+    hit = (ephemerals_before.count == 0) || entity_id_list_has(&ephemerals_before, self->hovered);
     if (hit) {
         ui_handle_button(self, MOUSE_SIDE_LEFT);
     }
@@ -217,7 +277,7 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
     ui_handle_button(self, MOUSE_SIDE_RIGHT);
 
     left = ui_main_mouse_button(MOUSE_SIDE_LEFT);
-    if (left != NULL && left->pressed && self->ephemerals == ephemerals_ptr_before) {
+    if (left != NULL && left->pressed && self->ephemerals_serial == serial_before) {
         ui_clear_ephemerals(self);
     }
 
@@ -227,29 +287,32 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
 void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self) {
     vec_t main_mouse_pos;
     const mouse_t *je;
+    const entity_t *hovered;
     int spr_id = 0;
 
     if (self == NULL || gfx == NULL || mem == NULL) {
         return;
     }
 
-    if (self->right_held != NULL) {
+    hovered = ui_hovered(self);
+    if (ui_right_held(self) != NULL) {
         spr_id = 9;
-    } else if (self->hovered != NULL) {
-        spr_id = ui_to_int(self->hovered->cursor_sprite != NULL ? *self->hovered->cursor_sprite : self->archetype->cursor_sprite);
+    } else if (hovered != NULL) {
+        spr_id = ui_to_int(entity_has(hovered, ENTITY_HAS_CURSOR_SPRITE) ? hovered->cursor_sprite : self->archetype->cursor_sprite);
     } else {
         spr_id = ui_to_int(self->archetype->cursor_sprite);
     }
 
     je = main_mouse_typed();
-    main_mouse_pos = ui_vec_or_zero(je != NULL ? je->pos : NULL);
+    main_mouse_pos = ui_pos_or_zero(je != NULL ? &je->header : NULL);
     p8_spr_default(gfx, mem, spr_id, ui_to_int(main_mouse_pos.x), ui_to_int(main_mouse_pos.y));
 }
 
 void ui_update_hover(ui_t *self) {
-    const mouse_t *mouse;
-    const vec_t *main_mouse_pos;
+    mouse_pos_t mouse;
     const entity_list_t *hit_test_bucket;
+    entity_t *previous;
+    entity_t *hovered = NULL;
     int index;
 
     if (self == NULL) {
@@ -257,41 +320,42 @@ void ui_update_hover(ui_t *self) {
     }
 
     for (index = 0; index < UI_HOVER_LAYERS; index++) {
-        entity_list_init(&self->hovered_by_layer_own.layers[index], frame_zone());
+        entity_id_list_init(&self->hovered_by_layer.layers[index], frame_zone());
     }
-    self->hovered_by_layer = &self->hovered_by_layer_own;
-    self->hovered = NULL;
+    self->has |= UI_HAS_HOVERED_BY_LAYER;
+    self->hovered = ENTITY_ID_NONE;
 
-    mouse = main_mouse_typed();
-    main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
+    mouse = ui_mouse_pos(self, main_mouse_typed());
 
     hit_test_bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (index = 0; index < hit_test_bucket->count; index++) {
         entity_t *e = hit_test_bucket->items[index];
 
-        if (e->class->hit_test != NULL && e->class->hit_test(e, self->mouse_world, main_mouse_pos)) {
-            if (e->layer != NULL) {
-                int fa = ui_to_int(*e->layer);
+        if (e->class->hit_test != NULL && e->class->hit_test(e, mouse)) {
+            if (entity_has(e, ENTITY_HAS_LAYER)) {
+                int fa = ui_to_int(e->layer);
 
                 assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
                        "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
-                entity_list_add(&self->hovered_by_layer->layers[fa], e);
+                entity_id_list_add(&self->hovered_by_layer.layers[fa], entity_id_link(e));
             }
-            self->hovered = e;
+            hovered = e;
+            self->hovered = entity_id_link(e);
         }
     }
 
     /* Clear before set, so an entity hovered two frames in a row stays hovered. */
-    if (self->previous_hovered != NULL) {
-        assert(self->previous_hovered->is_hovered != NULL &&
+    previous = ui_previous_hovered(self);
+    if (previous != NULL) {
+        assert(entity_has(previous, ENTITY_HAS_IS_HOVERED) &&
                "ui_update_hover: the previously hovered entity has no is_hovered member -- stop, do not add one");
-        *self->previous_hovered->is_hovered = 0;
+        previous->is_hovered = 0;
     }
 
-    if (self->hovered != NULL) {
-        assert(self->hovered->is_hovered != NULL &&
+    if (hovered != NULL) {
+        assert(entity_has(hovered, ENTITY_HAS_IS_HOVERED) &&
                "ui_update_hover: the hovered entity has no is_hovered member -- stop, do not add one");
-        *self->hovered->is_hovered = 1;
+        hovered->is_hovered = 1;
     }
 }
 
@@ -304,8 +368,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     int is_left;
     const mouse_button_t *button;
     entity_t *held_inst;
-    mouse_t *mouse;
-    vec_t *main_mouse_pos;
+    const mouse_t *mouse;
 
     if (self == NULL) {
         return;
@@ -314,51 +377,57 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     is_left = side == MOUSE_SIDE_LEFT;
     button = ui_main_mouse_button(side);
     mouse = main_mouse_typed();
-    main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
 
     if (button != NULL && button->pressed) {
         entity_t *kv = NULL;
         down_t kn;
+        const entity_t *given;
 
-        if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, self->mouse_world, main_mouse_pos, NULL, &kv, &kn) &&
-            kn.held != NULL) {
+        if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, ui_mouse_pos(self, mouse), NULL, &kv, &kn) &&
+            (given = entity_get(kn.held)) != NULL) {
             if (is_left) {
-                assert(ui_is_held_class(kn.held->class) &&
+                assert(ui_is_held_class(given->class) &&
                        "ui_handle_button: a left press hands over a slipway; a probe or a wormhole from the background; a "
                        "structure, processor, slipgate, infraspace_gate, trading_hub, synthesizer or ascension from an icon");
                 self->left_held = kn.held;
             } else {
-                assert(kn.held->class == background_class() && "ui_handle_button: a right press hands over the background only");
-                self->right_held = (background_t *)kn.held;
+                assert(given->class == background_class() && "ui_handle_button: a right press hands over the background only");
+                self->right_held = kn.held;
             }
         }
     }
 
-    held_inst = is_left ? self->left_held : (self->right_held != NULL ? &self->right_held->header : NULL);
+    if (is_left) {
+        held_inst = ui_left_held(self);
+    } else {
+        /* GAP-28 */
+        background_t *right = ui_right_held(self);
+        held_inst = right != NULL ? &right->header : NULL;
+    }
 
     if (held_inst != NULL && held_inst->class->drag != NULL) {
-        held_inst->class->drag(held_inst, self->mouse_world, main_mouse_pos);
+        held_inst->class->drag(held_inst, ui_mouse_pos(self, mouse));
     }
 
     if (button != NULL && button->released && held_inst != NULL) {
         entity_t *target = NULL;
         down_t down;
 
-        (void)ui_send_to_hovered(self, SEND_TO_HOVERED_ACCEPT_DROP, NULL, NULL, held_inst, &target, &down);
+        (void)ui_send_to_hovered(self, SEND_TO_HOVERED_ACCEPT_DROP, (mouse_pos_t){0}, held_inst, &target, &down);
 
         if (held_inst->class->drop != NULL) {
             held_inst->class->drop(held_inst, target);
         }
         if (is_left) {
-            self->left_held = NULL;
+            self->left_held = ENTITY_ID_NONE;
         } else {
-            self->right_held = NULL;
+            self->right_held = ENTITY_ID_NONE;
         }
     }
 }
 
 /* Layers descend from 15 to 0 and the first `stop` wins: that order is the dispatch priority. */
-int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *mouse_screen, const entity_t *held,
+int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, mouse_pos_t mouse, const entity_t *held,
                 entity_t **out_target, down_t *out_down) {
     int layer;
 
@@ -366,27 +435,26 @@ int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_
         return 0;
     }
 
-    if (self->hovered_by_layer == NULL) {
+    if (!(self->has & UI_HAS_HOVERED_BY_LAYER)) {
         return 0;
     }
 
     for (layer = UI_HOVER_LAYERS - 1; layer >= 0; layer--) {
-        const entity_list_t *bucket = &self->hovered_by_layer->layers[layer];
-        int i;
+        entity_id_list_iter_t it = entity_id_list_all(&self->hovered_by_layer.layers[layer]);
+        entity_t *h;
 
-        for (i = 0; i < bucket->count; i++) {
-            entity_t *h = bucket->items[i];
-            down_t kn = {0, NULL};
+        while (entity_id_list_iter_next(&it, &h)) {
+            down_t kn = {0, ENTITY_ID_NONE};
 
             switch (message) {
             case SEND_TO_HOVERED_LEFT_PRESS:
                 if (h->class->left_press != NULL) {
-                    kn = h->class->left_press(h, mouse_world, mouse_screen);
+                    kn = h->class->left_press(h, mouse);
                 }
                 break;
             case SEND_TO_HOVERED_RIGHT_PRESS:
                 if (h->class->right_press != NULL) {
-                    kn = h->class->right_press(h, mouse_world, mouse_screen);
+                    kn = h->class->right_press(h, mouse);
                 }
                 break;
             case SEND_TO_HOVERED_ACCEPT_DROP:
@@ -411,13 +479,11 @@ void ui_clear_ephemerals(ui_t *self) {
         return;
     }
 
-    if (self->ephemerals != NULL) {
-        entity_list_iter_t it = entity_list_all(self->ephemerals);
+    {
+        entity_id_list_iter_t it = entity_id_list_all(&self->ephemerals);
         entity_t *e;
-        while (entity_list_iter_next(&it, &e)) {
-            if (e != NULL) {
-                entity_unregister(e);
-            }
+        while (entity_id_list_iter_next(&it, &e)) {
+            entity_unregister(e);
         }
     }
 

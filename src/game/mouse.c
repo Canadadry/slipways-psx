@@ -13,7 +13,6 @@
 static int g_mouse_up = 0;
 static mouse_button_t g_left_button;
 static mouse_button_t g_right_button;
-static vec_t g_mouse_pos;
 
 static void mouse_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
@@ -29,8 +28,7 @@ static mouse_t *mouse_create(void) {
 
     entity_init_instance(&self->header, &mouse_class_def, mouse_archetype.state, mouse_archetype.state_time);
     self->archetype = &mouse_archetype;
-    self->header.pos = (const vec_t *const *)&self->pos;
-    self->pos = &g_mouse_pos;
+    entity_set_pos(&self->header, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
     entity_construct(&self->header);
     return self;
 }
@@ -39,7 +37,6 @@ void mouse_init(void) {
     mouse_shutdown();
     assert(entity_ready() && "mouse_init: entity_init() runs first");
     g_mouse_up = 1;
-    g_mouse_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     memset(&g_left_button, 0, sizeof g_left_button);
     memset(&g_right_button, 0, sizeof g_right_button);
 }
@@ -74,8 +71,7 @@ void mouse_update(const p8_input_t *input, mouse_t *self) {
     }
 
     p8_mouse_t mouse = p8_input_read_mouse(input);
-    self->pos_own = vec_make(p8_fixed_from_int(mouse.x), p8_fixed_from_int(mouse.y));
-    self->pos = &self->pos_own;
+    entity_set_pos(&self->header, vec_make(p8_fixed_from_int(mouse.x), p8_fixed_from_int(mouse.y)));
 
     if (g_mouse_up) {
         mouse_button_update(&g_left_button, (mouse.buttons & P8_MOUSE_LEFT) != 0);

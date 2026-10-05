@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
 #include "game/data_init.h"
@@ -50,6 +51,23 @@
 #include "game/ui_zone.h"
 #include "heap_allocator.h"
 
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
+static const vec_t *slide_target_ref(const button_t *b) {
+    return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* Research project 12, a colony that needs two resources and exports one;
  * project 3, a project with an output and no input, which exports to any
  * planet a slipway joins it to. */
@@ -64,21 +82,21 @@
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-#define TITLE_HASH 0xA03EFF2Au
-#define START_GAME_HASH 0xD47F70BEu
-#define PAUSE_HASH 0xD2FE343Du
-#define RESEARCH_HASH 0x41D4B83Eu
-#define PROJECTS_PANEL_HASH 0x6E72F895u
-#define INSPECTION_PANEL_HASH 0x8897BD95u
-#define SCORE_PANEL_HASH 0x15A0978Du
+#define TITLE_HASH 0x9D11B07Au
+#define START_GAME_HASH 0x01F0B8FBu
+#define PAUSE_HASH 0x25F95A65u
+#define RESEARCH_HASH 0x7A0E4C6Au
+#define PROJECTS_PANEL_HASH 0xE76A67ACu
+#define INSPECTION_PANEL_HASH 0xBF3F72EFu
+#define SCORE_PANEL_HASH 0xAB294E51u
 #define DIFFICULTY_HASH 0x5178903Bu
 #define UPDATE_HASH 0xD2A611E7u
-#define LEFT_PRESS_HASH 0x02AEDFCFu
+#define LEFT_PRESS_HASH 0x6F6294FBu
 #define REFRESH_HASH 0x0FA6ACC7u
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
-#define DRAW_HASH 0x8E87EDFAu
-#define BUTTON_MEMBERS_HASH 0x2FFA417Au
+#define DRAW_HASH 0x1A156945u
+#define BUTTON_MEMBERS_HASH 0xF6AAF8CAu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -112,6 +130,16 @@ static int entity_list_rank_in(const entity_list_t *list, const void *e) {
 
 static int entity_list_listed(const entity_list_t *list, const void *e) {
     return entity_list_rank_in(list, e) >= 0;
+}
+
+static int id_list_rank_in(const entity_id_list_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (entity_id_list_at(list, i) == e) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 static const entity_class_t *class_of(const void *e) {
@@ -157,10 +185,18 @@ static button_t *button_of(const void *e) {
     return (button_t *)e;
 }
 
+static int is_difficulty_copy_of(const void *e) {
+    const button_t *dk = economy_score_difficulty();
+    const button_t *nj = button_of(e);
+
+    return dk != NULL && dk != nj && dk->name == nj->name && dk->has_trade == nj->has_trade && dk->trade == nj->trade &&
+           dk->has_type_bias == nj->has_type_bias && dk->type_bias == nj->type_bias;
+}
+
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const void *e) {
     const button_t *b = button_of(e);
-    return b->is_hovered ? 2u : 0u;
+    return b->header.is_hovered ? 2u : 0u;
 }
 
 /* 0 absent, 1 false, 3 a row. */
@@ -199,12 +235,12 @@ static int is_layout_row(const void *e) {
 }
 
 static int row_count(const void *lq) {
-    return ((const layout_row_t *)lq)->items_count;
+    return ((const layout_row_t *)lq)->placed_items_count;
 }
 
-static layout_row_cell_t row_item(const void *lq, int i) {
+static layout_row_item_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const layout_row_t *)lq)->items[i];
+    return ((const layout_row_t *)lq)->placed_items[i];
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -257,22 +293,24 @@ static uint32_t fold_opt_ref(uint32_t h, const void *ref) {
     return ref != NULL ? fold_ref(fnv(h, 1u), ref) : fnv(h, 0u);
 }
 
-/* A positional as the value it was sorted from folded: a row as any REF,
- * NOTHING as false (no row folded here holds an absent top-level item). */
-static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fnv(h, 0x12u);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
-    case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_placed_item(uint32_t h, layout_row_item_t item) {
+    h = fnv(h, (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        break;
     }
+    return fold_fixed(h, item.offset.x);
 }
 
-/* A row by its width and its positional items. */
+/* A row by its width and its placed items. */
 static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     int i;
 
@@ -280,7 +318,7 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     h = fold_fixed(h, lq->width);
     for (i = 0; i < row_count(lq); i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_cell(h, row_item(lq, i));
+        h = fold_placed_item(h, row_item(lq, i));
     }
     return h;
 }
@@ -307,13 +345,13 @@ static uint32_t fold_built_side_tooltip(uint32_t h, const button_t *b) {
 
 static uint32_t fold_hit_box(uint32_t h, const button_t *b) {
     static const int dy[] = {-2, -1, 0, 5, 9, 10, 11};
-    const box_t *kq = b->header.hit_box;
+    box_t kq = b->header.hit_box;
     int mb = p8_fixed_flr_int(b->width);
     int dx[6];
     size_t i;
     size_t j;
 
-    assert(kq != NULL);
+    assert(entity_has(&b->header, ENTITY_HAS_HIT_BOX));
     dx[0] = -1;
     dx[1] = 0;
     dx[2] = 1;
@@ -329,8 +367,8 @@ static uint32_t fold_hit_box(uint32_t h, const button_t *b) {
     return h;
 }
 
-static const entity_list_t *main_ui_ephemerals(void) {
-    return main_ui() == NULL ? NULL : main_ui()->ephemerals;
+static const entity_id_list_t *main_ui_ephemerals(void) {
+    return main_ui() == NULL ? NULL : &main_ui()->ephemerals;
 }
 
 /* A button as button_new and button_construct left it: every construction
@@ -343,11 +381,11 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
 
     assert(button->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed(hash, button->header.state_time);
-    hash = fold_fixed(hash, button->layer);
+    hash = fold_fixed(hash, button->header.layer);
     hash = fold_fixed(hash, button->width);
     hash = fold_hit_box(hash, button);
-    hash = fold_vec(hash, button->pos);
-    hash = fold_vec(hash, button->slide_target);
+    hash = fold_vec(hash, pos_ref(&button->header));
+    hash = fold_vec(hash, slide_target_ref(button));
     hash = fold_built(hash, button->layout_row);
     hash = fold_built_side_tooltip(hash, button);
     hash = fold_built(hash, button->tooltip);
@@ -366,8 +404,8 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     hash = fold_opt_string(hash, button->name);
     hash = fold_opt_fixed(hash, button->has_trade, button->trade);
     hash = fold_opt_fixed(hash, button->has_type_bias, button->type_bias);
-    hash = fold_opt_ref(hash, button->project_planet);
-    hash = fold_opt_ref(hash, button->project);
+    hash = fold_opt_ref(hash, entity_get(button->project_planet));
+    hash = fold_opt_ref(hash, research_project_get(button->project));
     hash = fold_opt_fixed(hash, button->has_project_cost, button->project_cost);
     if (button->technology != NULL) {
         const technologies_entry_t *t = button->technology;
@@ -384,18 +422,18 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_listed(entities_by_message(messages[index]), button));
     }
-    return fnv(hash, (uint32_t)entity_list_rank_in(main_ui_ephemerals(), button));
+    return fnv(hash, (uint32_t)id_list_rank_in(main_ui_ephemerals(), button));
 }
 
 static uint32_t fold_ephemerals(uint32_t h, const char *label) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     int i;
 
     assert(le != NULL);
     printf("[%s] %d button(s) in main_ui.ephemerals\n", label, le->count);
     h = fnv(h, (uint32_t)le->count);
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i];
+        void *b = entity_id_list_at(le, i);
         printf("[%s] button %d: on_click %u, side_tooltip %u, tooltip %u\n", label, i, on_click_state(b), side_tooltip_state(b),
                button_of(b)->tooltip != NULL ? 3u : 0u);
         h = fold_button(h, b);
@@ -410,10 +448,10 @@ static int same_vec(const vec_t *a, const vec_t *b) {
 /* The position every row of one button list starts from: each button holds
  * a copy of it. */
 static void check_shared_pos(void) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     int i;
     for (i = 1; le != NULL && i < le->count; i++) {
-        assert(same_vec(button_of(le->items[i])->pos, button_of(le->items[0])->pos));
+        assert(same_vec(pos_ref(&button_of(entity_id_list_at(le, i))->header), pos_ref(&button_of(entity_id_list_at(le, 0))->header)));
     }
 }
 
@@ -480,7 +518,7 @@ static planet_t *as_planet(void *e) {
 }
 
 static vec_t pos_of(void *e) {
-    return vec_of(as_planet(e)->map_pos);
+    return vec_of(map_pos_ref(&as_planet(e)->header));
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -500,7 +538,7 @@ static research_project_t *project(int k) {
 static void *built_world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    vec_t mp;
     void *qu;
     void *re = NULL;
     slipway_t *jc;
@@ -519,13 +557,13 @@ static void *built_world(void) {
     planet_apply_project(qu, project(COLONY));
     planet_apply_project(re, project(EXPORTER));
 
-    slipway_keys.start = qu;
+    slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    main_ui()->hovered = re;
-    slipway_class()->drag(&jc->header, mp, NULL);
-    main_ui()->hovered = NULL;
+    mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                       vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    main_ui()->hovered = entity_id_link(re);
+    slipway_class()->drag(&jc->header, mouse_world_only(mp));
+    main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
     }
@@ -598,7 +636,7 @@ static int galaxy_menu_buttons(void *out[4]) {
     int i;
     for (i = 0; hd != NULL && i < hd->count; i++) {
         void *e = hd->items[i];
-        if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(11) && button_of(e)->layout_row != NULL) {
+        if (is_button(e) && button_of(e)->header.layer == p8_fixed_from_int(11) && button_of(e)->layout_row != NULL) {
             assert(n < 4);
             out[n++] = e;
         }
@@ -624,7 +662,7 @@ static void test_title(void) {
             if (first == NULL) {
                 first = e;
             }
-            assert(same_vec(button_of(e)->pos, button_of(first)->pos));
+            assert(same_vec(pos_ref(&button_of(e)->header), pos_ref(&button_of(first)->header)));
             h = fold_button(h, e);
             n++;
         }
@@ -641,7 +679,7 @@ static void test_start_game(void) {
     start_game();
     check_int("start_game buttons", galaxy_menu_buttons(ix), 4);
     for (i = 0; i < 4; i++) {
-        assert(!entity_list_listed(main_ui_ephemerals(), ix[i]));
+        assert(id_list_rank_in(main_ui_ephemerals(), ix[i]) < 0);
         assert((button_of(ix[i])->refresh != NULL) == (i == 1));
         h = fold_button(h, ix[i]);
     }
@@ -682,13 +720,13 @@ static int at(const vec_t *p, int x, int y) {
  * centered at the top, the next-year button 10 pixels from the right edge; the pause menu opens 10 lines above the pause
  * button, then climbs by 11. */
 static void test_bar_buttons_and_pause_menu_anchors(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     int k;
 
     start_game();
-    assert(at(galaxy_menu_entry(4)->pos, 0, P8_SCREEN_HEIGHT - 11));
-    assert(at(galaxy_menu_entry(3)->pos, P8_SCREEN_WIDTH / 2 - 17, 0));
-    assert(at(galaxy_menu_entry(1)->pos, P8_SCREEN_WIDTH - 10, 0));
+    assert(at(pos_ref(&galaxy_menu_entry(4)->header), 0, P8_SCREEN_HEIGHT - 11));
+    assert(at(pos_ref(&galaxy_menu_entry(3)->header), P8_SCREEN_WIDTH / 2 - 17, 0));
+    assert(at(pos_ref(&galaxy_menu_entry(1)->header), P8_SCREEN_WIDTH - 10, 0));
     {
         button_t *next_year = galaxy_menu_entry(1);
         int touches = 0;
@@ -696,7 +734,7 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
 
         p8_camera(&graphics, 0, 0);
         p8_cls(&memory);
-        class_of(next_year)->draw(&next_year->header, next_year->pos);
+        class_of(next_year)->draw(&next_year->header, entity_pos(&next_year->header));
         for (y = 0; y < 11; y++) {
             touches |= memory.screen[y][P8_SCREEN_WIDTH - 1] != 0;
         }
@@ -706,19 +744,19 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
     le = main_ui_ephemerals();
     assert(le != NULL && le->count == 4);
     for (k = 0; k < le->count; k++) {
-        assert(at(button_of(le->items[k])->pos, 0, P8_SCREEN_HEIGHT - 21));
-        assert(at(button_of(le->items[k])->slide_target, 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
+        assert(at(pos_ref(&button_of(entity_id_list_at(le, k))->header), 0, P8_SCREEN_HEIGHT - 21));
+        assert(at(slide_target_ref(button_of(entity_id_list_at(le, k))), 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
     }
 }
 
 static void invent(char *rr) {
-    assert(main_economy_typed() != NULL && main_economy_typed()->invented != NULL);
-    pointer_list_add(main_economy_typed()->invented, rr);
+    assert(main_economy_typed() != NULL);
+    pointer_list_add(&main_economy_typed()->invented, rr);
 }
 
 static void test_research(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const tooltip_t *jb;
     const layout_row_t *line;
     int unaffordable = 0;
@@ -730,18 +768,18 @@ static void test_research(void) {
     check_shared_pos();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        if (on_click_state(le->items[i]) == 1) {
+        if (on_click_state(entity_id_list_at(le, i)) == 1) {
             unaffordable++;
         }
     }
     printf("[research] %d unaffordable tech(s)\n", unaffordable);
     assert(unaffordable >= 1);
-    assert(!button_of(le->items[le->count - 1])->has_on_click && button_of(le->items[le->count - 1])->tooltip != NULL);
-    jb = button_of(le->items[le->count - 1])->tooltip;
+    assert(!button_of(entity_id_list_at(le, le->count - 1))->has_on_click && button_of(entity_id_list_at(le, le->count - 1))->tooltip != NULL);
+    jb = button_of(entity_id_list_at(le, le->count - 1))->tooltip;
     assert(jb->rows_count == 1);
     line = jb->rows[0];
-    assert(line->items_count == 1 && line->items[0].kind == LAYOUT_ROW_CELL_STRING);
-    assert(strcmp(line->items[0].as.text, "slipgates") == 0);
+    assert(row_count(line) == 1 && row_item(line, 0).kind == LAYOUT_ROW_ITEM_TEXT);
+    assert(strcmp(row_item(line, 0).text, "slipgates") == 0);
     h = fold_ephemerals(h, "research");
     check("research", h, RESEARCH_HASH);
 }
@@ -750,14 +788,14 @@ static void test_research(void) {
 
 static void test_projects_panel(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     int with_planet = 0;
     int i;
 
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        with_planet += button_of(le->items[i])->project_planet != NULL;
+        with_planet += entity_get(button_of(entity_id_list_at(le, i))->project_planet) != NULL;
     }
     printf("[projects_panel] %d row(s) carry project_planet\n", with_planet);
     assert(with_planet >= 1);
@@ -784,7 +822,7 @@ static void test_score_panel(void) {
     hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
-        if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
+        if (is_button(e) && button_of(e)->header.layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
             n++;
             h = fold_button(h, e);
         }
@@ -811,7 +849,7 @@ static void test_difficulty(void) {
         cart_flush_exit_queue();
         nj = title_button(i);
         cart_start_game(nj);
-        assert(economy_score_difficulty() == nj);
+        assert(is_difficulty_copy_of(nj));
         h = fold_fixed_or_nil(h, button_of(nj)->has_type_bias, button_of(nj)->type_bias);
         h = fold_fixed_or_nil(h, button_of(nj)->has_trade, button_of(nj)->trade);
         h = fold_string_or_nil(h, button_of(nj)->name);
@@ -819,7 +857,7 @@ static void test_difficulty(void) {
         printf("[difficulty] option %d: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
-            h = fold_vec(h, as_planet(jo->items[j])->pos);
+            h = fold_vec(h, pos_ref(&as_planet(jo->items[j])->header));
         }
     }
     check("difficulty", h, DIFFICULTY_HASH);
@@ -836,32 +874,20 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static vec_t *vec_at(int x, int y) {
-    vec_t *p = malloc(sizeof *p);
-
-    *p = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return p;
+static vec_t vec_at(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 /* A button of `keys` whose layout row holds the one text given, and whose
  * side tooltip, when its text is not NULL, holds that text in color 13. */
 static void *build(button_keys_t keys, const char *layout_row_text, const char *h_text) {
-    layout_row_cell_t layout_row_item = layout_row_cell_string(layout_row_text);
-    layout_row_cell_t h_item;
-    layout_row_keys_t lq = {0};
-    layout_row_keys_t h_ = {0};
-
-    lq.items = &layout_row_item;
-    lq.count = 1;
-    keys.layout_row_keys = &lq;
+    layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_string(layout_row_text));
     if (h_text != NULL) {
-        h_item = layout_row_cell_string(h_text);
-        h_.items = &h_item;
-        h_.count = 1;
-        h_.has_color = 1;
-        h_.color = p8_fixed_from_int(13);
+        layout_row_keys_append(&keys.side_tooltip_row, layout_row_cell_string(h_text));
+        keys.side_tooltip_row.has_color = 1;
+        keys.side_tooltip_row.color = p8_fixed_from_int(13);
         keys.has_side_tooltip = 1;
-        keys.side_tooltip_row = &h_;
+        keys.has_side_tooltip_row = 1;
     }
     return button_new(&keys);
 }
@@ -869,6 +895,7 @@ static void *build(button_keys_t keys, const char *layout_row_text, const char *
 static button_keys_t button_at(int x, int y) {
     button_keys_t keys = {0};
 
+    keys.has_pos = 1;
     keys.pos = vec_at(x, y);
     return keys;
 }
@@ -880,34 +907,34 @@ static button_keys_t keyed_on_click(button_keys_t keys, button_fn_t my) {
 }
 
 /* button_update moves the position 0.4 of the way to `slide_target`, then
- * jumps the last unit, never through the vector the keys carried. */
+ * jumps the last unit; the button copied both vectors from its keys. */
 static void test_update(void) {
     uint32_t h = 2166136261u;
     void *b;
-    const vec_t *first;
-    vec_t first_at;
     int steps = 0;
 
     start_game();
     {
         button_keys_t keys = button_at(3, 4);
 
+        keys.has_slide_target = 1;
         keys.slide_target = vec_at(40, -20);
-        b = build(keys, "go", NULL);
-        first = keys.pos;
+        layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_string("go"));
+        b = button_new(&keys);
+        keys.pos = vec_at(90, 90);
+        keys.slide_target = vec_at(-90, -90);
+        assert(at(pos_ref(&button_of(b)->header), 3, 4) && at(slide_target_ref(button_of(b)), 40, -20));
     }
-    first_at = vec_of(first);
     while (steps < 40) {
-        vec_t before = vec_of(button_of(b)->pos);
+        vec_t before = vec_of(pos_ref(&button_of(b)->header));
         class_of(b)->states[ENTITY_STATE_NORMAL](b, p8_fixed_from_int(0));
         steps++;
-        h = fold_vec(h, button_of(b)->pos);
-        if (vec_of(button_of(b)->pos).x == before.x && vec_of(button_of(b)->pos).y == before.y) {
+        h = fold_vec(h, pos_ref(&button_of(b)->header));
+        if (vec_of(pos_ref(&button_of(b)->header)).x == before.x && vec_of(pos_ref(&button_of(b)->header)).y == before.y) {
             break;
         }
     }
-    assert(first->x == first_at.x && first->y == first_at.y);
-    assert(vec_of(button_of(b)->pos).x == p8_fixed_from_int(40) && vec_of(button_of(b)->pos).y == p8_fixed_from_int(-20));
+    assert(vec_of(pos_ref(&button_of(b)->header)).x == p8_fixed_from_int(40) && vec_of(pos_ref(&button_of(b)->header)).y == p8_fixed_from_int(-20));
     printf("[update] %d step(s)\n", steps);
     h = fnv(h, (uint32_t)steps);
     check("update", h, UPDATE_HASH);
@@ -932,11 +959,11 @@ static void test_left_press(void) {
     with_on_click = build(keyed_on_click(none, counting_on_click), "a", NULL);
     with_false = build(keyed_on_click(none, NULL), "b", NULL);
 
-    r = class_of(with_on_click)->left_press(with_on_click, NULL, NULL);
-    assert(r.stop && r.held == NULL);
+    r = class_of(with_on_click)->left_press(with_on_click, (mouse_pos_t){0});
+    assert(r.stop && entity_get(r.held) == NULL);
     assert(on_click_calls == 1 && on_click_self == with_on_click);
-    r = class_of(with_false)->left_press(with_false, NULL, NULL);
-    assert(r.stop && r.held == NULL);
+    r = class_of(with_false)->left_press(with_false, (mouse_pos_t){0});
+    assert(r.stop && entity_get(r.held) == NULL);
     assert(on_click_calls == 1);
     assert(on_click_state(with_false) == 1);
     h = fnv(h, (uint32_t)on_click_calls);
@@ -947,11 +974,11 @@ static void test_left_press(void) {
 
 static uint32_t layout_row_first(const void *b) {
     const layout_row_t *lq = button_of(b)->layout_row;
-    layout_row_cell_t v;
+    layout_row_item_t v;
     assert(lq != NULL && row_count(lq) > 0);
     v = row_item(lq, 0);
-    assert(v.kind == LAYOUT_ROW_CELL_FIXED);
-    return (uint32_t)p8_fixed_flr_int(v.as.fixed);
+    assert(v.kind == LAYOUT_ROW_ITEM_SPRITE);
+    return (uint32_t)p8_fixed_flr_int(v.sprite_id);
 }
 
 /* The second galaxy menu button's `refresh` rebuilds its `layout_row`: 24
@@ -984,18 +1011,18 @@ static void test_refresh(void) {
 /* The `on_click` of a projects panel row builds on its `project_planet`. */
 static void test_projects_panel_on_click(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     int i;
 
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i];
+        void *b = entity_id_list_at(le, i);
         const planet_t *pt;
-        if (button_of(b)->project_planet == NULL) {
+        if (entity_get(button_of(b)->project_planet) == NULL) {
             continue;
         }
-        pt = button_of(b)->project_planet;
+        pt = (const planet_t *)entity_get(button_of(b)->project_planet);
         h = fold_string_or_nil(h, entity_state_name(pt->header.state));
         h = fnv(h, (uint32_t)live_entities()->count);
         call_on_click(b);
@@ -1012,7 +1039,7 @@ static void test_projects_panel_on_click(void) {
 /* The `on_click` of a tech tree screen row invents its `technology`. */
 static void test_tech_tree_screen_on_click(void) {
     uint32_t h = 2166136261u;
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const pointer_list_t *invented;
     const char *last;
     int i;
@@ -1020,16 +1047,16 @@ static void test_tech_tree_screen_on_click(void) {
     tech_screen();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        if (on_click_state(le->items[i]) == 3) {
+        if (on_click_state(entity_id_list_at(le, i)) == 3) {
             break;
         }
     }
     assert(i < le->count);
     assert(main_economy_typed() != NULL);
-    invented = main_economy_typed()->invented;
+    invented = &main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
-    call_on_click(le->items[i]);
-    invented = main_economy_typed()->invented;
+    call_on_click(entity_id_list_at(le, i));
+    invented = &main_economy_typed()->invented;
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
     last = invented->items[invented->count - 1];
@@ -1041,8 +1068,8 @@ static void test_tech_tree_screen_on_click(void) {
 static uint32_t draw_alone(void *b) {
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(b)->draw(b, button_of(b)->pos);
-    class_of(b)->draw_overlay(b, NULL);
+    class_of(b)->draw(b, entity_pos(&button_of(b)->header));
+    class_of(b)->draw_overlay(b, (vec_t){0, 0});
     return screen_hash();
 }
 
@@ -1072,11 +1099,11 @@ static void test_draw(void) {
 
     px[0] = draw_alone(plain);
     px[1] = draw_alone(with_on_click);
-    button_of(with_on_click)->is_hovered = 1;
+    button_of(with_on_click)->header.is_hovered = 1;
     px[2] = draw_alone(with_on_click);
     px[3] = draw_alone(priced);
     px[4] = draw_alone(tooltip);
-    button_of(tooltip)->is_hovered = 1;
+    button_of(tooltip)->header.is_hovered = 1;
     px[5] = draw_alone(tooltip);
     px[6] = draw_alone(free);
     assert(side_tooltip_state(free) == 1 && px[6] == px[1]);
@@ -1119,11 +1146,11 @@ static void test_hovered_tooltip_rests_on_the_bottom_edge(void) {
     start_game();
     b = build(button_at(10, 20), "plain", NULL);
     button_of(b)->tooltip = tooltip_new(&heap_allocator, &icon_tooltips_table[0]);
-    button_of(b)->is_hovered = 1;
+    button_of(b)->header.is_hovered = 1;
     n = button_of(b)->tooltip->rows_count;
     p8_camera(&graphics, 0, 0);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
-    class_of(b)->draw_overlay(b, NULL);
+    class_of(b)->draw_overlay(b, (vec_t){0, 0});
     painted_rows(7, &first, &last);
     printf("[hovered_tooltip] %d line(s), rows %d-%d\n", n, first, last);
     assert(last == P8_SCREEN_HEIGHT - 1);
@@ -1169,7 +1196,7 @@ static void test_button_is_a_struct(void) {
     nj = title_button(2);
     cart_flush_exit_queue();
     cart_start_game(nj);
-    assert(is_button(nj) && economy_score_difficulty() == nj);
+    assert(is_button(nj) && is_difficulty_copy_of(nj));
     assert(galaxy_menu_buttons(ix) == 4);
     check_int("struct start_game", all_buttons_are_structs(), 4);
     for (i = 0; i < 4; i++) {
@@ -1189,7 +1216,7 @@ static void test_button_is_a_struct(void) {
     {
         const button_keys_t empty = {0};
         void *bare = button_new(&empty);
-        assert(is_button(bare) && button_of(bare)->layer == p8_fixed_from_int(11) && !button_of(bare)->has_on_click);
+        assert(is_button(bare) && button_of(bare)->header.layer == p8_fixed_from_int(11) && !button_of(bare)->has_on_click);
     }
 }
 
@@ -1261,20 +1288,20 @@ static uint32_t fold_member_fixed(uint32_t h, int has, p8_fixed_t f) {
 static uint32_t fold_button_members(uint32_t h, const void *e) {
     const button_t *b = button_of(e);
 
-    h = fold_member_fixed(h, 1, b->layer);
+    h = fold_member_fixed(h, 1, b->header.layer);
     h = fold_member_opt_ref(h, b->layout_row);
     h = fold_member_fixed(h, 1, b->width);
-    h = b->header.hit_box != NULL ? fold_hit_box(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
+    h = entity_has(&b->header, ENTITY_HAS_HIT_BOX) ? fold_hit_box(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
     if (b->has_side_tooltip && b->side_tooltip == NULL) {
         h = fold_bool(fold_kind(h, BOOL_KIND), 0);
     } else {
         h = fold_member_opt_ref(h, b->has_side_tooltip ? b->side_tooltip : NULL);
     }
     h = fold_member_opt_ref(h, b->tooltip);
-    h = fold_member_vec(h, b->pos);
-    h = fold_member_vec(h, b->slide_target);
+    h = fold_member_vec(h, pos_ref(&b->header));
+    h = fold_member_vec(h, slide_target_ref(b));
     h = fold_button_fn(h, b->has_on_click, b->on_click);
-    h = (b->is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->is_hovered) : fnv(h, 0u);
+    h = (b->header.is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->header.is_hovered) : fnv(h, 0u);
     h = fold_button_fn(h, b->refresh != NULL, b->refresh);
     h = b->name != NULL ? fold_string(fold_kind(h, STRING_KIND), b->name) : fnv(h, 0u);
     h = fold_member_fixed(h, b->has_trade, b->trade);
@@ -1286,19 +1313,19 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
     } else {
         h = fnv(h, 0u);
     }
-    h = fold_member_opt_ref(h, b->project_planet);
-    h = fold_member_opt_ref(h, b->project);
+    h = fold_member_opt_ref(h, entity_get(b->project_planet));
+    h = fold_member_opt_ref(h, research_project_get(b->project));
     return fold_member_fixed(h, b->has_project_cost, b->project_cost);
 }
 
 static uint32_t fold_ephemerals_members(uint32_t h) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     int i;
 
     assert(le != NULL);
     h = fnv(h, (uint32_t)le->count);
     for (i = 0; i < le->count; i++) {
-        h = fold_button_members(h, le->items[i]);
+        h = fold_button_members(h, entity_id_list_at(le, i));
     }
     return h;
 }
@@ -1309,21 +1336,21 @@ static void check_one_open_box(void *const *b, int n) {
     int j;
 
     for (i = 0; i < n; i++) {
-        assert(same_vec(button_of(b[i])->pos, button_of(b[0])->pos));
+        assert(same_vec(pos_ref(&button_of(b[i])->header), pos_ref(&button_of(b[0])->header)));
         for (j = 0; j < i; j++) {
-            assert(button_of(b[i])->slide_target != NULL && button_of(b[i])->slide_target != button_of(b[j])->slide_target);
+            assert(slide_target_ref(button_of(b[i])) != NULL && slide_target_ref(button_of(b[i])) != slide_target_ref(button_of(b[j])));
         }
     }
 }
 
 static void check_ephemerals_one_open_box(void) {
-    const entity_list_t *le = main_ui_ephemerals();
+    const entity_id_list_t *le = main_ui_ephemerals();
     void *b[32];
     int i;
 
     assert(le != NULL && le->count <= 32);
     for (i = 0; i < le->count; i++) {
-        b[i] = le->items[i];
+        b[i] = entity_id_list_at(le, i);
     }
     check_one_open_box(b, le->count);
 }
@@ -1331,7 +1358,7 @@ static void check_ephemerals_one_open_box(void) {
 /* `is_hovered` true, false, or absent (`present` 0), which reads as
  * false. */
 static void write_is_hovered(button_t *b, int present, int value) {
-    b->is_hovered = present ? value : 0;
+    b->header.is_hovered = present ? value : 0;
 }
 
 /* `is_hovered` takes true, false and absent; `layout_row` a row or NULL.
@@ -1340,30 +1367,30 @@ static void write_is_hovered(button_t *b, int present, int value) {
  * reads. */
 static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     button_t *button = button_of(entity);
-    const box_t *hit_box_before = button->header.hit_box;
+    box_t hit_box_before = button->header.hit_box;
     p8_fixed_t width = button->width;
     layout_row_t *layout_row;
     int index;
 
-    assert(hit_box_before != NULL);
+    assert(entity_has(&button->header, ENTITY_HAS_HIT_BOX));
     write_is_hovered(button, 1, 1);
-    assert(button->is_hovered == 1);
+    assert(button->header.is_hovered == 1);
     hash = fold_button_members(hash, entity);
     write_is_hovered(button, 1, 0);
-    assert(button->is_hovered == 0);
+    assert(button->header.is_hovered == 0);
     hash = fold_button_members(hash, entity);
     write_is_hovered(button, 1, 1);
     write_is_hovered(button, 1, 0);
-    assert(button->is_hovered == 0);
+    assert(button->header.is_hovered == 0);
     hash = fold_button_members(hash, entity);
     write_is_hovered(button, 1, 1);
     write_is_hovered(button, 0, 0);
-    assert(!button->is_hovered);
+    assert(!button->header.is_hovered);
     write_is_hovered(button, 1, 0);
     write_is_hovered(button, 0, 0);
-    assert(!button->is_hovered);
+    assert(!button->header.is_hovered);
     write_is_hovered(button, 0, 0);
-    assert(!button->is_hovered);
+    assert(!button->header.is_hovered);
     hash = fold_button_members(hash, entity);
 
     layout_row = button_of(other)->layout_row;
@@ -1374,7 +1401,8 @@ static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     button->layout_row = layout_row;
     hash = fold_button_members(hash, entity);
     button->layout_row = NULL;
-    assert(button->header.hit_box == hit_box_before);
+    assert(button->header.hit_box.left == hit_box_before.left && button->header.hit_box.top == hit_box_before.top &&
+           button->header.hit_box.right == hit_box_before.right && button->header.hit_box.bottom == hit_box_before.bottom);
     assert(button->width == width);
     hash = fold_button_members(hash, entity);
     button->layout_row = layout_row;
@@ -1383,7 +1411,7 @@ static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     for (index = 0; index < 15 + 8; index++) {
         hash = fnv(hash, 0u);
     }
-    assert(button->is_hovered == 1);
+    assert(button->header.is_hovered == 1);
     return fold_button_members(hash, entity);
 }
 
@@ -1406,9 +1434,9 @@ static uint32_t fold_and_drop(uint32_t h, button_t *b) {
  * (written on the member: no key builds it), a row's keys as the layout
  * row's source. */
 static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
+    static layout_row_t side_tooltip;
     const button_keys_t none = {0};
     button_keys_t keys;
-    layout_row_cell_t from_keys[2];
     layout_row_keys_t from = {0};
     button_t *button;
     int index;
@@ -1416,8 +1444,8 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     for (index = 0; index < 12; index++) {
         button = built(none);
         assert(button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
-        assert(button->pos == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
-        assert(button->project_planet == NULL && button->project == NULL);
+        assert(pos_ref(&button->header) == NULL && slide_target_ref(button) == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
+        assert(entity_get(button->project_planet) == NULL && research_project_get(button->project) == NULL);
         hash = fold_and_drop(hash, button);
     }
     keys = none;
@@ -1465,16 +1493,15 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     keys = none;
     keys.has_side_tooltip = 1;
     button = built(keys);
-    button->side_tooltip = layout_row_copy(&heap_allocator, source_row);
+    side_tooltip = *source_row;
+    button->side_tooltip = &side_tooltip;
     assert(button->has_side_tooltip && is_layout_row(button->side_tooltip) && button->side_tooltip != source_row);
     hash = fold_and_drop(hash, button);
 
-    from_keys[0] = layout_row_cell_string("from a list");
-    from_keys[1] = layout_row_cell_fixed(p8_fixed_from_int(3));
-    from.items = from_keys;
-    from.count = 2;
+    layout_row_keys_append(&from, layout_row_cell_string("from a list"));
+    layout_row_keys_append(&from, layout_row_cell_fixed(p8_fixed_from_int(3)));
     keys = none;
-    keys.layout_row_keys = &from;
+    keys.layout_row_keys = from;
     button = built(keys);
     assert(button->layout_row != NULL && is_layout_row(button->layout_row) && row_count(button->layout_row) == 2);
     return fold_and_drop(hash, button);
@@ -1502,7 +1529,7 @@ static uint32_t members_title_and_game(void) {
             assert(count < 4);
             title[count++] = e;
             assert(button_of(e)->name != NULL);
-            assert(button_of(e)->layer == help_screen_archetype.back_color);
+            assert(button_of(e)->header.layer == help_screen_archetype.back_color);
             hash = fold_button_members(hash, e);
         }
     }
@@ -1516,7 +1543,7 @@ static uint32_t members_title_and_game(void) {
     hash = fold_button_members(hash, chosen_option);
     cart_flush_exit_queue();
     cart_start_game(chosen_option);
-    assert(economy_score_difficulty() == chosen_option);
+    assert(is_difficulty_copy_of(chosen_option));
     /* The title's buttons go at the next frame, as in the game. */
     cart_flush_exit_queue();
     assert(galaxy_menu_buttons(galaxy_menu) == 4);
@@ -1531,12 +1558,12 @@ static uint32_t members_title_and_game(void) {
         const button_t *b = button_of(fresh[key_index]);
         const layout_row_t *lq = b->layout_row;
         assert(lq != NULL && is_layout_row(lq) && row_count(lq) == 0);
-        assert(b->layer == p8_fixed_from_int(11));
+        assert(b->header.layer == p8_fixed_from_int(11));
         assert(b->width == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
-        assert(b->header.hit_box != NULL);
-        assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->is_hovered);
+        assert(entity_has(&b->header, ENTITY_HAS_HIT_BOX));
+        assert(!b->has_side_tooltip && b->tooltip == NULL && pos_ref(&b->header) == NULL && slide_target_ref(b) == NULL && !b->header.is_hovered);
         assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
-        assert(b->project_planet == NULL && b->project == NULL && !b->has_project_cost);
+        assert(entity_get(b->project_planet) == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);
         hash = fold_button_members(hash, fresh[key_index]);
     }
@@ -1565,7 +1592,7 @@ static uint32_t members_title_and_game(void) {
 }
 
 static uint32_t members_research(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     uint32_t h = 2166136261u;
     int dear = 0;
     int affordable = 0;
@@ -1581,7 +1608,7 @@ static uint32_t members_research(void) {
     tech_screen();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i];
+        void *b = entity_id_list_at(le, i);
 
         if (on_click_state(b) == 0) {
             continue;
@@ -1593,8 +1620,8 @@ static uint32_t members_research(void) {
             const technologies_entry_t *t = button_of(b)->technology;
             const layout_row_t *lq = button_of(b)->layout_row;
             assert(on_click_state(b) == 3 && lq != NULL);
-            assert(lq->items_count >= 2 && lq->items[1].kind == LAYOUT_ROW_CELL_STRING);
-            assert(t != NULL && t == map_tables_technologies_lookup(lq->items[1].as.text));
+            assert(row_count(lq) >= 2 && row_item(lq, 1).kind == LAYOUT_ROW_ITEM_TEXT);
+            assert(t != NULL && t == map_tables_technologies_lookup(row_item(lq, 1).text));
             affordable++;
         }
         assert(button_of(b)->has_side_tooltip && is_layout_row(button_of(b)->side_tooltip));
@@ -1605,7 +1632,7 @@ static uint32_t members_research(void) {
 }
 
 static uint32_t members_projects_panel(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     const void *pt = NULL;
     uint32_t h = 2166136261u;
     int rows = 0;
@@ -1615,17 +1642,17 @@ static uint32_t members_projects_panel(void) {
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        const button_t *b = button_of(le->items[i]);
+        const button_t *b = button_of(entity_id_list_at(le, i));
 
-        if (b->project_planet == NULL) {
+        if (entity_get(b->project_planet) == NULL) {
             continue;
         }
         if (pt == NULL) {
-            pt = b->project_planet;
+            pt = entity_get(b->project_planet);
         }
-        assert(b->project_planet == pt);
+        assert(entity_get(b->project_planet) == pt);
         assert(is_of_class(pt, planet_class()) && entity_list_listed(entities_by_tag(TAG_PLANET), pt));
-        assert(b->project != NULL && is_of_class(b->project, research_project_class()));
+        assert(research_project_get(b->project) != NULL && is_of_class(research_project_get(b->project), research_project_class()));
         assert(b->has_project_cost);
         assert(b->on_click != NULL);
         assert(b->tooltip != NULL && is_of_class(b->tooltip, tooltip_class()));
@@ -1657,7 +1684,7 @@ static uint32_t members_score_panel(void) {
     hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
-        if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
+        if (is_button(e) && button_of(e)->header.layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
             n++;
             h = fold_button_members(h, e);
         }
@@ -1711,7 +1738,7 @@ static void test_button_members_by_name(void) {
 /* A free building of the projects panel has a side tooltip that is false,
  * not the empty row of a present but absent key. */
 static void test_projects_panel_free_row(void) {
-    const entity_list_t *le;
+    const entity_id_list_t *le;
     research_project_t *b = NULL;
     planet_t *pt = NULL;
     int found = 0;
@@ -1720,8 +1747,8 @@ static void test_projects_panel_free_row(void) {
     known_panel();
     le = main_ui_ephemerals();
     for (i = 0; i < le->count && b == NULL; i++) {
-        b = button_of(le->items[i])->project;
-        pt = button_of(le->items[i])->project_planet;
+        b = research_project_get(button_of(entity_id_list_at(le, i))->project);
+        pt = (planet_t *)entity_get(button_of(entity_id_list_at(le, i))->project_planet);
     }
     assert(b != NULL && pt != NULL);
     b->has_base_cost = 1;
@@ -1729,9 +1756,9 @@ static void test_projects_panel_free_row(void) {
     planet_projects_panel(pt);
     le = main_ui_ephemerals();
     for (i = 0; i < le->count; i++) {
-        const button_t *row = button_of(le->items[i]);
+        const button_t *row = button_of(entity_id_list_at(le, i));
 
-        if (row->project == b) {
+        if (research_project_get(row->project) == b) {
             assert(row->project_cost == 0 && row->has_side_tooltip && row->side_tooltip == NULL);
             found = 1;
         }
@@ -1770,11 +1797,81 @@ static void test_open_box_layer_only_from_back_color(void) {
 
     start_game();
     message_box_open_box(&frame, &row, 1);
-    assert(main_ui_ephemerals()->count == 1 && button_of(main_ui_ephemerals()->items[0])->layer == p8_fixed_from_int(11));
+    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->header.layer == p8_fixed_from_int(11));
     frame.has_back_color = 1;
     frame.back_color = p8_fixed_from_int(14);
     message_box_open_box(&frame, &row, 1);
-    assert(main_ui_ephemerals()->count == 1 && button_of(main_ui_ephemerals()->items[0])->layer == p8_fixed_from_int(14));
+    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->header.layer == p8_fixed_from_int(14));
+}
+
+/* The frame holds its description and positions as values: rewriting it
+ * after the box opened changes no button. The box starts at the fixed
+ * position, and each row slides one row step further. */
+static void test_open_box_copies_its_frame(void) {
+    open_box_frame_t frame = {0};
+    button_keys_t row = {0};
+    char text[] = "earth-like";
+    vec_t at = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(20));
+    vec_t step = vec_make(0, p8_fixed_from_int(11));
+    const button_t *description;
+    const button_t *first;
+
+    start_game();
+    open_box_frame_set_description(&frame, text);
+    frame.has_fixed_pos = 1;
+    frame.fixed_pos = at;
+    frame.has_row_step = 1;
+    frame.row_step = step;
+    frame.has_pos = 1;
+    frame.pos = vec_make(p8_fixed_from_int(99), p8_fixed_from_int(99));
+    strcpy(text, "XXXXXXXXXX");
+    message_box_open_box(&frame, &row, 1);
+    memset(&frame, 'X', sizeof frame);
+    assert(main_ui_ephemerals()->count == 2);
+    description = button_of(entity_id_list_at(main_ui_ephemerals(), 0));
+    first = button_of(entity_id_list_at(main_ui_ephemerals(), 1));
+    assert(description->layout_row->placed_items_count >= 1 && strcmp(description->layout_row->placed_items[0].text, "earth-like") == 0);
+    assert(description->slide_target.x == at.x && description->slide_target.y == at.y);
+    assert(first->slide_target.x == at.x && first->slide_target.y == at.y + step.y);
+}
+
+/* Without a fixed position, the box starts at the frame's position. */
+static void test_open_box_starts_at_its_position(void) {
+    open_box_frame_t frame = {0};
+    button_keys_t row = {0};
+    vec_t at = vec_make(p8_fixed_from_int(30), p8_fixed_from_int(40));
+    const button_t *b;
+
+    start_game();
+    frame.has_pos = 1;
+    frame.pos = at;
+    message_box_open_box(&frame, &row, 1);
+    assert(main_ui_ephemerals()->count == 1);
+    b = button_of(entity_id_list_at(main_ui_ephemerals(), 0));
+    assert(b->slide_target.x == at.x && b->slide_target.y == at.y);
+}
+
+static void set_too_long_description(void) {
+    open_box_frame_t frame = {0};
+
+    open_box_frame_set_description(&frame, "level 4 (-12/-12)X");
+}
+
+/* A description past OPEN_BOX_DESCRIPTION_CAP stops on its assert. */
+static void test_open_box_description_past_its_cap_aborts(void) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        set_too_long_description();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
 /* tech_gate_available_technologies writes the affordable flag for every
@@ -1874,13 +1971,13 @@ static void test_button_slots_come_back(void) {
     open = button_slots();
     printf("[slots] button: %d before the pause menu, %d open\n", base, open);
     assert(open == base + main_ui_ephemerals()->count && main_ui_ephemerals()->count > 0);
-    last = main_ui_ephemerals()->items[main_ui_ephemerals()->count - 1];
-    before = vec_of(button_of(last)->pos);
+    last = entity_id_list_at(main_ui_ephemerals(), main_ui_ephemerals()->count - 1);
+    before = vec_of(pos_ref(&button_of(last)->header));
     for (i = 0; i < 30; i++) {
         one_frame();
         assert(button_slots() == open && "a sliding button takes no slot per tick");
     }
-    assert(!same_vec(button_of(last)->pos, &before) && "the menu slid");
+    assert(!same_vec(pos_ref(&button_of(last)->header), &before) && "the menu slid");
     ui_clear_ephemerals(main_ui());
     one_frame();
     assert(button_slots() == base);
@@ -1949,10 +2046,10 @@ static int ephemerals_slots(void) {
  * until the next frame gives its slot back. */
 static void test_ephemerals_slots_come_back(void) {
     void *ix[4];
-    const entity_list_t *menu;
+    entity_id_list_t menu;
+    entity_id_t first;
     int base;
     int open;
-    int count;
     int i;
 
     start_game();
@@ -1963,12 +2060,14 @@ static void test_ephemerals_slots_come_back(void) {
     one_frame();
     open = ephemerals_slots();
     printf("[slots] ephemerals: %d before the pause menu, %d open\n", base, open);
-    assert(main_ui()->ephemerals != ui_ephemerals_shared() && open == 1 && "the main ui's ephemerals are one list in a slot");
+    assert((main_ui()->has & UI_HAS_OWN_EPHEMERALS) && open == 1 && "the main ui's ephemerals are one list in a slot");
     for (i = 0; i < 5; i++) {
-        menu = main_ui_ephemerals();
-        count = menu->count;
+        menu = main_ui()->ephemerals;
+        assert(menu.count > 0);
+        first = menu.items[0];
         ui_clear_ephemerals(main_ui());
-        assert(menu->count == count && "the replaced list lives until the next frame");
+        assert(menu.items[0].index == first.index && menu.items[0].generation == first.generation &&
+               "the replaced list lives until the next frame");
         call_on_click(ix[3]);
         one_frame();
         assert(ephemerals_slots() == open && "a replaced list gives its slot back");
@@ -2022,28 +2121,45 @@ static void test_largest_buttons_fit_their_slots(void) {
         invent((char *)technologies_table[i].name);
     }
     menu_show_tech_tree_screen();
-    assert(button_of(main_ui_ephemerals()->items[main_ui_ephemerals()->count - 1])->tooltip->rows_count == TECHNOLOGIES_COUNT);
+    assert(button_of(entity_id_list_at(main_ui_ephemerals(), main_ui_ephemerals()->count - 1))->tooltip->rows_count == TECHNOLOGIES_COUNT);
     one_frame();
 
     for (k = 1; k <= research_projects_count(); k++) {
         research_project_t *b = research_projects_at(k);
-        layout_row_cell_t layout_row_items[8];
-        layout_row_keys_t lq;
-        layout_row_cell_t h_item = layout_row_cell_string(
-            p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), research_project_cost(b))));
-        layout_row_keys_t h = {.items = &h_item, .count = 1};
-        button_keys_t keys = {.has_side_tooltip = 1, .side_tooltip_row = &h, .has_tooltip = 1};
+        button_keys_t keys = {.has_side_tooltip = 1, .has_side_tooltip_row = 1, .has_tooltip = 1};
 
-        if (b->layout_row != NULL) {
-            lq = layout_row_keys_of_row(b->layout_row, layout_row_items, 8);
-            keys.layout_row_keys = &lq;
+        layout_row_keys_append(&keys.side_tooltip_row, layout_row_cell_string(p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), research_project_cost(b)))));
+        if (b->has_icon_sprite) {
+            keys.layout_row_keys = research_project_icon_row_keys(b);
         } else {
-            keys.layout_row_copy = research_project_layout_row(b);
+            (void)research_project_layout_row_keys(b, &keys.layout_row_keys);
         }
-        keys.tooltip_row = research_project_tooltip(b);
+        button_keys_set_tooltip_row(&keys, research_project_tooltip(b));
         entity_unregister(&button_new(&keys)->header);
         one_frame();
     }
+}
+
+static void test_project_planet_resolves_until_the_flush(void) {
+    const entity_id_list_t *le;
+    button_t *button = NULL;
+    entity_t *planet;
+    int i;
+
+    known_panel();
+    le = main_ui_ephemerals();
+    for (i = 0; i < le->count && button == NULL; i++) {
+        if (entity_get(button_of(entity_id_list_at(le, i))->project_planet) != NULL) {
+            button = button_of(entity_id_list_at(le, i));
+        }
+    }
+    assert(button != NULL);
+    planet = entity_get(button->project_planet);
+    assert(planet_is_family(planet));
+    entity_unregister(planet);
+    assert(entity_get(button->project_planet) == planet);
+    cart_flush_exit_queue();
+    assert(entity_get(button->project_planet) == NULL);
 }
 
 int main(void) {
@@ -2059,6 +2175,7 @@ int main(void) {
     in_fresh_child(test_bar_buttons_and_pause_menu_anchors);
     in_fresh_child(test_title);
     in_fresh_child(test_start_game);
+    in_fresh_child(test_project_planet_resolves_until_the_flush);
     in_fresh_child(test_pause);
     in_fresh_child(test_research);
     in_fresh_child(test_projects_panel);
@@ -2079,6 +2196,9 @@ int main(void) {
     in_fresh_child(test_pause_menu_open_box_is_a_struct);
     in_fresh_child(test_open_box_closed);
     in_fresh_child(test_open_box_layer_only_from_back_color);
+    in_fresh_child(test_open_box_copies_its_frame);
+    in_fresh_child(test_open_box_starts_at_its_position);
+    test_open_box_description_past_its_cap_aborts();
     in_fresh_child(test_available_technologies_writes_every_is_affordable);
     in_fresh_child(test_panels_are_structs);
     in_fresh_child(test_score_panel_are_structs);

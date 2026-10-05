@@ -14,10 +14,8 @@
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/probe.h"
-#include "engine/game_zone.h"
 
 static int g_family_up = 0;
-static entity_list_t g_burst_outgoing_routes;
 
 void structure_update_settled_method(entity_t *self, p8_fixed_t t) {
     planet_bob(self, t);
@@ -47,13 +45,12 @@ static const entity_class_t structure_class_def = {
 
 void structure_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
     planet_init_instance(self, cls, archetype);
-    self->header.targeting = &self->targeting_own;
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
+    self->has |= PLANET_HAS_TARGETING;
+    self->targeting.archetype = &self->archetype->targeting;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
     self->sprite = self->archetype->sprite;
-    self->targeting->target = NULL;
+    targeting_set_target(&self->targeting, NULL);
 }
 
 static planet_t *structure_create(const planet_keys_t *keys) {
@@ -61,14 +58,10 @@ static planet_t *structure_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &structure_class_def, &structure_archetype);
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "structure_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "structure_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -120,14 +113,10 @@ static planet_t *trading_hub_create(const planet_keys_t *keys) {
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &trading_hub_class_def, &trading_hub_archetype);
     self->palette_block = self->archetype->palette_block;
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "trading_hub_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "trading_hub_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -160,14 +149,10 @@ static planet_t *processor_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     structure_init_instance(self, &processor_class_def, &processor_archetype);
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "processor_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "processor_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     planet_construct(self);
     entity_construct(&self->header);
     return self;
@@ -183,14 +168,13 @@ void ascension_draw(p8_graphics_t *gfx, p8_vram_t *mem, planet_t *self, vec_t p)
     planet_draw(gfx, mem, self, p);
 }
 
-void ascension_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    ascension_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
+void ascension_draw_method(entity_t *self, vec_t screen_pos) {
+    ascension_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
 void ascension_release_method(entity_t *self) {
     planet_release_row(self);
-    emitter_release_particles(self->emitter);
+    emitter_release_particles(emitter_of(self));
     planet_grab_arena_released((const planet_t *)self);
 }
 
@@ -219,18 +203,17 @@ static const entity_class_t ascension_class_def = {
 
 void ascension_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
     structure_init_instance(self, cls, archetype);
-    self->header.emitter = &self->emitter_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->archetype = &self->archetype->emitter;
-    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
-    self->emitter->angle_slices = self->archetype->emitter.angle_slices;
-    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
-    self->emitter->base_radius = self->archetype->emitter.base_radius;
-    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
-    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
-    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
-    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
-    self->emitter->particles = NULL;
+    self->has |= PLANET_HAS_EMITTER;
+    self->emitter.archetype = &self->archetype->emitter;
+    self->emitter.speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter.angle_slices = self->archetype->emitter.angle_slices;
+    self->emitter.trail_colors = self->archetype->emitter.trail_colors;
+    self->emitter.base_radius = self->archetype->emitter.base_radius;
+    self->emitter.matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter.matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter.matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter.matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter.has = 0;
 }
 
 static planet_t *ascension_create(const planet_keys_t *keys) {
@@ -238,14 +221,10 @@ static planet_t *ascension_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &ascension_class_def, &ascension_archetype);
-    if (keys != NULL) {
-        assert(keys->map_pos == NULL && keys->pos == NULL &&
-               "ascension_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
-               "-- stop, do not add one");
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
+           "ascension_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
+           "-- stop, do not add one");
+    planet_copy_keys(self, keys);
     emitter_init((entity_t *)self);
     planet_construct(self);
     entity_construct(&self->header);
@@ -253,23 +232,15 @@ static planet_t *ascension_create(const planet_keys_t *keys) {
 }
 
 void protostar_construct(planet_t *self) {
-    vec_t spawn_pos;
-    burst_keys_t keys;
+    burst_keys_t keys = {0};
     planet_t *spawned;
-    const vec_t *ra;
 
     if (self == NULL) {
         return;
     }
 
-    ra = self->pos;
-    spawn_pos = vec_add(ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)),
-                             self->archetype->spawn_offset);
-
-    keys.planet.planet_id = NULL;
-    keys.planet.map_pos = NULL;
-    keys.planet.pos = NULL;
-    keys.pos_copy = &spawn_pos;
+    keys.planet.pos = vec_add(entity_pos(&self->header), self->archetype->spawn_offset);
+    keys.planet.has_pos = 1;
     keys.construct = &protostar_burst_construct_keys;
 
     spawned = burst_new(&keys);
@@ -304,17 +275,7 @@ static planet_t *protostar_create(const planet_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     ascension_init_instance(self, &protostar_class_def, &protostar_archetype);
-    if (keys != NULL) {
-        if (keys->map_pos != NULL) {
-            self->map_pos = keys->map_pos;
-        }
-        if (keys->pos != NULL) {
-            self->pos = keys->pos;
-        }
-        if (keys->planet_id != NULL) {
-            self->planet_id = keys->planet_id;
-        }
-    }
+    planet_copy_keys(self, keys);
     protostar_construct(self);
     emitter_init((entity_t *)self);
     planet_construct(self);
@@ -334,7 +295,7 @@ void burst_construct(planet_t *self) {
     if (main_camera() != NULL) {
         mo = main_camera_typed();
         assert(mo != NULL && "burst_construct: the camera placeholder has no shake; a burst before reset_world() stops the run");
-        mo->shake = p8_fixed_from_int(3);
+        mo->header.shake = p8_fixed_from_int(3);
     }
 }
 
@@ -358,7 +319,7 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
 
     ms = self->speed;
     iu = self->acceleration_factor;
-    py = self->emitter->speed_factor;
+    py = self->emitter.speed_factor;
 
     v = vec_mul(p, ms);
     a = vec_mul(p, iu);
@@ -384,7 +345,9 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
         return;
     }
 
-    particles = self->emitter->particles;
+    if (self->emitter.has & EMITTER_HAS_PARTICLES) {
+        particles = &self->emitter.particles;
+    }
 
     screen_x = p8_fixed_flr_int(screen_pos.x);
     screen_y = p8_fixed_flr_int(screen_pos.y);
@@ -414,17 +377,16 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
     }
 
     emitter_update(graphics, memory, (entity_t *)self);
-    self->is_dead = !third_taken;
+    self->header.is_dead = !third_taken;
 }
 
-static void burst_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    burst_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, p);
+static void burst_draw_method(entity_t *self, vec_t screen_pos) {
+    burst_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
 /* Read the slot first: arena_release() frees the struct and the list with it. */
 static void burst_release_method(entity_t *self) {
-    const allocator_t *slot = ((planet_t *)self)->slipways->zone;
+    const allocator_t *slot = ((planet_t *)self)->slipways.zone;
 
     ascension_release_method(self);
     arena_release(slot);
@@ -452,44 +414,28 @@ static planet_t *burst_create(const burst_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     planet_init_instance(self, &burst_class_def, &burst_archetype);
-    self->header.emitter = &self->emitter_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->archetype = &self->archetype->emitter;
-    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
-    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
-    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
-    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
-    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
+    self->has |= PLANET_HAS_EMITTER;
+    self->emitter.archetype = &self->archetype->emitter;
+    self->emitter.matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter.matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter.matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter.matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter.trail_colors = self->archetype->emitter.trail_colors;
     self->acceleration_factor = self->archetype->acceleration_factor;
-    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter.speed_factor = self->archetype->emitter.speed_factor;
     self->speed = self->archetype->speed;
-    self->emitter->particles = NULL;
-    self->outgoing_routes = &g_burst_outgoing_routes;
+    self->emitter.has = 0;
+    self->has |= PLANET_HAS_OUTGOING_ROUTES;
     if (keys != NULL) {
-        if (keys->planet.map_pos != NULL) {
-            self->map_pos = keys->planet.map_pos;
-        }
-        if (keys->planet.pos != NULL) {
-            self->pos = keys->planet.pos;
-        }
-        if (keys->pos_copy != NULL) {
-            vec_t *ra = (vec_t *)allocator_alloc(slot, sizeof *ra);
-
-            assert(keys->planet.pos == NULL && "burst_create: a burst borrows its position or copies it, not both");
-            *ra = *keys->pos_copy;
-            self->pos = ra;
-        }
-        if (keys->planet.planet_id != NULL) {
-            self->planet_id = keys->planet.planet_id;
-        }
+        planet_copy_keys(self, &keys->planet);
         if (keys->construct != NULL) {
-            self->emitter->matrix_xx = keys->construct->matrix_xx;
-            self->emitter->matrix_xy = keys->construct->matrix_xy;
-            self->emitter->matrix_yx = keys->construct->matrix_yx;
-            self->emitter->matrix_yy = keys->construct->matrix_yy;
-            self->emitter->trail_colors = keys->construct->trail_colors;
+            self->emitter.matrix_xx = keys->construct->matrix_xx;
+            self->emitter.matrix_xy = keys->construct->matrix_xy;
+            self->emitter.matrix_yx = keys->construct->matrix_yx;
+            self->emitter.matrix_yy = keys->construct->matrix_yy;
+            self->emitter.trail_colors = keys->construct->trail_colors;
             self->acceleration_factor = keys->construct->acceleration_factor;
-            self->emitter->speed_factor = keys->construct->speed_factor;
+            self->emitter.speed_factor = keys->construct->speed_factor;
             self->speed = keys->construct->speed;
         }
     }
@@ -503,12 +449,10 @@ void planet_family_init(void) {
     assert(planet_ready() && "planet_init() must run first");
     planet_family_shutdown();
     g_family_up = 1;
-    entity_list_init(&g_burst_outgoing_routes, game_zone_load_zone());
 }
 
 void planet_family_shutdown(void) {
     g_family_up = 0;
-    entity_list_free(&g_burst_outgoing_routes);
 }
 
 int structure_ready(void) {
@@ -632,7 +576,6 @@ static entity_t *burst_kind_new(const planet_keys_t *keys) {
         return &burst_create(NULL)->header;
     }
     burst_keys.planet = *keys;
-    burst_keys.pos_copy = NULL;
     burst_keys.construct = NULL;
     return &burst_create(&burst_keys)->header;
 }

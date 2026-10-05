@@ -164,14 +164,12 @@ and `src/engine/bootstrap.c` for the GAP-5 variant.
 
 ## GAP-15 — Where Lua would crash, this port ignores it
 
-Lua: `bd()`, `hg`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
+Lua: `bd()`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
 
 This is a general convention of the port, not a local oversight. When the
 cart indexes a missing table, Lua raises an error. This port reads the
 field as absent and carries on. The known sites:
 
-- `economy_tiers_rebuild_incoming_routes` writes into the `served_planets`
-  set of a slipway that has none: the write is ignored.
 - `entity_register`/`entity_unregister` test the **presence** of the
   class's message member, not its Lua truthiness: a member set to false
   still registers the entity.
@@ -186,8 +184,7 @@ happen on malformed data. Recorded because a reader who "fixes" only one
 of them by making it fatal would make the port less tolerant than the cart
 in one place and not in the others.
 
-Files: `src/game/economy_tiers.c`, `src/game/economy_formulas.c`,
-`src/engine/entity.c`.
+Files: `src/game/economy_formulas.c`, `src/engine/entity.c`.
 
 ## GAP-16 — The weighted pick reads out of bounds if its pool runs empty
 
@@ -393,8 +390,8 @@ a layout row. The row therefore carries indices 1 and 3, with no 2.
 In the cart, building the row walks it up to its border
 (lua.lua:289-290). The port instead takes every index key in ascending
 order (the loop in `score_panel_update` over `has_value`) and closes the
-hole: the row's `items` member keeps both elements, `placed_items` has
-two, and `width` counts both. The row's centering (alignment 0.5) depends
+hole: the row's cells hold both elements, so its `placed_items` keep
+both and `width` counts both. The row's centering (alignment 0.5) depends
 on it. Reached by the e2e (`game_end`, 4 constructions).
 
 Verified in the cart source: the row's line, the order of the writes in
@@ -408,7 +405,7 @@ Pre-existing: the row instance already walked every index key. The
 conversion to a struct preserves the divergence.
 
 Files: `src/game/layout.c` (row construction, `layout_row_construct`),
-`src/game/score_panel_display.c`.
+`src/game/score_panel_display.c` (`score_panel_update_add_row`).
 
 ## GAP-26 — An off-screen planet's target is cut off when the held object is released
 
@@ -422,15 +419,14 @@ game. If the planet comes back on screen, the cart draws one more halo
 with that dead object's `attach_distance`.
 
 The port releases the object through the exit queue and recycles its
-arena, so reading `targeted_by` again would be a use after free. `forget`
-(`src/game/cart.c`) therefore resets to nil the `targeted_by` of every
-entity with the `node` tag that targets the released object, and that
-halo is not drawn. In the "vanishing" state there is no difference: from
-t ≥ 60 on, `planet_draw` always returns before reading `targeted_by`. No
-e2e reaches this case.
+arena. The planet's `targeted_by` is an entity id: after the flush that
+releases the held object, it resolves to NULL, and that halo is not
+drawn. In the "vanishing" state there is no difference: from t ≥ 60 on,
+`planet_draw` always returns before reading `targeted_by`. No e2e reaches
+this case.
 
-Files: `src/game/cart.c` (`forget`), `src/game/planet.c`
-(`planet_forget_targeted_by`).
+Files: `src/game/planet_display.c` (`planet_draw`), `src/game/probe.c`
+(`probe_link_target`).
 
 ## GAP-27 — The camera never shows anything outside the background grid
 
@@ -458,3 +454,24 @@ columns of its disc are visible and its click box (± 7 px) reaches
 column 155.
 
 Files: `src/game/scroll.c` (`camera_bound`), `src/game/background.h`.
+
+## GAP-28 — A background held on the right does not drag the new game's camera on the restart frame
+
+Lua: `ui:bh`, `ui:jz`, `rheld`, `hq`, `mo`, `ui:lj`.
+
+A click on "restart" (or on a difficulty button) runs `reset_world()`
+from inside `ui_update`, and the rest of that `ui_update` runs on the old
+ui. If the right button is held at that moment, the cart's `ui:bh("r")`
+still drags the old ui's `rheld`, the old world's background: its `hq`
+sets the velocity of the new game's camera (`mo`) to the old drag delta.
+
+The port's `ui_t.right_held` is an entity id, and every id of the old
+world resolves to NULL after `reset_world()`: the old background is not
+dragged, and the new camera keeps its archetype's zero velocity.
+`reset_world()` also empties the old ui's hover layers and ephemerals
+(`ui_forget_world`): a press read on that same frame reaches no entity of
+the old world, where the cart would still send it to the old layers
+(`ui:jz`). No e2e reaches either case.
+
+Files: `src/game/ui.c` (`ui_handle_button`, `ui_forget_world`),
+`src/engine/bootstrap.c` (`reset_world`).

@@ -32,6 +32,11 @@
 #include "game/ui_button.h"
 #include "game/wormhole.h"
 
+static int same_vec(vec_t a, vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+
 static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
@@ -43,27 +48,21 @@ static mouse_button_t *mouse_left_of(const mouse_t *nf) {
 
 /* The second reset_world() (the one cart_start_game() runs) finds the
  * camera, the mouse and game/ui.c ready and leaves their state alone: a mark
- * written into the mouse's left button and into the shared ephemerals
- * survives it; the camera stays ready throughout. */
+ * written into the mouse's left button survives it; the camera and the ui
+ * stay ready throughout. */
 static void test_second_reset_world_keeps_specs(void) {
     mouse_button_t *mouse_left = mouse_left_of(main_mouse_typed());
-    static entity_t mark_cell;
-    entity_list_t *ui_ephemerals = ui_ephemerals_shared();
-    entity_t *mark = &mark_cell;
     int hm = mouse_left->released;
-    int ui_count;
 
     assert(camera_ready());
     mouse_left->released = 0x7777;
-    entity_list_add(ui_ephemerals, mark);
-    ui_count = ui_ephemerals->count;
+    assert(ui_ready());
 
     reset_world(NULL);
 
     assert(camera_ready());
     assert(mouse_left_of(main_mouse_typed()) == mouse_left && mouse_left_of(main_mouse_typed())->released == 0x7777);
-    assert(ui_ephemerals_shared() == ui_ephemerals && ui_ephemerals_shared()->count == ui_count);
-    assert(entity_list_del(ui_ephemerals, mark));
+    assert(ui_ready());
     mouse_left->released = hm;
 }
 
@@ -82,30 +81,27 @@ static void test_background_defaults_and_ready(void) {
 static void test_button_defaults_and_ready(void) {
     button_t *js = button_new(NULL);
 
-    assert(js->archetype == &button_archetype && js->layer == js->archetype->layer);
+    assert(js->archetype == &button_archetype && js->header.layer == js->archetype->layer);
     assert(js->header.state == js->archetype->state && js->header.state == ENTITY_STATE_NORMAL && js->header.state_time == 0);
     assert(button_ready());
     button_shutdown();
     assert(!button_ready());
 }
 
-/* The position is the module's shared vector, not the archetype's: two
- * fresh mice point at the same one. */
-static void test_mouse_pos_is_shared(void) {
+static void test_mouse_pos_starts_at_zero(void) {
     const mouse_t *nf = mouse_new();
-    const mouse_t *other = mouse_new();
 
     assert(nf->archetype == &mouse_archetype);
-    assert(nf->pos != NULL && nf->pos == other->pos);
+    assert(entity_has_pos(&nf->header) && nf->header.pos.x == 0 && nf->header.pos.y == 0);
 }
 
-/* The velocity, the position before shake and the position start on the
- * archetype's vectors. */
+/* The velocity, the position before shake and the position are copies of
+ * the archetype's. */
 static void test_camera_defaults_and_ready(void) {
     camera_t *qb = camera_new();
 
     assert(qb->archetype == &camera_archetype && qb->archetype->dpad_directions == &camera_dpad_directions_vecs);
-    assert(qb->velocity == &qb->archetype->velocity && qb->pos_before_shake == &qb->archetype->pos_before_shake && qb->pos == &qb->archetype->pos && qb->shake == qb->archetype->shake);
+    assert(same_vec(qb->velocity, qb->archetype->velocity) && same_vec(qb->header.map_pos, qb->archetype->pos_before_shake) && entity_has_map_pos(&qb->header) && same_vec(qb->header.pos, qb->archetype->pos) && entity_has_pos(&qb->header) && qb->header.shake == qb->archetype->shake);
     assert(qb->header.state == qb->archetype->state && qb->header.state == ENTITY_STATE_NORMAL && qb->header.state_time == 0);
     assert(camera_ready());
     camera_shutdown();
@@ -117,12 +113,12 @@ static void test_camera_defaults_and_ready(void) {
 static void test_wormhole_defaults_and_ready(void) {
     wormhole_t *mz = wormhole_new();
 
-    assert(mz->archetype == &wormhole_archetype && mz->targeting->archetype == &wormhole_archetype.targeting);
+    assert(mz->archetype == &wormhole_archetype && mz->targeting.archetype == &wormhole_archetype.targeting);
     assert(mz->header.state == mz->archetype->state && mz->header.state == ENTITY_STATE_PLACING && mz->header.state_time == 0);
     assert(mz->radius == mz->archetype->radius);
-    assert(mz->targeting->cost == mz->archetype->targeting.cost && mz->targeting->cost == p8_fixed_from_int(3));
-    assert(mz->targeting->has_cost == mz->archetype->targeting.has_cost);
-    assert(mz->too_far_target == wormhole_too_far_target_wrapper() && mz->too_far_target->status_text == wormhole_too_far_target_status_text);
+    assert(mz->targeting.cost == mz->archetype->targeting.cost && mz->targeting.cost == p8_fixed_from_int(3));
+    assert(mz->targeting.has_cost == mz->archetype->targeting.has_cost);
+    assert((mz->has & WORMHOLE_HAS_TOO_FAR_TARGET) && wormhole_too_far_target_wrapper()->status_text == wormhole_too_far_target_status_text);
     assert(wormhole_ready());
     wormhole_shutdown();
     assert(!wormhole_ready());
@@ -139,17 +135,17 @@ static void test_layout_ready(void) {
 static void test_help_screen_defaults_and_ready(void) {
     const probe_t *g_ = help_screen_new();
 
-    assert(g_->archetype == &help_screen_archetype && g_->emitter->archetype == &help_screen_archetype.emitter &&
-           g_->targeting->archetype == &help_screen_archetype.targeting);
-    assert(g_->pos == &g_->archetype->pos);
-    assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
-    assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
-    assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
-    assert(g_->emitter->angle_slices == g_->archetype->emitter.angle_slices && g_->emitter->base_radius == g_->archetype->emitter.base_radius);
-    assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
-    assert(g_->targeting->cost == g_->archetype->targeting.cost);
-    assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost);
-    assert(g_->targeting->has_cost == 1);
+    assert(g_->archetype == &help_screen_archetype && g_->emitter.archetype == &help_screen_archetype.emitter &&
+           g_->targeting.archetype == &help_screen_archetype.targeting);
+    assert(entity_has_pos(&g_->header) && same_vec(g_->header.pos, g_->archetype->pos));
+    assert(g_->emitter.trail_colors == g_->archetype->emitter.trail_colors);
+    assert(g_->emitter.matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter.matrix_xy == g_->archetype->emitter.matrix_xy);
+    assert(g_->emitter.matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter.matrix_yy == g_->archetype->emitter.matrix_yy);
+    assert(g_->emitter.angle_slices == g_->archetype->emitter.angle_slices && g_->emitter.base_radius == g_->archetype->emitter.base_radius);
+    assert(g_->emitter.speed_factor == g_->archetype->emitter.speed_factor);
+    assert(g_->targeting.cost == g_->archetype->targeting.cost);
+    assert(g_->targeting.has_cost == g_->archetype->targeting.has_cost);
+    assert(g_->targeting.has_cost == 1);
     assert(g_->header.state == g_->archetype->state && g_->header.state == ENTITY_STATE_NORMAL && g_->header.state_time == 0);
     assert(help_screen_ready());
     help_shutdown();
@@ -161,17 +157,17 @@ static void test_help_screen_defaults_and_ready(void) {
 static void test_probe_defaults_and_ready(void) {
     probe_t *g_ = probe_new(NULL);
 
-    assert(g_->archetype == &probe_archetype && g_->emitter->archetype == &probe_archetype.emitter &&
-           g_->targeting->archetype == &probe_archetype.targeting);
-    assert(g_->targeting->cost == g_->archetype->targeting.cost);
-    assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost && g_->targeting->has_cost == 1);
-    assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
-    assert(g_->emitter->angle_slices == g_->archetype->emitter.angle_slices);
-    assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
-    assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
-    assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
-    assert(g_->emitter->base_radius == g_->archetype->emitter.base_radius);
-    assert(g_->pos == NULL);
+    assert(g_->archetype == &probe_archetype && g_->emitter.archetype == &probe_archetype.emitter &&
+           g_->targeting.archetype == &probe_archetype.targeting);
+    assert(g_->targeting.cost == g_->archetype->targeting.cost);
+    assert(g_->targeting.has_cost == g_->archetype->targeting.has_cost && g_->targeting.has_cost == 1);
+    assert(g_->emitter.speed_factor == g_->archetype->emitter.speed_factor);
+    assert(g_->emitter.angle_slices == g_->archetype->emitter.angle_slices);
+    assert(g_->emitter.trail_colors == g_->archetype->emitter.trail_colors);
+    assert(g_->emitter.matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter.matrix_xy == g_->archetype->emitter.matrix_xy);
+    assert(g_->emitter.matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter.matrix_yy == g_->archetype->emitter.matrix_yy);
+    assert(g_->emitter.base_radius == g_->archetype->emitter.base_radius);
+    assert(!entity_has_pos(&g_->header));
     assert(g_->header.state == g_->archetype->state && g_->header.state == ENTITY_STATE_NORMAL && g_->header.state_time == 0);
     assert(probe_ready());
     probe_shutdown();
@@ -187,11 +183,10 @@ static void test_research_project_defaults_and_ready(void) {
     assert(!research_project_ready());
 }
 
-/* The position starts on the archetype's vector. */
 static void test_structure_icon_defaults_and_ready(void) {
     structure_icon_t *ie = structure_icon_new(NULL);
 
-    assert(ie->archetype == &structure_icon_archetype && ie->pos == &ie->archetype->pos);
+    assert(ie->archetype == &structure_icon_archetype && entity_has_pos(&ie->header) && same_vec(ie->header.pos, ie->archetype->pos));
     assert(ie->header.state == ie->archetype->state && ie->header.state == ENTITY_STATE_NORMAL && ie->header.state_time == 0);
     assert(structure_icon_ready());
     structure_icon_shutdown();
@@ -203,10 +198,10 @@ static void test_score_panel_defaults_and_ready(void) {
     score_panel_t *pj = score_panel_new();
     const score_panel_layout_block_t *cr = score_panel_layout_block();
 
-    assert(pj->archetype == &score_panel_archetype && pj->layer == pj->archetype->layer);
-    assert(pj->last_box == NULL);
-    assert(cr->fixed_pos->x == 0 && cr->fixed_pos->y == p8_fixed_from_int(11));
-    assert(cr->row_step->x == 0 && cr->row_step->y == p8_fixed_from_int(11));
+    assert(pj->archetype == &score_panel_archetype && pj->header.layer == pj->archetype->layer);
+    assert(score_panel_last_box(pj) == NULL);
+    assert((cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_FIXED_POS) && cr->fixed_pos.x == 0 && cr->fixed_pos.y == p8_fixed_from_int(11));
+    assert((cr->has & SCORE_PANEL_LAYOUT_BLOCK_HAS_ROW_STEP) && cr->row_step.x == 0 && cr->row_step.y == p8_fixed_from_int(11));
     assert(cr->back_color == p8_fixed_from_int(10));
     assert(pj->header.state == pj->archetype->state && pj->header.state == ENTITY_STATE_NORMAL && pj->header.state_time == 0);
     assert(score_panel_ready());
@@ -225,9 +220,6 @@ static void test_economy_ready(void) {
 }
 
 static void test_trade_ready(void) {
-    trade_route_t *trade = trade_new(game_zone(), NULL);
-
-    assert(trade->header.class == trade_class());
     assert(trade_ready());
     trade_shutdown();
     assert(!trade_ready());
@@ -256,7 +248,7 @@ int main(void) {
     test_background_defaults_and_ready();
     test_button_defaults_and_ready();
     test_camera_defaults_and_ready();
-    test_mouse_pos_is_shared();
+    test_mouse_pos_starts_at_zero();
     test_wormhole_defaults_and_ready();
     test_layout_ready();
     test_help_screen_defaults_and_ready();

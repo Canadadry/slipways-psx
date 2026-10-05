@@ -6,6 +6,7 @@
 
 #include "engine/entity.h"
 #include "engine/entity_geom.h"
+#include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "engine/exit_queue.h"
 #include "engine/frame_zone.h"
@@ -38,8 +39,7 @@ static void write_fixed(FILE *out, p8_fixed_t x) {
 }
 
 static vec_t ra_of(const entity_t *e) {
-    const vec_t *pos = e != NULL && e->pos != NULL ? *e->pos : NULL;
-    return pos != NULL ? *pos : vec_make(0, 0);
+    return e != NULL ? entity_pos(e) : vec_make(0, 0);
 }
 
 static void write_position(FILE *out, const entity_t *e, vec_t camera) {
@@ -79,7 +79,7 @@ static const char *planet_state(state_t state) {
 
 static const char *id_of(const entity_t *e) {
     if (e == NULL || class_of(e) == NULL) return "-";
-    const char *id = ((const planet_t *)e)->planet_id;
+    const char *id = planet_id_or_null((const planet_t *)e);
     return id != NULL ? id : "-";
 }
 
@@ -130,11 +130,11 @@ static void write_resources(FILE *out) {
 
 static int write_techs(FILE *out) {
     const economy_t *economy = main_economy_typed();
-    if (economy == NULL || economy->invented == NULL) return 0;
-    for (int i = 0; i < economy->invented->count; i++) {
-        fprintf(out, "techs %s\n", (const char *)economy->invented->items[i]);
+    if (economy == NULL) return 0;
+    for (int i = 0; i < economy->invented.count; i++) {
+        fprintf(out, "techs %s\n", (const char *)economy->invented.items[i]);
     }
-    return economy->invented->count;
+    return economy->invented.count;
 }
 
 static vec_t write_camera(FILE *out) {
@@ -169,8 +169,8 @@ static int write_slipways(FILE *out) {
     for (int i = 0; i < count_of(jc); i++) {
         const slipway_t *s = (const slipway_t *)jc->items[i];
         if (!slipway_placed(&s->header)) continue;
-        fprintf(out, "slipway %s %s %s\n", id_of(s->start), id_of(s->end),
-                s->has_infraspace && s->infraspace != 0 ? "infragate" : "normal");
+        fprintf(out, "slipway %s %s %s\n", id_of(slipway_start(s)), id_of(slipway_end(s)),
+                entity_has(&s->header, ENTITY_HAS_INFRASPACE) && s->header.infraspace != 0 ? "infragate" : "normal");
         n++;
     }
     return n;
@@ -183,7 +183,7 @@ static void write_structures(FILE *out, vec_t camera) {
         fprintf(out, "structure %s %s", id_of(&g->header),
                 g->header.class == infraspace_gate_class() ? "infragate" : "slipgate");
         write_position(out, &g->header, camera);
-        fprintf(out, " links %d\n", count_of(g->slipways));
+        fprintf(out, " links %d\n", g->slipways.count);
     }
 }
 
@@ -225,6 +225,7 @@ static void write_caps(FILE *out) {
                 particle_zone_count(k));
     }
     fprintf(out, "cap exit_queue %d %d %d\n", exit_queue_count(), exit_queue_max(), EXIT_QUEUE_CAP);
+    fprintf(out, "cap entity_table %d %d %d\n", entity_id_live(), entity_id_max(), ENTITY_TABLE_CAP);
     write_peak(out, "elements_particles", (size_t)particle_zone_max_elements(PARTICLE_SLOT_LIST), PARTICLES_CAPACITY);
     write_peak(out, "elements_particles_help_screen", (size_t)particle_zone_max_elements(PARTICLE_SLOT_HELP_LIST),
                PARTICLES_HELP_SCREEN_CAPACITY);

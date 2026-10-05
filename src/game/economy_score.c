@@ -78,7 +78,7 @@ p8_fixed_t economy_score_colony_upkeep(void) {
 p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     p8_fixed_t total = p8_fixed_from_int(0);
     const planet_t *planet;
-    const entity_list_t *outgoing;
+    const trade_route_list_t *outgoing;
     const button_t *difficulty = economy_score_difficulty();
 
     if (entity == NULL) {
@@ -86,17 +86,13 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     }
     assert(planet_is_family(entity) && "economy_score_trade_income: the entity is a planet");
     planet = (const planet_t *)entity;
-    outgoing = planet->outgoing_routes;
+    outgoing = (planet->has & PLANET_HAS_OUTGOING_ROUTES) ? &planet->outgoing_routes : NULL;
 
     if (outgoing != NULL) {
         int i;
-        for (i = 0; i < outgoing->count; i++) {
-            entity_t *e = outgoing->items[i];
+        for (i = 0; i < trade_route_list_count(outgoing); i++) {
             entity_t *partner;
-            if (e == NULL) {
-                continue;
-            }
-            if (!trade_last_planet((const trade_route_t *)e, &partner) || partner == NULL) {
+            if (!trade_last_planet(trade_route_list_at(outgoing, i), &partner)) {
                 continue;
             }
             {
@@ -128,18 +124,16 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     }
 
     {
-        const production_t *kw = planet->production;
-        if (kw != NULL) {
-            int w;
-            if (kw->has_resource && resource_code_lookup("w", &w) && kw->resource == p8_fixed_from_int(w)) {
-                p8_fixed_t mu = kw->amount;
-                p8_fixed_t trade_mult = p8_fixed_from_int(0);
-                if (difficulty != NULL && difficulty->has_trade) {
-                    trade_mult = difficulty->trade;
-                }
-                total = p8_fixed_add(
-                    total, p8_fixed_mul(p8_fixed_mul(mu, trade_mult), P8_FIXED_LIT(0x00018000, 1.5)));
+        const production_t *kw = planet_production_read(planet);
+        int w;
+        if (kw->has_resource && resource_code_lookup("w", &w) && kw->resource == p8_fixed_from_int(w)) {
+            p8_fixed_t mu = kw->amount;
+            p8_fixed_t trade_mult = p8_fixed_from_int(0);
+            if (difficulty != NULL && difficulty->has_trade) {
+                trade_mult = difficulty->trade;
             }
+            total = p8_fixed_add(
+                total, p8_fixed_mul(p8_fixed_mul(mu, trade_mult), P8_FIXED_LIT(0x00018000, 1.5)));
         }
     }
 
@@ -166,9 +160,10 @@ static void sum_by_development_tier_visit(entity_t *pt, void *opaque_ctx) {
     }
 }
 
-static char *concat_percent(const char *s) {
+char *economy_score_percent_text(const allocator_t *zone, p8_fixed_t value) {
+    const char *s = p8_tostr_fixed(zone, value);
     size_t len = strlen(s);
-    char *out = (char *)allocator_alloc(frame_zone(), len + 2);
+    char *out = (char *)allocator_alloc(zone, len + 2);
     memcpy(out, s, len);
     out[len] = '%';
     out[len + 1] = '\0';
@@ -183,10 +178,8 @@ final_score_t economy_score_final(void) {
     p8_fixed_t total;
     const economy_t *fm = main_economy_typed();
     p8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
-    const pointer_list_t *invented = fm != NULL ? fm->invented : NULL;
-    int invented_count = (invented != NULL) ? invented->count : 0;
-    const resource_map_t *main_economy_production = fm != NULL ? fm->production : NULL;
-    char *happiness_str;
+    int invented_count = fm != NULL ? fm->invented.count : 0;
+    const resource_map_t *main_economy_production = fm != NULL && (fm->has & ECONOMY_HAS_PRODUCTION) ? &fm->production : NULL;
     final_score_t result;
 
     development_ctx.total = p8_fixed_from_int(0);
@@ -209,12 +202,10 @@ final_score_t economy_score_final(void) {
         p8_fixed_mul(p8_fixed_add(p8_fixed_add(development_ctx.total, population), technology), P8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = p8_tostr_fixed(frame_zone(), happiness);
-
     result.development = development_ctx.total;
     result.population = population;
     result.technology = technology;
-    result.happiness = concat_percent(happiness_str);
+    result.happiness = happiness;
     result.total = total;
     result.tier = fixed_min(p8_fixed_flr(p8_fixed_div(total, p8_fixed_from_int(2000))),
                             p8_fixed_from_int(5));
@@ -223,7 +214,7 @@ final_score_t economy_score_final(void) {
 
 p8_fixed_t economy_score_happiness(void) {
     const economy_t *fm = main_economy_typed();
-    const resource_map_t *main_economy_production = fm != NULL ? fm->production : NULL;
+    const resource_map_t *main_economy_production = fm != NULL && (fm->has & ECONOMY_HAS_PRODUCTION) ? &fm->production : NULL;
     p8_fixed_t r_h = p8_fixed_from_int(0);
     p8_fixed_t r_w = p8_fixed_from_int(0);
     p8_fixed_t h_val;
@@ -250,29 +241,27 @@ p8_fixed_t economy_score_happiness(void) {
     return p8_fixed_add(h_val, ctx.total);
 }
 
-static const button_t *g_difficulty = NULL;
+/* The cart reads the difficulty all game long, after the menu button dies: keep a copy, never a link to the button. */
+static button_t g_difficulty;
+static int g_has_difficulty;
 
 const button_t *economy_score_difficulty(void) {
-    return g_difficulty;
+    return g_has_difficulty ? &g_difficulty : NULL;
 }
 
 void economy_score_set_difficulty(const button_t *dk) {
-    g_difficulty = dk;
-}
+    button_t copy = {0};
 
-void economy_score_difficulty_quits(const entity_t *e) {
-    static button_t copy;
-
-    if (g_difficulty == NULL || &g_difficulty->header != e) {
+    g_has_difficulty = dk != NULL;
+    if (dk == NULL) {
         return;
     }
-    memset(&copy, 0, sizeof copy);
-    copy.name = g_difficulty->name;
-    copy.has_trade = g_difficulty->has_trade;
-    copy.trade = g_difficulty->trade;
-    copy.has_type_bias = g_difficulty->has_type_bias;
-    copy.type_bias = g_difficulty->type_bias;
-    g_difficulty = &copy;
+    copy.name = dk->name;
+    copy.has_trade = dk->has_trade;
+    copy.trade = dk->trade;
+    copy.has_type_bias = dk->has_type_bias;
+    copy.type_bias = dk->type_bias;
+    g_difficulty = copy;
 }
 
 p8_fixed_t economy_score_net_income(entity_t *p) {

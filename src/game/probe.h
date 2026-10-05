@@ -11,15 +11,9 @@
 typedef struct {
     entity_t header;
     const probe_archetype_t *archetype;
-    emitter_t *emitter;
-    targeting_t *targeting;
-    const vec_t *pos;
-    const vec_t *map_pos;
-    int is_dead;
-    int is_hovered;
     const allocator_t *grab_arena;
-    emitter_t emitter_own;
-    targeting_t targeting_own;
+    emitter_t emitter;
+    targeting_t targeting;
 } probe_t;
 
 /* GAP-8 */

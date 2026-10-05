@@ -89,7 +89,6 @@ typedef struct {
 
 typedef struct {
     data_row_t row;
-    draw_function_t draw_function;
     int has_score;
     int score;
     int has_pos;

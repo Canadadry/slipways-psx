@@ -29,6 +29,7 @@
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 #include "game/probe.h"
+#include "game/research.h"
 #include "game/structure_icon.h"
 #include "game/score_panel.h"
 #include "game/scroll.h"
@@ -95,37 +96,12 @@ void cart_load(void) {
     score_panel_set_init(cart_init_method);
 }
 
-/* A released slot can come back at the same address, so stale pointers must be cleared here; ASan does not see the comparison. */
-static void forget(const entity_t *e) {
-    ui_t *ok = main_ui();
-    score_panel_t *ju = main_score_panel();
-
-    if (ok != NULL && ok->hovered == e) {
-        ok->hovered = NULL;
-    }
-    if (ok != NULL && ok->previous_hovered == e) {
-        ok->previous_hovered = NULL;
-    }
-    if (ok != NULL && ok->left_held != NULL && ok->left_held->class == slipway_class() &&
-        ((slipway_t *)ok->left_held)->end == e) {
-        ((slipway_t *)ok->left_held)->end = NULL;
-    }
-    if ((const entity_t *)shown_message_box() == e) {
-        message_box_set_shown(NULL);
-    }
-    if (ju != NULL && (const entity_t *)ju->last_box == e) {
-        ju->last_box = NULL;
-    }
-    economy_score_difficulty_quits(e);
-    planet_forget_targeted_by(e);
-}
-
 static void forget_game_zone(void) {
     grab_arena_forget_free();
 }
 
 void cart_flush_exit_queue(void) {
-    exit_queue_flush(forget);
+    exit_queue_flush();
     if (game_zone_pending()) {
         forget_game_zone();
         game_zone_release();
@@ -174,8 +150,11 @@ void cart_init(void) {
     /* An empty generation needs no flip, and flipping it would trip flip_zone_flip's assert. */
     if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
     reset_world(NULL);
+    research_expire_project_ids();
 
-    structure_icon_set_cursor(structure_icon_rest_cursor());
+    if (structure_icon_rest_cursor() != NULL) {
+        structure_icon_set_cursor(*structure_icon_rest_cursor());
+    }
     message_box_set_shown(NULL);
 
     if (main_economy_typed() != NULL) probe_set_main_economy(NULL);
@@ -223,6 +202,7 @@ void cart_start_game(button_t *chosen_option) {
 
     /* Not redundant with cart_init()'s call: the registries, camera, mouse and UI must be rebuilt. */
     reset_world(&cart_game_registry_reserve);
+    research_expire_project_ids();
     (void)background_new();
     galaxy_populate(p8_fixed_from_int(90));
 

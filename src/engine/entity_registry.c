@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "engine/entity_id.h"
 #include "engine/exit_queue.h"
 #include "game/game_data.h"
 #include "engine/entity_class.h"
@@ -47,6 +48,8 @@ void entity_registry_shutdown(void) {
         g_entities_by_tag[i].seen = 0;
     }
 
+    entity_id_table_forget();
+
     g_main_camera = NULL;
 
     g_initialized = 0;
@@ -59,6 +62,8 @@ void entity_registry_init(const entity_registry_reserve_t *reserve) {
     if (reserve == NULL) reserve = &no_reserve;
 
     entity_registry_shutdown();
+
+    entity_id_table_init(game_zone());
 
     entity_list_init_reserve(&g_live_entities, game_zone(), reserve->live);
 
@@ -94,6 +99,7 @@ static void forget_list(entity_list_t *list) {
 void entity_registry_forget_registries(void) {
     int i;
 
+    entity_id_table_forget();
     forget_list(&g_live_entities);
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
         forget_list(&g_entities_by_message[i]);
@@ -132,10 +138,9 @@ static int is_message_name(const entity_t *e, entity_message_t message) {
     }
 }
 
-int entity_registry_hit_test_always(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
+int entity_registry_hit_test_always(entity_t *self, mouse_pos_t mouse) {
     (void)self;
-    (void)mouse_world;
-    (void)mouse_screen;
+    (void)mouse;
     return 1;
 }
 
@@ -169,7 +174,7 @@ void entity_unregister(entity_t *e) {
     int i;
 
     /* GAP-5 */
-    if (entity_list_del(&g_live_entities, e) && e->class->release != NULL) {
+    if (entity_list_del(&g_live_entities, e)) {
         exit_queue_put(e);
     }
 
@@ -203,10 +208,10 @@ void draw_layers(entity_message_t message) {
         entity_t *qc = message_bucket->items[index];
         int layer;
 
-        if (qc->layer == NULL) {
+        if (!entity_has(qc, ENTITY_HAS_LAYER)) {
             continue;
         }
-        layer = p8_fixed_flr_int(*qc->layer);
+        layer = p8_fixed_flr_int(qc->layer);
         if (layer < 1 || layer > 15) {
             continue;
         }
@@ -226,11 +231,10 @@ void draw_layers(entity_message_t message) {
 
         for (index = 0; index < bucket->count; index++) {
             entity_t *qc = bucket->items[index];
-            void (*draw)(entity_t *self, const vec_t *ra) = is_draw ? qc->class->draw : qc->class->draw_overlay;
-            const vec_t *ra = qc->pos != NULL ? *qc->pos : NULL;
+            void (*draw)(entity_t *self, vec_t screen_pos) = is_draw ? qc->class->draw : qc->class->draw_overlay;
 
             if (draw != NULL) {
-                draw(qc, ra);
+                draw(qc, entity_pos(qc));
             }
         }
     }

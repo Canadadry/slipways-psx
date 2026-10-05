@@ -186,8 +186,8 @@ static int case_texts_in_bump(void) {
 
     box_t *box = box_make(&handle, p8_fixed_from_int(0), p8_fixed_from_int(-1),
                                    p8_fixed_from_int(20), p8_fixed_from_int(11));
-    assert(box_contains(box, (vec_t){p8_fixed_from_int(5), p8_fixed_from_int(5)}));
-    assert(!box_contains(box, (vec_t){p8_fixed_from_int(21), p8_fixed_from_int(5)}));
+    assert(box_contains(*box, (vec_t){p8_fixed_from_int(5), p8_fixed_from_int(5)}));
+    assert(!box_contains(*box, (vec_t){p8_fixed_from_int(21), p8_fixed_from_int(5)}));
     return 0;
 }
 
