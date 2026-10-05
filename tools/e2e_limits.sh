@@ -4,9 +4,12 @@
 # lacks its <name>.txt or its <name>.json.sha256, or runs past 180 frames
 # (600 when it is listed in <exceptions>, as `<events> reason`: only the
 # first field counts), or when a keyboard_* e2e does not declare
-# "keyboard_cursor": true, moves the mouse or presses a mouse button.
+# "keyboard_cursor": true, moves the mouse or presses a mouse button, or
+# when a pad e2e ("input": "pad") carries mouse_x, mouse_y, mouse_buttons,
+# dpad or keyboard_cursor.
 # Every file is examined before concluding.
-# A frame of the file is a game frame: the "mouse_x" keys are counted.
+# A frame of the file is a game frame: the "mouse_x" keys are counted, the
+# "pad" keys in a pad e2e.
 
 set -u
 
@@ -36,7 +39,17 @@ for events in "$@"; do
         fi
     done
 
-    frames=$(grep -o '"mouse_x"' "$events" | wc -l | tr -d ' ')
+    frame_key='"mouse_x"'
+    if grep -q '"input": *"pad"' "$events"; then
+        frame_key='"pad":'
+        for key in mouse_x mouse_y mouse_buttons dpad keyboard_cursor; do
+            if grep -q "\"$key\"" "$events"; then
+                echo "e2e: $events: pad e2e carries the mouse-mode field \"$key\"" >&2
+                failed=1
+            fi
+        done
+    fi
+    frames=$(grep -o "$frame_key" "$events" | wc -l | tr -d ' ')
     limit=180
     if awk -v e="$events" '$1 == e { found = 1 } END { exit !found }' "$exceptions"; then
         limit=600

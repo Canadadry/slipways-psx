@@ -25,21 +25,21 @@
  * below 50, so a live frame can never be mistaken for a replayed one. */
 #define SOURCE_FRAME_COUNT 5
 static const p8_input_frame_t source_frames[SOURCE_FRAME_COUNT] = {
-    { 10, 11, 0, { 0, 0, 0, 0 } },
-    { 12, 13, 1, { 1, 0, 0, 0 } },
-    { 14, 15, 2, { 0, 1, 0, 0 } },
-    { 16, 17, 4, { 0, 0, 1, 0 } },
-    { 18, 19, 3, { 0, 0, 0, 1 } },
+    { 10, 11, 0, { 0, 0, 0, 0 }, 0 },
+    { 12, 13, 1, { 1, 0, 0, 0 }, 0 },
+    { 14, 15, 2, { 0, 1, 0, 0 }, 0 },
+    { 16, 17, 4, { 0, 0, 1, 0 }, 0 },
+    { 18, 19, 3, { 0, 0, 0, 1 }, 0 },
 };
 
 /* What the player does after getting the controls back, in a value range
  * the replayed frames never reach. */
 #define LIVE_FRAME_COUNT 4
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
-    { 90, 91, 1, { 1, 1, 0, 0 } },
-    { 92, 93, 5, { 0, 0, 1, 1 } },
-    { 94, 95, 7, { 1, 0, 1, 0 } },
-    { 96, 97, 6, { 0, 1, 0, 1 } },
+    { 90, 91, 1, { 1, 1, 0, 0 }, 0 },
+    { 92, 93, 5, { 0, 0, 1, 1 }, 0 },
+    { 94, 95, 7, { 1, 0, 1, 0 }, 0 },
+    { 96, 97, 6, { 0, 1, 0, 1 }, 0 },
 };
 
 static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_frame_t *want) {
@@ -88,8 +88,8 @@ static void run_session(const char *source_path, const char *resumed_path, int i
 static void test_recorder_writes_a_loadable_recording(void) {
     const char *path = "tmp/test_recording_continuity_basic.json";
     p8_input_frame_t frames[2] = {
-        { 11, 22, 1, { 1, 0, 0, 0 } },
-        { 33, 44, 2, { 0, 1, 0, 0 } },
+        { 11, 22, 1, { 1, 0, 0, 0 }, 0 },
+        { 33, 44, 2, { 0, 1, 0, 0 }, 0 },
     };
 
     session_recorder_t recorder;
@@ -121,7 +121,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0, P8_INPUT_MOUSE));
 
     run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
@@ -150,7 +150,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";
     const int total = SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT;
 
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0, P8_INPUT_MOUSE));
     run_session(source_path, resumed_path, total);
 
     replay_source_t second;
@@ -195,7 +195,7 @@ static void test_declared_recording_resumes_declared(void) {
     const char *source_path = "tmp/test_recording_continuity_declared_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_declared_resumed.json";
 
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 1));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 1, P8_INPUT_MOUSE));
     run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
     p8_input_t resumed;
@@ -219,7 +219,7 @@ static void test_undeclared_recording_resumes_undeclared(void) {
     const char *source_path = "tmp/test_recording_continuity_undeclared_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_undeclared_resumed.json";
 
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0, P8_INPUT_MOUSE));
     run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
     char *bytes = read_whole_file(resumed_path);

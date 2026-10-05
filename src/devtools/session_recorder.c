@@ -21,7 +21,7 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
     assert(recorder);
     assert(frame);
 
-    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset, recorder->keyboard_cursor)) {
+    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset, recorder->keyboard_cursor, P8_INPUT_MOUSE)) {
         /* Dropped, not fatal: the count must stay unchanged, since the marker file indexes frames by it. */
         return 0;
     }

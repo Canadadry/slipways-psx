@@ -6,7 +6,22 @@ typedef struct {
     int mouse_y;
     int mouse_buttons;
     int dpad[6];
+    int pad_buttons;
 } p8_input_frame_t;
+
+#define P8_PAD_UP 1
+#define P8_PAD_DOWN 2
+#define P8_PAD_LEFT 4
+#define P8_PAD_RIGHT 8
+#define P8_PAD_CROSS 16
+#define P8_PAD_CIRCLE 32
+#define P8_PAD_SQUARE 64
+#define P8_PAD_TRIANGLE 128
+#define P8_PAD_L1 256
+#define P8_PAD_R1 512
+#define P8_PAD_START 1024
+
+typedef enum { P8_INPUT_MOUSE, P8_INPUT_PAD } p8_input_mode_t;
 
 #define P8_MOUSE_LEFT 1
 #define P8_MOUSE_RIGHT 2
@@ -23,15 +38,16 @@ typedef struct {
     int frame_count;
     int current_frame;
     int keyboard_cursor;
+    p8_input_mode_t mode;
 } p8_input_t;
 
 void p8_input_init(p8_input_t *input);
 
 int p8_input_load(p8_input_t *input, const char *path);
 
-int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, int keyboard_cursor);
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, int keyboard_cursor, p8_input_mode_t mode);
 
-int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, int keyboard_cursor);
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, int keyboard_cursor, p8_input_mode_t mode);
 
 void p8_input_free(p8_input_t *input);
 

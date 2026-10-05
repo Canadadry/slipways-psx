@@ -104,12 +104,88 @@ static int find_keyboard_cursor(const char *json, const char *head_end, int *out
     return strncmp(p, "false", 5) == 0;
 }
 
+static int find_input_mode(const char *json, const char *head_end, p8_input_mode_t *out) {
+    static const char key[] = "\"input\":";
+    const char *p = strstr(json, key);
+    *out = P8_INPUT_MOUSE;
+    if (!p || p >= head_end) {
+        return 1;
+    }
+    p += strlen(key);
+    while (*p == ' ' || *p == '\t') {
+        p++;
+    }
+    if (strncmp(p, "\"pad\"", 5) == 0) {
+        *out = P8_INPUT_PAD;
+        return 1;
+    }
+    return strncmp(p, "\"mouse\"", 7) == 0;
+}
+
+/* Indexed by bit: also the order a pad frame is saved in. */
+static const char *const pad_button_names[] = {
+    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start",
+};
+#define PAD_BUTTON_COUNT ((int)(sizeof(pad_button_names) / sizeof(pad_button_names[0])))
+
+static int pad_button_from_name(const char *name, size_t length) {
+    for (int bit = 0; bit < PAD_BUTTON_COUNT; bit++) {
+        if (strlen(pad_button_names[bit]) == length && strncmp(pad_button_names[bit], name, length) == 0) {
+            return 1 << bit;
+        }
+    }
+    return 0;
+}
+
+/* Fills only out->pad_buttons, which must start at 0. */
+static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
+    static const char *const mouse_keys[] = {"\"mouse_x\"", "\"mouse_y\"", "\"mouse_buttons\"", "\"dpad\""};
+    for (size_t i = 0; i < sizeof(mouse_keys) / sizeof(mouse_keys[0]); i++) {
+        if (strstr(obj, mouse_keys[i])) {
+            return 0;
+        }
+    }
+    const char *p = strstr(obj, "\"pad\":");
+    if (!p) {
+        return 0;
+    }
+    p = strchr(p, '[');
+    if (!p) {
+        return 0;
+    }
+    p++;
+
+    for (;;) {
+        while (*p == ' ' || *p == ',' || *p == '\n' || *p == '\r' || *p == '\t') {
+            p++;
+        }
+        if (*p == ']') {
+            return 1;
+        }
+        if (*p != '"') {
+            return 0;
+        }
+        const char *name = p + 1;
+        const char *name_end = strchr(name, '"');
+        if (!name_end) {
+            return 0;
+        }
+        int button = pad_button_from_name(name, (size_t)(name_end - name));
+        if (!button || (out->pad_buttons & button)) {
+            return 0;
+        }
+        out->pad_buttons |= button;
+        p = name_end + 1;
+    }
+}
+
 void p8_input_free(p8_input_t *input) {
     free(input->frames);
     input->frames = NULL;
     input->frame_count = 0;
     input->current_frame = 0;
     input->keyboard_cursor = 0;
+    input->mode = P8_INPUT_MOUSE;
 }
 
 int p8_input_load(p8_input_t *input, const char *path) {
@@ -124,7 +200,9 @@ int p8_input_load(p8_input_t *input, const char *path) {
         return 0;
     }
     int keyboard_cursor;
-    if (!find_keyboard_cursor(json, cursor, &keyboard_cursor)) {
+    p8_input_mode_t mode;
+    if (!find_keyboard_cursor(json, cursor, &keyboard_cursor) || !find_input_mode(json, cursor, &mode) ||
+        (mode == P8_INPUT_PAD && keyboard_cursor)) {
         free(json);
         return 0;
     }
@@ -172,11 +250,13 @@ int p8_input_load(p8_input_t *input, const char *path) {
         memcpy(frame_copy, frame_start, frame_length);
         frame_copy[frame_length] = '\0';
 
-        p8_input_frame_t frame;
-        int found = find_int_field(frame_copy, "\"mouse_x\":", &frame.mouse_x) &&
-                    find_int_field(frame_copy, "\"mouse_y\":", &frame.mouse_y) &&
-                    find_int_field(frame_copy, "\"mouse_buttons\":", &frame.mouse_buttons) &&
-                    find_dpad_field(frame_copy, frame.dpad);
+        p8_input_frame_t frame = {0};
+        int found = (mode == P8_INPUT_PAD)
+                        ? parse_pad_frame(frame_copy, &frame)
+                        : find_int_field(frame_copy, "\"mouse_x\":", &frame.mouse_x) &&
+                              find_int_field(frame_copy, "\"mouse_y\":", &frame.mouse_y) &&
+                              find_int_field(frame_copy, "\"mouse_buttons\":", &frame.mouse_buttons) &&
+                              find_dpad_field(frame_copy, frame.dpad);
         free(frame_copy);
 
         if (!found) {
@@ -210,21 +290,50 @@ int p8_input_load(p8_input_t *input, const char *path) {
     input->frame_count = count;
     input->current_frame = 0;
     input->keyboard_cursor = keyboard_cursor;
+    input->mode = mode;
     return 1;
 }
 
 #define JSON_PREFIX "{\n  \"frames\": [\n"
 #define JSON_PREFIX_KEYBOARD_CURSOR "{\n  \"keyboard_cursor\": true,\n  \"frames\": [\n"
+#define JSON_PREFIX_PAD "{\n  \"input\": \"pad\",\n  \"frames\": [\n"
 #define JSON_SUFFIX "\n  ]\n}\n"
 #define FRAME_SEPARATOR ",\n"
 #define FRAME_LINE_MAX 160
 
-/* Never "false": an absent member is the only spelling of a mouse session. */
-static const char *json_prefix(int keyboard_cursor) {
+/* Never "false" nor "mouse": an absent member is the only spelling of a mouse session. */
+static const char *json_prefix(int keyboard_cursor, p8_input_mode_t mode) {
+    assert(!(keyboard_cursor && mode == P8_INPUT_PAD) && "keyboard_cursor is a mouse-mode flag: a pad replay never carries it");
+    if (mode == P8_INPUT_PAD) {
+        return JSON_PREFIX_PAD;
+    }
     return keyboard_cursor ? JSON_PREFIX_KEYBOARD_CURSOR : JSON_PREFIX;
 }
 
-static int format_frame_line(char *buf, size_t size, const p8_input_frame_t *fr) {
+static int format_pad_frame_line(char *buf, size_t size, const p8_input_frame_t *fr) {
+    assert((fr->pad_buttons & ~((1 << PAD_BUTTON_COUNT) - 1)) == 0 && "a bit past P8_PAD_START has no name to save");
+    int used = snprintf(buf, size, "    { \"pad\": [");
+    const char *separator = "";
+    for (int bit = 0; bit < PAD_BUTTON_COUNT; bit++) {
+        if (used < 0 || (size_t)used >= size) {
+            return 0;
+        }
+        if (fr->pad_buttons & (1 << bit)) {
+            used += snprintf(buf + used, size - (size_t)used, "%s\"%s\"", separator, pad_button_names[bit]);
+            separator = ", ";
+        }
+    }
+    if (used < 0 || (size_t)used >= size) {
+        return 0;
+    }
+    int rc = snprintf(buf + used, size - (size_t)used, "] }");
+    return rc > 0 && (size_t)(used + rc) < size;
+}
+
+static int format_frame_line(char *buf, size_t size, const p8_input_frame_t *fr, p8_input_mode_t mode) {
+    if (mode == P8_INPUT_PAD) {
+        return format_pad_frame_line(buf, size, fr);
+    }
     int rc = snprintf(
         buf,
         size,
@@ -241,7 +350,7 @@ static int format_frame_line(char *buf, size_t size, const p8_input_frame_t *fr)
     return rc > 0 && (size_t)rc < size;
 }
 
-int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, int keyboard_cursor) {
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, int keyboard_cursor, p8_input_mode_t mode) {
     if (!frames || frame_count <= 0) {
         return 0;
     }
@@ -261,12 +370,12 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
     }
 
     int ok = 1;
-    if (fputs(json_prefix(keyboard_cursor), f) < 0) {
+    if (fputs(json_prefix(keyboard_cursor, mode), f) < 0) {
         ok = 0;
     }
     for (int i = 0; ok && i < frame_count; i++) {
         char line[FRAME_LINE_MAX];
-        if (!format_frame_line(line, sizeof(line), &frames[i])) {
+        if (!format_frame_line(line, sizeof(line), &frames[i], mode)) {
             ok = 0;
             break;
         }
@@ -295,18 +404,18 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
     return 1;
 }
 
-int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, int keyboard_cursor) {
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, int keyboard_cursor, p8_input_mode_t mode) {
     if (!frame || !path || !tail_offset) {
         return 0;
     }
 
     char line[FRAME_LINE_MAX];
-    if (!format_frame_line(line, sizeof(line), frame)) {
+    if (!format_frame_line(line, sizeof(line), frame, mode)) {
         return 0;
     }
 
     int fresh = (*tail_offset <= 0);
-    const char *head = fresh ? json_prefix(keyboard_cursor) : FRAME_SEPARATOR;
+    const char *head = fresh ? json_prefix(keyboard_cursor, mode) : FRAME_SEPARATOR;
     long start = fresh ? 0 : *tail_offset;
 
     char tail[sizeof(JSON_PREFIX_KEYBOARD_CURSOR) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];

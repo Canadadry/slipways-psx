@@ -59,9 +59,9 @@ static void test_malformed_recording_reports_load_failure(void) {
  * exact values are what catch an off-by-one, a reversed order or a frame
  * served twice. */
 static const p8_input_frame_t events_valid_frames[] = {
-    { 64, 64, 1, { 0, 1, 0, 0 } },
-    { 10, 20, 3, { 1, 0, 1, 0 } },
-    { 0, 127, 4, { 0, 0, 0, 1 } }
+    { 64, 64, 1, { 0, 1, 0, 0 }, 0 },
+    { 10, 20, 3, { 1, 0, 1, 0 }, 0 },
+    { 0, 127, 4, { 0, 0, 0, 1 }, 0 }
 };
 static const int events_valid_count = 3;
 

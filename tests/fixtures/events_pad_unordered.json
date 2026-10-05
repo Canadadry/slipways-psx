@@ -1,0 +1,8 @@
+{
+  "input": "pad",
+  "frames": [
+    { "pad": ["cross", "up"] },
+    { "pad": ["start", "triangle", "l1"] },
+    { "pad": [] }
+  ]
+}

@@ -8,6 +8,7 @@ void p8_input_init(p8_input_t *input) {
     input->frame_count = 0;
     input->current_frame = 0;
     input->keyboard_cursor = 0;
+    input->mode = P8_INPUT_MOUSE;
 }
 
 void p8_input_step(p8_input_t *input) {

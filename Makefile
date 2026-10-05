@@ -11,7 +11,8 @@
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt), or if a keyboard_*
 #                       e2e lacks "keyboard_cursor": true, moves the mouse
-#                       or presses a mouse button
+#                       or presses a mouse button, or if a pad e2e
+#                       ("input": "pad") carries a mouse-mode field
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
@@ -269,7 +270,7 @@ $(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/ass
 $(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json $(wildcard tests/fixtures/events_keyboard_cursor_*.json) | $(TMP_DIR)
+$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json $(wildcard tests/fixtures/events_keyboard_cursor_*.json tests/fixtures/events_pad_*.json tests/fixtures/events_input_*.json) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_dump: $(call objs,tests/test_dump.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c) | $(TMP_DIR)

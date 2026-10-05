@@ -27,22 +27,22 @@
  * names a visibly different frame rather than just an unequal number. */
 #define REPLAYED_FRAME_COUNT 6
 static const p8_input_frame_t replayed_frames[REPLAYED_FRAME_COUNT] = {
-    { 20, 21, 0, { 0, 0, 0, 0 } },
-    { 22, 23, 1, { 1, 0, 0, 0 } },
-    { 24, 25, 2, { 0, 1, 0, 0 } },
-    { 26, 27, 4, { 0, 0, 1, 0 } },
-    { 28, 29, 3, { 0, 0, 0, 1 } },
-    { 30, 31, 5, { 1, 1, 0, 0 } },
+    { 20, 21, 0, { 0, 0, 0, 0 }, 0 },
+    { 22, 23, 1, { 1, 0, 0, 0 }, 0 },
+    { 24, 25, 2, { 0, 1, 0, 0 }, 0 },
+    { 26, 27, 4, { 0, 0, 1, 0 }, 0 },
+    { 28, 29, 3, { 0, 0, 0, 1 }, 0 },
+    { 30, 31, 5, { 1, 1, 0, 0 }, 0 },
 };
 
 /* What the player does once the controls come back. */
 #define LIVE_FRAME_COUNT 5
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
-    { 80, 81, 1, { 1, 0, 1, 0 } },
-    { 82, 83, 2, { 0, 1, 0, 1 } },
-    { 84, 85, 4, { 1, 1, 1, 0 } },
-    { 86, 87, 7, { 0, 0, 1, 1 } },
-    { 88, 89, 6, { 1, 0, 0, 1 } },
+    { 80, 81, 1, { 1, 0, 1, 0 }, 0 },
+    { 82, 83, 2, { 0, 1, 0, 1 }, 0 },
+    { 84, 85, 4, { 1, 1, 1, 0 }, 0 },
+    { 86, 87, 7, { 0, 0, 1, 1 }, 0 },
+    { 88, 89, 6, { 1, 0, 0, 1 }, 0 },
 };
 
 #define TOTAL_FRAME_COUNT (REPLAYED_FRAME_COUNT + LIVE_FRAME_COUNT)
@@ -98,7 +98,7 @@ static void test_marker_index_counts_the_replayed_frames_too(void) {
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, 0));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, 0, P8_INPUT_MOUSE));
 
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
@@ -121,7 +121,7 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     const char *resumed_path = "tmp/test_marker_coherence_resolve_resumed.json";
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, 0));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, 0, P8_INPUT_MOUSE));
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
     p8_input_t resumed;

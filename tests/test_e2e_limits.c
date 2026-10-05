@@ -1,6 +1,6 @@
 /* tools/e2e_limits.sh, the guard of new e2e files (companion files, 180
- * frames, 600 for a listed exception, keyboard_ files without the mouse), on
- * built events files. */
+ * frames, 600 for a listed exception, keyboard_ files without the mouse, pad files
+ * without any mouse-mode field), on built events files. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -65,6 +65,26 @@ static void write_e2e_mouse(const char *name, int frames, int declared, mouse_t 
 
 static void write_e2e(const char *name, int frames) {
     write_e2e_mouse(name, frames, 0, still);
+}
+
+/* A complete pad e2e of `frames` idle frames; frame 1 is `odd` when not NULL. */
+static void write_e2e_pad(const char *name, int frames, const char *odd) {
+    char path[256];
+    snprintf(path, sizeof path, DIR "/%s.json", name);
+    FILE *file = fopen(path, "w");
+    assert(file != NULL);
+    fputs("{\n  \"input\": \"pad\",\n  \"frames\": [\n", file);
+    for (int i = 0; i < frames; i++) {
+        fputs("    ", file);
+        fputs(i == 1 && odd != NULL ? odd : "{ \"pad\": [] }", file);
+        fputs(i + 1 < frames ? ",\n" : "\n", file);
+    }
+    fputs("  ]\n}\n", file);
+    fclose(file);
+    snprintf(path, sizeof path, DIR "/%s.txt", name);
+    write_file(path, "what the replay does\n");
+    snprintf(path, sizeof path, DIR "/%s.json.sha256", name);
+    write_file(path, "0000\n");
 }
 
 static int run(const char *events) {
@@ -165,6 +185,51 @@ static void test_keyboard_e2e_without_declaration_fails_and_is_named(void) {
     assert(strstr(read_log(), DIR "/keyboard_undeclared.json") != NULL);
 }
 
+static void test_pad_e2e_of_180_frames_passes(void) {
+    reset();
+    write_e2e_pad("pad_short", 180, NULL);
+    assert(run(DIR "/pad_short.json") == 0);
+}
+
+static void test_pad_e2e_over_180_frames_fails_and_is_named(void) {
+    reset();
+    write_e2e_pad("pad_long", 181, NULL);
+    assert(run(DIR "/pad_long.json") != 0);
+    assert(strstr(read_log(), DIR "/pad_long.json") != NULL);
+    assert(strstr(read_log(), "181") != NULL);
+}
+
+static void test_listed_pad_exception_is_allowed_up_to_600_frames(void) {
+    reset();
+    write_e2e_pad("pad_long", 600, NULL);
+    write_file(EXCEPTIONS, DIR "/pad_long.json the game takes long to end\n");
+    assert(run(DIR "/pad_long.json") == 0);
+    write_e2e_pad("pad_long", 601, NULL);
+    assert(run(DIR "/pad_long.json") != 0);
+    assert(strstr(read_log(), DIR "/pad_long.json") != NULL);
+}
+
+static void test_pad_e2e_with_a_mouse_mode_field_fails_and_is_named(void) {
+    reset();
+    write_e2e_pad("pad_mouse_x", 10, "{ \"pad\": [], \"mouse_x\": 64 }");
+    assert(run(DIR "/pad_mouse_x.json") != 0);
+    assert(strstr(read_log(), DIR "/pad_mouse_x.json") != NULL);
+    write_e2e_pad("pad_dpad", 10, "{ \"pad\": [], \"dpad\": [false, false, false, false] }");
+    assert(run(DIR "/pad_dpad.json") != 0);
+    assert(strstr(read_log(), DIR "/pad_dpad.json") != NULL);
+    write_e2e_pad("pad_keyboard", 10, "{ \"pad\": [], \"keyboard_cursor\": true }");
+    assert(run(DIR "/pad_keyboard.json") != 0);
+    assert(strstr(read_log(), DIR "/pad_keyboard.json") != NULL);
+}
+
+static void test_pad_e2e_missing_companion_file_fails(void) {
+    reset();
+    write_e2e_pad("pad_no_txt", 10, NULL);
+    assert(system("rm " DIR "/pad_no_txt.txt") == 0);
+    assert(run(DIR "/pad_no_txt.json") != 0);
+    assert(strstr(read_log(), DIR "/pad_no_txt.txt") != NULL);
+}
+
 int main(void) {
     test_no_e2e_passes();
     test_e2e_of_180_frames_passes();
@@ -177,6 +242,11 @@ int main(void) {
     test_keyboard_e2e_with_moved_mouse_fails_and_is_named();
     test_keyboard_e2e_with_mouse_button_fails_and_is_named();
     test_keyboard_e2e_without_declaration_fails_and_is_named();
+    test_pad_e2e_of_180_frames_passes();
+    test_pad_e2e_over_180_frames_fails_and_is_named();
+    test_listed_pad_exception_is_allowed_up_to_600_frames();
+    test_pad_e2e_with_a_mouse_mode_field_fails_and_is_named();
+    test_pad_e2e_missing_companion_file_fails();
     assert(system("rm -rf " DIR) == 0);
     printf("test_e2e_limits: all tests passed\n");
     return 0;
