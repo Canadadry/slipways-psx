@@ -209,10 +209,10 @@ void draw_layers(entity_message_t message) {
         entity_t *qc = message_bucket->items[index];
         int layer;
 
-        if (qc->layer == NULL) {
+        if (!entity_has(qc, ENTITY_HAS_LAYER)) {
             continue;
         }
-        layer = p8_fixed_flr_int(*qc->layer);
+        layer = p8_fixed_flr_int(qc->layer);
         if (layer < 1 || layer > 15) {
             continue;
         }

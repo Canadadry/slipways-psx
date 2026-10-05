@@ -196,7 +196,8 @@ static entity_t *host(void) {
     entity_init_header(&g_host, &host_class_def);
     memset(&g_emitter, 0, sizeof g_emitter);
     g_emitter.archetype = &without_birth;
-    g_host.layer = &layer_ten;
+    g_host.has |= ENTITY_HAS_LAYER;
+    g_host.layer = layer_ten;
     g_host.pos = &pos_nil;
     g_host.emitter = &g_emitter;
     emitter_init(&g_host);

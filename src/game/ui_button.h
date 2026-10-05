@@ -22,7 +22,6 @@ struct button {
     vec_t pos_box;
     vec_t slide_target_box;
     const button_archetype_t *archetype;
-    p8_fixed_t layer;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
     p8_fixed_t width;

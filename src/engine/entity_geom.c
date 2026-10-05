@@ -25,17 +25,15 @@ static vec_t map_pos_of(const entity_t *e) {
 }
 
 int entity_geom_contains_cursor(const entity_t *e, const vec_t *mp, const vec_t *rp) {
-    p8_fixed_t fa = e != NULL && e->layer != NULL ? *e->layer : p8_fixed_from_int(0);
+    p8_fixed_t fa = e != NULL && entity_has(e, ENTITY_HAS_LAYER) ? e->layer : p8_fixed_from_int(0);
     vec_t ra = pos_of(e);
     const vec_t *chosen;
     vec_t point;
-    const box_t *kq;
 
     chosen = (fa >= p8_fixed_from_int(10)) ? rp : mp;
     point = vec_sub(chosen != NULL ? *chosen : zero_vec(), ra);
-    kq = e != NULL ? e->hit_box : NULL;
-    if (kq != NULL) {
-        return box_contains(kq, point);
+    if (e != NULL && entity_has(e, ENTITY_HAS_HIT_BOX)) {
+        return box_contains(&e->hit_box, point);
     }
     return 0;
 }

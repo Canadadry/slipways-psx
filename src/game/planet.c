@@ -57,12 +57,15 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     assert(g_planet_up && "planet_init() must run first");
     entity_init_instance(&self->header, instance_class, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->header.pos = (const vec_t *const *)&self->pos;
     self->header.map_pos = (const vec_t *const *)&self->map_pos;
-    self->header.hit_box = &self->archetype->hit_box;
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = self->archetype->hit_box;
     self->header.shake = &self->shake;
-    self->header.fold_anchor = &self->fold_anchor;
+    self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
+    self->header.fold_anchor = 0;
     self->header.is_dead = &self->is_dead;
     self->shake = self->archetype->shake;
     self->production = &g_planet_production_shared;
@@ -74,7 +77,6 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->description = NULL;
     self->needs = NULL;
     self->planet_type = NULL;
-    self->fold_anchor = 0;
     self->layout_row = NULL;
     self->layout_row_slot = NULL;
     self->targeted_by = ENTITY_ID_NONE;

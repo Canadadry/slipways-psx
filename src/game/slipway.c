@@ -56,11 +56,12 @@ entity_t *slipway_too_far(void) {
     return &g_slipway_too_far.header;
 }
 
-static int slipway_infraspace_of(const entity_t *e, p8_fixed_t *out) {
-    if (e == NULL || e->infraspace == NULL) {
+static int slipway_copy_infraspace(slipway_t *self, const entity_t *from) {
+    if (from == NULL || !entity_has(from, ENTITY_HAS_INFRASPACE)) {
         return 0;
     }
-    *out = *e->infraspace;
+    self->header.infraspace = from->infraspace;
+    self->header.has |= ENTITY_HAS_INFRASPACE;
     return 1;
 }
 
@@ -132,16 +133,18 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
     self->targeting->has_cost = 1;
 
     /* An infraspace of 0 still counts as one. */
-    self->infraspace = p8_fixed_from_int(0);
-    self->has_infraspace = slipway_infraspace_of(slipway_start(self), &self->infraspace) || slipway_infraspace_of(slipway_end(self), &self->infraspace);
-    self->header.infraspace = self->has_infraspace ? &self->infraspace : NULL;
+    self->header.infraspace = p8_fixed_from_int(0);
+    self->header.has &= (uint16_t)~ENTITY_HAS_INFRASPACE;
+    if (!slipway_copy_infraspace(self, slipway_start(self))) {
+        slipway_copy_infraspace(self, slipway_end(self));
+    }
 
     targeting_set_target(self->targeting, slipway_obstruction(self));
     if (targeting_target(self->targeting) != NULL) {
         probe_link_target(targeting_target(self->targeting), &self->header);
     }
 
-    self->layer = self->has_infraspace ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
+    self->header.layer = entity_has(&self->header, ENTITY_HAS_INFRASPACE) ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
 }
 
 void slipway_drop(slipway_t *self, entity_t *end_planet) {
@@ -211,7 +214,8 @@ static int slipway_obstruction_slipway_predicate(entity_t *e, void *ctx_ptr) {
     }
     assert(e->class == slipway_class() && "the slipway tag holds slipways only");
     sw = (const slipway_t *)e;
-    if (sw->has_infraspace != ctx->self_has_infraspace || (sw->has_infraspace && sw->infraspace != ctx->self_infraspace)) {
+    if (entity_has(&sw->header, ENTITY_HAS_INFRASPACE) != ctx->self_has_infraspace ||
+        (entity_has(&sw->header, ENTITY_HAS_INFRASPACE) && sw->header.infraspace != ctx->self_infraspace)) {
         return 0;
     }
     return geom_segments_cross(ctx->start_point, ctx->end_point, slipway_end_map_pos(slipway_start(sw)), slipway_end_map_pos(slipway_end(sw)));
@@ -271,8 +275,8 @@ entity_t *slipway_obstruction(slipway_t *self) {
         node_ctx.end_point = end_point;
         slipway_ctx.start_point = start_point;
         slipway_ctx.end_point = end_point;
-        slipway_ctx.self_has_infraspace = self->has_infraspace;
-        slipway_ctx.self_infraspace = self->infraspace;
+        slipway_ctx.self_has_infraspace = entity_has(&self->header, ENTITY_HAS_INFRASPACE);
+        slipway_ctx.self_infraspace = self->header.infraspace;
 
         part1 = entity_list_filter(frame_zone(), entities_by_tag(TAG_NODE), slipway_obstruction_node_predicate, &node_ctx);
         part2 = entity_list_filter(frame_zone(), entities_by_tag(TAG_SLIPWAY), slipway_obstruction_slipway_predicate, &slipway_ctx);
@@ -352,8 +356,8 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
 
     entity_init_instance(&self->header, &slipway_class_def, slipway_archetype.state, slipway_archetype.state_time);
     self->archetype = &slipway_archetype;
-    self->layer = self->archetype->layer;
-    self->header.layer = &self->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->header.targeting = &self->targeting_own;
     self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
@@ -365,9 +369,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->end_is_point = 0;
     self->targeting->cost = self->archetype->targeting.cost;
     self->targeting->has_cost = self->archetype->targeting.has_cost;
-    self->infraspace = 0;
-    self->has_infraspace = 0;
-    self->header.infraspace = NULL;
+    self->header.infraspace = 0;
     targeting_set_target(self->targeting, NULL);
     self->targeted_by = ENTITY_ID_NONE;
     self->header.is_dead = &self->is_dead;

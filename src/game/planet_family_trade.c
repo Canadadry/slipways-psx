@@ -219,7 +219,8 @@ static planet_t *infraspace_gate_create(const planet_keys_t *keys) {
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     slipgate_init_instance(self, &infraspace_gate_class_def, &infraspace_gate_archetype);
-    self->header.infraspace = &self->archetype->infraspace;
+    self->header.has |= ENTITY_HAS_INFRASPACE;
+    self->header.infraspace = self->archetype->infraspace;
     if (keys != NULL) {
         assert(keys->map_pos == NULL && keys->pos == NULL &&
                "infraspace_gate_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "

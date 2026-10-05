@@ -388,7 +388,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
-    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
@@ -583,7 +583,7 @@ static uint32_t fold_attach_slipway(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)synthesizable_resources_size(e));
     h = fold_production(h, jo);
     h = fold_fixed_member(h, jo->shake);
-    h = (jo->fold_anchor != 0) ? fold_bool_member(h, jo->fold_anchor) : fold_absent(h);
+    h = (jo->header.fold_anchor != 0) ? fold_bool_member(h, jo->header.fold_anchor) : fold_absent(h);
     return fnv(h, (uint32_t)id_list_count(jo->slipways));
 }
 

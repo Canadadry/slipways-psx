@@ -121,7 +121,7 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
         }
 
         target_or_targeted_by = targeting_target(self->targeting) != NULL || entity_get(self->targeted_by) != NULL;
-        infraspace_truthy = self->has_infraspace;
+        infraspace_truthy = entity_has(&self->header, ENTITY_HAS_INFRASPACE);
 
         line_color = target_or_targeted_by ? p8_fixed_from_int(2) : (infraspace_truthy ? p8_fixed_from_int(0) : fade_color);
         border_color = infraspace_truthy ? fade_color : p8_fixed_from_int(0);

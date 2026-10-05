@@ -532,7 +532,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
     } else {
         entity_set_state((entity_t *)self, ENTITY_STATE_SETTLED);
         planet_install_project(self, research_project_instance);
-        self->fold_anchor = p8_fixed_from_int(1);
+        self->header.fold_anchor = p8_fixed_from_int(1);
         fp = tech_gate_if_unlocked("autoassemblers", p8_fixed_from_int(3), p8_fixed_from_int(2));
     }
 

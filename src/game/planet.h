@@ -26,7 +26,6 @@ typedef struct {
     const char *description;
     pointer_list_t *needs;
     const planet_types_entry_t *planet_type;
-    p8_fixed_t fold_anchor;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
     entity_id_t targeted_by;

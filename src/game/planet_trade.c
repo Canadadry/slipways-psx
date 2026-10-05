@@ -58,8 +58,8 @@ void planet_attach_slipway(planet_t *self, entity_t *slipway) {
     }
     if (other != NULL) {
         assert(planet_is_family(other) && "planet_attach_slipway: the other end of a registered slipway is a planet");
-        if (((const planet_t *)other)->fold_anchor != 0) {
-            self->fold_anchor = p8_fixed_from_int(1);
+        if (other->fold_anchor != 0) {
+            self->header.fold_anchor = p8_fixed_from_int(1);
         }
     }
 

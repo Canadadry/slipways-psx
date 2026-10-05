@@ -30,7 +30,6 @@ typedef struct {
 typedef struct {
     entity_t header;
     const slipway_archetype_t *archetype;
-    p8_fixed_t layer;
     p8_fixed_t fade_in_step;
     entity_id_t start;
     pointer_list_t *transit_dots;
@@ -38,8 +37,6 @@ typedef struct {
     slipway_served_planets_t served_planets_own;
     entity_id_t end;
     int end_is_point;
-    p8_fixed_t infraspace;
-    int has_infraspace;
     entity_id_t targeted_by;
     int is_dead;
     targeting_t *targeting;

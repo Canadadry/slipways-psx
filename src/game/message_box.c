@@ -126,7 +126,8 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
     self->slot = slot;
     entity_init_instance(&self->header, &message_box_class_def, message_box_archetype.state, message_box_archetype.state_time);
     self->archetype = &message_box_archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->duration_scale = self->archetype->duration_scale;
     self->keep_open = NULL;
     self->header.is_dead = &self->is_dead;
@@ -252,7 +253,8 @@ static toast_t *toast_create(const toast_keys_t *keys) {
 
     entity_init_instance(&self->header, &toast_class_def, toast_archetype.state, toast_archetype.state_time);
     self->archetype = &toast_archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->header.pos = &self->pos;
     self->fade = self->archetype->fade;
     self->pos = NULL;

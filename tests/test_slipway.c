@@ -261,8 +261,8 @@ static uint32_t fold_slipway(uint32_t h, const void *e) {
     const slipway_t *jc = as_slipway(e);
 
     h = fold_fixed(h, jc->targeting->has_cost, jc->targeting->cost);
-    h = fold_fixed(h, jc->has_infraspace, jc->infraspace);
-    h = fold_fixed(h, 1, jc->layer);
+    h = fold_fixed(h, entity_has(&jc->header, ENTITY_HAS_INFRASPACE), jc->header.infraspace);
+    h = fold_fixed(h, 1, jc->header.layer);
     h = fold_fixed(h, 1, jc->fade_in_step);
     h = fnv(h, is_dead_state(jc));
     h = fold_string(h, entity_state_name(jc->header.state));
@@ -448,7 +448,7 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     assert(jc->archetype == &slipway_archetype && jc->targeting->archetype == &slipway_archetype.targeting);
     assert(jc->header.state == ENTITY_STATE_PLACING);
     assert(jc->header.state_time == 0);
-    assert(jc->layer == p8_fixed_from_int(2));
+    assert(jc->header.layer == p8_fixed_from_int(2));
     assert(jc->targeting->archetype->clock_ticks == 0);
     printf("[attach_distance] 0x%08X\n", (unsigned)jc->targeting->archetype->attach_distance);
     assert(jc->targeting->archetype->attach_distance == (p8_fixed_t)ATTACH_DISTANCE_BITS);
@@ -466,8 +466,7 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     hg = jc->served_planets;
     assert(hg == &jc->served_planets_own && hg->count == 0);
 
-    assert(slipway_end(jc) == NULL && !jc->targeting->has_cost && jc->targeting->cost == 0 && !jc->has_infraspace && targeting_target(jc->targeting) == NULL);
-    assert(jc->header.infraspace == NULL);
+    assert(slipway_end(jc) == NULL && !jc->targeting->has_cost && jc->targeting->cost == 0 && !entity_has(&jc->header, ENTITY_HAS_INFRASPACE) && targeting_target(jc->targeting) == NULL);
     assert(entity_get(jc->targeted_by) == NULL && !jc->is_dead);
     assert(class_of(jc)->drag != NULL && class_of(jc)->drop != NULL);
     assert(class_of(jc)->draw_overlay != NULL && class_of(jc)->draw != NULL);
@@ -580,11 +579,11 @@ static void test_drag_takes_infraspace_from_its_start(void) {
     world();
     from_planet = build_slipway(planet_new(NULL));
     drag_over(from_planet, NULL, vec_ref(-640, -640));
-    assert(!as_slipway(from_planet)->has_infraspace && as_slipway(from_planet)->header.infraspace == NULL);
+    assert(!entity_has(&as_slipway(from_planet)->header, ENTITY_HAS_INFRASPACE));
     from_infraspace_gate = build_slipway(infraspace_gate_new(NULL));
     drag_over(from_infraspace_gate, NULL, vec_ref(-640, -640));
-    assert(as_slipway(from_infraspace_gate)->has_infraspace && as_slipway(from_infraspace_gate)->infraspace == infraspace_gate_archetype.infraspace);
-    assert(as_slipway(from_infraspace_gate)->header.infraspace == &as_slipway(from_infraspace_gate)->infraspace);
+    assert(entity_has(&as_slipway(from_infraspace_gate)->header, ENTITY_HAS_INFRASPACE) &&
+           as_slipway(from_infraspace_gate)->header.infraspace == infraspace_gate_archetype.infraspace);
 }
 
 /* A NULL end falls back to the start. */

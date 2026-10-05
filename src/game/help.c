@@ -111,8 +111,10 @@ static probe_t *screen_create(void) {
     assert(g_help_screen_up && "help_init() must run first");
     self = (probe_t *)allocator_alloc(game_zone(), sizeof *self);
     probe_init_instance(self, &help_screen_class_def, &help_screen_archetype);
-    self->header.hit_box = &self->archetype->hit_box;
-    self->header.cursor_sprite = &self->archetype->cursor_sprite;
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = self->archetype->hit_box;
+    self->header.has |= ENTITY_HAS_CURSOR_SPRITE;
+    self->header.cursor_sprite = self->archetype->cursor_sprite;
     self->header.is_hovered = &self->is_hovered;
     self->is_hovered = 0;
     help_screen_construct(self);

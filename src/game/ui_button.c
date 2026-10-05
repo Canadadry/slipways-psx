@@ -108,12 +108,12 @@ static button_t *button_create(const button_keys_t *keys) {
     self->project_cost = 0;
     self->has_project_cost = 0;
     self->archetype = &button_archetype;
-    self->layer = self->archetype->layer;
-    self->header.layer = &self->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->header.pos = &self->pos;
     if (keys != NULL) {
         if (keys->has_layer) {
-            self->layer = keys->layer;
+            self->header.layer = keys->layer;
         }
         if (keys->pos != NULL) {
             self->pos_box = *keys->pos;
@@ -186,7 +186,8 @@ void button_construct(button_t *self, const button_keys_t *keys) {
 
     self->layout_row = button_layout_row(self->slot, keys->layout_row_copy, keys->layout_row_keys);
     self->width = p8_fixed_add(self->layout_row->width, p8_fixed_from_int(2));
-    self->header.hit_box = box_make(self->slot, p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11));
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = (box_t){p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11)};
 
     /* GAP-23 */
     if (keys->side_tooltip_row != NULL || (keys->has_side_tooltip && !keys->side_tooltip_is_false)) {
@@ -311,7 +312,8 @@ static modal_backdrop_t *modal_backdrop_create(const modal_backdrop_keys_t *keys
     self->slot = slot;
     entity_init_instance(&self->header, &modal_backdrop_class_def, modal_backdrop_archetype.state, modal_backdrop_archetype.state_time);
     self->archetype = &modal_backdrop_archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->on_click = NULL;
     self->header.is_dead = &self->is_dead;
     self->is_dead = 0;

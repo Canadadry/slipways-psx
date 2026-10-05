@@ -192,9 +192,11 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
     assert(g_structure_icon_up && "structure_icon_init() must run before a structure icon is created");
     entity_init_instance(&self->header, &structure_icon_class_def, structure_icon_archetype.state, structure_icon_archetype.state_time);
     self->archetype = &structure_icon_archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->header.pos = &self->pos;
-    self->header.hit_box = &self->archetype->hit_box;
+    self->header.has |= ENTITY_HAS_HIT_BOX;
+    self->header.hit_box = self->archetype->hit_box;
     self->pos = &self->archetype->pos;
     self->kind = NULL;
     self->tooltip = NULL;

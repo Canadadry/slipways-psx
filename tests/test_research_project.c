@@ -661,7 +661,7 @@ static uint32_t fold_planet(uint32_t hash, void *entity) {
     hash = fold_needs(hash, p);
     hash = fold_production(hash, p);
     hash = fold_string_member(hash, entity_state_name(p->header.state));
-    hash = fold_bool_member(hash, (p->fold_anchor != 0), p->fold_anchor);
+    hash = fold_bool_member(hash, (p->header.fold_anchor != 0), p->header.fold_anchor);
     hash = fold_bool_member(hash, (p->is_dead != 0), p->is_dead);
     hash = fold_fixed_member(hash, 1, p->shake);
     hash = p->planet_type != NULL ? fnv(hash, (uint32_t)(p->planet_type - planet_types_table)) : fnv(hash, 0xFFFFFFFFu);

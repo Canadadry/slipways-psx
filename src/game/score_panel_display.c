@@ -250,7 +250,7 @@ void score_panel_update(score_panel_t *self) {
             self->has_is_shown = 1;
             self->curtain = 0;
             self->has_curtain = 1;
-            self->layer = p8_fixed_from_int(13);
+            self->header.layer = p8_fixed_from_int(13);
         }
     }
 

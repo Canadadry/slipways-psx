@@ -401,10 +401,12 @@ static const entity_class_t probe_class_def = {
 void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype) {
     entity_init_instance(&self->header, cls, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->header.pos = &self->pos;
     self->header.map_pos = &self->map_pos;
-    self->header.fold_anchor = &self->archetype->fold_anchor;
+    self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
+    self->header.fold_anchor = self->archetype->fold_anchor;
     self->header.is_dead = &self->is_dead;
     self->header.emitter = &self->emitter_own;
     self->header.targeting = &self->targeting_own;

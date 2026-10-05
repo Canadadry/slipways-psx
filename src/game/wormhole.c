@@ -22,7 +22,7 @@ static wormhole_too_far_target_t g_wormhole_too_far_target_wrapper = {
 };
 
 static int wormhole_is_anchor(const entity_t *p) {
-    return p != NULL && p->fold_anchor != NULL && *p->fold_anchor != 0;
+    return p != NULL && entity_has(p, ENTITY_HAS_FOLD_ANCHOR) && p->fold_anchor != 0;
 }
 
 static int wormhole_anchor_count(void) {
@@ -223,7 +223,8 @@ static wormhole_t *wormhole_create(void) {
 
     entity_init_instance(&self->header, &wormhole_class_def, wormhole_archetype.state, wormhole_archetype.state_time);
     self->archetype = &wormhole_archetype;
-    self->header.layer = &self->archetype->layer;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
     self->header.pos = &self->pos;
     self->header.map_pos = &self->map_pos;
     self->header.targeting = &self->targeting_own;

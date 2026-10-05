@@ -81,7 +81,7 @@ static void test_background_defaults_and_ready(void) {
 static void test_button_defaults_and_ready(void) {
     button_t *js = button_new(NULL);
 
-    assert(js->archetype == &button_archetype && js->layer == js->archetype->layer);
+    assert(js->archetype == &button_archetype && js->header.layer == js->archetype->layer);
     assert(js->header.state == js->archetype->state && js->header.state == ENTITY_STATE_NORMAL && js->header.state_time == 0);
     assert(button_ready());
     button_shutdown();
@@ -202,7 +202,7 @@ static void test_score_panel_defaults_and_ready(void) {
     score_panel_t *pj = score_panel_new();
     const score_panel_layout_block_t *cr = score_panel_layout_block();
 
-    assert(pj->archetype == &score_panel_archetype && pj->layer == pj->archetype->layer);
+    assert(pj->archetype == &score_panel_archetype && pj->header.layer == pj->archetype->layer);
     assert(score_panel_last_box(pj) == NULL);
     assert(cr->fixed_pos->x == 0 && cr->fixed_pos->y == p8_fixed_from_int(11));
     assert(cr->row_step->x == 0 && cr->row_step->y == p8_fixed_from_int(11));

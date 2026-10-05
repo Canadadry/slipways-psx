@@ -318,7 +318,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
-    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
@@ -463,10 +463,10 @@ static uint32_t fold_route(uint32_t h, void *from) {
     assert(slipway_start(made) == from);
     assert(ra != NULL);
     class_of(entity_get(jc.held))->drag(entity_get(jc.held), vec_ref(vec_add(*ra, vec_xy(20, 0))), NULL);
-    assert(made->has_infraspace == from_has_infraspace);
-    assert(made->layer == p8_fixed_from_int(from_has_infraspace ? 2 : 4));
-    h = made->has_infraspace ? fold_fixed_member(h, made->infraspace) : fold_absent(h);
-    return fold_fixed_member(h, made->layer);
+    assert(entity_has(&made->header, ENTITY_HAS_INFRASPACE) == from_has_infraspace);
+    assert(made->header.layer == p8_fixed_from_int(from_has_infraspace ? 2 : 4));
+    h = entity_has(&made->header, ENTITY_HAS_INFRASPACE) ? fold_fixed_member(h, made->header.infraspace) : fold_absent(h);
+    return fold_fixed_member(h, made->header.layer);
 }
 
 /* Placed on screen by the drag method (targeting_track) and the drop method

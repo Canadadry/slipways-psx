@@ -316,7 +316,7 @@ static void test_shared(void) {
     const entity_id_list_t *le = ok->ephemerals;
 
     assert(other != NULL && other != ok);
-    assert(other->header.cursor_sprite == &other->archetype->cursor_sprite);
+    assert(entity_has(&other->header, ENTITY_HAS_CURSOR_SPRITE) && other->header.cursor_sprite == other->archetype->cursor_sprite);
     assert(other->ephemerals == le && le == ui_ephemerals_shared());
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), other));
     h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), other));
@@ -768,9 +768,8 @@ static const entity_class_t giver_class_def = {
     .right_press = giver_down,
 };
 
-static const p8_fixed_t giver_layer = 0xf0000;
 static int g_giver_is_hovered;
-static giver_t g_giver = {{.class = &giver_class_def, .layer = &giver_layer, .is_hovered = &g_giver_is_hovered}};
+static giver_t g_giver = {{.class = &giver_class_def, .has = ENTITY_HAS_LAYER, .layer = 0xf0000, .is_hovered = &g_giver_is_hovered}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);

@@ -259,7 +259,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
     hash = fnv(hash, (uint32_t)(planet->needs != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
-    hash = fnv(hash, (uint32_t)(planet->fold_anchor != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
@@ -304,7 +304,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_string_member(h, entity_state_name(jo->header.state));
     h = fold_fixed_member(h, jo->header.state_time);
     h = fold_fixed_member(h, jo->shake);
-    h = (jo->fold_anchor != 0) ? fold_bool_member(h, jo->fold_anchor) : fold_absent(h);
+    h = (jo->header.fold_anchor != 0) ? fold_bool_member(h, jo->header.fold_anchor) : fold_absent(h);
     h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
     h = jo->has_net_income ? fold_fixed_member(h, jo->net_income) : fold_absent(h);
     h = fold_string_member(h, jo->description);

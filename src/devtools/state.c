@@ -171,7 +171,7 @@ static int write_slipways(FILE *out) {
         const slipway_t *s = (const slipway_t *)jc->items[i];
         if (!slipway_placed(&s->header)) continue;
         fprintf(out, "slipway %s %s %s\n", id_of(slipway_start(s)), id_of(slipway_end(s)),
-                s->has_infraspace && s->infraspace != 0 ? "infragate" : "normal");
+                entity_has(&s->header, ENTITY_HAS_INFRASPACE) && s->header.infraspace != 0 ? "infragate" : "normal");
         n++;
     }
     return n;

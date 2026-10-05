@@ -377,13 +377,13 @@ static void test_built(void) {
     for (key_index = 0; key_index < 4; key_index++) {
         const button_t *b = as_button(live->items[rank - 4 + key_index]);
         vec_t qf;
-        assert(b->layer == p8_fixed_from_int(11));
+        assert(b->header.layer == p8_fixed_from_int(11));
         assert(b->slide_target != NULL);
         qf = *b->slide_target;
         assert(qf.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 30) && qf.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 - 8 + 11 * key_index));
         hash = fold_vec(hash, b->slide_target);
         hash = fold_vec(hash, b->pos);
-        hash = fold_fixed_member(hash, b->layer);
+        hash = fold_fixed_member(hash, b->header.layer);
     }
     for (index = 0; index < 5; index++) {
         static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};

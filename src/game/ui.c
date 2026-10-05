@@ -107,8 +107,10 @@ static ui_t *ui_create(void) {
     self = (ui_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &ui_class_def, ui_archetype.state, ui_archetype.state_time);
     self->archetype = &ui_archetype;
-    self->header.layer = &self->archetype->layer;
-    self->header.cursor_sprite = &self->archetype->cursor_sprite;
+    self->header.has |= ENTITY_HAS_LAYER;
+    self->header.layer = self->archetype->layer;
+    self->header.has |= ENTITY_HAS_CURSOR_SPRITE;
+    self->header.cursor_sprite = self->archetype->cursor_sprite;
     self->ephemerals = &g_shared_ephemerals;
     self->mouse_world = NULL;
     self->hovered_by_layer = NULL;
@@ -284,7 +286,7 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self)
     if (ui_right_held(self) != NULL) {
         spr_id = 9;
     } else if (hovered != NULL) {
-        spr_id = ui_to_int(hovered->cursor_sprite != NULL ? *hovered->cursor_sprite : self->archetype->cursor_sprite);
+        spr_id = ui_to_int(entity_has(hovered, ENTITY_HAS_CURSOR_SPRITE) ? hovered->cursor_sprite : self->archetype->cursor_sprite);
     } else {
         spr_id = ui_to_int(self->archetype->cursor_sprite);
     }
@@ -320,8 +322,8 @@ void ui_update_hover(ui_t *self) {
         entity_t *e = hit_test_bucket->items[index];
 
         if (e->class->hit_test != NULL && e->class->hit_test(e, self->mouse_world, main_mouse_pos)) {
-            if (e->layer != NULL) {
-                int fa = ui_to_int(*e->layer);
+            if (entity_has(e, ENTITY_HAS_LAYER)) {
+                int fa = ui_to_int(e->layer);
 
                 assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
                        "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");

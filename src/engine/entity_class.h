@@ -47,18 +47,25 @@ typedef struct entity_class entity_class_t;
 struct emitter;
 struct targeting;
 
+#define ENTITY_HAS_LAYER (1u << 0)
+#define ENTITY_HAS_HIT_BOX (1u << 1)
+#define ENTITY_HAS_CURSOR_SPRITE (1u << 2)
+#define ENTITY_HAS_INFRASPACE (1u << 3)
+#define ENTITY_HAS_FOLD_ANCHOR (1u << 4)
+
 typedef struct {
     const entity_class_t *class;
     state_t state;
     p8_fixed_t state_time;
-    const p8_fixed_t *layer;
+    uint16_t has;
+    p8_fixed_t layer;
     const vec_t *const *pos;
     const vec_t *const *map_pos;
-    const box_t *hit_box;
-    const p8_fixed_t *cursor_sprite;
-    const p8_fixed_t *infraspace;
+    box_t hit_box;
+    p8_fixed_t cursor_sprite;
+    p8_fixed_t infraspace;
     p8_fixed_t *shake;
-    const p8_fixed_t *fold_anchor;
+    p8_fixed_t fold_anchor;
     int *is_dead;
     int *is_hovered;
     struct emitter *emitter;
@@ -68,6 +75,10 @@ typedef struct {
 
 static inline void entity_init_header(entity_t *self, const entity_class_t *cls) {
     *self = (entity_t){.class = cls};
+}
+
+static inline int entity_has(const entity_t *self, unsigned bit) {
+    return (self->has & bit) != 0;
 }
 
 typedef struct {

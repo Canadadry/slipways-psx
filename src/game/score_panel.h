@@ -13,7 +13,6 @@
 typedef struct {
     entity_t header;
     const score_panel_archetype_t *archetype;
-    p8_fixed_t layer;
     entity_id_t last_box;
     int is_shown;
     int has_is_shown;

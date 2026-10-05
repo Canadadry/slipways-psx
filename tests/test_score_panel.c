@@ -327,7 +327,7 @@ static int layer15_button_count(void) {
     int i;
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i];
-        n += is_of(e, button_class()) && ((const button_t *)e)->layer == p8_fixed_from_int(15);
+        n += is_of(e, button_class()) && ((const button_t *)e)->header.layer == p8_fixed_from_int(15);
     }
     return n;
 }
@@ -343,7 +343,7 @@ static button_t *panel_toggle_button(void) {
     int i;
     for (i = hv->count - 1; i >= 0; i--) {
         button_t *e = (button_t *)hv->items[i];
-        if (is_of(e, button_class()) && e->layer == p8_fixed_from_int(15) &&
+        if (is_of(e, button_class()) && e->header.layer == p8_fixed_from_int(15) &&
             e->on_click != score_panel_init_field_value()) {
             return e;
         }
@@ -370,8 +370,8 @@ static void test_built(void) {
         assert(!entity_list_listed(entities_by_tag(tags[index]), ju));
     }
 
-    assert(ju->layer == p8_fixed_from_int(10));
-    assert(ju->archetype == &score_panel_archetype && ju->layer == ju->archetype->layer);
+    assert(ju->header.layer == p8_fixed_from_int(10));
+    assert(ju->archetype == &score_panel_archetype && ju->header.layer == ju->archetype->layer);
     assert(score_panel_last_box(ju) == NULL);
     assert(ju->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed_member(hash, ju->header.state_time);
@@ -415,12 +415,12 @@ static void test_shared(void) {
     main_economy_typed()->end_status = "final score";
     main_economy_typed()->has_end_status = 1;
     class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
-    assert(ju->layer == p8_fixed_from_int(13));
+    assert(ju->header.layer == p8_fixed_from_int(13));
     assert(is_shown_state(ju) == 2);
-    assert(other->layer == p8_fixed_from_int(10));
+    assert(other->header.layer == p8_fixed_from_int(10));
     assert(last_box_fixed(other) == p8_fixed_from_int(1));
     assert(!other->has_is_shown && !other->has_curtain);
-    h = fold_fixed_member(h, other->layer);
+    h = fold_fixed_member(h, other->header.layer);
     h = fold_last_box(h, other);
     h = fold_opt_fixed(h, ju->has_curtain, ju->curtain);
     check("shared", h, SHARED_HASH);
@@ -471,7 +471,7 @@ static void test_life(void) {
     class_of(score_panel)->states[ENTITY_STATE_NORMAL](&score_panel->header, p8_fixed_from_int(0));
     assert(is_shown_state(score_panel) == 2);
     assert(score_panel->has_curtain && score_panel->curtain == 0);
-    assert(score_panel->layer == p8_fixed_from_int(13));
+    assert(score_panel->header.layer == p8_fixed_from_int(13));
     assert(modal_backdrop_count() == modal_backdrop_before + 1 && layer15_button_count() == button_before + 2);
     assert(score_panel_last_box(score_panel) == shown_message_box() && shown_message_box() != NULL);
     boxes = entity_list_count_of(entities_by_tag(TAG_MESSAGE_BOX));
@@ -501,7 +501,7 @@ static void test_life(void) {
         de->on_click(de);
         assert(is_shown_state(score_panel) == 2);
     }
-    hash = fold_fixed_member(hash, score_panel->layer);
+    hash = fold_fixed_member(hash, score_panel->header.layer);
     check("life", hash, LIFE_HASH);
 }
 
@@ -568,9 +568,9 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
         const button_t *b = as_button(entity_id_list_at(le, i));
         vec_t qf = vec_of(b->slide_target);
         assert(b->pos != NULL && b->pos->x == ra->x && b->pos->y == ra->y);
-        assert(b->layer == p8_fixed_from_int(10));
+        assert(b->header.layer == p8_fixed_from_int(10));
         assert(qf.x == 0 && qf.y == p8_fixed_from_int(11 * (i + 1)));
-        h = fold_fixed_member(h, b->layer);
+        h = fold_fixed_member(h, b->header.layer);
         h = fnv(fnv(h, (uint32_t)qf.x), (uint32_t)qf.y);
         assert(b->layout_row != NULL);
         h = fold_layout_row(h, b->layout_row);
@@ -905,7 +905,7 @@ static void test_end_buttons_are_centered(void) {
     hv = live_entities();
     for (i = 0; i < hv->count; i++) {
         const button_t *b = (const button_t *)hv->items[i];
-        if (!is_of(b, button_class()) || b->layer != p8_fixed_from_int(15) || b->layout_row == NULL) {
+        if (!is_of(b, button_class()) || b->header.layer != p8_fixed_from_int(15) || b->layout_row == NULL) {
             continue;
         }
         assert(b->pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));

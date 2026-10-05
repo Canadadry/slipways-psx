@@ -326,13 +326,13 @@ static uint32_t fold_built_side_tooltip(uint32_t h, const button_t *b) {
 
 static uint32_t fold_hit_box(uint32_t h, const button_t *b) {
     static const int dy[] = {-2, -1, 0, 5, 9, 10, 11};
-    const box_t *kq = b->header.hit_box;
+    const box_t *kq = &b->header.hit_box;
     int mb = p8_fixed_flr_int(b->width);
     int dx[6];
     size_t i;
     size_t j;
 
-    assert(kq != NULL);
+    assert(entity_has(&b->header, ENTITY_HAS_HIT_BOX));
     dx[0] = -1;
     dx[1] = 0;
     dx[2] = 1;
@@ -362,7 +362,7 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
 
     assert(button->header.state == ENTITY_STATE_NORMAL);
     hash = fold_fixed(hash, button->header.state_time);
-    hash = fold_fixed(hash, button->layer);
+    hash = fold_fixed(hash, button->header.layer);
     hash = fold_fixed(hash, button->width);
     hash = fold_hit_box(hash, button);
     hash = fold_vec(hash, button->pos);
@@ -617,7 +617,7 @@ static int galaxy_menu_buttons(void *out[4]) {
     int i;
     for (i = 0; hd != NULL && i < hd->count; i++) {
         void *e = hd->items[i];
-        if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(11) && button_of(e)->layout_row != NULL) {
+        if (is_button(e) && button_of(e)->header.layer == p8_fixed_from_int(11) && button_of(e)->layout_row != NULL) {
             assert(n < 4);
             out[n++] = e;
         }
@@ -803,7 +803,7 @@ static void test_score_panel(void) {
     hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
-        if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
+        if (is_button(e) && button_of(e)->header.layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
             n++;
             h = fold_button(h, e);
         }
@@ -1208,7 +1208,7 @@ static void test_button_is_a_struct(void) {
     {
         const button_keys_t empty = {0};
         void *bare = button_new(&empty);
-        assert(is_button(bare) && button_of(bare)->layer == p8_fixed_from_int(11) && !button_of(bare)->has_on_click);
+        assert(is_button(bare) && button_of(bare)->header.layer == p8_fixed_from_int(11) && !button_of(bare)->has_on_click);
     }
 }
 
@@ -1280,10 +1280,10 @@ static uint32_t fold_member_fixed(uint32_t h, int has, p8_fixed_t f) {
 static uint32_t fold_button_members(uint32_t h, const void *e) {
     const button_t *b = button_of(e);
 
-    h = fold_member_fixed(h, 1, b->layer);
+    h = fold_member_fixed(h, 1, b->header.layer);
     h = fold_member_opt_ref(h, b->layout_row);
     h = fold_member_fixed(h, 1, b->width);
-    h = b->header.hit_box != NULL ? fold_hit_box(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
+    h = entity_has(&b->header, ENTITY_HAS_HIT_BOX) ? fold_hit_box(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
     if (b->has_side_tooltip && b->side_tooltip == NULL) {
         h = fold_bool(fold_kind(h, BOOL_KIND), 0);
     } else {
@@ -1359,12 +1359,12 @@ static void write_is_hovered(button_t *b, int present, int value) {
  * reads. */
 static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     button_t *button = button_of(entity);
-    const box_t *hit_box_before = button->header.hit_box;
+    box_t hit_box_before = button->header.hit_box;
     p8_fixed_t width = button->width;
     layout_row_t *layout_row;
     int index;
 
-    assert(hit_box_before != NULL);
+    assert(entity_has(&button->header, ENTITY_HAS_HIT_BOX));
     write_is_hovered(button, 1, 1);
     assert(button->is_hovered == 1);
     hash = fold_button_members(hash, entity);
@@ -1393,7 +1393,8 @@ static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     button->layout_row = layout_row;
     hash = fold_button_members(hash, entity);
     button->layout_row = NULL;
-    assert(button->header.hit_box == hit_box_before);
+    assert(button->header.hit_box.left == hit_box_before.left && button->header.hit_box.top == hit_box_before.top &&
+           button->header.hit_box.right == hit_box_before.right && button->header.hit_box.bottom == hit_box_before.bottom);
     assert(button->width == width);
     hash = fold_button_members(hash, entity);
     button->layout_row = layout_row;
@@ -1521,7 +1522,7 @@ static uint32_t members_title_and_game(void) {
             assert(count < 4);
             title[count++] = e;
             assert(button_of(e)->name != NULL);
-            assert(button_of(e)->layer == help_screen_archetype.back_color);
+            assert(button_of(e)->header.layer == help_screen_archetype.back_color);
             hash = fold_button_members(hash, e);
         }
     }
@@ -1550,9 +1551,9 @@ static uint32_t members_title_and_game(void) {
         const button_t *b = button_of(fresh[key_index]);
         const layout_row_t *lq = b->layout_row;
         assert(lq != NULL && is_layout_row(lq) && row_count(lq) == 0);
-        assert(b->layer == p8_fixed_from_int(11));
+        assert(b->header.layer == p8_fixed_from_int(11));
         assert(b->width == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
-        assert(b->header.hit_box != NULL);
+        assert(entity_has(&b->header, ENTITY_HAS_HIT_BOX));
         assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->is_hovered);
         assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
         assert(entity_get(b->project_planet) == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
@@ -1676,7 +1677,7 @@ static uint32_t members_score_panel(void) {
     hd = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i];
-        if (is_button(e) && button_of(e)->layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
+        if (is_button(e) && button_of(e)->header.layer == p8_fixed_from_int(15) && button_of(e)->layout_row != NULL) {
             n++;
             h = fold_button_members(h, e);
         }
@@ -1789,11 +1790,11 @@ static void test_open_box_layer_only_from_back_color(void) {
 
     start_game();
     message_box_open_box(&frame, &row, 1);
-    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->layer == p8_fixed_from_int(11));
+    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->header.layer == p8_fixed_from_int(11));
     frame.has_back_color = 1;
     frame.back_color = p8_fixed_from_int(14);
     message_box_open_box(&frame, &row, 1);
-    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->layer == p8_fixed_from_int(14));
+    assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->header.layer == p8_fixed_from_int(14));
 }
 
 /* tech_gate_available_technologies writes the affordable flag for every

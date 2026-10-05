@@ -312,7 +312,7 @@ static void check_fresh_wormhole(void *e) {
     assert(mz->targeting->cost == p8_fixed_from_int(3));
     assert(mz->targeting->archetype->clock_ticks == p8_fixed_from_int(1));
     assert(mz->archetype->layer == p8_fixed_from_int(5));
-    assert(mz->header.layer == &mz->archetype->layer);
+    assert(entity_has(&mz->header, ENTITY_HAS_LAYER) && mz->header.layer == mz->archetype->layer);
 
     kk = mz->archetype->color_ramp;
     assert(kk == &wormhole_color_ramp_seq && kk->count == 9);
@@ -383,7 +383,7 @@ static void test_anchors(void) {
     jos = entities_by_tag(TAG_PLANET);
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
         planet_t *jo = as_planet(jos->items[i]);
-        if (jo->fold_anchor == 0) {
+        if (jo->header.fold_anchor == 0) {
             unlit = jo;
         }
     }
@@ -405,7 +405,7 @@ static void test_anchors(void) {
     assert(entity_id_list_has(build_wormhole()->anchors, entity_id_of(&probe->header)));
 
     lit = structure_new(NULL);
-    lit->fold_anchor = p8_fixed_from_int(1);
+    lit->header.fold_anchor = p8_fixed_from_int(1);
     assert(entity_id_list_has(build_wormhole()->anchors, entity_id_of(&lit->header)));
 }
 
