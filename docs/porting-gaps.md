@@ -14,22 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-17 — The pseudo-random generator is not PICO-8's
-
-Lua: `rnd`.
-
-`p8_fixed_rnd` draws from a home-made generator (`rnd_next_u32`), not
-from PICO-8's. No sequence matches.
-
-Direct consequence, and stronger than the `sin`/`cos` rounding outside the 64 probed points: the agreed goal "same seed →
-same galaxy" **does not hold** against the real cart, and not only because
-floating point drifts. Here the very first value drawn already differs.
-
-The internal replays stay deterministic, since this port is compared with
-itself.
-
-File: `src/p8/fixed.c`.
-
 ## GAP-19 — The font is rebuilt by hand
 
 PICO-8's glyphs belong to its runtime, not to the cart, so they are in no

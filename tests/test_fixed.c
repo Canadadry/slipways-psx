@@ -390,7 +390,6 @@ static void test_pow075_negative_value_is_zero(void) {
 
 /* rnd is asserted on its documented contract only: PICO-8's own PRNG is not
  * published, so no drawn value has a reference to compare against. */
-/* GAP-17 */
 
 static void test_rnd_zero_is_zero(void) {
     /* rnd(0) returns 0. */

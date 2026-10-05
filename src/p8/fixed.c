@@ -106,7 +106,6 @@ p8_fixed_t p8_fixed_pow075(p8_fixed_t x) {
     return p8_fixed_mul(s, p8_fixed_sqrt(s));
 }
 
-/* GAP-17 */
 #define P8_RND_LCG_MULTIPLIER 1664525u
 #define P8_RND_LCG_INCREMENT 1013904223u
 #define P8_RND_DEFAULT_SEED 0x2545F491u
