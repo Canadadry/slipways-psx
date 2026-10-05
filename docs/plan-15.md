@@ -311,3 +311,18 @@ None.
 - `raylib_backend_init` takes the keymap. The poll fills `pad_buttons` in pad mode only: keyboard plus gamepad 0, with no stick, and availability checked every frame. One C99 compile-time check per name against `KEY_*` / `GAMEPAD_BUTTON_*`; a scratch mismatch was shown to fail the build.
 - `game.c` loads `keymap.cfg` before the window: a notice when it is missing, a refusal with `keymap.cfg:<line>` when it is invalid. The pad-mode startup notice was reworded and its `TODO` kept.
 - `make raylib` builds (raylib vendored in the session). Every `*.sha256` is unchanged.
+
+### Step 1.4
+
+- Done: `src/game/pad_nav.{c,h}` runs in `input_step` (pad mode), between the mode and the cheat.
+  - A panel is open when no game is running, a box is open, or a modal backdrop exists.
+  - The items are the clickable candidates of the top layer that have a hit box. The D-pad moves the focus to the nearest item beyond the current box edge, scored by axis distance plus twice the sideways gap.
+  - The synthetic cursor sits on the focused item's centre, so the game hovers it. × is the held left button. Presses act on their edge only.
+  - With no panel open, nothing moves yet. The focus is an `entity_id_t`, and pointer-guard's count is unchanged.
+- `tests/test_pad_nav.c` (about 40 ms) runs the title cases, then a reachability and hover test per panel: planet menu (world space, camera moved), tech, score during play (no item), score at game end (again? / back), pause, year box, help. **No panel failed.** Removing the camera offset was shown to fail the planet menu test.
+- `tests/e2e/pad_title.json`: Down, Down, Right (nothing), Up, × on "reasonable", 30 frames. End state: year 3401 month 1, credits 100, planets 90, colonies 0, slipways 0, techs 0. That end state is the same for every difficulty, which only biases hidden planet types. So the choice is proven by the colour-12 row at f17 and by `test_pad_nav` checking `economy_score_difficulty()`. It covers no `keyboard_*` scenario.
+- `test_input_step`'s pad test froze "pad mode zeroes the mouse". It now checks that the raw mouse never reaches the played frame.
+- **Settled by `guideline`, before phase 2:**
+  - **Help.** The mouse game has no help panel: the pause row "how to play?" is an empty handler in the cart and in the port. "Help" in this plan means the title screen, already covered by `pad_title`. No help panel is built. In step 3.3, `pad_message_box.json` shows that × on "how to play?" opens nothing and pause stays up, then ○ closes pause.
+  - **Message box.** "Message box" means the buttonless year box ("5 years remain"). It has no hit test and is not modal. In 3.3 the replay shows pad input passing through while it is up. The modal rule of §2 Modality (L1/R1 ignored, close with × or ○) applies to the pause menu only. The replay keeps the name `pad_message_box`.
+- `make raylib` builds. Every earlier `*.sha256` is unchanged.
