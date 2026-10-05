@@ -90,7 +90,8 @@ static button_t *button_create(const button_keys_t *keys) {
     self->side_tooltip = NULL;
     self->has_side_tooltip = 0;
     self->tooltip = NULL;
-    self->slide_target = NULL;
+    self->has = 0;
+    self->slide_target = vec_make(0, 0);
     self->on_click = NULL;
     self->has_on_click = 0;
     self->header.has |= ENTITY_HAS_IS_HOVERED;
@@ -117,8 +118,8 @@ static button_t *button_create(const button_keys_t *keys) {
             entity_set_pos(&self->header, *keys->pos);
         }
         if (keys->slide_target != NULL) {
-            self->slide_target_box = *keys->slide_target;
-            self->slide_target = &self->slide_target_box;
+            self->slide_target = *keys->slide_target;
+            self->has |= BUTTON_HAS_SLIDE_TARGET;
         }
         self->on_click = keys->on_click;
         self->has_on_click = keys->has_on_click;
@@ -204,8 +205,8 @@ void button_update(button_t *self) {
         return;
     }
 
-    if (self->slide_target != NULL) {
-        vec_t qf = *self->slide_target;
+    if (self->has & BUTTON_HAS_SLIDE_TARGET) {
+        vec_t qf = self->slide_target;
         vec_t ra = entity_pos(&self->header);
         vec_t d = vec_sub(qf, ra);
         p8_fixed_t length_squared = vec_length_squared(d);

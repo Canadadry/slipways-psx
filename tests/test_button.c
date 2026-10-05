@@ -51,6 +51,10 @@
 #include "game/ui_zone.h"
 #include "heap_allocator.h"
 
+static const vec_t *slide_target_ref(const button_t *b) {
+    return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
+}
+
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
 }
@@ -375,7 +379,7 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     hash = fold_fixed(hash, button->width);
     hash = fold_hit_box(hash, button);
     hash = fold_vec(hash, pos_ref(&button->header));
-    hash = fold_vec(hash, button->slide_target);
+    hash = fold_vec(hash, slide_target_ref(button));
     hash = fold_built(hash, button->layout_row);
     hash = fold_built_side_tooltip(hash, button);
     hash = fold_built(hash, button->tooltip);
@@ -735,7 +739,7 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
     assert(le != NULL && le->count == 4);
     for (k = 0; k < le->count; k++) {
         assert(at(pos_ref(&button_of(entity_id_list_at(le, k))->header), 0, P8_SCREEN_HEIGHT - 21));
-        assert(at(button_of(entity_id_list_at(le, k))->slide_target, 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
+        assert(at(slide_target_ref(button_of(entity_id_list_at(le, k))), 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
     }
 }
 
@@ -1300,7 +1304,7 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
     }
     h = fold_member_opt_ref(h, b->tooltip);
     h = fold_member_vec(h, pos_ref(&b->header));
-    h = fold_member_vec(h, b->slide_target);
+    h = fold_member_vec(h, slide_target_ref(b));
     h = fold_button_fn(h, b->has_on_click, b->on_click);
     h = (b->header.is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->header.is_hovered) : fnv(h, 0u);
     h = fold_button_fn(h, b->refresh != NULL, b->refresh);
@@ -1339,7 +1343,7 @@ static void check_one_open_box(void *const *b, int n) {
     for (i = 0; i < n; i++) {
         assert(same_vec(pos_ref(&button_of(b[i])->header), pos_ref(&button_of(b[0])->header)));
         for (j = 0; j < i; j++) {
-            assert(button_of(b[i])->slide_target != NULL && button_of(b[i])->slide_target != button_of(b[j])->slide_target);
+            assert(slide_target_ref(button_of(b[i])) != NULL && slide_target_ref(button_of(b[i])) != slide_target_ref(button_of(b[j])));
         }
     }
 }
@@ -1445,7 +1449,7 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     for (index = 0; index < 12; index++) {
         button = built(none);
         assert(button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
-        assert(pos_ref(&button->header) == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
+        assert(pos_ref(&button->header) == NULL && slide_target_ref(button) == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
         assert(entity_get(button->project_planet) == NULL && research_project_get(button->project) == NULL);
         hash = fold_and_drop(hash, button);
     }
@@ -1563,7 +1567,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->header.layer == p8_fixed_from_int(11));
         assert(b->width == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
         assert(entity_has(&b->header, ENTITY_HAS_HIT_BOX));
-        assert(!b->has_side_tooltip && b->tooltip == NULL && pos_ref(&b->header) == NULL && b->slide_target == NULL && !b->header.is_hovered);
+        assert(!b->has_side_tooltip && b->tooltip == NULL && pos_ref(&b->header) == NULL && slide_target_ref(b) == NULL && !b->header.is_hovered);
         assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
         assert(entity_get(b->project_planet) == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);

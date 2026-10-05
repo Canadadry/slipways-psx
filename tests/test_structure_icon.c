@@ -37,6 +37,7 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 #include "game/wormhole.h"
+#include "engine/game_zone.h"
 #include "heap_allocator.h"
 
 static int same_pos(vec_t a, vec_t b) {
@@ -96,9 +97,10 @@ static structure_icon_t *as_structure_icon(void *e) {
 
 /* The cursor and the counter are the module's shared state, no member of
  * any icon: the same answer whatever icon asks. */
-static const vec_t *shared_cursor(const structure_icon_t *icon) {
+static int shared_cursor(const structure_icon_t *icon, vec_t *out) {
     (void)icon;
-    return structure_icon_cursor();
+    *out = structure_icon_cursor();
+    return structure_icon_has_cursor();
 }
 
 /* 0 while the counter is unset. */
@@ -197,8 +199,9 @@ static void fill_kind_table(const entity_kind_t *out[7]) {
  * them. */
 static uint32_t fold_shared(uint32_t h, void *icon) {
     p8_fixed_t id = 0;
+    vec_t cursor;
 
-    h = fold_vec(h, shared_cursor(as_structure_icon(icon)));
+    h = fold_vec(h, shared_cursor(as_structure_icon(icon), &cursor) ? &cursor : NULL);
     return shared_id(as_structure_icon(icon), &id) ? fold_fixed(h, id) : fnv(h, 0xDEADu);
 }
 
@@ -440,7 +443,8 @@ static void test_directed(void) {
     void *shown;
     void *hidden;
     void *all_icons[16];
-    const vec_t *cursor_before;
+    vec_t cursor_before;
+    vec_t cursor;
     vec_t pos_before;
     down_t made;
     p8_fixed_t first_id;
@@ -453,12 +457,12 @@ static void test_directed(void) {
     hidden = first_icon_with_is_revealed(0);
     assert(shown != NULL && hidden != NULL);
 
-    cursor_before = shared_cursor(as_structure_icon(shown));
+    assert(shared_cursor(as_structure_icon(shown), &cursor_before));
     pos_before = as_structure_icon(shown)->header.pos;
     class_of(shown)->refresh(shown);
-    assert(same_pos(as_structure_icon(shown)->header.pos, pos_before) && shared_cursor(as_structure_icon(shown)) == cursor_before);
+    assert(same_pos(as_structure_icon(shown)->header.pos, pos_before) && shared_cursor(as_structure_icon(shown), &cursor) && same_pos(cursor, cursor_before));
     class_of(hidden)->refresh(hidden);
-    assert(is_revealed_state(hidden) == 0 && shared_cursor(as_structure_icon(hidden)) == cursor_before);
+    assert(is_revealed_state(hidden) == 0 && shared_cursor(as_structure_icon(hidden), &cursor) && same_pos(cursor, cursor_before));
     hash = fold_icon(hash, shown);
     hash = fold_icon(hash, hidden);
     hash = fold_shared(hash, hidden);
@@ -611,7 +615,8 @@ static void test_kind_view(void) {
 static void test_restart(void) {
     uint32_t h = 2166136261u;
     void *all[16];
-    const vec_t *cursor_before;
+    vec_t cursor_before;
+    vec_t cursor;
     p8_fixed_t id;
     int n;
     int i;
@@ -619,16 +624,16 @@ static void test_restart(void) {
     start_game();
     n = icons(all, 16);
     (void)class_of(all[0])->left_press(all[0], NULL, NULL);
-    cursor_before = shared_cursor(as_structure_icon(all[0]));
+    assert(shared_cursor(as_structure_icon(all[0]), &cursor_before));
     id = shared_id_fixed(as_structure_icon(all[0]));
     assert(id == p8_fixed_from_int(1));
-    assert(cursor_before != &as_structure_icon(all[0])->archetype->rest_cursor);
+    assert(!same_pos(cursor_before, as_structure_icon(all[0])->archetype->rest_cursor));
 
     new_game();
     n = icons(all, 16);
     check_int("restart icons", n, 7);
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
-    assert(shared_cursor(as_structure_icon(all[0])) != cursor_before);
+    assert(shared_cursor(as_structure_icon(all[0]), &cursor) && !same_pos(cursor, cursor_before));
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) == 2) {
             assert(!same_pos(as_structure_icon(all[i])->header.pos, as_structure_icon(all[i])->archetype->rest_cursor));
@@ -638,7 +643,7 @@ static void test_restart(void) {
     h = fold_shared(h, all[0]);
 
     cart_init();
-    assert(shared_cursor(as_structure_icon(all[0])) == &as_structure_icon(all[0])->archetype->rest_cursor);
+    assert(shared_cursor(as_structure_icon(all[0]), &cursor) && same_pos(cursor, as_structure_icon(all[0])->archetype->rest_cursor));
     assert(shared_id_fixed(as_structure_icon(all[0])) == id);
     h = fold_shared(h, all[0]);
     check("restart", h, RESTART_HASH);
@@ -647,6 +652,40 @@ static void test_restart(void) {
 static int is_a_structure_icon_struct(const void *e) {
     return e != NULL &&
            ((const entity_t *)e)->class == structure_icon_class();
+}
+
+static void test_reveals_step_the_cursor_in_place(void) {
+    void *all[16];
+    const entity_kind_t *unlocked = NULL;
+    void *a;
+    void *b;
+    vec_t start = vec_make(p8_fixed_from_int(60), p8_fixed_from_int(70));
+    vec_t cursor;
+    size_t used;
+    int n;
+    int i;
+
+    start_game();
+    n = icons(all, 16);
+    for (i = 0; i < n && unlocked == NULL; i++) {
+        if (is_revealed_state(all[i]) == 2) {
+            unlocked = as_structure_icon(all[i])->kind;
+        }
+    }
+    assert(unlocked != NULL);
+    a = build_icon(unlocked, tooltip_new(&heap_allocator, icon_tooltips_row(0)));
+    b = build_icon(unlocked, tooltip_new(&heap_allocator, icon_tooltips_row(1)));
+    structure_icon_set_cursor(start);
+    used = game_zone_used();
+    structure_icon_refresh(a);
+    structure_icon_refresh(b);
+    assert(game_zone_used() == used);
+    assert(same_pos(as_structure_icon(a)->header.pos, start));
+    assert(same_pos(as_structure_icon(b)->header.pos, vec_make(p8_fixed_from_int(50), p8_fixed_from_int(70))));
+    assert(shared_cursor(as_structure_icon(a), &cursor) && same_pos(cursor, vec_make(p8_fixed_from_int(40), p8_fixed_from_int(70))));
+    structure_icon_init();
+    assert(!structure_icon_has_cursor());
+    assert(same_pos(structure_icon_cursor(), vec_make(0, 0)));
 }
 
 /* Built by cart_start_game() or directly, an icon is a struct with its four
@@ -770,6 +809,7 @@ int main(void) {
     in_fresh_child(test_directed);
     in_fresh_child(test_draw);
     in_fresh_child(test_restart);
+    in_fresh_child(test_reveals_step_the_cursor_in_place);
     in_fresh_child(test_kind_view);
     in_fresh_child(test_kind_view_is_a_struct);
     in_fresh_child(test_structure_icon_is_a_struct);

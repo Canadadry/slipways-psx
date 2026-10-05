@@ -55,10 +55,9 @@ typedef struct {
     entity_t header;
     const allocator_t *slot;
     entity_id_t follow;
-    char text_buf[TOAST_TEXT_CAP + 1];
+    char text[TOAST_TEXT_CAP + 1];
     const toast_archetype_t *archetype;
     p8_fixed_t fade;
-    const char *text;
     p8_fixed_t color;
 } toast_t;
 

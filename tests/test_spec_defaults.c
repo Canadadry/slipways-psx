@@ -100,13 +100,13 @@ static void test_mouse_pos_starts_at_zero(void) {
     assert(entity_has_pos(&nf->header) && nf->header.pos.x == 0 && nf->header.pos.y == 0);
 }
 
-/* The velocity starts on the archetype's vector; the position before shake
- * and the position are copies of the archetype's. */
+/* The velocity, the position before shake and the position are copies of
+ * the archetype's. */
 static void test_camera_defaults_and_ready(void) {
     camera_t *qb = camera_new();
 
     assert(qb->archetype == &camera_archetype && qb->archetype->dpad_directions == &camera_dpad_directions_vecs);
-    assert(qb->velocity == &qb->archetype->velocity && same_vec(qb->header.map_pos, qb->archetype->pos_before_shake) && entity_has_map_pos(&qb->header) && same_vec(qb->header.pos, qb->archetype->pos) && entity_has_pos(&qb->header) && qb->header.shake == qb->archetype->shake);
+    assert(same_vec(qb->velocity, qb->archetype->velocity) && same_vec(qb->header.map_pos, qb->archetype->pos_before_shake) && entity_has_map_pos(&qb->header) && same_vec(qb->header.pos, qb->archetype->pos) && entity_has_pos(&qb->header) && qb->header.shake == qb->archetype->shake);
     assert(qb->header.state == qb->archetype->state && qb->header.state == ENTITY_STATE_NORMAL && qb->header.state_time == 0);
     assert(camera_ready());
     camera_shutdown();
@@ -123,7 +123,7 @@ static void test_wormhole_defaults_and_ready(void) {
     assert(mz->radius == mz->archetype->radius);
     assert(mz->targeting.cost == mz->archetype->targeting.cost && mz->targeting.cost == p8_fixed_from_int(3));
     assert(mz->targeting.has_cost == mz->archetype->targeting.has_cost);
-    assert(mz->too_far_target == wormhole_too_far_target_wrapper() && mz->too_far_target->status_text == wormhole_too_far_target_status_text);
+    assert((mz->has & WORMHOLE_HAS_TOO_FAR_TARGET) && wormhole_too_far_target_wrapper()->status_text == wormhole_too_far_target_status_text);
     assert(wormhole_ready());
     wormhole_shutdown();
     assert(!wormhole_ready());

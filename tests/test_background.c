@@ -286,11 +286,10 @@ static void test_drag(void) {
     bg = the_background();
     rp = vec_ref(10, 20);
     drag(bg, rp);
-    assert(checked_main_camera()->velocity != NULL);
-    v = *checked_main_camera()->velocity;
+    v = checked_main_camera()->velocity;
     assert(v.x == p8_fixed_from_int(-10) && v.y == p8_fixed_from_int(-20));
     assert(drag_mouse_is(bg, rp));
-    h = fold_vec(h, checked_main_camera()->velocity);
+    h = fold_vec(h, &checked_main_camera()->velocity);
 
     rp = vec_ref(30, 40);
     out = background_class()->right_press(&bg->header, vec_ref(5, 6), rp);
@@ -302,7 +301,7 @@ static void test_drag(void) {
         rp = vec_ref(33 - 7 * i, 41 + 5 * i * i);
         drag(bg, rp);
         assert(drag_mouse_is(bg, rp));
-        h = fold_vec(h, checked_main_camera()->velocity);
+        h = fold_vec(h, &checked_main_camera()->velocity);
         h = fold_vec(h, drag_mouse_of(bg));
     }
     check("drag", h, DRAG_HASH);

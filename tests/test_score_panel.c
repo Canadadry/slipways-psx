@@ -37,6 +37,10 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
+static const vec_t *slide_target_ref(const button_t *b) {
+    return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
+}
+
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
 }
@@ -232,8 +236,8 @@ static uint32_t fold_last_box(uint32_t h, const score_panel_t *pj) {
 }
 
 /* The layout block as the spec table it was: its entries in spec order,
- * then their count; the 0xF1 of back_color and the 0x57 of description are
- * constant by the struct's shape. */
+ * then their count; the 0xF1 of back_color is constant by the struct's
+ * shape. */
 static uint32_t fold_tech_tree_screen(uint32_t h, const score_panel_layout_block_t *cr) {
     int count = 0;
 
@@ -249,10 +253,6 @@ static uint32_t fold_tech_tree_screen(uint32_t h, const score_panel_layout_block
     }
     h = fnv(fnv(fnv_str(h, "back_color"), 0xF1u), (uint32_t)cr->back_color);
     count++;
-    if (cr->description != NULL) {
-        h = fnv_str(fnv(fnv_str(h, "description"), 0x57u), cr->description);
-        count++;
-    }
     return fnv(h, (uint32_t)count);
 }
 
@@ -431,6 +431,20 @@ static void test_shared(void) {
     check("shared", h, SHARED_HASH);
 }
 
+static const button_t *as_button(const void *e) {
+    assert(is_of(e, button_class()));
+    return e;
+}
+
+static const char *opened_box_description(void) {
+    const layout_row_t *lq;
+
+    assert(main_ui() != NULL && main_ui()->ephemerals != NULL && main_ui()->ephemerals->count >= 1);
+    lq = as_button(entity_id_list_at(main_ui()->ephemerals, 0))->layout_row;
+    assert(lq != NULL && row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
+    return row_item(lq, 0).as.text;
+}
+
 /* refresh; new_year on a year with a message and two without; the tech-tree
  * screen; draw closed; the game's end through the update, twice; draw open;
  * the panel toggle twice. */
@@ -460,8 +474,7 @@ static void test_life(void) {
 
     menu_show_tech_tree_screen();
     assert(layout_block == score_panel_layout_block());
-    assert(layout_block->description != NULL);
-    hash = fnv_str(hash, layout_block->description);
+    hash = fnv_str(hash, opened_box_description());
 
     for (index = 0; index < 2; index++) {
         class_of(score_panel)->draw(&score_panel->header, NULL);
@@ -508,11 +521,6 @@ static void test_life(void) {
     }
     hash = fold_fixed_member(hash, score_panel->header.layer);
     check("life", hash, LIFE_HASH);
-}
-
-static const button_t *as_button(const void *e) {
-    assert(is_of(e, button_class()));
-    return e;
 }
 
 static vec_t vec_of(const vec_t *v) {
@@ -571,7 +579,7 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
     ra = pos_ref(&as_button(entity_id_list_at(le, 0))->header);
     for (i = 0; i < le->count; i++) {
         const button_t *b = as_button(entity_id_list_at(le, i));
-        vec_t qf = vec_of(b->slide_target);
+        vec_t qf = vec_of(slide_target_ref(b));
         assert(pos_ref(&b->header) != NULL && pos_ref(&b->header)->x == ra->x && pos_ref(&b->header)->y == ra->y);
         assert(b->header.layer == p8_fixed_from_int(10));
         assert(qf.x == 0 && qf.y == p8_fixed_from_int(11 * (i + 1)));
@@ -585,8 +593,7 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
 }
 
 /* The tech-tree screen twice on one game, then on the next game started in
- * the same process: one shared layout block, its description absent until
- * the first screen and kept across games, the same head row each time. */
+ * the same process: one shared layout block, the same head row each time. */
 static void test_tech_tree_screen(void) {
     uint32_t h = 2166136261u;
     const score_panel_layout_block_t *cr;
@@ -598,11 +605,10 @@ static void test_tech_tree_screen(void) {
 
     (void)start_game();
     cr = score_panel_layout_block();
-    assert(cr != NULL && cr->description == NULL);
+    assert(cr != NULL);
     menu_show_tech_tree_screen();
     h = fold_tech_tree_screen_ephemerals(h, &head);
     snprintf(head1, sizeof head1, "%s", head);
-    assert(cr->description != NULL && strcmp(cr->description, head1) == 0);
     /* As in the game: the first screen closes, and its buttons go, a frame
      * before the second opens. */
     ui_clear_ephemerals(main_ui());
@@ -615,7 +621,6 @@ static void test_tech_tree_screen(void) {
 
     (void)start_game();
     assert(score_panel_layout_block() == cr);
-    assert(cr->description != NULL && strcmp(cr->description, head2) == 0);
     menu_show_tech_tree_screen();
     h = fold_tech_tree_screen_ephemerals(h, &head);
     check("tech_tree_screen", h, TECH_TREE_SCREEN_HASH);
@@ -678,8 +683,7 @@ static void test_score_panel_is_a_struct(void) {
 }
 
 /* The layout block is one static struct without method, holding fixed_pos,
- * row_step, back_color and, once the tech-tree screen ran, description; the
- * init resets description, the shutdown hides the block. */
+ * row_step and back_color; the shutdown hides the block. */
 static void test_tech_tree_screen_is_a_struct(void) {
     const entity_class_t *cls = score_panel_layout_block_class();
     score_panel_layout_block_t *cr;
@@ -698,14 +702,12 @@ static void test_tech_tree_screen_is_a_struct(void) {
     assert(cr->fixed_pos != NULL);
     assert(cr->row_step != NULL && cr->row_step != cr->fixed_pos);
     assert(cr->back_color == p8_fixed_from_int(10));
-    assert(cr->description == NULL);
 
     menu_show_tech_tree_screen();
-    assert(cr->description != NULL);
     assert(score_panel_new() != NULL && score_panel_layout_block() == cr);
 
     score_panel_init();
-    assert(score_panel_layout_block() == cr && cr->description == NULL);
+    assert(score_panel_layout_block() == cr);
     score_panel_shutdown();
     assert(score_panel_layout_block() == NULL);
 }

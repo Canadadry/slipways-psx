@@ -12,8 +12,7 @@
 typedef struct {
     entity_t header;
     const camera_archetype_t *archetype;
-    const vec_t *velocity;
-    vec_t velocity_own;
+    vec_t velocity;
 } camera_t;
 
 void camera_init(void);

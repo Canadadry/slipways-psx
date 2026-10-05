@@ -38,6 +38,10 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
+static const vec_t *slide_target_ref(const button_t *b) {
+    return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
+}
+
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
 }
@@ -388,10 +392,10 @@ static void test_built(void) {
         const button_t *b = as_button(live->items[rank - 4 + key_index]);
         vec_t qf;
         assert(b->header.layer == p8_fixed_from_int(11));
-        assert(b->slide_target != NULL);
-        qf = *b->slide_target;
+        assert(slide_target_ref(b) != NULL);
+        qf = *slide_target_ref(b);
         assert(qf.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 30) && qf.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 - 8 + 11 * key_index));
-        hash = fold_vec(hash, b->slide_target);
+        hash = fold_vec(hash, slide_target_ref(b));
         hash = fold_vec(hash, pos_ref(&b->header));
         hash = fold_fixed_member(hash, b->header.layer);
     }

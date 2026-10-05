@@ -20,7 +20,13 @@
 
 static int g_structure_icon_up = 0;
 
-static const vec_t *g_cursor = NULL;
+static vec_t g_cursor;
+static int g_has_cursor = 0;
+
+static void structure_icon_clear_cursor(void) {
+    g_cursor = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    g_has_cursor = 0;
+}
 static p8_fixed_t g_id_counter = 0;
 static int g_has_id_counter = 0;
 
@@ -79,22 +85,15 @@ void structure_icon_refresh(structure_icon_t *self) {
 
     assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_refresh moves the shared cursor");
 
-    if (g_cursor != NULL) {
-        entity_set_pos(&self->header, *g_cursor);
+    if (g_has_cursor) {
+        entity_set_pos(&self->header, g_cursor);
     } else {
         entity_clear_pos(&self->header);
     }
     self->is_revealed = 1;
     self->has_is_revealed = 1;
 
-    {
-        vec_t current =
-            g_cursor != NULL ? *g_cursor : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-        vec_t delta = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0));
-        vec_t *box = (vec_t *)allocator_alloc(game_zone(), sizeof *box);
-        *box = vec_sub(current, delta);
-        g_cursor = box;
-    }
+    structure_icon_set_cursor(vec_sub(structure_icon_cursor(), vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0))));
 }
 
 static void structure_icon_refresh_method(entity_t *self) {
@@ -218,14 +217,14 @@ void structure_icon_init(void) {
     structure_icon_shutdown();
 
     g_structure_icon_up = 1;
-    g_cursor = NULL;
+    structure_icon_clear_cursor();
     g_id_counter = p8_fixed_from_int(0);
     g_has_id_counter = 1;
 }
 
 void structure_icon_shutdown(void) {
     g_structure_icon_up = 0;
-    g_cursor = NULL;
+    structure_icon_clear_cursor();
 }
 
 int structure_icon_ready(void) {
@@ -244,8 +243,12 @@ const vec_t *structure_icon_rest_cursor(void) {
     return g_structure_icon_up ? &structure_icon_archetype.rest_cursor : NULL;
 }
 
-const vec_t *structure_icon_cursor(void) {
-    return g_cursor;
+int structure_icon_has_cursor(void) {
+    return g_has_cursor;
+}
+
+vec_t structure_icon_cursor(void) {
+    return g_has_cursor ? g_cursor : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 int structure_icon_id_counter(p8_fixed_t *out) {
@@ -256,6 +259,7 @@ int structure_icon_id_counter(p8_fixed_t *out) {
     return 1;
 }
 
-void structure_icon_set_cursor(const vec_t *cursor) {
+void structure_icon_set_cursor(vec_t cursor) {
     g_cursor = cursor;
+    g_has_cursor = 1;
 }

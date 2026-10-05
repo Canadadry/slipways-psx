@@ -25,7 +25,6 @@ typedef struct {
     const vec_t *fixed_pos;
     const vec_t *row_step;
     p8_fixed_t back_color;
-    const char *description;
 } score_panel_layout_block_t;
 
 enum { SCORE_PANEL_TEXT_CAP = 16 };

@@ -101,7 +101,7 @@ static uint32_t fold_main_camera(uint32_t h) {
     const camera_t *mo = checked_main_camera();
 
     h = fold_vec(h, map_pos_ref(&mo->header));
-    h = fold_vec(h, mo->velocity);
+    h = fold_vec(h, &mo->velocity);
     h = fold_vec(h, pos_ref(&mo->header));
     h = fnv(h, (uint32_t)mo->header.shake);
     h = fnv(h, (uint32_t)graphics.camera_x);
@@ -148,7 +148,7 @@ static void check_fresh_main_camera(const camera_t *mo) {
     const vec_seq_t *pc;
     vec_t p = must_vec(map_pos_ref(&mo->header));
     vec_t ra = must_vec(pos_ref(&mo->header));
-    vec_t v = must_vec(mo->velocity);
+    vec_t v = mo->velocity;
 
     assert(entity_list_listed(live_entities(), mo) && !in_any_entities_by_message(mo));
     assert(p.x == p8_fixed_from_int(176) && p.y == p8_fixed_from_int(196));
@@ -427,7 +427,7 @@ static int is_a_camera_struct(const void *e) {
 
 /* The main camera of `reset_world()` and one built by camera_new are camera
  * structs among the live entities only, with an update and an apply as
- * methods and no draw; the update reads a NULL velocity as zero. */
+ * methods and no draw; the update keeps a zero velocity at zero. */
 static void test_camera_is_a_struct(void) {
     camera_t *generic;
 
@@ -443,9 +443,9 @@ static void test_camera_is_a_struct(void) {
     {
         vec_t p_before = must_vec(map_pos_ref(&generic->header));
 
-        generic->velocity = NULL;
+        camera_set_velocity(generic, vec_make(0, 0));
         camera_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
-        assert(generic->velocity != NULL && generic->velocity->x == 0 && generic->velocity->y == 0);
+        assert(generic->velocity.x == 0 && generic->velocity.y == 0);
         assert(map_pos_ref(&generic->header)->x == p_before.x && map_pos_ref(&generic->header)->y == p_before.y);
     }
 }

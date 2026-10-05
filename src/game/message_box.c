@@ -218,7 +218,6 @@ static void toast_update_method(entity_t *self, p8_fixed_t t) {
 }
 
 void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, vec_t p) {
-    const char *text;
     int color;
     p8_fixed_t a_center = P8_FIXED_LIT(0x00008000, 0.5);
 
@@ -228,10 +227,9 @@ void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, v
 
     hud_select_palette_block(mem, self->fade);
 
-    text = self->text != NULL ? self->text : "";
     color = p8_fixed_flr_int(self->color);
 
-    hud_print_outlined(gfx, mem, text, p.x, p.y, color, &a_center);
+    hud_print_outlined(gfx, mem, self->text, p.x, p.y, color, &a_center);
 
     hud_select_palette_block_default(mem);
 }
@@ -266,7 +264,7 @@ static toast_t *toast_create(const toast_keys_t *keys) {
     self->follow = ENTITY_ID_NONE;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;
-    self->text = NULL;
+    self->text[0] = '\0';
     self->color = p8_fixed_from_int(0);
     if (keys != NULL) {
         const entity_t *source = entity_get(keys->source);
@@ -279,9 +277,8 @@ static toast_t *toast_create(const toast_keys_t *keys) {
         }
         if (keys->text != NULL) {
             assert(strlen(keys->text) <= TOAST_TEXT_CAP &&
-                   "toast_create: a toast's text is a price or \"-no money-\": a longer one needs a bigger text_buf and toast slot");
-            strcpy(self->text_buf, keys->text);
-            self->text = self->text_buf;
+                   "toast_create: a toast's text is a price or \"-no money-\": a longer one needs a bigger text array and toast slot");
+            strcpy(self->text, keys->text);
         }
         self->color = keys->color;
     }

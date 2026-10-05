@@ -152,7 +152,9 @@ void cart_init(void) {
     reset_world(NULL);
     research_expire_project_ids();
 
-    structure_icon_set_cursor(structure_icon_rest_cursor());
+    if (structure_icon_rest_cursor() != NULL) {
+        structure_icon_set_cursor(*structure_icon_rest_cursor());
+    }
     message_box_set_shown(NULL);
 
     if (main_economy_typed() != NULL) probe_set_main_economy(NULL);

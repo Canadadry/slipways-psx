@@ -19,7 +19,7 @@ typedef void (*button_fn_t)(button_t *self);
 struct button {
     entity_t header;
     const allocator_t *slot;
-    vec_t slide_target_box;
+    uint16_t has;
     const button_archetype_t *archetype;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
@@ -27,7 +27,7 @@ struct button {
     layout_row_t *side_tooltip;
     int has_side_tooltip;
     tooltip_t *tooltip;
-    vec_t *slide_target;
+    vec_t slide_target;
     button_fn_t on_click;
     int has_on_click;
     button_fn_t refresh;
@@ -42,6 +42,8 @@ struct button {
     p8_fixed_t project_cost;
     int has_project_cost;
 };
+
+#define BUTTON_HAS_SLIDE_TARGET (1u << 0)
 
 void button_init(void);
 void button_shutdown(void);

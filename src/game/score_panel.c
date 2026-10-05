@@ -50,7 +50,6 @@ static score_panel_layout_block_t g_score_panel_layout_block = {
     &(const vec_t){0x0, 0xb0000},
     &(const vec_t){0x0, 0xb0000},
     0xa0000,
-    NULL,
 };
 
 score_panel_readouts_t *score_panel_readouts(void) {
@@ -264,7 +263,6 @@ void score_panel_init(void) {
     score_panel_row_copy(&g_score_panel_year_banner.second, g_score_panel_year_banner.second_items, 5, score_panel_year_banner_row.items[1].row);
     g_score_panel_year_banner.items[1].row = &g_score_panel_year_banner.second;
     g_score_panel_year_banner.keep_open = NULL;
-    g_score_panel_layout_block.description = NULL;
 
     score_panel_set_init(NULL);
     g_main_score_panel = ENTITY_ID_NONE;

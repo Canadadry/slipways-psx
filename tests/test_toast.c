@@ -314,7 +314,7 @@ static void test_toast_keeps_a_copy_of_its_text(void) {
     frame_zone_reset();
     reuse = (char *)allocator_alloc(frame_zone(), 64);
     memset(reuse, 'X', 64);
-    assert(e->text != NULL && strcmp(e->text, "+12$") == 0);
+    assert(strcmp(e->text, "+12$") == 0);
     assert(draw_hash_of(e) == want);
 }
 

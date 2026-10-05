@@ -634,9 +634,8 @@ static size_t economy_bytes(void) {
 }
 
 /* Bytes of the seven structure icons among the live entities, in the order
- * of icon_tooltips_table: struct, tooltip (rebuilt in a frame zone arena to
- * measure it), and for each revealed icon the box of the shared icon cursor
- * it moved. */
+ * of icon_tooltips_table: struct and tooltip (rebuilt in a frame zone arena
+ * to measure it). */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
     const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
@@ -649,7 +648,6 @@ static size_t icons_bytes(void) {
         assert(k < ICON_TOOLTIPS_COUNT && "more structure icons than icon tooltips");
         (void)tooltip_new(measure_arena, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
-        if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one structure icon per icon tooltip");
@@ -1293,16 +1291,16 @@ static void message_box_hold_rewrites_boxes_in_place(void) {
     const mouse_t *je = main_mouse_typed();
     const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
-    const void *before[5] = {&mo->header.map_pos, mo->velocity, &mo->header.pos, &je->header.pos, ok->mouse_world};
+    const void *before[4] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos, ok->mouse_world};
     size_t used_before = game_zone_used();
     play_until(45);
     assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
-    const void *after[5] = {&mo->header.map_pos, mo->velocity, &mo->header.pos, &je->header.pos, ok->mouse_world};
+    const void *after[4] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos, ok->mouse_world};
     int stables = 0;
-    for (int i = 0; i < 5; i++) stables += before[i] == after[i];
-    printf("  message_box_hold f44-45: %d / 5 per-tick boxes at the same address\n", stables);
+    for (int i = 0; i < 4; i++) stables += before[i] == after[i];
+    printf("  message_box_hold f44-45: %d / 4 per-tick boxes at the same address\n", stables);
     fflush(stdout);
-    assert(stables == 5 && "the camera's pos_before_shake, velocity and pos, the mouse's pos and main_ui's mouse_world must be rewritten in place");
+    assert(stables == 4 && "the camera's pos_before_shake and pos, the mouse's pos and main_ui's mouse_world must be rewritten in place");
     assert(game_zone_used() == used_before && "the game zone takes bytes every tick");
 }
 

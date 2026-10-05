@@ -290,8 +290,7 @@ static uint32_t fold_new_entities(uint32_t h, int from, const entity_class_t *to
         h = fnv(h, FROZEN_STRUCT_TAG);
         if (((const entity_t *)e)->class == toast_cls) {
             const toast_t *iv = e;
-            h = iv->text != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->text)
-                                : fnv(fnv(h, (uint32_t)REF_KIND), 0xDEADu);
+            h = fold_string(fnv(h, (uint32_t)STRING_KIND), iv->text);
             h = fold_fixed(h, iv->color);
         }
     }

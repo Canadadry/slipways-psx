@@ -329,9 +329,9 @@ static void check_fresh_wormhole(void *e) {
         assert(kk->items[i] == want_color_ramp[i]);
     }
     assert(mz->header.class->tags == TAG(TAG_WORMHOLE));
-    jj = mz->too_far_target;
+    assert(mz->has & WORMHOLE_HAS_TOO_FAR_TARGET);
+    jj = wormhole_too_far_target_wrapper();
     assert(jj != NULL && jj->status_text != NULL && strcmp(jj->status_text, "-too far-") == 0);
-    assert(wormhole_too_far_target_wrapper() == jj);
 
     assert(pos_ref(&mz->header) == NULL && map_pos_ref(&mz->header) == NULL && targeting_target(&mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
     assert(mz->anchors != NULL);
@@ -825,8 +825,7 @@ static int is_a_wormhole_struct(const void *e) {
 
 /* Built through the background's left_press or directly, a wormhole is a
  * struct whose class has drag, drop, draw, draw_overlay and its two state
- * methods; the too-far target is a struct too, the very object of the
- * too_far_target member. */
+ * methods; the too-far target is a struct too, and the wormhole has one. */
 static void test_wormhole_is_a_struct(void) {
     down_t made;
     wormhole_t *mz;
@@ -844,7 +843,7 @@ static void test_wormhole_is_a_struct(void) {
     assert(wormhole_class()->states[ENTITY_STATE_NORMAL] == NULL && wormhole_class()->left_press == NULL);
 
     assert(is_a_struct_of(wormhole_too_far_target_wrapper(), wormhole_too_far_target_class()));
-    assert(mz->too_far_target == wormhole_too_far_target_wrapper());
+    assert(mz->has & WORMHOLE_HAS_TOO_FAR_TARGET);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked

@@ -181,8 +181,7 @@ static size_t economy_bytes(void) {
 }
 
 /* Bytes of the seven structure icons among the live entities, in table
- * order: struct, tooltip remade in a frame-zone arena, and the vector box
- * of each revealed icon. */
+ * order: struct and tooltip remade in a frame-zone arena. */
 static size_t icons_bytes(void) {
     const entity_list_t *hv = live_entities();
     const allocator_t *measure_arena = arena_take(frame_zone(), "tooltip-measure", 16384);
@@ -195,7 +194,6 @@ static size_t icons_bytes(void) {
         assert(k < ICON_TOOLTIPS_COUNT && "more icons than tooltips in icon_tooltips_table");
         (void)tooltip_new(measure_arena, &icon_tooltips_table[k]);
         bytes += block_bytes(sizeof *ie);
-        if (ie->has_is_revealed && ie->is_revealed) bytes += block_bytes(sizeof(vec_t));
         k++;
     }
     assert(k == ICON_TOOLTIPS_COUNT && "cart_start_game makes one icon per tooltip of icon_tooltips_table");

@@ -23,27 +23,25 @@
 
 static int g_menu_up = 0;
 static vec_t g_galaxy_menu_pos[GALAXY_MENU_COUNT];
-static vec_t g_pause_menu_fixed_pos;
-static vec_t g_pause_menu_row_step;
 
 static void galaxy_menu_button4_on_click_method(button_t *self);
 
 typedef struct {
     entity_t header;
-    vec_t *fixed_pos;
-    vec_t *row_step;
+    uint16_t has;
+    vec_t fixed_pos;
+    vec_t row_step;
     p8_fixed_t back_color;
     int has_back_color;
 } pause_menu_open_box_t;
 
+#define PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS (1u << 0)
+#define PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP (1u << 1)
+
 static const entity_class_t pause_menu_open_box_class_def = {0};
 
 static pause_menu_open_box_t g_pause_menu_open_box = {
-    {.class = &pause_menu_open_box_class_def},
-    NULL,
-    NULL,
-    0,
-    0,
+    .header = {.class = &pause_menu_open_box_class_def},
 };
 
 static void tech_tree_screen_row_on_click_method(button_t *self) {
@@ -193,8 +191,7 @@ void menu_show_tech_tree_screen(void) {
         tmp2 = p8_concat2(frame_zone(), tmp1, diff2_str);
         ep = p8_concat2(frame_zone(), tmp2, ")");
 
-        layout_block->description = ep;
-        frame.description = layout_block->description;
+        frame.description = ep;
         frame.fixed_pos = layout_block->fixed_pos;
         frame.has_back_color = 1;
         frame.back_color = layout_block->back_color;
@@ -304,10 +301,10 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
         bs[i].has_on_click = 1;
         bs[i].on_click = my[i];
     }
-    frame.fixed_pos = g_pause_menu_open_box.fixed_pos;
+    frame.fixed_pos = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS) ? &g_pause_menu_open_box.fixed_pos : NULL;
     frame.has_back_color = g_pause_menu_open_box.has_back_color;
     frame.back_color = g_pause_menu_open_box.back_color;
-    frame.row_step = g_pause_menu_open_box.row_step;
+    frame.row_step = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP) ? &g_pause_menu_open_box.row_step : NULL;
     message_box_open_box(&frame, bs, PAUSE_MENU_COUNT);
 }
 
@@ -350,10 +347,9 @@ void menu_init(void) {
         g_galaxy_menu_pos[i] = vec_make(p8_fixed_from_int(galaxy_menu_table[i].pos_x),
                                  p8_fixed_from_int(galaxy_menu_table[i].pos_y));
     }
-    g_pause_menu_fixed_pos = vec_make(p8_fixed_from_int(pause_menu_tail.fixed_pos_x), p8_fixed_from_int(pause_menu_tail.fixed_pos_y));
-    g_pause_menu_row_step = vec_make(p8_fixed_from_int(pause_menu_tail.row_step_x), p8_fixed_from_int(pause_menu_tail.row_step_y));
-    g_pause_menu_open_box.fixed_pos = &g_pause_menu_fixed_pos;
-    g_pause_menu_open_box.row_step = &g_pause_menu_row_step;
+    g_pause_menu_open_box.fixed_pos = vec_make(p8_fixed_from_int(pause_menu_tail.fixed_pos_x), p8_fixed_from_int(pause_menu_tail.fixed_pos_y));
+    g_pause_menu_open_box.row_step = vec_make(p8_fixed_from_int(pause_menu_tail.row_step_x), p8_fixed_from_int(pause_menu_tail.row_step_y));
+    g_pause_menu_open_box.has |= PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS | PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP;
     g_pause_menu_open_box.back_color = p8_fixed_from_int(pause_menu_tail.back_color);
     g_pause_menu_open_box.has_back_color = 1;
     g_menu_up = 1;
@@ -361,8 +357,7 @@ void menu_init(void) {
 
 void menu_shutdown(void) {
     g_menu_up = 0;
-    g_pause_menu_open_box.fixed_pos = NULL;
-    g_pause_menu_open_box.row_step = NULL;
+    g_pause_menu_open_box.has &= (uint16_t)~(PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS | PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP);
     g_pause_menu_open_box.back_color = 0;
     g_pause_menu_open_box.has_back_color = 0;
 }

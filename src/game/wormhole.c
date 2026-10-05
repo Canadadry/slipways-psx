@@ -228,7 +228,7 @@ static wormhole_t *wormhole_create(void) {
     self->radius = self->archetype->radius;
     self->targeting.cost = self->archetype->targeting.cost;
     self->targeting.has_cost = self->archetype->targeting.has_cost;
-    self->too_far_target = &g_wormhole_too_far_target_wrapper;
+    self->has = WORMHOLE_HAS_TOO_FAR_TARGET;
     self->anchors = NULL;
     targeting_set_target(&self->targeting, NULL);
     self->anchor = ENTITY_ID_NONE;

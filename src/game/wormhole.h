@@ -16,12 +16,14 @@ typedef struct {
 typedef struct {
     entity_t header;
     const wormhole_archetype_t *archetype;
+    uint16_t has;
     p8_fixed_t radius;
-    wormhole_too_far_target_t *too_far_target;
     entity_id_list_t *anchors;
     entity_id_t anchor;
     targeting_t targeting;
 } wormhole_t;
+
+#define WORMHOLE_HAS_TOO_FAR_TARGET (1u << 0)
 
 void wormhole_init(void);
 
