@@ -4,9 +4,13 @@
 
 #include "devtools/replay_source.h"
 #include "devtools/session_recorder.h"
+#include "devtools/state.h"
 #include "engine/dispatch_context.h"
+#include "engine/entity_id.h"
 #include "game/cart.h"
 #include "game/main_economy.h"
+#include "game/scroll.h"
+#include "game/ui.h"
 #include "p8/assets.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
@@ -208,6 +212,91 @@ static void test_live_and_replayed_pad_frames_play_alike(void) {
     replay_source_close(&replay);
 }
 
+enum { HEADLESS_FRAME_COUNT = 120 };
+
+static p8_input_frame_t noisy_pad_session_frame(int i) {
+    int first_half = i < HEADLESS_FRAME_COUNT / 2;
+    p8_input_frame_t frame = { (i * 5) % 128, (i * 3) % 128, (i / 4) % 8, { 0, 0, 0, 0, 0, 0 }, 0 };
+    /* Opposite directions held together cancel out in the camera, and would hide a leak. */
+    for (int b = 0; b < 6; b++) {
+        frame.dpad[b] = (b % 2 == 0) == first_half;
+    }
+    frame.pad_buttons = first_half ? P8_PAD_UP | P8_PAD_LEFT : P8_PAD_DOWN | P8_PAD_RIGHT;
+    return frame;
+}
+
+static void write_snapshot(const char *path) {
+    FILE *out = fopen(path, "w");
+    const camera_t *camera = main_camera_typed();
+    vec_t position = camera_pos_before_shake(camera);
+    const entity_t *hovered = ui_hovered(main_ui());
+    assert(out != NULL);
+    fprintf(out, "camera %ld %ld velocity %ld %ld\n", (long)position.x, (long)position.y, (long)camera->velocity.x,
+            (long)camera->velocity.y);
+    if (hovered == NULL) {
+        fputs("hovered none\n", out);
+    } else {
+        entity_id_t id = entity_id_of(hovered);
+        fprintf(out, "hovered %u %u\n", id.index, id.generation);
+    }
+    state_write(out);
+    assert(fclose(out) == 0);
+}
+
+static void run_pad_session(const char *snapshot_path, int noisy) {
+    input_step_t step;
+    input_step_init(&step, P8_INPUT_PAD, 0);
+    for (int i = 0; i < HEADLESS_FRAME_COUNT; i++) {
+        p8_input_frame_t raw = { 0, 0, 0, { 0, 0, 0, 0, 0, 0 }, 0 };
+        if (noisy) {
+            raw = noisy_pad_session_frame(i);
+        }
+        input_step_run(&step, &raw);
+        cart_update60();
+    }
+    /* One draw, not one per frame: drawing is most of the cost, and make test must stay fast. */
+    cart_draw();
+    write_snapshot(snapshot_path);
+}
+
+static void assert_files_identical(const char *a_path, const char *b_path) {
+    FILE *a = fopen(a_path, "r");
+    FILE *b = fopen(b_path, "r");
+    int ca;
+    int cb;
+    assert(a != NULL && b != NULL);
+    do {
+        ca = fgetc(a);
+        cb = fgetc(b);
+        assert(ca == cb && "headless pad run: mouse, dpad or pad D-pad noise changed the game");
+    } while (ca != EOF);
+    fclose(a);
+    fclose(b);
+}
+
+/* D8: forked after the start, since the runtime's random state has no seed setter. */
+static void test_pad_session_ignores_mouse_and_dpad_noise(void) {
+    static const char *const paths[2] = { "tmp/test_input_step_quiet.txt", "tmp/test_input_step_noisy.txt" };
+    pid_t children[2];
+    cart_start_game(NULL);
+    fflush(stdout);
+    for (int noisy = 0; noisy < 2; noisy++) {
+        children[noisy] = fork();
+        assert(children[noisy] >= 0);
+        if (children[noisy] == 0) {
+            run_pad_session(paths[noisy], noisy);
+            fflush(stdout);
+            _exit(0);
+        }
+    }
+    for (int noisy = 0; noisy < 2; noisy++) {
+        int status;
+        assert(waitpid(children[noisy], &status, 0) == children[noisy]);
+        assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    }
+    assert_files_identical(paths[0], paths[1]);
+}
+
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -240,6 +329,7 @@ int main(void) {
     in_fresh_child(test_pad_cheat_ignores_dpad_o_and_x);
     in_fresh_child(test_mouse_cheat_reads_dpad_only);
     in_fresh_child(test_live_and_replayed_pad_frames_play_alike);
+    in_fresh_child(test_pad_session_ignores_mouse_and_dpad_noise);
     printf("test_input_step: ok\n");
     return 0;
 }
