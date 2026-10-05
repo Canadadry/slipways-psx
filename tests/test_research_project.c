@@ -64,8 +64,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 #define PROJECTS_NAMED 26
 #define PROJECTS_HASH 0xA4D742D8u
 #define DEFAULTS_HASH 0x4FE030B1u
-#define FUNCTIONS_HASH 0xA90BEF24u
-#define FUNCTIONS_INVENTED_HASH 0x5F2D2AD4u
+#define FUNCTIONS_HASH 0x6154CA4Fu
+#define FUNCTIONS_INVENTED_HASH 0xD71074AAu
 #define INSTALL_HASH 0x45B1D201u
 #define BUILT_WORLD_HASH 0x1FA5E0B2u
 #define HARVESTED_WORLD_HASH 0xAD954215u
@@ -283,39 +283,38 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
     return h;
 }
 
-/* A row's positional as the value it was sorted from folded; NOTHING as
- * false (no row folded here holds an absent item at the top level). */
-static uint32_t fold_layout_row_item(uint32_t h, layout_row_cell_t c, int depth) {
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fold_row(h, c.as.row, depth);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
-    case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_placed_item(uint32_t h, layout_row_item_t item) {
+    h = fnv(h, (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        break;
     }
+    return fold_fixed(h, item.offset.x);
 }
 
-/* A row folded as the frozen hashes folded its table view: its first placed
- * items, then `color`, `score`, `pos`, `placed_items`, `width`, the rest. */
+/* A row by its placed items, then `color`, `score`, `pos` and `width`. */
 static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     const layout_row_t *lq = l;
-    int k;
     int i;
 
     if (l == NULL) {
         return fnv(h, 0xDEADu);
     }
-    assert(lq != NULL && lq->header.class == layout_row_class());
+    assert(lq->header.class == layout_row_class());
     assert(!lq->has_background);
     assert(lq->placed_items != NULL);
-    k = lq->placed_items_count;
-    h = fold_view_head(h, lq->items_count + (lq->has_color != 0) +
-                              (lq->has_score != 0) + (pos_ref(&lq->header) != NULL) + 2);
-    for (i = 0; i < k; i++) {
-        h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
+    h = fold_view_head(h, lq->placed_items_count + (lq->has_color != 0) +
+                              (lq->has_score != 0) + (pos_ref(&lq->header) != NULL) + 1);
+    for (i = 0; i < lq->placed_items_count; i++) {
+        h = fold_placed_item(fold_view_index(h, i + 1), lq->placed_items[i]);
     }
     if (lq->has_color) {
         h = fold_fixed(fold_view_name(h, "color"), lq->color);
@@ -326,17 +325,14 @@ static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     if (pos_ref(&lq->header) != NULL) {
         h = fold_ref(fold_view_name(h, "pos"), pos_ref(&lq->header), 3);
     }
-    /* `placed_items` as the frozen hashes folded the tagged list it was: REF, its tag, its count, each entry a REF. */
-    h = fnv(fnv(fold_view_name(h, "placed_items"), (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
-    h = fnv(h, (uint32_t)lq->placed_items_count);
-    for (i = 0; i < lq->placed_items_count; i++) {
-        h = fold_ref(h, &lq->placed_items[i], 2);
-    }
-    h = fold_fixed(fold_view_name(h, "width"), lq->width);
-    for (i = k; i < lq->items_count; i++) {
-        h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
-    }
-    return h;
+    return fold_fixed(fold_view_name(h, "width"), lq->width);
+}
+
+/* The project's buy row laid out in the frame zone, NULL when it has none. */
+static const void *project_row(const research_project_t *b) {
+    layout_row_keys_t keys;
+
+    return research_project_layout_row_keys(b, &keys) ? layout_row_new(frame_zone(), &keys) : NULL;
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -534,10 +530,10 @@ static uint32_t fold_functions(uint32_t h) {
         h = fnv(h, (uint32_t)research_project_cost(b));
         h = jb == NULL ? fnv(h, 0xDEADu) : fold_row(h, jb, 4);
         assert((jb == NULL) == (b->has_icon_sprite != 0));
-        layout_row_h = fold_layout_row_instance(2166136261u, research_project_layout_row(b));
+        layout_row_h = fold_layout_row_instance(2166136261u, project_row(b));
         h = fnv(h, layout_row_h);
         if (!(b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW)) {
-            assert(fold_layout_row_instance(2166136261u, research_project_layout_row(b)) == layout_row_h);
+            assert(fold_layout_row_instance(2166136261u, project_row(b)) == layout_row_h);
         }
     }
     return h;
@@ -571,7 +567,12 @@ static void test_functions(void) {
     check("functions_invented", fold_functions(2166136261u), FUNCTIONS_INVENTED_HASH);
 
     assert(research_project_production(NULL) == NULL && research_project_cost(NULL) == 0);
-    assert(research_project_tooltip(NULL) == NULL && research_project_layout_row(NULL) == NULL);
+    {
+        layout_row_keys_t untouched = {.count = -1};
+
+        assert(research_project_tooltip(NULL) == NULL && !research_project_layout_row_keys(NULL, &untouched));
+        assert(untouched.count == -1);
+    }
 }
 
 static vec_t *vec_ref(vec_t at) {
@@ -1007,7 +1008,9 @@ static void tooltip_on_other(void *e) {
 }
 
 static void layout_row_on_other(void *e) {
-    (void)research_project_layout_row(e);
+    layout_row_keys_t keys;
+
+    (void)research_project_layout_row_keys(e, &keys);
 }
 
 static void install_project_on_other(void *e) {

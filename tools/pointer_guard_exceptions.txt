@@ -9,7 +9,7 @@ src/engine/entity_class.h 5
 src/game/economy_score.c 1
 src/game/economy_score.h 1
 src/game/gen.h 3
-src/game/layout.h 8
+src/game/layout.h 7
 src/game/main_economy.h 2
 src/game/map_tables.h 22
 src/game/message_box.c 1
@@ -29,7 +29,7 @@ src/game/slipway.h 2
 src/game/structure_icon.h 6
 src/game/targeting.h 1
 src/game/ui.h 1
-src/game/ui_button.h 15
+src/game/ui_button.h 14
 src/game/wormhole.h 2
 # Files whose pointers all stay: const pointers to static data (plan 13, section 2).
 src/game/background.h 1

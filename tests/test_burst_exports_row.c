@@ -43,12 +43,12 @@ static const layout_row_t *button_layout_row(const void *button) {
 }
 
 static const char *layout_row_index_string(const layout_row_t *lq, int index) {
-    layout_row_cell_t v;
-    if (index < 1 || index > lq->items_count) {
+    const layout_row_item_t *v;
+    if (index < 1 || index > lq->placed_items_count) {
         return NULL;
     }
-    v = lq->items[index - 1];
-    return (v.kind == LAYOUT_ROW_CELL_STRING) ? v.as.text : NULL;
+    v = &lq->placed_items[index - 1];
+    return (v->kind == LAYOUT_ROW_ITEM_TEXT) ? v->text : NULL;
 }
 
 static int layout_row_index_is_string(const layout_row_t *lq, int index, const char *expected) {

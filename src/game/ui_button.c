@@ -161,17 +161,6 @@ button_t *button_new(const button_keys_t *keys) {
     return button_create(keys);
 }
 
-static layout_row_t *button_layout_row(const allocator_t *slot, const layout_row_t *copy,
-                               const layout_row_keys_t *row) {
-    if (row != NULL) {
-        return layout_row_new(slot, row);
-    }
-    if (copy == NULL) {
-        return layout_row_new(slot, NULL);
-    }
-    return layout_row_copy(slot, copy);
-}
-
 void button_construct(button_t *self, const button_keys_t *keys) {
     static const button_keys_t none;
 
@@ -182,7 +171,7 @@ void button_construct(button_t *self, const button_keys_t *keys) {
         keys = &none;
     }
 
-    self->layout_row = button_layout_row(self->slot, keys->layout_row_copy, keys->layout_row_keys);
+    self->layout_row = layout_row_new(self->slot, keys->layout_row_keys);
     self->width = p8_fixed_add(self->layout_row->width, p8_fixed_from_int(2));
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = (box_t){p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11)};

@@ -118,12 +118,10 @@ static void start_game(void) {
     cart_start_game(NULL);
 }
 
-/* Texts only: a ROW cell is borrowed until the layout (game/layout.h), a
- * frame tuple in it is dead after the reset. */
-static size_t read_cells(const layout_row_t *lq) {
+static size_t read_placed_texts(const layout_row_t *lq) {
     size_t sum = 0;
-    for (int i = 0; i < lq->items_count; i++) {
-        if (lq->items[i].kind == LAYOUT_ROW_CELL_STRING) sum += strlen(lq->items[i].as.text);
+    for (int i = 0; i < lq->placed_items_count; i++) {
+        if (lq->placed_items[i].kind == LAYOUT_ROW_ITEM_TEXT) sum += strlen(lq->placed_items[i].text);
     }
     return sum;
 }
@@ -140,10 +138,10 @@ static int reset_then_draw_panel(void) {
         button_t *js = (button_t *)entity_id_list_at(le, i);
         vec_t p = entity_pos(&js->header);
 
-        sink = (unsigned char)read_cells(js->layout_row);
-        if (js->side_tooltip != NULL) sink = (unsigned char)read_cells(js->side_tooltip);
+        sink = (unsigned char)read_placed_texts(js->layout_row);
+        if (js->side_tooltip != NULL) sink = (unsigned char)read_placed_texts(js->side_tooltip);
         if (js->tooltip != NULL) {
-            for (int k = 0; k < js->tooltip->rows_count; k++) sink = (unsigned char)read_cells(js->tooltip->rows[k]);
+            for (int k = 0; k < js->tooltip->rows_count; k++) sink = (unsigned char)read_placed_texts(js->tooltip->rows[k]);
             bubbles++;
         }
         js->header.is_hovered = 1;
@@ -166,6 +164,39 @@ static int case_inspection_panel_rows_survive_reset(void) {
     planet_inspection_panel(planet);
     assert(main_ui()->ephemerals.count >= 2 && "planet_inspection_panel: the icon and the exports row");
     reset_then_draw_panel();
+    return 0;
+}
+
+static uint32_t row_screen_hash(const layout_row_t *row) {
+    uint32_t h = 2166136261u;
+
+    p8_cls(&memory);
+    layout_row_draw_at_default(&graphics, &memory, row, vec_make(p8_fixed_from_int(8), p8_fixed_from_int(60)));
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) h = (h ^ memory.screen[y][x]) * 16777619u;
+    }
+    return h;
+}
+
+/* An amount above 5 puts a frame-zone text in the row's cells. */
+static int case_planet_row_survives_reset(void) {
+    static production_t kw = {.has_resource = 1};
+    planet_t *planet;
+    uint32_t before;
+
+    start_game();
+    planet = (planet_t *)entities_by_tag(TAG_PLANET)->items[0];
+    kw.resource = p8_fixed_from_int(21);
+    kw.amount = p8_fixed_from_int(6);
+    planet->production = kw;
+    planet->has |= PLANET_HAS_PRODUCTION;
+    planet_refresh(planet);
+    assert(planet->layout_row != NULL && planet->layout_row->placed_items_count > 0);
+    before = row_screen_hash(planet->layout_row);
+    frame_zone_reset();
+    allocate_again();
+    sink = (unsigned char)read_placed_texts(planet->layout_row);
+    assert(row_screen_hash(planet->layout_row) == before && "planet_refresh: the stored row draws the same after the frame");
     return 0;
 }
 
@@ -194,8 +225,8 @@ static int happiness_cells(const message_box_t *mh) {
         const data_row_t *ld = mh->items[k];
         if (ld->draw_function != DRAW_FUNCTION_DRAW_ROW || !ld->items[0].is_ref) continue;
         const layout_row_t *lq = ld->items[0].ref;
-        for (int i = 0; i < lq->items_count; i++)
-            found += lq->items[i].kind == LAYOUT_ROW_CELL_STRING && strcmp(lq->items[i].as.text, "1%") == 0;
+        for (int i = 0; i < lq->placed_items_count; i++)
+            found += lq->placed_items[i].kind == LAYOUT_ROW_ITEM_TEXT && strcmp(lq->placed_items[i].text, "1%") == 0;
     }
     return found;
 }
@@ -267,8 +298,9 @@ static int case_panel_texts_survive_reset(void) {
     data_row_t bubble_row = {.count = 1, .items = &line};
 
     load_cart_and_start();
-    layout_row_t *row = row_of_frame_text(&heap_allocator, "row");
-    layout_row_add(row, layout_row_cell_string(frame_text("added")));
+    layout_row_cell_t two_texts[] = {layout_row_cell_string(frame_text("row")), layout_row_cell_string(frame_text("second"))};
+    layout_row_keys_t two_keys = {.items = two_texts, .count = 2};
+    layout_row_t *row = layout_row_new(&heap_allocator, &two_keys);
     layout_row_t *copy = layout_row_copy(&heap_allocator, row_of_frame_text(frame_zone(), "copy"));
     tooltip_t *bubble = tooltip_new(&heap_allocator, &bubble_row);
     data_item_t tuple_items[] = {{.text = frame_text("tuple")}, {.number = 5}};
@@ -279,7 +311,7 @@ static int case_panel_texts_survive_reset(void) {
     layout_row_t *of_tuple = layout_row_new(&heap_allocator, &tuple_keys);
     frame_zone_reset();
     allocate_again();
-    sink = (unsigned char)(read_cells(row) + read_cells(copy) + read_cells(bubble->rows[0]));
+    sink = (unsigned char)(read_placed_texts(row) + read_placed_texts(copy) + read_placed_texts(bubble->rows[0]));
     layout_row_draw_at_default(&graphics, &memory, row, vec_make(0, 0));
     layout_row_draw_at_default(&graphics, &memory, copy, vec_make(0, 0));
     tooltip_draw_at(&graphics, &memory, bubble, 0, 0);
@@ -292,7 +324,7 @@ static int case_panel_struct_in_zone(void) {
     layout_row_t *row = row_of_frame_text(frame_zone(), "row");
     frame_zone_reset();
     allocate_again();
-    sink = (unsigned char)row->items_count;
+    sink = (unsigned char)row->placed_items_count;
     return 0;
 }
 
@@ -387,6 +419,7 @@ static const struct {
     {"rewind_across_reset", case_rewind_across_reset},
     {"inspection_panel_rows_survive_reset", case_inspection_panel_rows_survive_reset},
     {"invented_lines_survive_reset", case_invented_lines_survive_reset},
+    {"planet_row_survives_reset", case_planet_row_survives_reset},
     {"research_project_tooltip_survives_reset", case_research_project_tooltip_survives_reset},
     {"final_score_happiness_survives_reset", case_final_score_happiness_survives_reset},
     {"panel_texts_survive_reset", case_panel_texts_survive_reset},
@@ -491,6 +524,7 @@ int main(int argc, char **argv) {
     expect_clean("max_survives_rewind_and_reset");
     expect_clean("inspection_panel_rows_survive_reset");
     expect_clean("invented_lines_survive_reset");
+    expect_clean("planet_row_survives_reset");
     expect_clean("research_project_tooltip_survives_reset");
     expect_clean("final_score_happiness_survives_reset");
     expect_clean("panel_texts_survive_reset");

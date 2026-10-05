@@ -37,9 +37,11 @@ static const data_row_t *planet_production_tuple(const production_t *kw) {
 void planet_refresh(planet_t *self) {
     const pointer_list_t *needs_list;
     const trade_route_list_t *by_list;
-    const p8_fixed_t *qe = NULL;
-    p8_fixed_t mu = p8_fixed_from_int(0);
-    layout_row_t *layout_row_result;
+    int has_output;
+    p8_fixed_t output;
+    p8_fixed_t mu;
+    layout_row_keys_t keys;
+    layout_row_t *layout_row_result = NULL;
     const allocator_t *slot;
     frame_zone_mark_t scratch;
 
@@ -50,16 +52,19 @@ void planet_refresh(planet_t *self) {
     needs_list = (self->has & PLANET_HAS_NEEDS) ? &self->needs : NULL;
     {
         const production_t *kw = planet_production_read(self);
-        qe = kw->has_resource ? &kw->resource : NULL;
+        has_output = kw->has_resource;
+        output = kw->resource;
         mu = kw->amount;
     }
     by_list = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
 
     scratch = frame_zone_mark();
     slot = ui_zone_slot(SLOT_KIND_ROW);
-    layout_row_result = research_display_planet_resource_row(slot, needs_list, qe, mu, p8_fixed_from_int(by_list != NULL ? trade_route_list_count(by_list) : 0),
-                            p8_fixed_from_int(0));
-    if (layout_row_result == NULL) {
+    if (research_display_planet_resource_row_keys(needs_list, has_output, output, mu,
+                                                  p8_fixed_from_int(by_list != NULL ? trade_route_list_count(by_list) : 0),
+                                                  p8_fixed_from_int(0), &keys)) {
+        layout_row_result = layout_row_new(slot, &keys);
+    } else {
         arena_release(slot);
         slot = NULL;
     }
@@ -68,7 +73,6 @@ void planet_refresh(planet_t *self) {
     }
     self->layout_row = layout_row_result;
     self->layout_row_slot = slot;
-    /* The row's items[] point into the rewound tuples: read only placed_items[] from here. */
     frame_zone_rewind(scratch);
 }
 
@@ -328,8 +332,8 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, bu
     if (b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
         row->layout_row = layout_row_keys_of_row(&b->layout_row, row->layout_row_items, PLANET_ROW_CAP);
         keys->layout_row_keys = &row->layout_row;
-    } else {
-        keys->layout_row_copy = research_project_layout_row(b);
+    } else if (research_project_layout_row_keys(b, &row->layout_row)) {
+        keys->layout_row_keys = &row->layout_row;
     }
 
     keys->has_side_tooltip = 1;

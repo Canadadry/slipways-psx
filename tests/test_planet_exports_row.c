@@ -1,9 +1,8 @@
 /* The inspection panel's "exports:" row must reach its layout row with its
  * four items, in order, and not one more: the bug copied a data row's items
  * at the wrong element stride, took its count from the wrong slot and
- * walked past the end of the allocation. The copy into the row's cells, and
- * the layout that gives each cell one placed item, fail the same way if
- * they take one item too many.
+ * walked past the end of the allocation. The layout that gives each cell
+ * one placed item fails the same way if it takes one item too many.
  *
  * Built under AddressSanitizer, because the resulting SIGSEGV depends on
  * allocator layout and is not a sound oracle: on the replay that reported
@@ -51,21 +50,21 @@ static const layout_row_t *button_layout_row(const void *button) {
     return lq;
 }
 
-/* The row's item at 1-based `index`, as a table lookup would find it. */
-static int layout_row_item(const layout_row_t *lq, int index, layout_row_cell_t *out) {
-    if (index < 1 || index > lq->items_count) {
+/* The row's placed item at 1-based `index`, as a table lookup would find it. */
+static int layout_row_item(const layout_row_t *lq, int index, layout_row_item_t *out) {
+    if (index < 1 || index > lq->placed_items_count) {
         return 0;
     }
-    *out = lq->items[index - 1];
+    *out = lq->placed_items[index - 1];
     return 1;
 }
 
 static int layout_row_index_is_string(const layout_row_t *lq, int index, const char *expected) {
-    layout_row_cell_t v;
+    layout_row_item_t v;
     if (!layout_row_item(lq, index, &v)) {
         return 0;
     }
-    return v.kind == LAYOUT_ROW_CELL_STRING && strcmp(v.as.text, expected) == 0;
+    return v.kind == LAYOUT_ROW_ITEM_TEXT && strcmp(v.text, expected) == 0;
 }
 
 /* What planet_inspection_panel reaches in a game, built without a boot:
@@ -89,10 +88,10 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     p8_graphics_t graphics;
     planet_t *planet;
     static production_t production;
-    const data_row_t *production_row;
     const entity_id_list_t *ephemerals;
     const layout_row_t *exports_layout_row = NULL;
-    layout_row_cell_t entry;
+    layout_row_item_t entry;
+    layout_row_item_t gap;
     int index;
 
     setup_panel_state(&memory, &graphics);
@@ -136,20 +135,16 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     assert(layout_row_index_is_string(exports_layout_row, 1, "exports:"));
     assert(layout_row_index_is_string(exports_layout_row, 2, "0/1"));
 
+    /* The resource tuple {99, 5}: sprite 99, five wide, then the default spacing of 2. */
     assert(layout_row_item(exports_layout_row, 3, &entry));
-    assert(entry.kind == LAYOUT_ROW_CELL_ROW && entry.as.row != NULL);
-    production_row = entry.as.row;
-    assert(production_row->has_resource && production_row->resource == p8_fixed_from_int(99) && production_row->count == 0);
+    assert(entry.kind == LAYOUT_ROW_ITEM_SPRITE && entry.sprite_id == p8_fixed_from_int(99));
 
-    assert(layout_row_item(exports_layout_row, 4, &entry));
-    assert(entry.kind == LAYOUT_ROW_CELL_ROW && entry.as.row != NULL);
+    assert(layout_row_item(exports_layout_row, 4, &gap));
+    assert(gap.kind == LAYOUT_ROW_ITEM_NONE);
+    assert(gap.offset.x == p8_fixed_add(entry.offset.x, p8_fixed_from_int(7)));
 
     /* No phantom fifth item from an over-long copy loop. */
     assert(!layout_row_item(exports_layout_row, 5, &entry));
-
-    /* layout_row_construct ran over exactly those four: one placed item
-     * each. */
-    assert(exports_layout_row->placed_items != NULL);
     assert(exports_layout_row->placed_items_count == 4);
 }
 

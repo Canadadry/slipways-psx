@@ -683,7 +683,7 @@ static void test_refresh_row_slot(void) {
 }
 
 /* A planet whose production has no resource gets no row from
- * research_display_planet_resource_row, and no slot. */
+ * research_display_planet_resource_row_keys, and no slot. */
 static void test_refresh_without_resource_takes_no_slot(void) {
     planet_t *a;
     int before;

@@ -63,7 +63,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0x2603AEA8u
+#define LIFE_HASH 0xD551CEA4u
 #define BURST_FRAMES 86
 
 /* The tag a layout row's placed items carried as a tagged list, which the
@@ -477,53 +477,27 @@ static uint32_t fold_particle(uint32_t h, const particle_t *q) {
     return fnv(h, (uint32_t)q->life);
 }
 
-/* A row among a layout row's items: its items, resource, color, then the entry count. */
-static uint32_t fold_tuple(uint32_t h, const data_row_t *t) {
-    int i;
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_layout_row_placed_item(uint32_t h, const layout_row_t *lq, int i) {
+    layout_row_item_t item = lq->placed_items[i];
 
-    for (i = 0; i < t->count; i++) {
-        const data_item_t *item = &t->items[i];
-
-        h = fnv(h, (uint32_t)(i + 1));
-        if (item->text != NULL) {
-            h = fold_string(h, item->text);
-        } else if (item->is_false) {
-            h = fold_bool(h, 0);
-        } else {
-            assert(!item->is_ref && "fold_tuple: no test folds a tuple item that points: to fold one, fold 0xDEAD if NULL, else 0xEEEE then 0, as the frozen hashes did");
-            h = fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
-        }
-    }
-    if (t->has_resource) {
-        h = fold_fixed(fnv_str(h, "resource"), t->resource);
-    }
-    if (t->has_color) {
-        h = fold_fixed(fnv_str(h, "color"), p8_fixed_from_int(t->color));
-    }
-    return fnv(h, (uint32_t)(t->count + (t->has_resource != 0) + (t->has_color != 0)));
-}
-
-/* A positional as the value it was sorted from folded; NOTHING as false
- * (no row folded here holds an absent value at the top level). */
-static uint32_t fold_layout_row_positional(uint32_t h, const layout_row_t *lq, int i) {
-    layout_row_cell_t c = lq->items[i];
-
-    h = fnv(h, (uint32_t)(i + 1));
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fold_tuple(h, c.as.row);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
-    case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+    h = fnv(fnv(h, (uint32_t)(i + 1)), (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        break;
     }
+    return fold_fixed(h, item.offset.x);
 }
 
-/* The row planet_inspection_panel built into the layout row: its first
- * placed_items_count positionals, color, background, score, pos,
- * placed_items, width, the rest. */
+/* The row planet_inspection_panel built into the layout row: its placed
+ * items, color, score, width. */
 static uint32_t fold_layout_row(uint32_t h, void *e) {
     const layout_row_t *lq = as_burst(e)->layout_row;
     int n = 0;
@@ -536,7 +510,7 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
     assert(lq->placed_items != NULL);
     k = lq->placed_items_count;
     for (i = 0; i < k; i++) {
-        h = fold_layout_row_positional(h, lq, i);
+        h = fold_layout_row_placed_item(h, lq, i);
     }
     if (lq->has_color) {
         h = fold_fixed(fnv_str(h, "color"), lq->color);
@@ -550,10 +524,7 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
     /* As fold_ref folded the tagged list placed_items was: never live, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "placed_items"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_fixed(fnv_str(h, "width"), lq->width);
-    for (i = k; i < lq->items_count; i++) {
-        h = fold_layout_row_positional(h, lq, i);
-    }
-    return fnv(h, (uint32_t)(lq->items_count + n + 2));
+    return fnv(h, (uint32_t)(k + n + 2));
 }
 
 /* Cuts the particle list to the given count, giving back the others. */

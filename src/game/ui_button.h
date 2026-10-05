@@ -54,7 +54,6 @@ const entity_class_t *button_class(void);
 typedef struct {
     int has_layer;
     p8_fixed_t layer;
-    const layout_row_t *layout_row_copy;
     const layout_row_keys_t *layout_row_keys;
     /* GAP-23 */
     int has_side_tooltip;

@@ -49,7 +49,7 @@ static const vec_t *pos_ref(const entity_t *e) {
 #define BUILT_HASH 0x455004CBu
 #define SHARED_HASH 0xAAACD2E4u
 #define LIFE_HASH 0x7647D312u
-#define TECH_TREE_SCREEN_HASH 0x7D1C5B1Fu
+#define TECH_TREE_SCREEN_HASH 0x1F0B418Bu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -111,12 +111,12 @@ static int is_layout_row(const void *e) {
 }
 
 static int row_count(const void *lq) {
-    return ((const layout_row_t *)lq)->items_count;
+    return ((const layout_row_t *)lq)->placed_items_count;
 }
 
-static layout_row_cell_t row_item(const void *lq, int i) {
+static layout_row_item_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const layout_row_t *)lq)->items[i];
+    return ((const layout_row_t *)lq)->placed_items[i];
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
@@ -441,8 +441,8 @@ static const char *opened_box_description(void) {
 
     assert(main_ui() != NULL && main_ui()->ephemerals.count >= 1);
     lq = as_button(entity_id_list_at(&main_ui()->ephemerals, 0))->layout_row;
-    assert(lq != NULL && row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
-    return row_item(lq, 0).as.text;
+    assert(lq != NULL && row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_ITEM_TEXT);
+    return row_item(lq, 0).text;
 }
 
 /* refresh; new_year on a year with a message and two without; the tech-tree
@@ -528,23 +528,25 @@ static vec_t vec_of(const vec_t *v) {
     return *v;
 }
 
-/* A cell as the value it was sorted from folded: a row as any REF, NOTHING
- * as false (no row folded here holds an absent cell at the top level). */
-static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fnv(h, 0x12u);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
-    case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_placed_item(uint32_t h, layout_row_item_t item) {
+    h = fnv(h, (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        break;
     }
+    return fold_fixed(h, item.offset.x);
 }
 
 /* A button's layout row as its construction built it: its width, its color,
- * its items. */
+ * its placed items. */
 static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     int i;
 
@@ -553,7 +555,7 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     h = fold_opt_fixed(h, lq->has_color, lq->color);
     for (i = 0; i < row_count(lq); i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_cell(h, row_item(lq, i));
+        h = fold_placed_item(h, row_item(lq, i));
     }
     return h;
 }
@@ -573,8 +575,8 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
     h = fnv(h, (uint32_t)le->count);
     lq = as_button(entity_id_list_at(le, 0))->layout_row;
     assert(lq != NULL && lq->has_color && lq->color == p8_fixed_from_int(13));
-    assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
-    *head = row_item(lq, 0).as.text;
+    assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_ITEM_TEXT);
+    *head = row_item(lq, 0).text;
     h = fnv_str(h, *head);
     ra = pos_ref(&as_button(entity_id_list_at(le, 0))->header);
     for (i = 0; i < le->count; i++) {
@@ -753,7 +755,7 @@ static void test_final_score_reads_invented_and_happiness(void) {
 
 /* The given item (1-based) of the line that score_panel_update() put in the
  * box's given row (0-based), a draw_row article. */
-static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) {
+static layout_row_item_t update_row_item(const message_box_t *mh, int k, int i) {
     const data_row_t *ld;
     const layout_row_t *lq;
 
@@ -761,8 +763,8 @@ static layout_row_cell_t update_row_item(const message_box_t *mh, int k, int i) 
     ld = mh->items[k];
     assert(ld->draw_function == DRAW_FUNCTION_DRAW_ROW && ld->items[0].is_ref);
     lq = ld->items[0].ref;
-    assert(i <= lq->items_count);
-    return lq->items[i - 1];
+    assert(i <= lq->placed_items_count);
+    return lq->placed_items[i - 1];
 }
 
 /* score_panel_update() shows economy_score_final(): the score-5 row (box
@@ -772,8 +774,8 @@ static void test_update_rows_show_final_score(void) {
     void *ju = start_game();
     economy_t *fm = main_economy_typed();
     const message_box_t *mh;
-    layout_row_cell_t total;
-    layout_row_cell_t icon;
+    layout_row_item_t total;
+    layout_row_item_t icon;
     int i;
 
     for (i = 0; i < 10; i++) {
@@ -787,10 +789,10 @@ static void test_update_rows_show_final_score(void) {
     mh = shown_message_box();
     assert(mh != NULL && mh->items_count == SCORE_ROWS_COUNT);
     total = update_row_item(mh, 10, 3);
-    assert(total.kind == LAYOUT_ROW_CELL_STRING && strcmp(total.as.text, "14") == 0);
+    assert(total.kind == LAYOUT_ROW_ITEM_TEXT && strcmp(total.text, "14") == 0);
     for (i = 1; i <= 5; i++) {
         icon = update_row_item(mh, 11, i);
-        assert(icon.kind == LAYOUT_ROW_CELL_FIXED && icon.as.fixed == p8_fixed_from_int(57));
+        assert(icon.kind == LAYOUT_ROW_ITEM_SPRITE && icon.sprite_id == p8_fixed_from_int(57));
     }
 }
 

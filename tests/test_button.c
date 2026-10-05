@@ -78,21 +78,21 @@ static const vec_t *map_pos_ref(const entity_t *e) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-#define TITLE_HASH 0xA03EFF2Au
-#define START_GAME_HASH 0xD47F70BEu
-#define PAUSE_HASH 0xD2FE343Du
-#define RESEARCH_HASH 0x41D4B83Eu
-#define PROJECTS_PANEL_HASH 0x6E72F895u
-#define INSPECTION_PANEL_HASH 0x8897BD95u
-#define SCORE_PANEL_HASH 0x15A0978Du
+#define TITLE_HASH 0x9D11B07Au
+#define START_GAME_HASH 0x01F0B8FBu
+#define PAUSE_HASH 0x25F95A65u
+#define RESEARCH_HASH 0x7A0E4C6Au
+#define PROJECTS_PANEL_HASH 0xE76A67ACu
+#define INSPECTION_PANEL_HASH 0xBF3F72EFu
+#define SCORE_PANEL_HASH 0xAB294E51u
 #define DIFFICULTY_HASH 0x5178903Bu
 #define UPDATE_HASH 0xD2A611E7u
-#define LEFT_PRESS_HASH 0x02AEDFCFu
+#define LEFT_PRESS_HASH 0x6F6294FBu
 #define REFRESH_HASH 0x0FA6ACC7u
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
-#define DRAW_HASH 0x8E87EDFAu
-#define BUTTON_MEMBERS_HASH 0x2FFA417Au
+#define DRAW_HASH 0x1A156945u
+#define BUTTON_MEMBERS_HASH 0xF6AAF8CAu
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -231,12 +231,12 @@ static int is_layout_row(const void *e) {
 }
 
 static int row_count(const void *lq) {
-    return ((const layout_row_t *)lq)->items_count;
+    return ((const layout_row_t *)lq)->placed_items_count;
 }
 
-static layout_row_cell_t row_item(const void *lq, int i) {
+static layout_row_item_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const layout_row_t *)lq)->items[i];
+    return ((const layout_row_t *)lq)->placed_items[i];
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -289,22 +289,24 @@ static uint32_t fold_opt_ref(uint32_t h, const void *ref) {
     return ref != NULL ? fold_ref(fnv(h, 1u), ref) : fnv(h, 0u);
 }
 
-/* A positional as the value it was sorted from folded: a row as any REF,
- * NOTHING as false (no row folded here holds an absent top-level item). */
-static uint32_t fold_cell(uint32_t h, layout_row_cell_t c) {
-    switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fnv(h, 0x12u);
-    case LAYOUT_ROW_CELL_FIXED:
-        return fold_fixed(h, c.as.fixed);
-    case LAYOUT_ROW_CELL_STRING:
-        return fold_string(h, c.as.text);
+/* A placed item as drawn: its kind, then its text and color or its sprite
+ * and palette block, then its offset. */
+static uint32_t fold_placed_item(uint32_t h, layout_row_item_t item) {
+    h = fnv(h, (uint32_t)item.kind);
+    switch (item.kind) {
+    case LAYOUT_ROW_ITEM_TEXT:
+        h = fold_fixed(fold_string(h, item.text), item.color);
+        break;
+    case LAYOUT_ROW_ITEM_SPRITE:
+        h = fold_fixed(fold_fixed(h, item.sprite_id), item.sprite_palette_block);
+        break;
     default:
-        return fold_bool(h, c.kind == LAYOUT_ROW_CELL_TRUE);
+        break;
     }
+    return fold_fixed(h, item.offset.x);
 }
 
-/* A row by its width and its positional items. */
+/* A row by its width and its placed items. */
 static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     int i;
 
@@ -312,7 +314,7 @@ static uint32_t fold_layout_row(uint32_t h, const layout_row_t *lq) {
     h = fold_fixed(h, lq->width);
     for (i = 0; i < row_count(lq); i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_cell(h, row_item(lq, i));
+        h = fold_placed_item(h, row_item(lq, i));
     }
     return h;
 }
@@ -772,8 +774,8 @@ static void test_research(void) {
     jb = button_of(entity_id_list_at(le, le->count - 1))->tooltip;
     assert(jb->rows_count == 1);
     line = jb->rows[0];
-    assert(line->items_count == 1 && line->items[0].kind == LAYOUT_ROW_CELL_STRING);
-    assert(strcmp(line->items[0].as.text, "slipgates") == 0);
+    assert(row_count(line) == 1 && row_item(line, 0).kind == LAYOUT_ROW_ITEM_TEXT);
+    assert(strcmp(row_item(line, 0).text, "slipgates") == 0);
     h = fold_ephemerals(h, "research");
     check("research", h, RESEARCH_HASH);
 }
@@ -979,11 +981,11 @@ static void test_left_press(void) {
 
 static uint32_t layout_row_first(const void *b) {
     const layout_row_t *lq = button_of(b)->layout_row;
-    layout_row_cell_t v;
+    layout_row_item_t v;
     assert(lq != NULL && row_count(lq) > 0);
     v = row_item(lq, 0);
-    assert(v.kind == LAYOUT_ROW_CELL_FIXED);
-    return (uint32_t)p8_fixed_flr_int(v.as.fixed);
+    assert(v.kind == LAYOUT_ROW_ITEM_SPRITE);
+    return (uint32_t)p8_fixed_flr_int(v.sprite_id);
 }
 
 /* The second galaxy menu button's `refresh` rebuilds its `layout_row`: 24
@@ -1626,8 +1628,8 @@ static uint32_t members_research(void) {
             const technologies_entry_t *t = button_of(b)->technology;
             const layout_row_t *lq = button_of(b)->layout_row;
             assert(on_click_state(b) == 3 && lq != NULL);
-            assert(lq->items_count >= 2 && lq->items[1].kind == LAYOUT_ROW_CELL_STRING);
-            assert(t != NULL && t == map_tables_technologies_lookup(lq->items[1].as.text));
+            assert(row_count(lq) >= 2 && row_item(lq, 1).kind == LAYOUT_ROW_ITEM_TEXT);
+            assert(t != NULL && t == map_tables_technologies_lookup(row_item(lq, 1).text));
             affordable++;
         }
         assert(button_of(b)->has_side_tooltip && is_layout_row(button_of(b)->side_tooltip));
@@ -2072,8 +2074,8 @@ static void test_largest_buttons_fit_their_slots(void) {
         if (b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
             lq = layout_row_keys_of_row(&b->layout_row, layout_row_items, 8);
             keys.layout_row_keys = &lq;
-        } else {
-            keys.layout_row_copy = research_project_layout_row(b);
+        } else if (research_project_layout_row_keys(b, &lq)) {
+            keys.layout_row_keys = &lq;
         }
         keys.tooltip_row = research_project_tooltip(b);
         entity_unregister(&button_new(&keys)->header);

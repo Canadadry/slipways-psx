@@ -118,8 +118,8 @@ static data_item_t planet_resource_row_fixed(p8_fixed_t x) {
     return (data_item_t){.is_fixed = 1, .fixed = x};
 }
 
-layout_row_t *research_display_planet_resource_row(const allocator_t *zone, const pointer_list_t *inputs, const p8_fixed_t *output,
-                        p8_fixed_t amount, p8_fixed_t used, p8_fixed_t spacing) {
+static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output, p8_fixed_t output, p8_fixed_t amount,
+                                    p8_fixed_t used, p8_fixed_t spacing, int spare_cells, layout_row_keys_t *out_keys) {
     layout_row_cell_t *cells;
     int l_count = 0;
     int l_cap;
@@ -129,24 +129,23 @@ layout_row_t *research_display_planet_resource_row(const allocator_t *zone, cons
     p8_fixed_t outputs[2];
     int outputs_count;
     int wide;
-    layout_row_t *result;
 
-    if (output == NULL) {
-        return NULL;
+    if (!has_output) {
+        return 0;
     }
 
     crowded = (is_count >= 3) ? 1 : 0;
 
     {
         int r_w;
-        int o_is_r_w = resource_code_lookup("w", &r_w) && *output == p8_fixed_from_int(r_w);
+        int o_is_r_w = resource_code_lookup("w", &r_w) && output == p8_fixed_from_int(r_w);
 
         if (o_is_r_w) {
             outputs[0] = p8_fixed_from_int(25);
             outputs[1] = p8_fixed_from_int(23);
             outputs_count = 2;
         } else {
-            outputs[0] = *output;
+            outputs[0] = output;
             outputs_count = 1;
         }
     }
@@ -160,7 +159,7 @@ layout_row_t *research_display_planet_resource_row(const allocator_t *zone, cons
         l_cap = is_count + (is_count > 0 ? 2 : 0) + (amount > p8_fixed_from_int(5) ? 2 : 0) +
                 outputs_count * (p8_fixed_flr_int(loop_bound) + 1);
     }
-    cells = (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)l_cap * sizeof *cells);
+    cells = (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)(l_cap + spare_cells) * sizeof *cells);
 
     if (inputs != NULL) {
         pointer_list_iter_t it = pointer_list_all(inputs);
@@ -241,22 +240,27 @@ layout_row_t *research_display_planet_resource_row(const allocator_t *zone, cons
         }
     }
 
-    assert(l_count == l_cap && "research_display_planet_resource_row: the row is sized at entry from the inputs, the amount and the outputs; a positional more or less "
+    assert(l_count == l_cap && "planet_resource_row_keys: the row is sized at entry from the inputs, the amount and the outputs; a positional more or less "
                                "is a miscount of that size");
     keys.items = cells;
     keys.count = l_count;
-    result = layout_row_new(zone, &keys);
-    return result;
+    *out_keys = keys;
+    return 1;
 }
 
-layout_row_t *research_project_layout_row(research_project_t *self) {
+int research_display_planet_resource_row_keys(const pointer_list_t *inputs, int has_output, p8_fixed_t output, p8_fixed_t amount,
+                                              p8_fixed_t used, p8_fixed_t spacing, layout_row_keys_t *out_keys) {
+    return planet_resource_row_keys(inputs, has_output, output, amount, used, spacing, 0, out_keys);
+}
+
+int research_project_layout_row_keys(const research_project_t *self, layout_row_keys_t *out_keys) {
     p8_fixed_t jq;
     const production_tables_entry_t *po;
-    layout_row_t *l;
+    layout_row_cell_t *cells;
 
     research_project_assert(self);
     if (self == NULL || !research_project_ready()) {
-        return NULL;
+        return 0;
     }
 
     po = research_project_production(self);
@@ -266,17 +270,17 @@ layout_row_t *research_project_layout_row(research_project_t *self) {
         jq = (first_production > p8_fixed_from_int(1)) ? first_production : p8_fixed_from_int(1);
     }
 
-    l = research_display_planet_resource_row(frame_zone(), &self->inputs, self->has_output ? &self->output : NULL, jq, p8_fixed_from_int(0), p8_fixed_from_int(1));
-    if (l == NULL) {
-        return NULL;
+    if (!planet_resource_row_keys(&self->inputs, self->has_output, self->output, jq, p8_fixed_from_int(0), p8_fixed_from_int(1), 2,
+                                  out_keys)) {
+        return 0;
     }
 
-    layout_row_add(l, layout_row_cell_row(research_project_row_tail()));
+    cells = (layout_row_cell_t *)out_keys->items;
+    cells[out_keys->count++] = layout_row_cell_row(research_project_row_tail());
     if (self->name != NULL) {
-        layout_row_add(l, layout_row_cell_string(self->name));
+        cells[out_keys->count++] = layout_row_cell_string(self->name);
     }
-
-    return l;
+    return 1;
 }
 
 static int available_projects_predicate(const research_project_t *b, const entity_t *planet_instance) {

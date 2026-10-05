@@ -44,8 +44,6 @@ typedef struct {
 typedef struct {
     entity_t header;
     const allocator_t *zone;
-    layout_row_cell_t *items;
-    int items_count;
     p8_fixed_t color;
     int has_color;
     p8_fixed_t background;
@@ -99,8 +97,6 @@ layout_row_cell_t layout_row_cell_item(const data_item_t *item);
 layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap);
 
 layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row);
-
-void layout_row_add(layout_row_t *self, layout_row_cell_t cell);
 
 tooltip_t *tooltip_new(const allocator_t *zone, const data_row_t *row);
 

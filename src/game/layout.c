@@ -68,13 +68,6 @@ static const char *row_copy_text(const allocator_t *zone, const char *s) {
     return copy;
 }
 
-static layout_row_cell_t row_own_cell(const allocator_t *zone, layout_row_cell_t cell) {
-    if (cell.kind == LAYOUT_ROW_CELL_STRING) {
-        cell.as.text = row_copy_text(zone, cell.as.text);
-    }
-    return cell;
-}
-
 static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, layout_row_item_t *out_item,
                          p8_fixed_t *out_w, p8_fixed_t *out_spacing) {
     p8_fixed_t width = p8_fixed_from_int(6);
@@ -136,10 +129,9 @@ static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, l
     *out_spacing = have_spacing ? spacing : p8_fixed_from_int(2);
 }
 
-static void layout_row_construct(layout_row_t *self) {
+static void layout_row_construct(layout_row_t *self, const layout_row_cell_t *cells, int n) {
     p8_fixed_t w = p8_fixed_from_int(0);
     p8_fixed_t fs = p8_fixed_from_int(0);
-    int n = self->items_count;
     int i;
 
     self->placed_items = (layout_row_item_t *)allocator_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->placed_items);
@@ -148,9 +140,8 @@ static void layout_row_construct(layout_row_t *self) {
         p8_fixed_t spacing_i = p8_fixed_from_int(0);
         p8_fixed_t x = w;
 
-        row_measure_item(self, self->items[i], &self->placed_items[i], &w_i, &spacing_i);
-        /* A tuple is borrowed until this layout only: its text is copied. */
-        if (self->items[i].kind == LAYOUT_ROW_CELL_ROW && self->placed_items[i].kind == LAYOUT_ROW_ITEM_TEXT) {
+        row_measure_item(self, cells[i], &self->placed_items[i], &w_i, &spacing_i);
+        if (self->placed_items[i].kind == LAYOUT_ROW_ITEM_TEXT) {
             self->placed_items[i].text = row_copy_text(self->zone, self->placed_items[i].text);
         }
         self->placed_items[i].offset = vec_make(x, p8_fixed_from_int(0));
@@ -290,10 +281,10 @@ static const entity_class_t layout_row_class_def = {
     .draw_at = layout_row_draw_at_method,
 };
 
-static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
+static layout_row_t *row_struct_alloc(const allocator_t *zone) {
     layout_row_t *self;
 
-    assert(zone != NULL && "row_struct_alloc: a row without a zone would have nowhere to keep its cells");
+    assert(zone != NULL && "row_struct_alloc: a row without a zone would have nowhere to keep its placed items");
     self = (layout_row_t *)allocator_alloc(zone, sizeof *self);
 
     entity_init_header(&self->header, &layout_row_class_def);
@@ -308,42 +299,34 @@ static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
     self->placed_items_count = 0;
     self->width = 0;
     self->zone = zone;
-    self->items = (layout_row_cell_t *)allocator_alloc(zone, (size_t)(n > 0 ? n : 1) * sizeof *self->items);
-    self->items_count = n;
-    return self;
-}
-
-static layout_row_t *row_struct_finish(layout_row_t *self) {
-    layout_row_construct(self);
     return self;
 }
 
 static layout_row_t *row_create(const allocator_t *zone, const layout_row_keys_t *keys) {
-    layout_row_t *self = row_struct_alloc(zone, keys != NULL ? keys->count : 0);
-    int k;
+    layout_row_t *self = row_struct_alloc(zone);
 
-    if (keys != NULL) {
-        for (k = 0; k < keys->count; k++) {
-            self->items[k] = row_own_cell(zone, keys->items[k]);
-        }
-        if (keys->has_color) {
-            self->color = keys->color;
-            self->has_color = 1;
-        }
-        if (keys->has_background) {
-            self->background = keys->background;
-            self->has_background = 1;
-            self->background_is_bool = keys->background_is_bool;
-        }
-        if (keys->has_score) {
-            self->score = keys->score;
-            self->has_score = 1;
-        }
-        if (keys->pos != NULL) {
-            entity_set_pos(&self->header, *keys->pos);
-        }
+    if (keys == NULL) {
+        layout_row_construct(self, NULL, 0);
+        return self;
     }
-    return row_struct_finish(self);
+    if (keys->has_color) {
+        self->color = keys->color;
+        self->has_color = 1;
+    }
+    if (keys->has_background) {
+        self->background = keys->background;
+        self->has_background = 1;
+        self->background_is_bool = keys->background_is_bool;
+    }
+    if (keys->has_score) {
+        self->score = keys->score;
+        self->has_score = 1;
+    }
+    if (keys->pos != NULL) {
+        entity_set_pos(&self->header, *keys->pos);
+    }
+    layout_row_construct(self, keys->items, keys->count);
+    return self;
 }
 
 layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap) {
@@ -363,12 +346,10 @@ layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_
 }
 
 layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row) {
-    layout_row_t *self = row_struct_alloc(zone, row->items_count);
+    layout_row_t *self = row_struct_alloc(zone);
+    int n = row->placed_items_count;
     int k;
 
-    for (k = 0; k < row->items_count; k++) {
-        self->items[k] = row_own_cell(zone, row->items[k]);
-    }
     self->color = row->color;
     self->has_color = row->has_color;
     self->background = row->background;
@@ -379,15 +360,16 @@ layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row) 
     if (entity_has_pos(&row->header)) {
         entity_set_pos(&self->header, row->header.pos);
     }
-    return row_struct_finish(self);
-}
-
-void layout_row_add(layout_row_t *self, layout_row_cell_t cell) {
-    self->items = (layout_row_cell_t *)allocator_grow(self->zone, (unsigned char *)self->items,
-                                                     (size_t)self->items_count * sizeof *self->items,
-                                                     (size_t)(self->items_count + 1) * sizeof *self->items);
-    self->items[self->items_count] = row_own_cell(self->zone, cell);
-    self->items_count++;
+    self->placed_items = (layout_row_item_t *)allocator_alloc(zone, (size_t)(n > 0 ? n : 1) * sizeof *self->placed_items);
+    for (k = 0; k < n; k++) {
+        self->placed_items[k] = row->placed_items[k];
+        if (self->placed_items[k].kind == LAYOUT_ROW_ITEM_TEXT) {
+            self->placed_items[k].text = row_copy_text(zone, row->placed_items[k].text);
+        }
+    }
+    self->placed_items_count = n;
+    self->width = row->width;
+    return self;
 }
 
 static const entity_class_t tooltip_class_def = {
