@@ -25,13 +25,15 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
-static const data_row_t *planet_production_tuple(const production_t *kw) {
-    data_row_t *t = (data_row_t *)allocator_alloc(frame_zone(), sizeof *t);
+static layout_row_cell_t planet_production_cell(const production_t *kw) {
+    layout_row_tuple_t tuple = {0};
 
-    memset(t, 0, sizeof *t);
-    t->has_resource = kw->has_resource;
-    t->resource = kw->resource;
-    return t;
+    if (kw->has_resource) {
+        tuple.count = 2;
+        tuple.scalars[0] = layout_row_scalar_fixed(kw->resource);
+        tuple.scalars[1] = layout_row_scalar_fixed(p8_fixed_from_int(5));
+    }
+    return layout_row_cell_tuple(tuple);
 }
 
 void planet_refresh(planet_t *self) {
@@ -261,7 +263,7 @@ void planet_inspection_panel(const planet_t *self) {
                 row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("exports:");
                 row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(combined);
             }
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(planet_production_tuple(kw));
+            row_items[row_count][row_keys[row_count].count++] = planet_production_cell(kw);
             row_count++;
         }
     }
@@ -329,8 +331,8 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, bu
     p8_fixed_t od = research_project_cost(b);
 
     memset(keys, 0, sizeof *keys);
-    if (b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
-        row->layout_row = layout_row_keys_of_row(&b->layout_row, row->layout_row_items, PLANET_ROW_CAP);
+    if (b->has_icon_sprite) {
+        row->layout_row = research_project_icon_row_keys(b, row->layout_row_items, PLANET_ROW_CAP);
         keys->layout_row_keys = &row->layout_row;
     } else if (research_project_layout_row_keys(b, &row->layout_row)) {
         keys->layout_row_keys = &row->layout_row;

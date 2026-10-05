@@ -178,7 +178,6 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     self->has_icon_sprite = 0;
     self->class_name = NULL;
     self->next_type = NULL;
-    self->has = 0;
     self->archetype = &research_project_archetype;
 
     if (keys != NULL && keys->record != NULL) {
@@ -204,14 +203,6 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     if (self->has_icon_sprite) {
         assert(self->name != NULL && "project_create: the row {name, 32, {icon_sprite, 8}} has no hole; a project with an icon_sprite and no name "
                                    "does not fit the row -- stop, do not widen the member");
-        self->layout_row_inner_items[0] = (data_item_t){.is_fixed = 1, .fixed = self->icon_sprite};
-        self->layout_row_inner_items[1] = (data_item_t){.number = 8};
-        self->layout_row_inner = (data_row_t){.count = 2, .items = self->layout_row_inner_items};
-        self->layout_row_items[0] = (data_item_t){.text = self->name};
-        self->layout_row_items[1] = (data_item_t){.number = 32};
-        self->layout_row_items[2] = (data_item_t){.row = &self->layout_row_inner};
-        self->layout_row = (data_row_t){.count = 3, .items = self->layout_row_items};
-        self->has |= RESEARCH_PROJECT_HAS_LAYOUT_ROW;
     }
 
     /* A character that is no resource code still makes a need, with no resource. */

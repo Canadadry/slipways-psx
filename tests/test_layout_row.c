@@ -61,7 +61,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 #define COLONY 12
 #define EXPORTER 3
 
-#define CONSTRUCTIONS_HASH 0x61B9ECEEu
+#define CONSTRUCTIONS_HASH 0x9DC2BF10u
 #define PLANET_RESOURCE_ROW_HASH 0x14A29E3Fu
 #define RESEARCH_PROJECT_LAYOUT_ROW_HASH 0xBF1572BEu
 #define CALLS_HASH 0xAF82B163u
@@ -118,42 +118,18 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 
 /* The frozen hashes were taken when tuples were tables of decoded data:
  * these are the bytes a table folded for its tag and its two kinds of key. */
-enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1 };
+enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0 };
 
-static uint32_t fold_tuple_name(uint32_t h, const char *name) {
-    return fold_string(fnv(h, (uint32_t)VIEW_NAME_KEY), name);
-}
-
-static uint32_t fold_tuple_item(uint32_t h, const data_item_t *item) {
-    if (item->text != NULL) {
-        return fold_string(h, item->text);
-    }
-    if (item->is_false) {
-        return fold_bool(h, 0);
-    }
-    assert(!item->is_ref && "no test folds a tuple item that points (row, layout row, vector): to fold one, fold REF_KIND then 0xDEAD if NULL, else 0 with no rank, as the frozen hashes did");
-    return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
-}
-
-/* A tuple folded as the frozen hashes folded the table it was: items, then
- * its resource, then its color. */
-static uint32_t fold_tuple(uint32_t h, const data_row_t *t, int depth) {
+/* A tuple folded as the frozen hashes folded the table it was: its count,
+ * then each scalar under its index, a nothing one as false. */
+static uint32_t fold_tuple(uint32_t h, layout_row_tuple_t t) {
     int i;
 
     h = fnv(fnv(h, (uint32_t)REF_KIND), (uint32_t)VIEW_TAG);
-    if (depth <= 0) {
-        return h;
-    }
-    h = fnv(h, (uint32_t)(t->count + (t->has_resource != 0) + (t->has_color != 0)));
-    for (i = 0; i < t->count; i++) {
+    h = fnv(h, (uint32_t)t.count);
+    for (i = 0; i < t.count; i++) {
         h = fnv(fnv(h, (uint32_t)VIEW_INDEX_KEY), (uint32_t)(i + 1));
-        h = fold_tuple_item(h, &t->items[i]);
-    }
-    if (t->has_resource) {
-        h = fold_fixed(fold_tuple_name(h, "resource"), t->resource);
-    }
-    if (t->has_color) {
-        h = fold_fixed(fold_tuple_name(h, "color"), p8_fixed_from_int(t->color));
+        h = t.scalars[i].kind == LAYOUT_ROW_SCALAR_FIXED ? fold_fixed(h, t.scalars[i].value) : fold_bool(h, 0);
     }
     return h;
 }
@@ -164,8 +140,8 @@ static uint32_t fold_tuple(uint32_t h, const data_row_t *t, int depth) {
  * absent key at the top level). */
 static uint32_t fold_cell(uint32_t h, layout_row_cell_t c, int nil) {
     switch (c.kind) {
-    case LAYOUT_ROW_CELL_ROW:
-        return fold_tuple(h, c.as.row, 2);
+    case LAYOUT_ROW_CELL_TUPLE:
+        return fold_tuple(h, c.as.tuple);
     case LAYOUT_ROW_CELL_FIXED:
         return fold_fixed(h, c.as.fixed);
     case LAYOUT_ROW_CELL_STRING:
@@ -914,7 +890,9 @@ static void draw_at_on_other(void *e) {
  * resource or more items than the caller holds, and layout_row_draw_at()
  * refuses anything that is not a row. A copy holds its own placed items. */
 static void test_layout_row_is_a_struct(void) {
-    static const data_item_t three[] = {{.text = "a"}, {.is_fixed = 1, .fixed = 0x8000}, {.row = &icon_tooltips_table[0]}};
+    static const data_item_t pair_items[] = {{.number = 24}, {.number = 5}};
+    static const data_row_t pair = {.count = 2, .items = pair_items};
+    static const data_item_t three[] = {{.text = "a"}, {.is_fixed = 1, .fixed = 0x8000}, {.row = &pair}};
     static const data_row_t with_fn = {.count = 1, .items = three, .draw_function = DRAW_FUNCTION_DRAW_ROW};
     static const data_row_t with_resource = {.count = 1, .items = three, .has_resource = 1, .resource = 0x70000};
     static const data_row_t too_long = {.count = 3, .items = three};
@@ -948,13 +926,57 @@ static void test_layout_row_is_a_struct(void) {
     assert(t.items == items && t.count == 2 && t.has_color && t.color == p8_fixed_from_int(7));
     assert(!t.has_background && !t.has_score && t.pos == NULL);
     assert(items[0].kind == LAYOUT_ROW_CELL_FIXED && items[0].as.fixed == 0x8000);
-    assert(items[1].kind == LAYOUT_ROW_CELL_ROW && items[1].as.row == &icon_tooltips_table[0]);
+    assert(items[1].kind == LAYOUT_ROW_CELL_TUPLE && items[1].as.tuple.count == 2 && items[1].as.tuple.scalars[0].value == p8_fixed_from_int(24));
 
     start_game();
     must_abort(keys_of_row, (void *)&with_fn);
     must_abort(keys_of_row, (void *)&with_resource);
     must_abort(keys_of_row, (void *)&too_long);
     must_abort(draw_at_on_other, main_ui());
+}
+
+/* A tuple cell copies its row's scalars: overwriting the row afterwards
+ * changes neither the cell nor what a row laid out from it draws. A row of
+ * a resource reads as {resource, 5}, a NULL row as a nothing cell. */
+static void test_tuple_cell_copies_its_row(void) {
+    data_item_t items[] = {{.number = 13}, {.number = 8}, {.number = 3}, {.is_false = 1}};
+    data_row_t row = {.count = 4, .items = items};
+    data_row_t resource_row = {.has_resource = 1, .resource = p8_fixed_from_int(21)};
+    layout_row_cell_t cell = layout_row_cell_row(&row);
+    layout_row_cell_t of_resource = layout_row_cell_row(&resource_row);
+    layout_row_keys_t keys = positionals(1, &cell);
+    uint32_t want = drawn_by_draw_at(layout_row_new(&heap_allocator, &keys), vec_xy(64, 60), 0);
+
+    memset(items, 0xA5, sizeof items);
+    memset(&row, 0xA5, sizeof row);
+    memset(&resource_row, 0xA5, sizeof resource_row);
+    assert(cell.kind == LAYOUT_ROW_CELL_TUPLE && cell.as.tuple.count == 4);
+    assert(cell.as.tuple.scalars[0].kind == LAYOUT_ROW_SCALAR_FIXED && cell.as.tuple.scalars[0].value == p8_fixed_from_int(13));
+    assert(cell.as.tuple.scalars[2].kind == LAYOUT_ROW_SCALAR_FIXED && cell.as.tuple.scalars[2].value == p8_fixed_from_int(3));
+    assert(cell.as.tuple.scalars[3].kind == LAYOUT_ROW_SCALAR_NOTHING);
+    assert(drawn_by_draw_at(layout_row_new(&heap_allocator, &keys), vec_xy(64, 60), 0) == want);
+    assert(of_resource.kind == LAYOUT_ROW_CELL_TUPLE && of_resource.as.tuple.count == 2);
+    assert(of_resource.as.tuple.scalars[0].value == p8_fixed_from_int(21) && of_resource.as.tuple.scalars[1].value == p8_fixed_from_int(5));
+    assert(layout_row_cell_row(NULL).kind == LAYOUT_ROW_CELL_NOTHING);
+}
+
+static void tuple_of_row(void *e) {
+    (void)layout_row_cell_row(e);
+}
+
+/* A tuple holds numbers only: a row with a text, a nested row or more than
+ * four items is refused. */
+static void test_tuple_refuses_text_and_rows(void) {
+    static const data_item_t text_items[] = {{.text = "tuple"}, {.number = 5}};
+    static const data_row_t with_text = {.count = 2, .items = text_items};
+    static const data_item_t nested_items[] = {{.number = 12}, {.row = &with_text}};
+    static const data_row_t with_row = {.count = 2, .items = nested_items};
+    static const data_item_t five_items[] = {{.number = 1}, {.number = 2}, {.number = 3}, {.number = 4}, {.number = 5}};
+    static const data_row_t too_long = {.count = 5, .items = five_items};
+
+    must_abort(tuple_of_row, (void *)&with_text);
+    must_abort(tuple_of_row, (void *)&with_row);
+    must_abort(tuple_of_row, (void *)&too_long);
 }
 
 /* Each scenario runs in a child forked right after cart_load(), as a fresh
@@ -1025,6 +1047,8 @@ int main(void) {
     in_fresh_child(test_inspection_panel_lab_wants_its_last);
     in_fresh_child(test_layout_row_is_a_struct);
     in_fresh_child(test_row_of_eight_cells_in_bump_zone);
+    in_fresh_child(test_tuple_cell_copies_its_row);
+    in_fresh_child(test_tuple_refuses_text_and_rows);
 
     printf("test_layout_row: all tests passed\n");
     return 0;

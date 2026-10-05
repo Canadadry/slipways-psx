@@ -40,14 +40,7 @@ typedef struct {
     int has_icon_sprite;
     const char *class_name;
     const char *next_type;
-    data_row_t layout_row;
-    data_item_t layout_row_items[3];
-    data_row_t layout_row_inner;
-    data_item_t layout_row_inner_items[2];
-    uint16_t has;
 } research_project_t;
-
-#define RESEARCH_PROJECT_HAS_LAYOUT_ROW (1u << 0)
 
 typedef struct {
     uint16_t index;

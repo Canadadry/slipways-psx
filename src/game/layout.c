@@ -10,6 +10,16 @@
 static int g_layout_up = 0;
 static const entity_class_t layout_row_class_def;
 
+layout_row_scalar_t layout_row_scalar_nothing(void) {
+    layout_row_scalar_t scalar = {.kind = LAYOUT_ROW_SCALAR_NOTHING};
+    return scalar;
+}
+
+layout_row_scalar_t layout_row_scalar_fixed(p8_fixed_t x) {
+    layout_row_scalar_t scalar = {.kind = LAYOUT_ROW_SCALAR_FIXED, .value = x};
+    return scalar;
+}
+
 layout_row_cell_t layout_row_cell_nothing(void) {
     layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_NOTHING};
     return cell;
@@ -27,13 +37,41 @@ layout_row_cell_t layout_row_cell_string(const char *s) {
     return cell;
 }
 
+layout_row_cell_t layout_row_cell_tuple(layout_row_tuple_t tuple) {
+    layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_TUPLE, .as.tuple = tuple};
+
+    assert(tuple.count >= 0 && tuple.count <= LAYOUT_ROW_TUPLE_CAP && "layout_row_cell_tuple: row_measure_item reads four scalars at most");
+    return cell;
+}
+
+static layout_row_scalar_t tuple_scalar_of_item(const data_item_t *item) {
+    assert(item->row == NULL && item->text == NULL && (!item->is_ref || item->ref == NULL) &&
+           "a tuple holds numbers only; a text one needs a pointer in the cell -- stop, measure first");
+    if (item->is_false || item->is_ref) {
+        return layout_row_scalar_nothing();
+    }
+    return layout_row_scalar_fixed(item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
+}
+
 layout_row_cell_t layout_row_cell_row(const data_row_t *row) {
-    layout_row_cell_t cell = {.kind = LAYOUT_ROW_CELL_ROW, .as.row = row};
+    layout_row_tuple_t tuple = {0};
+    int i;
 
     if (row == NULL) {
         return layout_row_cell_nothing();
     }
-    return cell;
+    if (row->has_resource) {
+        tuple.count = 2;
+        tuple.scalars[0] = layout_row_scalar_fixed(row->resource);
+        tuple.scalars[1] = layout_row_scalar_fixed(p8_fixed_from_int(5));
+        return layout_row_cell_tuple(tuple);
+    }
+    assert(row->count <= LAYOUT_ROW_TUPLE_CAP && "layout_row_cell_row: a tuple has four scalars at most; row_measure_item never read a fifth -- stop, do not widen");
+    tuple.count = row->count;
+    for (i = 0; i < row->count; i++) {
+        tuple.scalars[i] = tuple_scalar_of_item(&row->items[i]);
+    }
+    return layout_row_cell_tuple(tuple);
 }
 
 layout_row_cell_t layout_row_cell_item(const data_item_t *item) {
@@ -75,32 +113,24 @@ static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, l
     int have_spacing = 0;
     p8_fixed_t spacing = p8_fixed_from_int(0);
 
-    if (cell.kind == LAYOUT_ROW_CELL_ROW) {
-        const data_row_t *t = cell.as.row;
-        const data_item_t wrap[] = {{.is_fixed = 1, .fixed = t->resource}, {.number = 5}};
-        const data_item_t *items = t->has_resource ? wrap : t->items;
-        int count = t->has_resource ? 2 : t->count;
-        layout_row_cell_t f1, f2, f3, f4;
-        int have_f1 = count >= 1;
-        int have_f2 = count >= 2;
-        int have_f3 = count >= 3;
-        int have_f4 = count >= 4;
+    if (cell.kind == LAYOUT_ROW_CELL_TUPLE) {
+        layout_row_tuple_t t = cell.as.tuple;
+        layout_row_scalar_t f[LAYOUT_ROW_TUPLE_CAP];
+        int i;
 
-        f1 = have_f1 ? row_scalar_item(&items[0]) : layout_row_cell_nothing();
-        f2 = have_f2 ? row_scalar_item(&items[1]) : layout_row_cell_nothing();
-        f3 = have_f3 ? row_scalar_item(&items[2]) : layout_row_cell_nothing();
-        f4 = have_f4 ? row_scalar_item(&items[3]) : layout_row_cell_nothing();
-
-        cell = f1;
-        if (have_f2 && f2.kind == LAYOUT_ROW_CELL_FIXED) {
-            width = f2.as.fixed;
+        for (i = 0; i < LAYOUT_ROW_TUPLE_CAP; i++) {
+            f[i] = i < t.count ? t.scalars[i] : layout_row_scalar_nothing();
         }
-        if (have_f3 && f3.kind == LAYOUT_ROW_CELL_FIXED) {
-            palette_block = f3.as.fixed;
+        cell = f[0].kind == LAYOUT_ROW_SCALAR_FIXED ? layout_row_cell_fixed(f[0].value) : layout_row_cell_nothing();
+        if (f[1].kind == LAYOUT_ROW_SCALAR_FIXED) {
+            width = f[1].value;
         }
-        if (have_f4 && f4.kind != LAYOUT_ROW_CELL_NOTHING) {
+        if (f[2].kind == LAYOUT_ROW_SCALAR_FIXED) {
+            palette_block = f[2].value;
+        }
+        if (f[3].kind == LAYOUT_ROW_SCALAR_FIXED) {
             have_spacing = 1;
-            spacing = (f4.kind == LAYOUT_ROW_CELL_FIXED) ? f4.as.fixed : p8_fixed_from_int(0);
+            spacing = f[3].value;
         }
     }
 

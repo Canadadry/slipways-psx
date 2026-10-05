@@ -292,7 +292,8 @@ static layout_row_t *row_of_frame_text(const allocator_t *zone, const char *s) {
 }
 
 /* The texts of a cell come from the frame zone: after the reset, the panel
- * still draws its copy. */
+ * still draws its copy, and a tuple cell made from a frame-zone row still
+ * lays out. */
 static int case_panel_texts_survive_reset(void) {
     data_item_t line = {.text = frame_text("bubble")};
     data_row_t bubble_row = {.count = 1, .items = &line};
@@ -303,14 +304,17 @@ static int case_panel_texts_survive_reset(void) {
     layout_row_t *row = layout_row_new(&heap_allocator, &two_keys);
     layout_row_t *copy = layout_row_copy(&heap_allocator, row_of_frame_text(frame_zone(), "copy"));
     tooltip_t *bubble = tooltip_new(&heap_allocator, &bubble_row);
-    data_item_t tuple_items[] = {{.text = frame_text("tuple")}, {.number = 5}};
+    data_item_t *tuple_items = (data_item_t *)allocator_alloc(frame_zone(), 2 * sizeof *tuple_items);
     data_row_t *tuple = (data_row_t *)allocator_alloc(frame_zone(), sizeof *tuple);
+    tuple_items[0] = (data_item_t){.number = 12};
+    tuple_items[1] = (data_item_t){.number = 5};
     *tuple = (data_row_t){.count = 2, .items = tuple_items};
     layout_row_cell_t tuple_cell = layout_row_cell_row(tuple);
     layout_row_keys_t tuple_keys = {.items = &tuple_cell, .count = 1};
-    layout_row_t *of_tuple = layout_row_new(&heap_allocator, &tuple_keys);
+    layout_row_t *of_tuple;
     frame_zone_reset();
     allocate_again();
+    of_tuple = layout_row_new(&heap_allocator, &tuple_keys);
     sink = (unsigned char)(read_placed_texts(row) + read_placed_texts(copy) + read_placed_texts(bubble->rows[0]));
     layout_row_draw_at_default(&graphics, &memory, row, vec_make(0, 0));
     layout_row_draw_at_default(&graphics, &memory, copy, vec_make(0, 0));

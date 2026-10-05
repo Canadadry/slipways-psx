@@ -2071,8 +2071,8 @@ static void test_largest_buttons_fit_their_slots(void) {
         layout_row_keys_t h = {.items = &h_item, .count = 1};
         button_keys_t keys = {.has_side_tooltip = 1, .side_tooltip_row = &h, .has_tooltip = 1};
 
-        if (b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
-            lq = layout_row_keys_of_row(&b->layout_row, layout_row_items, 8);
+        if (b->has_icon_sprite) {
+            lq = research_project_icon_row_keys(b, layout_row_items, 8);
             keys.layout_row_keys = &lq;
         } else if (research_project_layout_row_keys(b, &lq)) {
             keys.layout_row_keys = &lq;

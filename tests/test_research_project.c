@@ -116,7 +116,7 @@ static int projects_rank(const void *e) {
 }
 
 /* The kind words the frozen hashes fold before a value, FUNCTION_KIND the one
- * a project without `layout_row` folds in place of its row (PROJECTS_HASH);
+ * a project without an icon row folds in place of its row (PROJECTS_HASH);
  * the enum entries are gone. Any other value moves them. */
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
@@ -281,6 +281,31 @@ static uint32_t fold_row(uint32_t h, const data_row_t *row, int depth) {
         h = fold_string(fold_view_name(h, "draw_function"), draw_function_names[row->draw_function]);
     }
     return h;
+}
+
+/* A cell folded as the frozen hashes folded the item it was: a string, a
+ * number, or a tuple as a row of numbers (nothing as false). */
+static uint32_t fold_cell(uint32_t h, layout_row_cell_t cell) {
+    int i;
+
+    switch (cell.kind) {
+    case LAYOUT_ROW_CELL_STRING:
+        return fold_string(h, cell.as.text);
+    case LAYOUT_ROW_CELL_FIXED:
+        return fold_fixed(h, cell.as.fixed);
+    case LAYOUT_ROW_CELL_TUPLE:
+        h = fold_view_head(h, cell.as.tuple.count);
+        for (i = 0; i < cell.as.tuple.count; i++) {
+            layout_row_scalar_t scalar = cell.as.tuple.scalars[i];
+
+            h = fold_view_index(h, i + 1);
+            h = scalar.kind == LAYOUT_ROW_SCALAR_FIXED ? fold_fixed(h, scalar.value) : fold_bool(h, 0);
+        }
+        return h;
+    default:
+        assert(0 && "fold_cell: the icon row holds a string, a number and a tuple");
+        return h;
+    }
 }
 
 /* A placed item as drawn: its kind, then its text and color or its sprite
@@ -478,18 +503,19 @@ static void test_projects(void) {
             qe = need_resource(i_list->items[inner_index]);
             hash = fold_resource(hash, qe);
         }
-        if (built->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW) {
-            const data_row_t *lq = &built->layout_row;
-            /* Constant by the struct's shape, kept so that PROJECTS_HASH
-             * still proves the typed reads. */
+        if (built->has_icon_sprite) {
+            layout_row_cell_t cells[3];
+            layout_row_keys_t icon_keys = research_project_icon_row_keys(built, cells, 3);
+
+            /* Constant by the row's shape, kept so that PROJECTS_HASH still
+             * proves the typed reads. */
             hash = fnv(hash, (uint32_t)REF_KIND);
-            assert(built->has_icon_sprite);
-            for (inner_index = 1; inner_index <= 3; inner_index++) {
-                hash = inner_index <= lq->count ? fold_item(hash, &lq->items[inner_index - 1], 2) : fnv(hash, 0xFFFFFFFFu);
+            assert(icon_keys.count == 3 && !icon_keys.has_color);
+            for (inner_index = 0; inner_index < 3; inner_index++) {
+                hash = fold_cell(hash, icon_keys.items[inner_index]);
             }
         } else {
             hash = fnv(hash, (uint32_t)FUNCTION_KIND);
-            assert(!built->has_icon_sprite);
         }
 
         if (index == 1) {
@@ -514,7 +540,7 @@ static void test_projects(void) {
 
 /* Per project: its production as an entry of `production_tables_table`, its
  * cost, its tooltip and its layout row, the same each time it is built for a
- * project without `layout_row`. */
+ * project without an icon row. */
 static uint32_t fold_functions(uint32_t h) {
     int k;
 
@@ -532,7 +558,7 @@ static uint32_t fold_functions(uint32_t h) {
         assert((jb == NULL) == (b->has_icon_sprite != 0));
         layout_row_h = fold_layout_row_instance(2166136261u, project_row(b));
         h = fnv(h, layout_row_h);
-        if (!(b->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW)) {
+        if (!b->has_icon_sprite) {
             assert(fold_layout_row_instance(2166136261u, project_row(b)) == layout_row_h);
         }
     }
@@ -1048,10 +1074,26 @@ static void test_research_project_is_a_struct(void) {
     assert(bare != NULL && bare->header.class == cls);
     assert(bare->archetype == &research_project_archetype && bare->archetype == b->archetype);
     assert(bare->inputs.count == 0 && bare->inputs.zone == game_zone_load_zone());
-    assert(!(bare->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW));
     assert(bare->name == NULL && bare->planet_codes == NULL && !bare->has_base_cost && bare->production_key == NULL && !bare->has_output);
     assert(!bare->has_upgrade_tech && !bare->has_byproduct && bare->required_tech == NULL && !bare->has_icon_sprite && bare->class_name == NULL);
     assert(bare->next_type == NULL);
+
+    for (j = 1; j <= PROJECTS_COUNT; j++) {
+        research_project_t *with_icon = project(j);
+        layout_row_cell_t cells[3];
+        layout_row_keys_t keys;
+
+        if (!with_icon->has_icon_sprite) {
+            continue;
+        }
+        keys = research_project_icon_row_keys(with_icon, cells, 3);
+        assert(keys.items == cells && keys.count == 3 && !keys.has_color && !keys.has_background && !keys.has_score && keys.pos == NULL);
+        assert(cells[0].kind == LAYOUT_ROW_CELL_STRING && strcmp(cells[0].as.text, with_icon->name) == 0);
+        assert(cells[1].kind == LAYOUT_ROW_CELL_FIXED && cells[1].as.fixed == p8_fixed_from_int(32));
+        assert(cells[2].kind == LAYOUT_ROW_CELL_TUPLE && cells[2].as.tuple.count == 2);
+        assert(cells[2].as.tuple.scalars[0].kind == LAYOUT_ROW_SCALAR_FIXED && cells[2].as.tuple.scalars[0].value == with_icon->icon_sprite);
+        assert(cells[2].as.tuple.scalars[1].kind == LAYOUT_ROW_SCALAR_FIXED && cells[2].as.tuple.scalars[1].value == p8_fixed_from_int(8));
+    }
 
     start_game();
     must_abort(build_with_header, NULL);

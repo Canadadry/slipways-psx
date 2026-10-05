@@ -100,22 +100,10 @@ const data_row_t *research_project_tooltip(const research_project_t *self) {
     return &jb->outer;
 }
 
-typedef struct {
-    data_row_t row;
-    data_item_t items[4];
-} planet_resource_row_tuple_t;
+static layout_row_cell_t planet_resource_row_pair(layout_row_scalar_t first, p8_fixed_t width) {
+    layout_row_tuple_t tuple = {.count = 2, .scalars = {first, layout_row_scalar_fixed(width)}};
 
-static planet_resource_row_tuple_t *planet_resource_row_tuple(int count) {
-    planet_resource_row_tuple_t *t = (planet_resource_row_tuple_t *)allocator_alloc(frame_zone(), sizeof *t);
-
-    memset(t, 0, sizeof *t);
-    t->row.count = count;
-    t->row.items = t->items;
-    return t;
-}
-
-static data_item_t planet_resource_row_fixed(p8_fixed_t x) {
-    return (data_item_t){.is_fixed = 1, .fixed = x};
+    return layout_row_cell_tuple(tuple);
 }
 
 static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output, p8_fixed_t output, p8_fixed_t amount,
@@ -166,7 +154,7 @@ static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output
         void *entry;
 
         while (pointer_list_iter_next(&it, &entry)) {
-            planet_resource_row_tuple_t *tuple = planet_resource_row_tuple(3);
+            layout_row_tuple_t tuple = {.count = 3};
             resource_t qe = {.kind = RESOURCE_NIL};
             int gc_zero = 0;
 
@@ -176,31 +164,22 @@ static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output
                 qe = need_resource(i);
                 gc_zero = i->has_satisfied && i->satisfied == 0;
             }
-            tuple->items[0] = qe.kind == RESOURCE_FIXED ? planet_resource_row_fixed(qe.number)
-                                                           : (data_item_t){.is_ref = 1};
-            tuple->items[1] = planet_resource_row_fixed(p8_fixed_sub(p8_fixed_from_int(3), p8_fixed_from_int(crowded)));
-            tuple->items[2] = planet_resource_row_fixed(p8_fixed_from_int(gc_zero ? 7 : 0));
-            cells[l_count++] = layout_row_cell_row(&tuple->row);
+            tuple.scalars[0] = qe.kind == RESOURCE_FIXED ? layout_row_scalar_fixed(qe.number) : layout_row_scalar_nothing();
+            tuple.scalars[1] = layout_row_scalar_fixed(p8_fixed_sub(p8_fixed_from_int(3), p8_fixed_from_int(crowded)));
+            tuple.scalars[2] = layout_row_scalar_fixed(p8_fixed_from_int(gc_zero ? 7 : 0));
+            cells[l_count++] = layout_row_cell_tuple(tuple);
         }
     }
 
     if (is_count > 0) {
-        planet_resource_row_tuple_t *t1 = planet_resource_row_tuple(2);
-        planet_resource_row_tuple_t *t2 = planet_resource_row_tuple(2);
         int use_35 = (spacing == p8_fixed_from_int(1)) || wide;
 
-        t1->items[0] = (data_item_t){.is_false = 1};
-        t1->items[1] = planet_resource_row_fixed(p8_fixed_add(spacing, p8_fixed_from_int(crowded)));
-        cells[l_count++] = layout_row_cell_row(&t1->row);
-
+        cells[l_count++] = planet_resource_row_pair(layout_row_scalar_nothing(), p8_fixed_add(spacing, p8_fixed_from_int(crowded)));
         if (use_35) {
-            t2->items[0] = planet_resource_row_fixed(p8_fixed_from_int(35));
-            t2->items[1] = planet_resource_row_fixed(p8_fixed_add(p8_fixed_from_int(2), spacing));
+            cells[l_count++] = planet_resource_row_pair(layout_row_scalar_fixed(p8_fixed_from_int(35)), p8_fixed_add(p8_fixed_from_int(2), spacing));
         } else {
-            t2->items[0] = planet_resource_row_fixed(p8_fixed_from_int(32));
-            t2->items[1] = planet_resource_row_fixed(p8_fixed_from_int(5));
+            cells[l_count++] = planet_resource_row_pair(layout_row_scalar_fixed(p8_fixed_from_int(32)), p8_fixed_from_int(5));
         }
-        cells[l_count++] = layout_row_cell_row(&t2->row);
     }
 
     if (amount > p8_fixed_from_int(5)) {
@@ -225,15 +204,14 @@ static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output
             int i;
 
             for (i = 1; i <= n; i++) {
-                planet_resource_row_tuple_t *t4 = planet_resource_row_tuple(4);
                 p8_fixed_t i_fixed = p8_fixed_from_int(i);
                 int within = (i_fixed <= amount) && (i_fixed > used);
+                layout_row_tuple_t tuple = {.count = 4,
+                                            .scalars = {layout_row_scalar_fixed(qq), layout_row_scalar_fixed(p8_fixed_from_int(6)),
+                                                        layout_row_scalar_fixed(p8_fixed_from_int(within ? 0 : 7)),
+                                                        layout_row_scalar_fixed(p8_fixed_from_int(wide ? -4 : -3))}};
 
-                t4->items[0] = planet_resource_row_fixed(qq);
-                t4->items[1] = planet_resource_row_fixed(p8_fixed_from_int(6));
-                t4->items[2] = planet_resource_row_fixed(p8_fixed_from_int(within ? 0 : 7));
-                t4->items[3] = planet_resource_row_fixed(p8_fixed_from_int(wide ? -4 : -3));
-                cells[l_count++] = layout_row_cell_row(&t4->row);
+                cells[l_count++] = layout_row_cell_tuple(tuple);
             }
 
             cells[l_count++] = layout_row_cell_row(planet_spacer());
@@ -281,6 +259,21 @@ int research_project_layout_row_keys(const research_project_t *self, layout_row_
         cells[out_keys->count++] = layout_row_cell_string(self->name);
     }
     return 1;
+}
+
+layout_row_keys_t research_project_icon_row_keys(const research_project_t *self, layout_row_cell_t *cells, int cap) {
+    layout_row_keys_t keys = {0};
+    layout_row_tuple_t icon = {.count = 2};
+
+    assert(self->has_icon_sprite && cap >= 3 && "research_project_icon_row_keys: the row {name, 32, {icon_sprite, 8}} is a project with an icon sprite's");
+    icon.scalars[0] = layout_row_scalar_fixed(self->icon_sprite);
+    icon.scalars[1] = layout_row_scalar_fixed(p8_fixed_from_int(8));
+    cells[0] = layout_row_cell_string(self->name);
+    cells[1] = layout_row_cell_fixed(p8_fixed_from_int(32));
+    cells[2] = layout_row_cell_tuple(icon);
+    keys.items = cells;
+    keys.count = 3;
+    return keys;
 }
 
 static int available_projects_predicate(const research_project_t *b, const entity_t *planet_instance) {

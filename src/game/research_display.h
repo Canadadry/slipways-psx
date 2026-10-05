@@ -10,6 +10,9 @@
 /* Fills `out_keys` with cells in the frame zone and returns 1; returns 0, keys untouched, when the project has no output. */
 int research_project_layout_row_keys(const research_project_t *self, layout_row_keys_t *out_keys);
 
+/* Keys of the row {name, 32, {icon_sprite, 8}} in `cells`, for a project with an icon sprite. */
+layout_row_keys_t research_project_icon_row_keys(const research_project_t *self, layout_row_cell_t *cells, int cap);
+
 const data_row_t *research_project_tooltip(const research_project_t *self);
 
 /* Fills `out_keys` with cells in the frame zone and returns 1; returns 0, keys untouched, when there is no output. */

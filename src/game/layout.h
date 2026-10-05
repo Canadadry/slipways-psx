@@ -28,16 +28,34 @@ typedef enum {
     LAYOUT_ROW_CELL_NOTHING,
     LAYOUT_ROW_CELL_FIXED,
     LAYOUT_ROW_CELL_STRING,
-    LAYOUT_ROW_CELL_ROW,
+    LAYOUT_ROW_CELL_TUPLE,
     LAYOUT_ROW_CELL_TRUE
 } layout_row_cell_kind_t;
+
+typedef enum {
+    LAYOUT_ROW_SCALAR_NOTHING,
+    LAYOUT_ROW_SCALAR_FIXED
+} layout_row_scalar_kind_t;
+
+typedef struct {
+    layout_row_scalar_kind_t kind;
+    p8_fixed_t value;
+} layout_row_scalar_t;
+
+#define LAYOUT_ROW_TUPLE_CAP 4
+
+/* Drawn item, width, palette block, spacing: a scalar past `count` reads as nothing. */
+typedef struct {
+    int count;
+    layout_row_scalar_t scalars[LAYOUT_ROW_TUPLE_CAP];
+} layout_row_tuple_t;
 
 typedef struct {
     layout_row_cell_kind_t kind;
     union {
         p8_fixed_t fixed;
         const char *text;
-        const data_row_t *row;
+        layout_row_tuple_t tuple;
     } as;
 } layout_row_cell_t;
 
@@ -88,9 +106,14 @@ typedef struct {
 
 layout_row_t *layout_row_new(const allocator_t *zone, const layout_row_keys_t *keys);
 
+layout_row_scalar_t layout_row_scalar_nothing(void);
+layout_row_scalar_t layout_row_scalar_fixed(p8_fixed_t x);
+
 layout_row_cell_t layout_row_cell_nothing(void);
 layout_row_cell_t layout_row_cell_fixed(p8_fixed_t x);
 layout_row_cell_t layout_row_cell_string(const char *s);
+layout_row_cell_t layout_row_cell_tuple(layout_row_tuple_t tuple);
+/* Copies the row's scalars: the cell keeps nothing of `row`. NULL gives a nothing cell. */
 layout_row_cell_t layout_row_cell_row(const data_row_t *row);
 layout_row_cell_t layout_row_cell_item(const data_item_t *item);
 
