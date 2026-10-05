@@ -14,33 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-27 — The camera never shows anything outside the background grid
-
-Lua: `qb:ph`, `mid(-64,320,…)`, `qb:md`, `camera`.
-
-The cart clamps the camera's top-left corner to [−64, 320] on each axis,
-for a 128-pixel view. The background is drawn at parallax 0.5
-(`layer_fades_table[0]`) and its grid runs from 0 to
-`BACKGROUND_GRID_EDGE` (262) (`background_draw`). At the clamp limits, the cart's
-view shows 32 px of empty space at the top and left, and 26 px at the
-right and bottom.
-
-The port clamps the camera so that the `P8_SCREEN_WIDTH` ×
-`P8_SCREEN_HEIGHT` view stays inside the grid: from 0 to
-(`BACKGROUND_GRID_EDGE` + 1 − size) / 0.5, that is x ∈ [0, 206] and
-y ∈ [0, 286] at 160×120. The shaken position (`pos`) is clamped too,
-whereas the cart shakes past its clamp limits.
-
-Planets are placed in [16, 368) (`galaxy_populate`). In y, the view covers
-[0, 405]: all planets stay well clear of the
-top and bottom HUD bars. In x, it covers
-[0, 365]: a planet at the very right edge (x = 367.99, rolled in
-`pause_restart`) has its center 2 px outside the view at the clamp limit, but 6
-columns of its disc are visible and its click box (± 7 px) reaches
-column 155.
-
-Files: `src/game/scroll.c` (`camera_bound`), `src/game/background.h`.
-
 ## GAP-28 — A background held on the right does not drag the new game's camera on the restart frame
 
 Lua: `ui:bh`, `ui:jz`, `rheld`, `hq`, `mo`, `ui:lj`.

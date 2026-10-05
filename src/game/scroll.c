@@ -63,7 +63,6 @@ camera_t *camera_new(void) {
     return camera_create();
 }
 
-/* GAP-27 */
 static p8_fixed_t camera_bound(p8_fixed_t p, int frame_size) {
     p8_fixed_t far = p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - frame_size), layer_fades_table[0]);
 
