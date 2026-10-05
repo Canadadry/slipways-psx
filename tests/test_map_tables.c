@@ -124,13 +124,12 @@ static p8_fixed_t never_drawn(void *ctx) {
     return 0;
 }
 
-/* galaxy_populate() hands weighted_picker_new() every planet_types_table
- * entry, in order, at a multiplier of 2. */
+/* galaxy_populate() builds the picker at a multiplier of 2. */
 static void test_weighted_picker_pools_planet_types_entries_by_their_weight(void) {
     weighted_picker_t *state;
     int i;
 
-    state = weighted_picker_new(frame_zone(), planet_types_table, PLANET_TYPES_COUNT, p8_fixed_from_int(2), never_drawn, NULL);
+    state = weighted_picker_new(frame_zone(), p8_fixed_from_int(2), never_drawn, NULL);
     assert(state->tickets_count == 66);
     for (i = 0; i < PLANET_TYPES_COUNT; i++) {
         int want = p8_fixed_flr_int(p8_fixed_mul(planet_types_table[i].weight, p8_fixed_from_int(2)));
@@ -142,6 +141,61 @@ static void test_weighted_picker_pools_planet_types_entries_by_their_weight(void
         }
         assert(got == want);
     }
+}
+
+typedef struct {
+    int calls;
+} counting_random_t;
+
+static p8_fixed_t counting_random(void *ctx) {
+    counting_random_t *source = (counting_random_t *)ctx;
+
+    source->calls++;
+    assert(source->calls <= 1000 && "weighted_picker_next: the draw loop never ends");
+    return (p8_fixed_t)((source->calls * 0x9e37) & 0xffff);
+}
+
+static int is_ticketed_planet_type(const planet_types_entry_t *e) {
+    int i;
+
+    for (i = 0; i < PLANET_TYPES_COUNT; i++) {
+        if (e == &planet_types_table[i]) {
+            return planet_types_table[i].weight > 0;
+        }
+    }
+    return 0;
+}
+
+static void test_weighted_picker_refills_an_empty_pool(void) {
+    counting_random_t source = {0};
+    weighted_picker_t *state = weighted_picker_new(frame_zone(), p8_fixed_from_int(2), counting_random, &source);
+    const planet_types_entry_t *e;
+    int i;
+
+    for (i = 0; i < state->tickets_count; i++) {
+        state->tickets[i] = NULL;
+    }
+    state->tickets_count = 0;
+    e = weighted_picker_next(state);
+    assert(is_ticketed_planet_type(e));
+    assert(state->tickets_count == 65);
+}
+
+static void test_weighted_picker_refills_a_pool_of_recent_tickets(void) {
+    counting_random_t source = {0};
+    weighted_picker_t *state = weighted_picker_new(frame_zone(), p8_fixed_from_int(2), counting_random, &source);
+    const planet_types_entry_t *recent = state->tickets[0];
+    const planet_types_entry_t *e;
+    int i;
+
+    for (i = 1; i < state->tickets_count; i++) {
+        state->tickets[i] = NULL;
+    }
+    state->tickets_count = 1;
+    state->recent[0] = recent;
+    state->recent_set[0] = 1;
+    e = weighted_picker_next(state);
+    assert(is_ticketed_planet_type(e) && e != recent);
 }
 
 /* Strings are not interned: no string field of the planet archetypes shares
@@ -211,6 +265,8 @@ int main(void) {
     test_production_tables_lookup_finds_each_key();
     test_planet_types_lookup_finds_each_name();
     test_weighted_picker_pools_planet_types_entries_by_their_weight();
+    test_weighted_picker_refills_an_empty_pool();
+    test_weighted_picker_refills_a_pool_of_recent_tickets();
     test_int_seq_has_fixed_keeps_contains_on_integers();
     test_planet_tree_strings_are_distinct_objects();
     test_technologies_lookup_finds_each_name();

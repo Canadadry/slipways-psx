@@ -22,12 +22,13 @@ typedef struct {
     int tickets_count;
     const planet_types_entry_t *recent[3];
     int recent_set[3];
+    p8_fixed_t multiplier;
     weighted_picker_random_fn_t random;
     void *random_ctx;
 } weighted_picker_t;
 
-weighted_picker_t *weighted_picker_new(const allocator_t *zone, const planet_types_entry_t *hr, int entries_count,
-                           p8_fixed_t og, weighted_picker_random_fn_t r, void *r_ctx);
+/* Pools planet_types_table, each entry floor(weight * multiplier) times. */
+weighted_picker_t *weighted_picker_new(const allocator_t *zone, p8_fixed_t multiplier, weighted_picker_random_fn_t r, void *r_ctx);
 const planet_types_entry_t *weighted_picker_next(weighted_picker_t *state);
 
 #endif

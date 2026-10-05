@@ -186,30 +186,6 @@ in one place and not in the others.
 
 Files: `src/game/economy_formulas.c`, `src/engine/entity.c`.
 
-## GAP-16 — The weighted pick reads out of bounds if its pool runs empty
-
-Lua: `gn()`, `gn_next()`, `oc.items[0]`, `df`, `bw(90)`, `jo:hh`,
-`oc[flr(r()*0+1)]`, `until not gu(nm,e)`.
-
-`weighted_picker_new` builds a **consumable** pool of tickets: each
-`weighted_picker_next` removes the ticket it drew, and nothing refills it.
-Once the pool is empty, `idx0` is 0 and the code reads ticket 0 of an
-empty list. `tickets` can be `NULL`.
-
-The numbers, computed on the repository's planet-type literal with `og`
-at 2: **66 tickets**. `galaxy_populate` places 90 planets, and
-`planet_roll_type` draws a ticket for each one that does not take the
-fixed branch (about 55% of cases). The expected value stays under 66, but
-the tail of the distribution goes past it.
-
-Found while reworking the comments: an agent wanted to add an `assert`
-that `tickets_count` is positive, and computed the margin before writing
-it. The assert would have fired. Neither the cart nor this port guards
-against this case. In Lua, drawing from an empty list yields nil and the
-draw loop spins forever, which is no better.
-
-File: `src/game/gen.c`.
-
 ## GAP-17 — The pseudo-random generator is not PICO-8's
 
 Lua: `rnd`.

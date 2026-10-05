@@ -37,34 +37,47 @@ static int weighted_picker_recent_contains(const weighted_picker_t *state, const
     return 0;
 }
 
-weighted_picker_t *weighted_picker_new(const allocator_t *zone, const planet_types_entry_t *hr, int entries_count,
-                           p8_fixed_t og, weighted_picker_random_fn_t r, void *r_ctx) {
-    weighted_picker_t *state = (weighted_picker_t *)allocator_alloc(zone, sizeof *state);
+static void weighted_picker_fill(weighted_picker_t *state) {
     int i;
 
     state->tickets_count = 0;
-    for (i = 0; i < 3; i++) {
-        state->recent[i] = NULL;
-        state->recent_set[i] = 0;
-    }
-    state->random = r;
-    state->random_ctx = r_ctx;
+    for (i = 0; i < PLANET_TYPES_COUNT; i++) {
+        const planet_types_entry_t *entity = &planet_types_table[i];
+        int count = p8_fixed_flr_int(p8_fixed_mul(entity->weight, state->multiplier));
+        int n;
 
-    for (i = 0; i < entries_count; i++) {
-        const planet_types_entry_t *entity = &hr[i];
-        p8_fixed_t count_fixed;
-        int count, n;
-
-        count_fixed = p8_fixed_flr(p8_fixed_mul(entity->weight, og));
-        count = p8_fixed_flr_int(count_fixed);
         for (n = 1; n <= count; n++) {
-            assert(state->tickets_count < WEIGHTED_PICKER_TICKETS_CAP && "weighted_picker_new: the ticket pool is sized for its one game call, "
+            assert(state->tickets_count < WEIGHTED_PICKER_TICKETS_CAP && "weighted_picker_fill: the ticket pool is sized for "
                    "planet_types_table at a multiplier of 2; a larger table or multiplier needs a larger WEIGHTED_PICKER_TICKETS_CAP");
             state->tickets[state->tickets_count++] = entity;
         }
     }
+}
 
+weighted_picker_t *weighted_picker_new(const allocator_t *zone, p8_fixed_t multiplier, weighted_picker_random_fn_t r, void *r_ctx) {
+    weighted_picker_t *state = (weighted_picker_t *)allocator_alloc(zone, sizeof *state);
+    int i;
+
+    for (i = 0; i < 3; i++) {
+        state->recent[i] = NULL;
+        state->recent_set[i] = 0;
+    }
+    state->multiplier = multiplier;
+    state->random = r;
+    state->random_ctx = r_ctx;
+    weighted_picker_fill(state);
     return state;
+}
+
+static int weighted_picker_has_drawable_ticket(const weighted_picker_t *state) {
+    int i;
+
+    for (i = 0; i < state->tickets_count; i++) {
+        if (!weighted_picker_recent_contains(state, state->tickets[i])) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 static void weighted_picker_tickets_del(weighted_picker_t *state, const planet_types_entry_t *e) {
@@ -79,9 +92,12 @@ static void weighted_picker_tickets_del(weighted_picker_t *state, const planet_t
     }
 }
 
-/* GAP-16 */
 const planet_types_entry_t *weighted_picker_next(weighted_picker_t *state) {
     const planet_types_entry_t *e;
+
+    if (!weighted_picker_has_drawable_ticket(state)) {
+        weighted_picker_fill(state);
+    }
 
     for (;;) {
         p8_fixed_t r_val = state->random(state->random_ctx);

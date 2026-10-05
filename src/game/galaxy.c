@@ -58,8 +58,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
     }
 
     type_picker_random = random_walk_new(game_zone(), P8_FIXED_LIT(0x00008000, 0.5), difficulty_type_bias);
-    type_picker_state = weighted_picker_new(game_zone(), planet_types_table, PLANET_TYPES_COUNT, p8_fixed_from_int(2), picker_random,
-                        type_picker_random);
+    type_picker_state = weighted_picker_new(game_zone(), p8_fixed_from_int(2), picker_random, type_picker_random);
     planet_set_type_picker(type_picker_state);
 
     vanish_roll_state = random_walk_new(game_zone(), P8_FIXED_LIT(0x0000cccc, 0.8), P8_FIXED_LIT(0x00008000, 0.5));
