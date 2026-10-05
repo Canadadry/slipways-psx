@@ -113,6 +113,8 @@ static void row_measure_item(const layout_row_t *self, layout_row_cell_t cell, l
     int have_spacing = 0;
     p8_fixed_t spacing = p8_fixed_from_int(0);
 
+    /* Zones never clear memory: without this, the fields a kind leaves unset hold stale bytes. */
+    memset(out_item, 0, sizeof *out_item);
     if (cell.kind == LAYOUT_ROW_CELL_TUPLE) {
         layout_row_tuple_t t = cell.as.tuple;
         layout_row_scalar_t f[LAYOUT_ROW_TUPLE_CAP];

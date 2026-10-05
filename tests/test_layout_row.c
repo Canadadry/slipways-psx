@@ -614,6 +614,40 @@ static void test_row_of_eight_cells_in_bump_zone(void) {
     assert(drawn_after_copy(&handle) == want);
 }
 
+BUMP_ZONE_STORAGE(stale_cells, 1024);
+
+/* A text, a sprite and a nothing laid out in zone storage first filled
+ * with `pattern`: the placed items, copied out of the zone. */
+static void placed_after_fill(unsigned char pattern, layout_row_item_t *out) {
+    layout_row_cell_t cells[3];
+    layout_row_keys_t keys;
+    bump_zone_t bump;
+    allocator_t handle;
+    layout_row_t *lq;
+
+    cells[0] = str("hi");
+    cells[1] = num(12);
+    cells[2] = layout_row_cell_nothing();
+    keys = positionals(3, cells);
+    memset(stale_cells, pattern, sizeof stale_cells);
+    bump_zone_init(&bump, "test-stale", stale_cells, 1024);
+    handle = allocator_from_bump_zone(&bump);
+    lq = layout_row_new(&handle, &keys);
+    assert(lq->placed_items_count == 3);
+    memcpy(out, lq->placed_items, 3 * sizeof *out);
+}
+
+/* Placed items hold no stale zone bytes: the same keys laid out over two
+ * different garbage patterns give byte-identical items. */
+static void test_placed_items_ignore_stale_zone_bytes(void) {
+    layout_row_item_t over_a5[3];
+    layout_row_item_t over_5a[3];
+
+    placed_after_fill(0xA5, over_a5);
+    placed_after_fill(0x5A, over_5a);
+    assert(memcmp(over_a5, over_5a, sizeof over_a5) == 0);
+}
+
 /* A game started as cart_start_game() starts it, with no difficulty
  * picked: a NULL difficulty reads as difficulty 0. */
 static void start_game(void) {
@@ -1049,6 +1083,7 @@ int main(void) {
     in_fresh_child(test_row_of_eight_cells_in_bump_zone);
     in_fresh_child(test_tuple_cell_copies_its_row);
     in_fresh_child(test_tuple_refuses_text_and_rows);
+    in_fresh_child(test_placed_items_ignore_stale_zone_bytes);
 
     printf("test_layout_row: all tests passed\n");
     return 0;
