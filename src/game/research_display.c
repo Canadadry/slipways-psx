@@ -22,10 +22,7 @@ static char *research_project_tooltip_join(const research_project_t *self) {
     void *entry;
 
     names[0] = '\0';
-    if (self->inputs == NULL) {
-        return names;
-    }
-    i_list = self->inputs;
+    i_list = &self->inputs;
     iter = pointer_list_all(i_list);
     while (pointer_list_iter_next(&iter, &entry)) {
         resource_t qe = {.kind = RESOURCE_NIL};
@@ -254,17 +251,12 @@ layout_row_t *research_display_planet_resource_row(const allocator_t *zone, cons
 
 layout_row_t *research_project_layout_row(research_project_t *self) {
     p8_fixed_t jq;
-    const pointer_list_t *is = NULL;
     const production_tables_entry_t *po;
     layout_row_t *l;
 
     research_project_assert(self);
     if (self == NULL || !research_project_ready()) {
         return NULL;
-    }
-
-    if (self->inputs != NULL) {
-        is = self->inputs;
     }
 
     po = research_project_production(self);
@@ -274,7 +266,7 @@ layout_row_t *research_project_layout_row(research_project_t *self) {
         jq = (first_production > p8_fixed_from_int(1)) ? first_production : p8_fixed_from_int(1);
     }
 
-    l = research_display_planet_resource_row(frame_zone(), is, self->has_output ? &self->output : NULL, jq, p8_fixed_from_int(0), p8_fixed_from_int(1));
+    l = research_display_planet_resource_row(frame_zone(), &self->inputs, self->has_output ? &self->output : NULL, jq, p8_fixed_from_int(0), p8_fixed_from_int(1));
     if (l == NULL) {
         return NULL;
     }

@@ -673,7 +673,8 @@ static void test_offer_trade_wildcard_want(void) {
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, want);
     qh = structure_new(NULL);
-    qh->needs = jy;
+    qh->needs = *jy;
+    qh->has |= PLANET_HAS_NEEDS;
     keys.has_resource = 1;
     keys.resource = p8_fixed_from_int(qh->archetype->accepted_resources->items[0]);
     lw.route = trade_new(&keys);
@@ -695,7 +696,8 @@ static void test_offer_trade_nil_want_after_extend(void) {
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, need_new(game_zone(), NULL));
     qh = structure_new(NULL);
-    qh->needs = jy;
+    qh->needs = *jy;
+    qh->has |= PLANET_HAS_NEEDS;
     nil_route = trade_new(&(trade_keys_t){.planets = list_of(0, NULL)});
     lw.accept = count_accept;
     lw.route = nil_route;
@@ -735,7 +737,8 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     route_value = trade_new(&(trade_keys_t){.has_resource = 1, .resource = x});
     trade_route_list_add(cc, &route_value);
     qh = structure_new(NULL);
-    qh->needs = jy;
+    qh->needs = *jy;
+    qh->has |= PLANET_HAS_NEEDS;
     qh->incoming_routes = cc;
     entity_set_state(&qh->header, ENTITY_STATE_SETTLED);
     (void)economy_tiers_compute_tier(&qh->header);

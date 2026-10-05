@@ -71,7 +71,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->slipways = (entity_id_list_t){0};
     self->project = RESEARCH_PROJECT_ID_NONE;
     self->description = NULL;
-    self->needs = NULL;
+    self->needs = (pointer_list_t){0};
     self->planet_type = NULL;
     self->layout_row = NULL;
     self->layout_row_slot = NULL;
@@ -198,8 +198,8 @@ void planet_construct_in(planet_t *self, const allocator_t *zone) {
 static int planet_project_need_count(const research_project_t *project) {
     int n = 0;
 
-    for (int i = 0; project != NULL && project->inputs != NULL && i < project->inputs->count; i++) {
-        n += project->inputs->items[i] != NULL;
+    for (int i = 0; project != NULL && i < project->inputs.count; i++) {
+        n += project->inputs.items[i] != NULL;
     }
     return n;
 }
@@ -207,7 +207,7 @@ static int planet_project_need_count(const research_project_t *project) {
 static size_t planet_project_bytes(const research_project_t *project) {
     size_t n = (size_t)planet_project_need_count(project);
 
-    return ZONE_BYTES(n * sizeof(void *)) + n * ZONE_BYTES(sizeof(need_t)) + ZONE_BYTES(sizeof(pointer_list_t));
+    return ZONE_BYTES(n * sizeof(void *)) + n * ZONE_BYTES(sizeof(need_t));
 }
 
 size_t planet_kind_construction_bytes(const entity_kind_t *kind) {
@@ -220,7 +220,6 @@ size_t planet_kind_construction_bytes(const entity_kind_t *kind) {
 void planet_install_project(planet_t *self, research_project_t *research_project_instance) {
     const allocator_t *zone = grab_arena_construction_zone();
     pointer_list_t jy;
-    pointer_list_t *needs_own;
     int n;
 
     research_project_assert(research_project_instance);
@@ -236,8 +235,8 @@ void planet_install_project(planet_t *self, research_project_t *research_project
     if (n > 0) {
         pointer_list_init_reserve(&jy, zone, n);
     }
-    for (int i = 0; n > 0 && i < research_project_instance->inputs->count; i++) {
-        const need_t *input = research_project_instance->inputs->items[i];
+    for (int i = 0; n > 0 && i < research_project_instance->inputs.count; i++) {
+        const need_t *input = research_project_instance->inputs.items[i];
         need_t *copy;
 
         if (input == NULL) {
@@ -247,9 +246,8 @@ void planet_install_project(planet_t *self, research_project_t *research_project
         *copy = *input;
         pointer_list_add(&jy, copy);
     }
-    needs_own = (pointer_list_t *)allocator_alloc(zone, sizeof *needs_own);
-    *needs_own = jy;
-    self->needs = needs_own;
+    self->needs = jy;
+    self->has |= PLANET_HAS_NEEDS;
 
     self->production.has_resource = research_project_instance != NULL && research_project_instance->has_output;
     self->production.resource = self->production.has_resource ? research_project_instance->output : 0;

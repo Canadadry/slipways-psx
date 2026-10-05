@@ -135,9 +135,9 @@ static void update_tiers_visit(entity_t *entity, void *context) {
         if (has_development_tier && development_tier == p8_fixed_from_int(1)) {
             research_project_t *hn = research_project_get(planet->project);
             if (hn != NULL && hn->has_byproduct) {
-                if (planet->needs != NULL) {
+                if (planet->has & PLANET_HAS_NEEDS) {
                     need_t *entry = need_new(game_zone(), &hn->byproduct);
-                    pointer_list_add(planet->needs, entry);
+                    pointer_list_add(&planet->needs, entry);
                 }
             }
         }
@@ -191,7 +191,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
         return p8_fixed_from_int(0);
     }
 
-    needs = planet->needs;
+    needs = (planet->has & PLANET_HAS_NEEDS) ? &planet->needs : NULL;
     incoming_routes = planet->incoming_routes;
     if (needs != NULL) {
         for (index = 0; index < needs->count; index++) {

@@ -138,10 +138,6 @@ static uint32_t fold_bool(uint32_t h, int b) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pointer_list_t *l) {
-    return l == NULL ? -1 : l->count;
-}
-
 static int id_list_count(const entity_id_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
@@ -266,7 +262,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
-    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) != 0));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
     hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
@@ -320,7 +316,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fnv(h, is_dead_state(jo));
     h = fold_production(h, jo);
     h = fnv(h, (uint32_t)id_list_count(&jo->slipways));
-    h = fnv(h, (uint32_t)list_size(jo->needs));
+    h = fnv(h, (uint32_t)((jo->has & PLANET_HAS_NEEDS) ? jo->needs.count : -1));
     h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL ? trade_route_list_count(jo->outgoing_routes) : -1));
     h = fnv(h, (uint32_t)(jo->incoming_routes != NULL ? trade_route_list_count(jo->incoming_routes) : -1));
     h = fnv(h, (uint32_t)(entity_get(jo->targeted_by) != NULL));
@@ -551,7 +547,7 @@ static void test_production_shared(void) {
     assert(a->has & PLANET_HAS_PRODUCTION);
     assert(planet_production_read(a) == &a->production && a->production.amount == p8_fixed_from_int(0));
     assert(!(b->has & PLANET_HAS_PRODUCTION) && planet_production_read(b) == planet_shared_production());
-    assert(research_project_get(a->project) == hp && list_size(a->needs) >= 0);
+    assert(research_project_get(a->project) == hp && ((a->has & PLANET_HAS_NEEDS) ? a->needs.count : -1) >= 0);
 
     economy_total_production(&production_before);
     kw->has_resource = 1;
@@ -563,6 +559,27 @@ static void test_production_shared(void) {
     planet_init();
     assert(planet_production_read(b) == planet_shared_production());
     assert(!kw->has_resource && kw->amount == p8_fixed_from_int(0));
+}
+
+/* A planet holds needs only once a project is installed: one copy per
+ * input of the project, owned by the planet. */
+static void test_needs_installed(void) {
+    planet_t *a;
+    research_project_t *hp = NULL;
+    int k;
+
+    start_title();
+    a = new_planet("p904", 5, 6);
+    assert(!(a->has & PLANET_HAS_NEEDS) && a->needs.count == 0);
+    for (k = 1; research_projects_at(k) != NULL && hp == NULL; k++) {
+        if (research_projects_at(k)->inputs.count >= 2) hp = research_projects_at(k);
+    }
+    assert(hp != NULL);
+    planet_install_project(a, hp);
+    assert((a->has & PLANET_HAS_NEEDS) && a->needs.count == hp->inputs.count);
+    for (k = 0; k < a->needs.count; k++) {
+        assert(a->needs.items[k] != hp->inputs.items[k] && memcmp(a->needs.items[k], hp->inputs.items[k], sizeof(need_t)) == 0);
+    }
 }
 
 /* planet_roll_type takes the "vanishing" planet type itself on a vanish
@@ -711,10 +728,11 @@ static planet_t *planet_with_the_largest_row(void) {
 
     for (k = 1; research_projects_at(k) != NULL; k++) {
         const research_project_t *p = research_projects_at(k);
-        if (p->inputs != NULL && (is == NULL || p->inputs->count > is->count)) is = p->inputs;
+        if (is == NULL || p->inputs.count > is->count) is = &p->inputs;
     }
     assert(is != NULL && resource_code_lookup("w", &r_w));
-    a->needs = (pointer_list_t *)is;
+    a->needs = *is;
+    a->has |= PLANET_HAS_NEEDS;
     a->has |= PLANET_HAS_PRODUCTION;
     a->production.has_resource = 1;
     a->production.resource = p8_fixed_from_int(r_w);
@@ -795,6 +813,7 @@ int main(void) {
     in_fresh_child(test_entities_by_tag_null_until_seen);
     in_fresh_child(test_update_vanishing);
     in_fresh_child(test_production_shared);
+    in_fresh_child(test_needs_installed);
     in_fresh_child(test_roll_type_takes_vanishing);
     in_fresh_child(test_planet_is_a_struct);
     in_fresh_child(test_refresh_row_slot);

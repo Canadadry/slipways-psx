@@ -400,7 +400,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
-    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) != 0));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
     hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
@@ -432,7 +432,7 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     assert(research_project_get(planet->project) == research_projects_at(5));
     hash = fold_production(hash, planet);
     hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
-    hash = fnv(hash, (uint32_t)pointer_list_size(planet->needs));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) ? planet->needs.count : -1));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
@@ -587,7 +587,8 @@ static void give_row(void *e, int qe) {
     row->satisfied = p8_fixed_from_int(0);
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, row);
-    as_ascension(e)->needs = jy;
+    as_ascension(e)->needs = *jy;
+    as_ascension(e)->has |= PLANET_HAS_NEEDS;
 }
 
 static uint32_t fold_attach_slipway(uint32_t h, void *e) {

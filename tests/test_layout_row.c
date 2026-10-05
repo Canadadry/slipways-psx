@@ -495,7 +495,7 @@ static void test_planet_resource_row(void) {
 
     for (a = 0; a < sizeof ks / sizeof ks[0]; a++) {
         const research_project_t *p = project(ks[a]);
-        const pointer_list_t *is = p->inputs;
+        const pointer_list_t *is = &p->inputs;
         assert(p->has_output);
         o = p->output;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
@@ -833,7 +833,8 @@ static void test_inspection_panel_wants_more(void) {
     pointer_list_add(jy, a);
     pointer_list_add(jy, b);
     planet = planet_new(NULL);
-    planet->needs = jy;
+    planet->needs = *jy;
+    planet->has |= PLANET_HAS_NEEDS;
     planet->has_development_tier = 1;
     planet->development_tier = p8_fixed_from_int(1);
     entity_set_pos(&planet->header, vec_xy(64, 64));
@@ -870,7 +871,8 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     pointer_list_init(jy, &heap_allocator);
     pointer_list_add(jy, a);
     planet = planet_new(NULL);
-    planet->needs = jy;
+    planet->needs = *jy;
+    planet->has |= PLANET_HAS_NEEDS;
     planet->production = *kw;
     planet->has |= PLANET_HAS_PRODUCTION;
     planet->has_development_tier = 1;
@@ -900,7 +902,8 @@ static void test_inspection_panel_lab_wants_its_last(void) {
     pointer_list_add(jy, a);
     pointer_list_add(jy, b);
     lab = structure_new(NULL);
-    lab->needs = jy;
+    lab->needs = *jy;
+    lab->has |= PLANET_HAS_NEEDS;
     lab->has_development_tier = 1;
     lab->development_tier = p8_fixed_from_int(1);
     entity_set_pos(&lab->header, vec_xy(64, 64));
@@ -1021,8 +1024,8 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
 
     for (k = 1; research_projects_at(k) != NULL; k++) {
         const research_project_t *p = research_projects_at(k);
-        if (p->inputs != NULL && (is == NULL || p->inputs->count > is->count)) {
-            is = p->inputs;
+        if (is == NULL || p->inputs.count > is->count) {
+            is = &p->inputs;
         }
     }
     assert(is != NULL && is->count == 2 && "the most wants a project has; a longer input list needs a bigger row slot");

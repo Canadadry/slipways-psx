@@ -20,7 +20,7 @@ typedef struct {
     entity_id_list_t slipways;
     research_project_id_t project;
     const char *description;
-    pointer_list_t *needs;
+    pointer_list_t needs;
     const planet_types_entry_t *planet_type;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
@@ -46,6 +46,7 @@ typedef struct {
 #define PLANET_HAS_TARGETING (1u << 0)
 #define PLANET_HAS_EMITTER (1u << 1)
 #define PLANET_HAS_PRODUCTION (1u << 2)
+#define PLANET_HAS_NEEDS (1u << 3)
 
 /* GAP-8 */
 void planet_init(void);

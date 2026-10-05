@@ -150,10 +150,6 @@ static uint32_t fold_bool(uint32_t h, int b) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pointer_list_t *l) {
-    return l == NULL ? -1 : l->count;
-}
-
 static int id_list_count(const entity_id_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
@@ -344,7 +340,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
-    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) != 0));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
     hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
@@ -380,7 +376,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     assert(research_projects_at(1) != NULL);
     assert(research_project_get(planet->project) == research_projects_at(1));
     hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
-    hash = fnv(hash, (uint32_t)list_size(planet->needs));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) ? planet->needs.count : -1));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
@@ -626,7 +622,8 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     other = structure_new(NULL);
     pointer_list_init(needs, &heap_allocator);
     pointer_list_add(needs, need_new(game_zone(), &qe));
-    other->needs = needs;
+    other->needs = *needs;
+    other->has |= PLANET_HAS_NEEDS;
     slipway_keys.start = entity_id_link(&self->header);
     slipway = slipway_new(&slipway_keys);
     slipway->end = entity_id_link(&other->header);

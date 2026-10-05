@@ -312,7 +312,7 @@ static void total_production_visit(entity_t *pt, void *ctx) {
 
     assert(planet_is_family(pt) && "total_production_visit: the planet tag holds planets only");
     jo = (const planet_t *)pt;
-    if (jo->needs == NULL) {
+    if (!(jo->has & PLANET_HAS_NEEDS)) {
         return;
     }
     kw = planet_production_read(jo);
@@ -338,8 +338,11 @@ static void crowding_penalty_visit(entity_t *l, void *ctx) {
     p8_fixed_t current;
 
     assert(planet_is_family(l) && "crowding_penalty_visit: the structure tag holds planets only");
-    jy = ((const planet_t *)l)->needs;
-    if (jy == NULL || jy->count == 0) {
+    if (!(((const planet_t *)l)->has & PLANET_HAS_NEEDS)) {
+        return;
+    }
+    jy = &((const planet_t *)l)->needs;
+    if (jy->count == 0) {
         return;
     }
     last_val = jy->items[jy->count - 1];

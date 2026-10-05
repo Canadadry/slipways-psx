@@ -89,7 +89,8 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
         any_resource = (resource_t){.kind = RESOURCE_FIXED, .number = p8_fixed_from_int(resource)};
     }
 
-    needs = self->needs;
+    assert((self->has & PLANET_HAS_NEEDS) && "planet_offer_trade: an offer goes to a planet holding needs");
+    needs = &self->needs;
 
     if (has_bonus_resource && resource_equal(t_resource, bonus_resource) && !self->has_production_bonus) {
         iter = pointer_list_all(needs);
@@ -111,17 +112,10 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
             p8_fixed_t e_resource = bonus_resource.number;
             need_t *fresh = need_new(game_zone(), &e_resource);
             pointer_list_t prefix;
-            pointer_list_t merged;
-            pointer_list_t *merged_own;
 
             pointer_list_init(&prefix, frame_zone());
             pointer_list_add(&prefix, fresh);
-            merged = collect_concat_pointer_list(game_zone(), &prefix, needs);
-
-            merged_own = (pointer_list_t *)allocator_alloc(game_zone(), sizeof *merged_own);
-            *merged_own = merged;
-            self->needs = merged_own;
-            needs = merged_own;
+            self->needs = collect_concat_pointer_list(game_zone(), &prefix, needs);
         }
         self->production_bonus = p8_fixed_from_int(1);
         self->has_production_bonus = 1;

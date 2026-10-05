@@ -248,7 +248,8 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
         void *i_val;
 
         assert(planet_is_family(other_end) && "synthesizer_attach_slipway: the other end of a registered slipway is a planet");
-        jy = ((const planet_t *)other_end)->needs;
+        assert((((const planet_t *)other_end)->has & PLANET_HAS_NEEDS) && "synthesizer_attach_slipway: the other end of a slipway to a synthesizer holds needs");
+        jy = &((const planet_t *)other_end)->needs;
 
         it = pointer_list_all(jy);
         while (pointer_list_iter_next(&it, &i_val)) {

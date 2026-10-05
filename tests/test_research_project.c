@@ -475,8 +475,7 @@ static void test_projects(void) {
         hash = fold_fixed_member(hash, built->has_icon_sprite, built->icon_sprite);
         hash = fold_string_member(hash, built->class_name);
         hash = fold_string_member(hash, built->next_type);
-        i_list = built->inputs;
-        assert(i_list != NULL);
+        i_list = &built->inputs;
         hash = fnv(hash, (uint32_t)i_list->count);
         for (inner_index = 0; inner_index < i_list->count; inner_index++) {
             resource_t qe;
@@ -641,10 +640,10 @@ static uint32_t fold_production(uint32_t h, const planet_t *p) {
  * it was: each need, its resource (absent included), then `satisfied` when
  * written. */
 static uint32_t fold_needs(uint32_t h, const planet_t *p) {
-    const pointer_list_t *jy = p->needs;
+    const pointer_list_t *jy = &p->needs;
     int i;
 
-    if (jy == NULL) {
+    if (!(p->has & PLANET_HAS_NEEDS)) {
         return fnv(h, 0xFFFFFFFFu);
     }
     h = fnv(fnv(h, (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
@@ -698,18 +697,19 @@ static void test_wants(void) {
     ri.inputs = "pz";
     keys.record = &ri;
     b = research_project_new(&keys);
-    assert(b->inputs->count == 2 && resource_code_lookup("p", &p));
-    assert(((const need_t *)b->inputs->items[0])->row.has_resource);
-    assert(((const need_t *)b->inputs->items[0])->row.resource == p8_fixed_from_int(p));
-    assert(!((const need_t *)b->inputs->items[1])->row.has_resource);
+    assert(b->inputs.count == 2 && resource_code_lookup("p", &p));
+    assert(((const need_t *)b->inputs.items[0])->row.has_resource);
+    assert(((const need_t *)b->inputs.items[0])->row.resource == p8_fixed_from_int(p));
+    assert(!((const need_t *)b->inputs.items[1])->row.has_resource);
 
     a = new_planet("p950", 12, 16);
     planet_install_project(a, b);
-    jy = as_planet(a)->needs;
-    assert(jy != NULL && jy->count == 2);
+    assert(as_planet(a)->has & PLANET_HAS_NEEDS);
+    jy = &as_planet(a)->needs;
+    assert(jy->count == 2);
     for (k = 0; k < 2; k++) {
-        assert(jy->items[k] != b->inputs->items[k]);
-        assert(memcmp(jy->items[k], b->inputs->items[k], sizeof(need_t)) == 0);
+        assert(jy->items[k] != b->inputs.items[k]);
+        assert(memcmp(jy->items[k], b->inputs.items[k], sizeof(need_t)) == 0);
     }
 }
 
@@ -802,18 +802,17 @@ static size_t block_bytes(size_t size) {
     return ZONE_CELLS(size) * sizeof(zone_cell_t);
 }
 
-/* Each project's `inputs` list, its items unless empty, its needs: the
- * projects themselves live in the project table. */
+/* Each project's `inputs` items unless empty, and its needs: the projects
+ * themselves, list headers included, live in the project table. */
 static size_t projects_bytes(void) {
     size_t bytes = 0;
     int k;
 
     for (k = 1; k <= projects_count(); k++) {
         const research_project_t *b = project(k);
-        const int n = b->inputs->count;
+        const int n = b->inputs.count;
 
-        bytes += block_bytes(sizeof *b->inputs) +
-                  (size_t)n * block_bytes(sizeof(need_t));
+        bytes += (size_t)n * block_bytes(sizeof(need_t));
         if (n > 0) {
             bytes += block_bytes((size_t)n * sizeof(void *));
         }
@@ -828,7 +827,7 @@ static void test_projects_in_load_zone(void) {
 
     for (k = 1; k <= projects_count(); k++) {
         const research_project_t *b = project(k);
-        assert(b->inputs->capacity == b->inputs->count && b->inputs->zone == game_zone_load_zone());
+        assert(b->inputs.capacity == b->inputs.count && b->inputs.zone == game_zone_load_zone());
     }
     printf("  load after cart_load: %lu\n", (unsigned long)load_zone_used());
     assert(load_zone_used() == projects_bytes());
@@ -1045,7 +1044,7 @@ static void test_research_project_is_a_struct(void) {
     bare = research_project_new(NULL);
     assert(bare != NULL && bare->header.class == cls);
     assert(bare->archetype == &research_project_archetype && bare->archetype == b->archetype);
-    assert(bare->inputs != NULL && bare->inputs->count == 0);
+    assert(bare->inputs.count == 0 && bare->inputs.zone == game_zone_load_zone());
     assert(!(bare->has & RESEARCH_PROJECT_HAS_LAYOUT_ROW));
     assert(bare->name == NULL && bare->planet_codes == NULL && !bare->has_base_cost && bare->production_key == NULL && !bare->has_output);
     assert(!bare->has_upgrade_tech && !bare->has_byproduct && bare->required_tech == NULL && !bare->has_icon_sprite && bare->class_name == NULL);

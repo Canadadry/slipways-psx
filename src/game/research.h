@@ -28,7 +28,7 @@ typedef struct {
     p8_fixed_t base_cost;
     int has_base_cost;
     const char *production_key;
-    pointer_list_t *inputs;
+    pointer_list_t inputs;
     p8_fixed_t output;
     int has_output;
     const char *upgrade_tech;

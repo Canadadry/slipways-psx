@@ -47,7 +47,7 @@ void planet_refresh(planet_t *self) {
         return;
     }
 
-    needs_list = self->needs;
+    needs_list = (self->has & PLANET_HAS_NEEDS) ? &self->needs : NULL;
     {
         const production_t *kw = planet_production_read(self);
         qe = kw->has_resource ? &kw->resource : NULL;
@@ -188,7 +188,7 @@ void planet_inspection_panel(const planet_t *self) {
 
     pointer_list_init(&filter_context.received_needs, frame_zone());
 
-    needs = self->needs;
+    needs = (self->has & PLANET_HAS_NEEDS) ? &self->needs : NULL;
     unmet_needs = collect_filter_pointer_list(frame_zone(), needs, planet_inspection_panel_filter_step, &filter_context);
 
     if (unmet_needs.count > 0) {

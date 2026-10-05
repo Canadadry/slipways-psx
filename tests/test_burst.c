@@ -386,7 +386,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->slipways.zone != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
-    hash = fnv(hash, (uint32_t)(planet->needs != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_NEEDS) != 0));
     hash = fnv(hash, (uint32_t)(planet->planet_type != NULL));
     hash = fnv(hash, (uint32_t)(planet->header.fold_anchor != 0));
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
@@ -398,7 +398,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->has_development_tier != 0));
     hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
-    assert(planet->needs == NULL && !planet->has_net_income);
+    assert(!(planet->has & PLANET_HAS_NEEDS) && !planet->has_net_income);
     assert(class_of(entity)->attach_slipway == planet_class()->attach_slipway && class_of(entity)->offer_trade == planet_class()->offer_trade &&
            class_of(entity)->attach_slipway != NULL && class_of(entity)->offer_trade != NULL && planet_is_family(entity));
     assert(class_of(entity)->spawn_particle != planet_class()->spawn_particle && class_of(entity)->spawn_particle != NULL);

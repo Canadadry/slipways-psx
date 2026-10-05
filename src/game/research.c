@@ -151,7 +151,6 @@ need_t *need_new(const allocator_t *zone, const p8_fixed_t *qe) {
 static research_project_t *project_create(const research_project_keys_t *keys) {
     const allocator_t *load_zone = game_zone_load_zone();
     research_project_t *self;
-    pointer_list_t *new_i;
     const char *input_codes = "";
     size_t input_count;
     int index;
@@ -168,7 +167,6 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     self->base_cost = 0;
     self->has_base_cost = 0;
     self->production_key = NULL;
-    self->inputs = NULL;
     self->output = 0;
     self->has_output = 0;
     self->upgrade_tech = NULL;
@@ -217,11 +215,10 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
     }
 
     /* A character that is no resource code still makes a need, with no resource. */
-    new_i = (pointer_list_t *)allocator_alloc(load_zone, sizeof *new_i);
     if (input_codes[0] == '\0') {
-        pointer_list_init(new_i, load_zone);
+        pointer_list_init(&self->inputs, load_zone);
     } else {
-        pointer_list_init_reserve(new_i, load_zone, (int)strlen(input_codes));
+        pointer_list_init_reserve(&self->inputs, load_zone, (int)strlen(input_codes));
     }
     for (input_count = 0; input_codes[input_count] != '\0'; input_count++) {
         char key[2] = {input_codes[input_count], '\0'};
@@ -230,13 +227,11 @@ static research_project_t *project_create(const research_project_keys_t *keys) {
 
         if (resource_code_lookup(key, &r_resource)) {
             qe = p8_fixed_from_int(r_resource);
-            pointer_list_add(new_i, need_new(load_zone, &qe));
+            pointer_list_add(&self->inputs, need_new(load_zone, &qe));
         } else {
-            pointer_list_add(new_i, need_new(load_zone, NULL));
+            pointer_list_add(&self->inputs, need_new(load_zone, NULL));
         }
     }
-    self->inputs = new_i;
-
     return self;
 }
 

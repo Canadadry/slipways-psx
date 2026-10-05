@@ -466,7 +466,7 @@ static planet_t *a_maker(void) {
 
     for (i = 0; i < jos->count; i++) {
         planet_t *p = as_planet(jos->items[i]);
-        if (p->needs != NULL && (p->has & PLANET_HAS_PRODUCTION) && p->production.has_resource) {
+        if ((p->has & PLANET_HAS_NEEDS) && (p->has & PLANET_HAS_PRODUCTION) && p->production.has_resource) {
             return p;
         }
     }
@@ -544,10 +544,11 @@ static void test_recompute(void) {
     structure = structure_new(NULL);
     pointer_list_init(&needs, &heap_allocator);
     pointer_list_add(&needs, need);
-    structure->needs = &needs;
+    structure->needs = needs;
+    structure->has |= PLANET_HAS_NEEDS;
     economy_recompute(main_economy_self());
     assert(resource_map_get(demand, p8_fixed_from_int(99), &amount) && amount == p8_fixed_from_int(1) - 0x2666);
-    structure->needs = NULL;
+    structure->has &= (uint16_t)~PLANET_HAS_NEEDS;
     economy_recompute(main_economy_self());
     assert(!resource_map_get(demand, p8_fixed_from_int(99), &amount));
 }
