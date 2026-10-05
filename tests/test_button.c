@@ -179,7 +179,7 @@ static int is_difficulty_copy_of(const void *e) {
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const void *e) {
     const button_t *b = button_of(e);
-    return b->is_hovered ? 2u : 0u;
+    return b->header.is_hovered ? 2u : 0u;
 }
 
 /* 0 absent, 1 false, 3 a row. */
@@ -1091,11 +1091,11 @@ static void test_draw(void) {
 
     px[0] = draw_alone(plain);
     px[1] = draw_alone(with_on_click);
-    button_of(with_on_click)->is_hovered = 1;
+    button_of(with_on_click)->header.is_hovered = 1;
     px[2] = draw_alone(with_on_click);
     px[3] = draw_alone(priced);
     px[4] = draw_alone(tooltip);
-    button_of(tooltip)->is_hovered = 1;
+    button_of(tooltip)->header.is_hovered = 1;
     px[5] = draw_alone(tooltip);
     px[6] = draw_alone(free);
     assert(side_tooltip_state(free) == 1 && px[6] == px[1]);
@@ -1138,7 +1138,7 @@ static void test_hovered_tooltip_rests_on_the_bottom_edge(void) {
     start_game();
     b = build(button_at(10, 20), "plain", NULL);
     button_of(b)->tooltip = tooltip_new(&heap_allocator, &icon_tooltips_table[0]);
-    button_of(b)->is_hovered = 1;
+    button_of(b)->header.is_hovered = 1;
     n = button_of(b)->tooltip->rows_count;
     p8_camera(&graphics, 0, 0);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
@@ -1293,7 +1293,7 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
     h = fold_member_vec(h, b->pos);
     h = fold_member_vec(h, b->slide_target);
     h = fold_button_fn(h, b->has_on_click, b->on_click);
-    h = (b->is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->is_hovered) : fnv(h, 0u);
+    h = (b->header.is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->header.is_hovered) : fnv(h, 0u);
     h = fold_button_fn(h, b->refresh != NULL, b->refresh);
     h = b->name != NULL ? fold_string(fold_kind(h, STRING_KIND), b->name) : fnv(h, 0u);
     h = fold_member_fixed(h, b->has_trade, b->trade);
@@ -1350,7 +1350,7 @@ static void check_ephemerals_one_open_box(void) {
 /* `is_hovered` true, false, or absent (`present` 0), which reads as
  * false. */
 static void write_is_hovered(button_t *b, int present, int value) {
-    b->is_hovered = present ? value : 0;
+    b->header.is_hovered = present ? value : 0;
 }
 
 /* `is_hovered` takes true, false and absent; `layout_row` a row or NULL.
@@ -1366,23 +1366,23 @@ static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
 
     assert(entity_has(&button->header, ENTITY_HAS_HIT_BOX));
     write_is_hovered(button, 1, 1);
-    assert(button->is_hovered == 1);
+    assert(button->header.is_hovered == 1);
     hash = fold_button_members(hash, entity);
     write_is_hovered(button, 1, 0);
-    assert(button->is_hovered == 0);
-    hash = fold_button_members(hash, entity);
-    write_is_hovered(button, 1, 1);
-    write_is_hovered(button, 1, 0);
-    assert(button->is_hovered == 0);
+    assert(button->header.is_hovered == 0);
     hash = fold_button_members(hash, entity);
     write_is_hovered(button, 1, 1);
+    write_is_hovered(button, 1, 0);
+    assert(button->header.is_hovered == 0);
+    hash = fold_button_members(hash, entity);
+    write_is_hovered(button, 1, 1);
     write_is_hovered(button, 0, 0);
-    assert(!button->is_hovered);
+    assert(!button->header.is_hovered);
     write_is_hovered(button, 1, 0);
     write_is_hovered(button, 0, 0);
-    assert(!button->is_hovered);
+    assert(!button->header.is_hovered);
     write_is_hovered(button, 0, 0);
-    assert(!button->is_hovered);
+    assert(!button->header.is_hovered);
     hash = fold_button_members(hash, entity);
 
     layout_row = button_of(other)->layout_row;
@@ -1403,7 +1403,7 @@ static uint32_t fold_written(uint32_t hash, void *entity, void *other) {
     for (index = 0; index < 15 + 8; index++) {
         hash = fnv(hash, 0u);
     }
-    assert(button->is_hovered == 1);
+    assert(button->header.is_hovered == 1);
     return fold_button_members(hash, entity);
 }
 
@@ -1554,7 +1554,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->header.layer == p8_fixed_from_int(11));
         assert(b->width == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
         assert(entity_has(&b->header, ENTITY_HAS_HIT_BOX));
-        assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->is_hovered);
+        assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->header.is_hovered);
         assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
         assert(entity_get(b->project_planet) == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);

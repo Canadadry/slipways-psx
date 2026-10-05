@@ -120,7 +120,7 @@ static uint32_t is_revealed_state(const void *icon) {
 
 static uint32_t is_hovered_state(const void *icon) {
     const structure_icon_t *ie = as_structure_icon((void *)icon);
-    return bool_state((ie->is_hovered != 0), ie->is_hovered);
+    return bool_state((ie->header.is_hovered != 0), ie->header.is_hovered);
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -285,7 +285,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(ie->archetype->rest_cursor.x == p8_fixed_from_int(P8_SCREEN_WIDTH - 10) && ie->archetype->rest_cursor.y == p8_fixed_from_int(P8_SCREEN_HEIGHT - 8));
     assert((const void *)ie->kind == ke);
     assert((const void *)ie->tooltip == jb);
-    assert(!ie->has_is_revealed && !ie->is_hovered);
+    assert(!ie->has_is_revealed && !ie->header.is_hovered);
     assert(class_of(icon)->states[ENTITY_STATE_NORMAL] == NULL && class_of(icon)->draw_overlay == NULL && class_of(icon)->new_year == NULL &&
            class_of(icon)->right_press == NULL && class_of(icon)->accept_drop == NULL);
     assert(class_of(icon)->hit_test != NULL && class_of(icon)->refresh != NULL && class_of(icon)->draw != NULL &&
@@ -404,7 +404,7 @@ static void test_hovered_icon_tooltip_starts_at_the_top(void) {
 
     start_game();
     shown = first_icon_with_is_revealed(2);
-    as_structure_icon(shown)->is_hovered = 1;
+    as_structure_icon(shown)->header.is_hovered = 1;
     p8_camera(&graphics, 0, 0);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
     class_of(shown)->draw(shown, as_structure_icon(shown)->pos);
@@ -522,21 +522,17 @@ static void test_draw(void) {
 
     hidden_name = draw_alone(hidden);
     assert(hidden_name == blank);
-    as_structure_icon(hidden)->is_hovered = 1;
+    as_structure_icon(hidden)->header.is_hovered = 1;
     assert(is_hovered_state(hidden) == 2);
     assert(draw_alone(hidden) == blank);
     shown_name = draw_alone(shown);
     assert(shown_name != blank);
-    as_structure_icon(shown)->is_hovered = 1;
+    as_structure_icon(shown)->header.is_hovered = 1;
     assert(is_hovered_state(shown) == 2);
     hovered_name = draw_alone(shown);
     assert(hovered_name != shown_name);
-    as_structure_icon(shown)->is_hovered = 0;
+    as_structure_icon(shown)->header.is_hovered = 0;
     assert(draw_alone(shown) == shown_name);
-    *as_structure_icon(shown)->header.is_hovered = 1;
-    assert(is_hovered_state(shown) == 2);
-    *as_structure_icon(shown)->header.is_hovered = 0;
-    assert(is_hovered_state(shown) == 0);
 
     hash = fnv(hash, hidden_name);
     hash = fnv(hash, shown_name);
@@ -589,9 +585,9 @@ static void test_kind_view(void) {
     for (i = 0; i < n; i++) {
         uint32_t plain = draw_alone(all[i]);
         uint32_t hovered;
-        as_structure_icon(all[i])->is_hovered = 1;
+        as_structure_icon(all[i])->header.is_hovered = 1;
         hovered = draw_alone(all[i]);
-        as_structure_icon(all[i])->is_hovered = 0;
+        as_structure_icon(all[i])->header.is_hovered = 0;
         printf("[kind view] icon %d: 0x%08Xu / 0x%08Xu\n", i, (unsigned)plain, (unsigned)hovered);
         assert(hovered != plain);
         hash = fnv(hash, plain);

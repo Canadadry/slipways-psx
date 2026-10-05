@@ -168,7 +168,7 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 static uint32_t fold_is_dead(uint32_t h, const probe_t *g_) {
-    return (g_->is_dead != 0) ? fold_bool_member(h, g_->is_dead != 0) : fnv(h, 0u);
+    return (g_->header.is_dead != 0) ? fold_bool_member(h, g_->header.is_dead != 0) : fnv(h, 0u);
 }
 
 /* A probe's 18 archetype defaults, in archetype order. */
@@ -381,7 +381,7 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     assert(emitter->trail_colors == &probe_trail_colors_seq);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
-    assert(entity->pos == NULL && entity->map_pos == NULL && targeting_target(targeting) == NULL && !entity->is_dead);
+    assert(entity->pos == NULL && entity->map_pos == NULL && targeting_target(targeting) == NULL && !entity->header.is_dead);
     assert(class_of(entity)->hit_test == NULL && class_of(entity)->new_year == NULL && class_of(entity)->refresh == NULL &&
            class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL && class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL);
     assert(class_of(entity)->drag == targeting_track_method);
@@ -595,7 +595,7 @@ static void test_life(void) {
     }
     assert(class_of(first)->drop == targeting_confirm_method);
     assert(targeting_confirm(&first->header) == 0);
-    assert(first->is_dead);
+    assert(first->header.is_dead);
     update_entities();
     assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag(TAG_PROBE), first) && !entity_list_listed(entities_by_tag(TAG_TARGETING), first));
     assert(entity_list_listed(live_entities(), second) && entity_list_listed(entities_by_tag(TAG_PROBE), second));
@@ -615,7 +615,7 @@ static void test_drop_on(void) {
     assert(class_of(a)->drop == targeting_confirm_method);
     out = targeting_confirm(&a->header);
     assert(out == 0);
-    assert(a->is_dead);
+    assert(a->header.is_dead);
     h = fold_string_member(h, entity_state_name(a->header.state));
     h = fold_fixed_member(h, a->header.state_time);
     h = fold_is_dead(h, a);
@@ -635,7 +635,7 @@ static void test_drop_off(void) {
     assert(class_of(a)->drop == targeting_confirm_method);
     out = targeting_confirm(&a->header);
     assert(out == 1);
-    assert(!a->is_dead);
+    assert(!a->header.is_dead);
     assert(is_state(&a->header, ENTITY_STATE_SETTLED));
     assert(a->header.state_time == p8_fixed_from_int(0));
     h = fold_string_member(h, entity_state_name(a->header.state));
@@ -660,13 +660,13 @@ static void test_drop_void(void) {
     class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
     assert(target_kind(a) == 4);
     assert(target_targeted_by(a) == a);
-    assert(!a->is_dead);
+    assert(!a->header.is_dead);
     nz = checked_main_economy()->credits;
     me = a->header.state;
     assert(class_of(a)->drop == targeting_confirm_method);
     out = targeting_confirm(&a->header);
     assert(out == 0);
-    assert(a->is_dead);
+    assert(a->header.is_dead);
     assert(checked_main_economy()->credits == nz);
     assert(a->header.state == me);
     assert(target_kind(a) == 4);

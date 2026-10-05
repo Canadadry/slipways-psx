@@ -94,8 +94,8 @@ static button_t *button_create(const button_keys_t *keys) {
     self->slide_target = NULL;
     self->on_click = NULL;
     self->has_on_click = 0;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     self->refresh = NULL;
     self->name = NULL;
     self->trade = 0;
@@ -223,7 +223,7 @@ void button_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *sel
         return;
     }
 
-    if (self->tooltip != NULL && self->is_hovered) {
+    if (self->tooltip != NULL && self->header.is_hovered) {
         tooltip_draw_at(gfx, mem, self->tooltip, p8_fixed_from_int(P8_SCREEN_HEIGHT - 1), p8_fixed_from_int(1));
     }
 }
@@ -247,7 +247,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
     right = p8_fixed_sub(p8_fixed_add(draw_pos.x, width), p8_fixed_from_int(1));
     bottom = p8_fixed_add(draw_pos.y, p8_fixed_from_int(9));
     has_on_click = self->on_click != NULL;
-    hovered = self->is_hovered;
+    hovered = self->header.is_hovered;
 
     left_pixel = ui_to_int(draw_pos.x);
     top_pixel = ui_to_int(draw_pos.y);
@@ -315,10 +315,10 @@ static modal_backdrop_t *modal_backdrop_create(const modal_backdrop_keys_t *keys
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
     self->on_click = NULL;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     if (keys != NULL) {
         self->on_click = keys->on_click;
     }
@@ -353,9 +353,9 @@ down_t modal_backdrop_left_press(modal_backdrop_t *self) {
     if (self == NULL) {
         return out;
     }
-    self->is_dead = 0;
+    self->header.is_dead = 0;
     if (self->on_click != NULL) {
-        self->is_dead = self->on_click(self) != 0;
+        self->header.is_dead = self->on_click(self) != 0;
     }
     return out;
 }

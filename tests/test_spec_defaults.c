@@ -104,7 +104,7 @@ static void test_camera_defaults_and_ready(void) {
     camera_t *qb = camera_new();
 
     assert(qb->archetype == &camera_archetype && qb->archetype->dpad_directions == &camera_dpad_directions_vecs);
-    assert(qb->velocity == &qb->archetype->velocity && qb->pos_before_shake == &qb->archetype->pos_before_shake && qb->pos == &qb->archetype->pos && qb->shake == qb->archetype->shake);
+    assert(qb->velocity == &qb->archetype->velocity && qb->pos_before_shake == &qb->archetype->pos_before_shake && qb->pos == &qb->archetype->pos && qb->header.shake == qb->archetype->shake);
     assert(qb->header.state == qb->archetype->state && qb->header.state == ENTITY_STATE_NORMAL && qb->header.state_time == 0);
     assert(camera_ready());
     camera_shutdown();

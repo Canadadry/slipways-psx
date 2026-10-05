@@ -334,7 +334,7 @@ void burst_construct(planet_t *self) {
     if (main_camera() != NULL) {
         mo = main_camera_typed();
         assert(mo != NULL && "burst_construct: the camera placeholder has no shake; a burst before reset_world() stops the run");
-        mo->shake = p8_fixed_from_int(3);
+        mo->header.shake = p8_fixed_from_int(3);
     }
 }
 
@@ -414,7 +414,7 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
     }
 
     emitter_update(graphics, memory, (entity_t *)self);
-    self->is_dead = !third_taken;
+    self->header.is_dead = !third_taken;
 }
 
 static void burst_draw_method(entity_t *self, const vec_t *screen_pos) {

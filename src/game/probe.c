@@ -291,8 +291,8 @@ void targeting_tooltip_method(entity_t *self, const vec_t *screen_pos) {
 }
 
 static void probe_host_raise_is_dead(entity_t *self) {
-    assert(self->is_dead != NULL && "targeting_confirm: a host that carries no is_dead, none of whose drop runs it -- stop");
-    *self->is_dead = 1;
+    assert(entity_has(self, ENTITY_HAS_IS_DEAD) && "targeting_confirm: a host that carries no is_dead, none of whose drop runs it -- stop");
+    self->is_dead = 1;
 }
 
 int targeting_confirm(entity_t *self) {
@@ -407,7 +407,7 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->header.map_pos = &self->map_pos;
     self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
     self->header.fold_anchor = self->archetype->fold_anchor;
-    self->header.is_dead = &self->is_dead;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.emitter = &self->emitter_own;
     self->header.targeting = &self->targeting_own;
     self->emitter = &self->emitter_own;
@@ -418,7 +418,7 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
     targeting_set_target(self->targeting, NULL);
-    self->is_dead = 0;
+    self->header.is_dead = 0;
     self->grab_arena = NULL;
     self->targeting->cost = self->archetype->targeting.cost;
     self->targeting->has_cost = self->archetype->targeting.has_cost;

@@ -97,8 +97,8 @@ enum { FIXED_KIND = 0, BOOL_KIND = 2 };
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_box(uint32_t h, const message_box_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.state_time);
-    if (e->is_dead) {
-        h = fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)e->is_dead);
+    if (e->header.is_dead) {
+        h = fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)e->header.is_dead);
     } else {
         h = fnv(h, 0xDEADu);
     }
@@ -238,10 +238,10 @@ static void test_two_years_in_a_row(void) {
     for (i = 0; i < 20; i++) {
         tick(&run);
     }
-    assert(!first->is_dead);
+    assert(!first->header.is_dead);
     second = year_box(3421);
     track(&run, second);
-    assert(first->is_dead);
+    assert(first->header.is_dead);
     run.hash = fnv(run.hash, draw_hash());
     tick(&run);
     assert(!entity_list_listed(live_entities(), first));

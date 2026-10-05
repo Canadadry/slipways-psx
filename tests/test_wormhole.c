@@ -119,7 +119,7 @@ static uint32_t fold_vec(uint32_t h, const vec_t *p) {
 
 /* 0 absent or false, 2 true. */
 static uint32_t is_dead_state(const wormhole_t *mz) {
-    return mz->is_dead ? 2 : 0;
+    return mz->header.is_dead ? 2 : 0;
 }
 
 static uint32_t fold_string(uint32_t h, const char *s) {
@@ -324,7 +324,7 @@ static void check_fresh_wormhole(void *e) {
     assert(jj != NULL && jj->status_text != NULL && strcmp(jj->status_text, "-too far-") == 0);
     assert(wormhole_too_far_target_wrapper() == jj);
 
-    assert(mz->pos == NULL && mz->map_pos == NULL && targeting_target(mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->is_dead);
+    assert(mz->pos == NULL && mz->map_pos == NULL && targeting_target(mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
     assert(mz->anchors != NULL);
 
     assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
@@ -449,7 +449,7 @@ static void test_arena(void) {
     }
 
     drop(mz);
-    assert(mz->is_dead);
+    assert(mz->header.is_dead);
     update_entities();
     assert(!entity_list_listed(live_entities(), mz));
     cart_flush_exit_queue();

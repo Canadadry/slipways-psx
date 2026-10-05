@@ -280,7 +280,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     h = fold_vec(h, g->pos);
     h = fnv(h, (uint32_t)pointer_list_size(g->emitter->particles));
     assert(main_camera_typed() != NULL);
-    return fold_fixed_member(h, main_camera_typed()->shake);
+    return fold_fixed_member(h, main_camera_typed()->header.shake);
 }
 
 /* A protostar as protostar_new, protostar_construct, emitter_init and
@@ -326,7 +326,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
     hash = fold_fixed_member(hash, planet->archetype->layer);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &protostar->archetype->spawn_offset);
     hash = fold_vec(hash, &planet->archetype->row_step);
@@ -385,12 +385,12 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
     hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(pointer_list_size(emitter->particles) == 0);
     assert_structure_shape(class_of(entity));
     assert_members_of(class_of(entity), structure_class(), 0, 1);

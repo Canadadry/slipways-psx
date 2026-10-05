@@ -127,7 +127,7 @@ static planet_t *as_planet(void *e) {
 
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const planet_t *jo) {
-    return jo->is_hovered ? 2 : 0;
+    return jo->header.is_hovered ? 2 : 0;
 }
 
 static uint32_t fold_vec(uint32_t h, vec_t v) {
@@ -768,8 +768,7 @@ static const entity_class_t giver_class_def = {
     .right_press = giver_down,
 };
 
-static int g_giver_is_hovered;
-static giver_t g_giver = {{.class = &giver_class_def, .has = ENTITY_HAS_LAYER, .layer = 0xf0000, .is_hovered = &g_giver_is_hovered}};
+static giver_t g_giver = {{.class = &giver_class_def, .has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_HOVERED, .layer = 0xf0000}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);

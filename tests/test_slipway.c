@@ -112,10 +112,10 @@ static vec_t vec_of(const vec_t *v) {
 
 /* 0 absent, 1 false, 2 true. */
 static uint32_t is_dead_state(const slipway_t *jc) {
-    if (!jc->is_dead) {
+    if (!jc->header.is_dead) {
         return 0;
     }
-    return jc->is_dead ? 2u : 1u;
+    return jc->header.is_dead ? 2u : 1u;
 }
 
 static int is_throwaway(const void *e) {
@@ -467,7 +467,7 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     assert(hg == &jc->served_planets_own && hg->count == 0);
 
     assert(slipway_end(jc) == NULL && !jc->targeting->has_cost && jc->targeting->cost == 0 && !entity_has(&jc->header, ENTITY_HAS_INFRASPACE) && targeting_target(jc->targeting) == NULL);
-    assert(entity_get(jc->targeted_by) == NULL && !jc->is_dead);
+    assert(entity_get(jc->targeted_by) == NULL && !jc->header.is_dead);
     assert(class_of(jc)->drag != NULL && class_of(jc)->drop != NULL);
     assert(class_of(jc)->draw_overlay != NULL && class_of(jc)->draw != NULL);
     assert(class_of(jc)->hit_test == NULL && class_of(jc)->states[ENTITY_STATE_PLACING] == NULL &&

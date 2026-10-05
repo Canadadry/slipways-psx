@@ -337,15 +337,15 @@ void ui_update_hover(ui_t *self) {
     /* Clear before set, so an entity hovered two frames in a row stays hovered. */
     previous = ui_previous_hovered(self);
     if (previous != NULL) {
-        assert(previous->is_hovered != NULL &&
+        assert(entity_has(previous, ENTITY_HAS_IS_HOVERED) &&
                "ui_update_hover: the previously hovered entity has no is_hovered member -- stop, do not add one");
-        *previous->is_hovered = 0;
+        previous->is_hovered = 0;
     }
 
     if (hovered != NULL) {
-        assert(hovered->is_hovered != NULL &&
+        assert(entity_has(hovered, ENTITY_HAS_IS_HOVERED) &&
                "ui_update_hover: the hovered entity has no is_hovered member -- stop, do not add one");
-        *hovered->is_hovered = 1;
+        hovered->is_hovered = 1;
     }
 }
 

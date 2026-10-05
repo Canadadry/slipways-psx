@@ -157,7 +157,7 @@ void slipway_drop(slipway_t *self, entity_t *end_planet) {
     /* targeting_confirm charges the player and advances the clock: keep it behind the NULL test. */
     refused = (end_planet == NULL) || !targeting_confirm((entity_t *)self);
     if (refused) {
-        self->is_dead = 1;
+        self->header.is_dead = 1;
         return;
     }
 
@@ -372,8 +372,8 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->header.infraspace = 0;
     targeting_set_target(self->targeting, NULL);
     self->targeted_by = ENTITY_ID_NONE;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
     entity_init_header(&self->point.header, &slipway_mouse_point_class_def);
     self->point.header.pos = &self->point.pos;
     self->point.header.map_pos = &self->point.map_pos;

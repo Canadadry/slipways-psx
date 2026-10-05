@@ -111,7 +111,7 @@ static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
 
 /* 0 absent, 1 false, 2 true. */
 static uint32_t is_dead_state(const planet_t *jo) {
-    return jo->is_dead ? 2u : 0u;
+    return jo->header.is_dead ? 2u : 0u;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -230,7 +230,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
     hash = fold_fixed_member(hash, planet->archetype->layer);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, planet->map_pos);
     hash = fold_vec(hash, planet->pos);
@@ -263,12 +263,12 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
     hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert_planet_members(class_of(entity));
     assert(planet->archetype == &planet_archetype);
     assert(planet->archetype == &planet_archetype);
@@ -303,7 +303,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
 
     h = fold_string_member(h, entity_state_name(jo->header.state));
     h = fold_fixed_member(h, jo->header.state_time);
-    h = fold_fixed_member(h, jo->shake);
+    h = fold_fixed_member(h, jo->header.shake);
     h = (jo->header.fold_anchor != 0) ? fold_bool_member(h, jo->header.fold_anchor) : fold_absent(h);
     h = jo->has_development_tier ? fold_fixed_member(h, jo->development_tier) : fold_absent(h);
     h = jo->has_net_income ? fold_fixed_member(h, jo->net_income) : fold_absent(h);
@@ -317,7 +317,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)(entity_get(jo->targeted_by) != NULL));
     h = fnv(h, (uint32_t)(jo->planet_type != NULL));
     h = fnv(h, (uint32_t)(jo->layout_row != NULL));
-    h = fnv(h, (uint32_t)(jo->is_hovered != 0));
+    h = fnv(h, (uint32_t)(jo->header.is_hovered != 0));
     return h;
 }
 

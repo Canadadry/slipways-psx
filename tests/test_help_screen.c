@@ -79,7 +79,7 @@ static int entity_list_listed(const entity_list_t *list, const void *e) {
 
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const probe_t *fv) {
-    return fv->is_hovered ? 2 : 0;
+    return fv->header.is_hovered ? 2 : 0;
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
@@ -359,7 +359,7 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, probe->header.state_time);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
-    assert(!help_screen->is_hovered && probe->map_pos == NULL && targeting_target(targeting) == NULL && !probe->is_dead);
+    assert(!help_screen->header.is_hovered && probe->map_pos == NULL && targeting_target(targeting) == NULL && !probe->header.is_dead);
     assert(class_of(help_screen)->new_year == NULL && class_of(help_screen)->refresh == NULL && class_of(help_screen)->states[ENTITY_STATE_NORMAL] == NULL &&
            class_of(help_screen)->left_press == NULL);
 

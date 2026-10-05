@@ -131,7 +131,7 @@ void wormhole_drop(wormhole_t *self) {
         result = !targeting_confirm((entity_t *)self);
     }
 
-    self->is_dead = result;
+    self->header.is_dead = result;
 }
 
 static void wormhole_drop_method(entity_t *self, entity_t *dropped) {
@@ -176,7 +176,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
         }
     }
 
-    self->is_dead = t > p8_fixed_from_int(25);
+    self->header.is_dead = t > p8_fixed_from_int(25);
 }
 
 static void wormhole_update_unfolding_method(entity_t *self, p8_fixed_t t) {
@@ -239,8 +239,8 @@ static wormhole_t *wormhole_create(void) {
     self->map_pos = NULL;
     targeting_set_target(self->targeting, NULL);
     self->anchor = ENTITY_ID_NONE;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
     wormhole_construct(self);
     grab_arena_close();
     entity_construct(&self->header);

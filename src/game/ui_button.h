@@ -32,7 +32,6 @@ struct button {
     vec_t *slide_target;
     button_fn_t on_click;
     int has_on_click;
-    int is_hovered;
     button_fn_t refresh;
     const char *name;
     p8_fixed_t trade;
@@ -102,8 +101,6 @@ struct modal_backdrop {
     const allocator_t *slot;
     const modal_backdrop_archetype_t *archetype;
     modal_backdrop_on_click_fn_t on_click;
-    int is_dead;
-    int is_hovered;
 };
 
 void modal_backdrop_init(void);

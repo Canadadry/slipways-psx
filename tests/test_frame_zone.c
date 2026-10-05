@@ -146,7 +146,7 @@ static int reset_then_draw_panel(void) {
             for (int k = 0; k < js->tooltip->rows_count; k++) sink = (unsigned char)read_cells(js->tooltip->rows[k]);
             bubbles++;
         }
-        js->is_hovered = 1;
+        js->header.is_hovered = 1;
         button_draw(&graphics, &memory, js, p);
         button_draw_overlay(&graphics, &memory, js);
     }

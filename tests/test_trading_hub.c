@@ -296,7 +296,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
     hash = fold_fixed_member(hash, planet->archetype->layer);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
     /* The 1s of is_trading_hub, palette_block, project_index, is_structure, cost,
@@ -340,12 +340,12 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
     hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(planet_is_family(entity));
     assert_structure_shape(class_of(entity));
     assert_members_of(class_of(entity), structure_class(), 1, 0);

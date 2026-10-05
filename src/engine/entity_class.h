@@ -52,6 +52,9 @@ struct targeting;
 #define ENTITY_HAS_CURSOR_SPRITE (1u << 2)
 #define ENTITY_HAS_INFRASPACE (1u << 3)
 #define ENTITY_HAS_FOLD_ANCHOR (1u << 4)
+#define ENTITY_HAS_SHAKE (1u << 5)
+#define ENTITY_HAS_IS_DEAD (1u << 6)
+#define ENTITY_HAS_IS_HOVERED (1u << 7)
 
 typedef struct {
     const entity_class_t *class;
@@ -64,10 +67,10 @@ typedef struct {
     box_t hit_box;
     p8_fixed_t cursor_sprite;
     p8_fixed_t infraspace;
-    p8_fixed_t *shake;
+    p8_fixed_t shake;
     p8_fixed_t fold_anchor;
-    int *is_dead;
-    int *is_hovered;
+    int is_dead;
+    int is_hovered;
     struct emitter *emitter;
     struct targeting *targeting;
     entity_id_t id;

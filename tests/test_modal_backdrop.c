@@ -82,8 +82,8 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_veil(uint32_t h, const modal_backdrop_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.state_time);
-    h = fold_bool_member(h, (e->is_dead != 0), e->is_dead);
-    h = fold_bool_member(h, (e->is_hovered != 0), e->is_hovered);
+    h = fold_bool_member(h, (e->header.is_dead != 0), e->header.is_dead);
+    h = fold_bool_member(h, (e->header.is_hovered != 0), e->header.is_hovered);
     h = fnv(h, (uint32_t)entity_list_listed(live_entities(), e));
     return fnv(h, (uint32_t)entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), e));
 }
@@ -165,7 +165,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LEFT_PRESS_TICK) {
             assert(left_press(veil));
-            assert(!veil->is_dead);
+            assert(!veil->header.is_dead);
         }
         update_entities();
         h = fold_veil(h, veil);
@@ -188,7 +188,7 @@ static void test_false_on_click_keeps_the_veil(void) {
         if (i == LEFT_PRESS_TICK) {
             assert(left_press(veil));
             assert(g_on_click_calls == 1);
-            assert(!veil->is_dead);
+            assert(!veil->header.is_dead);
         }
         update_entities();
         h = fold_veil(h, veil);
@@ -224,7 +224,7 @@ static void test_hover_loop_on_the_veil(void) {
     ui_update(&memory, main_ui());
     assert(main_ui_hovered() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
-    assert(veil->is_hovered);
+    assert(veil->header.is_hovered);
     h = fold_veil(h, veil);
 
     p8_gfx_init(&graphics);
@@ -243,7 +243,7 @@ static void test_hover_loop_on_the_veil(void) {
     entity_unregister(&veil->header);
     ui_update(&memory, main_ui());
     assert(main_ui_hovered() != veil && !in_layer(14, veil));
-    assert(!veil->is_hovered);
+    assert(!veil->header.is_hovered);
     h = fold_veil(h, veil);
     check("hover_sequence", h, HOVER_SEQUENCE_HASH);
 }

@@ -16,7 +16,6 @@
 typedef struct {
     entity_t header;
     const planet_archetype_t *archetype;
-    p8_fixed_t shake;
     production_t *production;
     const char *planet_id;
     vec_t *map_pos;
@@ -31,14 +30,12 @@ typedef struct {
     entity_id_t targeted_by;
     p8_fixed_t production_bonus;
     int has_production_bonus;
-    int is_dead;
     p8_fixed_t net_income;
     int has_net_income;
     trade_route_list_t *incoming_routes;
     trade_route_list_t *outgoing_routes;
     p8_fixed_t development_tier;
     int has_development_tier;
-    int is_hovered;
     production_t production_own;
     p8_fixed_t sprite;
     p8_fixed_t palette_block;

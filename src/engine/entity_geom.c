@@ -50,20 +50,18 @@ int entity_geom_is_on_screen(const entity_t *e) {
 }
 
 vec_t entity_geom_shake(vec_t p, entity_t *e) {
-    p8_fixed_t *ma = NULL;
     p8_fixed_t decremented;
     p8_fixed_t clamped;
     p8_fixed_t t = p8_fixed_from_int(0);
 
     if (e != NULL) {
-        assert(e->shake != NULL && "entity_geom_shake: the entity is a planet (planet_draw) or the camera (camera_update)");
-        ma = e->shake;
+        assert(entity_has(e, ENTITY_HAS_SHAKE) && "entity_geom_shake: the entity is a planet (planet_draw) or the camera (camera_update)");
     }
-    decremented = p8_fixed_sub(ma != NULL ? *ma : p8_fixed_from_int(0), P8_FIXED_LIT(0x00001999, 0.1));
+    decremented = p8_fixed_sub(e != NULL ? e->shake : p8_fixed_from_int(0), P8_FIXED_LIT(0x00001999, 0.1));
     clamped = (decremented > 0) ? decremented : 0;
     if (e != NULL) {
         t = e->state_time;
-        *ma = clamped;
+        e->shake = clamped;
     }
     return vec_add(p, vec_from_polar(clamped, p8_fixed_mul(t, P8_FIXED_LIT(0x00003333, 0.2))));
 }

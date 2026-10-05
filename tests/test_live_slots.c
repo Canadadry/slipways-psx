@@ -1223,13 +1223,13 @@ static void abandoned_wormhole_rereads_during_click(void) {
     const wormhole_t *mz = abandoned_wormhole();
     play_until(26);
     assert(game_zone_pending() && "the f26 'restart' flips the game zone");
-    g_spend = (unsigned char)mz->is_dead;
+    g_spend = (unsigned char)mz->header.is_dead;
 }
 
 static void abandoned_wormhole_dies_with_its_game(void) {
     const wormhole_t *mz = abandoned_wormhole();
     play_until(27);
-    g_spend = (unsigned char)mz->is_dead;
+    g_spend = (unsigned char)mz->header.is_dead;
 }
 
 /* f11: title after 'restart'. Reloading gives back the slots of the live

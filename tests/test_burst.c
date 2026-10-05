@@ -119,7 +119,7 @@ static uint32_t fold_is_planet(uint32_t h, const planet_t *jo) {
 }
 
 static uint32_t fold_is_dead(uint32_t h, const planet_t *jo) {
-    return (jo->is_dead != 0) ? fold_bool_member(h, jo->is_dead) : fold_absent(h);
+    return (jo->header.is_dead != 0) ? fold_bool_member(h, jo->header.is_dead) : fold_absent(h);
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -323,7 +323,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_string_member(hash, planet->planet_id);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_is_dead(hash, planet);
     hash = fold_vec(hash, planet->pos);
     hash = fold_vec(hash, planet->map_pos);
@@ -333,7 +333,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)pointer_list_size(emitter->particles));
     hash = fnv(hash, (uint32_t)id_list_count(planet->slipways));
     assert(main_camera_typed() != NULL);
-    hash = fold_fixed_member(hash, main_camera_typed()->shake);
+    hash = fold_fixed_member(hash, main_camera_typed()->header.shake);
     /* The 1s of spawn_rate, the four matrix entries, acceleration_factor,
      * speed_factor, speed (the burst's) and of is_planet, trade_multiplier, layer,
      * shake, back_color (the planet's): constant, so BUILT_HASH proves the reads. */
@@ -373,12 +373,12 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)(planet->has_production_bonus != 0));
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)(planet->has_net_income != 0));
     hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->has_development_tier != 0));
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(planet->needs == NULL && !planet->has_net_income);
     assert(class_of(entity)->attach_slipway == planet_class()->attach_slipway && class_of(entity)->offer_trade == planet_class()->offer_trade &&
            class_of(entity)->attach_slipway != NULL && class_of(entity)->offer_trade != NULL && planet_is_family(entity));
@@ -598,11 +598,11 @@ static void test_life(void) {
     }
 
     hash = fold_cut(hash, first, 3);
-    assert(!as_burst(first)->is_dead);
+    assert(!as_burst(first)->header.is_dead);
     hash = fold_cut(hash, first, 2);
-    assert(as_burst(first)->is_dead);
+    assert(as_burst(first)->header.is_dead);
     hash = fold_cut(hash, first, 0);
-    assert(as_burst(first)->is_dead);
+    assert(as_burst(first)->header.is_dead);
 
     hash = fold_bool(hash, class_of(second)->hit_test(second, as_burst(second)->pos, as_burst(second)->pos));
     hash = fold_bool(hash, class_of(second)->hit_test(second, vec_ref(near_main_camera(0, 0)), vec_ref(near_main_camera(0, 0))));

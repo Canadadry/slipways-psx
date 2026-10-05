@@ -37,7 +37,7 @@ void message_box_construct(message_box_t *self) {
 
     previous = shown_message_box();
     if (previous != NULL) {
-        previous->is_dead = 1;
+        previous->header.is_dead = 1;
     }
     message_box_set_shown(self);
 }
@@ -74,7 +74,7 @@ void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t 
     }
 
     if (t > P8_FIXED_LIT(0x000a8000, 10.5)) {
-        self->is_dead = 1;
+        self->header.is_dead = 1;
         message_box_set_shown(NULL);
         assert(shown_message_box() == NULL && "message_box_draw_overlay: the closing box marks itself dead and clears the shown message box");
     }
@@ -130,8 +130,8 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
     self->header.layer = self->archetype->layer;
     self->duration_scale = self->archetype->duration_scale;
     self->keep_open = NULL;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
     self->items_count = 0;
     if (keys != NULL) {
         assert(keys->count <= MESSAGE_BOX_ITEMS_CAP &&
@@ -203,7 +203,7 @@ void toast_update(toast_t *self) {
     new_l = p8_fixed_add(self->fade, P8_FIXED_LIT(0x00001999, 0.1));
     self->fade = new_l;
 
-    self->is_dead = new_l >= p8_fixed_from_int(5);
+    self->header.is_dead = new_l >= p8_fixed_from_int(5);
 }
 
 static void toast_update_method(entity_t *self, p8_fixed_t t) {
@@ -258,8 +258,8 @@ static toast_t *toast_create(const toast_keys_t *keys) {
     self->header.pos = &self->pos;
     self->fade = self->archetype->fade;
     self->pos = NULL;
-    self->header.is_dead = &self->is_dead;
-    self->is_dead = 0;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.is_dead = 0;
     self->text = NULL;
     self->color = p8_fixed_from_int(0);
     if (keys != NULL) {

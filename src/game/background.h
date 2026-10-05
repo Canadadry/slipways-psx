@@ -14,7 +14,6 @@ typedef struct {
     const background_archetype_t *archetype;
     vec_t drag_mouse;
     int has_drag_mouse;
-    int is_hovered;
 } background_t;
 
 void background_init(void);

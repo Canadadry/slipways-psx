@@ -115,8 +115,8 @@ static probe_t *screen_create(void) {
     self->header.hit_box = self->archetype->hit_box;
     self->header.has |= ENTITY_HAS_CURSOR_SPRITE;
     self->header.cursor_sprite = self->archetype->cursor_sprite;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     help_screen_construct(self);
     emitter_init_in((entity_t *)self, PARTICLE_SLOT_HELP_LIST);
     entity_construct(&self->header);

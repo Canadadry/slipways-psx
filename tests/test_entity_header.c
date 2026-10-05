@@ -87,10 +87,10 @@ static void assert_links(const entity_t *h, entity_t want) {
                                                   h->hit_box.right == want.hit_box.right && h->hit_box.bottom == want.hit_box.bottom));
     assert(!entity_has(h, ENTITY_HAS_CURSOR_SPRITE) || h->cursor_sprite == want.cursor_sprite);
     assert(!entity_has(h, ENTITY_HAS_INFRASPACE) || h->infraspace == want.infraspace);
-    assert(h->shake == want.shake);
+    assert(!entity_has(h, ENTITY_HAS_SHAKE) || h->shake == want.shake);
     assert(!entity_has(h, ENTITY_HAS_FOLD_ANCHOR) || h->fold_anchor == want.fold_anchor);
-    assert(h->is_dead == want.is_dead);
-    assert(h->is_hovered == want.is_hovered);
+    assert(!entity_has(h, ENTITY_HAS_IS_DEAD) || h->is_dead == want.is_dead);
+    assert(!entity_has(h, ENTITY_HAS_IS_HOVERED) || h->is_hovered == want.is_hovered);
     assert(h->emitter == want.emitter);
     assert(h->targeting == want.targeting);
 }
@@ -127,67 +127,55 @@ static void test_carriers_link_their_storage(void) {
     planet_t *infraspace_gate = infraspace_gate_new(NULL);
     planet_t *infraspace_gate_planet = infraspace_gate;
 
-    assert_links(&background->header, (entity_t){.has = ENTITY_HAS_LAYER, .layer = background->archetype->layer, .is_hovered = &background->is_hovered});
+    assert_links(&background->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_HOVERED, .layer = background->archetype->layer});
     assert_links(&button->header,
-                 (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX,
+                 (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_IS_HOVERED,
                             .layer = button_archetype.layer,
                             .pos = &button->pos,
-                            .hit_box = {p8_fixed_from_int(0), p8_fixed_from_int(-1), button->width, p8_fixed_from_int(11)},
-                            .is_hovered = &button->is_hovered});
+                            .hit_box = {p8_fixed_from_int(0), p8_fixed_from_int(-1), button->width, p8_fixed_from_int(11)}});
     assert_links(&structure_icon->header,
-                 (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX, .layer = structure_icon->archetype->layer, .pos = &structure_icon->pos, .hit_box = structure_icon->archetype->hit_box, .is_hovered = &structure_icon->is_hovered});
-    assert_links(&modal_backdrop->header, (entity_t){.has = ENTITY_HAS_LAYER, .layer = modal_backdrop->archetype->layer, .is_dead = &modal_backdrop->is_dead, .is_hovered = &modal_backdrop->is_hovered});
+                 (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_IS_HOVERED, .layer = structure_icon->archetype->layer, .pos = &structure_icon->pos, .hit_box = structure_icon->archetype->hit_box});
+    assert_links(&modal_backdrop->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED, .layer = modal_backdrop->archetype->layer});
     assert_links(&built_ui->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_CURSOR_SPRITE, .layer = built_ui->archetype->layer, .cursor_sprite = built_ui->archetype->cursor_sprite});
-    assert_links(&camera->header, (entity_t){.pos = &camera->pos, .map_pos = &camera->pos_before_shake, .shake = &camera->shake});
-    assert_links(&message_box->header, (entity_t){.has = ENTITY_HAS_LAYER, .layer = message_box->archetype->layer, .is_dead = &message_box->is_dead});
-    assert_links(&toast->header, (entity_t){.has = ENTITY_HAS_LAYER, .layer = toast->archetype->layer, .pos = &toast->pos, .is_dead = &toast->is_dead});
-    assert_links(&help_screen->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_CURSOR_SPRITE | ENTITY_HAS_FOLD_ANCHOR,
+    assert_links(&camera->header, (entity_t){.has = ENTITY_HAS_SHAKE, .pos = &camera->pos, .map_pos = &camera->pos_before_shake, .shake = camera->archetype->shake});
+    assert_links(&message_box->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD, .layer = message_box->archetype->layer});
+    assert_links(&toast->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD, .layer = toast->archetype->layer, .pos = &toast->pos});
+    assert_links(&help_screen->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_CURSOR_SPRITE | ENTITY_HAS_FOLD_ANCHOR | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED,
                                                          .layer = help_screen->archetype->layer,
                                                          .pos = &help_screen->pos,
                                                          .map_pos = &help_screen->map_pos,
                                                          .hit_box = help_screen->archetype->hit_box,
                                                          .cursor_sprite = help_screen->archetype->cursor_sprite,
                                                          .fold_anchor = help_screen->archetype->fold_anchor,
-                                                         .is_dead = &help_screen->is_dead,
-                                                         .is_hovered = &help_screen->is_hovered,
                                                          .emitter = &help_screen->emitter_own,
                                                          .targeting = &help_screen->targeting_own});
     assert(help_screen->header.fold_anchor == p8_fixed_from_int(1) &&
            "a probe's fold_anchor is its archetype's 1.0: 0 would read as absent");
-    assert_links(&planet->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_FOLD_ANCHOR,
+    assert_links(&planet->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_FOLD_ANCHOR | ENTITY_HAS_SHAKE | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED,
                                                       .layer = planet->archetype->layer,
                                                       .pos = (const vec_t *const *)&planet->pos,
                                                       .map_pos = (const vec_t *const *)&planet->map_pos,
-                                                      .hit_box = planet->archetype->hit_box,
-                                                      .shake = &planet->shake,
-                                                      .fold_anchor = 0,
-                                                      .is_dead = &planet->is_dead,
-                                                      .is_hovered = &planet->is_hovered});
+                                                      .hit_box = planet->archetype->hit_box, .shake = planet->archetype->shake,
+                                                      .fold_anchor = 0});
     assert(planet->targeting == NULL && planet->emitter == NULL);
-    assert_links(&infraspace_gate_planet->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_INFRASPACE | ENTITY_HAS_FOLD_ANCHOR,
+    assert_links(&infraspace_gate_planet->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_INFRASPACE | ENTITY_HAS_FOLD_ANCHOR | ENTITY_HAS_SHAKE | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED,
                                                          .layer = infraspace_gate_planet->archetype->layer,
                                                          .pos = (const vec_t *const *)&infraspace_gate_planet->pos,
                                                          .map_pos = (const vec_t *const *)&infraspace_gate_planet->map_pos,
                                                          .hit_box = infraspace_gate_planet->archetype->hit_box,
-                                                         .infraspace = infraspace_gate_planet->archetype->infraspace,
-                                                         .shake = &infraspace_gate_planet->shake,
+                                                         .infraspace = infraspace_gate_planet->archetype->infraspace, .shake = infraspace_gate_planet->archetype->shake,
                                                          .fold_anchor = 0,
-                                                         .is_dead = &infraspace_gate_planet->is_dead,
-                                                         .is_hovered = &infraspace_gate_planet->is_hovered,
                                                          .targeting = &infraspace_gate->targeting_own});
 }
 
 /* A planet's links, but for its emitter and probe. */
 static entity_t planet_links(planet_t *jo) {
-    return (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_FOLD_ANCHOR,
+    return (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_HIT_BOX | ENTITY_HAS_FOLD_ANCHOR | ENTITY_HAS_SHAKE | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED,
                                    .layer = jo->archetype->layer,
                                    .pos = (const vec_t *const *)&jo->pos,
                                    .map_pos = (const vec_t *const *)&jo->map_pos,
-                                   .hit_box = jo->archetype->hit_box,
-                                   .shake = &jo->shake,
-                                   .fold_anchor = 0,
-                                   .is_dead = &jo->is_dead,
-                                   .is_hovered = &jo->is_hovered};
+                                   .hit_box = jo->archetype->hit_box, .shake = jo->archetype->shake,
+                                   .fold_anchor = 0};
 }
 
 static void assert_structure_links(planet_t *qh, emitter_t *emitter) {
@@ -213,12 +201,11 @@ static void test_component_carriers_link_their_own(void) {
     wormhole_t *mz = wormhole_new();
     entity_t want = planet_links(ga);
 
-    assert_links(&g_->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_FOLD_ANCHOR,
+    assert_links(&g_->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_FOLD_ANCHOR | ENTITY_HAS_IS_DEAD,
                                                       .layer = g_->archetype->layer,
                                                       .pos = &g_->pos,
                                                       .map_pos = &g_->map_pos,
                                                       .fold_anchor = g_->archetype->fold_anchor,
-                                                      .is_dead = &g_->is_dead,
                                                       .emitter = &g_->emitter_own,
                                                       .targeting = &g_->targeting_own});
     assert(g_->emitter == g_->header.emitter && g_->targeting == g_->header.targeting);
@@ -234,11 +221,10 @@ static void test_component_carriers_link_their_own(void) {
     want.emitter = &ga->emitter_own;
     assert_links(&ga->header, want);
     assert(ga->emitter == ga->header.emitter && ga->targeting == NULL);
-    assert_links(&mz->header, (entity_t){.has = ENTITY_HAS_LAYER,
+    assert_links(&mz->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD,
                                                       .layer = mz->archetype->layer,
                                                       .pos = &mz->pos,
                                                       .map_pos = &mz->map_pos,
-                                                      .is_dead = &mz->is_dead,
                                                       .targeting = &mz->targeting_own});
     assert(mz->targeting == mz->header.targeting);
 }
@@ -265,13 +251,13 @@ static void test_mouse_point_has_null_links(void) {
 
     assert(point != NULL && point->header.class == slipway_mouse_point_class());
     assert_links(&point->header, (entity_t){.pos = &point->pos, .map_pos = &point->map_pos});
-    assert_links(&jc->header, (entity_t){.has = ENTITY_HAS_LAYER, .layer = p8_fixed_from_int(4), .is_dead = &jc->is_dead, .targeting = &jc->targeting_own});
+    assert_links(&jc->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD, .layer = p8_fixed_from_int(4), .targeting = &jc->targeting_own});
     assert(jc->targeting == jc->header.targeting);
     assert_links(&from_infraspace_gate->header,
                  (entity_t){
-                     .has = ENTITY_HAS_LAYER | ENTITY_HAS_INFRASPACE,
+                     .has = ENTITY_HAS_LAYER | ENTITY_HAS_INFRASPACE | ENTITY_HAS_IS_DEAD,
                      .layer = p8_fixed_from_int(2),
-                     .infraspace = infraspace_gate_archetype.infraspace, .is_dead = &from_infraspace_gate->is_dead, .targeting = &from_infraspace_gate->targeting_own});
+                     .infraspace = infraspace_gate_archetype.infraspace, .targeting = &from_infraspace_gate->targeting_own});
 }
 
 int main(int argc, char **argv) {

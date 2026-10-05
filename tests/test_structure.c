@@ -130,7 +130,7 @@ static uint32_t fold_structure(uint32_t h, const planet_t *qh) {
 
 /* 0 absent, 1 false, 2 true. */
 static uint32_t is_dead_state(const planet_t *jo) {
-    return jo->is_dead ? 2u : 0u;
+    return jo->header.is_dead ? 2u : 0u;
 }
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
@@ -295,7 +295,7 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
     hash = fold_fixed_member(hash, planet->archetype->layer);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
     /* The 1s of project_index, is_structure, cost, clock_ticks, attach_distance,
@@ -336,12 +336,12 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
     hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert_structure_shape(class_of(entity));
     assert_members_of(class_of(entity), structure_class(), 1, 1);
     assert(class_of(entity)->attach_slipway == structure_class()->attach_slipway && class_of(entity)->offer_trade == structure_class()->offer_trade &&

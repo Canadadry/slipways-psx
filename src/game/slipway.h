@@ -38,7 +38,6 @@ typedef struct {
     entity_id_t end;
     int end_is_point;
     entity_id_t targeted_by;
-    int is_dead;
     targeting_t *targeting;
     targeting_t targeting_own;
     slipway_mouse_point_t point;

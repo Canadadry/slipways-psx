@@ -41,9 +41,9 @@ static camera_t *camera_create(void) {
     self->archetype = &camera_archetype;
     self->header.pos = &self->pos;
     self->header.map_pos = &self->pos_before_shake;
-    self->header.shake = &self->shake;
+    self->header.has |= ENTITY_HAS_SHAKE;
     self->velocity = &self->archetype->velocity;
-    self->shake = self->archetype->shake;
+    self->header.shake = self->archetype->shake;
     self->pos_before_shake = &self->archetype->pos_before_shake;
     self->pos = &self->archetype->pos;
     entity_construct(&self->header);

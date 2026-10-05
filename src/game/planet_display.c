@@ -518,7 +518,7 @@ void planet_apply_project(planet_t *self, research_project_t *research_project_i
 
         assert((self->slipways == NULL || self->slipways->count == 0) &&
                "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
-        self->is_dead = 1;
+        self->header.is_dead = 1;
 
         target_kind = planet_kind_named(research_project_instance->class_name);
 

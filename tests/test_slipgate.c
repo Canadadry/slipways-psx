@@ -297,7 +297,7 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
     hash = fold_fixed_member(hash, planet->archetype->layer);
-    hash = fold_fixed_member(hash, planet->shake);
+    hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &planet->archetype->row_step);
     hash = fnv(hash, (uint32_t)slipgate->archetype->link_sprites->count);
@@ -341,12 +341,12 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)(planet->layout_row != NULL));
     hash = fnv(hash, (uint32_t)(entity_get(planet->targeted_by) != NULL));
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
-    hash = fnv(hash, (uint32_t)(planet->is_dead != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
     hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
     hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
-    hash = fnv(hash, (uint32_t)(planet->is_hovered != 0));
+    hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(class_of(entity)->offer_trade == slipgate_class()->offer_trade && class_of(entity)->offer_trade != structure_cls->offer_trade &&
            class_of(entity)->offer_trade != planet_class()->offer_trade);
     assert(class_of(entity)->attach_slipway == structure_cls->attach_slipway && class_of(entity)->drag == structure_cls->drag && class_of(entity)->drop == structure_cls->drop &&

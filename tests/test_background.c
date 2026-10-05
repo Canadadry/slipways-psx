@@ -113,7 +113,7 @@ static int drag_mouse_is(const background_t *bg, const vec_t *rp) {
 
 /* 0 absent or false, 2 true. */
 static uint32_t is_hovered_state(const background_t *bg) {
-    return bg->is_hovered ? 2 : 0;
+    return bg->header.is_hovered ? 2 : 0;
 }
 
 static const camera_t *checked_main_camera(void) {
@@ -202,7 +202,7 @@ static void check_fresh_background(const background_t *bg) {
     for (i = 0; i < 15; i++) {
         assert(pl->items[i] == want_tile_choices[i]);
     }
-    assert(!bg->has_drag_mouse && !bg->is_hovered);
+    assert(!bg->has_drag_mouse && !bg->header.is_hovered);
     assert(cls->accept_drop == NULL && cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(cls->draw != NULL && cls->left_press != NULL && cls->right_press != NULL && cls->drag != NULL);
     assert(cls->drop == NULL);

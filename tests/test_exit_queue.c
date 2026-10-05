@@ -48,13 +48,13 @@ static const entity_class_t freed_cls = {.release = release_frees};
 static const entity_class_t kept_cls = {0};
 
 /* A message box: the shown message box and the score panel's last box only
- * ever point to boxes. is_hovered points to a field of its own, so that
- * ui_update_hover can write it through previous_hovered. */
+ * ever point to boxes. It carries is_hovered, so that ui_update_hover can
+ * write it through previous_hovered. */
 static message_box_t *new_entity(const entity_class_t *cls) {
     message_box_t *mh = calloc(1, sizeof *mh);
     assert(mh != NULL);
     mh->header.class = cls;
-    mh->header.is_hovered = &mh->is_dead;
+    mh->header.has |= ENTITY_HAS_IS_HOVERED;
     return mh;
 }
 
@@ -83,7 +83,7 @@ static int case_entity_unregister_alive_until_flush(void) {
     entity_register(&e->header);
     entity_unregister(&e->header);
     assert(exit_queue_count() == 1 && "entity_unregister queues a live entity that has something to release");
-    sink = (unsigned char)e->is_dead;
+    sink = (unsigned char)e->header.is_dead;
     cart_update60();
     assert(exit_queue_count() == 0 && "cart_update60 flushes the queue");
     return 0;
@@ -95,7 +95,7 @@ static int case_entity_unregister_released_at_flush(void) {
     entity_register(&e->header);
     entity_unregister(&e->header);
     cart_update60();
-    sink = (unsigned char)e->is_dead;
+    sink = (unsigned char)e->header.is_dead;
     return 0;
 }
 

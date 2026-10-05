@@ -22,7 +22,6 @@ typedef struct {
     const vec_t *pos;
     const vec_t *map_pos;
     entity_id_t anchor;
-    int is_dead;
     targeting_t *targeting;
     targeting_t targeting_own;
 } wormhole_t;

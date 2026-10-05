@@ -186,7 +186,6 @@ static void test_wormhole_scan_skips_a_live_toast(void) {
  * non zero is_dead takes it out of the live entities. */
 typedef struct {
     entity_t header;
-    int is_dead;
 } fake_toast_t;
 
 static int g_fake_update_calls = 0;
@@ -197,7 +196,7 @@ static void fake_toast_update(entity_t *self, p8_fixed_t t) {
     g_fake_update_calls++;
     g_fake_update_last = t;
     if (t >= p8_fixed_from_int(2)) {
-        f->is_dead = 1;
+        f->header.is_dead = 1;
     }
 }
 
@@ -211,8 +210,8 @@ static void test_update_entities_drives_an_entity_struct(void) {
 
     fresh_world();
     entity_init_instance(&f->header, &fake_toast_class_def, ENTITY_STATE_NORMAL, 0);
-    f->header.is_dead = &f->is_dead;
-    f->is_dead = 0;
+    f->header.has |= ENTITY_HAS_IS_DEAD;
+    f->header.is_dead = 0;
     entity_construct(&f->header);
     assert(entity_list_listed(live_entities(), f));
 

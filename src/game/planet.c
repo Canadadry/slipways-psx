@@ -63,11 +63,11 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.map_pos = (const vec_t *const *)&self->map_pos;
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = self->archetype->hit_box;
-    self->header.shake = &self->shake;
+    self->header.has |= ENTITY_HAS_SHAKE;
     self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
     self->header.fold_anchor = 0;
-    self->header.is_dead = &self->is_dead;
-    self->shake = self->archetype->shake;
+    self->header.has |= ENTITY_HAS_IS_DEAD;
+    self->header.shake = self->archetype->shake;
     self->production = &g_planet_production_shared;
     self->planet_id = NULL;
     self->map_pos = NULL;
@@ -82,15 +82,15 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->targeted_by = ENTITY_ID_NONE;
     self->production_bonus = 0;
     self->has_production_bonus = 0;
-    self->is_dead = 0;
+    self->header.is_dead = 0;
     self->net_income = 0;
     self->has_net_income = 0;
     self->incoming_routes = NULL;
     self->outgoing_routes = NULL;
     self->development_tier = self->archetype->development_tier;
     self->has_development_tier = self->archetype->has_development_tier;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     self->production_own = (production_t){0};
     self->targeting = NULL;
     self->emitter = NULL;
@@ -273,15 +273,15 @@ void planet_restart_shake(planet_t *self) {
     if (self == NULL) {
         return;
     }
-    self->shake = P8_FIXED_LIT(0x00014000, 1.25);
+    self->header.shake = P8_FIXED_LIT(0x00014000, 1.25);
 }
 
 void planet_update_vanishing(planet_t *self, p8_fixed_t t) {
     if (self == NULL) {
         return;
     }
-    self->is_dead = t > p8_fixed_from_int(60);
-    assert((!self->is_dead || self->slipways == NULL || self->slipways->count == 0) &&
+    self->header.is_dead = t > p8_fixed_from_int(60);
+    assert((!self->header.is_dead || self->slipways == NULL || self->slipways->count == 0) &&
            "a linked planet never dies: the routes kept in outgoing_routes would name it, and the cart never drops them");
 }
 

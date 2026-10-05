@@ -13,7 +13,6 @@ typedef struct {
     entity_t header;
     const camera_archetype_t *archetype;
     const vec_t *velocity;
-    p8_fixed_t shake;
     const vec_t *pos_before_shake;
     const vec_t *pos;
     vec_t pos_before_shake_own;

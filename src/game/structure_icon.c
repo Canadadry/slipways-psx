@@ -154,7 +154,7 @@ void structure_icon_draw(p8_graphics_t *gfx, p8_vram_t *mem, structure_icon_t *s
     p8_spr_default(gfx, mem, view.has_sprite ? structure_icon_to_int(view.sprite) : 0, structure_icon_to_int(p.x),
                       structure_icon_to_int(p.y));
 
-    if (self->is_hovered) {
+    if (self->header.is_hovered) {
         if (structure_icon_own_kind(self) != NULL) {
             targeting_t pb = {.archetype = &targeting_archetype_none};
 
@@ -202,8 +202,8 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
     self->tooltip = NULL;
     self->is_revealed = 0;
     self->has_is_revealed = 0;
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     if (keys != NULL) {
         self->kind = keys->kind;
         self->tooltip = keys->tooltip;

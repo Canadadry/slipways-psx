@@ -94,7 +94,7 @@ static uint32_t fold_main_camera(uint32_t h) {
     h = fold_vec(h, mo->pos_before_shake);
     h = fold_vec(h, mo->velocity);
     h = fold_vec(h, mo->pos);
-    h = fnv(h, (uint32_t)mo->shake);
+    h = fnv(h, (uint32_t)mo->header.shake);
     h = fnv(h, (uint32_t)graphics.camera_x);
     return fnv(h, (uint32_t)graphics.camera_y);
 }
@@ -145,7 +145,7 @@ static void check_fresh_main_camera(const camera_t *mo) {
     assert(p.x == p8_fixed_from_int(176) && p.y == p8_fixed_from_int(196));
     assert(ra.x == p8_fixed_from_int(176) && ra.y == p8_fixed_from_int(196));
     assert(v.x == 0 && v.y == 0);
-    assert(mo->shake == 0);
+    assert(mo->header.shake == 0);
     assert(mo->header.state_time == 0);
     assert(mo->header.state == ENTITY_STATE_NORMAL);
     assert(mo->pos_before_shake != mo->pos);
@@ -253,7 +253,7 @@ static void hold_dpad_checking_each_tick(int left, int right, int up, int down) 
     script(SCRIPTED_TICKS);
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         if (i % 20 == 0) {
-            checked_main_camera()->shake = p8_fixed_from_int(3);
+            checked_main_camera()->header.shake = p8_fixed_from_int(3);
         }
         update_entities();
         check_frame_in_grid();
@@ -287,16 +287,16 @@ static void test_shake_decays(void) {
 
     reset_world(NULL);
     mo = checked_main_camera();
-    checked_main_camera()->shake = p8_fixed_from_int(3);
-    assert(mo->shake == p8_fixed_from_int(3));
+    checked_main_camera()->header.shake = p8_fixed_from_int(3);
+    assert(mo->header.shake == p8_fixed_from_int(3));
     unscript();
-    while (mo->shake != 0) {
+    while (mo->header.shake != 0) {
         vec_t off;
         update_entities();
         ticks++;
         assert(ticks < 100);
         off = vec_sub(must_vec(mo->pos), must_vec(mo->pos_before_shake));
-        h = fnv(h, (uint32_t)mo->shake);
+        h = fnv(h, (uint32_t)mo->header.shake);
         h = fnv(h, (uint32_t)off.x);
         h = fnv(h, (uint32_t)off.y);
     }
@@ -385,11 +385,11 @@ static void test_burst_shakes(void) {
     assert(!burst_alive());
     (void)burst_new(NULL);
     assert(burst_alive());
-    assert(checked_main_camera()->shake == p8_fixed_from_int(3));
+    assert(checked_main_camera()->header.shake == p8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
         update_entities();
     }
-    assert(checked_main_camera()->shake == 0);
+    assert(checked_main_camera()->header.shake == 0);
 }
 
 /* The galaxy depends on the rnd state, which the tests before it consume: run

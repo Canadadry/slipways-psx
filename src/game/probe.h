@@ -15,8 +15,6 @@ typedef struct {
     targeting_t *targeting;
     const vec_t *pos;
     const vec_t *map_pos;
-    int is_dead;
-    int is_hovered;
     const allocator_t *grab_arena;
     emitter_t emitter_own;
     targeting_t targeting_own;

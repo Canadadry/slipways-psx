@@ -5,7 +5,7 @@
 # included; a line `entity-lists <file> <count>` gives its fields and
 # variables of type entity_list_t. A file with neither has no line. Strict
 # equality: plan 13 lowers these counts, and no step may raise one.
-src/engine/entity_class.h 12
+src/engine/entity_class.h 9
 src/game/economy_score.c 1
 src/game/economy_score.h 1
 src/game/gen.h 3

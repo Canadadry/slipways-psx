@@ -62,7 +62,7 @@ void update_entities(void) {
             qc->class->states[qc->state](qc, qc->state_time);
         }
 
-        if (qc->is_dead != NULL && *qc->is_dead) {
+        if (entity_has(qc, ENTITY_HAS_IS_DEAD) && qc->is_dead) {
             entity_unregister(qc);
         }
 

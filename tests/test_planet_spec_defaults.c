@@ -33,7 +33,7 @@ static void assert_same_state(state_t a, state_t b) {
  * the planet's own when it has a research project. */
 static void assert_planet_tail(const planet_t *jo, const planet_archetype_t *archetype) {
     assert(jo->archetype == archetype);
-    assert(jo->shake == archetype->shake);
+    assert(jo->header.shake == archetype->shake);
     assert(jo->development_tier == archetype->development_tier && jo->has_development_tier == archetype->has_development_tier);
 }
 

@@ -16,7 +16,6 @@ typedef struct {
     tooltip_t *tooltip;
     int is_revealed;
     int has_is_revealed;
-    int is_hovered;
 } structure_icon_t;
 
 typedef struct {

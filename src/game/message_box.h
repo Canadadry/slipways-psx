@@ -20,7 +20,6 @@ struct message_box {
     const message_box_archetype_t *archetype;
     p8_fixed_t duration_scale;
     message_box_keep_open_fn_t keep_open;
-    int is_dead;
     const data_row_t *items[MESSAGE_BOX_ITEMS_CAP];
     int items_count;
 };
@@ -60,7 +59,6 @@ typedef struct {
     const toast_archetype_t *archetype;
     p8_fixed_t fade;
     const vec_t *pos;
-    int is_dead;
     const char *text;
     p8_fixed_t color;
 } toast_t;

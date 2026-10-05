@@ -65,8 +65,8 @@ static background_t *background_create(void) {
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
     background_set_drag_mouse(self, NULL);
-    self->header.is_hovered = &self->is_hovered;
-    self->is_hovered = 0;
+    self->header.has |= ENTITY_HAS_IS_HOVERED;
+    self->header.is_hovered = 0;
     background_construct(dispatch_context_mem(), self);
     entity_construct(&self->header);
     return self;
