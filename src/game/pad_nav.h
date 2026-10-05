@@ -5,8 +5,13 @@
 #include "engine/entity_id_type.h"
 #include "p8/input.h"
 
+typedef enum { PAD_NAV_MAP_FREE, PAD_NAV_MAP_NETWORK } pad_nav_map_mode_t;
+
 typedef struct {
     entity_id_t focus;
+    pad_nav_map_mode_t map_mode;
+    entity_id_t selection;
+    int release_pending;
     int previous_pad;
     int cursor_x;
     int cursor_y;
@@ -24,8 +29,11 @@ entity_t *pad_nav_focus(const pad_nav_t *nav);
 
 int pad_nav_panel_open(void);
 
-/* A game is running and no panel is open: the cursor is the screen centre and the D-pad pans the camera. */
-int pad_nav_free_mode(void);
+/* A game is running, no panel is open and the map mode is free: the cursor is the screen centre and the D-pad pans the camera. */
+int pad_nav_free_mode(const pad_nav_t *nav);
+
+/* The selected planet in network mode, panel open or not; NULL in free mode or once that planet is gone or dead. */
+entity_t *pad_nav_selection(const pad_nav_t *nav);
 
 /* NULL when no panel is open or the panel has no item. */
 entity_t *pad_nav_first_item(void);

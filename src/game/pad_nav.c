@@ -5,6 +5,8 @@
 #include "engine/geom.h"
 #include "game/background.h"
 #include "game/main_economy.h"
+#include "game/menu.h"
+#include "game/planet.h"
 #include "game/scroll.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
@@ -37,8 +39,16 @@ int pad_nav_panel_open(void) {
     return main_economy_typed() == NULL || ui->ephemerals.count > 0 || modal_backdrop_registered();
 }
 
-int pad_nav_free_mode(void) {
-    return main_economy_typed() != NULL && !pad_nav_panel_open();
+int pad_nav_free_mode(const pad_nav_t *nav) {
+    return main_economy_typed() != NULL && !pad_nav_panel_open() && nav->map_mode == PAD_NAV_MAP_FREE;
+}
+
+entity_t *pad_nav_selection(const pad_nav_t *nav) {
+    if (nav->map_mode != PAD_NAV_MAP_NETWORK) {
+        return NULL;
+    }
+    entity_t *selected = entity_get(nav->selection);
+    return selected != NULL && !selected->is_dead ? selected : NULL;
 }
 
 /* Mirrors ui_update: while a box is open, a left press reaches only its ephemerals. */
@@ -263,8 +273,15 @@ static void free_mode_pan(pad_nav_t *nav, int pad_buttons) {
     }
 }
 
+static void reset_map_mode(pad_nav_t *nav) {
+    nav->map_mode = PAD_NAV_MAP_FREE;
+    nav->selection = ENTITY_ID_NONE;
+}
+
 void pad_nav_init(pad_nav_t *nav) {
     nav->focus = ENTITY_ID_NONE;
+    reset_map_mode(nav);
+    nav->release_pending = 0;
     nav->previous_pad = 0;
     nav->cursor_x = 0;
     nav->cursor_y = 0;
@@ -296,21 +313,43 @@ static void panel_step(pad_nav_t *nav, int pad_buttons, int direction, p8_input_
     }
 }
 
-static int cross_reaches_background(int x, int y) {
+static mouse_pos_t mouse_at(int x, int y) {
     const camera_t *camera = main_camera_typed();
     mouse_pos_t mouse = { 0 };
     mouse.screen = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
     mouse.world = camera != NULL ? vec_add(mouse.screen, entity_pos(&camera->header)) : mouse.screen;
     mouse.has = MOUSE_POS_HAS_SCREEN | MOUSE_POS_HAS_WORLD;
+    return mouse;
+}
+
+/* NULL when no entity whose own hit test contains the screen point passes accept. */
+static entity_t *entity_under(int x, int y, int (*accept)(const entity_t *e)) {
+    mouse_pos_t mouse = mouse_at(x, y);
     const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (int i = 0; i < bucket->count; i++) {
         entity_t *e = bucket->items[i];
-        if (e->class->left_press != NULL && e->class != background_class() && e->class->hit_test != NULL &&
-            e->class->hit_test(e, mouse)) {
-            return 0;
+        if (accept(e) && e->class->hit_test != NULL && e->class->hit_test(e, mouse)) {
+            return e;
         }
     }
-    return 1;
+    return NULL;
+}
+
+static int presses_off_background(const entity_t *e) {
+    return e->class->left_press != NULL && e->class != background_class();
+}
+
+/* Only these two states stop the dispatch in planet_left_press: any other lets the press reach the background, a probe. */
+static int is_clickable_planet(const entity_t *e) {
+    return planet_is_family(e) && (e->state == ENTITY_STATE_KNOWN || e->state == ENTITY_STATE_SETTLED);
+}
+
+/* A press on this frame and a release on the next: a settled planet opens its panel on the release. */
+static void click_planet(pad_nav_t *nav, const entity_t *planet, p8_input_frame_t *played) {
+    played->mouse_buttons = P8_MOUSE_LEFT;
+    nav->release_pending = 1;
+    nav->map_mode = PAD_NAV_MAP_NETWORK;
+    nav->selection = entity_id_link(planet);
 }
 
 static void free_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
@@ -321,25 +360,76 @@ static void free_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_inpu
     if (!(pad_buttons & P8_PAD_CROSS)) {
         nav->cross_engaged = 0;
     } else if (pressed & P8_PAD_CROSS) {
-        nav->cross_engaged = cross_reaches_background(nav->cursor_x, nav->cursor_y);
+        nav->cross_engaged = entity_under(nav->cursor_x, nav->cursor_y, presses_off_background) == NULL;
     }
     if (nav->cross_engaged) {
         played->mouse_buttons = P8_MOUSE_LEFT;
+    } else if (pressed & P8_PAD_TRIANGLE) {
+        entity_t *planet = entity_under(nav->cursor_x, nav->cursor_y, is_clickable_planet);
+        if (planet != NULL) {
+            click_planet(nav, planet, played);
+        }
+    }
+}
+
+/* The planet's world point minus the camera, floored: the rule of the world-space panel items. */
+static void screen_point(const entity_t *e, int *x, int *y) {
+    vec_t at = entity_pos(e);
+    const camera_t *camera = main_camera_typed();
+    if (camera != NULL) {
+        at = vec_sub(at, entity_pos(&camera->header));
+    }
+    *x = p8_fixed_flr_int(at.x);
+    *y = p8_fixed_flr_int(at.y);
+}
+
+static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, p8_input_frame_t *played) {
+    nav->focus = ENTITY_ID_NONE;
+    screen_point(selected, &nav->cursor_x, &nav->cursor_y);
+    if ((pressed & P8_PAD_TRIANGLE) && is_clickable_planet(selected)) {
+        click_planet(nav, selected, played);
+    }
+}
+
+/* The title and a new game rebuild the id table above every old generation, so an old selection resolves to NULL. */
+static void drop_stale_map_mode(pad_nav_t *nav) {
+    if (nav->map_mode == PAD_NAV_MAP_NETWORK && pad_nav_selection(nav) == NULL) {
+        reset_map_mode(nav);
+    }
+}
+
+/* The title's difficulty rows are no box, so ○ cannot close them; the pause menu's close is Start's, not ○'s. */
+static void circle_closes_the_box(void) {
+    ui_t *ui = main_ui();
+    if (ui != NULL && ui->ephemerals.count > 0 && !pause_menu_shown()) {
+        ui_clear_ephemerals(ui);
     }
 }
 
 void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
     int pressed = pad_buttons & ~nav->previous_pad;
     int direction = pressed_direction(pressed);
+    int release = nav->release_pending;
     nav->previous_pad = pad_buttons;
+    nav->release_pending = 0;
     played->mouse_buttons = 0;
+    drop_stale_map_mode(nav);
+    if (pressed & P8_PAD_CIRCLE) {
+        circle_closes_the_box();
+    }
     if (pad_nav_panel_open()) {
         reset_free_mode(nav);
         panel_step(nav, pad_buttons, direction, played);
-    } else if (pad_nav_free_mode()) {
+    } else if (pad_nav_free_mode(nav)) {
         free_mode_step(nav, pad_buttons, pressed, played);
+    } else if (pad_nav_selection(nav) != NULL) {
+        reset_free_mode(nav);
+        network_step(nav, pad_nav_selection(nav), pressed, played);
     } else {
         reset_free_mode(nav);
+    }
+    if (release) {
+        played->mouse_buttons = 0;
     }
     played->mouse_x = nav->cursor_x;
     played->mouse_y = nav->cursor_y;

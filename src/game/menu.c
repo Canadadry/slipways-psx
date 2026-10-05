@@ -13,6 +13,7 @@
 #include "game/score_panel.h"
 #include "game/score_panel_display.h"
 #include "game/tech_gate.h"
+#include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
 #include "p8/str.h"
@@ -312,6 +313,21 @@ const entity_t *pause_menu_open_box(void) {
 
 const entity_class_t *pause_menu_open_box_class(void) {
     return &pause_menu_open_box_class_def;
+}
+
+int pause_menu_shown(void) {
+    const ui_t *ui = main_ui();
+    if (ui == NULL) {
+        return 0;
+    }
+    entity_id_list_iter_t it = entity_id_list_all(&ui->ephemerals);
+    entity_t *e;
+    while (entity_id_list_iter_next(&it, &e)) {
+        if (e->class == button_class() && ((const button_t *)e)->on_click == pause_menu_row2_on_click_method) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void menu_init(void) {
