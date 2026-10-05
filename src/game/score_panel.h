@@ -46,14 +46,6 @@ typedef struct {
     message_box_keep_open_fn_t keep_open;
 } score_panel_year_banner_t;
 
-typedef struct {
-    data_row_t row;
-    data_item_t items[5];
-    int has_value[5];
-    vec_t pos;
-    const score_rows_entry_t *entry;
-} score_row_t;
-
 void score_panel_init(void);
 
 void score_panel_shutdown(void);
@@ -72,8 +64,6 @@ score_panel_t *score_panel_new(void);
 
 message_box_t *score_panel_last_box(const score_panel_t *self);
 void score_panel_set_last_box(score_panel_t *self, message_box_t *box);
-
-score_row_t *score_panel_rows(void);
 
 button_fn_t score_panel_init_field_value(void);
 void score_panel_set_init(button_fn_t fn);

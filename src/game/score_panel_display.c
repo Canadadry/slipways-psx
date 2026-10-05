@@ -128,28 +128,31 @@ typedef struct {
     data_item_t items[3];
 } score_panel_update_draw_row_t;
 
-static void score_panel_update_set(score_row_t *st, int i, data_item_t item) {
-    st->items[i - 1] = item;
-    st->has_value[i - 1] = 1;
-}
-
-static const data_row_t *score_panel_update_map(score_row_t *score_row, const score_panel_update_ctx_t *context) {
+static const data_row_t *score_panel_update_map(const score_rows_entry_t *entry, const score_panel_update_ctx_t *context) {
     int score_i;
-    char *score_text;
+    data_item_t values[5] = {{0}};
+    int has_value[5] = {0};
     layout_row_cell_t items[5];
     layout_row_keys_t keys = {0};
     layout_row_t *layout_row_inst;
     score_panel_update_draw_row_t *article;
+    vec_t *pos = NULL;
     int index;
 
-    if (!score_row->entry->has_score) {
-        return &score_row->row;
+    if (!entry->has_score) {
+        return &entry->row;
     }
 
-    score_i = score_row->entry->score;
+    assert(entry->row.count <= 5 && "score_panel_update_map: a scored row holds at most the five items its line lays out");
+    for (index = 0; index < entry->row.count; index++) {
+        values[index] = entry->row.items[index];
+        has_value[index] = 1;
+    }
 
-    score_text = score_panel_final_score_text(context->final_score, score_i);
-    score_panel_update_set(score_row, 3, (data_item_t){.text = score_text});
+    score_i = entry->score;
+
+    values[2] = (data_item_t){.text = score_panel_final_score_text(context->final_score, score_i)};
+    has_value[2] = 1;
 
     if (score_i == 0) {
         const economy_t *fm = main_economy_typed();
@@ -158,41 +161,44 @@ static const data_row_t *score_panel_update_map(score_row_t *score_row, const sc
         const char *px = "";
         char *piece1;
         char *piece2;
-        char *label;
 
         if (dk != NULL && dk->name != NULL) {
             px = dk->name;
         }
         piece1 = p8_concat2(frame_zone(), end_status_str, " (");
         piece2 = p8_concat2(frame_zone(), piece1, px);
-        label = p8_concat2(frame_zone(), piece2, ")");
-        score_panel_update_set(score_row, 1, (data_item_t){.text = label});
+        values[0] = (data_item_t){.text = p8_concat2(frame_zone(), piece2, ")")};
+        has_value[0] = 1;
     }
 
     if (score_i == 6) {
-        int i;
-        for (i = 1; i <= 5; i++) {
-            int icon = (i <= p8_fixed_flr_int(context->final_score->tier)) ? 56 : 57;
-            score_panel_update_set(score_row, i, (data_item_t){.number = icon});
+        for (index = 0; index < 5; index++) {
+            int icon = (index + 1 <= p8_fixed_flr_int(context->final_score->tier)) ? 56 : 57;
+            values[index] = (data_item_t){.number = icon};
+            has_value[index] = 1;
         }
     }
 
     /* GAP-25 */
     for (index = 0; index < 5; index++) {
-        if (score_row->has_value[index]) {
-            items[keys.count++] = layout_row_cell_item(&score_row->items[index]);
+        if (has_value[index]) {
+            items[keys.count++] = layout_row_cell_item(&values[index]);
         }
     }
     keys.items = items;
-    keys.has_color = score_row->row.has_color;
-    keys.color = p8_fixed_from_int(score_row->row.color);
+    keys.has_color = entry->row.has_color;
+    keys.color = p8_fixed_from_int(entry->row.color);
     keys.has_score = 1;
     keys.score = p8_fixed_from_int(score_i);
-    keys.pos = score_row->entry->has_pos ? &score_row->pos : NULL;
+    if (entry->has_pos) {
+        pos = (vec_t *)allocator_alloc(frame_zone(), sizeof *pos);
+        *pos = vec_make(p8_fixed_from_int(entry->pos_x), p8_fixed_from_int(entry->pos_y));
+    }
+    keys.pos = pos;
     layout_row_inst = layout_row_new(frame_zone(), &keys);
     article = (score_panel_update_draw_row_t *)allocator_alloc(frame_zone(), sizeof *article);
     article->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_inst};
-    article->items[1] = (data_item_t){.is_ref = 1, .ref = keys.pos};
+    article->items[1] = (data_item_t){.is_ref = 1, .ref = pos};
     article->items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
     article->row = (data_row_t){.count = 3, .items = article->items, .draw_function = DRAW_FUNCTION_DRAW_ROW};
     return &article->row;
@@ -266,7 +272,7 @@ void score_panel_update(score_panel_t *self) {
 
         if (is_shown && !last_box_equals_shown_message_box) {
             final_score_t s = economy_score_final();
-            score_row_t *bz = score_panel_rows();
+            int is_ready = score_panel_ready();
             score_panel_update_ctx_t ctx;
             const data_row_t *iw[SCORE_ROWS_COUNT];
             message_box_keys_t keys = {0};
@@ -274,12 +280,12 @@ void score_panel_update(score_panel_t *self) {
             int i;
 
             ctx.final_score = &s;
-            for (i = 0; bz != NULL && i < SCORE_ROWS_COUNT; i++) {
-                iw[i] = score_panel_update_map(&bz[i], &ctx);
+            for (i = 0; is_ready && i < SCORE_ROWS_COUNT; i++) {
+                iw[i] = score_panel_update_map(&score_rows_table[i], &ctx);
             }
 
             keys.items = iw;
-            keys.count = bz != NULL ? SCORE_ROWS_COUNT : 0;
+            keys.count = is_ready ? SCORE_ROWS_COUNT : 0;
             keys.has_duration_scale = 1;
             keys.duration_scale = p8_fixed_from_int(3);
             keys.keep_open = score_panel_update_keep_open_method;

@@ -22,7 +22,6 @@
 #include "engine/game_zone.h"
 
 static int g_score_panel_up = 0;
-static score_row_t g_score_rows[SCORE_ROWS_COUNT];
 static entity_id_t g_main_score_panel;
 
 static p8_fixed_t fixed_min(p8_fixed_t a, p8_fixed_t b) {
@@ -239,20 +238,6 @@ void score_panel_init(void) {
 
     score_panel_shutdown();
 
-    for (i = 0; i < SCORE_ROWS_COUNT; i++) {
-        const score_rows_entry_t *e = &score_rows_table[i];
-        score_row_t *b = &g_score_rows[i];
-        int k;
-
-        score_panel_row_copy(&b->row, b->items, 5, &e->row);
-        b->row.draw_function = e->draw_function;
-        for (k = 0; k < 5; k++) {
-            b->has_value[k] = k < e->row.count;
-        }
-        b->pos = vec_make(p8_fixed_from_int(e->pos_x), p8_fixed_from_int(e->pos_y));
-        b->entry = e;
-    }
-
     g_score_panel_up = 1;
     score_panel_row_copy(&g_score_panel_readouts.row, g_score_panel_readouts.items, 7, &score_panel_readouts_row);
     for (i = 0; i < g_score_panel_readouts.row.count; i++) {
@@ -287,10 +272,6 @@ const entity_class_t *score_panel_class(void) {
 
 score_panel_t *score_panel_new(void) {
     return score_panel_create();
-}
-
-score_row_t *score_panel_rows(void) {
-    return g_score_panel_up ? g_score_rows : NULL;
 }
 
 message_box_t *score_panel_last_box(const score_panel_t *self) {

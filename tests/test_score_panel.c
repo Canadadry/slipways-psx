@@ -36,6 +36,7 @@
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/vec.h"
+#include "engine/frame_zone.h"
 
 static const vec_t *slide_target_ref(const button_t *b) {
     return (b->has & BUTTON_HAS_SLIDE_TARGET) ? &b->slide_target : NULL;
@@ -753,6 +754,15 @@ static void test_final_score_reads_invented_and_happiness(void) {
     assert(s.total == p8_fixed_from_int(14) && s.tier == 0);
 }
 
+/* The final score box, as score_panel_update() opened it at the game's end. */
+static const message_box_t *open_final_box(score_panel_t *ju) {
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
+    class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
+    assert(shown_message_box() != NULL && shown_message_box()->items_count == SCORE_ROWS_COUNT);
+    return shown_message_box();
+}
+
 /* The given item (1-based) of the line that score_panel_update() put in the
  * box's given row (0-based), a draw_row article. */
 static layout_row_item_t update_row_item(const message_box_t *mh, int k, int i) {
@@ -794,6 +804,41 @@ static void test_update_rows_show_final_score(void) {
         icon = update_row_item(mh, 11, i);
         assert(icon.kind == LAYOUT_ROW_ITEM_SPRITE && icon.sprite_id == p8_fixed_from_int(57));
     }
+}
+
+/* Each update rebuilds the score lines from the static table: a second
+ * box, opened after the frame zone was reset, lays out the same items, and
+ * the "score 0" line keeps its two elements (GAP-25). */
+static void test_update_rebuilds_rows_from_the_table(void) {
+    score_panel_t *ju = start_game();
+    const message_box_t *first = open_final_box(ju);
+    const message_box_t *second;
+    const layout_row_t *rows[2][7];
+    int k;
+    int i;
+
+    frame_zone_reset();
+    score_panel_set_last_box(ju, NULL);
+    class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
+    second = shown_message_box();
+    assert(second != NULL && second != first && second->items_count == SCORE_ROWS_COUNT);
+    for (k = 0; k < 7; k++) {
+        rows[0][k] = first->items[5 + k]->items[0].ref;
+        rows[1][k] = second->items[5 + k]->items[0].ref;
+        assert(rows[0][k]->placed_items_count == rows[1][k]->placed_items_count);
+        assert(rows[0][k]->width == rows[1][k]->width);
+        for (i = 0; i < rows[0][k]->placed_items_count; i++) {
+            layout_row_item_t a = rows[0][k]->placed_items[i];
+            layout_row_item_t b = rows[1][k]->placed_items[i];
+            assert(a.kind == b.kind && a.offset.x == b.offset.x);
+            if (a.kind == LAYOUT_ROW_ITEM_SPRITE) {
+                assert(a.sprite_id == b.sprite_id && a.sprite_palette_block == b.sprite_palette_block);
+            }
+            assert(a.kind != LAYOUT_ROW_ITEM_TEXT || (strcmp(a.text, b.text) == 0 && a.color == b.color));
+        }
+    }
+    assert(rows[1][0]->placed_items_count == 2);
+    assert(strcmp(rows[1][0]->placed_items[0].text, "final score ()") == 0);
 }
 
 /* The frame rows drawn alone: the bottom rule fills the last two lines,
@@ -863,33 +908,33 @@ static void test_year_banner_is_centered(void) {
  * x = W/2, y = H/2 + (y128 - 64). */
 static void test_score_lines_are_centered(void) {
     static const int y128[7] = {21, 34, 43, 52, 61, 74, 82};
-    const score_row_t *rows;
+    const message_box_t *mh = open_final_box(start_game());
     int i;
 
-    (void)start_game();
-    rows = score_panel_rows();
-    assert(rows != NULL);
     for (i = 0; i < 7; i++) {
-        const score_row_t *r = &rows[5 + i];
-        assert(r->entry->has_pos);
-        assert(r->pos.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
-        assert(r->pos.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
+        const data_row_t *article = mh->items[5 + i];
+        const vec_t *pos;
+        assert(article->draw_function == DRAW_FUNCTION_DRAW_ROW && article->items[1].is_ref);
+        pos = article->items[1].ref;
+        assert(pos != NULL);
+        assert(pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
+        assert(pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
     }
 }
 
 /* The five backgrounds of the score table, drawn alone, cover lines
  * H/2 - 40 to H/2 + 22: the cart's table (24 to 86) moved with the
- * center. */
+ * center. Each states its draw function in its static row, and reaches the
+ * box as it is. */
 static void test_score_backgrounds_follow_the_center(void) {
-    const score_row_t *rows;
     const data_row_t *backgrounds[5];
+    const message_box_t *mh;
     int y;
     int i;
 
-    (void)start_game();
-    rows = score_panel_rows();
     for (i = 0; i < 5; i++) {
-        backgrounds[i] = &rows[i].row;
+        backgrounds[i] = &score_rows_table[i].row;
+        assert(backgrounds[i]->draw_function == DRAW_FUNCTION_DRAW_BAR);
     }
     p8_gfx_init(&graphics);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
@@ -897,6 +942,10 @@ static void test_score_backgrounds_follow_the_center(void) {
     for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
         int in_table = y >= P8_SCREEN_HEIGHT / 2 - 40 && y <= P8_SCREEN_HEIGHT / 2 + 22;
         assert((memory.screen[y][0] != 7) == in_table);
+    }
+    mh = open_final_box(start_game());
+    for (i = 0; i < 5; i++) {
+        assert(mh->items[i] == backgrounds[i]);
     }
 }
 
@@ -972,6 +1021,7 @@ int main(void) {
     in_fresh_child(test_tech_tree_screen_is_a_struct);
     in_fresh_child(test_final_score_reads_invented_and_happiness);
     in_fresh_child(test_update_rows_show_final_score);
+    in_fresh_child(test_update_rebuilds_rows_from_the_table);
 
     printf("test_score_panel: all tests passed\n");
     return 0;
