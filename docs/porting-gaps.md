@@ -14,27 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-22 — `tostr` below 0.0001 is not sourced
-
-Lua: `tostr`.
-
-`p8_tostr_fixed` writes a number with 4 decimals rounded half to even,
-then strips trailing zeros and a bare point. This rule reproduces 13 of
-the 14 witnesses in block C of `tools/pico8_reference_probe_out.txt`,
-including 2/3 → `"0.6667"`.
-
-The 14th is raw −6 (`0xffff.fffa`): PICO-8 displays `"-0"`, this port
-`"-0.0001"`. No single rule reconciles this witness with
-2/3 → `"0.6667"`, so none is guessed. This port keeps its output: raw −6 →
-`"-0.0001"`, raw −1 to −3 → `"-0"`, raw 1 to 3 → `"0"`. For the other
-magnitudes below 0.0001, PICO-8's rule is unknown.
-
-Not reached by the e2e: no value the game displays has a magnitude
-below 0.0001. It can be settled by one more line in
-`tools/pico8_reference_probe.p8`, run on PICO-8.
-
-File: `src/p8/str.c`.
-
 ## GAP-24 — `trade_extend` gives the new route a `false` resource when the route has no resource
 
 Lua: `trade:kg`, `qe=false`, `self.qe`, `qe`, `trade`, `jo:cn`, `jo:ib`,
