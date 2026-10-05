@@ -11,6 +11,7 @@ typedef struct {
     int cursor_x;
     int cursor_y;
     int held_frames[4];
+    int cross_engaged;
 } pad_nav_t;
 
 void pad_nav_init(pad_nav_t *nav);

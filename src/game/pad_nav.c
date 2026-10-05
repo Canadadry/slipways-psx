@@ -3,6 +3,7 @@
 #include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "engine/geom.h"
+#include "game/background.h"
 #include "game/main_economy.h"
 #include "game/scroll.h"
 #include "game/ui.h"
@@ -229,10 +230,11 @@ enum { HELD_FRAMES_CAP = 41 };
 
 static const int pan_directions[4] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
 
-static void reset_held_frames(pad_nav_t *nav) {
+static void reset_free_mode(pad_nav_t *nav) {
     for (int i = 0; i < 4; i++) {
         nav->held_frames[i] = 0;
     }
+    nav->cross_engaged = 0;
 }
 
 static int pan_speed(int held_frames) {
@@ -266,7 +268,7 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->previous_pad = 0;
     nav->cursor_x = 0;
     nav->cursor_y = 0;
-    reset_held_frames(nav);
+    reset_free_mode(nav);
 }
 
 entity_t *pad_nav_focus(const pad_nav_t *nav) {
@@ -294,24 +296,50 @@ static void panel_step(pad_nav_t *nav, int pad_buttons, int direction, p8_input_
     }
 }
 
-static void free_mode_step(pad_nav_t *nav, int pad_buttons) {
+static int cross_reaches_background(int x, int y) {
+    const camera_t *camera = main_camera_typed();
+    mouse_pos_t mouse = { 0 };
+    mouse.screen = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+    mouse.world = camera != NULL ? vec_add(mouse.screen, entity_pos(&camera->header)) : mouse.screen;
+    mouse.has = MOUSE_POS_HAS_SCREEN | MOUSE_POS_HAS_WORLD;
+    const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
+    for (int i = 0; i < bucket->count; i++) {
+        entity_t *e = bucket->items[i];
+        if (e->class->left_press != NULL && e->class != background_class() && e->class->hit_test != NULL &&
+            e->class->hit_test(e, mouse)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static void free_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     free_mode_pan(nav, pad_buttons);
+    if (!(pad_buttons & P8_PAD_CROSS)) {
+        nav->cross_engaged = 0;
+    } else if (pressed & P8_PAD_CROSS) {
+        nav->cross_engaged = cross_reaches_background(nav->cursor_x, nav->cursor_y);
+    }
+    if (nav->cross_engaged) {
+        played->mouse_buttons = P8_MOUSE_LEFT;
+    }
 }
 
 void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
-    int direction = pressed_direction(pad_buttons & ~nav->previous_pad);
+    int pressed = pad_buttons & ~nav->previous_pad;
+    int direction = pressed_direction(pressed);
     nav->previous_pad = pad_buttons;
     played->mouse_buttons = 0;
     if (pad_nav_panel_open()) {
-        reset_held_frames(nav);
+        reset_free_mode(nav);
         panel_step(nav, pad_buttons, direction, played);
     } else if (pad_nav_free_mode()) {
-        free_mode_step(nav, pad_buttons);
+        free_mode_step(nav, pad_buttons, pressed, played);
     } else {
-        reset_held_frames(nav);
+        reset_free_mode(nav);
     }
     played->mouse_x = nav->cursor_x;
     played->mouse_y = nav->cursor_y;

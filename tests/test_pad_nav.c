@@ -18,6 +18,7 @@
 #include "game/scroll.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
+#include "game/wormhole.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -65,6 +66,11 @@ static void start_title(input_step_t *step) {
     for (int i = 0; i < SETTLE_FRAMES; i++) {
         run_frame(step, 0);
     }
+}
+
+static int tagged_count(int tag) {
+    const entity_list_t *tagged = entities_by_tag(tag);
+    return tagged != NULL ? tagged->count : 0;
 }
 
 static void assert_focused_and_hovered(const input_step_t *step, const char *name) {
@@ -146,20 +152,22 @@ static void test_title_cross_with_a_move_clicks_the_new_focus(void) {
     assert(strcmp(economy_score_difficulty()->name, "reasonable") == 0);
 }
 
+/* The × that starts the game is not a press edge in free mode: it places no probe. */
 static void test_cross_held_across_the_click_leaves_nothing_held(void) {
     input_step_t step;
     start_title(&step);
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 2 * SETTLE_FRAMES; i++) {
         run_frame(&step, P8_PAD_CROSS);
         assert(input_step_played_frame(&step)->mouse_buttons == (i == 0 ? P8_MOUSE_LEFT : 0));
     }
     assert(strcmp(economy_score_difficulty()->name, "forgiving") == 0);
+    assert(pad_nav_free_mode());
     assert(ui_left_held(main_ui()) == NULL);
     run_frame(&step, 0);
     assert(ui_left_held(main_ui()) == NULL);
+    assert(tagged_count(TAG_PROBE) == 0 && tagged_count(TAG_WORMHOLE) == 0);
 }
 
-/* TODO step 2.1 chunk 2: × on empty space puts the left button down. */
 static void test_free_mode_holds_the_cursor_at_the_centre(void) {
     input_step_t step;
     start_title(&step);
@@ -171,7 +179,7 @@ static void test_free_mode_holds_the_cursor_at_the_centre(void) {
         run_frame(&step, (i * 0x2a5) & 2047);
         const p8_input_frame_t *played = input_step_played_frame(&step);
         assert(played->mouse_x == P8_SCREEN_WIDTH / 2 && played->mouse_y == P8_SCREEN_HEIGHT / 2);
-        assert(played->mouse_buttons == 0);
+        assert(played->mouse_buttons == 0 || ((i * 0x2a5) & P8_PAD_CROSS));
         assert(pad_nav_focus(&step.pad_nav) == NULL);
     }
 }
@@ -279,6 +287,10 @@ static int in_forked_copy(void) {
 static void end_forked_copy(void) {
     fflush(stdout);
     _exit(0);
+}
+
+static int absolute_int(int value) {
+    return value < 0 ? -value : value;
 }
 
 static vec_t camera_at(void) {
@@ -399,11 +411,6 @@ static void test_free_mode_bound_brings_every_planet_under_the_centre(void) {
     }
 }
 
-static int tagged_count(int tag) {
-    const entity_list_t *tagged = entities_by_tag(tag);
-    return tagged != NULL ? tagged->count : 0;
-}
-
 static void test_free_mode_other_buttons_do_nothing(void) {
     static const int buttons[6] = { P8_PAD_CIRCLE, P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START };
     input_step_t step;
@@ -425,6 +432,136 @@ static void test_free_mode_other_buttons_do_nothing(void) {
     assert(live_entities()->count == live);
     assert(tagged_count(TAG_PROBE) == 0 && tagged_count(TAG_WORMHOLE) == 0);
     assert(tagged_count(TAG_MESSAGE_BOX) == boxes && main_ui()->ephemerals.count == 0);
+}
+
+/* The world point under the centre cursor, with the camera as the next frame's hit test sees it. */
+static vec_t centre_world(void) {
+    vec_t centre = vec_make(p8_fixed_from_int(P8_SCREEN_WIDTH / 2), p8_fixed_from_int(P8_SCREEN_HEIGHT / 2));
+    return vec_add(centre, entity_pos(&main_camera_typed()->header));
+}
+
+static int planet_near_centre(int pixels) {
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    vec_t centre = centre_world();
+    for (int i = 0; i < planets->count; i++) {
+        vec_t gap = vec_sub(entity_pos(planets->items[i]), centre);
+        int dx = absolute_int(p8_fixed_flr_int(gap.x));
+        int dy = absolute_int(p8_fixed_flr_int(gap.y));
+        if (dx <= pixels && dy <= pixels) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Pans right, then down, until no planet lies within 24 px of the centre on both axes. */
+static void pan_to_empty_space(input_step_t *step) {
+    for (int i = 0; i < 400 && planet_near_centre(24); i++) {
+        tap(step, i % 2 ? P8_PAD_RIGHT : P8_PAD_DOWN);
+    }
+    assert(!planet_near_centre(24));
+}
+
+static void test_free_mode_first_cross_places_the_probe(void) {
+    input_step_t step;
+    start_game(&step);
+    pan_to_empty_space(&step);
+    tap(&step, P8_PAD_CROSS);
+    assert(tagged_count(TAG_PROBE) == 1 && tagged_count(TAG_WORMHOLE) == 0);
+    assert(pad_nav_free_mode());
+    const p8_input_frame_t *played = input_step_played_frame(&step);
+    assert(played->mouse_x == P8_SCREEN_WIDTH / 2 && played->mouse_y == P8_SCREEN_HEIGHT / 2);
+    assert(played->mouse_buttons == 0);
+}
+
+static void test_free_mode_short_cross_hold_abandons_the_fold(void) {
+    input_step_t step;
+    start_game(&step);
+    pan_to_empty_space(&step);
+    tap(&step, P8_PAD_CROSS);
+    settle(&step);
+    p8_fixed_t credits = main_economy_typed()->credits;
+    for (int i = 0; i < 10; i++) {
+        run_frame(&step, P8_PAD_CROSS);
+        assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+        entity_t *held = ui_left_held(main_ui());
+        assert(held != NULL && held->class == wormhole_class());
+    }
+    assert(tagged_count(TAG_WORMHOLE) == 1);
+    run_frame(&step, 0);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    settle(&step);
+    assert(tagged_count(TAG_WORMHOLE) == 0 && tagged_count(TAG_PROBE) == 1);
+    assert(main_economy_typed()->credits == credits);
+    assert(pad_nav_free_mode());
+}
+
+/* The test puts the planet under the centre through the pan operation, as pad navigation itself moves the camera. */
+static void test_free_mode_cross_on_a_planet_presses_nothing(void) {
+    input_step_t step;
+    start_game(&step);
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    for (int p = 0; p < planets->count; p += 7) {
+        if (in_forked_copy()) {
+            camera_t *camera = main_camera_typed();
+            vec_t gap = vec_sub(entity_pos(planets->items[p]), centre_world());
+            camera_pan(camera, p8_fixed_flr_int(gap.x), p8_fixed_flr_int(gap.y));
+            run_frame(&step, 0);
+            int live = live_entities()->count;
+            for (int i = 0; i < 20; i++) {
+                run_frame(&step, P8_PAD_CROSS);
+                assert(input_step_played_frame(&step)->mouse_buttons == 0);
+            }
+            run_frame(&step, 0);
+            assert(live_entities()->count == live);
+            assert(tagged_count(TAG_PROBE) == 0 && tagged_count(TAG_WORMHOLE) == 0);
+            assert(ui_left_held(main_ui()) == NULL && main_ui()->ephemerals.count == 0);
+            assert(pad_nav_free_mode());
+            end_forked_copy();
+        }
+    }
+}
+
+static void test_free_mode_pans_while_cross_is_held(void) {
+    input_step_t step;
+    start_game(&step);
+    pan_to_empty_space(&step);
+    tap(&step, P8_PAD_CROSS);
+    run_frame(&step, P8_PAD_CROSS);
+    vec_t from = camera_at();
+    for (int i = 0; i < 12; i++) {
+        run_frame(&step, P8_PAD_CROSS | P8_PAD_LEFT);
+        assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+        assert_camera_still();
+    }
+    assert_moved(from, -14, 0);
+    entity_t *held = ui_left_held(main_ui());
+    assert(held != NULL && held->class == wormhole_class());
+}
+
+/* × engaged when the panel opens, then held again through the panel's close: back in free mode it is no press edge. */
+static void test_free_mode_cross_engagement_ends_under_a_panel(void) {
+    input_step_t step;
+    start_game(&step);
+    pan_to_empty_space(&step);
+    tap(&step, P8_PAD_CROSS);
+    hold(&step, P8_PAD_CROSS, 2);
+    galaxy_menu_on_click(4)(NULL);
+    run_frame(&step, 0);
+    settle(&step);
+    assert(pad_nav_panel_open());
+    for (int i = 0; i < 3; i++) {
+        tap(&step, P8_PAD_UP | P8_PAD_RIGHT);
+    }
+    int frames = 0;
+    do {
+        run_frame(&step, P8_PAD_CROSS);
+    } while (pad_nav_panel_open() && ++frames < 100);
+    assert(pad_nav_free_mode());
+    for (int i = 0; i < 5; i++) {
+        run_frame(&step, P8_PAD_CROSS);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
 }
 
 /* A held direction pans nothing under a panel, and its speed starts over once free mode resumes. */
@@ -708,6 +845,11 @@ int main(void) {
     in_fresh_child(test_free_mode_diagonal_cancel_and_reset);
     in_fresh_child(test_free_mode_bound_brings_every_planet_under_the_centre);
     in_fresh_child(test_free_mode_other_buttons_do_nothing);
+    in_fresh_child(test_free_mode_first_cross_places_the_probe);
+    in_fresh_child(test_free_mode_short_cross_hold_abandons_the_fold);
+    in_fresh_child(test_free_mode_cross_on_a_planet_presses_nothing);
+    in_fresh_child(test_free_mode_pans_while_cross_is_held);
+    in_fresh_child(test_free_mode_cross_engagement_ends_under_a_panel);
     in_fresh_child(test_panel_takes_precedence_then_the_cursor_returns_to_the_centre);
     in_fresh_child(test_pause_menu_is_reachable);
     in_fresh_child(test_planet_menu_is_reachable);
