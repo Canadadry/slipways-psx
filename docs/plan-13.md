@@ -299,4 +299,8 @@ Measurement only (`make state` and `size tmp/replay` on `807cf47`, the commit be
 - Allowed by user decisions: owned buffers (`placed_items`, `tooltip_t.rows`, `planet_t.layout_row`, button tooltips, structure-icon tooltip), generator state, the rule-15 break.
 - Smells, for later: `engine/` still includes `game/` headers and `entity_class.h` names game concepts (predates the plan); inline caps and magic sizes; no guard catches a new small-value pointer parameter or kept address; two presence encodings (`uint16_t has` and `int has_*`) side by side.
 - Done when: met except the exception list and the last review, which wait on the items above.
-- **The run stops here, pending the user.**
+- User decisions (2026-10-06): the violation is fixed (`score_panel_layout_block_t.fixed_pos`/`.row_step` are values with presence bits; guard 119 → 117); the four row pointers (`layout_row_cell_t.as.text`, `data_item_t.text`, `data_item_t.row`, `data_row_t.items`) are validated. `make e2e` same shas; `make sanitize-net` and `make full-game` pass.
+
+### Plan complete
+
+Done when, checked on the final commit: the exception list holds only const static data plus user-validated exceptions (117 pointers); 0 entity lists; `exit_queue_flush` has no `forget`; `entity_class.h` names neither `targeting` nor `emitter`; the last review's only violation is fixed and its remaining items are validated; every `*.sha256` unchanged since `807cf47`; `make sanitize-net` and `make full-game` pass.
