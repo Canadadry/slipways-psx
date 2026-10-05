@@ -4,7 +4,7 @@
 
 ## How it's built
 
-- Ported from `pico8/lua.lua` (the cart's decompiled source), which stays as an archive. The C code is now the reference; known divergences are listed in `docs/porting-gaps.md`.
+- Ported from `pico8/lua.lua` (the cart's decompiled source), which stays as an archive. The C code is now the reference.
 - The game talks to a fixed PICO-8 API (a 160×120 software framebuffer) served by two backends: a headless replay (`events.json` in, text dump of the framebuffer out) and interactive raylib.
 - A raylib session records its input as `events.json`: whatever a human played, an agent can replay without a window.
 - `worst-case/` holds fully built-up games: `make state` reports zone peaks, `make full-game` fails on any `p8_fatal`.

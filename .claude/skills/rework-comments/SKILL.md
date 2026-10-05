@@ -19,17 +19,17 @@ What happened: a catch-up pass measured 13% comments over `src/`, concluded the 
 
 Two modes remain, and they differ only in phase 1:
 
-**Full campaign** — no gaps file yet (and, if names are cryptic, no glossary). Phase 1, then phase 2 over every file.
+**Full campaign** — the repository's instructions file has no destination rule yet. Phase 1, then phase 2 over every file.
 
-**Catch-up** — the gaps file exists. Skip phase 1: the glossary and gaps file are read-only, agents propose additions in their report. Phase 2 still covers **every file in scope**; a file that already meets the bar costs one read and an empty diff, which is cheap. The destination rule lives in the repository's instructions file (`CLAUDE.md` or equivalent); the bar below is stricter, and **this skill's bar wins** for the duration of the pass.
+**Catch-up** — the destination rule is already in the instructions file. Skip phase 1: the glossary, if there is one, is read-only, agents propose additions in their report. Phase 2 still covers **every file in scope**; a file that already meets the bar costs one read and an empty diff, which is cheap. The destination rule lives in the repository's instructions file (`CLAUDE.md` or equivalent); the bar below is stricter, and **this skill's bar wins** for the duration of the pass.
 
-A half-reworked repository — a glossary but no gaps file, or the other way round — is still a catch-up. Do not create the missing half for symmetry; create it the day a real gap shows up.
+A repository with the rule but no glossary is still a catch-up. Do not create a glossary for symmetry; create it the day a name stops carrying its meaning.
 
 ## Prerequisite, non-negotiable
 
 **A test suite that attests the behavior, and that is green before you start.** The method adds `assert`s; a wrong assert aborts the process. On the reference project, an agent added one that brought down the whole suite (see below). The safety net caught it, not the review.
 
-Without a test suite: add no asserts at all, and destination 3 shrinks to its prose variant. Tell the user rather than improvising (unattended: stop before phase 2 and report it).
+Without a test suite: add no asserts at all, and destination 2 shrinks to its prose variant. Tell the user rather than improvising (unattended: stop before phase 2 and report it).
 
 **This is the orchestrator's obligation, not a box the agent ticks**: the agent is not allowed to run the suite (the build directory is shared). Say so explicitly in the brief, otherwise the agent believes it is working without a net — or worse, believes it has one where there is none.
 
@@ -50,7 +50,7 @@ cloc --by-file src/ | tail -5
 
 By kind of file:
 
-- **Headers carry no comments.** The signature and the names are the documentation. Three exceptions, nothing else: a bare `/* GAP-n */` marker, a `TODO`, and a file format that something outside the repository must read. A contract that matters ("NULL aborts", "returns 0 on a missing field") is either enforced by an assert in the body, or is not worth a sentence. Checked mechanically: [header_residue.sh](header_residue.sh) must print nothing.
+- **Headers carry no comments.** The signature and the names are the documentation. Two exceptions, nothing else: a `TODO`, and a file format that something outside the repository must read. A contract that matters ("NULL aborts", "returns 0 on a missing field") is either enforced by an assert in the body, or is not worth a sentence. Checked mechanically: [header_residue.sh](header_residue.sh) must print nothing.
 - **Bodies (`.c`)** keep only traps, at the exact line, **one sentence** — or the assert that replaces it.
 - **Tests** keep the reason for a literal value (a pixel, a range, a frame index). Everything else goes.
 
@@ -59,9 +59,8 @@ The reference failure for this rule is under-deletion, not over-deletion: a pass
 Every comment that survives goes to **one** of these destinations:
 
 1. **The meaning of a name** → a glossary file, one line per symbol. The code does not repeat it.
-2. **A known gap with the reference**, or a piece deliberately left undone → a numbered entry in a gaps file. The code refers to it only through a **bare marker**, `/* GAP-7 */`, alone on its line above the declaration concerned — no summary next to it; it would go stale.
-3. **A trap a future reader would reintroduce** → `assert(cond && "short message")` at the exact site if it can be checked at runtime, **otherwise one sentence in the body**, at the line it protects.
-4. **A file format or a protocol that something outside the repository must be able to read** → it may stay in full in the header that writes it; it has nowhere else to live. A format read only by the repository's own code or tests is not one: the tests pin it. Pass the header to `header_residue.sh` with `-x`, and justify it in the report.
+2. **A trap a future reader would reintroduce** → `assert(cond && "short message")` at the exact site if it can be checked at runtime, **otherwise one sentence in the body**, at the line it protects.
+3. **A file format or a protocol that something outside the repository must be able to read** → it may stay in full in the header that writes it; it has nowhere else to live. A format read only by the repository's own code or tests is not one: the tests pin it. Pass the header to `header_residue.sh` with `-x`, and justify it in the report.
 
 Everything else goes into the **commit message**. Git keeps it, and nobody pays for it in tokens on every read of the file. `TODO` is still allowed: it admits that a case is not handled.
 
@@ -70,9 +69,8 @@ Everything else goes into the **commit message**. Git keeps it, and nobody pays 
 The orchestrator does it alone, before any agent. It extracts what could no longer be reconstructed once the comments are trimmed.
 
 1. **The glossary.** Useful when identifiers do not carry their meaning: transliterated minified code, symbols inherited from a binary format, domain abbreviations. Build it by reading every header, one line per symbol, and check mechanically that every symbol cited still exists. *Transposing*: if the names already speak for themselves, this file has no reason to exist — do not create it for symmetry. It can become a glossary of domain vocabulary, or nothing.
-2. **The numbered gaps.** One entry per divergence from the reference (another implementation, a spec, a replaced system) or per acknowledged omission. **Re-check every entry against the code** rather than copying the comment: that is where you find stale claims, and sometimes a gap that has become reachable without anyone noting it.
-3. **Delete the work logs** that git now makes redundant, and patch every dangling reference.
-4. **Rewire the process that produced the prose** — otherwise it grows back. Concretely: write the destination rule into the repository's instructions file (`CLAUDE.md` or equivalent), and **fix the skills that wrote narration**. On the reference project, a bug-fixing skill appended a log paragraph on every run; that step was removed, and the finding now goes into the commit message.
+2. **Delete the work logs** that git now makes redundant, and patch every dangling reference.
+3. **Rewire the process that produced the prose** — otherwise it grows back. Concretely: write the destination rule into the repository's instructions file (`CLAUDE.md` or equivalent), and **fix the skills that wrote narration**. On the reference project, a bug-fixing skill appended a log paragraph on every run; that step was removed, and the finding now goes into the commit message.
 
 Commit phase 1 before opening phase 2.
 
@@ -110,8 +108,8 @@ Later waves refused five asserts for this reason, and one of those refusals prod
 
 - **Verify every status claim before believing it.** "Not ported yet", "never exercised", "no reader", "dead code": about fifty turned out to be false. They were not lies when written, they aged — and that is what makes them dangerous; several steered attention away from the one place that needed examining. A status claim gets verified (grep, caller count) or deleted.
 - **A test file has its own rule.** Its comment carries *why this value*, which no code comment carries: an assertion on a pixel, a range or a frame index cannot be recovered without its reason. The retention rate is legitimately higher there. **You do not modify or delete an existing assertion**: neither its value nor its presence. Changing what a test proves in a cleanup commit means slipping it through without review. **Adding** one is allowed if it is proven like any other assert: it is listed in the report, and the orchestrator makes a `test:` commit of it alongside the `docs:` commit.
-- **Agents write neither to the glossary nor to the gaps file.** Several would share them. They *report* missing entries and errors in their report, and the orchestrator applies them in batches. On the reference project: about forty entries added this way, and **four errors by the orchestrator itself** found by its agents.
-- **The "what I hesitated to delete" section is the most useful part of the report.** It is what surfaces the real gaps, the glossary errors and the bugs declared fixed that are only half fixed. Ask for it explicitly, with the instruction **neither to fill it out of politeness nor to leave it out**.
+- **Agents do not write to the glossary.** Several would share it. They *report* missing entries and errors in their report, and the orchestrator applies them in batches. On the reference project: about forty entries added this way, and **four errors by the orchestrator itself** found by its agents.
+- **The "what I hesitated to delete" section is the most useful part of the report.** It is what surfaces the stale claims, the glossary errors and the bugs declared fixed that are only half fixed. Ask for it explicitly, with the instruction **neither to fill it out of politeness nor to leave it out**.
 
 ## The orchestrator's role
 
@@ -134,13 +132,13 @@ Later waves refused five asserts for this reason, and one of those refusals prod
 
 ## Running unattended (plan-pilot)
 
-No one answers during the run. The bar above **is** the decision: there is no calibration question to ask, and a doubt on a comment resolves to deletion. A doubt on anything else (a gap entry, an assert) resolves to the conservative side: no assert, the gap proposed in the report, not written.
+No one answers during the run. The bar above **is** the decision: there is no calibration question to ask, and a doubt on a comment resolves to deletion. A doubt on anything else (an assert) resolves to the conservative side: no assert, one sentence.
 
 Waves are sized as in phase 2; each module that passes the gate is committed, the next wave starts. The run stops only when every file in scope has passed the gate, or when the suite goes red and the cause is not found in the wave's own diff.
 
 ## What reaches the user
 
-The final report is about comments: per-module ratio, the gate's results, the commits, the asserts added and rejected, the gap entries proposed. **A finding outside comments is not a decision to put to the user.** Agents surface them (a claim found false, a latent overflow, an argument parsed differently from its usage line) and that is their job; the orchestrator sorts them:
+The final report is about comments: per-module ratio, the gate's results, the commits, the asserts added and rejected. **A finding outside comments is not a decision to put to the user.** Agents surface them (a claim found false, a latent overflow, an argument parsed differently from its usage line) and that is their job; the orchestrator sorts them:
 
 - a real defect — wrong output, crash, out-of-bounds, data loss → a separate task (`spawn_task`, or one line in the report naming it as such);
 - anything else → the commit message, where git keeps it.
