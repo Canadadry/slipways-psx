@@ -14,37 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-12 — The wormhole's first ring is black instead of keeping the pen color
-
-Lua: `mz:kj`, `self.kk[flr(sr/self.oi*8)]`, `kk`, `kk[0]`, `self.t`, `dt`.
-
-`wormhole_draw` colors each ring from the archetype's `color_ramp`, at
-index flr(sr/oi*8). The index drops to 0 as soon as sr < oi/8, that is,
-for the youngest ring, on every tick where the state time has just passed
-a `dt`.
-
-The cart's ramp is a Lua table indexed from 1: index 0 is nil there, and
-PICO-8 then keeps the current pen color. This port falls back to 0
-(`int_seq_at` leaves the default color) and draws in black. It is not the
-same image.
-
-Found while reworking the comments: the comment at that spot claimed the
-opposite, "REAL, FAITHFULLY-REPRODUCED EDGE CASE". The gap is real; the
-claim was false.
-
-Not turned into an `assert`: the condition is hit all the time, and the
-current behavior is what the replays record. Fixing it will change the
-existing recordings, which makes it a gameplay decision, not a comment
-rework.
-
-
-**Premise probably false** (established for GAP-20, same situation): index
-0 of the ramp is an **explicit** nil, which zepto8 and fake-08 convert to
-color 0. The port's black would then be faithful. Not verified on the
-PICO-8 binary; same check as GAP-20.
-
-File: `src/game/wormhole_display.c`.
-
 ## GAP-13 — `tostr` of an absent field returns the empty string
 
 Lua: `tostr`, `s[st.score]`, `score == 0`, `ky()`.

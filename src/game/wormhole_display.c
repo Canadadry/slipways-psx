@@ -53,7 +53,6 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
                 int color = 0;
 
                 if (has_color_ramp) {
-                    /* GAP-12 */
                     p8_fixed_t ratio = p8_fixed_mul(p8_fixed_div(sr, oi), p8_fixed_from_int(8));
                     int idx = p8_fixed_flr_int(p8_fixed_flr(ratio));
 
