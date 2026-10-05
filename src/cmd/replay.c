@@ -12,8 +12,7 @@
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "game/cheat.h"
-#include "engine/button_cursor.h"
+#include "game/input_step.h"
 #include "devtools/dump.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
@@ -100,23 +99,13 @@ int main(int argc, char **argv) {
     }
 
     int frame_count = input.frame_count;
-    cheat_t cheat;
-    cheat_init(&cheat);
     const char *state_path = getenv("STATE");
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
-    button_cursor_t cursor;
-    button_cursor_init(&cursor);
-    p8_input_frame_t played_frame;
-    p8_input_t played = { .frames = &played_frame, .frame_count = 1, .current_frame = 0 };
+    input_step_t step;
+    input_step_init(&step, input.mode, input.keyboard_cursor);
     for (i = 0; i < frame_count; i++) {
-        if (input.keyboard_cursor) {
-            button_cursor_step(&cursor, &input.frames[input.current_frame], &played_frame);
-            dispatch_context_set_input(&played);
-        } else {
-            dispatch_context_set_input(&input);
-        }
-        cheat_step(&cheat, &input);
+        input_step_run(&step, &input.frames[input.current_frame]);
         cart_update60();
         cart_draw();
         /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
