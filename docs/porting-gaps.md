@@ -14,30 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-26 — An off-screen planet's target is cut off when the held object is released
-
-Lua: `fo`, `jo:kj`, `self.fo=nil`, `gd()`, `ll`, `jc`, `dw`, `kj`, `np`.
-
-`planet_draw` (lua.lua) returns before clearing `targeted_by` when the
-planet is off screen (`entity_geom_is_on_screen`) or in the "vanishing"
-state. Its `targeted_by` then still holds the held object (a structure
-picked up by a research icon, a slipway) after that object has left the
-game. If the planet comes back on screen, the cart draws one more halo
-with that dead object's `attach_distance`.
-
-The port releases the object through the exit queue and recycles its
-arena. The planet's `targeted_by` is an entity id: after the flush that
-releases the held object, it resolves to NULL, and that halo is not
-drawn. In the "vanishing" state there is no difference: from t ≥ 60 on,
-`planet_draw` always returns before reading `targeted_by`. No e2e reaches
-this case.
-
-Accepted divergence: the port does not draw a halo for an object that has
-left the game.
-
-Files: `src/game/planet_display.c` (`planet_draw`), `src/game/probe.c`
-(`probe_link_target`).
-
 ## GAP-27 — The camera never shows anything outside the background grid
 
 Lua: `qb:ph`, `mid(-64,320,…)`, `qb:md`, `camera`.
