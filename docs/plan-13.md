@@ -272,3 +272,21 @@ The user validated (2026-10-04) the resolution of the 46 Unsorted pointers: call
 - `tools/pointer_guard_exceptions.txt` regrouped: pending, static data plus user-validated owned buffers/generator state, static only.
 - **Pending user validation (4 pointers):** `layout.h` `layout_row_cell_t.as.text` (call-scoped cells; `layout_row_new` copies the text); `map_tables.h` `data_item_t.text`, `data_item_t.row`, `data_row_t.items` (static in stored rows, but call-scoped rows aim them at frame-zone or stack memory).
 - Guideline decisions (PRD writer): D3 out-parameters and const static returns stay; D5 `as.text` stays, pending; D11 budget only by measured growth (not needed); D12 screen point is the raw mouse header position.
+
+### Step 2.7
+
+Measurement only (`make state` and `size tmp/replay` on `807cf47`, the commit before the plan, and on `3aa64e4`; no PRD, no code change).
+
+| Zone | Peak before | Peak after | Constant before | Constant after |
+|---|---|---|---|---|
+| game (generation) | 103344 | 101688 | 462520 | 468664 (+6144, handle table) |
+| load | 21936 | 2352 | 24680 | 24984 (+304, header id) |
+| frame | 16784 | 13840 | 20256 | 20256 |
+| ui | 82090 | 84114 | 203961 | 207681 (+3720, header id) |
+| particles | 24485 | 24485 | 73035 | 73067 (+32, header id) |
+| **budget used** | | | 784452 / 786432 | 794652 / 796632 |
+
+- Net: the zones' reserved size grew by 10200 bytes (6144 handle table, 4056 header id); slack under the budget unchanged (1980). Peaks fell in game (−1656), load (−19584, projects left the load zone) and frame (−2944), rose in ui (+2024, ephemerals and ui state).
+- Slots: button 3768 → 2984, message box 4488 → 3360, toast 296 → 232, row 784 → 600, burst 568 → 536, modal backdrop 240 → 208.
+- Outside the zones: the research projects now live in a static 42-row table (9072 bytes) instead of the load zone; `tmp/replay` bss 799408 → 813904 (+14496: the +10200 zone reservation and the project table, less removed statics), data 48992 → 47144, text 348005 → 370174 (+22169 of code).
+- Verdict: the plan costs about 10 KB of reserved memory (the handle table and the header id) and gains about 23 KB of peak use across load and frame; every zone keeps more headroom than before except ui (+2 KB peak, 123 KB free).
