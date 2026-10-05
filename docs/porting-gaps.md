@@ -36,28 +36,6 @@ this port with itself.
 
 Files: `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
 
-## GAP-3 — Strings are not interned
-
-Lua: `hy.invented`, `oj`, `jo:gg`, `ho()`, `r`, `hp.o`, `hp.dm`, `kw.qe`,
-`{qe=r[c]}`.
-
-Lua interns literals, so two identical strings are the same object. This
-port copies or allocates its strings (the generated data has a separate
-array per token). Two equal strings are therefore not the same pointer.
-
-Worked around case by case: `collect_contains_string` compares by content
-(the strings in the economy's `invented` list, for
-`tech_gate_is_unlocked`). Any new string comparison must choose
-explicitly.
-
-**Not part of GAP-3: resources.** What the cart's data-table loader routes
-through the resource table (a project's `output` and `byproduct`, hence
-the `resource` of a `production_t`) and resource needs are numbers (the
-index of a resource), not strings. They compare by value (`==` on
-`p8_fixed_t`, `resource_equal`).
-
-Files: `src/engine/collect.c`.
-
 ## GAP-5 — `update_entities` skips an entity when an entity removes itself
 
 Lua: `dg()`, `hv`.
