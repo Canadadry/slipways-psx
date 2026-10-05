@@ -52,7 +52,7 @@ The goals behind every rule below:
 
   | PSX | Keyboard | Gamepad (raylib, pad 0) |
   |---|---|---|
-  | D-pad | arrows | D-pad, plus left stick |
+  | D-pad | arrows | D-pad |
   | × | X | RIGHT_FACE_DOWN |
   | ○ | C | RIGHT_FACE_RIGHT |
   | □ | Z | RIGHT_FACE_LEFT |
@@ -61,6 +61,7 @@ The goals behind every rule below:
   | Start | Enter | MIDDLE_RIGHT |
 
 - The replay speed keys (PageUp, PageDown, End) and the Space marker stay as they are, outside the keymap.
+- **No analog stick:** the gamepad's D-pad only. The user rejected stick support.
 - Option rejected: a compile-time C header for the mapping. Every change would need a rebuild.
 
 ### Pad navigation — structure
@@ -80,6 +81,7 @@ The goals behind every rule below:
   - A new module, `src/game/pad_nav.c`, turns each frame's pad buttons into a synthetic cursor position plus synthetic left presses and releases.
   - These go through the existing dispatch (`ui_update_hover`, `ui_handle_button`, `left_press` / `drag` / `accept_drop` / `drop`), so no game rule is duplicated in the navigation layer.
   - Right click has no pad equivalent: ○ replaces its cancel uses.
+- **No auto-repeat.** A held direction or button acts once, on the press. Holding Left/Right on slipways or a direction in a panel moves the selection only once. The only exception is free mode, where a held D-pad moves the camera continuously (speed curve below). This is the user's decision.
 
 ### Map tab — network mode
 
@@ -261,7 +263,5 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
 
 - **Cheat code in pad mode:** decided at step 4.3 (see §2, "Cheat code").
 
-- **Auto-repeat.** When a direction is held in a panel, or Left/Right on slipways, does the focus repeat (for example after 15 frames, then every 8)? The default until the user decides: one move per press, no repeat. Free mode's held D-pad is continuous camera movement, so this question doesn't apply there.
-- **Left stick dead zone** for the gamepad's D-pad emulation: the default is 0.5, adjust after the human play-test.
 
 ## 6. Step notes
