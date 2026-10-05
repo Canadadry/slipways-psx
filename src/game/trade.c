@@ -51,23 +51,22 @@ trade_route_t trade_new(const trade_keys_t *keys) {
     return self;
 }
 
-/* The ids of list, then extra unless it is NULL, in a new list of zone; NULL for a NULL list and no extra. */
-static entity_id_list_t *id_list_extended(const allocator_t *zone, const entity_id_list_t *list, const entity_t *extra) {
-    const int count = list != NULL ? list->count : 0;
-    entity_id_list_t *out;
+/* The ids of list, then extra unless it is NULL, in a new list of zone; an empty list with no zone when there is no id. */
+static entity_id_list_t id_list_extended(const allocator_t *zone, const entity_id_list_t *list, const entity_t *extra) {
+    const int count = list->count + (extra != NULL ? 1 : 0);
+    entity_id_list_t out = {0};
 
-    if (list == NULL && extra == NULL) {
-        return NULL;
+    if (count == 0) {
+        return out;
     }
-    out = (entity_id_list_t *)allocator_alloc(zone, sizeof *out);
-    entity_id_list_init_reserve(out, zone, count + (extra != NULL ? 1 : 0));
-    for (int i = 0; i < count; i++) {
-        entity_id_list_add(out, list->items[i]);
+    entity_id_list_init_reserve(&out, zone, count);
+    for (int i = 0; i < list->count; i++) {
+        entity_id_list_add(&out, list->items[i]);
     }
     if (extra != NULL) {
         entity_id_t id = entity_id_of(extra);
         assert(!entity_id_is_none(id) && "trade_extend: a route holds constructed planets and slipways only");
-        entity_id_list_add(out, id);
+        entity_id_list_add(&out, id);
     }
     return out;
 }
@@ -77,22 +76,21 @@ trade_route_t trade_copy(const allocator_t *zone, const trade_route_t *self) {
 
     assert(self != NULL && "trade_copy: a route value is always there to copy");
     copy = *self;
-    copy.planets = id_list_extended(zone, self->planets, NULL);
-    copy.slipways = id_list_extended(zone, self->slipways, NULL);
+    copy.planets = id_list_extended(zone, &self->planets, NULL);
+    copy.slipways = id_list_extended(zone, &self->slipways, NULL);
     return copy;
 }
 
 int trade_last_planet(const trade_route_t *self, entity_t **out) {
-    if (self == NULL || self->planets == NULL || self->planets->count == 0) {
+    if (self == NULL || self->planets.count == 0) {
         return 0;
     }
-    *out = entity_id_list_at(self->planets, self->planets->count - 1);
+    *out = entity_id_list_at(&self->planets, self->planets.count - 1);
     return 1;
 }
 
 trade_route_t trade_extend(const allocator_t *zone, const trade_route_t *self,
                            entity_t *node, entity_t *slipway) {
-    static const entity_id_list_t empty = {0};
     trade_route_t extended = {0};
 
     assert(self != NULL && "trade_extend: a route value is always there to extend");
@@ -100,21 +98,18 @@ trade_route_t trade_extend(const allocator_t *zone, const trade_route_t *self,
     extended.has_resource = 1;
     extended.resource_is_bool = self->has_resource ? self->resource_is_bool : 1;
     extended.resource = self->has_resource ? self->resource : 0;
-    extended.planets = id_list_extended(zone, self->planets != NULL ? self->planets : &empty, node);
-    extended.slipways = id_list_extended(zone, self->slipways != NULL ? self->slipways : &empty, slipway);
+    extended.planets = id_list_extended(zone, &self->planets, node);
+    extended.slipways = id_list_extended(zone, &self->slipways, slipway);
     return extended;
 }
 
 int trade_equal(const trade_route_t *l, const trade_route_t *r) {
     entity_t *l_last, *r_last;
 
-    if (l == NULL || r == NULL || l->planets == NULL || r->planets == NULL) {
+    if (l == NULL || r == NULL || l->planets.count == 0 || r->planets.count == 0) {
         return 0;
     }
-    if (l->planets->count == 0 || r->planets->count == 0) {
-        return 0;
-    }
-    if (entity_id_list_at(l->planets, 0) != entity_id_list_at(r->planets, 0)) {
+    if (entity_id_list_at(&l->planets, 0) != entity_id_list_at(&r->planets, 0)) {
         return 0;
     }
     if (!trade_last_planet(l, &l_last) || !trade_last_planet(r, &r_last)) {

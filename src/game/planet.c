@@ -81,8 +81,8 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.is_dead = 0;
     self->net_income = 0;
     self->has_net_income = 0;
-    self->incoming_routes = NULL;
-    self->outgoing_routes = NULL;
+    self->incoming_routes = (trade_route_list_t){0};
+    self->outgoing_routes = (trade_route_list_t){0};
     self->development_tier = self->archetype->development_tier;
     self->has_development_tier = self->archetype->has_development_tier;
     self->header.has |= ENTITY_HAS_IS_HOVERED;

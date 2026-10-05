@@ -34,20 +34,18 @@ static void for_each_tagged(tag_t tag, entities_by_tag_visit_fn_t fn, void *ctx)
 
 static void rebuild_incoming_routes_reset_visit(entity_t *pt, void *ctx) {
     planet_t *jo;
-    trade_route_list_t *cc;
     (void)ctx;
     if (pt == NULL) {
         return;
     }
     assert(planet_is_family(pt) && "rebuild_incoming_routes_reset_visit: the planet tag holds planets only");
     jo = (planet_t *)pt;
-    if (jo->incoming_routes != NULL) {
-        trade_route_list_clear(jo->incoming_routes);
+    if (jo->has & PLANET_HAS_INCOMING_ROUTES) {
+        trade_route_list_clear(&jo->incoming_routes);
         return;
     }
-    cc = (trade_route_list_t *)allocator_alloc(game_zone(), sizeof *cc);
-    trade_route_list_init(cc, game_zone());
-    jo->incoming_routes = cc;
+    trade_route_list_init(&jo->incoming_routes, game_zone());
+    jo->has |= PLANET_HAS_INCOMING_ROUTES;
 }
 
 static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context) {
@@ -61,39 +59,32 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
     assert(planet_is_family(entity) && "rebuild_incoming_routes_route_visit: the planet tag holds planets only");
     from_planet = (planet_t *)entity;
     outgoing = planet_rebuild_trades(from_planet);
-    from_planet->outgoing_routes = outgoing;
-
-    if (outgoing == NULL) {
-        return;
-    }
 
     for (int route_index = 0; route_index < trade_route_list_count(outgoing); route_index++) {
         const trade_route_t *route = trade_route_list_at(outgoing, route_index);
-        const entity_id_list_t *slipways = route->slipways;
-        const entity_id_list_t *planets = route->planets;
+        const entity_id_list_t *slipways = &route->slipways;
+        const entity_id_list_t *planets = &route->planets;
         entity_t *to_val;
         int index;
 
-        if (slipways != NULL && planets != NULL) {
-            for (index = 0; index < slipways->count; index++) {
-                entity_t *w_val = entity_id_list_at(slipways, index);
-                slipway_t *w;
-                const entity_t *planet_val;
-                const planet_t *planet;
+        for (index = 0; index < slipways->count; index++) {
+            entity_t *w_val = entity_id_list_at(slipways, index);
+            slipway_t *w;
+            const entity_t *planet_val;
+            const planet_t *planet;
 
-                if (index + 1 >= planets->count) {
-                    continue;
-                }
-                planet_val = entity_id_list_at(planets, index + 1);
-                assert(planet_is_family(planet_val) && "rebuild_incoming_routes_route_visit: a trade's planets list holds planets only");
-                planet = (const planet_t *)planet_val;
-                if (planet->planet_id == NULL) {
-                    continue;
-                }
-                assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
-                w = (slipway_t *)w_val;
-                slipway_served_planets_add(&w->served_planets, planet->planet_id);
+            if (index + 1 >= planets->count) {
+                continue;
             }
+            planet_val = entity_id_list_at(planets, index + 1);
+            assert(planet_is_family(planet_val) && "rebuild_incoming_routes_route_visit: a trade's planets list holds planets only");
+            planet = (const planet_t *)planet_val;
+            if (planet->planet_id == NULL) {
+                continue;
+            }
+            assert(w_val->class == slipway_class() && "rebuild_incoming_routes_route_visit: a trade's slipways list holds slipways only");
+            w = (slipway_t *)w_val;
+            slipway_served_planets_add(&w->served_planets, planet->planet_id);
         }
 
         if (trade_last_planet(route, &to_val)) {
@@ -101,8 +92,8 @@ static void rebuild_incoming_routes_route_visit(entity_t *entity, void *context)
 
             assert(planet_is_family(to_val) && "rebuild_incoming_routes_route_visit: a trade leads to a planet");
             dest = (planet_t *)to_val;
-            if (dest->incoming_routes != NULL) {
-                trade_route_list_add(dest->incoming_routes, route);
+            if (dest->has & PLANET_HAS_INCOMING_ROUTES) {
+                trade_route_list_add(&dest->incoming_routes, route);
             }
         }
     }
@@ -192,7 +183,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
     }
 
     needs = (planet->has & PLANET_HAS_NEEDS) ? &planet->needs : NULL;
-    incoming_routes = planet->incoming_routes;
+    incoming_routes = (planet->has & PLANET_HAS_INCOMING_ROUTES) ? &planet->incoming_routes : NULL;
     if (needs != NULL) {
         for (index = 0; index < needs->count; index++) {
             void *i_val = needs->items[index];
@@ -257,7 +248,7 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
     }
 
     {
-        const trade_route_list_t *by = planet->outgoing_routes;
+        const trade_route_list_t *by = (planet->has & PLANET_HAS_OUTGOING_ROUTES) ? &planet->outgoing_routes : NULL;
         int by_count = (by != NULL) ? trade_route_list_count(by) : 0;
         int incoming_routes_count = (incoming_routes != NULL) ? trade_route_list_count(incoming_routes) : 0;
         p8_fixed_t mid_val =

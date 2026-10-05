@@ -75,8 +75,8 @@ static void setup_panel_state(p8_vram_t *mem, p8_graphics_t *gfx) {
 
 /* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static trade_route_list_t *outgoing_routes_of(const planet_t *planet) {
-    return planet->outgoing_routes;
+static int outgoing_routes_present(const planet_t *planet) {
+    return (planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0;
 }
 
 static void test_burst_export_line_counts_the_outgoing_routes(void) {
@@ -118,11 +118,11 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     assert(exports_layout_row != NULL);
     assert(layout_row_index_is_string(exports_layout_row, 2, "0/2"));
 
-    /* Two routes, added the way planet_rebuild_trades adds them: straight
-     * into whatever the outgoing routes list already holds, here the shared
-     * list burst_create installed. */
-    outgoing = outgoing_routes_of(planet);
-    assert(outgoing != NULL);
+    /* Two routes in the outgoing routes list; a burst's own list has no
+     * zone, since nothing in the game adds to it. */
+    assert(outgoing_routes_present(planet) && trade_route_list_count(&planet->outgoing_routes) == 0);
+    outgoing = &planet->outgoing_routes;
+    trade_route_list_init(outgoing, game_zone());
     trade_route_list_add(outgoing, &route_a);
     trade_route_list_add(outgoing, &route_b);
 

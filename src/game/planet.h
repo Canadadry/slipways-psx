@@ -29,8 +29,8 @@ typedef struct {
     int has_production_bonus;
     p8_fixed_t net_income;
     int has_net_income;
-    trade_route_list_t *incoming_routes;
-    trade_route_list_t *outgoing_routes;
+    trade_route_list_t incoming_routes;
+    trade_route_list_t outgoing_routes;
     p8_fixed_t development_tier;
     int has_development_tier;
     production_t production;
@@ -47,6 +47,8 @@ typedef struct {
 #define PLANET_HAS_EMITTER (1u << 1)
 #define PLANET_HAS_PRODUCTION (1u << 2)
 #define PLANET_HAS_NEEDS (1u << 3)
+#define PLANET_HAS_INCOMING_ROUTES (1u << 4)
+#define PLANET_HAS_OUTGOING_ROUTES (1u << 5)
 
 /* GAP-8 */
 void planet_init(void);

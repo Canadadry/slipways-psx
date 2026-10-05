@@ -25,16 +25,16 @@ static int contains_trade(const trade_route_list_t *list, const trade_route_t *v
 }
 
 static void planet_rebuild_trades_attach_slipway_closure(trade_offer_t *self, const trade_route_t *a) {
-    if (self == NULL || self->accepted_routes == NULL) {
+    if (self == NULL) {
         return;
     }
-    if (!contains_trade(self->accepted_routes, a)) {
+    if (!contains_trade(&self->accepted_routes, a)) {
         trade_route_t kept;
 
-        assert(self->accepted_routes->values.zone == game_zone() &&
+        assert(self->accepted_routes.values.zone == game_zone() &&
                "planet_rebuild_trades: a kept route is copied into the game zone; a list of another zone would outlive it");
         kept = trade_copy(game_zone(), a);
-        trade_route_list_add(self->accepted_routes, &kept);
+        trade_route_list_add(&self->accepted_routes, &kept);
         self->amount -= p8_fixed_from_int(1);
     }
 }
@@ -157,23 +157,19 @@ void planet_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
 }
 
 trade_route_list_t *planet_rebuild_trades(planet_t *self) {
-    trade_route_list_t *accepted_routes;
     trade_keys_t keys = {0};
     p8_fixed_t amount = p8_fixed_from_int(0);
-    const entity_id_list_t *slipways = NULL;
     entity_id_list_iter_t iter;
-    entity_t *w_val;
+    entity_t *w;
     frame_zone_mark_t offers;
 
     if (self == NULL) {
         return NULL;
     }
 
-    if (self->outgoing_routes != NULL) {
-        accepted_routes = self->outgoing_routes;
-    } else {
-        accepted_routes = (trade_route_list_t *)allocator_alloc(game_zone(), sizeof *accepted_routes);
-        trade_route_list_init(accepted_routes, game_zone());
+    if (!(self->has & PLANET_HAS_OUTGOING_ROUTES)) {
+        trade_route_list_init(&self->outgoing_routes, game_zone());
+        self->has |= PLANET_HAS_OUTGOING_ROUTES;
     }
 
     {
@@ -185,33 +181,21 @@ trade_route_list_t *planet_rebuild_trades(planet_t *self) {
         amount = kw->amount;
     }
 
-    slipways = &self->slipways;
-
     offers = frame_zone_mark();
-    iter = entity_id_list_all(slipways);
-    while (entity_id_list_iter_next(&iter, &w_val)) {
-        entity_t *w;
+    iter = entity_id_list_all(&self->slipways);
+    while (entity_id_list_iter_next(&iter, &w)) {
         trade_offer_t lw;
-        entity_id_list_t *planets_list;
-        entity_id_list_t *slipways_list;
         entity_t *other;
 
-        w = w_val;
+        entity_id_list_init(&keys.planets, frame_zone());
+        entity_id_list_add(&keys.planets, entity_id_of(&self->header));
+        entity_id_list_init(&keys.slipways, frame_zone());
+        entity_id_list_add(&keys.slipways, entity_id_of(w));
 
-        planets_list = (entity_id_list_t *)allocator_alloc(frame_zone(), sizeof *planets_list);
-        entity_id_list_init(planets_list, frame_zone());
-        entity_id_list_add(planets_list, entity_id_of(&self->header));
-        slipways_list = (entity_id_list_t *)allocator_alloc(frame_zone(), sizeof *slipways_list);
-        entity_id_list_init(slipways_list, frame_zone());
-        entity_id_list_add(slipways_list, entity_id_of(w));
-
-        keys.planets = planets_list;
-        keys.slipways = slipways_list;
         lw.route = trade_new(&keys);
-        /* Recomputed each iteration: an earlier offer's accept may have grown the accepted routes. */
-        lw.amount = amount - p8_fixed_from_int(trade_route_list_count(accepted_routes));
+        /* Recomputed each iteration: an earlier offer's accept may have grown the outgoing routes. */
+        lw.amount = amount - p8_fixed_from_int(trade_route_list_count(&self->outgoing_routes));
         lw.accept = planet_rebuild_trades_attach_slipway_closure;
-        lw.accepted_routes = accepted_routes;
 
         if (lw.amount == p8_fixed_from_int(0)) {
             break;
@@ -221,12 +205,14 @@ trade_route_list_t *planet_rebuild_trades(planet_t *self) {
         other = slipway_other_end((const slipway_t *)w, (const entity_t *)self);
         /* The offer is on the stack: a callee that keeps a pointer to it dangles. */
         if (other != NULL && other->class->offer_trade != NULL) {
+            lw.accepted_routes = self->outgoing_routes;
             other->class->offer_trade(other, &lw);
+            self->outgoing_routes = lw.accepted_routes;
         }
     }
 
     frame_zone_rewind(offers);
-    return accepted_routes;
+    return &self->outgoing_routes;
 }
 
 void planet_attach_slipway_method(entity_t *self, entity_t *slipway) {

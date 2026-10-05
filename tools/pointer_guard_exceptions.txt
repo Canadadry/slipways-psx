@@ -17,9 +17,8 @@ src/game/message_box.h 10
 src/game/mouse.h 1
 src/game/particle.h 2
 src/game/planet.c 2
-src/game/planet.h 8
+src/game/planet.h 6
 src/game/planet_family.h 2
-src/game/planet_trade.h 1
 src/game/probe.h 1
 src/game/research.c 2
 src/game/research.h 10
@@ -29,7 +28,6 @@ src/game/scroll.h 1
 src/game/slipway.h 2
 src/game/structure_icon.h 6
 src/game/targeting.h 1
-src/game/trade.h 4
 src/game/ui.h 1
 src/game/ui_button.h 15
 src/game/wormhole.h 2

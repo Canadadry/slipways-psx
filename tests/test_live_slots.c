@@ -600,9 +600,9 @@ static size_t id_list_bytes(const entity_id_list_t *list) {
     return bytes;
 }
 
-static size_t route_list_bytes(const trade_route_list_t *list) {
-    if (list == NULL) return 0;
-    size_t bytes = block_bytes(sizeof *list);
+static size_t route_list_bytes(const planet_t *planet, uint16_t present, const trade_route_list_t *list) {
+    if (!(planet->has & present)) return 0;
+    size_t bytes = 0;
     for (int k = 4; k <= list->values.capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(trade_route_t));
     return bytes;
 }
@@ -619,7 +619,8 @@ static size_t planets_bytes(void) {
         assert(!(p->has & PLANET_HAS_NEEDS) && "a planet has needs, which planets_bytes does not count");
         bytes += block_bytes(sizeof *p) + 2 * block_bytes(sizeof(vec_t)) +
                   block_bytes(strlen(p->planet_id) + 1) + id_list_bytes(&p->slipways) +
-                  route_list_bytes(p->outgoing_routes) + route_list_bytes(p->incoming_routes);
+                  route_list_bytes(p, PLANET_HAS_OUTGOING_ROUTES, &p->outgoing_routes) +
+                  route_list_bytes(p, PLANET_HAS_INCOMING_ROUTES, &p->incoming_routes);
     }
     return bytes;
 }
@@ -805,17 +806,18 @@ static void trade_rich_mine_kept_route_survives_frame(void) {
     entity_id_t rl[16];
     start_e2e("trade_rich_mine");
     play_until(139);
-    const trade_route_list_t *by = planet_with_id("p27")->outgoing_routes;
-    assert(by != NULL && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
+    const planet_t *p27 = planet_with_id("p27");
+    const trade_route_list_t *by = &p27->outgoing_routes;
+    assert((p27->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
     const trade_route_t *t = trade_route_list_at(by, trade_route_list_count(by) - 1);
-    const int nlp = t->planets->count;
-    const int nrl = t->slipways->count;
+    const int nlp = t->planets.count;
+    const int nrl = t->slipways.count;
     assert(nlp <= 16 && nrl <= 16);
-    memcpy(lp, t->planets->items, (size_t)nlp * sizeof *lp);
-    memcpy(rl, t->slipways->items, (size_t)nrl * sizeof *rl);
+    memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
+    memcpy(rl, t->slipways.items, (size_t)nrl * sizeof *rl);
     play_until(151);
-    assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
-    assert(t->slipways->count == nrl && memcmp(rl, t->slipways->items, (size_t)nrl * sizeof *rl) == 0);
+    assert(t->planets.count == nlp && memcmp(lp, t->planets.items, (size_t)nlp * sizeof *lp) == 0);
+    assert(t->slipways.count == nrl && memcmp(rl, t->slipways.items, (size_t)nrl * sizeof *rl) == 0);
     printf("  trade_rich_mine: p27 route (%d planets, %d slipways) read back at f151\n", nlp, nrl);
 }
 
@@ -828,13 +830,13 @@ static void trade_rich_mine_rebuild_gives_back_frame(void) {
     play_until(139);
     planet_t *p27 = (planet_t *)planet_with_id("p27");
     assert(p27->slipways.zone != NULL && p27->slipways.count > 0 && "f139: p27 is linked");
-    const trade_route_list_t *by = p27->outgoing_routes;
-    assert(by != NULL && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
+    const trade_route_list_t *by = &p27->outgoing_routes;
+    assert((p27->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
     const int n = trade_route_list_count(by);
     const trade_route_t *t = trade_route_list_at(by, n - 1);
-    const int nlp = t->planets->count;
+    const int nlp = t->planets.count;
     assert(nlp <= 16);
-    memcpy(lp, t->planets->items, (size_t)nlp * sizeof *lp);
+    memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
     const size_t before = frame_zone_used();
     trade_route_list_t *out = planet_rebuild_trades(p27);
     const size_t after = frame_zone_used();
@@ -842,7 +844,7 @@ static void trade_rich_mine_rebuild_gives_back_frame(void) {
            (unsigned long)after);
     assert(after == before && "planet_rebuild_trades keeps its candidate offers in the frame zone");
     assert(out == by && trade_route_list_count(out) == n && "the rebuild hands back the kept routes");
-    assert(t->planets->count == nlp && memcmp(lp, t->planets->items, (size_t)nlp * sizeof *lp) == 0);
+    assert(t->planets.count == nlp && memcmp(lp, t->planets.items, (size_t)nlp * sizeof *lp) == 0);
 }
 
 /* The transit dots still alive at the end of the game go back to the
@@ -904,7 +906,8 @@ static void placed_grab_does_not_fit_dead_wormhole_arena(void) {
     const size_t after = game_without_registries();
     const planet_t *placed = placed_grab();
     const allocator_t *arena = placed->slipways.zone;
-    const size_t lists = route_list_bytes(placed->outgoing_routes) + route_list_bytes(placed->incoming_routes);
+    const size_t lists = route_list_bytes(placed, PLANET_HAS_OUTGOING_ROUTES, &placed->outgoing_routes) +
+                         route_list_bytes(placed, PLANET_HAS_INCOMING_ROUTES, &placed->incoming_routes);
     printf("  placed grab: game - registries = %lu -> %lu (arena %lu, outgoing_routes/incoming_routes %lu)\n",
            (unsigned long)before, (unsigned long)after, (unsigned long)arena_size(arena), (unsigned long)lists);
     assert(arena_used(arena) == arena_size(arena) && "the placed structure fills its arena");

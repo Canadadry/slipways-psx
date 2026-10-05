@@ -121,7 +121,7 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
             continue;
         }
 
-        if (entity_id_list_has(route->slipways, entity_id_of(slipway))) {
+        if (entity_id_list_has(&route->slipways, entity_id_of(slipway))) {
             continue;
         }
 
@@ -137,6 +137,7 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *trade_offer) {
                 other->class->offer_trade(other, &gf);
             }
             trade_offer->amount = gf.amount;
+            trade_offer->accepted_routes = gf.accepted_routes;
         }
     }
 }

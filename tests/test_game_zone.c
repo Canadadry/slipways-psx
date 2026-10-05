@@ -146,9 +146,9 @@ static size_t planet_list_bytes(const entity_id_list_t *list) {
     return bytes;
 }
 
-static size_t route_list_bytes(const trade_route_list_t *list) {
-    if (list == NULL) return 0;
-    size_t bytes = block_bytes(sizeof *list);
+static size_t route_list_bytes(const planet_t *planet, uint16_t present, const trade_route_list_t *list) {
+    if (!(planet->has & present)) return 0;
+    size_t bytes = 0;
     for (int k = 4; k <= list->values.capacity; k *= 2) bytes += block_bytes((size_t)k * sizeof(trade_route_t));
     return bytes;
 }
@@ -164,7 +164,8 @@ static size_t planets_bytes(void) {
         assert(!(p->has & PLANET_HAS_NEEDS) && "a planet has needs, which planets_bytes does not count");
         bytes += block_bytes(sizeof *p) + 2 * block_bytes(sizeof(vec_t)) +
                   block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(&p->slipways) +
-                  route_list_bytes(p->outgoing_routes) + route_list_bytes(p->incoming_routes);
+                  route_list_bytes(p, PLANET_HAS_OUTGOING_ROUTES, &p->outgoing_routes) +
+                  route_list_bytes(p, PLANET_HAS_INCOMING_ROUTES, &p->incoming_routes);
     }
     return bytes;
 }
@@ -310,19 +311,6 @@ static int case_load_zone_full(void) {
     return 0;
 }
 
-static int case_static_lists_in_load_zone(void) {
-    load_cart_and_start();
-    const size_t start = load_zone_used();
-    trade_route_list_t *by = burst_new(NULL)->outgoing_routes;
-    const trade_route_t route = {0};
-    trade_route_list_add(by, &route);
-    assert(load_zone_used() == start + block_bytes(4 * sizeof(trade_route_t)) &&
-           "the outgoing_routes list bursts share takes its capacity in the load sub-zone");
-    cart_shutdown();
-    assert(by->values.items == NULL && by->values.count == 0 && by->values.capacity == 0 && "the shutdown forgets the shared outgoing_routes list");
-    return 0;
-}
-
 static int case_double_start_game_without_flush(void) {
     load_cart_and_start();
     cart_start_game(NULL);
@@ -345,7 +333,6 @@ static const struct {
     {"load_zone_dead_after_cart_load", case_load_zone_dead_after_cart_load},
     {"load_zone_grab_arena_and_max", case_load_zone_grab_arena_and_max},
     {"load_zone_full", case_load_zone_full},
-    {"static_lists_in_load_zone", case_static_lists_in_load_zone},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -439,7 +426,6 @@ int main(int argc, char **argv) {
     expect_poison_crash("load_zone_dead_after_cart_load");
     expect_clean("load_zone_grab_arena_and_max");
     expect_fatal("load_zone_full", "zone load full, limit 24984 bytes");
-    expect_clean("static_lists_in_load_zone");
     remove(STDERR_LOG);
     printf("test_game_zone: all tests passed\n");
     return 0;

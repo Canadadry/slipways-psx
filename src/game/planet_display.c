@@ -53,7 +53,7 @@ void planet_refresh(planet_t *self) {
         qe = kw->has_resource ? &kw->resource : NULL;
         mu = kw->amount;
     }
-    by_list = self->outgoing_routes;
+    by_list = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
 
     scratch = frame_zone_mark();
     slot = ui_zone_slot(SLOT_KIND_ROW);
@@ -249,7 +249,7 @@ void planet_inspection_panel(const planet_t *self) {
                 row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("makes:");
                 row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(amount_str);
             } else {
-                const trade_route_list_t *by = self->outgoing_routes;
+                const trade_route_list_t *by = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
                 int by_count = (by != NULL) ? trade_route_list_count(by) : 0;
                 char *count_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(by_count));
                 char *amount_str = p8_tostr_fixed(frame_zone(), mu);

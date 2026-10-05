@@ -7,9 +7,10 @@
 #include "engine/value_list.h"
 #include "p8/fixed.h"
 
+/* The id lists are immutable once built: value copies of a route share their items. */
 typedef struct {
-    entity_id_list_t *planets;
-    entity_id_list_t *slipways;
+    entity_id_list_t planets;
+    entity_id_list_t slipways;
     p8_fixed_t resource;
     int has_resource;
     int resource_is_bool;
@@ -28,14 +29,14 @@ typedef struct {
 int resource_equal(resource_t a, resource_t b);
 
 typedef struct {
-    entity_id_list_t *planets;
-    entity_id_list_t *slipways;
+    entity_id_list_t planets;
+    entity_id_list_t slipways;
     p8_fixed_t resource;
     int has_resource;
     int resource_is_bool;
 } trade_keys_t;
 
-/* NULL keys give a route with no planets, slipways or resource. */
+/* NULL keys give a route with empty lists and no resource; the route shares the keys' list items. */
 trade_route_t trade_new(const trade_keys_t *keys);
 
 /* The copy's id lists are new lists in zone. */

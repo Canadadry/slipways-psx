@@ -401,8 +401,8 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
     hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
-    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
-    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_INCOMING_ROUTES) != 0));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
     hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(pointer_list_size(particles_of(emitter)) == 0);

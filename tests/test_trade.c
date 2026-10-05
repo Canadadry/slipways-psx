@@ -101,9 +101,6 @@ static uint32_t fold_resource(uint32_t h, const trade_route_t *t) {
 
 static uint32_t fold_ranks(uint32_t h, const entity_id_list_t *l) {
     int i;
-    if (l == NULL) {
-        return fnv(h, 0xFFFFFFFFu);
-    }
     h = fnv(h, (uint32_t)l->count);
     for (i = 0; i < l->count; i++) {
         h = fold_ref(h, entity_id_list_at(l, i));
@@ -115,8 +112,8 @@ static uint32_t fold_ranks(uint32_t h, const entity_id_list_t *l) {
  * resource, and the rank of its last planet. */
 static uint32_t fold_route(uint32_t h, const trade_route_t *t) {
     entity_t *to;
-    h = fold_ranks(h, t->planets);
-    h = fold_ranks(h, t->slipways);
+    h = fold_ranks(h, &t->planets);
+    h = fold_ranks(h, &t->slipways);
     h = fold_resource(h, t);
     if (trade_last_planet(t, &to)) {
         return fold_ref(fnv(h, 1u), to);
@@ -184,12 +181,16 @@ static entity_id_list_t *list_of(int n, void *const *items) {
     return l;
 }
 
-/* NULL planets or slipways stay NULL; has_resource 0 is no resource. */
+/* NULL planets or slipways give an empty list; has_resource 0 is no resource. */
 static trade_route_t route(entity_id_list_t *lp, entity_id_list_t *rl, int has_resource, int resource_is_bool, p8_fixed_t qe) {
     trade_keys_t keys = {0};
 
-    keys.planets = lp;
-    keys.slipways = rl;
+    if (lp != NULL) {
+        keys.planets = *lp;
+    }
+    if (rl != NULL) {
+        keys.slipways = *rl;
+    }
     keys.has_resource = has_resource;
     keys.resource_is_bool = resource_is_bool;
     keys.resource = qe;
@@ -231,8 +232,9 @@ static trade_route_t game_route(void) {
         update_entities();
     }
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        const trade_route_list_t *by = as_planet(jo->items[i])->outgoing_routes;
-        if (by != NULL && trade_route_list_count(by) > 0) {
+        const planet_t *exporter = as_planet(jo->items[i]);
+        const trade_route_list_t *by = &exporter->outgoing_routes;
+        if ((exporter->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0) {
             return *trade_route_list_at(by, 0);
         }
     }
@@ -241,26 +243,26 @@ static trade_route_t game_route(void) {
 }
 
 /* A route built from the game's route's own planets, slipways and
- * resource reads them back by identity; with no key, or the planets alone,
- * the others are absent. */
+ * resource shares their ids; with no key, or the planets alone, the others
+ * are empty. */
 static void test_construction(void) {
     uint32_t h = 2166136261u;
     trade_route_t g = game_route();
-    entity_id_list_t *lp = g.planets;
-    entity_id_list_t *rl = g.slipways;
+    entity_id_list_t lp = g.planets;
+    entity_id_list_t rl = g.slipways;
     trade_route_t t;
 
-    assert(lp != NULL && rl != NULL && g.has_resource);
+    assert(lp.count > 0 && rl.count > 0 && g.has_resource);
     h = fold_route(h, &g);
-    t = route(lp, rl, g.has_resource, g.resource_is_bool, g.resource);
-    assert(t.planets == lp && t.slipways == rl);
+    t = route(&lp, &rl, g.has_resource, g.resource_is_bool, g.resource);
+    assert(t.planets.items == lp.items && t.planets.count == lp.count && t.slipways.items == rl.items && t.slipways.count == rl.count);
     assert(same_resource(&t, &g));
     h = fold_route(h, &t);
 
     t = trade_new(NULL);
-    assert(t.planets == NULL && t.slipways == NULL && !t.has_resource);
-    t = route(lp, NULL, 0, 0, 0);
-    assert(t.planets == lp && t.slipways == NULL && !t.has_resource);
+    assert(t.planets.count == 0 && t.planets.items == NULL && t.slipways.count == 0 && t.slipways.items == NULL && !t.has_resource);
+    t = route(&lp, NULL, 0, 0, 0);
+    assert(t.planets.items == lp.items && t.slipways.count == 0 && !t.has_resource);
     check("game_route", h, GAME_ROUTE_HASH);
 }
 
@@ -320,8 +322,8 @@ static int same_ids(const entity_id_list_t *a, const entity_id_list_t *b) {
  * same resource; `self` with no resource gives the new route false. */
 static void test_extend(void) {
     const trade_route_t built_route = game_route();
-    const entity_id_list_t *planets = built_route.planets;
-    const entity_id_list_t *slipways = built_route.slipways;
+    const entity_id_list_t *planets = &built_route.planets;
+    const entity_id_list_t *slipways = &built_route.slipways;
     const int planets_n = planets->count;
     const int slipways_n = slipways->count;
     void *node = planet(3);
@@ -333,38 +335,38 @@ static void test_extend(void) {
 
     assert(built_route.has_resource && planets_n + 1 < 16 && slipways_n + 1 < 16);
     extended = trade_extend(game_zone(), &built_route, node, slipway);
-    assert(built_route.planets == planets && built_route.slipways == slipways && planets->count == planets_n && slipways->count == slipways_n);
-    assert(extended.planets != planets && extended.slipways != slipways);
+    assert(planets->count == planets_n && slipways->count == slipways_n);
+    assert(extended.planets.items != planets->items && extended.slipways.items != slipways->items);
     for (i = 0; i < planets_n; i++) {
         want[i] = entity_id_list_at(planets, i);
     }
     want[planets_n] = node;
-    assert(list_is(extended.planets, planets_n + 1, want));
+    assert(list_is(&extended.planets, planets_n + 1, want));
     for (i = 0; i < slipways_n; i++) {
         want[i] = entity_id_list_at(slipways, i);
     }
     want[slipways_n] = slipway;
-    assert(list_is(extended.slipways, slipways_n + 1, want));
+    assert(list_is(&extended.slipways, slipways_n + 1, want));
     assert(same_resource(&extended, &built_route));
 
     extended = trade_extend(game_zone(), &built_route, node, NULL);
-    assert(extended.planets->count == planets_n + 1 && same_ids(extended.slipways, slipways));
-    assert(extended.slipways != slipways);
+    assert(extended.planets.count == planets_n + 1 && same_ids(&extended.slipways, slipways));
+    assert(extended.slipways.items != slipways->items);
     assert(same_resource(&extended, &built_route));
 
     extended = trade_extend(game_zone(), &built_route, NULL, NULL);
-    assert(same_ids(extended.planets, planets) && same_ids(extended.slipways, slipways));
+    assert(same_ids(&extended.planets, planets) && same_ids(&extended.slipways, slipways));
 
     bare = route((entity_id_list_t *)planets, NULL, 0, 0, 0);
     extended = trade_extend(game_zone(), &bare, node, NULL);
-    assert(extended.planets->count == planets_n + 1 && extended.slipways->count == 0);
+    assert(extended.planets.count == planets_n + 1 && extended.slipways.count == 0);
     assert(extended.has_resource && extended.resource_is_bool && extended.resource == 0);
 
     extended = trade_extend(game_zone(), &no_route, node, slipway);
     want[0] = node;
-    assert(list_is(extended.planets, 1, want));
+    assert(list_is(&extended.planets, 1, want));
     want[0] = slipway;
-    assert(list_is(extended.slipways, 1, want));
+    assert(list_is(&extended.slipways, 1, want));
     assert(extended.has_resource && extended.resource_is_bool && extended.resource == 0);
 }
 
@@ -380,7 +382,7 @@ static void test_built_in_the_given_zone(void) {
 
     (void)trade_new(NULL);
     assert(arena_used(arena) == taken && game_zone_used() == game_zone_used_before);
-    k = trade_extend(arena, &g, planet(3), entity_id_list_at(g.slipways, 0));
+    k = trade_extend(arena, &g, planet(3), entity_id_list_at(&g.slipways, 0));
     assert(arena_used(arena) > taken);
     taken = arena_used(arena);
     (void)trade_copy(arena, &k);
@@ -393,12 +395,12 @@ static void test_built_in_the_given_zone(void) {
  * reset, which ASan poisons. */
 static void test_copy_outlives_the_frame(void) {
     const trade_route_t g = game_route();
-    const trade_route_t k = trade_extend(frame_zone(), &g, planet(3), entity_id_list_at(g.slipways, 0));
+    const trade_route_t k = trade_extend(frame_zone(), &g, planet(3), entity_id_list_at(&g.slipways, 0));
     const trade_route_t c = trade_copy(game_zone(), &k);
     entity_t *planets_want[16];
     entity_t *slipways_want[16];
-    const int planets_n = k.planets->count;
-    const int slipways_n = k.slipways->count;
+    const int planets_n = k.planets.count;
+    const int slipways_n = k.slipways.count;
     const int resource_is_bool = k.resource_is_bool;
     const p8_fixed_t qe = k.resource;
     trade_route_t nil_copy;
@@ -406,20 +408,20 @@ static void test_copy_outlives_the_frame(void) {
 
     assert(planets_n < 16 && slipways_n < 16 && k.has_resource);
     for (i = 0; i < planets_n; i++) {
-        planets_want[i] = entity_id_list_at(k.planets, i);
+        planets_want[i] = entity_id_list_at(&k.planets, i);
     }
     for (i = 0; i < slipways_n; i++) {
-        slipways_want[i] = entity_id_list_at(k.slipways, i);
+        slipways_want[i] = entity_id_list_at(&k.slipways, i);
     }
-    assert(c.planets != k.planets && c.slipways != k.slipways && c.planets->items != k.planets->items && c.slipways->items != k.slipways->items);
+    assert(c.planets.items != k.planets.items && c.slipways.items != k.slipways.items);
     assert(trade_equal(&c, &k));
 
     frame_zone_reset();
-    assert(list_is(c.planets, planets_n, planets_want) && list_is(c.slipways, slipways_n, slipways_want));
+    assert(list_is(&c.planets, planets_n, planets_want) && list_is(&c.slipways, slipways_n, slipways_want));
     assert(c.has_resource && c.resource_is_bool == resource_is_bool && c.resource == qe);
 
     nil_copy = trade_copy(game_zone(), &no_route);
-    assert(nil_copy.planets == NULL && nil_copy.slipways == NULL && !nil_copy.has_resource);
+    assert(nil_copy.planets.count == 0 && nil_copy.slipways.count == 0 && !nil_copy.has_resource);
 }
 
 /* Equal when they start and end at the same planet, whatever the length. */
@@ -539,16 +541,16 @@ static void test_route_list_holds_copies(void) {
     trade_route_list_init(&list, game_zone());
     trade_route_list_add(&list, &g);
     g.resource += p8_fixed_from_int(1);
-    g.planets = NULL;
+    g.planets = (entity_id_list_t){0};
     stored = trade_route_list_at(&list, 0);
     assert(trade_route_list_count(&list) == 1);
-    assert(stored->planets != NULL && stored->slipways == g.slipways && stored->resource == g.resource - p8_fixed_from_int(1));
+    assert(stored->planets.items != NULL && stored->slipways.items == g.slipways.items && stored->resource == g.resource - p8_fixed_from_int(1));
     g = *stored;
     for (i = 0; i < 8; i++) {
         trade_route_list_add(&list, trade_route_list_at(&list, 0));
     }
     assert(trade_route_list_count(&list) == 9);
-    assert(trade_equal(trade_route_list_at(&list, 8), &g) && trade_route_list_at(&list, 8)->planets == g.planets);
+    assert(trade_equal(trade_route_list_at(&list, 8), &g) && trade_route_list_at(&list, 8)->planets.items == g.planets.items);
     trade_route_list_clear(&list);
     assert(trade_route_list_count(&list) == 0);
     trade_route_list_free(&list);
@@ -565,22 +567,53 @@ static void test_rebuild_keeps_copies_and_shares_them_with_incoming(void) {
     (void)game_route();
     jo = entities_by_tag(TAG_PLANET);
     for (i = 0; outgoing == NULL && i < jo->count; i++) {
-        const trade_route_list_t *by = as_planet(jo->items[i])->outgoing_routes;
-        if (by != NULL && trade_route_list_count(by) > 0) {
+        const planet_t *exporter = as_planet(jo->items[i]);
+        const trade_route_list_t *by = &exporter->outgoing_routes;
+        if ((exporter->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0) {
             assert(by->values.zone == game_zone());
             outgoing = trade_route_list_at(by, 0);
         }
     }
-    assert(outgoing != NULL && outgoing->planets->zone == game_zone() && outgoing->slipways->zone == game_zone());
+    assert(outgoing != NULL && outgoing->planets.zone == game_zone() && outgoing->slipways.zone == game_zone());
     frame_zone_reset();
     assert(trade_last_planet(outgoing, &to));
-    incoming = as_planet(to)->incoming_routes;
-    assert(incoming != NULL);
+    incoming = &as_planet(to)->incoming_routes;
+    assert(as_planet(to)->has & PLANET_HAS_INCOMING_ROUTES);
     for (i = 0; i < trade_route_list_count(incoming); i++) {
         const trade_route_t *in = trade_route_list_at(incoming, i);
-        shared += in->planets == outgoing->planets && in->slipways == outgoing->slipways;
+        shared += in->planets.items == outgoing->planets.items && in->slipways.items == outgoing->slipways.items;
     }
     assert(shared == 1);
+}
+
+/* planet_rebuild_trades works on the planet's own outgoing routes: it
+ * keeps the routes already there, and gives a planet that held none an
+ * empty list in the game zone. */
+static void test_rebuild_updates_the_planet_in_place(void) {
+    const trade_route_t g = game_route();
+    const entity_list_t *jo = entities_by_tag(TAG_PLANET);
+    planet_t *exporter = NULL;
+    planet_t *fresh;
+    int kept;
+    int i;
+
+    for (i = 0; exporter == NULL && i < jo->count; i++) {
+        planet_t *p = as_planet(jo->items[i]);
+        if ((p->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(&p->outgoing_routes) > 0) {
+            exporter = p;
+        }
+    }
+    assert(exporter != NULL && trade_equal(trade_route_list_at(&exporter->outgoing_routes, 0), &g));
+    kept = trade_route_list_count(&exporter->outgoing_routes);
+    assert(planet_rebuild_trades(exporter) == &exporter->outgoing_routes);
+    assert(trade_route_list_count(&exporter->outgoing_routes) == kept && trade_equal(trade_route_list_at(&exporter->outgoing_routes, 0), &g));
+
+    fresh = structure_new(NULL);
+    assert(!(fresh->has & PLANET_HAS_OUTGOING_ROUTES));
+    assert(planet_rebuild_trades(fresh) == &fresh->outgoing_routes);
+    assert((fresh->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(&fresh->outgoing_routes) == 0 &&
+           fresh->outgoing_routes.values.zone == game_zone());
+    assert(planet_rebuild_trades(NULL) == NULL);
 }
 
 #define STDERR_LOG "tmp/test_trade_stderr.txt"
@@ -698,7 +731,7 @@ static void test_offer_trade_nil_want_after_extend(void) {
     qh = structure_new(NULL);
     qh->needs = *jy;
     qh->has |= PLANET_HAS_NEEDS;
-    nil_route = trade_new(&(trade_keys_t){.planets = list_of(0, NULL)});
+    nil_route = trade_new(&(trade_keys_t){.planets = *list_of(0, NULL)});
     lw.accept = count_accept;
     lw.route = nil_route;
     planet_offer_trade(qh, &lw);
@@ -739,7 +772,8 @@ static void test_compute_tier_counts_numbered_routes_only(void) {
     qh = structure_new(NULL);
     qh->needs = *jy;
     qh->has |= PLANET_HAS_NEEDS;
-    qh->incoming_routes = cc;
+    qh->incoming_routes = *cc;
+    qh->has |= PLANET_HAS_INCOMING_ROUTES;
     entity_set_state(&qh->header, ENTITY_STATE_SETTLED);
     (void)economy_tiers_compute_tier(&qh->header);
     assert(nil_want->has_satisfied && nil_want->satisfied == p8_fixed_from_int(0));
@@ -813,6 +847,7 @@ int main(void) {
     in_fresh_child(test_route_list_holds_copies);
     in_fresh_child(test_a_linked_planet_never_dies);
     in_fresh_child(test_rebuild_keeps_copies_and_shares_them_with_incoming);
+    in_fresh_child(test_rebuild_updates_the_planet_in_place);
     in_fresh_child(test_offer_trade_wildcard_want);
     in_fresh_child(test_offer_trade_nil_want_after_extend);
     in_fresh_child(test_compute_tier_counts_numbered_routes_only);

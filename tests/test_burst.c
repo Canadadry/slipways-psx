@@ -348,7 +348,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_vec(hash, map_pos_ref(&planet->header));
     hash = fnv(hash, (uint32_t)(emitter->trail_colors == NULL ? -1 : emitter->trail_colors->count));
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
-    hash = fnv(hash, (uint32_t)trade_route_list_count(planet->outgoing_routes));
+    hash = fnv(hash, (uint32_t)trade_route_list_count(&planet->outgoing_routes));
     hash = fnv(hash, (uint32_t)pointer_list_size(particles_of(emitter)));
     hash = fnv(hash, (uint32_t)id_list_count(&planet->slipways));
     assert(main_camera_typed() != NULL);
@@ -394,8 +394,8 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, (uint32_t)(planet->has_production_bonus != 0));
     hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)(planet->has_net_income != 0));
-    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
-    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_INCOMING_ROUTES) != 0));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0));
     hash = fnv(hash, (uint32_t)(planet->has_development_tier != 0));
     hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(!(planet->has & PLANET_HAS_NEEDS) && !planet->has_net_income);
@@ -415,7 +415,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     assert(class_of(entity)->draw_at == NULL && class_of(entity)->drag == NULL && class_of(entity)->drop == NULL);
     assert(planet->header.class->tags == 0);
     assert(planet->archetype == &burst_archetype);
-    assert(planet->outgoing_routes != NULL);
+    assert(planet->has & PLANET_HAS_OUTGOING_ROUTES);
     if (from_protostar) {
         assert(emitter->trail_colors != &burst_trail_colors_seq);
         assert(emitter->trail_colors != &protostar_trail_colors_seq);
@@ -457,7 +457,10 @@ static void test_built(void) {
     assert(particles_of(&as_burst(a)->emitter)->zone != particles_of(&as_burst(b)->emitter)->zone &&
            particles_of(&as_burst(b)->emitter)->zone != particles_of(&as_burst(c)->emitter)->zone);
     assert(as_burst(a)->slipways.zone != as_burst(b)->slipways.zone);
-    assert(as_burst(a)->outgoing_routes == as_burst(b)->outgoing_routes && as_burst(b)->outgoing_routes == as_burst(c)->outgoing_routes);
+    assert((as_burst(a)->has & PLANET_HAS_OUTGOING_ROUTES) && (as_burst(b)->has & PLANET_HAS_OUTGOING_ROUTES) &&
+           (as_burst(c)->has & PLANET_HAS_OUTGOING_ROUTES));
+    assert(trade_route_list_count(&as_burst(a)->outgoing_routes) == 0 && trade_route_list_count(&as_burst(b)->outgoing_routes) == 0 &&
+           trade_route_list_count(&as_burst(c)->outgoing_routes) == 0);
     assert(pos_ref(&as_burst(c)->header) == NULL && map_pos_ref(&as_burst(c)->header) == NULL && as_burst(c)->planet_id == NULL);
     assert(as_burst(a)->archetype->layer == p8_fixed_from_int(3) && as_burst(a)->speed == p8_fixed_from_int(3));
     assert(as_burst(a)->archetype->is_planet == 0);
@@ -579,7 +582,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
  * emitter_update's dots in its own; is_dead once the particle list holds 3,
  * 2, 0 particles; hit_test on and off the burst, planet_is_colonized;
  * refresh on the planet's shared production (no row), then on one with a
- * resource, before and after two routes land in the shared outgoing
+ * resource, before and after two routes land in its own outgoing
  * routes; new_year with no net income. */
 static void test_life(void) {
     uint32_t hash = 2166136261u;
@@ -639,16 +642,17 @@ static void test_life(void) {
     class_of(first)->refresh(first);
     row_hash = fold_layout_row(2166136261u, first);
     hash = fnv(hash, row_hash);
-    outgoing = as_burst(third)->outgoing_routes;
-    assert(outgoing == as_burst(first)->outgoing_routes && trade_route_list_count(outgoing) == 0);
+    outgoing = &as_burst(first)->outgoing_routes;
+    assert(trade_route_list_count(outgoing) == 0 && outgoing->values.zone == NULL);
+    trade_route_list_init(outgoing, game_zone());
     trade_route_list_add(outgoing, &no_route);
     trade_route_list_add(outgoing, &no_route);
     class_of(first)->refresh(first);
     assert(fold_layout_row(2166136261u, first) != row_hash);
     hash = fold_layout_row(hash, first);
-    assert(trade_route_list_count(as_burst(second)->outgoing_routes) == 2);
-    /* planet_rebuild_trades reuses the outgoing routes held: routes kept, no fresh list. */
-    assert(planet_rebuild_trades(as_burst(second)) == outgoing && trade_route_list_count(outgoing) == 2);
+    assert(trade_route_list_count(&as_burst(second)->outgoing_routes) == 0 && trade_route_list_count(&as_burst(third)->outgoing_routes) == 0);
+    /* planet_rebuild_trades works on the outgoing routes held: routes kept, in place. */
+    assert(planet_rebuild_trades(as_burst(first)) == outgoing && trade_route_list_count(outgoing) == 2);
 
     live_entities_count = live_entities()->count;
     class_of(second)->new_year(second, p8_fixed_from_int(0));

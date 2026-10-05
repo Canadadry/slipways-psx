@@ -145,7 +145,8 @@ static void test_burst_defaults(void) {
     planet_t *other = burst_new(NULL);
 
     assert(burst_ready());
-    assert(ga->outgoing_routes != NULL && ga->outgoing_routes == other->outgoing_routes);
+    assert((ga->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(&ga->outgoing_routes) == 0 &&
+           (other->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(&other->outgoing_routes) == 0);
     assert(ga->emitter.archetype == &burst_archetype.emitter);
     assert(ga->emitter.matrix_xx == burst_archetype.emitter.matrix_xx);
     assert(ga->emitter.matrix_xy == burst_archetype.emitter.matrix_xy);

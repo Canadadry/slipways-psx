@@ -270,8 +270,8 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
     hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
-    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
-    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_INCOMING_ROUTES) != 0));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
     hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert_planet_members(class_of(entity));
@@ -317,8 +317,8 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_production(h, jo);
     h = fnv(h, (uint32_t)id_list_count(&jo->slipways));
     h = fnv(h, (uint32_t)((jo->has & PLANET_HAS_NEEDS) ? jo->needs.count : -1));
-    h = fnv(h, (uint32_t)(jo->outgoing_routes != NULL ? trade_route_list_count(jo->outgoing_routes) : -1));
-    h = fnv(h, (uint32_t)(jo->incoming_routes != NULL ? trade_route_list_count(jo->incoming_routes) : -1));
+    h = fnv(h, (uint32_t)((jo->has & PLANET_HAS_OUTGOING_ROUTES) ? trade_route_list_count(&jo->outgoing_routes) : -1));
+    h = fnv(h, (uint32_t)((jo->has & PLANET_HAS_INCOMING_ROUTES) ? trade_route_list_count(&jo->incoming_routes) : -1));
     h = fnv(h, (uint32_t)(entity_get(jo->targeted_by) != NULL));
     h = fnv(h, (uint32_t)(jo->planet_type != NULL));
     h = fnv(h, (uint32_t)(jo->layout_row != NULL));

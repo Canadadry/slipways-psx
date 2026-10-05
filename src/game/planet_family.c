@@ -14,10 +14,8 @@
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/probe.h"
-#include "engine/game_zone.h"
 
 static int g_family_up = 0;
-static trade_route_list_t g_burst_outgoing_routes;
 
 void structure_update_settled_method(entity_t *self, p8_fixed_t t) {
     planet_bob(self, t);
@@ -460,7 +458,7 @@ static planet_t *burst_create(const burst_keys_t *keys) {
     self->emitter.speed_factor = self->archetype->emitter.speed_factor;
     self->speed = self->archetype->speed;
     self->emitter.has = 0;
-    self->outgoing_routes = &g_burst_outgoing_routes;
+    self->has |= PLANET_HAS_OUTGOING_ROUTES;
     if (keys != NULL) {
         if (keys->planet.map_pos != NULL) {
             entity_set_map_pos(&self->header, *keys->planet.map_pos);
@@ -496,12 +494,10 @@ void planet_family_init(void) {
     assert(planet_ready() && "planet_init() must run first");
     planet_family_shutdown();
     g_family_up = 1;
-    trade_route_list_init(&g_burst_outgoing_routes, game_zone_load_zone());
 }
 
 void planet_family_shutdown(void) {
     g_family_up = 0;
-    trade_route_list_free(&g_burst_outgoing_routes);
 }
 
 int structure_ready(void) {

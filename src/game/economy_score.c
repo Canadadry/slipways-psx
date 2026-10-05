@@ -86,7 +86,7 @@ p8_fixed_t economy_score_trade_income(const entity_t *entity) {
     }
     assert(planet_is_family(entity) && "economy_score_trade_income: the entity is a planet");
     planet = (const planet_t *)entity;
-    outgoing = planet->outgoing_routes;
+    outgoing = (planet->has & PLANET_HAS_OUTGOING_ROUTES) ? &planet->outgoing_routes : NULL;
 
     if (outgoing != NULL) {
         int i;

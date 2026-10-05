@@ -348,8 +348,8 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
     hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
-    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
-    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_INCOMING_ROUTES) != 0));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
     hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert(class_of(entity)->offer_trade == slipgate_class()->offer_trade && class_of(entity)->offer_trade != structure_cls->offer_trade &&
@@ -592,7 +592,7 @@ static void test_slipgate_is_a_struct(void) {
 static int g_offers = 0;
 
 static void take_offer(trade_offer_t *self, const trade_route_t *a) {
-    trade_route_list_add(self->accepted_routes, a);
+    trade_route_list_add(&self->accepted_routes, a);
     self->amount -= p8_fixed_from_int(1);
     g_offers++;
 }
@@ -600,7 +600,8 @@ static void take_offer(trade_offer_t *self, const trade_route_t *a) {
 /* slipgate_offer_trade forwards a trade over each of its slipways but one
  * the trade's slipways already run through: over a slipway to a planet
  * wanting the trade's resource, a trade whose slipways hold it is not
- * offered, one whose slipways do not is, once. */
+ * offered, one whose slipways do not is, once, and the route it took comes
+ * back in the caller's offer. */
 static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     planet_t *self;
     planet_t *other;
@@ -609,7 +610,6 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
     pointer_list_t *needs = malloc(sizeof *needs);
     entity_id_list_t *with_w = malloc(sizeof *with_w);
     entity_id_list_t *without_w = malloc(sizeof *without_w);
-    trade_route_list_t ib;
     trade_keys_t keys = {0};
     trade_offer_t lw = {0};
     p8_fixed_t qe;
@@ -632,23 +632,22 @@ static void test_offer_trade_skips_a_slipway_already_in_slipways(void) {
 
     entity_id_list_init(with_w, &heap_allocator);
     entity_id_list_add(with_w, entity_id_of(&slipway->header));
-    trade_route_list_init(&ib, &heap_allocator);
+    trade_route_list_init(&lw.accepted_routes, &heap_allocator);
     keys.has_resource = 1;
     keys.resource = qe;
-    keys.slipways = with_w;
+    keys.slipways = *with_w;
     lw.route = trade_new(&keys);
     lw.amount = p8_fixed_from_int(2);
     lw.accept = take_offer;
-    lw.accepted_routes = &ib;
     slipgate_offer_trade(self, &lw);
-    assert(g_offers == 0 && trade_route_list_count(&ib) == 0 && lw.amount == p8_fixed_from_int(2));
+    assert(g_offers == 0 && trade_route_list_count(&lw.accepted_routes) == 0 && lw.amount == p8_fixed_from_int(2));
 
     entity_id_list_init(without_w, &heap_allocator);
-    keys.slipways = without_w;
+    keys.slipways = *without_w;
     lw.route = trade_new(&keys);
     slipgate_offer_trade(self, &lw);
-    assert(g_offers == 1 && trade_route_list_count(&ib) == 1 && lw.amount == p8_fixed_from_int(1));
-    trade_route_list_free(&ib);
+    assert(g_offers == 1 && trade_route_list_count(&lw.accepted_routes) == 1 && lw.amount == p8_fixed_from_int(1));
+    trade_route_list_free(&lw.accepted_routes);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked

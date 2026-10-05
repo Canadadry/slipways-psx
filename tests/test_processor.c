@@ -372,8 +372,8 @@ static uint32_t fold_processor(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)planet->has_production_bonus);
     hash = fnv(hash, (uint32_t)(planet->header.is_dead != 0));
     hash = fnv(hash, (uint32_t)planet->has_net_income);
-    hash = fnv(hash, (uint32_t)(planet->incoming_routes != NULL));
-    hash = fnv(hash, (uint32_t)(planet->outgoing_routes != NULL));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_INCOMING_ROUTES) != 0));
+    hash = fnv(hash, (uint32_t)((planet->has & PLANET_HAS_OUTGOING_ROUTES) != 0));
     hash = fnv(hash, (uint32_t)planet->has_development_tier);
     hash = fnv(hash, (uint32_t)(planet->header.is_hovered != 0));
     assert_structure_shape(class_of(entity));
@@ -469,19 +469,17 @@ static uint32_t fold_economy(uint32_t h, void *e) {
  * first and end at the second. */
 static void export_to(void *pt, void *oz) {
     trade_keys_t keys = {0};
-    entity_id_list_t *lp = malloc(sizeof *lp);
-    trade_route_list_t *by = malloc(sizeof *by);
+    planet_t *exporter = pt;
     trade_route_t t;
 
-    entity_id_list_init(lp, &heap_allocator);
-    entity_id_list_add(lp, entity_id_of(pt));
-    entity_id_list_add(lp, entity_id_of(oz));
-    keys.planets = lp;
+    entity_id_list_init(&keys.planets, &heap_allocator);
+    entity_id_list_add(&keys.planets, entity_id_of(pt));
+    entity_id_list_add(&keys.planets, entity_id_of(oz));
     t = trade_new(&keys);
-    trade_route_list_init(by, &heap_allocator);
-    trade_route_list_add(by, &t);
     assert(planet_is_family(pt));
-    ((planet_t *)pt)->outgoing_routes = by;
+    trade_route_list_init(&exporter->outgoing_routes, &heap_allocator);
+    trade_route_list_add(&exporter->outgoing_routes, &t);
+    exporter->has |= PLANET_HAS_OUTGOING_ROUTES;
 }
 
 /* The trade income of a processor and of a bare planet, at the same tier,
