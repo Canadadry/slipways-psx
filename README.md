@@ -25,9 +25,4 @@
 
 Rule for this list: each item is one clear sentence of at most 30 words, readable without any outside reference.
 
-- [ ] On real PICO-8, check three behaviors: how -0.0001 prints, the color of a circle drawn with a nil color, and sin/cos between multiples of 1/64.
-- [ ] Show a budget for slipways and relays, and block adding more once it is full.
 - [ ] Add a cheat that grants bonus score points, so a short e2e can show the score panel's lit stars.
-- [ ] Before adding any new place where memory is freed, make the list of references cut by `forget` (`src/game/cart.c`) mechanical: the grep inventory missed three (the chosen difficulty, `slipway->end`, `targeted_by`).
-- [ ] On PC, before the PSX port, recompute only the trade routes a change affects, instead of rebuilding everything on every economy recompute.
-- [ ] Decide on GAP-26: an off-screen planet loses the halo of the held object once that object is released, where the cart would reread its memory.

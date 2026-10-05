@@ -425,6 +425,9 @@ drawn. In the "vanishing" state there is no difference: from t ≥ 60 on,
 `planet_draw` always returns before reading `targeted_by`. No e2e reaches
 this case.
 
+Accepted divergence: the port does not draw a halo for an object that has
+left the game.
+
 Files: `src/game/planet_display.c` (`planet_draw`), `src/game/probe.c`
 (`probe_link_target`).
 
