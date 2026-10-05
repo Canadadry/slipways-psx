@@ -14,23 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-13 — `tostr` of an absent field returns the empty string
-
-Lua: `tostr`, `s[st.score]`, `score == 0`, `ky()`.
-
-The panel's "score 0" row reads entry 0 of the final score, that is, an
-index that `economy_score_final` never sets. Lua would see nil there.
-
-This port has no nil to turn into a string: `score_panel_final_score_text`
-returns `""` for any index outside 1..6. PICO-8, on the other hand, has a
-dedicated representation for nil in `tostr`, so the line does not display
-the same way.
-
-Pinned by `test_scores_box_follows_is_shown` in `tests/test_message_box.c`
-(`SCORES_SEQUENCE_HASH`).
-
-File: `src/game/score_panel_display.c`.
-
 ## GAP-17 — The pseudo-random generator is not PICO-8's
 
 Lua: `rnd`.
@@ -149,7 +132,7 @@ Lua: `o("",score=0,ra=v(64,21),c=5)`, `bz`, `pj:ph`, `st[3]`, `st[1]`, `lq`,
 
 The line for the panel's "score 0" row (lua.lua:803) has only one
 positional entry, index 1. `score_panel_update` (lua.lua:885-891) writes index 3
-into it (the string from GAP-13), then rewrites index 1, and passes it to
+into it (the empty string `score_panel_final_score_text` returns for index 0), then rewrites index 1, and passes it to
 a layout row. The row therefore carries indices 1 and 3, with no 2.
 
 In the cart, building the row walks it up to its border

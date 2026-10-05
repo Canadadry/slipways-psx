@@ -125,7 +125,6 @@ static char *score_panel_final_score_text(const final_score_t *s, int i) {
     case 6:
         return p8_tostr_fixed(frame_zone(), s->tier);
     default:
-        /* GAP-13 */
         return p8_concat2(frame_zone(), "", "");
     }
 }
