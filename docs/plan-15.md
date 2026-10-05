@@ -16,7 +16,7 @@ The goals behind every rule below:
 
 - `make test-all` passes on every commit. `make test` and `make e2e` never get slower.
 - The 26 mouse replays of `tests/e2e/` (every file except `keyboard_*`) keep their `*.sha256` unchanged for the whole plan.
-- **Coverage never drops.** Each `keyboard_*` scenario has a pad replay covering the same thing before that `keyboard_*` replay is deleted (steps 4.1 and 4.3).
+- **Coverage never drops.** Each `keyboard_*` scenario has a pad replay covering the same thing before that `keyboard_*` replay is deleted (step 4.1).
 - Never launch the raylib app. `make raylib` must build. Every check is headless: replays, dumps, `make state`.
 - Pad mode adds behavior and visuals that the cart doesn't have. That is accepted. No document tracks divergences from the cart: `docs/porting-gaps.md` was deleted by plan 14.
 
@@ -34,11 +34,12 @@ The goals behind every rule below:
   - A pad replay stores PSX buttons per frame, and no mouse field at all. `tools/e2e_limits.sh` (`make e2e`) rejects a pad replay that contains a mouse field.
   - The session recorder writes the format of the mode being played.
 - **PSX buttons in the input frame:** Up, Down, Left, Right, ×, ○, □, △, L1, R1, Start. Select, L2 and R2 are not used.
-- **Cheat code** (`src/game/cheat.c`, sequence O O X X O O X X): deferred to the plan's last step (4.3).
-  - Until then, pad mode does not feed the cheat.
-  - The user's provisional choice: in pad mode, **× feeds the cheat's O and ○ feeds its X**, so the sequence becomes × × ○ ○ × × ○ ○. The navigation side effects of those presses are accepted (× on empty space in free mode launches a probe while the cheat is being typed).
-  - The alternative, moving the cheat to a dedicated button (Select), was set aside.
-  - Step 4.3 starts by confirming the choice with the user.
+- **Cheat code** (`src/game/cheat.c`, sequence O O X X O O X X):
+  - In pad mode, **× feeds the cheat's O and ○ feeds its X**, so the sequence becomes × × ○ ○ × × ○ ○.
+  - The navigation side effects of those presses are accepted. For example, × on empty space in free mode launches a probe while the cheat is being typed.
+  - Options rejected by the user:
+    - a dedicated button (Select) with no other role;
+    - no cheat in pad mode.
 - **In pad mode the D-pad never reaches the cart's camera scroll** (`scroll.c`, cart `qb:ph`). The navigation layer owns the camera.
 
 ### Keymap (PC only)
@@ -170,8 +171,10 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
    - `src/cmd/replay.c` and `src/devtools/replay_source.c` pick the mode from the replay header.
    - In pad mode the mouse is ignored, and the D-pad is not passed to the cart's camera scroll.
    - The session recorder writes pad frames in pad mode.
+   - In pad mode, × and ○ feed the cheat (× = O, ○ = X).
    - Verified by:
      - unit tests in `tests/test_replay_source.c` and `tests/test_recording_continuity.c`;
+     - a unit test in which the pad sequence × × ○ ○ × × ○ ○ fires the cheat;
      - every mouse `*.sha256` unchanged.
 3. **`keymap.cfg` and the raylib backend.**
    - The keymap parser is plain C, with a name table and no raylib call, so it can be unit-tested.
@@ -216,7 +219,7 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
    - The tech and score panels use generic panel navigation.
    - Verified by:
      - `pad_end_turn.json`;
-     - `pad_tech.json`: the tech panel opened and navigated, with no cheat (that comes in step 4.3); a tech is invented if research points are reached by ending turns within 180 frames, otherwise the step note says so;
+     - `pad_research.json`: the cheat typed as × × ○ ○ × × ○ ○, then a tech invented, covering `keyboard_research`;
      - `pad_score.json`;
      - reachability unit tests for the tech and score panels.
 2. **Build tab and placement.**
@@ -232,36 +235,31 @@ This covers the title screen, the planet menu, the tech panel, the score panel, 
      - unit tests for each modality rule.
 4. **Game end on the pad.** Verified by `pad_game_end.json`: years skipped through the `end turn` tab, the final score panel, "again?", back to the title screen. It covers `keyboard_game_end`, and `tools/e2e_long_exceptions.txt` gets an entry only if the replay needs more than 180 frames.
 
-### Phase 4 — Docs, then the cheat and the old keyboard cursor
+### Phase 4 — Remove the old keyboard cursor
 
-1. **Delete 3 `keyboard_*` replays.**
+1. **Delete `button_cursor` and the `keyboard_*` replays.**
    - Before deleting anything, write the coverage mapping into this step's note:
      - `keyboard_slipway` → `pad_probe`, `pad_colonise`, `pad_slipway`. If `keyboard_slipway` covers the space fold, add it to a pad replay first.
+     - `keyboard_research` → `pad_research`.
      - `keyboard_menus` → `pad_pause_restart`.
      - `keyboard_game_end` → `pad_game_end`.
-   - Then delete those 3 replays.
-   - `keyboard_research` stays until step 4.3, since its pad equivalent needs the cheat.
-   - Verified by `make test-all`.
+   - Then delete everything listed under "Deleted" in §2.
+   - Verified by `make test-all`, and `git grep -n "button_cursor\|keyboard_cursor"` finding nothing outside `docs/plan-*.md`.
 2. **Docs.**
    - Update the README's controls section to the pad controls and `keymap.cfg`.
    - Update `docs/plan-10.md` step "Controller" to point at the pad navigation (`src/game/pad_nav.c` and the PSX buttons of the input frame) instead of `src/engine/button_cursor`.
-   - Verified by reading: no doc mentions `button_cursor`.
-3. **Cheat in pad mode, then delete `button_cursor`.** This is the last step.
-   - First confirm the cheat choice with the user (provisional: × = O, ○ = X, side effects accepted). Then wire it.
-   - Verified by `pad_research.json`: the cheat typed on the pad, then a tech invented. That covers `keyboard_research`, and this step's note records the mapping.
-   - Then delete `keyboard_research` and everything else listed under "Deleted" in §2.
-   - Verified by `make test-all`, and `git grep -n "button_cursor\|keyboard_cursor"` finding nothing outside `docs/plan-*.md`.
+   - Verified by reading: no doc outside this plan mentions `button_cursor`.
 
 ## 4. Done when
 
 - `make test-all` passes, and the 26 mouse `*.sha256` are unchanged from the start of the plan.
-- The 12 pad replays exist, pass `make e2e`, and contain no mouse field: `pad_title`, `pad_probe`, `pad_colonise`, `pad_slipway`, `pad_end_turn`, `pad_tech`, `pad_research`, `pad_score`, `pad_build`, `pad_pause_restart`, `pad_message_box`, `pad_game_end`. If a step merges two scenarios into one replay, its note says so.
-- `button_cursor` and the `keyboard_*` replays are gone, with the coverage mapping recorded in the notes of steps 4.1 and 4.3.
+- The 11 pad replays exist, pass `make e2e`, and contain no mouse field: `pad_title`, `pad_probe`, `pad_colonise`, `pad_slipway`, `pad_end_turn`, `pad_research`, `pad_score`, `pad_build`, `pad_pause_restart`, `pad_message_box`, `pad_game_end`. If a step merges two scenarios into one replay, its note says so.
+- `button_cursor` and the `keyboard_*` replays are gone, with the coverage mapping recorded in the step 4.1 note.
 - `make raylib` builds with `keymap.cfg` support. A human then plays a game with the keyboard and with a gamepad, and confirms it is comfortable. That last check is the user's, not an agent's.
 
 ## 5. Open questions
 
-- **Cheat code in pad mode:** decided at step 4.3 (see §2, "Cheat code").
+None.
 
 
 ## 6. Step notes
