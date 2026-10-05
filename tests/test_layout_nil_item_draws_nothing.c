@@ -99,8 +99,7 @@ static int pixels_drawn(void) {
  * screen. Returns its one placed item. */
 static layout_row_item_t render_one_item(data_item_t item) {
     const data_row_t row = {.count = 1, .items = &item};
-    layout_row_cell_t cells[1];
-    layout_row_keys_t keys = layout_row_keys_of_row(&row, cells, 1);
+    layout_row_keys_t keys = layout_row_keys_of_row(&row);
     layout_row_t *line;
 
     line = layout_row_new(&heap_allocator, &keys);

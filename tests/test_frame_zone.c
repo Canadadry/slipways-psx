@@ -285,8 +285,9 @@ static char *frame_text(const char *s) {
 }
 
 static layout_row_t *row_of_frame_text(const allocator_t *zone, const char *s) {
-    layout_row_cell_t cell = layout_row_cell_string(frame_text(s));
-    layout_row_keys_t keys = {.items = &cell, .count = 1};
+    layout_row_keys_t keys = {0};
+
+    layout_row_keys_append(&keys, layout_row_cell_string(frame_text(s)));
     return layout_row_new(zone, &keys);
 }
 
@@ -298,8 +299,9 @@ static int case_panel_texts_survive_reset(void) {
     data_row_t bubble_row = {.count = 1, .items = &line};
 
     load_cart_and_start();
-    layout_row_cell_t two_texts[] = {layout_row_cell_string(frame_text("row")), layout_row_cell_string(frame_text("second"))};
-    layout_row_keys_t two_keys = {.items = two_texts, .count = 2};
+    layout_row_keys_t two_keys = {0};
+    layout_row_keys_append(&two_keys, layout_row_cell_string(frame_text("row")));
+    layout_row_keys_append(&two_keys, layout_row_cell_string(frame_text("second")));
     layout_row_t *row = layout_row_new(&heap_allocator, &two_keys);
     tooltip_t *bubble = tooltip_new(&heap_allocator, &bubble_row);
     data_item_t *tuple_items = (data_item_t *)allocator_alloc(frame_zone(), 2 * sizeof *tuple_items);
@@ -307,8 +309,8 @@ static int case_panel_texts_survive_reset(void) {
     tuple_items[0] = (data_item_t){.number = 12};
     tuple_items[1] = (data_item_t){.number = 5};
     *tuple = (data_row_t){.count = 2, .items = tuple_items};
-    layout_row_cell_t tuple_cell = layout_row_cell_row(tuple);
-    layout_row_keys_t tuple_keys = {.items = &tuple_cell, .count = 1};
+    layout_row_keys_t tuple_keys = {0};
+    layout_row_keys_append(&tuple_keys, layout_row_cell_row(tuple));
     layout_row_t *of_tuple;
     frame_zone_reset();
     allocate_again();

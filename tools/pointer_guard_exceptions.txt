@@ -9,7 +9,7 @@ src/engine/entity_class.h 2
 src/game/economy_score.c 1
 src/game/economy_score.h 1
 src/game/gen.h 3
-src/game/layout.h 6
+src/game/layout.h 4
 src/game/main_economy.h 2
 src/game/map_tables.h 21
 src/game/message_box.c 1

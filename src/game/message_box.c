@@ -416,7 +416,6 @@ static void open_box_add(entity_id_list_t *le, int has_list, button_t *button) {
 }
 
 void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *buttons, int button_count) {
-    layout_row_cell_t description_cell;
     vec_t box_pos;
     open_box_ctx_t step_context;
     entity_id_list_t ephemerals = {0};
@@ -432,9 +431,7 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
 
     has_description = frame->description != NULL;
     if (has_description) {
-        description_cell = layout_row_cell_string(frame->description);
-        description_layout_row.items = &description_cell;
-        description_layout_row.count = 1;
+        layout_row_keys_append(&description_layout_row, layout_row_cell_string(frame->description));
         description_layout_row.has_color = 1;
         description_layout_row.color = p8_fixed_from_int(13);
         description_row.layout_row_keys = &description_layout_row;

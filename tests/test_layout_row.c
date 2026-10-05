@@ -236,12 +236,6 @@ static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 static mouse_pos_t mouse_world_only(vec_t world) {
     return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
 }
@@ -297,19 +291,21 @@ static uint32_t fold_built_from(uint32_t h, const char *label, const layout_row_
     const void *lq = layout_row_new(&heap_allocator, k);
     uint32_t one = fold_row_from(2166136261u, lq, k != NULL ? k : &no_keys, nil_at);
 
-    assert(entity_has_pos((const entity_t *)lq) == (k != NULL && k->pos != NULL));
+    assert(entity_has_pos((const entity_t *)lq) == (k != NULL && k->has_pos));
 
     printf("  %s: w=%d fs=%d n=%d 0x%08X\n", label, p8_fixed_flr_int(width_of(lq)), placed_items_count(lq), row_count(lq),
            (unsigned)one);
     return fnv(h, one);
 }
 
-/* The keys of that many positionals, `items` borrowed, no named key. */
+/* The keys of that many positionals, copied from `items`, no named key. */
 static layout_row_keys_t positionals(int n, const layout_row_cell_t *items) {
     layout_row_keys_t k = {0};
+    int i;
 
-    k.items = items;
-    k.count = n;
+    for (i = 0; i < n; i++) {
+        layout_row_keys_append(&k, items[i]);
+    }
     return k;
 }
 
@@ -333,8 +329,9 @@ static layout_row_keys_t with_score(layout_row_keys_t k, int score) {
     return k;
 }
 
-static layout_row_keys_t with_pos(layout_row_keys_t k, vec_t *ra) {
-    k.pos = ra;
+static layout_row_keys_t with_pos(layout_row_keys_t k, vec_t at) {
+    k.has_pos = 1;
+    k.pos = at;
     return k;
 }
 
@@ -399,12 +396,12 @@ static void test_constructions(void) {
     hash = fold_built_from(hash, "NULL", NULL, 0u);
     {
         layout_row_cell_t a[] = {str("score"), str("")};
-        keys = with_color(with_pos(with_score(positionals(2, a), 0), vec_ref(vec_xy(64, 50))), 5);
+        keys = with_color(with_pos(with_score(positionals(2, a), 0), vec_xy(64, 50)), 5);
         hash = fold_built_from(hash, "hole", &keys, 0u);
     }
     {
         layout_row_cell_t a[] = {num(19), str("x"), num(21), num(20), num(22)};
-        keys = with_pos(with_score(positionals(5, a), 3), vec_ref(vec_xy(64, 40)));
+        keys = with_pos(with_score(positionals(5, a), 3), vec_xy(64, 40));
         hash = fold_built_from(hash, "disorder", &keys, 0u);
     }
     {
@@ -904,10 +901,15 @@ static void must_abort(void (*write)(void *), void *e) {
 }
 
 /* The argument is a row of the data tables with a key no member takes, or
- * too many items. */
+ * more items than the keys hold. */
 static void keys_of_row(void *e) {
-    layout_row_cell_t items[2];
-    (void)layout_row_keys_of_row(e, items, 2);
+    (void)layout_row_keys_of_row(e);
+}
+
+static void append_past_the_cap(void *e) {
+    layout_row_keys_t *keys = e;
+
+    layout_row_keys_append(keys, num(1));
 }
 
 static void draw_at_on_other(void *e) {
@@ -916,7 +918,7 @@ static void draw_at_on_other(void *e) {
 
 /* A row is a struct whose class has draw_at, no other method and no state.
  * A row of the data tables gives its keys but for a draw_function, a
- * resource or more items than the caller holds, and layout_row_draw_at()
+ * resource or more items than the keys hold, and layout_row_draw_at()
  * refuses anything that is not a row. A row laid out in place holds its
  * own placed items and texts. */
 static void test_layout_row_is_a_struct(void) {
@@ -925,12 +927,13 @@ static void test_layout_row_is_a_struct(void) {
     static const data_item_t three[] = {{.text = "a"}, {.is_fixed = 1, .fixed = 0x8000}, {.row = &pair}};
     static const data_row_t with_fn = {.count = 1, .items = three, .draw_function = DRAW_FUNCTION_DRAW_ROW};
     static const data_row_t with_resource = {.count = 1, .items = three, .has_resource = 1, .resource = 0x70000};
-    static const data_row_t too_long = {.count = 3, .items = three};
+    static const data_item_t many[LAYOUT_ROW_KEYS_CAP + 1] = {{.number = 1}};
+    static const data_row_t too_long = {.count = LAYOUT_ROW_KEYS_CAP + 1, .items = many};
     static const data_row_t nested = {.count = 2, .items = three + 1, .has_color = 1, .color = 7};
     const entity_class_t *row_class = layout_row_class();
     layout_row_cell_t cells[] = {str("hi"), num(12)};
-    layout_row_cell_t items[2];
     layout_row_keys_t t = with_color(positionals(2, cells), 9);
+    layout_row_keys_t full = {0};
     layout_row_t *lq;
     layout_row_t in_place;
     int i;
@@ -952,16 +955,21 @@ static void test_layout_row_is_a_struct(void) {
     assert(strcmp(in_place.placed_items[0].text, "hi") == 0 && in_place.placed_items[1].sprite_id == p8_fixed_from_int(12));
     assert(in_place.has_color && in_place.color == p8_fixed_from_int(9) && in_place.placed_items_count == 2 && in_place.width == lq->width);
 
-    t = layout_row_keys_of_row(&nested, items, 2);
-    assert(t.items == items && t.count == 2 && t.has_color && t.color == p8_fixed_from_int(7));
-    assert(!t.has_background && !t.has_score && t.pos == NULL);
-    assert(items[0].kind == LAYOUT_ROW_CELL_FIXED && items[0].as.fixed == 0x8000);
-    assert(items[1].kind == LAYOUT_ROW_CELL_TUPLE && items[1].as.tuple.count == 2 && items[1].as.tuple.scalars[0].value == p8_fixed_from_int(24));
+    t = layout_row_keys_of_row(&nested);
+    assert(t.count == 2 && t.has_color && t.color == p8_fixed_from_int(7));
+    assert(!t.has_background && !t.has_score && !t.has_pos);
+    assert(t.items[0].kind == LAYOUT_ROW_CELL_FIXED && t.items[0].as.fixed == 0x8000);
+    assert(t.items[1].kind == LAYOUT_ROW_CELL_TUPLE && t.items[1].as.tuple.count == 2 && t.items[1].as.tuple.scalars[0].value == p8_fixed_from_int(24));
+    for (i = 0; i < LAYOUT_ROW_KEYS_CAP; i++) {
+        layout_row_keys_append(&full, num(i));
+    }
+    assert(full.count == LAYOUT_ROW_KEYS_CAP && full.items[LAYOUT_ROW_KEYS_CAP - 1].as.fixed == p8_fixed_from_int(LAYOUT_ROW_KEYS_CAP - 1));
 
     start_game();
     must_abort(keys_of_row, (void *)&with_fn);
     must_abort(keys_of_row, (void *)&with_resource);
     must_abort(keys_of_row, (void *)&too_long);
+    must_abort(append_past_the_cap, &full);
     must_abort(draw_at_on_other, main_ui());
 }
 
@@ -988,6 +996,19 @@ static void test_tuple_cell_copies_its_row(void) {
     assert(of_resource.kind == LAYOUT_ROW_CELL_TUPLE && of_resource.as.tuple.count == 2);
     assert(of_resource.as.tuple.scalars[0].value == p8_fixed_from_int(21) && of_resource.as.tuple.scalars[1].value == p8_fixed_from_int(5));
     assert(layout_row_cell_row(NULL).kind == LAYOUT_ROW_CELL_NOTHING);
+}
+
+/* A row copies its keys: overwriting them after the row is built changes
+ * neither its position nor what it draws. */
+static void test_row_keeps_nothing_of_its_keys(void) {
+    layout_row_cell_t cells[] = {str("hi"), num(12)};
+    layout_row_keys_t keys = with_pos(with_color(positionals(2, cells), 9), vec_xy(30, 40));
+    layout_row_t *lq = layout_row_new(&heap_allocator, &keys);
+    uint32_t want = drawn_by_draw_at(lq, vec_xy(64, 60), 0);
+
+    memset(&keys, 0xA5, sizeof keys);
+    assert(entity_has_pos(&lq->header) && entity_pos(&lq->header).x == p8_fixed_from_int(30) && entity_pos(&lq->header).y == p8_fixed_from_int(40));
+    assert(row_count(lq) == 2 && drawn_by_draw_at(lq, vec_xy(64, 60), 0) == want);
 }
 
 static void tuple_of_row(void *e) {
@@ -1078,6 +1099,7 @@ int main(void) {
     in_fresh_child(test_layout_row_is_a_struct);
     in_fresh_child(test_row_of_eight_cells_in_bump_zone);
     in_fresh_child(test_tuple_cell_copies_its_row);
+    in_fresh_child(test_row_keeps_nothing_of_its_keys);
     in_fresh_child(test_tuple_refuses_text_and_rows);
     in_fresh_child(test_placed_items_ignore_stale_zone_bytes);
 

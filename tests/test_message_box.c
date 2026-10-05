@@ -421,7 +421,7 @@ static void scribble_frame_zone(void) {
     memset(reuse, 'X', 4096);
 }
 
-/* score_panel_update() makes its texts and cells in the frame zone: the box
+/* score_panel_update() makes its texts in the frame zone: the box
  * lays them out in its own slot and draws them on later frames, after the
  * zone is reset and reused. */
 static void test_scores_box_keeps_its_articles(void) {
@@ -566,7 +566,6 @@ static void test_article_limits_stop(void) {
  * its texts are the box's own, not its keys'. */
 static void test_layout_row_article_draws_its_row(void) {
     char text[] = "hi";
-    layout_row_cell_t cells[2];
     layout_row_keys_t keys = {0};
     layout_row_t *reference;
     message_box_t *box;
@@ -574,10 +573,8 @@ static void test_layout_row_article_draws_its_row(void) {
 
     reset_world(NULL);
     cart_flush_exit_queue();
-    cells[0] = layout_row_cell_string(text);
-    cells[1] = layout_row_cell_fixed(p8_fixed_from_int(12));
-    keys.items = cells;
-    keys.count = 2;
+    layout_row_keys_append(&keys, layout_row_cell_string(text));
+    layout_row_keys_append(&keys, layout_row_cell_fixed(p8_fixed_from_int(12)));
     keys.has_color = 1;
     keys.color = p8_fixed_from_int(11);
     reference = layout_row_new(frame_zone(), &keys);

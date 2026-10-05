@@ -616,6 +616,7 @@ static void test_tech_tree_screen(void) {
      * before the second opens. */
     ui_clear_ephemerals(main_ui());
     cart_flush_exit_queue();
+    frame_zone_reset();
     menu_show_tech_tree_screen();
     h = fold_tech_tree_screen_ephemerals(h, &head);
     snprintf(head2, sizeof head2, "%s", head);
@@ -624,6 +625,7 @@ static void test_tech_tree_screen(void) {
 
     (void)start_game();
     assert(score_panel_layout_block() == cr);
+    frame_zone_reset();
     menu_show_tech_tree_screen();
     h = fold_tech_tree_screen_ephemerals(h, &head);
     check("tech_tree_screen", h, TECH_TREE_SCREEN_HASH);

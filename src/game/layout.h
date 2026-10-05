@@ -91,8 +91,10 @@ int tooltip_ready(void);
 const entity_class_t *layout_row_class(void);
 const entity_class_t *tooltip_class(void);
 
+#define LAYOUT_ROW_KEYS_CAP 16
+
 typedef struct {
-    const layout_row_cell_t *items;
+    layout_row_cell_t items[LAYOUT_ROW_KEYS_CAP];
     int count;
     int has_color;
     p8_fixed_t color;
@@ -101,7 +103,8 @@ typedef struct {
     p8_fixed_t background;
     int has_score;
     p8_fixed_t score;
-    vec_t *pos;
+    int has_pos;
+    vec_t pos;
 } layout_row_keys_t;
 
 layout_row_t *layout_row_new(const allocator_t *zone, const layout_row_keys_t *keys);
@@ -119,7 +122,9 @@ layout_row_cell_t layout_row_cell_tuple(layout_row_tuple_t tuple);
 layout_row_cell_t layout_row_cell_row(const data_row_t *row);
 layout_row_cell_t layout_row_cell_item(const data_item_t *item);
 
-layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap);
+void layout_row_keys_append(layout_row_keys_t *keys, layout_row_cell_t cell);
+
+layout_row_keys_t layout_row_keys_of_row(const data_row_t *row);
 
 tooltip_t *tooltip_new(const allocator_t *zone, const data_row_t *row);
 

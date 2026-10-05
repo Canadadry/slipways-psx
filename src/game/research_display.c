@@ -107,9 +107,7 @@ static layout_row_cell_t planet_resource_row_pair(layout_row_scalar_t first, p8_
 }
 
 static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output, p8_fixed_t output, p8_fixed_t amount,
-                                    p8_fixed_t used, p8_fixed_t spacing, int spare_cells, layout_row_keys_t *out_keys) {
-    layout_row_cell_t *cells;
-    int l_count = 0;
+                                    p8_fixed_t used, p8_fixed_t spacing, layout_row_keys_t *out_keys) {
     int l_cap;
     layout_row_keys_t keys = {0};
     int crowded;
@@ -147,7 +145,6 @@ static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output
         l_cap = is_count + (is_count > 0 ? 2 : 0) + (amount > p8_fixed_from_int(5) ? 2 : 0) +
                 outputs_count * (p8_fixed_flr_int(loop_bound) + 1);
     }
-    cells = (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)(l_cap + spare_cells) * sizeof *cells);
 
     if (inputs != NULL) {
         pointer_list_iter_t it = pointer_list_all(inputs);
@@ -167,18 +164,18 @@ static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output
             tuple.scalars[0] = qe.kind == RESOURCE_FIXED ? layout_row_scalar_fixed(qe.number) : layout_row_scalar_nothing();
             tuple.scalars[1] = layout_row_scalar_fixed(p8_fixed_sub(p8_fixed_from_int(3), p8_fixed_from_int(crowded)));
             tuple.scalars[2] = layout_row_scalar_fixed(p8_fixed_from_int(gc_zero ? 7 : 0));
-            cells[l_count++] = layout_row_cell_tuple(tuple);
+            layout_row_keys_append(&keys, layout_row_cell_tuple(tuple));
         }
     }
 
     if (is_count > 0) {
         int use_35 = (spacing == p8_fixed_from_int(1)) || wide;
 
-        cells[l_count++] = planet_resource_row_pair(layout_row_scalar_nothing(), p8_fixed_add(spacing, p8_fixed_from_int(crowded)));
+        layout_row_keys_append(&keys, planet_resource_row_pair(layout_row_scalar_nothing(), p8_fixed_add(spacing, p8_fixed_from_int(crowded))));
         if (use_35) {
-            cells[l_count++] = planet_resource_row_pair(layout_row_scalar_fixed(p8_fixed_from_int(35)), p8_fixed_add(p8_fixed_from_int(2), spacing));
+            layout_row_keys_append(&keys, planet_resource_row_pair(layout_row_scalar_fixed(p8_fixed_from_int(35)), p8_fixed_add(p8_fixed_from_int(2), spacing)));
         } else {
-            cells[l_count++] = planet_resource_row_pair(layout_row_scalar_fixed(p8_fixed_from_int(32)), p8_fixed_from_int(5));
+            layout_row_keys_append(&keys, planet_resource_row_pair(layout_row_scalar_fixed(p8_fixed_from_int(32)), p8_fixed_from_int(5)));
         }
     }
 
@@ -187,8 +184,8 @@ static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output
         static const data_item_t tail_row_items[] = {{.is_false = 1}, {.number = -4}};
         static const data_row_t tail_row = {.count = 2, .items = tail_row_items};
 
-        cells[l_count++] = layout_row_cell_string(amount_text);
-        cells[l_count++] = layout_row_cell_row(&tail_row);
+        layout_row_keys_append(&keys, layout_row_cell_string(amount_text));
+        layout_row_keys_append(&keys, layout_row_cell_row(&tail_row));
         keys.has_color = 1;
         keys.color = p8_fixed_from_int(13);
         amount = p8_fixed_from_int(1);
@@ -211,30 +208,27 @@ static int planet_resource_row_keys(const pointer_list_t *inputs, int has_output
                                                         layout_row_scalar_fixed(p8_fixed_from_int(within ? 0 : 7)),
                                                         layout_row_scalar_fixed(p8_fixed_from_int(wide ? -4 : -3))}};
 
-                cells[l_count++] = layout_row_cell_tuple(tuple);
+                layout_row_keys_append(&keys, layout_row_cell_tuple(tuple));
             }
 
-            cells[l_count++] = layout_row_cell_row(planet_spacer());
+            layout_row_keys_append(&keys, layout_row_cell_row(planet_spacer()));
         }
     }
 
-    assert(l_count == l_cap && "planet_resource_row_keys: the row is sized at entry from the inputs, the amount and the outputs; a positional more or less "
+    assert(keys.count == l_cap && "planet_resource_row_keys: the row is sized at entry from the inputs, the amount and the outputs; a positional more or less "
                                "is a miscount of that size");
-    keys.items = cells;
-    keys.count = l_count;
     *out_keys = keys;
     return 1;
 }
 
 int research_display_planet_resource_row_keys(const pointer_list_t *inputs, int has_output, p8_fixed_t output, p8_fixed_t amount,
                                               p8_fixed_t used, p8_fixed_t spacing, layout_row_keys_t *out_keys) {
-    return planet_resource_row_keys(inputs, has_output, output, amount, used, spacing, 0, out_keys);
+    return planet_resource_row_keys(inputs, has_output, output, amount, used, spacing, out_keys);
 }
 
 int research_project_layout_row_keys(const research_project_t *self, layout_row_keys_t *out_keys) {
     p8_fixed_t jq;
     const production_tables_entry_t *po;
-    layout_row_cell_t *cells;
 
     research_project_assert(self);
     if (self == NULL || !research_project_ready()) {
@@ -248,31 +242,27 @@ int research_project_layout_row_keys(const research_project_t *self, layout_row_
         jq = (first_production > p8_fixed_from_int(1)) ? first_production : p8_fixed_from_int(1);
     }
 
-    if (!planet_resource_row_keys(&self->inputs, self->has_output, self->output, jq, p8_fixed_from_int(0), p8_fixed_from_int(1), 2,
-                                  out_keys)) {
+    if (!planet_resource_row_keys(&self->inputs, self->has_output, self->output, jq, p8_fixed_from_int(0), p8_fixed_from_int(1), out_keys)) {
         return 0;
     }
 
-    cells = (layout_row_cell_t *)out_keys->items;
-    cells[out_keys->count++] = layout_row_cell_row(research_project_row_tail());
+    layout_row_keys_append(out_keys, layout_row_cell_row(research_project_row_tail()));
     if (self->name != NULL) {
-        cells[out_keys->count++] = layout_row_cell_string(self->name);
+        layout_row_keys_append(out_keys, layout_row_cell_string(self->name));
     }
     return 1;
 }
 
-layout_row_keys_t research_project_icon_row_keys(const research_project_t *self, layout_row_cell_t *cells, int cap) {
+layout_row_keys_t research_project_icon_row_keys(const research_project_t *self) {
     layout_row_keys_t keys = {0};
     layout_row_tuple_t icon = {.count = 2};
 
-    assert(self->has_icon_sprite && cap >= 3 && "research_project_icon_row_keys: the row {name, 32, {icon_sprite, 8}} is a project with an icon sprite's");
+    assert(self->has_icon_sprite && "research_project_icon_row_keys: the row {name, 32, {icon_sprite, 8}} is a project with an icon sprite's");
     icon.scalars[0] = layout_row_scalar_fixed(self->icon_sprite);
     icon.scalars[1] = layout_row_scalar_fixed(p8_fixed_from_int(8));
-    cells[0] = layout_row_cell_string(self->name);
-    cells[1] = layout_row_cell_fixed(p8_fixed_from_int(32));
-    cells[2] = layout_row_cell_tuple(icon);
-    keys.items = cells;
-    keys.count = 3;
+    layout_row_keys_append(&keys, layout_row_cell_string(self->name));
+    layout_row_keys_append(&keys, layout_row_cell_fixed(p8_fixed_from_int(32)));
+    layout_row_keys_append(&keys, layout_row_cell_tuple(icon));
     return keys;
 }
 

@@ -229,31 +229,21 @@ void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_vram_t *mem, const 
     layout_row_draw_at(gfx, mem, self, p, p8_fixed_from_int(0));
 }
 
-#define TOOLTIP_LINE_CAP 7
-
 static layout_row_t *tooltip_line(const allocator_t *zone, const data_item_t *item) {
     layout_row_keys_t keys = {0};
-    layout_row_cell_t s;
-    layout_row_cell_t items[TOOLTIP_LINE_CAP];
     int i;
 
     if (item->text != NULL) {
-        s = layout_row_cell_string(item->text);
-        keys.items = &s;
-        keys.count = 1;
+        layout_row_keys_append(&keys, layout_row_cell_string(item->text));
         return layout_row_new(zone, &keys);
     }
     if (item->row == NULL) {
         return layout_row_new(zone, NULL);
     }
     assert(item->row->draw_function == DRAW_FUNCTION_NONE && "tooltip_line: a line's only named key is its color; a draw_function has no member -- stop, do not add one");
-    assert(item->row->count <= TOOLTIP_LINE_CAP &&
-           "tooltip_line: the longest tooltip line of the data (technologies_9_tooltip_rows_1) has 7 items; a longer one needs a bigger array");
     for (i = 0; i < item->row->count; i++) {
-        items[i] = row_scalar_item(&item->row->items[i]);
+        layout_row_keys_append(&keys, row_scalar_item(&item->row->items[i]));
     }
-    keys.items = items;
-    keys.count = item->row->count;
     keys.has_color = item->row->has_color;
     keys.color = p8_fixed_from_int(item->row->color);
     return layout_row_new(zone, &keys);
@@ -344,8 +334,8 @@ static void row_fill(layout_row_t *self, const layout_row_keys_t *keys) {
         self->score = keys->score;
         self->has_score = 1;
     }
-    if (keys->pos != NULL) {
-        entity_set_pos(&self->header, *keys->pos);
+    if (keys->has_pos) {
+        entity_set_pos(&self->header, keys->pos);
     }
     layout_row_construct(self, keys->items, keys->count);
 }
@@ -365,17 +355,21 @@ void layout_row_init(layout_row_t *self, const allocator_t *zone, const layout_r
     row_fill(self, keys);
 }
 
-layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap) {
+void layout_row_keys_append(layout_row_keys_t *keys, layout_row_cell_t cell) {
+    assert(keys->count >= 0 && keys->count < LAYOUT_ROW_KEYS_CAP &&
+           "layout_row_keys_append: a row's cells are measured: stop, raise LAYOUT_ROW_KEYS_CAP after measuring");
+    keys->items[keys->count++] = cell;
+}
+
+layout_row_keys_t layout_row_keys_of_row(const data_row_t *row) {
     layout_row_keys_t keys = {0};
     int i;
 
-    assert(row->count <= cap && row->draw_function == DRAW_FUNCTION_NONE && !row->has_resource &&
+    assert(row->draw_function == DRAW_FUNCTION_NONE && !row->has_resource &&
            "layout_row_keys_of_row: a row passes positional items and a color; a draw_function or a resource has no member -- stop, do not add one");
     for (i = 0; i < row->count; i++) {
-        cells[i] = layout_row_cell_item(&row->items[i]);
+        layout_row_keys_append(&keys, layout_row_cell_item(&row->items[i]));
     }
-    keys.items = cells;
-    keys.count = row->count;
     keys.has_color = row->has_color;
     keys.color = p8_fixed_from_int(row->color);
     return keys;

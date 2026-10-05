@@ -116,15 +116,7 @@ static int planet_inspection_panel_filter_step(void *e, void *ctx_ptr) {
     return gc == p8_fixed_from_int(0);
 }
 
-#define PLANET_ROW_CAP 8
-
 #define PLANET_INSPECTION_PANEL_ROWS 4
-
-#define PLANET_INSPECTION_PANEL_EXPORTS_CAP 4
-
-static layout_row_cell_t *planet_inspection_panel_row_items(int n) {
-    return (layout_row_cell_t *)allocator_alloc(frame_zone(), (size_t)n * sizeof(layout_row_cell_t));
-}
 
 static char *planet_dollar(const char *s) {
     return p8_concat2(frame_zone(), s, "$");
@@ -144,14 +136,10 @@ static open_box_frame_t planet_open_box_frame(const planet_t *self) {
 void planet_inspection_panel(const planet_t *self) {
     button_keys_t buttons[PLANET_INSPECTION_PANEL_ROWS];
     layout_row_keys_t icon;
-    layout_row_cell_t icon_items[PLANET_ROW_CAP];
     layout_row_keys_t h_keys;
-    layout_row_cell_t h_item;
     int row_count = 0;
     const data_row_t *icon_row = NULL;
     layout_row_keys_t row_keys[PLANET_INSPECTION_PANEL_ROWS];
-    layout_row_cell_t *row_items[PLANET_INSPECTION_PANEL_ROWS];
-    int row_cap[PLANET_INSPECTION_PANEL_ROWS];
     planet_inspection_panel_ctx_t filter_context;
     const pointer_list_t *needs;
     pointer_list_t unmet_needs;
@@ -174,17 +162,15 @@ void planet_inspection_panel(const planet_t *self) {
         }
     }
     if (icon_row != NULL) {
-        icon = layout_row_keys_of_row(icon_row, icon_items, PLANET_ROW_CAP);
+        icon = layout_row_keys_of_row(icon_row);
         buttons[0].layout_row_keys = &icon;
     }
     buttons[0].has_side_tooltip = 1;
     if (self->has_net_income) {
         int discard_color = 0;
 
-        h_item = layout_row_cell_string(planet_dollar(collect_format_signed(frame_zone(), self->net_income, 0, NULL, &discard_color)));
         memset(&h_keys, 0, sizeof h_keys);
-        h_keys.items = &h_item;
-        h_keys.count = 1;
+        layout_row_keys_append(&h_keys, layout_row_cell_string(planet_dollar(collect_format_signed(frame_zone(), self->net_income, 0, NULL, &discard_color))));
         h_keys.has_background = 1;
         h_keys.background_is_bool = self->net_income < p8_fixed_from_int(0);
         h_keys.background = self->net_income >= p8_fixed_from_int(0) ? p8_fixed_from_int(1) : 0;
@@ -198,11 +184,9 @@ void planet_inspection_panel(const planet_t *self) {
     unmet_needs = collect_filter_pointer_list(frame_zone(), needs, planet_inspection_panel_filter_step, &filter_context);
 
     if (unmet_needs.count > 0) {
-        row_cap[row_count] = 1 + unmet_needs.count + 1;
-        row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-        row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("needs:");
+        layout_row_keys_append(&row_keys[row_count], layout_row_cell_string("needs:"));
         for (index = 0; index < unmet_needs.count; index++) {
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(unmet_needs.items[index]);
+            layout_row_keys_append(&row_keys[row_count], layout_row_cell_row(unmet_needs.items[index]));
         }
         row_count++;
     } else {
@@ -216,14 +200,12 @@ void planet_inspection_panel(const planet_t *self) {
         if (development_tier_fixed < p8_fixed_from_int(4) && needs != NULL && needs->count > 0 && !resource_is_r_w) {
             int last_only = (self->header.class->lineage & LINEAGE(LINEAGE_STRUCTURE)) && self->archetype->is_structure;
 
-            row_cap[row_count] = 1 + (last_only ? 1 : needs->count) + 1;
-            row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("wants more:");
+            layout_row_keys_append(&row_keys[row_count], layout_row_cell_string("wants more:"));
             if (last_only) {
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(needs->items[needs->count - 1]);
+                layout_row_keys_append(&row_keys[row_count], layout_row_cell_row(needs->items[needs->count - 1]));
             } else {
                 for (index = 0; index < needs->count; index++) {
-                    row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(needs->items[index]);
+                    layout_row_keys_append(&row_keys[row_count], layout_row_cell_row(needs->items[index]));
                 }
             }
             row_count++;
@@ -231,11 +213,9 @@ void planet_inspection_panel(const planet_t *self) {
     }
 
     if (filter_context.received_needs.count >= 1) {
-        row_cap[row_count] = 1 + filter_context.received_needs.count + 1;
-        row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-        row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("receives:");
+        layout_row_keys_append(&row_keys[row_count], layout_row_cell_string("receives:"));
         for (index = 0; index < filter_context.received_needs.count; index++) {
-            row_items[row_count][row_keys[row_count].count++] = layout_row_cell_row(filter_context.received_needs.items[index]);
+            layout_row_keys_append(&row_keys[row_count], layout_row_cell_row(filter_context.received_needs.items[index]));
         }
         row_count++;
     }
@@ -247,23 +227,20 @@ void planet_inspection_panel(const planet_t *self) {
         if (mu > p8_fixed_from_int(0)) {
             int makes = kw->has_resource && int_seq_has_fixed(planet_made_resources(), kw->resource);
 
-            row_cap[row_count] = PLANET_INSPECTION_PANEL_EXPORTS_CAP;
-            row_items[row_count] = planet_inspection_panel_row_items(row_cap[row_count]);
-
             if (makes) {
                 char *amount_str = p8_tostr_fixed(frame_zone(), mu);
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("makes:");
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(amount_str);
+                layout_row_keys_append(&row_keys[row_count], layout_row_cell_string("makes:"));
+                layout_row_keys_append(&row_keys[row_count], layout_row_cell_string(amount_str));
             } else {
                 const trade_route_list_t *by = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
                 int by_count = (by != NULL) ? trade_route_list_count(by) : 0;
                 char *count_str = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(by_count));
                 char *amount_str = p8_tostr_fixed(frame_zone(), mu);
                 char *combined = p8_concat2(frame_zone(), p8_concat2(frame_zone(), count_str, "/"), amount_str);
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string("exports:");
-                row_items[row_count][row_keys[row_count].count++] = layout_row_cell_string(combined);
+                layout_row_keys_append(&row_keys[row_count], layout_row_cell_string("exports:"));
+                layout_row_keys_append(&row_keys[row_count], layout_row_cell_string(combined));
             }
-            row_items[row_count][row_keys[row_count].count++] = planet_production_cell(kw);
+            layout_row_keys_append(&row_keys[row_count], planet_production_cell(kw));
             row_count++;
         }
     }
@@ -273,9 +250,7 @@ void planet_inspection_panel(const planet_t *self) {
         static const data_item_t gap_items[] = {{.is_false = 1}, {.number = 1}};
         static const data_row_t gap = {.count = 2, .items = gap_items};
 
-        assert(row_keys[index].count < row_cap[index] && "planet_inspection_panel: every row after the first keeps its last cell for the gap");
-        row_items[index][row_keys[index].count++] = layout_row_cell_row(&gap);
-        row_keys[index].items = row_items[index];
+        layout_row_keys_append(&row_keys[index], layout_row_cell_row(&gap));
         buttons[index].layout_row_keys = &row_keys[index];
     }
 
@@ -322,9 +297,7 @@ static void planet_projects_panel_on_click_method(button_t *self) {
 
 typedef struct {
     layout_row_keys_t layout_row;
-    layout_row_cell_t layout_row_items[PLANET_ROW_CAP];
     layout_row_keys_t cost_keys;
-    layout_row_cell_t cost_item;
 } planet_projects_panel_row_t;
 
 static void planet_projects_panel_keys(planet_t *self, research_project_t *b, button_keys_t *keys, planet_projects_panel_row_t *row) {
@@ -332,7 +305,7 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, bu
 
     memset(keys, 0, sizeof *keys);
     if (b->has_icon_sprite) {
-        row->layout_row = research_project_icon_row_keys(b, row->layout_row_items, PLANET_ROW_CAP);
+        row->layout_row = research_project_icon_row_keys(b);
         keys->layout_row_keys = &row->layout_row;
     } else if (research_project_layout_row_keys(b, &row->layout_row)) {
         keys->layout_row_keys = &row->layout_row;
@@ -341,10 +314,8 @@ static void planet_projects_panel_keys(planet_t *self, research_project_t *b, bu
     keys->has_side_tooltip = 1;
     keys->side_tooltip_is_false = od <= p8_fixed_from_int(0);
     if (od > p8_fixed_from_int(0)) {
-        row->cost_item = layout_row_cell_string(planet_dollar(p8_tostr_fixed(frame_zone(), od)));
         memset(&row->cost_keys, 0, sizeof row->cost_keys);
-        row->cost_keys.items = &row->cost_item;
-        row->cost_keys.count = 1;
+        layout_row_keys_append(&row->cost_keys, layout_row_cell_string(planet_dollar(p8_tostr_fixed(frame_zone(), od))));
         row->cost_keys.has_color = 1;
         row->cost_keys.color = p8_fixed_from_int(13);
         keys->side_tooltip_row = &row->cost_keys;

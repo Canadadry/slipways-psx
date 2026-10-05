@@ -134,7 +134,6 @@ static void score_panel_update_add_row(message_box_t *box, const score_rows_entr
     int score_i;
     data_item_t values[5] = {{0}};
     int has_value[5] = {0};
-    layout_row_cell_t items[5];
     layout_row_keys_t keys = {0};
     int index;
 
@@ -182,10 +181,9 @@ static void score_panel_update_add_row(message_box_t *box, const score_rows_entr
     /* GAP-25 */
     for (index = 0; index < 5; index++) {
         if (has_value[index]) {
-            items[keys.count++] = layout_row_cell_item(&values[index]);
+            layout_row_keys_append(&keys, layout_row_cell_item(&values[index]));
         }
     }
-    keys.items = items;
     keys.has_color = entry->row.has_color;
     keys.color = p8_fixed_from_int(entry->row.color);
     keys.has_score = 1;
@@ -204,8 +202,6 @@ void score_panel_update(score_panel_t *self) {
         static const data_row_t back = {.count = 2, .items = back_items};
         button_keys_t restart_keys = {0};
         button_keys_t toggle_keys = {0};
-        layout_row_cell_t first_line_item;
-        layout_row_cell_t second_line_item;
         layout_row_keys_t first_line = {0};
         layout_row_keys_t second_line = {0};
         button_t *made1;
@@ -217,9 +213,7 @@ void score_panel_update(score_panel_t *self) {
 
         (void)modal_backdrop_new(NULL);
 
-        first_line_item = layout_row_cell_string(" again? ");
-        first_line.items = &first_line_item;
-        first_line.count = 1;
+        layout_row_keys_append(&first_line, layout_row_cell_string(" again? "));
         restart_keys.has_layer = 1;
         restart_keys.layer = p8_fixed_from_int(15);
         restart_keys.pos = &first_line_pos;
@@ -229,9 +223,7 @@ void score_panel_update(score_panel_t *self) {
         made1 = button_new(&restart_keys);
         (void)made1;
 
-        second_line_item = layout_row_cell_row(&back);
-        second_line.items = &second_line_item;
-        second_line.count = 1;
+        layout_row_keys_append(&second_line, layout_row_cell_row(&back));
         toggle_keys.has_layer = 1;
         toggle_keys.layer = p8_fixed_from_int(15);
         toggle_keys.pos = &second_line_pos;

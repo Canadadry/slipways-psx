@@ -19,8 +19,6 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 
-#define MENU_ROW_CAP 4
-
 static int g_menu_up = 0;
 static vec_t g_galaxy_menu_pos[GALAXY_MENU_COUNT];
 
@@ -56,9 +54,7 @@ static void tech_tree_screen_row_on_click_method(button_t *self) {
 typedef struct {
     button_keys_t row;
     layout_row_keys_t layout_row;
-    layout_row_cell_t layout_row_items[2];
     layout_row_keys_t cost_keys;
-    layout_row_cell_t cost_items[2];
 } tech_tree_screen_row_t;
 
 static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_screen_row_t *b) {
@@ -67,10 +63,8 @@ static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_scree
     p8_fixed_t research_cost_result;
     char *research_cost_str;
 
-    b->layout_row_items[0] = layout_row_cell_fixed(p8_fixed_from_int(t->icon));
-    b->layout_row_items[1] = layout_row_cell_string(t->name);
-    b->layout_row.items = b->layout_row_items;
-    b->layout_row.count = 2;
+    layout_row_keys_append(&b->layout_row, layout_row_cell_fixed(p8_fixed_from_int(t->icon)));
+    layout_row_keys_append(&b->layout_row, layout_row_cell_string(t->name));
     b->layout_row.has_color = 1;
     b->layout_row.color = p8_fixed_from_int(6);
     b->row.layout_row_keys = &b->layout_row;
@@ -78,10 +72,8 @@ static void tech_tree_screen_step(const technologies_entry_t *t, tech_tree_scree
     research_cost_result = tech_gate_research_cost(t);
     research_cost_str = p8_tostr_fixed(frame_zone(), research_cost_result);
 
-    b->cost_items[0] = layout_row_cell_row(&pair);
-    b->cost_items[1] = layout_row_cell_string(research_cost_str);
-    b->cost_keys.items = b->cost_items;
-    b->cost_keys.count = 2;
+    layout_row_keys_append(&b->cost_keys, layout_row_cell_row(&pair));
+    layout_row_keys_append(&b->cost_keys, layout_row_cell_string(research_cost_str));
     b->row.has_side_tooltip = 1;
     b->row.side_tooltip_row = &b->cost_keys;
 
@@ -151,10 +143,8 @@ void menu_show_tech_tree_screen(void) {
         tech_tree_screen_row_t *extra = &rows[row_count++];
         char *invented_text = p8_tostr_fixed(frame_zone(), p8_fixed_from_int(invented_count));
         char *label = p8_concat2(frame_zone(), invented_text, " invented");
-        extra->layout_row_items[0] = layout_row_cell_fixed(p8_fixed_from_int(30));
-        extra->layout_row_items[1] = layout_row_cell_string(label);
-        extra->layout_row.items = extra->layout_row_items;
-        extra->layout_row.count = 2;
+        layout_row_keys_append(&extra->layout_row, layout_row_cell_fixed(p8_fixed_from_int(30)));
+        layout_row_keys_append(&extra->layout_row, layout_row_cell_string(label));
         extra->layout_row.has_color = 1;
         extra->layout_row.color = p8_fixed_from_int(3);
         extra->row.layout_row_keys = &extra->layout_row;
@@ -217,7 +207,6 @@ static void galaxy_menu_button2_on_click_method(button_t *self) {
 static void galaxy_menu_button2_refresh_method(button_t *self) {
     available_technologies_kept_t available_technologies_list;
     int available_technologies_count;
-    layout_row_cell_t item;
     layout_row_keys_t keys = {0};
     const allocator_t *slot;
 
@@ -229,9 +218,7 @@ static void galaxy_menu_button2_refresh_method(button_t *self) {
     available_technologies_list = tech_gate_available_technologies(0);
     available_technologies_count = available_technologies_list.count;
 
-    item = layout_row_cell_fixed(p8_fixed_from_int(available_technologies_count > 0 ? 24 : 37));
-    keys.items = &item;
-    keys.count = 1;
+    layout_row_keys_append(&keys, layout_row_cell_fixed(p8_fixed_from_int(available_technologies_count > 0 ? 24 : 37)));
     slot = ui_zone_slot(SLOT_KIND_ROW);
     self->layout_row = layout_row_new(slot, &keys);
     if (self->layout_row_slot != NULL) {
@@ -284,7 +271,6 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
     };
     button_keys_t bs[PAUSE_MENU_COUNT];
     layout_row_keys_t lq[PAUSE_MENU_COUNT];
-    layout_row_cell_t items[PAUSE_MENU_COUNT][MENU_ROW_CAP];
     open_box_frame_t frame = {0};
     int i;
     (void)self;
@@ -296,7 +282,7 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
         const pause_menu_entry_t *e = &pause_menu_table[i];
 
         memset(&bs[i], 0, sizeof bs[i]);
-        lq[i] = layout_row_keys_of_row(e->layout_row, items[i], MENU_ROW_CAP);
+        lq[i] = layout_row_keys_of_row(e->layout_row);
         bs[i].layout_row_keys = &lq[i];
         bs[i].has_on_click = 1;
         bs[i].on_click = my[i];
@@ -312,11 +298,10 @@ button_t *galaxy_menu_button(int i) {
     const galaxy_menu_entry_t *e;
     button_keys_t keys = {0};
     layout_row_keys_t lq;
-    layout_row_cell_t items[MENU_ROW_CAP];
 
     assert(g_menu_up && i >= 1 && i <= GALAXY_MENU_COUNT && "galaxy_menu_button: the galaxy menu has GALAXY_MENU_COUNT rows, after menu_init()");
     e = &galaxy_menu_table[i - 1];
-    lq = layout_row_keys_of_row(e->layout_row, items, MENU_ROW_CAP);
+    lq = layout_row_keys_of_row(e->layout_row);
     keys.layout_row_keys = &lq;
     keys.pos = &g_galaxy_menu_pos[i - 1];
     keys.has_on_click = 1;

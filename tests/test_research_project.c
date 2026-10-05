@@ -508,8 +508,7 @@ static void test_projects(void) {
             hash = fold_resource(hash, qe);
         }
         if (built->has_icon_sprite) {
-            layout_row_cell_t cells[3];
-            layout_row_keys_t icon_keys = research_project_icon_row_keys(built, cells, 3);
+            layout_row_keys_t icon_keys = research_project_icon_row_keys(built);
 
             /* Constant by the row's shape, kept so that PROJECTS_HASH still
              * proves the typed reads. */
@@ -1084,14 +1083,15 @@ static void test_research_project_is_a_struct(void) {
 
     for (j = 1; j <= PROJECTS_COUNT; j++) {
         research_project_t *with_icon = project(j);
-        layout_row_cell_t cells[3];
         layout_row_keys_t keys;
+        const layout_row_cell_t *cells;
 
         if (!with_icon->has_icon_sprite) {
             continue;
         }
-        keys = research_project_icon_row_keys(with_icon, cells, 3);
-        assert(keys.items == cells && keys.count == 3 && !keys.has_color && !keys.has_background && !keys.has_score && keys.pos == NULL);
+        keys = research_project_icon_row_keys(with_icon);
+        cells = keys.items;
+        assert(keys.count == 3 && !keys.has_color && !keys.has_background && !keys.has_score && !keys.has_pos);
         assert(cells[0].kind == LAYOUT_ROW_CELL_STRING && strcmp(cells[0].as.text, with_icon->name) == 0);
         assert(cells[1].kind == LAYOUT_ROW_CELL_FIXED && cells[1].as.fixed == p8_fixed_from_int(32));
         assert(cells[2].kind == LAYOUT_ROW_CELL_TUPLE && cells[2].as.tuple.count == 2);
