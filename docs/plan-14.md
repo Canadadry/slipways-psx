@@ -75,6 +75,8 @@ Why: the C code is the reference (`CLAUDE.md`); the PICO-8 cart is no longer one
 ### Visual changes
 
 - A protostar's burst now uses its own pink palette instead of the ordinary burst's.
+- Hovering a building's project no longer shows an empty tooltip.
+- A planet's inspection line without net income no longer shows an empty side badge.
 
 ### Step 1.3
 
@@ -87,3 +89,7 @@ Why: the C code is the reference (`CLAUDE.md`); the PICO-8 cart is no longer one
 ### Step 1.2
 
 `TAG_TARGETING` was the last tag before `TAG_COUNT`, so no other tag was renumbered. 27 files: enum, 11 archetype masks, cart reserve, five header markers, GAP-8 entry, 14 test files. Frozen hashes moved in exactly the 11 predicted binaries; `test_burst`, `test_score_panel`, `test_ui` only lost a `tags[]` entry. All 30 sha identical; `make sanitize-net` clean; `make state` passes, game-zone peak 101688 → 100776, no zone size changed. No `guideline` decision.
+
+### Step 1.4
+
+Only a real row builds a side tooltip or a tooltip; a nil key now leaves the button unmarked, `false` keeps its meaning (marked, no row). `button_keys_t` kept its shape. Frozen value moved: `BUTTON_MEMBERS_HASH` in `test_button` only. All 30 sha identical. Deviation: the fix has a second visible effect (no empty side badge on a planet line without net income, reached by no replay); recorded as its own visual line so the user's list is complete. No `guideline` decision.
