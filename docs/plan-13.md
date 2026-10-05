@@ -233,8 +233,8 @@ The user validated (2026-10-04) the resolution of the 46 Unsorted pointers: call
 ### Phase 1 review
 
 `warn-review` at the end of phase 1 (55 `src/` files):
-- **Violation, pending user validation:** `src/engine/bootstrap.c` names research projects (`#include "game/research.h"`, `research_expire_project_ids()` in `reset_world()`), a game concept in `engine/`. It extends a reverse dependency that predates the plan (`bootstrap.c` already includes `game/mouse.h`, `game/scroll.h`, `game/ui.h`).
-- **Breaks rule 15 on purpose, pending user validation:** `planet.c` and `planet_display.c` never remove a dying planet's id from id lists; they assert the dying planet has no slipway (the cart never drops kept routes, and only unlinked planets die).
+- **Violation:** `src/engine/bootstrap.c` names research projects (`#include "game/research.h"`, `research_expire_project_ids()` in `reset_world()`), a game concept in `engine/`. It extends a reverse dependency that predates the plan (`bootstrap.c` already includes `game/mouse.h`, `game/scroll.h`, `game/ui.h`).
+- **Breaks rule 15 on purpose, validated by the user:** `planet.c` and `planet_display.c` never remove a dying planet's id from id lists; they assert the dying planet has no slipway (the cart never drops kept routes, and only unlinked planets die).
 - Every other pointer warning is planned for steps 4 to 6.
 - Smells, for a later `plan-review`: `engine/` includes `game/` headers (`bootstrap.c`, `entity_registry.c`); `entity_class.h` declares `slipway_class`/`probe_class`; targeting is implemented in `probe.c`; hand-measured zone sizes inline (`HEADER_ID_BYTES`, `BUTTON_SIZE`…); the economy's id slot is taken outside `entity_construct` and never freed by the exit queue; `slipway_create` silently drops a start key that resolves to NULL.
-- **The run stops here, pending the user.**
+- User decisions (2026-10-05): the violation is fixed (`cart_init` and `cart_start_game` expire project ids after `reset_world()`; `engine/bootstrap.c` no longer names research); the rule-15 break is validated. Smells left for later.
