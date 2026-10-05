@@ -32,8 +32,8 @@ void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *sel
 
 down_t background_left_press(background_t *self);
 
-down_t background_right_press(background_t *self, vec_t *rp);
+down_t background_right_press(background_t *self, mouse_pos_t mouse);
 
-void background_drag(background_t *self, vec_t *rp);
+void background_drag(background_t *self, mouse_pos_t mouse);
 
 #endif

@@ -20,14 +20,11 @@ static vec_t map_pos_of(const entity_t *e) {
     return e != NULL ? entity_map_pos(e) : zero_vec();
 }
 
-int entity_geom_contains_cursor(const entity_t *e, const vec_t *mp, const vec_t *rp) {
+int entity_geom_contains_cursor(const entity_t *e, mouse_pos_t mouse) {
     p8_fixed_t fa = e != NULL && entity_has(e, ENTITY_HAS_LAYER) ? e->layer : p8_fixed_from_int(0);
-    vec_t ra = pos_of(e);
-    const vec_t *chosen;
-    vec_t point;
+    vec_t chosen = (fa >= p8_fixed_from_int(10)) ? mouse_pos_screen(mouse) : mouse_pos_world(mouse);
+    vec_t point = vec_sub(chosen, pos_of(e));
 
-    chosen = (fa >= p8_fixed_from_int(10)) ? rp : mp;
-    point = vec_sub(chosen != NULL ? *chosen : zero_vec(), ra);
     if (e != NULL && entity_has(e, ENTITY_HAS_HIT_BOX)) {
         return box_contains(e->hit_box, point);
     }

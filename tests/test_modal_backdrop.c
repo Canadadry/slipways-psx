@@ -111,7 +111,7 @@ static modal_backdrop_t *veil_with_on_click(int answer) {
 }
 
 static int left_press(void *veil) {
-    down_t out = modal_backdrop_class()->left_press(veil, NULL, NULL);
+    down_t out = modal_backdrop_class()->left_press(veil, (mouse_pos_t){0});
 
     assert(entity_get(out.held) == NULL);
     return out.stop;
@@ -232,10 +232,10 @@ static void test_hover_loop_on_the_veil(void) {
     ui_draw_overlay(&graphics, &memory, main_ui());
     check("hover_cursor", screen_hash(), HOVER_CURSOR_HASH);
 
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, NULL, NULL, NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn));
     assert((void *)kv == veil && kn.stop && entity_get(kn.held) == NULL);
     kv = NULL;
-    if (ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, NULL, NULL, NULL, &kv, &kn)) {
+    if (ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn)) {
         assert((void *)kv != veil);
     }
     h = fold_veil(h, veil);
@@ -293,7 +293,7 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     for (i = 0; i < 4; i++) {
         assert(!entity_list_listed(entities_by_message(others[i]), built) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
-    assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, NULL, NULL) == 1);
+    assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, (mouse_pos_t){0}) == 1);
     assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->right_press == NULL);
     assert(((const modal_backdrop_t *)built)->on_click == score_panel_toggle_on_click());
 }

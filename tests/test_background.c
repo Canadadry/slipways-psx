@@ -106,9 +106,8 @@ static const vec_t *drag_mouse_of(const background_t *bg) {
     return bg->has_drag_mouse ? &bg->drag_mouse : NULL;
 }
 
-/* `drag_mouse` holds the value of the given position, a copy. */
-static int drag_mouse_is(const background_t *bg, const vec_t *rp) {
-    return bg->has_drag_mouse && &bg->drag_mouse != rp && bg->drag_mouse.x == rp->x && bg->drag_mouse.y == rp->y;
+static int drag_mouse_is(const background_t *bg, vec_t rp) {
+    return bg->has_drag_mouse && bg->drag_mouse.x == rp.x && bg->drag_mouse.y == rp.y;
 }
 
 /* 0 absent or false, 2 true. */
@@ -174,10 +173,12 @@ static background_t *the_background(void) {
     return bg;
 }
 
-static vec_t *vec_ref(int x, int y) {
-    vec_t *v = malloc(sizeof *v);
-    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return v;
+static vec_t point(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+}
+
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
 
 static int mget(int x, int y) {
@@ -267,8 +268,8 @@ static void test_map(void) {
     check("second_map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
 }
 
-static void drag(void *bg, vec_t *rp) {
-    background_class()->drag(bg, vec_ref(1, 2), rp);
+static void drag(void *bg, vec_t rp) {
+    background_class()->drag(bg, mouse_pos(point(1, 2), rp));
 }
 
 /* A drag with no `drag_mouse` yet reads the zero vector; the right press
@@ -277,34 +278,54 @@ static void drag(void *bg, vec_t *rp) {
 static void test_drag(void) {
     uint32_t h = 2166136261u;
     background_t *bg;
-    vec_t *rp;
+    vec_t rp;
     down_t out;
     vec_t v;
     int i;
 
     start_game();
     bg = the_background();
-    rp = vec_ref(10, 20);
+    rp = point(10, 20);
     drag(bg, rp);
     v = checked_main_camera()->velocity;
     assert(v.x == p8_fixed_from_int(-10) && v.y == p8_fixed_from_int(-20));
     assert(drag_mouse_is(bg, rp));
     h = fold_vec(h, &checked_main_camera()->velocity);
 
-    rp = vec_ref(30, 40);
-    out = background_class()->right_press(&bg->header, vec_ref(5, 6), rp);
+    rp = point(30, 40);
+    out = background_class()->right_press(&bg->header, mouse_pos(point(5, 6), rp));
     assert(out.stop && (void *)entity_get(out.held) == bg);
     assert(drag_mouse_is(bg, rp));
     h = fold_vec(h, drag_mouse_of(bg));
 
     for (i = 0; i < 3; i++) {
-        rp = vec_ref(33 - 7 * i, 41 + 5 * i * i);
+        rp = point(33 - 7 * i, 41 + 5 * i * i);
         drag(bg, rp);
         assert(drag_mouse_is(bg, rp));
         h = fold_vec(h, &checked_main_camera()->velocity);
         h = fold_vec(h, drag_mouse_of(bg));
     }
     check("drag", h, DRAG_HASH);
+}
+
+/* An absent screen point stores no drag mouse and moves the camera by the
+ * stored one alone; a screen point given as zero is stored. */
+static void test_drag_without_a_screen_point(void) {
+    background_t *bg;
+    mouse_pos_t world_only = {.world = point(5, 6), .has = MOUSE_POS_HAS_WORLD};
+    vec_t v;
+
+    start_game();
+    bg = the_background();
+    (void)background_class()->right_press(&bg->header, mouse_pos(point(5, 6), point(30, 40)));
+    background_class()->drag(&bg->header, world_only);
+    v = checked_main_camera()->velocity;
+    assert(v.x == p8_fixed_from_int(30) && v.y == p8_fixed_from_int(40));
+    assert(!bg->has_drag_mouse);
+    (void)background_class()->right_press(&bg->header, mouse_pos(point(5, 6), point(0, 0)));
+    assert(drag_mouse_is(bg, point(0, 0)));
+    (void)background_class()->right_press(&bg->header, world_only);
+    assert(!bg->has_drag_mouse);
 }
 
 /* The left press builds a probe while the probe tag is empty, a wormhole
@@ -322,12 +343,12 @@ static void test_left_press(void) {
     check_int("left_press_probe_before", probes_before, LEFT_PRESS_PROBE_BEFORE);
     check_int("left_press_wormhole_before", wormhole_before, LEFT_PRESS_WORMHOLE_BEFORE);
 
-    out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
+    out = background_class()->left_press(bg, mouse_pos(point(1, 1), point(2, 2)));
     assert(out.stop && entity_get(out.held) != NULL);
     assert(entity_get(out.held)->class == probe_class());
     assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity_get(out.held)));
 
-    out = background_class()->left_press(bg, vec_ref(1, 1), vec_ref(2, 2));
+    out = background_class()->left_press(bg, mouse_pos(point(1, 1), point(2, 2)));
     assert(out.stop && entity_get(out.held) != NULL);
     assert(entity_get(out.held)->class == wormhole_class());
     assert(entity_list_listed(entities_by_tag(TAG_WORMHOLE), entity_get(out.held)));
@@ -375,10 +396,10 @@ static void test_hover(void) {
     assert(in_layer(1, bg));
     h = fnv(h, is_hovered_state(bg));
 
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, mouse_pos(point(1, 1), point(2, 2)), NULL, &kv, &kn));
     assert((void *)kv == bg && kn.stop && entity_get(kn.held) != NULL && (void *)entity_get(kn.held) != bg);
     kv = NULL;
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, mouse_pos(point(1, 1), point(2, 2)), NULL, &kv, &kn));
     assert((void *)kv == bg && kn.stop && (void *)entity_get(kn.held) == bg);
     h = fold_vec(h, drag_mouse_of(bg));
 
@@ -570,6 +591,7 @@ int main(void) {
     in_fresh_child(test_construction);
     in_fresh_child(test_map);
     in_fresh_child(test_drag);
+    in_fresh_child(test_drag_without_a_screen_point);
     in_fresh_child(test_left_press);
     in_fresh_child(test_hover);
     in_fresh_child(test_accept_drop);

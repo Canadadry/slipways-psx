@@ -48,9 +48,19 @@ void ui_set_ephemerals(ui_t *self, entity_id_list_t list) {
     }
 }
 
-/* Valid only for the call it is passed to. */
-static vec_t *ui_mouse_world_or_null(ui_t *self) {
-    return (self->has & UI_HAS_MOUSE_WORLD) ? &self->mouse_world : NULL;
+/* The screen point is the mouse's raw header pos, as the old &mouse->header.pos: entity_pos() would zero it when the position bit is absent. */
+static mouse_pos_t ui_mouse_pos(const ui_t *self, const mouse_t *mouse) {
+    mouse_pos_t out = {0};
+
+    if (self->has & UI_HAS_MOUSE_WORLD) {
+        out.world = self->mouse_world;
+        out.has |= MOUSE_POS_HAS_WORLD;
+    }
+    if (mouse != NULL) {
+        out.screen = mouse->header.pos;
+        out.has |= MOUSE_POS_HAS_SCREEN;
+    }
+    return out;
 }
 
 static const entity_class_t main_mouse_placeholder_class_def = {0};
@@ -299,8 +309,7 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self)
 }
 
 void ui_update_hover(ui_t *self) {
-    const mouse_t *mouse;
-    const vec_t *main_mouse_pos;
+    mouse_pos_t mouse;
     const entity_list_t *hit_test_bucket;
     entity_t *previous;
     entity_t *hovered = NULL;
@@ -316,14 +325,13 @@ void ui_update_hover(ui_t *self) {
     self->has |= UI_HAS_HOVERED_BY_LAYER;
     self->hovered = ENTITY_ID_NONE;
 
-    mouse = main_mouse_typed();
-    main_mouse_pos = mouse != NULL ? &mouse->header.pos : NULL;
+    mouse = ui_mouse_pos(self, main_mouse_typed());
 
     hit_test_bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (index = 0; index < hit_test_bucket->count; index++) {
         entity_t *e = hit_test_bucket->items[index];
 
-        if (e->class->hit_test != NULL && e->class->hit_test(e, ui_mouse_world_or_null(self), main_mouse_pos)) {
+        if (e->class->hit_test != NULL && e->class->hit_test(e, mouse)) {
             if (entity_has(e, ENTITY_HAS_LAYER)) {
                 int fa = ui_to_int(e->layer);
 
@@ -360,8 +368,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     int is_left;
     const mouse_button_t *button;
     entity_t *held_inst;
-    mouse_t *mouse;
-    vec_t *main_mouse_pos;
+    const mouse_t *mouse;
 
     if (self == NULL) {
         return;
@@ -370,14 +377,13 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     is_left = side == MOUSE_SIDE_LEFT;
     button = ui_main_mouse_button(side);
     mouse = main_mouse_typed();
-    main_mouse_pos = mouse != NULL ? &mouse->header.pos : NULL;
 
     if (button != NULL && button->pressed) {
         entity_t *kv = NULL;
         down_t kn;
         const entity_t *given;
 
-        if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, ui_mouse_world_or_null(self), main_mouse_pos, NULL, &kv, &kn) &&
+        if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, ui_mouse_pos(self, mouse), NULL, &kv, &kn) &&
             (given = entity_get(kn.held)) != NULL) {
             if (is_left) {
                 assert(ui_is_held_class(given->class) &&
@@ -400,14 +406,14 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     }
 
     if (held_inst != NULL && held_inst->class->drag != NULL) {
-        held_inst->class->drag(held_inst, ui_mouse_world_or_null(self), main_mouse_pos);
+        held_inst->class->drag(held_inst, ui_mouse_pos(self, mouse));
     }
 
     if (button != NULL && button->released && held_inst != NULL) {
         entity_t *target = NULL;
         down_t down;
 
-        (void)ui_send_to_hovered(self, SEND_TO_HOVERED_ACCEPT_DROP, NULL, NULL, held_inst, &target, &down);
+        (void)ui_send_to_hovered(self, SEND_TO_HOVERED_ACCEPT_DROP, (mouse_pos_t){0}, held_inst, &target, &down);
 
         if (held_inst->class->drop != NULL) {
             held_inst->class->drop(held_inst, target);
@@ -421,7 +427,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
 }
 
 /* Layers descend from 15 to 0 and the first `stop` wins: that order is the dispatch priority. */
-int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *mouse_screen, const entity_t *held,
+int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, mouse_pos_t mouse, const entity_t *held,
                 entity_t **out_target, down_t *out_down) {
     int layer;
 
@@ -443,12 +449,12 @@ int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_
             switch (message) {
             case SEND_TO_HOVERED_LEFT_PRESS:
                 if (h->class->left_press != NULL) {
-                    kn = h->class->left_press(h, mouse_world, mouse_screen);
+                    kn = h->class->left_press(h, mouse);
                 }
                 break;
             case SEND_TO_HOVERED_RIGHT_PRESS:
                 if (h->class->right_press != NULL) {
-                    kn = h->class->right_press(h, mouse_world, mouse_screen);
+                    kn = h->class->right_press(h, mouse);
                 }
                 break;
             case SEND_TO_HOVERED_ACCEPT_DROP:

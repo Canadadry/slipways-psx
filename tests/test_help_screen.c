@@ -254,10 +254,12 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static vec_t *vec_ref(int x, int y) {
-    vec_t *v = malloc(sizeof *v);
-    *v = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return v;
+static vec_t point(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+}
+
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
 
 static const entity_class_t *class_of(const void *e) {
@@ -453,10 +455,10 @@ static void test_life(void) {
         const int box_left = P8_SCREEN_WIDTH / 2 - 40;
         const int box_top = P8_SCREEN_HEIGHT / 2 + 42;
 
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(link_x, logo_y), vec_ref(link_x, link_y)) == 1);
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(link_x, link_y), vec_ref(link_x, logo_y)) == 0);
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left, box_top), vec_ref(box_left, box_top)) == 1);
-        assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left - 1, box_top), vec_ref(box_left - 1, box_top)) == 0);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(link_x, logo_y), point(link_x, link_y))) == 1);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(link_x, link_y), point(link_x, logo_y))) == 0);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(box_left, box_top), point(box_left, box_top))) == 1);
+        assert(class_of(fv)->hit_test(&fv->header, mouse_pos(point(box_left - 1, box_top), point(box_left - 1, box_top))) == 0);
     }
     hash = fnv(hash, (uint32_t)size_of(particles_of(&fv->emitter)));
     check("life", hash, LIFE_HASH);
@@ -631,7 +633,7 @@ static void call_probe_spawn_particle(void *e) {
 }
 
 static void call_targeting_track(void *e) {
-    targeting_track(e, vec_ref(1, 1), vec_ref(2, 2));
+    targeting_track(e, mouse_pos(point(1, 1), point(2, 2)));
 }
 
 static void call_targeting_tooltip(void *e) {
@@ -643,7 +645,7 @@ static void call_targeting_confirm(void *e) {
 }
 
 static void call_contains_cursor(void *e) {
-    (void)entity_geom_contains_cursor(e, vec_ref(1, 1), vec_ref(2, 2));
+    (void)entity_geom_contains_cursor(e, mouse_pos(point(1, 1), point(2, 2)));
 }
 
 static void call_bob(void *e) {

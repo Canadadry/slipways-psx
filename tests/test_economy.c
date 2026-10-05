@@ -41,6 +41,10 @@
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
 
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
 /* Project 12, a colony that needs two resources and exports one; project 3,
  * a project with an output and no inputs, which exports to any planet a
  * slipway joins it to. */
@@ -230,7 +234,7 @@ static research_project_t *project(int k) {
 static void built_world(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    vec_t mp;
     void *qu;
     void *re = NULL;
     slipway_t *jc;
@@ -251,10 +255,10 @@ static void built_world(void) {
 
     slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                       vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     main_ui()->hovered = entity_id_link(re);
-    slipway_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mouse_world_only(mp));
     main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();

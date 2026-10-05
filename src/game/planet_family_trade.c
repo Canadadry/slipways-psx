@@ -72,9 +72,8 @@ down_t slipgate_left_press(planet_t *self) {
     return accept_drop_result;
 }
 
-static down_t slipgate_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t slipgate_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return slipgate_left_press((planet_t *)self);
 }
 

@@ -38,9 +38,9 @@ void targeting_set_target(targeting_t *self, entity_t *target);
  * never store it. */
 targeting_t *targeting_of(entity_t *e);
 
-void targeting_track(entity_t *self, vec_t *mp, vec_t *rp);
+void targeting_track(entity_t *self, mouse_pos_t mouse);
 
-void targeting_track_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
+void targeting_track_method(entity_t *self, mouse_pos_t mouse);
 
 void probe_link_target(entity_t *et, entity_t *self);
 

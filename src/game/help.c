@@ -29,8 +29,8 @@ void help_set_start_game(button_fn_t fn) {
     g_start_game_method = (fn != NULL) ? fn : screen_start_game_placeholder;
 }
 
-static int help_screen_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+static int help_screen_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
 
 #define HELP_DIFFICULTY_OPTIONS_ROW_CAP 4

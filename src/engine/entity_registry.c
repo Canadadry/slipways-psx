@@ -138,10 +138,9 @@ static int is_message_name(const entity_t *e, entity_message_t message) {
     }
 }
 
-int entity_registry_hit_test_always(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
+int entity_registry_hit_test_always(entity_t *self, mouse_pos_t mouse) {
     (void)self;
-    (void)mouse_world;
-    (void)mouse_screen;
+    (void)mouse;
     return 1;
 }
 

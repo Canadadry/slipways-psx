@@ -41,6 +41,18 @@
 #include "game/wormhole.h"
 #include "engine/game_zone.h"
 
+static vec_t point(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+}
+
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
 }
@@ -359,18 +371,16 @@ static void colonized_pair(void **qu, void **re) {
 }
 
 static void *build_slipway(void *qu);
-static void drag_over(void *jc, void *hovered, vec_t *mp);
+static void drag_over(void *jc, void *hovered, mouse_pos_t mouse);
 
 /* A slipway from the start planet dragged over the end planet as
  * slipway_drag sees a drag (it reads the hovered planet off the main user
  * interface), held until its state time reaches 15, not paid. */
 static void *dragged(void *qu, void *re) {
-    vec_t *mp = malloc(sizeof *mp);
     void *jc = build_slipway(qu);
+    vec_t mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)), vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
 
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
-    drag_over(jc, re, mp);
+    drag_over(jc, re, mouse_world_only(mp));
     main_ui()->hovered = entity_id_link(NULL);
     while (as_slipway(jc)->header.state_time < p8_fixed_from_int(15)) {
         update_entities();
@@ -412,16 +422,10 @@ static vec_t *vec_ref(int x, int y) {
     return v;
 }
 
-static vec_t *vec_ref_fixed(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
-}
-
 /* slipway_drag reads the hovered entity off the main user interface. */
-static void drag_over(void *jc, void *hovered, vec_t *mp) {
+static void drag_over(void *jc, void *hovered, mouse_pos_t mouse) {
     main_ui()->hovered = entity_id_link(hovered);
-    class_of(jc)->drag(jc, mp, NULL);
+    class_of(jc)->drag(jc, mouse);
 }
 
 /* Every entity of a tag list begins with its header. */
@@ -493,7 +497,7 @@ static void test_construction(void) {
     world();
     ly = first_with_state(TAG_PLANET, ENTITY_STATE_SETTLED);
     assert(ly != NULL);
-    made = class_of(ly)->left_press(ly, NULL, NULL);
+    made = class_of(ly)->left_press(ly, (mouse_pos_t){0});
     assert(made.stop && entity_get(made.held) != NULL);
     by_left_press = entity_get(made.held);
     check_fresh_slipway(by_left_press, ly);
@@ -562,13 +566,13 @@ static void test_drag(void) {
     target = slipway_end(as_slipway(old));
 
     far = build_slipway(origin);
-    drag_over(far, NULL, vec_ref(-640, -640));
+    drag_over(far, NULL, mouse_world_only(point(-640, -640)));
     assert(end_kind(far) == END_THROWAWAY && target_kind(far) == TARGET_STATUS_TEXT);
     assert(entity_get(as_too_far(targeting_target(&as_slipway(far)->targeting))->targeted_by) == far);
     h = fold_slipway(h, far);
 
     twin = build_slipway(origin);
-    drag_over(twin, target, vec_ref_fixed(vec_of(pos_ref(&as_planet(target)->header))));
+    drag_over(twin, target, mouse_world_only(vec_of(pos_ref(&as_planet(target)->header))));
     assert(end_kind(twin) == END_PLANET && slipway_end(as_slipway(twin)) == target);
     assert(target_kind(twin) == TARGET_SLIPWAY && targeting_target(&as_slipway(twin)->targeting) == old);
     assert(entity_get(as_slipway(old)->targeted_by) == twin);
@@ -583,10 +587,10 @@ static void test_drag_takes_infraspace_from_its_start(void) {
 
     world();
     from_planet = build_slipway(planet_new(NULL));
-    drag_over(from_planet, NULL, vec_ref(-640, -640));
+    drag_over(from_planet, NULL, mouse_world_only(point(-640, -640)));
     assert(!entity_has(&as_slipway(from_planet)->header, ENTITY_HAS_INFRASPACE));
     from_infraspace_gate = build_slipway(infraspace_gate_new(NULL));
-    drag_over(from_infraspace_gate, NULL, vec_ref(-640, -640));
+    drag_over(from_infraspace_gate, NULL, mouse_world_only(point(-640, -640)));
     assert(entity_has(&as_slipway(from_infraspace_gate)->header, ENTITY_HAS_INFRASPACE) &&
            as_slipway(from_infraspace_gate)->header.infraspace == infraspace_gate_archetype.infraspace);
 }
@@ -700,7 +704,7 @@ static void test_too_far(void) {
     start_planet = slipway_start(as_slipway(old_slipway));
     target = slipway_end(as_slipway(old_slipway));
     far_slipway = build_slipway(start_planet);
-    drag_over(far_slipway, NULL, vec_ref(-640, -640));
+    drag_over(far_slipway, NULL, mouse_world_only(point(-640, -640)));
     assert(end_kind(far_slipway) == END_THROWAWAY && target_kind(far_slipway) == TARGET_STATUS_TEXT);
     assert(target_kind(old_slipway) == TARGET_ABSENT);
     assert(main_camera_typed() != NULL);
@@ -714,11 +718,10 @@ static void test_too_far(void) {
     hash = fnv(hash, screen_hash());
 
     second_slipway = build_slipway(start_planet);
-    drag_over(second_slipway, target, vec_ref_fixed(vec_of(pos_ref(&as_planet(target)->header))));
+    drag_over(second_slipway, target, mouse_world_only(vec_of(pos_ref(&as_planet(target)->header))));
     assert(target_kind(second_slipway) == TARGET_SLIPWAY);
     near = build_slipway(start_planet);
-    drag_over(near, NULL,
-            vec_ref_fixed(vec_add(vec_of(pos_ref(&as_planet(start_planet)->header)), vec_make(p8_fixed_from_int(16), 0))));
+    drag_over(near, NULL, mouse_world_only(vec_add(vec_of(pos_ref(&as_planet(start_planet)->header)), vec_make(p8_fixed_from_int(16), 0))));
     assert(end_kind(near) == END_THROWAWAY && target_kind(near) == TARGET_ABSENT && as_slipway(near)->targeting.has_cost);
     assert(main_mouse_typed() != NULL);
     mouse = vec_of(pos_ref(&main_mouse_typed()->header));
@@ -788,7 +791,7 @@ static void test_drag_mouse_point(void) {
     target = slipway_end(the_slipway());
     first = build_slipway(start_planet);
     first_mouse = vec_ref(-640, -640);
-    drag_over(first, NULL, first_mouse);
+    drag_over(first, NULL, mouse_world_only(*first_mouse));
     first_end = slipway_end(as_slipway(first));
     assert(first_end != NULL && end_kind(first) == END_THROWAWAY);
     assert(holds_copy_of(mouse_point_pos(first_end), first_mouse));
@@ -802,7 +805,7 @@ static void test_drag_mouse_point(void) {
     hash = fold_slipway(hash, first);
 
     second_mouse = vec_ref(40, -24);
-    drag_over(first, NULL, second_mouse);
+    drag_over(first, NULL, mouse_world_only(*second_mouse));
     second_end = slipway_end(as_slipway(first));
     assert(second_end == first_end && end_kind(first) == END_THROWAWAY && "the mouse point is the slipway's own, rewritten in place");
     assert(holds_copy_of(mouse_point_pos(second_end), second_mouse));
@@ -812,21 +815,21 @@ static void test_drag_mouse_point(void) {
 
     used_before = game_zone_used();
     for (index = 0; index < 10; index++) {
-        drag_over(first, NULL, index % 2 ? first_mouse : second_mouse);
+        drag_over(first, NULL, mouse_world_only(*(index % 2 ? first_mouse : second_mouse)));
         assert(slipway_end(as_slipway(first)) == first_end);
     }
     assert(game_zone_used() == used_before && "a held slipway allocates nothing per drag");
-    drag_over(first, NULL, second_mouse);
+    drag_over(first, NULL, mouse_world_only(*second_mouse));
 
     second = build_slipway(start_planet);
-    drag_over(second, NULL, first_mouse);
+    drag_over(second, NULL, mouse_world_only(*first_mouse));
     other_end = slipway_end(as_slipway(second));
     assert(other_end != NULL && other_end != first_end && slipway_end(as_slipway(first)) == first_end);
     assert(holds_copy_of(mouse_point_pos(other_end), first_mouse) && same_vec(vec_of(mouse_point_map_pos(other_end)), first_pos));
     assert(holds_copy_of(mouse_point_pos(first_end), second_mouse) && "another slipway's drag leaves this one's point as it was");
     hash = fold_slipway(hash, second);
 
-    drag_over(first, target, vec_ref_fixed(vec_of(pos_ref(&as_planet(target)->header))));
+    drag_over(first, target, mouse_world_only(vec_of(pos_ref(&as_planet(target)->header))));
     assert(slipway_end(as_slipway(first)) == target && end_kind(first) == END_PLANET);
     assert(holds_copy_of(mouse_point_pos(other_end), first_mouse));
     hash = fold_slipway(hash, first);
@@ -834,7 +837,7 @@ static void test_drag_mouse_point(void) {
 
     on_camera = vec_add(vec_of(pos_ref(&main_camera_typed()->header)),
                               vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60)));
-    drag_over(second, NULL, vec_ref_fixed(on_camera));
+    drag_over(second, NULL, mouse_world_only(on_camera));
     assert(entity_geom_is_on_screen(slipway_end(as_slipway(second))));
 }
 
@@ -862,7 +865,7 @@ static void test_obstruction_crosses_a_slipway(void) {
         }
         past = vec_add(mid, vec_div(vec_sub(mid, pos_of(q)), p8_fixed_from_int(8)));
         a = build_slipway(q);
-        drag_over(a, NULL, vec_ref_fixed(vec_mul(past, p8_fixed_from_int(128))));
+        drag_over(a, NULL, mouse_world_only(vec_mul(past, p8_fixed_from_int(128))));
         crossed = targeting_target(&as_slipway(a)->targeting) == old;
         if (!crossed) {
             entity_unregister(a);
@@ -907,8 +910,7 @@ static void test_targeting_track(void) {
     for (k = 1; k < 8; k++) {
         vec_t at = vec_add(qu, vec_div(vec_mul(vec_sub(re, qu), p8_fixed_from_int(k)),
                                                          p8_fixed_from_int(8)));
-        class_of(probe)->drag(probe, vec_ref_fixed(vec_mul(at, p8_fixed_from_int(128))),
-                          vec_ref(64, 64));
+        class_of(probe)->drag(probe, mouse_pos(vec_mul(at, p8_fixed_from_int(128)), point(64, 64)));
         h = fold_ref(h, targeting_target(&((probe_t *)probe)->targeting));
         if (targeting_target(&((probe_t *)probe)->targeting) == old) {
             break;
@@ -944,7 +946,7 @@ static void test_targeting_track_takes_the_first_slipway_of_entities_by_tag(void
     qu = pos_of(slipway_start(as_slipway(old)));
     re = pos_of(slipway_end(as_slipway(old)));
     at = vec_div(vec_add(qu, re), p8_fixed_from_int(2));
-    class_of(probe)->drag(probe, vec_ref_fixed(vec_mul(at, p8_fixed_from_int(128))), vec_ref(64, 64));
+    class_of(probe)->drag(probe, mouse_pos(vec_mul(at, p8_fixed_from_int(128)), point(64, 64)));
     assert(targeting_target(&((probe_t *)probe)->targeting) == old);
     assert(entity_get(as_slipway(old)->targeted_by) == probe && entity_get(as_slipway(twin)->targeted_by) != probe);
 }
@@ -1047,13 +1049,13 @@ static void test_too_far_is_a_struct(void) {
     world();
     origin = slipway_start(the_slipway());
     far = build_slipway(origin);
-    drag_over(far, NULL, vec_ref(-640, -640));
+    drag_over(far, NULL, mouse_world_only(point(-640, -640)));
     et = as_too_far(targeting_target(&as_slipway(far)->targeting));
     assert(entity_get(et->targeted_by) == far);
     assert(class_of(et)->draw_overlay == NULL && class_of(et)->draw == NULL && class_of(et)->drag == NULL);
 
     other = build_slipway(origin);
-    drag_over(other, NULL, vec_ref(-640, -640));
+    drag_over(other, NULL, mouse_world_only(point(-640, -640)));
     assert(targeting_target(&as_slipway(other)->targeting) == &et->header && entity_get(et->targeted_by) == other);
     assert(strcmp(et->status_text, "-too far-") == 0);
 }
@@ -1069,18 +1071,22 @@ static void test_mouse_point_is_a_struct(void) {
     world();
     origin = slipway_start(the_slipway());
     jc = build_slipway(origin);
-    drag_over(jc, NULL, vec_ref(-640, -640));
+    drag_over(jc, NULL, mouse_world_only(point(-640, -640)));
     re = slipway_end(as_slipway(jc));
     assert(re != NULL &&
            ((const entity_t *)re)->class == slipway_mouse_point_class());
     assert(mouse_point_pos(re) != NULL && mouse_point_map_pos(re) != NULL);
     assert(class_of(re)->attach_slipway == NULL && class_of(re)->drag == NULL);
 
-    drag_over(jc, NULL, NULL);
+    drag_over(jc, NULL, (mouse_pos_t){0});
     re = slipway_end(as_slipway(jc));
     assert(is_throwaway(re) && mouse_point_pos(re) == NULL);
     p = vec_of(mouse_point_map_pos(re));
     assert(p.x == 0 && p.y == 0);
+
+    drag_over(jc, NULL, mouse_world_only(point(0, 0)));
+    re = slipway_end(as_slipway(jc));
+    assert(mouse_point_pos(re) != NULL && "a world point given as zero is not an absent one");
 }
 
 static void *g_off_start;
@@ -1103,7 +1109,7 @@ static void test_slipway_new_stops_off_start(void) {
     world();
     old = the_slipway();
     far = build_slipway(slipway_start(as_slipway(old)));
-    drag_over(far, NULL, vec_ref(-640, -640));
+    drag_over(far, NULL, mouse_world_only(point(-640, -640)));
     assert(is_throwaway(slipway_end(as_slipway(far))));
     off[0] = burst_new(NULL);
     off[1] = probe_new(NULL);
@@ -1173,7 +1179,7 @@ static void test_links_resolve_until_the_flush(void) {
     start = planet_new(NULL);
     end = planet_new(NULL);
     jc = build_slipway(start);
-    drag_over(jc, end, vec_ref(0, 0));
+    drag_over(jc, end, mouse_world_only(point(0, 0)));
     assert(slipway_start(jc) == start && slipway_end(jc) == end);
 
     entity_unregister(end);
@@ -1192,7 +1198,7 @@ static void test_targeted_by_resolves_until_the_flush(void) {
     old = the_slipway();
     end = slipway_end(old);
     twin = build_slipway(slipway_start(old));
-    drag_over(twin, end, vec_ref_fixed(vec_of(pos_ref(&as_planet(end)->header))));
+    drag_over(twin, end, mouse_world_only(vec_of(pos_ref(&as_planet(end)->header))));
     assert(entity_get(as_slipway(old)->targeted_by) == twin);
     entity_unregister(twin);
     assert(entity_get(as_slipway(old)->targeted_by) == twin);

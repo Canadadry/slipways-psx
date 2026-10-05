@@ -22,8 +22,8 @@ static random_walk_t *g_planet_vanish_roll = NULL;
 /* Shared by every bare planet, written in place, until planet_install_project gives it its own. */
 static production_t g_planet_production_shared;
 
-int planet_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+int planet_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
 
 void planet_new_year_method(entity_t *self, p8_fixed_t year) {

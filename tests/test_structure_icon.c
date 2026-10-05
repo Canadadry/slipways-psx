@@ -245,10 +245,8 @@ static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
 
-static vec_t *vec_ref(vec_t at) {
-    vec_t *v = malloc(sizeof *v);
-    *v = at;
-    return v;
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
 }
 
 static vec_t vec_at(int x, int y) {
@@ -467,12 +465,12 @@ static void test_directed(void) {
     hash = fold_shared(hash, hidden);
 
     first_id = shared_id_fixed(as_structure_icon(all_icons[0]));
-    made = class_of(all_icons[0])->left_press(all_icons[0], NULL, NULL);
+    made = class_of(all_icons[0])->left_press(all_icons[0], (mouse_pos_t){0});
     assert(made.stop && entity_get(made.held) != NULL && planet_is_family(entity_get(made.held)));
     assert(strcmp(((const planet_t *)entity_get(made.held))->planet_id, "s1") == 0);
     assert(shared_id_fixed(as_structure_icon(all_icons[count - 1])) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
     hash = fold_string(hash, ((const planet_t *)entity_get(made.held))->planet_id);
-    made = class_of(all_icons[count - 1])->left_press(all_icons[count - 1], NULL, NULL);
+    made = class_of(all_icons[count - 1])->left_press(all_icons[count - 1], (mouse_pos_t){0});
     assert(entity_get(made.held) != NULL && planet_is_family(entity_get(made.held)));
     assert(strcmp(((const planet_t *)entity_get(made.held))->planet_id, "s2") == 0);
     assert(shared_id_fixed(as_structure_icon(all_icons[0])) == p8_fixed_add(first_id, p8_fixed_from_int(2)));
@@ -481,15 +479,13 @@ static void test_directed(void) {
 
     assert(pos_ref(&as_structure_icon(shown)->header) != NULL);
     icon_pos = *pos_ref(&as_structure_icon(shown)->header);
-    assert(class_of(shown)->hit_test(shown, vec_ref(vec_at(-500, -500)), vec_ref(vec_add(icon_pos, vec_at(1, 1)))));
-    assert(!class_of(shown)->hit_test(shown, vec_ref(vec_add(icon_pos, vec_at(1, 1))),
-                              vec_ref(vec_add(icon_pos, vec_at(20, 20)))));
-    assert(!class_of(hidden)->hit_test(hidden, vec_ref(vec_at(0, 0)), vec_ref(vec_add(icon_pos, vec_at(1, 1)))));
+    assert(class_of(shown)->hit_test(shown, mouse_pos(vec_at(-500, -500), vec_add(icon_pos, vec_at(1, 1)))));
+    assert(!class_of(shown)->hit_test(shown, mouse_pos(vec_add(icon_pos, vec_at(1, 1)), vec_add(icon_pos, vec_at(20, 20)))));
+    assert(!class_of(hidden)->hit_test(hidden, mouse_pos(vec_at(0, 0), vec_add(icon_pos, vec_at(1, 1)))));
     {
         int dx;
         for (dx = -2; dx <= 11; dx++) {
-            int hit = class_of(shown)->hit_test(shown, vec_ref(vec_at(0, 0)),
-                                        vec_ref(vec_add(icon_pos, vec_at(dx, dx - 1))));
+            int hit = class_of(shown)->hit_test(shown, mouse_pos(vec_at(0, 0), vec_add(icon_pos, vec_at(dx, dx - 1))));
             hash = fnv(hash, (uint32_t)hit);
         }
     }
@@ -622,7 +618,7 @@ static void test_restart(void) {
 
     start_game();
     n = icons(all, 16);
-    (void)class_of(all[0])->left_press(all[0], NULL, NULL);
+    (void)class_of(all[0])->left_press(all[0], (mouse_pos_t){0});
     assert(shared_cursor(as_structure_icon(all[0]), &cursor_before));
     id = shared_id_fixed(as_structure_icon(all[0]));
     assert(id == p8_fixed_from_int(1));
@@ -719,7 +715,7 @@ static void test_structure_icon_is_a_struct(void) {
         no_entity = structure_icon_new(&tooltip_only);
         assert(is_a_structure_icon_struct(no_entity) && no_entity->kind == NULL);
         assert(shared_id_fixed(no_entity) == first_id);
-        (void)class_of(no_entity)->left_press(&no_entity->header, NULL, NULL);
+        (void)class_of(no_entity)->left_press(&no_entity->header, (mouse_pos_t){0});
         assert(shared_id_fixed(as_structure_icon(built)) == p8_fixed_add(first_id, p8_fixed_from_int(1)));
     }
 

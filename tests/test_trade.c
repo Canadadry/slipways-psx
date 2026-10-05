@@ -36,6 +36,10 @@
 #include "engine/frame_zone.h"
 #include "heap_allocator.h"
 
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
 /* Research project 3: an output and no inputs, so its planet exports to
  * any planet a slipway joins it to. */
 #define EXPORTER 3
@@ -155,15 +159,15 @@ static research_project_t *project(int k) {
  * slipway is paid by slipway_drop as a drag onto the end planet pays it. */
 static void join(void *qu, void *re) {
     slipway_keys_t slipway_keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    vec_t mp;
     slipway_t *jc;
 
     slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                       vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     main_ui()->hovered = entity_id_link(re);
-    slipway_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mouse_world_only(mp));
     main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();

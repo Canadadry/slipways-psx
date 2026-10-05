@@ -201,6 +201,10 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
 static const entity_class_t *class_of(const void *e) {
     return ((const entity_t *)e)->class;
 }
@@ -381,9 +385,9 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(jo) ? 1u : 0u);
     assert(pos_ref(&jo->header) != NULL);
     ra = *pos_ref(&jo->header);
-    h = fold_bool(h, class_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
+    h = fold_bool(h, class_of(d)->hit_test(d, mouse_pos(ra, ra)));
     ra = vec_add(ra, vec_make(p8_fixed_from_int(8), p8_fixed_from_int(8)));
-    return fold_bool(h, class_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
+    return fold_bool(h, class_of(d)->hit_test(d, mouse_pos(ra, ra)));
 }
 
 /* The shop's structure_icon_left_press on the icon of `kind`, as the
@@ -399,10 +403,10 @@ static void *bought(const entity_kind_t *kind) {
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
-            down_t made = class_of(icon)->left_press(icon, NULL, NULL);
+            down_t made = class_of(icon)->left_press(icon, (mouse_pos_t){0});
             vec_t middle = vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60));
             assert(made.stop && entity_get(made.held) != NULL);
-            class_of(entity_get(made.held))->drag(entity_get(made.held), vec_ref(vec_add(*main_camera_pos, middle)), vec_ref(middle));
+            class_of(entity_get(made.held))->drag(entity_get(made.held), mouse_pos(vec_add(*main_camera_pos, middle), middle));
             return entity_get(made.held);
         }
     }

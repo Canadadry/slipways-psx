@@ -13,6 +13,7 @@
 
 #include "p8/assets.h"
 #include "game/background.h"
+#include "engine/entity_geom.h"
 #include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
@@ -224,14 +225,13 @@ static void test_component_carriers_link_their_own(void) {
 
 static slipway_t *slipway_dragged_over_nothing(entity_t *qu) {
     slipway_keys_t keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    mouse_pos_t mouse = {.world = vec_make(p8_fixed_from_int(-640), p8_fixed_from_int(-640)), .has = MOUSE_POS_HAS_WORLD};
     slipway_t *jc;
 
     keys.start = entity_id_link(qu);
     jc = slipway_new(&keys);
-    *mp = vec_make(p8_fixed_from_int(-640), p8_fixed_from_int(-640));
     main_ui()->hovered = entity_id_link(NULL);
-    slipway_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mouse);
     return jc;
 }
 
@@ -273,6 +273,32 @@ static void test_position_readers(void) {
     assert(same_vec(entity_pos(tooltip), vec_make(0, 0)) && same_vec(entity_map_pos(tooltip), vec_make(0, 0)));
 }
 
+/* The cursor test reads the screen point from layer 10 up and the world
+ * point below it, and an absent point reads as zero, whatever it holds. */
+static void test_contains_cursor_picks_the_point_by_layer(void) {
+    static const entity_class_t plain_class = {0};
+    vec_t inside = vec_make(p8_fixed_from_int(3), p8_fixed_from_int(3));
+    vec_t outside = vec_make(p8_fixed_from_int(50), p8_fixed_from_int(50));
+    mouse_pos_t world_inside = {.world = inside, .screen = outside, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+    mouse_pos_t screen_inside = {.world = outside, .screen = inside, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+    mouse_pos_t absent_outside = {.world = outside, .screen = outside, .has = 0};
+    entity_t e;
+
+    entity_init_header(&e, &plain_class);
+    e.hit_box = (box_t){p8_fixed_from_int(-1), p8_fixed_from_int(-1), p8_fixed_from_int(4), p8_fixed_from_int(4)};
+    e.has |= ENTITY_HAS_HIT_BOX | ENTITY_HAS_LAYER;
+    e.layer = p8_fixed_from_int(9);
+    assert(entity_geom_contains_cursor(&e, world_inside));
+    assert(!entity_geom_contains_cursor(&e, screen_inside));
+    assert(entity_geom_contains_cursor(&e, absent_outside));
+    e.layer = p8_fixed_from_int(10);
+    assert(!entity_geom_contains_cursor(&e, world_inside));
+    assert(entity_geom_contains_cursor(&e, screen_inside));
+    assert(entity_geom_contains_cursor(&e, absent_outside));
+    entity_set_pos(&e, vec_make(p8_fixed_from_int(10), p8_fixed_from_int(10)));
+    assert(!entity_geom_contains_cursor(&e, absent_outside));
+}
+
 int main(int argc, char **argv) {
     (void)argc;
     rerun_with_malloc_filling(argv);
@@ -292,6 +318,7 @@ int main(int argc, char **argv) {
     test_component_carriers_link_their_own();
     test_mouse_point_has_null_links();
     test_position_readers();
+    test_contains_cursor_picks_the_point_by_layer();
 
     printf("test_entity_header: all tests passed\n");
     return 0;

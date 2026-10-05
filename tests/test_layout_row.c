@@ -242,6 +242,10 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
 static layout_row_cell_t num(int n) {
     return layout_row_cell_fixed(p8_fixed_from_int(n));
 }
@@ -672,7 +676,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 static void built_planet_panel(void) {
     const entity_list_t *jos;
     slipway_keys_t slipway_keys = {0};
-    vec_t *mp = malloc(sizeof *mp);
+    vec_t mp;
     void *qu;
     void *re = NULL;
     slipway_t *jc;
@@ -693,10 +697,10 @@ static void built_planet_panel(void) {
 
     slipway_keys.start = entity_id_link(qu);
     jc = slipway_new(&slipway_keys);
-    *mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
-                        vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
+    mp = vec_add(vec_mul(pos_of(re), p8_fixed_from_int(128)),
+                       vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1)));
     main_ui()->hovered = entity_id_link(re);
-    slipway_class()->drag(&jc->header, mp, NULL);
+    slipway_class()->drag(&jc->header, mouse_world_only(mp));
     main_ui()->hovered = entity_id_link(NULL);
     while (jc->header.state_time < p8_fixed_from_int(15)) {
         update_entities();

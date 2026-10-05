@@ -91,7 +91,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side);
 
 typedef enum { SEND_TO_HOVERED_LEFT_PRESS, SEND_TO_HOVERED_RIGHT_PRESS, SEND_TO_HOVERED_ACCEPT_DROP } send_to_hovered_slot_t;
 
-int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_world, vec_t *mouse_screen, const entity_t *held,
+int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, mouse_pos_t mouse, const entity_t *held,
                 entity_t **out_target, down_t *out_down);
 
 void ui_clear_ephemerals(ui_t *self);

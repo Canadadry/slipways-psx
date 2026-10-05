@@ -215,6 +215,14 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
 static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
@@ -597,8 +605,8 @@ static void test_life(void) {
     hash = fold_cut(hash, first, 0);
     assert(as_burst(first)->header.is_dead);
 
-    hash = fold_bool(hash, class_of(second)->hit_test(second, pos_ref(&as_burst(second)->header), pos_ref(&as_burst(second)->header)));
-    hash = fold_bool(hash, class_of(second)->hit_test(second, vec_ref(near_main_camera(0, 0)), vec_ref(near_main_camera(0, 0))));
+    hash = fold_bool(hash, class_of(second)->hit_test(second, mouse_pos(*pos_ref(&as_burst(second)->header), *pos_ref(&as_burst(second)->header))));
+    hash = fold_bool(hash, class_of(second)->hit_test(second, mouse_pos(near_main_camera(0, 0), near_main_camera(0, 0))));
     hash = fnv(fnv(hash, 0xB0u), planet_is_colonized(second) ? 1u : 0u);
     assert(planet_is_colonized(first) == 0);
 
@@ -819,7 +827,7 @@ static void test_leaving_lets_go_of_a_dragged_slipway(void) {
     e = harvest(40, 40, "s86");
     main_ui()->left_held = entity_id_link(&jc->header);
     main_ui()->hovered = entity_id_link(e);
-    slipway_drag(jc, &mp);
+    slipway_drag(jc, mouse_world_only(mp));
     assert(slipway_end(jc) == e);
     entity_unregister(e);
     cart_flush_exit_queue();

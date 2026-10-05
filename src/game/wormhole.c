@@ -58,13 +58,13 @@ void wormhole_construct(wormhole_t *self) {
     assert(ox->count == n && ox->capacity == n);
 }
 
-void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
+void wormhole_drag(wormhole_t *self, mouse_pos_t mouse) {
     vec_t p_vec;
     entity_t *nearest = NULL;
     p8_fixed_t nq;
     p8_fixed_t threshold;
 
-    targeting_track((entity_t *)self, mp, rp);
+    targeting_track((entity_t *)self, mouse);
     if (self == NULL) {
         return;
     }
@@ -80,8 +80,8 @@ void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
     }
 }
 
-static void wormhole_drag_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    wormhole_drag((wormhole_t *)self, mouse_world, mouse_screen);
+static void wormhole_drag_method(entity_t *self, mouse_pos_t mouse) {
+    wormhole_drag((wormhole_t *)self, mouse);
 }
 
 void wormhole_update_placing(wormhole_t *self, p8_fixed_t t) {

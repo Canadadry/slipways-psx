@@ -44,13 +44,12 @@ static void button_draw_method(entity_t *self, vec_t screen_pos) {
     button_draw(dispatch_context_gfx(), dispatch_context_mem(), (button_t *)self, screen_pos);
 }
 
-static int button_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+static int button_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
 
-static down_t button_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t button_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return button_left_press((button_t *)self);
 }
 
@@ -278,9 +277,8 @@ down_t button_left_press(button_t *self) {
     return out;
 }
 
-static down_t modal_backdrop_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t modal_backdrop_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return modal_backdrop_left_press((modal_backdrop_t *)self);
 }
 

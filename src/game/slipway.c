@@ -97,7 +97,7 @@ void slipway_construct(slipway_t *self) {
     self->served_planets.count = 0;
 }
 
-void slipway_drag(slipway_t *self, vec_t *mp) {
+void slipway_drag(slipway_t *self, mouse_pos_t mouse) {
     ui_t *ok;
     entity_t *hovered;
 
@@ -112,9 +112,9 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
         self->end = entity_id_link(hovered);
         self->end_is_point = 0;
     } else {
-        vec_t point_pos = mp != NULL ? *mp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        vec_t point_pos = mouse_pos_world(mouse);
 
-        if (mp != NULL) {
+        if (mouse_pos_has_world(mouse)) {
             entity_set_pos(&self->point.header, point_pos);
         } else {
             entity_clear_pos(&self->point.header);
@@ -306,9 +306,8 @@ void slipway_draw_overlay(slipway_t *self) {
     }
 }
 
-static void slipway_drag_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_screen;
-    slipway_drag((slipway_t *)self, mouse_world);
+static void slipway_drag_method(entity_t *self, mouse_pos_t mouse) {
+    slipway_drag((slipway_t *)self, mouse);
 }
 
 static void slipway_drop_method(entity_t *self, entity_t *dropped) {

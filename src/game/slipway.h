@@ -76,7 +76,7 @@ entity_t *slipway_too_far(void);
 
 void slipway_construct(slipway_t *self);
 
-void slipway_drag(slipway_t *self, vec_t *mp);
+void slipway_drag(slipway_t *self, mouse_pos_t mouse);
 
 void slipway_drop(slipway_t *self, entity_t *end_planet);
 

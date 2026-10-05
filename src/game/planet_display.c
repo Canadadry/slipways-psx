@@ -478,9 +478,8 @@ void planet_draw_method(entity_t *self, vec_t screen_pos) {
     planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
-down_t planet_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+down_t planet_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return planet_left_press((planet_t *)self);
 }
 

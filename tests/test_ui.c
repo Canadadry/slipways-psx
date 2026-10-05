@@ -50,6 +50,10 @@
 #include "engine/vec.h"
 #include "game/wormhole.h"
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
 }
@@ -432,8 +436,7 @@ static void test_layers(void) {
     ui_t *ok = start_game();
     entity_t *kv = NULL;
     down_t kn;
-    vec_t *qa;
-    vec_t *ra;
+    mouse_pos_t mouse;
     planet_t *planet;
     int x;
     int y;
@@ -444,16 +447,14 @@ static void test_layers(void) {
     mouse_at(x, y, 0);
     ui_update(&memory, ok);
     assert(ok->has & UI_HAS_MOUSE_WORLD);
-    qa = &ok->mouse_world;
-    ra = &main_mouse_typed()->header.pos;
-    assert(qa != NULL && ra != NULL);
+    mouse = mouse_pos(ok->mouse_world, main_mouse_typed()->header.pos);
 
     entity_set_state(&planet->header, ENTITY_STATE_KNOWN);
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, qa, ra, NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, mouse, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && entity_get(kn.held) == NULL);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
     kv = NULL;
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, qa, ra, NULL, &kv, &kn));
+    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, mouse, NULL, &kv, &kn));
     assert((void *)kv == the_background() && kn.stop && (void *)entity_get(kn.held) == the_background());
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
     check("layers", h, LAYERS_HASH);
@@ -699,7 +700,7 @@ static void test_reset_world_drops_the_old_world_ids(void) {
     for (mf = 0; mf < UI_HOVER_LAYERS; mf++) {
         assert(layer_count(old, mf) == 0);
     }
-    assert(!ui_send_to_hovered(old, SEND_TO_HOVERED_RIGHT_PRESS, NULL, NULL, NULL, &kv, &kn));
+    assert(!ui_send_to_hovered(old, SEND_TO_HOVERED_RIGHT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn));
     ui_clear_ephemerals(old);
     assert(ephemerals_of(old)->count == 0);
 }
@@ -764,21 +765,21 @@ typedef struct {
 static entity_t *g_given;
 static int g_giver_hovered = 1;
 
-static down_t giver_down(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+static down_t giver_down(entity_t *self, mouse_pos_t mouse) {
     down_t out;
 
     (void)self;
-    (void)mouse_world;
-    (void)mouse_screen;
+    (void)mouse;
     out.stop = g_given != NULL;
     out.held = entity_id_link(g_given);
     return out;
 }
 
-static int giver_hit_test(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
+static mouse_pos_t g_giver_mouse;
+
+static int giver_hit_test(entity_t *self, mouse_pos_t mouse) {
     (void)self;
-    (void)mouse_world;
-    (void)mouse_screen;
+    g_giver_mouse = mouse;
     return g_giver_hovered;
 }
 
@@ -837,16 +838,41 @@ static void test_ui_held_aborts_on_other_classes(void) {
     }
 }
 
+static int same_point(vec_t a, vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+/* The hover hands each hit test the ui's world mouse and the main mouse's
+ * raw header position, each with its presence bit, even when the mouse
+ * header has lost its position bit. */
+static void test_hover_hands_the_mouse_by_value(void) {
+    ui_t *ok = start_game();
+    mouse_t *mouse;
+
+    entity_construct(&g_giver.header);
+    g_given = NULL;
+    mouse_at(64, 100, 0);
+    ui_update(&memory, ok);
+    mouse = main_mouse_typed();
+    assert(mouse != NULL && (ok->has & UI_HAS_MOUSE_WORLD));
+    assert(mouse_pos_has_world(g_giver_mouse) && same_point(g_giver_mouse.world, ok->mouse_world));
+    assert(mouse_pos_has_screen(g_giver_mouse) && same_point(g_giver_mouse.screen, mouse->header.pos));
+
+    entity_clear_pos(&mouse->header);
+    ui_update_hover(ok);
+    assert(mouse_pos_has_screen(g_giver_mouse) && same_point(g_giver_mouse.screen, mouse->header.pos));
+    assert(!same_point(g_giver_mouse.screen, vec_make(0, 0)));
+}
+
 typedef struct {
     entity_t header;
 } replacer_t;
 
-static down_t replacer_left_press(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+static down_t replacer_left_press(entity_t *self, mouse_pos_t mouse) {
     entity_id_list_t list = ui_ephemerals_new();
     down_t out = {1, ENTITY_ID_NONE};
 
-    (void)mouse_world;
-    (void)mouse_screen;
+    (void)mouse;
     entity_id_list_add(&list, entity_id_link(self));
     ui_set_ephemerals(main_ui(), list);
     return out;
@@ -1242,6 +1268,7 @@ int main(void) {
     in_fresh_child(test_reset_world_drops_the_old_world_ids);
     in_fresh_child(test_release_frees_the_owned_slot);
     in_fresh_child(test_press_that_replaces_the_ephemerals_keeps_them);
+    in_fresh_child(test_hover_hands_the_mouse_by_value);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_aborts_on_other_classes);
     in_fresh_child(test_entity_closed);

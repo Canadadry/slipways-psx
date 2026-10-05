@@ -39,7 +39,7 @@ const entity_class_t *wormhole_too_far_target_class(void);
 
 void wormhole_construct(wormhole_t *self);
 
-void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp);
+void wormhole_drag(wormhole_t *self, mouse_pos_t mouse);
 
 void wormhole_update_placing(wormhole_t *self, p8_fixed_t t);
 

@@ -123,6 +123,33 @@ typedef struct {
     entity_id_t held;
 } down_t;
 
+#define MOUSE_POS_HAS_WORLD (1u << 0)
+#define MOUSE_POS_HAS_SCREEN (1u << 1)
+
+typedef struct {
+    vec_t world;
+    vec_t screen;
+    uint16_t has;
+} mouse_pos_t;
+
+static inline int mouse_pos_has_world(mouse_pos_t mouse) {
+    return (mouse.has & MOUSE_POS_HAS_WORLD) != 0;
+}
+
+static inline int mouse_pos_has_screen(mouse_pos_t mouse) {
+    return (mouse.has & MOUSE_POS_HAS_SCREEN) != 0;
+}
+
+/* The zero vector when the world point is absent. */
+static inline vec_t mouse_pos_world(mouse_pos_t mouse) {
+    return mouse_pos_has_world(mouse) ? mouse.world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+}
+
+/* The zero vector when the screen point is absent. */
+static inline vec_t mouse_pos_screen(mouse_pos_t mouse) {
+    return mouse_pos_has_screen(mouse) ? mouse.screen : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+}
+
 typedef void (*state_fn_t)(entity_t *self, p8_fixed_t t);
 
 struct particle;
@@ -133,14 +160,14 @@ struct kind_record;
 struct entity_class {
     void (*draw)(entity_t *self, vec_t screen_pos);
     void (*draw_overlay)(entity_t *self, vec_t screen_pos);
-    int (*hit_test)(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen);
+    int (*hit_test)(entity_t *self, mouse_pos_t mouse);
     void (*new_year)(entity_t *self, p8_fixed_t year);
     void (*refresh)(entity_t *self);
     int (*has_refresh)(const entity_t *self);
-    down_t (*left_press)(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
-    down_t (*right_press)(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
+    down_t (*left_press)(entity_t *self, mouse_pos_t mouse);
+    down_t (*right_press)(entity_t *self, mouse_pos_t mouse);
     down_t (*accept_drop)(entity_t *self, const entity_t *s);
-    void (*drag)(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);
+    void (*drag)(entity_t *self, mouse_pos_t mouse);
     void (*drop)(entity_t *self, entity_t *dropped);
     void (*attach_slipway)(entity_t *self, entity_t *slipway);
     void (*offer_trade)(entity_t *self, struct trade_offer *offer);

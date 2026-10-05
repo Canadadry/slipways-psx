@@ -54,10 +54,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 }
 
 
-/* pos is a copy of the mouse position, never the caller's box (NULL stays
- * NULL). */
-static int pos_copies(const vec_t *ra, const vec_t *mp) {
-    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+static int pos_copies(const vec_t *ra, vec_t mp) {
+    return ra != NULL && ra->x == mp.x && ra->y == mp.y;
 }
 
 
@@ -289,6 +287,14 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
+static mouse_pos_t mouse_screen_only(vec_t screen) {
+    return (mouse_pos_t){.screen = screen, .has = MOUSE_POS_HAS_SCREEN};
+}
+
 static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
@@ -342,7 +348,7 @@ static probe_t *left_press(void) {
     down_t out;
 
     assert(entity_list_list_count(entities_by_tag(TAG_PROBE)) == 0);
-    out = class_of(bg)->left_press(&bg->header, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
+    out = class_of(bg)->left_press(&bg->header, mouse_pos(vec_xy(1, 1), vec_xy(2, 2)));
     assert(out.stop && entity_get(out.held) != NULL && is_probe(entity_get(out.held)));
     return as_probe(entity_get(out.held));
 }
@@ -536,18 +542,18 @@ static slipway_t *a_slipway(vec_t *middle) {
 
 /* The mouse one pixel off the given point (map units, as map_pos):
  * entity_geom_nearest skips an entity at the very position. */
-static vec_t *mouse_at(vec_t at) {
-    return vec_ref(vec_add(vec_mul(at, p8_fixed_from_int(128)), vec_xy(1, 1)));
+static vec_t mouse_at(vec_t at) {
+    return vec_add(vec_mul(at, p8_fixed_from_int(128)), vec_xy(1, 1));
 }
 
 /* The drag at the given point, the screen mouse at the given coordinate:
  * the target's kind, its targeted_by, pos a copy of what was passed,
  * map_pos. */
 static uint32_t fold_drag(uint32_t h, probe_t *e, vec_t at, int rp, uint32_t want_kind) {
-    vec_t *mp = mouse_at(at);
+    vec_t mp = mouse_at(at);
     uint32_t kind;
 
-    class_of(e)->drag(&e->header, mp, vec_ref(vec_xy(rp, rp)));
+    class_of(e)->drag(&e->header, mouse_pos(mp, vec_xy(rp, rp)));
     kind = target_kind(e);
     printf("[drag] target kind %u\n", (unsigned)kind);
     fflush(stdout);
@@ -591,7 +597,7 @@ static void test_life(void) {
     hash = fnv(hash, screen_hash());
     class_of(second)->draw_overlay(&second->header, (vec_t){0, 0});
     hash = fnv(hash, screen_hash());
-    class_of(first)->drag(&first->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    class_of(first)->drag(&first->header, mouse_pos(mouse_at(planet_map_pos()), vec_xy(64, 64)));
     class_of(first)->draw_overlay(&first->header, (vec_t){0, 0});
     hash = fnv(hash, screen_hash());
 
@@ -626,7 +632,7 @@ static void test_drop_on(void) {
 
     start_game();
     a = left_press();
-    class_of(a)->drag(&a->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    class_of(a)->drag(&a->header, mouse_pos(mouse_at(planet_map_pos()), vec_xy(64, 64)));
     assert(class_of(a)->drop == targeting_confirm_method);
     out = targeting_confirm(&a->header);
     assert(out == 0);
@@ -672,7 +678,7 @@ static void test_drop_void(void) {
     start_game();
     a = left_press();
     (void)a_slipway(&middle);
-    class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    class_of(a)->drag(&a->header, mouse_pos(mouse_at(vec_add(middle, vec_xy(0, 3))), vec_xy(2, 2)));
     assert(target_kind(a) == 4);
     assert(target_targeted_by(a) == a);
     assert(!a->header.is_dead);
@@ -811,7 +817,7 @@ static void test_targeting_track_target_is_a_struct(void) {
     start_game();
     a = left_press();
     (void)a_slipway(&middle);
-    class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    class_of(a)->drag(&a->header, mouse_pos(mouse_at(vec_add(middle, vec_xy(0, 3))), vec_xy(2, 2)));
     assert(targeting_target(&a->targeting) != NULL);
     et = targeting_target(&a->targeting);
     assert(is_targeting_track_target(et) && throwaway_targeted_by(et) == a);
@@ -828,7 +834,7 @@ static void test_drop_near_an_edge_cancels(void) {
     };
     probe_t *a;
     vec_t middle;
-    vec_t *void_point;
+    vec_t void_point;
     size_t i;
 
     start_game();
@@ -841,9 +847,9 @@ static void test_drop_near_an_edge_cancels(void) {
         int inward_x = x < P8_SCREEN_WIDTH / 2 ? x + 10 : (x > P8_SCREEN_WIDTH / 2 ? x - 10 : x);
         int inward_y = y < P8_SCREEN_HEIGHT / 2 ? y + 10 : (y > P8_SCREEN_HEIGHT / 2 ? y - 10 : y);
 
-        class_of(a)->drag(&a->header, void_point, vec_ref(vec_xy(x, y)));
+        class_of(a)->drag(&a->header, mouse_pos(void_point, vec_xy(x, y)));
         assert(target_kind(a) == 4);
-        class_of(a)->drag(&a->header, void_point, vec_ref(vec_xy(inward_x, inward_y)));
+        class_of(a)->drag(&a->header, mouse_pos(void_point, vec_xy(inward_x, inward_y)));
         assert(target_kind(a) == 1);
     }
 }
@@ -911,7 +917,7 @@ static void test_target_links_resolve_until_the_flush(void) {
 
     start_game();
     first = left_press();
-    class_of(first)->drag(&first->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    class_of(first)->drag(&first->header, mouse_pos(mouse_at(planet_map_pos()), vec_xy(64, 64)));
     planet = a_planet();
     assert(targeting_target(&first->targeting) == &planet->header);
     assert(entity_get(planet->targeted_by) == &first->header);
@@ -921,7 +927,7 @@ static void test_target_links_resolve_until_the_flush(void) {
     assert(entity_get(planet->targeted_by) == NULL);
 
     second = probe_new(NULL);
-    class_of(second)->drag(&second->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
+    class_of(second)->drag(&second->header, mouse_pos(mouse_at(planet_map_pos()), vec_xy(64, 64)));
     assert(targeting_target(&second->targeting) == &planet->header);
     entity_unregister(&planet->header);
     assert(targeting_target(&second->targeting) == &planet->header);
@@ -937,19 +943,21 @@ static int header_at(const entity_t *e, vec_t world) {
 }
 
 /* A drag writes the host's position and map position into its header; one
- * without a mouse position clears the position and puts the map position at
- * (0,0); the next drag overwrites both. */
+ * without a world point clears the position and puts the map position at
+ * (0,0); the next drag overwrites both, a zero world point included. */
 static void drag_writes_the_header_of(entity_t *host) {
     vec_t first = vec_xy(640, 320);
     vec_t second = vec_xy(256, 512);
     vec_t screen = vec_xy(64, 64);
 
-    targeting_track(host, &first, &screen);
+    targeting_track(host, mouse_pos(first, screen));
     assert(header_at(host, first));
-    targeting_track(host, NULL, &screen);
+    targeting_track(host, mouse_screen_only(screen));
     assert(!entity_has_pos(host) && entity_has_map_pos(host) && host->map_pos.x == 0 && host->map_pos.y == 0);
-    targeting_track(host, &second, &screen);
+    targeting_track(host, mouse_pos(second, screen));
     assert(header_at(host, second));
+    targeting_track(host, mouse_pos(vec_xy(0, 0), screen));
+    assert(header_at(host, vec_xy(0, 0)) && "a world point given as zero is not an absent one");
 }
 
 static void test_drag_writes_the_host_header(void) {

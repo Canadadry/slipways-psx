@@ -202,6 +202,10 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
 static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
@@ -259,7 +263,7 @@ static void *build_trading_hub(void) {
     down_t made;
 
     assert(icon != NULL);
-    made = class_of(icon)->left_press(icon, NULL, NULL);
+    made = class_of(icon)->left_press(icon, (mouse_pos_t){0});
     assert(made.stop && entity_get(made.held) != NULL);
     return entity_get(made.held);
 }
@@ -458,7 +462,7 @@ static void test_life(void) {
 
     placed = build_trading_hub();
     mouse_world = vec_ref(vec_xy(7680, 7552));
-    class_of(placed)->drag(&placed->header, mouse_world, vec_ref(vec_xy(64, 64)));
+    class_of(placed)->drag(&placed->header, mouse_pos(*mouse_world, vec_xy(64, 64)));
     assert(pos_copies(pos_ref(&placed->header), mouse_world));
     hash = fold_vec(hash, map_pos_ref(&placed->header));
     hash = fnv(hash, target_state(placed));

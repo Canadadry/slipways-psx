@@ -160,7 +160,7 @@ targeting_t *targeting_of(entity_t *e) {
     return NULL;
 }
 
-void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
+void targeting_track(entity_t *self, mouse_pos_t mouse) {
     targeting_t *targeting;
     vec_t mouse_world_vec;
     vec_t p_vec;
@@ -174,11 +174,11 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     targeting = targeting_of(self);
     assert(targeting != NULL && "targeting_track: a class that carries no targeting is no receiver -- stop");
 
-    mouse_world_vec = mouse_world != NULL ? *mouse_world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    mouse_world_vec = mouse_pos_world(mouse);
     p_vec = vec_div(mouse_world_vec, p8_fixed_from_int(128));
     assert(((self->class->lineage & LINEAGE(LINEAGE_PROBE)) || planet_is_family(self) || self->class == wormhole_class()) &&
            "targeting_track: a host neither a probe, of the planet family nor a wormhole, none of whose drag runs it -- stop");
-    if (mouse_world != NULL) {
+    if (mouse_pos_has_world(mouse)) {
         entity_set_pos(self, mouse_world_vec);
     } else {
         entity_clear_pos(self);
@@ -208,8 +208,7 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
         if (have_first && first != NULL) {
             target = first;
         } else {
-            vec_t mouse_screen_vec = mouse_screen != NULL ? *mouse_screen : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-            if (!probe_panel_box_contains(mouse_screen_vec)) {
+            if (!probe_panel_box_contains(mouse_pos_screen(mouse))) {
                 target = &g_targeting_track_target.header;
             } else {
                 target = NULL;
@@ -228,8 +227,8 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     }
 }
 
-void targeting_track_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    targeting_track(self, mouse_world, mouse_screen);
+void targeting_track_method(entity_t *self, mouse_pos_t mouse) {
+    targeting_track(self, mouse);
 }
 
 static const char *probe_target_status_text(const entity_t *et) {

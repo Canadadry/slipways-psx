@@ -198,6 +198,10 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
 static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
@@ -237,7 +241,7 @@ static void *build(const entity_kind_t *kind) {
     down_t made;
 
     assert(icon != NULL);
-    made = class_of(icon)->left_press(icon, NULL, NULL);
+    made = class_of(icon)->left_press(icon, (mouse_pos_t){0});
     assert(made.stop && entity_get(made.held) != NULL);
     return entity_get(made.held);
 }
@@ -484,7 +488,7 @@ static void test_life(void) {
     main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(28, 104)));
-    class_of(placed)->drag(placed, mouse_world, vec_ref(vec_xy(64, 64)));
+    class_of(placed)->drag(placed, mouse_pos(*mouse_world, vec_xy(64, 64)));
     assert(pos_copies(pos_ref(&as_structure(placed)->header), mouse_world));
     set_credits(200);
     assert(class_of(placed)->drop == targeting_confirm_method);
@@ -502,7 +506,7 @@ static void test_life(void) {
 
     hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
     hash = fold_bool(hash, class_of(placed)->accept_drop(placed, idle).stop);
-    slipway = class_of(placed)->left_press(placed, NULL, NULL);
+    slipway = class_of(placed)->left_press(placed, (mouse_pos_t){0});
     assert(slipway.stop && entity_get(slipway.held) != NULL);
     assert(class_of(entity_get(slipway.held)) == slipway_class() && slipway_start(((const slipway_t *)entity_get(slipway.held))) == placed);
     hash = fnv(hash, FROZEN_STRUCT_TAG);
@@ -517,7 +521,7 @@ static void test_life(void) {
         hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
     }
     assert(as_structure(placed)->sprite == p8_fixed_from_int(168));
-    slipway = class_of(placed)->left_press(placed, NULL, NULL);
+    slipway = class_of(placed)->left_press(placed, (mouse_pos_t){0});
     assert(entity_get(slipway.held) == NULL);
     hash = fold_bool(hash, slipway.stop);
     as_structure(placed)->slipways = slipways;

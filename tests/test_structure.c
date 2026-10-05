@@ -220,6 +220,10 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
 static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
@@ -271,7 +275,7 @@ static void *build_lab(void) {
     down_t made;
 
     assert(icon != NULL);
-    made = class_of(icon)->left_press(icon, NULL, NULL);
+    made = class_of(icon)->left_press(icon, (mouse_pos_t){0});
     assert(made.stop && entity_get(made.held) != NULL);
     return entity_get(made.held);
 }
@@ -434,7 +438,7 @@ static void test_life(void) {
 
     out_lab = build_lab();
     mouse_world = vec_ref(vec_xy(7680, 7680));
-    class_of(out_lab)->drag(out_lab, mouse_world, vec_ref(vec_xy(0, 0)));
+    class_of(out_lab)->drag(out_lab, mouse_pos(*mouse_world, vec_xy(0, 0)));
     hash = fold_held(hash, out_lab, mouse_world);
     assert(target_state(as_structure(out_lab)) == 3 && !entity_list_listed(live_entities(), targeting_target(&as_structure(out_lab)->targeting)));
 
@@ -443,14 +447,14 @@ static void test_life(void) {
     planet_map_pos = map_pos_ref(&((const planet_t *)planet)->header);
     assert(planet_map_pos != NULL);
     mouse_world = vec_ref(vec_add(vec_mul(*planet_map_pos, p8_fixed_from_int(128)), vec_xy(6, 0)));
-    class_of(out_lab)->drag(out_lab, mouse_world, vec_ref(vec_xy(64, 64)));
+    class_of(out_lab)->drag(out_lab, mouse_pos(*mouse_world, vec_xy(64, 64)));
     hash = fold_held(hash, out_lab, mouse_world);
     assert(targeting_target(&as_structure(out_lab)->targeting) == planet &&
            entity_get(((const planet_t *)planet)->targeted_by) == out_lab);
 
     refused_lab = build_lab();
     mouse_world = vec_ref(vec_xy(7680, 7680));
-    class_of(refused_lab)->drag(refused_lab, mouse_world, vec_ref(vec_xy(64, 64)));
+    class_of(refused_lab)->drag(refused_lab, mouse_pos(*mouse_world, vec_xy(64, 64)));
     hash = fold_held(hash, refused_lab, mouse_world);
     assert(target_state(as_structure(refused_lab)) == 1);
     set_credits(3);
@@ -464,7 +468,7 @@ static void test_life(void) {
 
     in_lab = build_lab();
     mouse_world = vec_ref(vec_xy(7680, 7552));
-    class_of(in_lab)->drag(in_lab, mouse_world, vec_ref(vec_xy(64, 64)));
+    class_of(in_lab)->drag(in_lab, mouse_pos(*mouse_world, vec_xy(64, 64)));
     set_credits(100);
     assert(class_of(in_lab)->drop == targeting_confirm_method);
     hash = targeting_confirm(in_lab) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);
@@ -574,10 +578,9 @@ static void *bought(const entity_kind_t *kind) {
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
-            down_t made = class_of(icon)->left_press(icon, NULL, NULL);
+            down_t made = class_of(icon)->left_press(icon, (mouse_pos_t){0});
             assert(made.stop && entity_get(made.held) != NULL);
-            class_of(entity_get(made.held))->drag(entity_get(made.held), vec_ref(vec_add(*main_camera_pos, vec_xy(80, 60))),
-                                  vec_ref(vec_xy(64, 64)));
+            class_of(entity_get(made.held))->drag(entity_get(made.held), mouse_pos(vec_add(*main_camera_pos, vec_xy(80, 60)), vec_xy(64, 64)));
             return entity_get(made.held);
         }
     }

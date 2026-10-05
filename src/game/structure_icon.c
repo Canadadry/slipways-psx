@@ -134,9 +134,8 @@ down_t structure_icon_left_press(structure_icon_t *self) {
     return out;
 }
 
-static down_t structure_icon_left_press_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
-    (void)mouse_world;
-    (void)mouse_screen;
+static down_t structure_icon_left_press_method(entity_t *self, mouse_pos_t mouse) {
+    (void)mouse;
     return structure_icon_left_press((structure_icon_t *)self);
 }
 
@@ -176,8 +175,8 @@ static void structure_icon_draw_method(entity_t *self, vec_t screen_pos) {
     structure_icon_draw(dispatch_context_gfx(), dispatch_context_mem(), (structure_icon_t *)self, screen_pos);
 }
 
-static int structure_icon_hit_test_method(entity_t *self, const vec_t *mouse_world, const vec_t *mouse_screen) {
-    return entity_geom_contains_cursor(self, mouse_world, mouse_screen);
+static int structure_icon_hit_test_method(entity_t *self, mouse_pos_t mouse) {
+    return entity_geom_contains_cursor(self, mouse);
 }
 
 static const entity_class_t structure_icon_class_def = {

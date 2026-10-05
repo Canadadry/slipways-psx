@@ -195,6 +195,14 @@ static vec_t *vec_ref(vec_t at) {
     return v;
 }
 
+static mouse_pos_t mouse_pos(vec_t world, vec_t screen) {
+    return (mouse_pos_t){.world = world, .screen = screen, .has = MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+}
+
+static mouse_pos_t mouse_world_only(vec_t world) {
+    return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
+}
+
 static vec_t vec_xy(int x, int y) {
     return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
@@ -222,7 +230,7 @@ static void *build(const entity_kind_t *kind) {
     down_t made;
 
     assert(icon != NULL);
-    made = class_of(icon)->left_press(icon, NULL, NULL);
+    made = class_of(icon)->left_press(icon, (mouse_pos_t){0});
     assert(made.stop && entity_get(made.held) != NULL);
     return entity_get(made.held);
 }
@@ -450,7 +458,7 @@ static void slot(void *e, int x, int y) {
     main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     mp = vec_ref(vec_add(*main_camera_pos, vec_xy(x + 16, y - 4)));
-    class_of(e)->drag(e, mp, vec_ref(vec_xy(64, 64)));
+    class_of(e)->drag(e, mouse_pos(*mp, vec_xy(64, 64)));
     assert(pos_copies(pos_ref(&as_structure(e)->header), mp));
 }
 
@@ -458,7 +466,7 @@ static void slot(void *e, int x, int y) {
  * own drag at a point with no planet: its infraspace (then its layer)
  * comes from that planet alone. */
 static uint32_t fold_route(uint32_t h, void *from) {
-    down_t jc = class_of(from)->left_press(from, NULL, NULL);
+    down_t jc = class_of(from)->left_press(from, (mouse_pos_t){0});
     const vec_t *ra = pos_ref(&as_structure(from)->header);
     int from_has_infraspace = class_of(from) == infraspace_gate_class();
     const slipway_t *made;
@@ -467,7 +475,7 @@ static uint32_t fold_route(uint32_t h, void *from) {
     made = (const slipway_t *)entity_get(jc.held);
     assert(slipway_start(made) == from);
     assert(ra != NULL);
-    class_of(entity_get(jc.held))->drag(entity_get(jc.held), vec_ref(vec_add(*ra, vec_xy(20, 0))), NULL);
+    class_of(entity_get(jc.held))->drag(entity_get(jc.held), mouse_world_only(vec_add(*ra, vec_xy(20, 0))));
     assert(entity_has(&made->header, ENTITY_HAS_INFRASPACE) == from_has_infraspace);
     assert(made->header.layer == p8_fixed_from_int(from_has_infraspace ? 2 : 4));
     h = entity_has(&made->header, ENTITY_HAS_INFRASPACE) ? fold_fixed_member(h, made->header.infraspace) : fold_absent(h);
@@ -513,7 +521,7 @@ static void test_life(void) {
 
     hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
     hash = fold_bool(hash, class_of(placed)->accept_drop(placed, idle).stop);
-    slipway = class_of(placed)->left_press(placed, NULL, NULL);
+    slipway = class_of(placed)->left_press(placed, (mouse_pos_t){0});
     assert(slipway.stop && entity_get(slipway.held) != NULL);
     assert(class_of(entity_get(slipway.held)) == slipway_class() && slipway_start(((const slipway_t *)entity_get(slipway.held))) == placed);
     hash = fnv(hash, FROZEN_STRUCT_TAG);
@@ -528,7 +536,7 @@ static void test_life(void) {
         hash = fold_bool(hash, class_of(placed)->accept_drop(placed, NULL).stop);
     }
     assert(as_structure(placed)->sprite == p8_fixed_from_int(76));
-    slipway = class_of(placed)->left_press(placed, NULL, NULL);
+    slipway = class_of(placed)->left_press(placed, (mouse_pos_t){0});
     assert(entity_get(slipway.held) == NULL);
     hash = fold_bool(hash, slipway.stop);
     as_structure(placed)->slipways = slipways;
