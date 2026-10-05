@@ -263,3 +263,12 @@ The user validated (2026-10-04) the resolution of the 46 Unsorted pointers: call
 - Memory: no budget raised. Frame-zone peak 16552 → 9456, message box 4232 → 3360, row 752 → 600, button 3288 → 2984; static project table −13776 bytes.
 - Bug fixed on the way (`fix:` 33df43a): a placed layout item's unused fields kept stale zone bytes; each item is now zeroed first.
 - Guideline decisions (PRD writer): call-scoped frame-zone rows stay; score readouts and year banner stay file-scope rows; the message box copies its articles; a tuple holds no text (assert); bars' draw function in their static rows; `layout_row_copy` removed.
+
+### Step 2.6
+
+- Done in eight commits: draw positions and `box_contains` by value; `mouse_pos_t` (world and screen points with presence bits) for `hit_test`/`left_press`/`right_press`/`drag` — the class contract that let methods keep their vectors is gone; hud alignment and `need_new` by value; planet keys moved to `game/` and held by value, `planet_t.planet_id` an 8-byte array behind `PLANET_HAS_ID`; layout row keys embed up to 16 cells and their position; button keys by value; toast and open-box keys by value (description capped at 17 chars); final happiness a number. No input `vec_t *`/`box_t *`/`p8_fixed_t *` parameter is left (remaining: out-parameters, arrays, const static returns, `box_make`).
+- Guard: 141 → 119 pointers, 0 entity lists. `make e2e` same shas; `make sanitize-net` (30 clean) and `make full-game` passed after the last chunk.
+- Memory: no budget raised. Frame-zone peak 9456 → 13840 (keys embed their cells; peak 14464 after chunk 5), game zone 103856 → 101688.
+- `tools/pointer_guard_exceptions.txt` regrouped: pending, static data plus user-validated owned buffers/generator state, static only.
+- **Pending user validation (4 pointers):** `layout.h` `layout_row_cell_t.as.text` (call-scoped cells; `layout_row_new` copies the text); `map_tables.h` `data_item_t.text`, `data_item_t.row`, `data_row_t.items` (static in stored rows, but call-scoped rows aim them at frame-zone or stack memory).
+- Guideline decisions (PRD writer): D3 out-parameters and const static returns stay; D5 `as.text` stays, pending; D11 budget only by measured growth (not needed); D12 screen point is the raw mouse header position.
