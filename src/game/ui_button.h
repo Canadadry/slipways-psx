@@ -54,16 +54,20 @@ const entity_class_t *button_class(void);
 typedef struct {
     int has_layer;
     p8_fixed_t layer;
-    const layout_row_keys_t *layout_row_keys;
+    layout_row_keys_t layout_row_keys;
     /* GAP-23 */
     int has_side_tooltip;
     int side_tooltip_is_false;
-    const layout_row_keys_t *side_tooltip_row;
+    int has_side_tooltip_row;
+    layout_row_keys_t side_tooltip_row;
     /* GAP-23 */
     int has_tooltip;
-    const data_row_t *tooltip_row;
-    const vec_t *pos;
-    const vec_t *slide_target;
+    int has_tooltip_row;
+    data_row_t tooltip_row;
+    int has_pos;
+    vec_t pos;
+    int has_slide_target;
+    vec_t slide_target;
     int has_on_click;
     button_fn_t on_click;
     button_fn_t refresh;
@@ -78,6 +82,9 @@ typedef struct {
     int has_project_cost;
     p8_fixed_t project_cost;
 } button_keys_t;
+
+/* Copies `*row` into the keys; NULL leaves the tooltip row absent. */
+void button_keys_set_tooltip_row(button_keys_t *keys, const data_row_t *row);
 
 button_t *button_new(const button_keys_t *keys);
 

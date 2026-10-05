@@ -29,7 +29,7 @@ src/game/slipway.h 2
 src/game/structure_icon.h 6
 src/game/targeting.h 1
 src/game/ui.h 1
-src/game/ui_button.h 14
+src/game/ui_button.h 9
 src/game/wormhole.h 2
 # Files whose pointers all stay: const pointers to static data (plan 13, section 2).
 src/game/background.h 1

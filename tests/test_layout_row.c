@@ -491,7 +491,7 @@ static void test_research_project_layout_row_keys(void) {
         assert(research_project_layout_row_keys(p, &keys));
         assert(keys.items[keys.count - 1].kind == LAYOUT_ROW_CELL_STRING && strcmp(keys.items[keys.count - 1].as.text, p->name) == 0);
 
-        spec.layout_row_keys = &keys;
+        spec.layout_row_keys = keys;
         button = button_new(&spec);
         row = button->layout_row;
         assert(row != NULL && placed_items_count(row) == keys.count);
@@ -512,9 +512,10 @@ static void test_research_project_layout_row_keys(void) {
         button_t *button;
         const void *h_;
 
-        spec.layout_row_keys = &row_keys;
+        spec.layout_row_keys = row_keys;
         spec.has_side_tooltip = 1;
-        spec.side_tooltip_row = &h_t;
+        spec.has_side_tooltip_row = 1;
+        spec.side_tooltip_row = h_t;
         button = button_new(&spec);
         hash = fold_row_from(hash, button->layout_row, &row_keys, 0u);
         h_ = button->side_tooltip;

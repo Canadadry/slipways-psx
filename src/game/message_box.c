@@ -391,11 +391,12 @@ typedef struct {
 
 static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     button_keys_t b = *row;
-    vec_t qf = ctx->button_pos;
     vec_t gq;
 
-    b.pos = &ctx->pos;
-    b.slide_target = &qf;
+    b.has_pos = 1;
+    b.pos = ctx->pos;
+    b.has_slide_target = 1;
+    b.slide_target = ctx->button_pos;
 
     /* GAP-9 */
     if (ctx->frame->has_back_color) {
@@ -421,7 +422,6 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     entity_id_list_t ephemerals = {0};
     ui_t *dispatcher;
     button_keys_t description_row = {0};
-    layout_row_keys_t description_layout_row = {0};
     int has_description;
     int index;
 
@@ -431,10 +431,9 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
 
     has_description = frame->description != NULL;
     if (has_description) {
-        layout_row_keys_append(&description_layout_row, layout_row_cell_string(frame->description));
-        description_layout_row.has_color = 1;
-        description_layout_row.color = p8_fixed_from_int(13);
-        description_row.layout_row_keys = &description_layout_row;
+        layout_row_keys_append(&description_row.layout_row_keys, layout_row_cell_string(frame->description));
+        description_row.layout_row_keys.has_color = 1;
+        description_row.layout_row_keys.color = p8_fixed_from_int(13);
     }
 
     if (frame->fixed_pos != NULL) {

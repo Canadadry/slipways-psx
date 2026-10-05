@@ -874,27 +874,20 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static vec_t *vec_at(int x, int y) {
-    vec_t *p = malloc(sizeof *p);
-
-    *p = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    return p;
+static vec_t vec_at(int x, int y) {
+    return vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
 }
 
 /* A button of `keys` whose layout row holds the one text given, and whose
  * side tooltip, when its text is not NULL, holds that text in color 13. */
 static void *build(button_keys_t keys, const char *layout_row_text, const char *h_text) {
-    layout_row_keys_t lq = {0};
-    layout_row_keys_t h_ = {0};
-
-    layout_row_keys_append(&lq, layout_row_cell_string(layout_row_text));
-    keys.layout_row_keys = &lq;
+    layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_string(layout_row_text));
     if (h_text != NULL) {
-        layout_row_keys_append(&h_, layout_row_cell_string(h_text));
-        h_.has_color = 1;
-        h_.color = p8_fixed_from_int(13);
+        layout_row_keys_append(&keys.side_tooltip_row, layout_row_cell_string(h_text));
+        keys.side_tooltip_row.has_color = 1;
+        keys.side_tooltip_row.color = p8_fixed_from_int(13);
         keys.has_side_tooltip = 1;
-        keys.side_tooltip_row = &h_;
+        keys.has_side_tooltip_row = 1;
     }
     return button_new(&keys);
 }
@@ -902,6 +895,7 @@ static void *build(button_keys_t keys, const char *layout_row_text, const char *
 static button_keys_t button_at(int x, int y) {
     button_keys_t keys = {0};
 
+    keys.has_pos = 1;
     keys.pos = vec_at(x, y);
     return keys;
 }
@@ -913,23 +907,24 @@ static button_keys_t keyed_on_click(button_keys_t keys, button_fn_t my) {
 }
 
 /* button_update moves the position 0.4 of the way to `slide_target`, then
- * jumps the last unit, never through the vector the keys carried. */
+ * jumps the last unit; the button copied both vectors from its keys. */
 static void test_update(void) {
     uint32_t h = 2166136261u;
     void *b;
-    const vec_t *first;
-    vec_t first_at;
     int steps = 0;
 
     start_game();
     {
         button_keys_t keys = button_at(3, 4);
 
+        keys.has_slide_target = 1;
         keys.slide_target = vec_at(40, -20);
-        b = build(keys, "go", NULL);
-        first = keys.pos;
+        layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_string("go"));
+        b = button_new(&keys);
+        keys.pos = vec_at(90, 90);
+        keys.slide_target = vec_at(-90, -90);
+        assert(at(pos_ref(&button_of(b)->header), 3, 4) && at(slide_target_ref(button_of(b)), 40, -20));
     }
-    first_at = vec_of(first);
     while (steps < 40) {
         vec_t before = vec_of(pos_ref(&button_of(b)->header));
         class_of(b)->states[ENTITY_STATE_NORMAL](b, p8_fixed_from_int(0));
@@ -939,7 +934,6 @@ static void test_update(void) {
             break;
         }
     }
-    assert(first->x == first_at.x && first->y == first_at.y);
     assert(vec_of(pos_ref(&button_of(b)->header)).x == p8_fixed_from_int(40) && vec_of(pos_ref(&button_of(b)->header)).y == p8_fixed_from_int(-20));
     printf("[update] %d step(s)\n", steps);
     h = fnv(h, (uint32_t)steps);
@@ -1507,7 +1501,7 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     layout_row_keys_append(&from, layout_row_cell_string("from a list"));
     layout_row_keys_append(&from, layout_row_cell_fixed(p8_fixed_from_int(3)));
     keys = none;
-    keys.layout_row_keys = &from;
+    keys.layout_row_keys = from;
     button = built(keys);
     assert(button->layout_row != NULL && is_layout_row(button->layout_row) && row_count(button->layout_row) == 2);
     return fold_and_drop(hash, button);
@@ -2062,18 +2056,15 @@ static void test_largest_buttons_fit_their_slots(void) {
 
     for (k = 1; k <= research_projects_count(); k++) {
         research_project_t *b = research_projects_at(k);
-        layout_row_keys_t lq;
-        layout_row_keys_t h = {0};
-        button_keys_t keys = {.has_side_tooltip = 1, .side_tooltip_row = &h, .has_tooltip = 1};
+        button_keys_t keys = {.has_side_tooltip = 1, .has_side_tooltip_row = 1, .has_tooltip = 1};
 
-        layout_row_keys_append(&h, layout_row_cell_string(p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), research_project_cost(b)))));
+        layout_row_keys_append(&keys.side_tooltip_row, layout_row_cell_string(p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), research_project_cost(b)))));
         if (b->has_icon_sprite) {
-            lq = research_project_icon_row_keys(b);
-            keys.layout_row_keys = &lq;
-        } else if (research_project_layout_row_keys(b, &lq)) {
-            keys.layout_row_keys = &lq;
+            keys.layout_row_keys = research_project_icon_row_keys(b);
+        } else {
+            (void)research_project_layout_row_keys(b, &keys.layout_row_keys);
         }
-        keys.tooltip_row = research_project_tooltip(b);
+        button_keys_set_tooltip_row(&keys, research_project_tooltip(b));
         entity_unregister(&button_new(&keys)->header);
         one_frame();
     }

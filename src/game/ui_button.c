@@ -112,11 +112,11 @@ static button_t *button_create(const button_keys_t *keys) {
         if (keys->has_layer) {
             self->header.layer = keys->layer;
         }
-        if (keys->pos != NULL) {
-            entity_set_pos(&self->header, *keys->pos);
+        if (keys->has_pos) {
+            entity_set_pos(&self->header, keys->pos);
         }
-        if (keys->slide_target != NULL) {
-            self->slide_target = *keys->slide_target;
+        if (keys->has_slide_target) {
+            self->slide_target = keys->slide_target;
             self->has |= BUTTON_HAS_SLIDE_TARGET;
         }
         self->on_click = keys->on_click;
@@ -155,6 +155,13 @@ const entity_class_t *button_class(void) {
     return &button_class_def;
 }
 
+void button_keys_set_tooltip_row(button_keys_t *keys, const data_row_t *row) {
+    keys->has_tooltip_row = row != NULL;
+    if (row != NULL) {
+        keys->tooltip_row = *row;
+    }
+}
+
 button_t *button_new(const button_keys_t *keys) {
     return button_create(keys);
 }
@@ -169,21 +176,21 @@ void button_construct(button_t *self, const button_keys_t *keys) {
         keys = &none;
     }
 
-    self->layout_row = layout_row_new(self->slot, keys->layout_row_keys);
+    self->layout_row = layout_row_new(self->slot, &keys->layout_row_keys);
     self->width = p8_fixed_add(self->layout_row->width, p8_fixed_from_int(2));
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = (box_t){p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11)};
 
     /* GAP-23 */
-    if (keys->side_tooltip_row != NULL || (keys->has_side_tooltip && !keys->side_tooltip_is_false)) {
-        self->side_tooltip = layout_row_new(self->slot, keys->side_tooltip_row);
+    if (keys->has_side_tooltip_row || (keys->has_side_tooltip && !keys->side_tooltip_is_false)) {
+        self->side_tooltip = layout_row_new(self->slot, keys->has_side_tooltip_row ? &keys->side_tooltip_row : NULL);
         self->has_side_tooltip = 1;
     } else if (keys->has_side_tooltip) {
         self->side_tooltip = NULL;
         self->has_side_tooltip = 1;
     }
-    if (keys->tooltip_row != NULL || keys->has_tooltip) {
-        self->tooltip = tooltip_new(self->slot, keys->tooltip_row);
+    if (keys->has_tooltip_row || keys->has_tooltip) {
+        self->tooltip = tooltip_new(self->slot, keys->has_tooltip_row ? &keys->tooltip_row : NULL);
     }
 }
 

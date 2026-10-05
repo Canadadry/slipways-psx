@@ -202,8 +202,6 @@ void score_panel_update(score_panel_t *self) {
         static const data_row_t back = {.count = 2, .items = back_items};
         button_keys_t restart_keys = {0};
         button_keys_t toggle_keys = {0};
-        layout_row_keys_t first_line = {0};
-        layout_row_keys_t second_line = {0};
         button_t *made1;
         button_t *made2;
         const vec_t first_line_pos =
@@ -213,21 +211,21 @@ void score_panel_update(score_panel_t *self) {
 
         (void)modal_backdrop_new(NULL);
 
-        layout_row_keys_append(&first_line, layout_row_cell_string(" again? "));
+        layout_row_keys_append(&restart_keys.layout_row_keys, layout_row_cell_string(" again? "));
         restart_keys.has_layer = 1;
         restart_keys.layer = p8_fixed_from_int(15);
-        restart_keys.pos = &first_line_pos;
-        restart_keys.layout_row_keys = &first_line;
+        restart_keys.has_pos = 1;
+        restart_keys.pos = first_line_pos;
         restart_keys.has_on_click = 1;
         restart_keys.on_click = score_panel_init_field_value();
         made1 = button_new(&restart_keys);
         (void)made1;
 
-        layout_row_keys_append(&second_line, layout_row_cell_row(&back));
+        layout_row_keys_append(&toggle_keys.layout_row_keys, layout_row_cell_row(&back));
         toggle_keys.has_layer = 1;
         toggle_keys.layer = p8_fixed_from_int(15);
-        toggle_keys.pos = &second_line_pos;
-        toggle_keys.layout_row_keys = &second_line;
+        toggle_keys.has_pos = 1;
+        toggle_keys.pos = second_line_pos;
         toggle_keys.has_on_click = 1;
         toggle_keys.on_click = score_panel_toggle_button_on_click_method;
         made2 = button_new(&toggle_keys);

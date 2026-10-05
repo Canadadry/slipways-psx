@@ -35,7 +35,6 @@ static int help_screen_hit_test_method(entity_t *self, mouse_pos_t mouse) {
 
 void help_screen_construct(probe_t *self) {
     button_keys_t bs[DIFFICULTY_OPTIONS_COUNT];
-    layout_row_keys_t lq[DIFFICULTY_OPTIONS_COUNT];
     open_box_frame_t frame = {0};
     int i;
 
@@ -46,8 +45,7 @@ void help_screen_construct(probe_t *self) {
         const difficulty_options_entry_t *e = &difficulty_options_table[i];
 
         memset(&bs[i], 0, sizeof bs[i]);
-        lq[i] = layout_row_keys_of_row(e->layout_row);
-        bs[i].layout_row_keys = &lq[i];
+        bs[i].layout_row_keys = layout_row_keys_of_row(e->layout_row);
         bs[i].name = e->name;
         bs[i].has_trade = 1;
         bs[i].trade = p8_fixed_from_int(e->trade);
