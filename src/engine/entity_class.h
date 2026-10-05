@@ -84,6 +84,24 @@ static inline int entity_has(const entity_t *self, unsigned bit) {
     return (self->has & bit) != 0;
 }
 
+static inline int entity_has_pos(const entity_t *self) {
+    return self->pos != NULL && *self->pos != NULL;
+}
+
+static inline int entity_has_map_pos(const entity_t *self) {
+    return self->map_pos != NULL && *self->map_pos != NULL;
+}
+
+/* The zero vector when the position is absent. */
+static inline vec_t entity_pos(const entity_t *self) {
+    return entity_has_pos(self) ? **self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+}
+
+/* The zero vector when the map position is absent. */
+static inline vec_t entity_map_pos(const entity_t *self) {
+    return entity_has_map_pos(self) ? **self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+}
+
 typedef struct {
     int stop;
     entity_id_t held;

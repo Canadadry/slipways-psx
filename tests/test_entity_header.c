@@ -260,6 +260,26 @@ static void test_mouse_point_has_null_links(void) {
                      .infraspace = infraspace_gate_archetype.infraspace, .targeting = &from_infraspace_gate->targeting_own});
 }
 
+static int same_vec(vec_t a, vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+/* A position reads as the value the class holds, and as the zero vector
+ * with its presence test false when the class or the instance has none. */
+static void test_position_readers(void) {
+    camera_t *camera = camera_new();
+    wormhole_t *wormhole = wormhole_new();
+    const entity_t *tooltip = &tooltip_new(&heap_allocator, NULL)->header;
+
+    assert(entity_has_pos(&camera->header) && entity_has_map_pos(&camera->header));
+    assert(same_vec(entity_pos(&camera->header), *camera->pos));
+    assert(same_vec(entity_map_pos(&camera->header), *camera->pos_before_shake));
+    assert(!entity_has_map_pos(&wormhole->header));
+    assert(same_vec(entity_map_pos(&wormhole->header), vec_make(0, 0)));
+    assert(!entity_has_pos(tooltip) && !entity_has_map_pos(tooltip));
+    assert(same_vec(entity_pos(tooltip), vec_make(0, 0)) && same_vec(entity_map_pos(tooltip), vec_make(0, 0)));
+}
+
 int main(int argc, char **argv) {
     (void)argc;
     rerun_with_malloc_filling(argv);
@@ -278,6 +298,7 @@ int main(int argc, char **argv) {
     test_carriers_link_their_storage();
     test_component_carriers_link_their_own();
     test_mouse_point_has_null_links();
+    test_position_readers();
 
     printf("test_entity_header: all tests passed\n");
     return 0;

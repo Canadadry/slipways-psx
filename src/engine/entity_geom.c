@@ -13,15 +13,11 @@ static vec_t zero_vec(void) {
 }
 
 static vec_t pos_of(const entity_t *e) {
-    const vec_t *ra = e != NULL && e->pos != NULL ? *e->pos : NULL;
-
-    return ra != NULL ? *ra : zero_vec();
+    return e != NULL ? entity_pos(e) : zero_vec();
 }
 
 static vec_t map_pos_of(const entity_t *e) {
-    const vec_t *p = e != NULL && e->map_pos != NULL ? *e->map_pos : NULL;
-
-    return p != NULL ? *p : zero_vec();
+    return e != NULL ? entity_map_pos(e) : zero_vec();
 }
 
 int entity_geom_contains_cursor(const entity_t *e, const vec_t *mp, const vec_t *rp) {

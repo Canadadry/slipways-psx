@@ -263,7 +263,7 @@ void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t st
     }
 
     je = main_mouse_typed();
-    mp = je != NULL && je->pos != NULL ? *je->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    mp = je != NULL ? entity_pos(&je->header) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 
     if (targeting_target(pb) != NULL) {
         const char *qs = probe_target_status_text(targeting_target(pb));

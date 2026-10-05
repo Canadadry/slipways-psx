@@ -15,7 +15,7 @@ typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : 
 static p8_fixed_t emitter_host_layer_pos(const entity_t *self, vec_t *ra) {
     assert(entity_has(self, ENTITY_HAS_LAYER) && self->pos != NULL &&
            "emitter_update: a host that carries no layer or no pos, none of whose draw runs it -- stop");
-    *ra = *self->pos != NULL ? **self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    *ra = entity_pos(self);
     return self->layer;
 }
 

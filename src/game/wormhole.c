@@ -71,7 +71,7 @@ void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
         return;
     }
 
-    p_vec = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    p_vec = entity_map_pos(&self->header);
     nq = entity_geom_nearest_in_ids(p_vec, self->anchors, &nearest);
     self->anchor = entity_id_link(nearest);
 
@@ -152,7 +152,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
     sr = p8_fixed_add(p8_fixed_div(wormhole_reveal_radius(self, t), p8_fixed_from_int(128)),
                           P8_FIXED_LIT(0x000007ef, 0.031));
 
-    self_p = self->map_pos != NULL ? *self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self_p = entity_map_pos(&self->header);
     planet_list = entities_by_tag(TAG_PLANET);
     if (planet_list != NULL) {
         for (i = 0; i < planet_list->count; i++) {
@@ -166,8 +166,7 @@ void wormhole_update_unfolding(wormhole_t *self, p8_fixed_t t) {
             pt = (planet_t *)planet;
 
             if (pt->header.state == ENTITY_STATE_UNKNOWN) {
-                vec_t planet_map_pos =
-                    pt->map_pos != NULL ? *pt->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+                vec_t planet_map_pos = entity_map_pos(&pt->header);
                 vec_t diff = vec_sub(planet_map_pos, self_p);
                 if (vec_length(diff) < sr) {
                     planet_roll_type(pt);

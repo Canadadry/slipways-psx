@@ -9,13 +9,9 @@
 #include "game/wormhole.h"
 
 static vec_t nearest_anchor_pos(const wormhole_t *self) {
-    const vec_t *ra = NULL;
     const entity_t *anchor = entity_get(self->anchor);
 
-    if (anchor != NULL && anchor->pos != NULL) {
-        ra = *anchor->pos;
-    }
-    return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return anchor != NULL ? entity_pos(anchor) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self, vec_t screen_pos) {

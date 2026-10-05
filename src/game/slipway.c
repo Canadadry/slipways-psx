@@ -30,15 +30,11 @@ static slipway_too_far_t g_slipway_too_far = {{.class = &slipway_too_far_class_d
 static const entity_class_t slipway_mouse_point_class_def = {0};
 
 vec_t slipway_end_map_pos(const entity_t *end) {
-    const vec_t *p = end != NULL && end->map_pos != NULL ? *end->map_pos : NULL;
-
-    return p != NULL ? *p : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return end != NULL ? entity_map_pos(end) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 vec_t slipway_end_pos(const entity_t *end) {
-    const vec_t *ra = end != NULL && end->pos != NULL ? *end->pos : NULL;
-
-    return ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return end != NULL ? entity_pos(end) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 entity_t *slipway_start(const slipway_t *self) {

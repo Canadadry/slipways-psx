@@ -39,8 +39,7 @@ static void write_fixed(FILE *out, p8_fixed_t x) {
 }
 
 static vec_t ra_of(const entity_t *e) {
-    const vec_t *pos = e != NULL && e->pos != NULL ? *e->pos : NULL;
-    return pos != NULL ? *pos : vec_make(0, 0);
+    return e != NULL ? entity_pos(e) : vec_make(0, 0);
 }
 
 static void write_position(FILE *out, const entity_t *e, vec_t camera) {
