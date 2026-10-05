@@ -400,7 +400,6 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     if (is_left) {
         held_inst = ui_left_held(self);
     } else {
-        /* GAP-28 */
         background_t *right = ui_right_held(self);
         held_inst = right != NULL ? &right->header : NULL;
     }

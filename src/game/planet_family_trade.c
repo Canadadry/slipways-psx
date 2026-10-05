@@ -163,7 +163,7 @@ static const entity_class_t slipgate_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_SLIPGATE) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -200,7 +200,7 @@ static const entity_class_t infraspace_gate_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_SLIPGATE) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -287,7 +287,7 @@ static const entity_class_t synthesizer_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 

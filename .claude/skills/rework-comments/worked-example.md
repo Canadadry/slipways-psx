@@ -19,7 +19,7 @@ verification method of the porting phase. It was replaced by the recorded replay
 ## The three artifacts produced
 
 - `CLAUDE.md`, "Comments" section: the destination rule — four at the time,
-  three since the names became self-explanatory —, in the instructions file
+  two today (a trap, a C contract) —, in the instructions file
   every session rereads.
 - A glossary of names: 191 symbols, one line each. The cart is minified into
   two-letter names and the port transliterated them literally: the **name** was
@@ -27,8 +27,10 @@ verification method of the porting phase. It was replaced by the recorded replay
   could be deduced neither from the C nor from the Lua. A rename to full English
   names has since replaced it: the name carries the meaning, and the "meaning of
   a name" destination has been dropped.
-- `docs/porting-gaps.md`: the numbered gaps, re-checked against the code one by
-  one. The code refers to them only through `/* GAP-7 */`.
+- A file of numbered divergences from the cart, re-checked against the code one
+  by one, which the code cited through bare markers. Once the C became the
+  reference, each entry was fixed, turned into a trap comment or dropped, and
+  the file deleted.
 
 ## Phase 1
 
@@ -37,10 +39,10 @@ findings came up at that point, none of which would have survived phase 2:
 
 - a stale claim ("this table is empty compared to the real `map.json`") that the
   plan had recorded as resolved long ago;
-- **GAP-4 had become reachable without anyone noting it**: the comment said
+- **A recorded divergence had become reachable without anyone noting it**: the comment said
   "this will be a real gap the day `spr` is registered as a constructor", and
   initialization does register it;
-- **GAP-1 contradicted a recorded decision** of the plan ("no native floating
+- **A recorded divergence contradicted a decision** of the plan ("no native floating
   point") while `p8_fixed_cos/_sin` go through the host's `cos()`.
 
 Rewiring the process, in the same commit: the rule in `CLAUDE.md`, and the "Log
@@ -63,7 +65,7 @@ each rule:
   `assert(state->tickets_count > 0)`, computed the margin before writing — 66
   tickets for 90 possible planets — and gave up. On checking, it was worse than
   its conclusion: with an empty pool, the index falls to 0, and the code reads
-  `items[0]` on a list whose array can be NULL. Recorded as GAP-16.
+  `items[0]` on a list whose array can be NULL. Recorded at the time as a divergence, since fixed: the pool now refills.
 - **The asserts rejected by the plumbing**: `i >= 1` in `p8_sub` while
   `unstash()` calls it with 0 at the end of every string; `frames != NULL` in
   `p8_input_save` while a test passes NULL on purpose. Both would have broken

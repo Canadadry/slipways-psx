@@ -42,12 +42,10 @@ trade_route_t trade_new(const trade_keys_t *keys);
 /* The copy's id lists are new lists in zone. */
 trade_route_t trade_copy(const allocator_t *zone, const trade_route_t *self);
 
-/* GAP-24 */
 resource_t trade_resource(const trade_route_t *self);
 
 int trade_last_planet(const trade_route_t *self, entity_t **out);
 
-/* GAP-24 */
 /* The new route's id lists are new lists in zone; a NULL node or slipway adds nothing. */
 trade_route_t trade_extend(const allocator_t *zone, const trade_route_t *self,
                            entity_t *node, entity_t *slipway);

@@ -39,7 +39,7 @@ static const entity_class_t structure_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -103,7 +103,7 @@ static const entity_class_t trading_hub_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = trading_hub_update_settled_method,
         },
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE) | LINEAGE(LINEAGE_TRADING_HUB),
 };
 
@@ -140,7 +140,7 @@ static const entity_class_t processor_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -197,7 +197,7 @@ static const entity_class_t ascension_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -266,7 +266,7 @@ static const entity_class_t protostar_class_def = {
             [ENTITY_STATE_VANISHING] = planet_update_vanishing_method,
             [ENTITY_STATE_SETTLED] = structure_update_settled_method,
         },
-    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING),
+    .tags = TAG(TAG_PLANET) | TAG(TAG_NODE),
     .lineage = LINEAGE(LINEAGE_PLANET) | LINEAGE(LINEAGE_STRUCTURE),
 };
 
@@ -336,6 +336,7 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
 
 void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
     const pointer_list_t *particles = NULL;
+    const int_seq_t *ramp;
     int third_taken = 0;
     int index;
     int screen_x;
@@ -344,6 +345,8 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
     if (self == NULL) {
         return;
     }
+    ramp = self->emitter.trail_colors;
+    assert(ramp != NULL && "a burst always holds a trail ramp: the archetype's default or its construct keys'");
 
     if (self->emitter.has & EMITTER_HAS_PARTICLES) {
         particles = &self->emitter.particles;
@@ -365,8 +368,7 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
             int trail_color;
 
             idx = p8_fixed_flr_int(p8_fixed_flr(p8_fixed_div(pt->life, p8_fixed_from_int(2))));
-            /* GAP-21 */
-            if (int_seq_at(burst_trail_colors_seq.items, burst_trail_colors_seq.count, idx, &trail_color)) {
+            if (int_seq_at(ramp->items, ramp->count, idx, &trail_color)) {
                 color = trail_color;
             }
             p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(vec_length(pt->pos)), color);

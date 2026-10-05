@@ -63,7 +63,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0xD551CEA4u
+#define LIFE_HASH 0xFBDF0BB0u
 #define BURST_FRAMES 86
 
 /* The tag a layout row's placed items carried as a tagged list, which the
@@ -74,7 +74,7 @@ static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
 
-static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING, TAG_ASCENSION, TAG_STRUCTURE};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_ASCENSION, TAG_STRUCTURE};
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
 
 static int tag_count(unsigned tags) {
@@ -427,8 +427,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     assert(planet->archetype == &burst_archetype);
     assert(planet->has & PLANET_HAS_OUTGOING_ROUTES);
     if (from_protostar) {
-        assert(emitter->trail_colors != &burst_trail_colors_seq);
-        assert(emitter->trail_colors != &protostar_trail_colors_seq);
+        assert(emitter->trail_colors == &protostar_burst_trail_colors_seq);
     } else {
         assert(emitter->trail_colors == &burst_trail_colors_seq);
     }
@@ -559,8 +558,8 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
 
 /* spawn_particle on each burst; draw_layers(ENTITY_MESSAGE_DRAW) three times, then three
  * more with the protostar's burst cut to 3 particles, so that its circles,
- * drawn in the class trail colors (GAP-21), are not all covered by
- * emitter_update's dots in its own; is_dead once the particle list holds 3,
+ * drawn in its own trail ramp, are not all covered by emitter_update's
+ * dots; is_dead once the particle list holds 3,
  * 2, 0 particles; hit_test on and off the burst, planet_is_colonized;
  * refresh on the planet's shared production (no row), then on one with a
  * resource, before and after two routes land in its own outgoing
@@ -701,6 +700,48 @@ static void test_emitter_update_moves_a_particle_in_place(void) {
     assert(particle->velocity.x == p8_fixed_add(vx, a0.x) && particle->velocity.y == p8_fixed_add(vy, a0.y));
     assert(particle->acceleration.x == a0.x && particle->acceleration.y == a0.y);
     assert(particle->life == p8_fixed_sub(p8_fixed_from_int(5), P8_FIXED_LIT(0x000023d7, 0.14)));
+}
+
+static void check_ramp(const int_seq_t *ramp, const int *want, int count) {
+    int index;
+
+    assert(ramp != NULL && ramp->count == count);
+    for (index = 0; index < count; index++) {
+        assert(ramp->items[index] == want[index]);
+    }
+}
+
+/* The color of a circle burst_draw draws for one particle of radius 10 and
+ * life 6 (ramp index 3), read opposite the particle's own trail dot. */
+static int circle_color(void *e) {
+    particle_t *particle = particle_take();
+    pointer_list_t *qy = particles_of(&as_burst(e)->emitter);
+
+    particle->pos = vec_xy(10, 0);
+    particle->velocity = vec_xy(0, 0);
+    particle->has_acceleration = 0;
+    particle->life = p8_fixed_from_int(6);
+    cut_particles(qy, 0);
+    pointer_list_add(qy, particle);
+    p8_camera_reset(&graphics);
+    p8_cls(&memory);
+    burst_draw(&graphics, &memory, as_burst(e), vec_xy(64, 64));
+    return memory.screen[64][54];
+}
+
+static void test_a_burst_draws_its_circles_in_its_own_ramp(void) {
+    static const int ordinary[] = {1, 2, 4, 9, 9, 10, 10, 7, 7, 7, 7, 7};
+    static const int pink[] = {1, 2, 8, 14, 14, 14, 14, 8, 8, 2, 2, 1, 1};
+    void *plain;
+    void *from_protostar;
+
+    start_game();
+    plain = burst_new(NULL);
+    from_protostar = spawn(84, 60, "s74", NULL);
+    check_ramp(as_burst(plain)->emitter.trail_colors, ordinary, 12);
+    check_ramp(as_burst(from_protostar)->emitter.trail_colors, pink, 13);
+    check_int("ordinary burst circle", circle_color(plain), 4);
+    check_int("protostar burst circle", circle_color(from_protostar), 8);
 }
 
 static int is_a_burst_struct(const void *e) {
@@ -871,6 +912,7 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_burst);
     in_fresh_child(test_emitter_update_moves_a_particle_in_place);
+    in_fresh_child(test_a_burst_draws_its_circles_in_its_own_ramp);
     in_fresh_child(test_burst_is_a_struct);
     in_fresh_child(test_leaving_gives_back_its_particles);
     in_fresh_child(test_the_largest_bursts_fit_their_slot);

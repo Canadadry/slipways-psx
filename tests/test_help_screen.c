@@ -57,7 +57,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 
-#define BUILT_HASH 0x5D3141B1u
+#define BUILT_HASH 0xF2B889C9u
 #define LIFE_HASH 0x58FB715Eu
 #define HOVER_HASH 0xEABC449Fu
 
@@ -121,7 +121,6 @@ static uint32_t fold_tags(uint32_t h, unsigned tags) {
         [TAG_STRUCTURE] = "structure", [TAG_ASCENSION] = "ascension", [TAG_SLIPGATE] = "slipgate",
         [TAG_PROBE] = "probe", [TAG_MESSAGE_BOX] = "message_box", [TAG_SLIPWAY] = "slipway",
         [TAG_WORMHOLE] = "wormhole", [TAG_PLANET] = "planet", [TAG_NODE] = "node",
-        [TAG_TARGETING] = "targeting",
     };
     uint32_t k = 0;
     int t;
@@ -277,7 +276,7 @@ static void start_title(void) {
 static int is_help(entity_t *e) {
     const probe_t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->archetype->layer == p8_fixed_from_int(10);
+    return g_ != NULL && g_->header.class->tags == TAG(TAG_PROBE) && g_->archetype->layer == p8_fixed_from_int(10);
 }
 
 static probe_t *the_help(void) {
@@ -338,7 +337,7 @@ static void test_built(void) {
     assert(probe->archetype->layer == p8_fixed_from_int(10));
     assert(emitter->archetype->lifetime == p8_fixed_from_int(17));
     assert(probe->archetype->back_color == p8_fixed_from_int(11));
-    assert(probe->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
+    assert(probe->header.class->tags == TAG(TAG_PROBE));
     assert(pos_ref(&probe->header) != NULL && emitter->trail_colors != NULL);
     assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != ENTITY_STATE_NONE);
     hash = fold_fixed_member(hash, probe->archetype->layer);
@@ -413,8 +412,7 @@ static void test_built(void) {
     assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), help_screen) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), help_screen));
     assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), help_screen) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
-    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen) && entity_list_listed(entities_by_tag(TAG_TARGETING), help_screen));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen));
 
     for (key_index = 0; key_index < 4; key_index++) {
         const button_t *row = (const button_t *)live->items[rank - 4 + key_index];

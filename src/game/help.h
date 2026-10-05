@@ -14,7 +14,6 @@ void help_shutdown(void);
 int help_screen_ready(void);
 const entity_class_t *help_screen_class(void);
 
-/* GAP-8 */
 probe_t *help_screen_new(void);
 
 button_fn_t help_start_game_field_value(void);

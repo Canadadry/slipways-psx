@@ -6,7 +6,6 @@
 
 char *p8_sub(const allocator_t *zone, const char *s, int i, int j);
 
-/* GAP-22 */
 char *p8_tostr_fixed(const allocator_t *zone, p8_fixed_t x);
 
 char *p8_concat2(const allocator_t *zone, const char *a, const char *b);

@@ -68,7 +68,7 @@ static int pos_copies(const vec_t *ra, vec_t mp) {
  * value moves every *_HASH. */
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
-#define BUILT_HASH 0x9AC68FB2u
+#define BUILT_HASH 0xA5EBBBC3u
 #define LIFE_HASH 0xCC266A25u
 #define HEIRS_HASH 0x2E00DEDDu
 
@@ -81,7 +81,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const tag_t tags[] = {TAG_ASCENSION, TAG_PLANET, TAG_NODE, TAG_TARGETING};
+static const tag_t tags[] = {TAG_ASCENSION, TAG_PLANET, TAG_NODE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -416,8 +416,8 @@ static uint32_t fold_ascension(uint32_t hash, void *entity) {
     assert_structure_members_but_draw(class_of(entity));
     assert(class_of(entity)->draw == ascension_class()->draw && planet_is_family(entity));
     assert(class_of(entity)->spawn_particle == probe_spawn_particle);
-    assert(planet->header.class->tags == (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && structure->archetype->name == &ascension_name_row && emitter->trail_colors == &ascension_trail_colors_seq);
-    assert(planet->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
+    assert(planet->header.class->tags == (TAG(TAG_ASCENSION) | TAG(TAG_PLANET) | TAG(TAG_NODE)) && structure->archetype->name == &ascension_name_row && emitter->trail_colors == &ascension_trail_colors_seq);
+    assert(planet->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE)));
     assert(structure->archetype->name != &structure_name_row);
     assert(structure->archetype->accepted_resources == &structure_accepted_resources_seq);
     assert(planet->archetype == &ascension_archetype);

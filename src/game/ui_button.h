@@ -55,12 +55,10 @@ typedef struct {
     int has_layer;
     p8_fixed_t layer;
     layout_row_keys_t layout_row_keys;
-    /* GAP-23 */
     int has_side_tooltip;
     int side_tooltip_is_false;
     int has_side_tooltip_row;
     layout_row_keys_t side_tooltip_row;
-    /* GAP-23 */
     int has_tooltip;
     int has_tooltip_row;
     data_row_t tooltip_row;

@@ -4,7 +4,7 @@
 
 ## How it's built
 
-- Ported from `pico8/lua.lua` (the cart's decompiled source), which stays as an archive. The C code is now the reference; known divergences are listed in `docs/porting-gaps.md`.
+- Ported from `pico8/lua.lua` (the cart's decompiled source), which stays as an archive. The C code is now the reference.
 - The game talks to a fixed PICO-8 API (a 160×120 software framebuffer) served by two backends: a headless replay (`events.json` in, text dump of the framebuffer out) and interactive raylib.
 - A raylib session records its input as `events.json`: whatever a human played, an agent can replay without a window.
 - `worst-case/` holds fully built-up games: `make state` reports zone peaks, `make full-game` fails on any `p8_fatal`.
@@ -25,9 +25,4 @@
 
 Rule for this list: each item is one clear sentence of at most 30 words, readable without any outside reference.
 
-- [ ] On real PICO-8, check three behaviors: how -0.0001 prints, the color of a circle drawn with a nil color, and sin/cos between multiples of 1/64.
-- [ ] Show a budget for slipways and relays, and block adding more once it is full.
 - [ ] Add a cheat that grants bonus score points, so a short e2e can show the score panel's lit stars.
-- [ ] Before adding any new place where memory is freed, make the list of references cut by `forget` (`src/game/cart.c`) mechanical: the grep inventory missed three (the chosen difficulty, `slipway->end`, `targeted_by`).
-- [ ] On PC, before the PSX port, recompute only the trade routes a change affects, instead of rebuilding everything on every economy recompute.
-- [ ] Decide on GAP-26: an off-screen planet loses the halo of the held object once that object is released, where the cart would reread its memory.

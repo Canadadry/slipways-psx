@@ -88,7 +88,7 @@ static void test_tostr_matches_probe_block_c(void) {
 static void test_tostr_below_0_0001_keeps_port_output(void) {
     char *s = p8_tostr_fixed(&heap_allocator, raw_fixed(0xfffffffau));
     assert(strcmp(s, "-0.0001") == 0
-           && "GAP-22: PICO-8 prints \"-0\" for raw -6; the port keeps \"-0.0001\"");
+           && "PICO-8 prints \"-0\" for raw -6; the port keeps \"-0.0001\"");
     free(s);
 }
 

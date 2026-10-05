@@ -6,8 +6,6 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
-/* GAP-15 */
-
 int entity_geom_contains_cursor(const entity_t *e, mouse_pos_t mouse);
 
 int entity_geom_is_on_screen(const entity_t *e);

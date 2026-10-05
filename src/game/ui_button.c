@@ -181,16 +181,15 @@ void button_construct(button_t *self, const button_keys_t *keys) {
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = (box_t){p8_fixed_from_int(0), p8_fixed_from_int(-1), self->width, p8_fixed_from_int(11)};
 
-    /* GAP-23 */
-    if (keys->has_side_tooltip_row || (keys->has_side_tooltip && !keys->side_tooltip_is_false)) {
-        self->side_tooltip = layout_row_new(self->slot, keys->has_side_tooltip_row ? &keys->side_tooltip_row : NULL);
+    if (keys->has_side_tooltip_row) {
+        self->side_tooltip = layout_row_new(self->slot, &keys->side_tooltip_row);
         self->has_side_tooltip = 1;
-    } else if (keys->has_side_tooltip) {
+    } else if (keys->has_side_tooltip && keys->side_tooltip_is_false) {
         self->side_tooltip = NULL;
         self->has_side_tooltip = 1;
     }
-    if (keys->has_tooltip_row || keys->has_tooltip) {
-        self->tooltip = tooltip_new(self->slot, keys->has_tooltip_row ? &keys->tooltip_row : NULL);
+    if (keys->has_tooltip_row) {
+        self->tooltip = tooltip_new(self->slot, &keys->tooltip_row);
     }
 }
 

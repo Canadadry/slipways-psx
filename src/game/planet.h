@@ -71,7 +71,6 @@ const char *planet_id_or_null(const planet_t *self);
 /* Copies the keys' id and positions that are given; NULL keys copy nothing. */
 void planet_copy_keys(planet_t *self, const planet_keys_t *keys);
 
-/* GAP-8 */
 void planet_init(void);
 
 void planet_shutdown(void);

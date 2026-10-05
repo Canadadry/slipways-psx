@@ -96,7 +96,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 #define PROJECTS_PANEL_ON_CLICK_HASH 0xCB3A928Cu
 #define TECH_TREE_SCREEN_ON_CLICK_HASH 0x7ED641D9u
 #define DRAW_HASH 0x1A156945u
-#define BUTTON_MEMBERS_HASH 0xF6AAF8CAu
+#define BUTTON_MEMBERS_HASH 0xC3E845D7u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -1115,9 +1115,6 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
-/* GAP-23: a row whose side tooltip or tooltip key is present but absent
- * still gets an empty row or tooltip; only false, or no key at all, gets
- * none. */
 /* The first and last screen rows whose column 0 is no longer `background`;
  * -1 if none. */
 static void painted_rows(int background, int *first, int *last) {
@@ -1168,9 +1165,8 @@ static void test_nil_keys(void) {
     b.has_tooltip = 1;
     nil_keys = button_new(&b);
     assert(!button_of(no_keys)->has_side_tooltip && button_of(no_keys)->tooltip == NULL);
-    assert(button_of(nil_keys)->has_side_tooltip && is_layout_row(button_of(nil_keys)->side_tooltip));
-    assert(button_of(nil_keys)->side_tooltip->width == 0);
-    assert(button_of(nil_keys)->tooltip != NULL);
+    assert(!button_of(nil_keys)->has_side_tooltip && button_of(nil_keys)->side_tooltip == NULL);
+    assert(button_of(nil_keys)->tooltip == NULL);
 }
 
 /* How many button structs the live entities hold. */
@@ -1430,9 +1426,9 @@ static uint32_t fold_and_drop(uint32_t h, button_t *b) {
 }
 
 /* Each optional key unset, the fixed ones and `on_click` given at zero, a
- * side tooltip false, GAP-23, a side tooltip copied from a layout row
- * (written on the member: no key builds it), a row's keys as the layout
- * row's source. */
+ * side tooltip false, a side tooltip and a tooltip key present but nil, a
+ * side tooltip copied from a layout row (written on the member: no key
+ * builds it), a row's keys as the layout row's source. */
 static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     static layout_row_t side_tooltip;
     const button_keys_t none = {0};
@@ -1478,12 +1474,12 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     keys = none;
     keys.has_side_tooltip = 1;
     button = built(keys);
-    assert(button->has_side_tooltip && is_layout_row(button->side_tooltip) && button->side_tooltip->width == 0);
+    assert(!button->has_side_tooltip && button->side_tooltip == NULL);
     hash = fold_and_drop(hash, button);
     keys = none;
     keys.has_tooltip = 1;
     button = built(keys);
-    assert(button->tooltip != NULL && is_of_class(button->tooltip, tooltip_class()));
+    assert(button->tooltip == NULL);
     hash = fold_and_drop(hash, button);
     keys = none;
     button = built(keys);
@@ -1491,10 +1487,10 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     hash = fold_and_drop(hash, button);
 
     keys = none;
-    keys.has_side_tooltip = 1;
     button = built(keys);
     side_tooltip = *source_row;
     button->side_tooltip = &side_tooltip;
+    button->has_side_tooltip = 1;
     assert(button->has_side_tooltip && is_layout_row(button->side_tooltip) && button->side_tooltip != source_row);
     hash = fold_and_drop(hash, button);
 
@@ -1789,7 +1785,7 @@ static void test_pause_menu_open_box_is_a_struct(void) {
     assert(pause_menu_open_box() == o);
 }
 
-/* GAP-9: a button's layer is the frame's back color when the frame has
+/* A button's layer is the frame's back color when the frame has
  * one, else the button's own. */
 static void test_open_box_layer_only_from_back_color(void) {
     open_box_frame_t frame = {0};

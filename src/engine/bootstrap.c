@@ -54,7 +54,9 @@ void update_entities(void) {
     const entity_list_t *hv = live_entities();
     int i;
 
-    /* GAP-5 */
+    /* Removing an element during this walk skips the next one; it is visited
+     * next frame. Compensating the index would change update timing and every
+     * replay. */
     for (i = 0; i < hv->count; i++) {
         entity_t *qc = hv->items[i];
 

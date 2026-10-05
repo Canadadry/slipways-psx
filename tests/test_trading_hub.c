@@ -50,7 +50,7 @@ static int pos_copies(const vec_t *ra, vec_t mp) {
 }
 
 
-#define BUILT_HASH 0x067C3AC7u
+#define BUILT_HASH 0x1E64D336u
 #define LIFE_HASH 0x31386BDAu
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
@@ -66,7 +66,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -354,7 +354,7 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     assert(class_of(entity)->attach_slipway == structure_class()->attach_slipway && class_of(entity)->offer_trade == structure_class()->offer_trade &&
            class_of(entity)->spawn_particle == NULL);
     assert(class_of(entity)->states[ENTITY_STATE_SETTLED] != structure_class()->states[ENTITY_STATE_SETTLED]);
-    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
+    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE)));
     assert(structure->archetype->name == &trading_hub_name_row && structure->archetype->name != &structure_name_row);
     assert(structure->archetype->accepted_resources == &trading_hub_accepted_resources_seq && structure->archetype->accepted_resources != &structure_accepted_resources_seq);
     assert(planet->archetype == &trading_hub_archetype);

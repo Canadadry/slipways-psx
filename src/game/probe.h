@@ -16,7 +16,6 @@ typedef struct {
     targeting_t targeting;
 } probe_t;
 
-/* GAP-8 */
 void probe_init(void);
 
 void probe_shutdown(void);

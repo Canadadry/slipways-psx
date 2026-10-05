@@ -34,6 +34,6 @@ Everything written in the repository is in English: code, comments, docs, e2e no
 
 ## Comments
 
-A comment stays only if it carries one of three things: a known divergence from the cart (→ `docs/porting-gaps.md`, referenced by a bare `/* GAP-7 */`), a trap someone would reintroduce (an `assert` with a message, otherwise 40 words at most), or a C contract the name doesn't state (who frees the memory, what the function returns when the field is missing). `TODO` is allowed. In a `Makefile`, only help for reading a command stays. Everything else goes in the commit message.
+A comment stays only if it carries one of two things: a trap someone would reintroduce (an `assert` with a message, otherwise 40 words at most), or a C contract the name doesn't state (who frees the memory, what the function returns when the field is missing). `TODO` is allowed. In a `Makefile`, only help for reading a command stays. Everything else goes in the commit message.
 
 To rework a file written before these rules: skill `rework-comments`.

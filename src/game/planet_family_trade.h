@@ -4,7 +4,6 @@
 #include "game/planet_trade.h"
 #include "engine/entity_class.h"
 
-/* GAP-8 */
 void planet_family_trade_init(void);
 
 void planet_family_trade_shutdown(void);

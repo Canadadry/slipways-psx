@@ -44,17 +44,11 @@ What may survive, each in exactly one place:
    You **do not write** to this file (other agents are working in parallel):
    you list in your report the entries to add or correct. The code does not
    repeat the glossary.
-2. **A known gap with <THE REFERENCE>**, or a piece deliberately left undone →
-   an entry in `<docs/gaps.md>`. You do not write there either: you propose the
-   entry in your report. In the code, you leave only a **bare marker**
-   `/* GAP-n */`, alone on its line above the declaration concerned. No summary
-   next to it: it would go stale. For a gap that has no number yet, write
-   `/* GAP-? */` and report it.
-3. **A trap a future reader would reintroduce** → an
+2. **A trap a future reader would reintroduce** → an
    `assert(cond && "short message")` at the exact site **if you can establish
    that it holds**, otherwise **one sentence** in the body, at that line. Read
    the next section before writing a single assert.
-4. **A file format that something outside the repository must read** → it may
+3. **A file format that something outside the repository must read** → it may
    stay in full in the header that writes it. A format read only by this
    repository's code or tests does not qualify: the tests pin it. Say in your
    report which header you claim this for, and why.
@@ -176,7 +170,7 @@ usual check (identical non-comment lines) does not see them.
 - No nested block comment (a `/* */` does not nest).
 - `#include <assert.h>` present if you added an assert.
 - `<header_residue.sh> <your headers>` prints nothing (`-x <header>` only
-  for a header you claim under destination 4).
+  for a header you claim under destination 3).
 - Count the comment lines before and after with **the command given in this
   brief**, not with your own: otherwise your figure is comparable to no other.
 - Report files from the same batch that you came across without being in
@@ -186,7 +180,7 @@ usual check (identical non-comment lines) does not see them.
 
 You will find things that are not comments: a claim the code contradicts, a
 latent overflow, an argument parsed differently from its usage line. Report
-them in section 9, one line each, **marked `defect` only if it produces a
+them in section 8, one line each, **marked `defect` only if it produces a
 wrong output, a crash, an out-of-bounds access or data loss** today, on a
 platform the repository builds for. Everything else is marked `note` and ends
 in the commit message. You fix none of them.

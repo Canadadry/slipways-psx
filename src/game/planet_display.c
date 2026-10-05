@@ -402,7 +402,6 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
     }
 
     {
-        /* GAP-26 */
         entity_t *targeted_by = entity_get(self->targeted_by);
 
         if (targeted_by != NULL) {

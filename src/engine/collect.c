@@ -54,7 +54,8 @@ pointer_list_t collect_concat_pointer_list(const allocator_t *zone, const pointe
     return t;
 }
 
-/* GAP-3 */
+/* Strings in this port are copied, never interned, so two equal strings are
+   not the same pointer: compare by content (strcmp), never by pointer. */
 int collect_contains_string(const pointer_list_t *qk, const char *kb) {
     pointer_list_iter_t it;
     void *e;

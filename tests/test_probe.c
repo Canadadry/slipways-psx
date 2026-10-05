@@ -63,11 +63,11 @@ static int pos_copies(const vec_t *ra, vec_t mp) {
  * other value moves every *_HASH. */
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
 
-#define BUILT_HASH 0xD2F8504Au
+#define BUILT_HASH 0xD2BD6AF7u
 #define LIFE_HASH 0x338111F6u
 #define DROP_ON_HASH 0x49056D9Bu
 #define DROP_OFF_HASH 0x3EA86A53u
-#define HELP_SCREEN_HASH 0x4F451648u
+#define HELP_SCREEN_HASH 0x8CEFE468u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -223,7 +223,6 @@ static uint32_t fold_tags(uint32_t h, unsigned tags) {
         [TAG_STRUCTURE] = "structure", [TAG_ASCENSION] = "ascension", [TAG_SLIPGATE] = "slipgate",
         [TAG_PROBE] = "probe", [TAG_MESSAGE_BOX] = "message_box", [TAG_SLIPWAY] = "slipway",
         [TAG_WORMHOLE] = "wormhole", [TAG_PLANET] = "planet", [TAG_NODE] = "node",
-        [TAG_TARGETING] = "targeting",
     };
     uint32_t k = 0;
     int t;
@@ -327,7 +326,7 @@ static background_t *the_background(void) {
 static int is_probe(entity_t *e) {
     const probe_t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->archetype->layer == p8_fixed_from_int(2);
+    return g_ != NULL && g_->header.class->tags == TAG(TAG_PROBE) && g_->archetype->layer == p8_fixed_from_int(2);
 }
 
 static probe_t *as_probe(void *e) {
@@ -392,7 +391,7 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     assert(targeting->archetype->confirmed_state != ENTITY_STATE_NONE && emitter->trail_colors != NULL);
     hash = fold_tags(hash, entity->header.class->tags);
     hash = fold_seq(hash, emitter->trail_colors);
-    assert(entity->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
+    assert(entity->header.class->tags == TAG(TAG_PROBE));
     assert(emitter->trail_colors == &probe_trail_colors_seq);
     hash = fnv(hash, (uint32_t)size_of(particles_of(emitter)));
     assert(size_of(particles_of(emitter)) == 0);
@@ -411,8 +410,7 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), entity) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), entity));
     assert(!entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_NEW_YEAR), entity) && !entity_list_listed(entities_by_message(ENTITY_MESSAGE_REFRESH), entity));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), entity));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), entity));
-    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity) && entity_list_listed(entities_by_tag(TAG_TARGETING), entity));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), entity));
     return hash;
 }
 
@@ -613,7 +611,7 @@ static void test_life(void) {
     assert(targeting_confirm(&first->header) == 0);
     assert(first->header.is_dead);
     update_entities();
-    assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag(TAG_PROBE), first) && !entity_list_listed(entities_by_tag(TAG_TARGETING), first));
+    assert(!entity_list_listed(live_entities(), first) && !entity_list_listed(entities_by_tag(TAG_PROBE), first));
     assert(entity_list_listed(live_entities(), second) && entity_list_listed(entities_by_tag(TAG_PROBE), second));
     hash = fnv(hash, (uint32_t)live_entities()->count);
     check("life", hash, LIFE_HASH);
@@ -693,7 +691,7 @@ static void test_drop_void(void) {
 static int is_help(entity_t *e) {
     const probe_t *g_ =
         e != NULL && (e->class->lineage & LINEAGE(LINEAGE_PROBE)) ? (const probe_t *)e : NULL;
-    return g_ != NULL && g_->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)) && g_->archetype->layer == p8_fixed_from_int(10);
+    return g_ != NULL && g_->header.class->tags == TAG(TAG_PROBE) && g_->archetype->layer == p8_fixed_from_int(10);
 }
 
 /* The title screen's help screen, of the probe's lineage: its tags,
@@ -719,7 +717,7 @@ static void test_help_screen(void) {
     }
     assert(help_entity != NULL && !is_probe(help_entity));
     help_screen = (const probe_t *)help_entity;
-    assert(help_screen->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
+    assert(help_screen->header.class->tags == TAG(TAG_PROBE));
     assert(help_screen->archetype->fold_anchor == p8_fixed_from_int(1));
     assert(help_screen->targeting.archetype->confirmed_state == ENTITY_STATE_SETTLED);
     assert(help_screen->archetype->layer == p8_fixed_from_int(10));
@@ -737,8 +735,7 @@ static void test_help_screen(void) {
     hash = fnv(hash, (uint32_t)size_of(particles_of(&help_screen->emitter)));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live, help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
-    hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
-    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen) && entity_list_listed(entities_by_tag(TAG_TARGETING), help_screen));
+    assert(entity_list_listed(entities_by_tag(TAG_PROBE), help_screen));
     hash = fold_defaults(hash, help_screen);
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);

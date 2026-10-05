@@ -200,7 +200,6 @@ p8_fixed_t economy_tiers_compute_tier(const entity_t *entity) {
             if (incoming_routes != NULL) {
                 for (j = 0; j < trade_route_list_count(incoming_routes); j++) {
                     const trade_route_t *im = trade_route_list_at(incoming_routes, j);
-                    /* GAP-24 */
                     if (im->has_resource && resource_equal(trade_resource(im), resource_val)) {
                         gc++;
                     }

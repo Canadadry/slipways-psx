@@ -55,7 +55,7 @@ static int pos_copies(const vec_t *ra, vec_t mp) {
 }
 
 
-#define BUILT_HASH 0xBAF7572Fu
+#define BUILT_HASH 0x7BCCC2FEu
 #define LIFE_HASH 0x33195DC7u
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
@@ -71,7 +71,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const tag_t tags[] = {TAG_SLIPGATE, TAG_NODE, TAG_TARGETING};
+static const tag_t tags[] = {TAG_SLIPGATE, TAG_NODE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -362,8 +362,8 @@ static uint32_t fold_slipgate(uint32_t hash, const void *entity) {
     assert(class_of(entity)->accept_drop != planet_class()->accept_drop && class_of(entity)->left_press != planet_class()->left_press &&
            class_of(entity)->refresh != planet_class()->refresh);
     assert(planet->archetype == &slipgate_archetype);
-    assert(planet->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && slipgate->archetype->link_sprites == &slipgate_link_sprites_seq);
-    assert(planet->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)));
+    assert(planet->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE)) && slipgate->archetype->link_sprites == &slipgate_link_sprites_seq);
+    assert(planet->header.class->tags != (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE)));
     assert(planet->archetype->hit_box.left != planet_archetype.hit_box.left);
     assert(structure->archetype->name == &structure_name_row && structure->archetype->accepted_resources == &structure_accepted_resources_seq);
     assert(planet->archetype == &slipgate_archetype);

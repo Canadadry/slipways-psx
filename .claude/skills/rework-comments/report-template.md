@@ -1,12 +1,12 @@
 # Agent report template
 
 Paste it at the end of the brief, or have the agent read it. The orchestrator
-draws from it the commit message, the batches of glossary and gap entries, and
-the decision to rerun a module. It reads **sections 7 and 8 first**: they are
+draws from it the commit message, the batches of glossary entries, and
+the decision to rerun a module. It reads **sections 6 and 7 first**: they are
 the ones that carry the results.
 
-**An empty section is not a failed section**, and that holds for all nine. On a
-catch-up of a few files, 3, 5 and 6 are often empty by construction. Padding is
+**An empty section is not a failed section**, and that holds for all eight. On a
+catch-up of a few files, 3 and 5 are often empty by construction. Padding is
 the only real failure.
 
 ---
@@ -27,9 +27,9 @@ must read, and the only proof that the cleanup broke nothing.
 
 ## 2. What I kept, and under which destination
 
-One line per comment kept, with its destination (2 = gap marker, 3 = trap,
-4 = external format). A header should appear here only for a gap marker, a
-`TODO` or an external format. Every line must answer: what bug would a reader
+One line per comment kept, with its destination (2 = trap,
+3 = external format). A header should appear here only for a `TODO` or an
+external format. Every line must answer: what bug would a reader
 reintroduce without it, and why no assert or test catches it.
 
 - `other()` (body) — trap: <the bug it prevents>; not an assert because <…>.
@@ -71,17 +71,12 @@ You do not write to the glossary. Propose; the orchestrator applies in batches.
 - correct: `<symbol>` — the glossary says "<X>", the code says "<Y>", verified
   by <…>
 
-## 6. Gaps to record
-
-- GAP-? — <title> — <2 to 4 lines> — marker placed at `<file:line>`
-- existing GAP-<n> — file to add to its list: `<path>`
-
-## 7. Status claims verified false
+## 6. Status claims verified false
 
 One line each: what the comment claimed, what the verification showed, how you
 verified it.
 
-## 8. What I hesitated to delete
+## 7. What I hesitated to delete
 
 **Mandatory. Do not fill it out of politeness, do not leave it out.**
 
@@ -91,13 +86,13 @@ that risks no longer being written down anywhere after your pass, a comment that
 contradicts the code, a bug announced as fixed of which you find only half the
 fix. Say what is lost and what it would cost to reconstruct.
 
-This is the section that, on the reference project, surfaced the real gaps, the
+This is the section that, on the reference project, surfaced the stale claims, the
 glossary errors and a bug declared fixed that was only half fixed.
 
-## 9. What stays as is, and why
+## 8. What stays as is, and why
 
 What you could not rework without stepping outside your mandate (touching an
-assertion, modifying code, ruling on a gap), and what would need to be
+assertion, modifying code), and what would need to be
 decided.
 
 Findings outside comments go here too, one line each, marked `defect` (wrong

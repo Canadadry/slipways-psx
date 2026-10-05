@@ -1,6 +1,6 @@
 #!/bin/sh
 # Prints every comment left in the given C headers that the bar forbids:
-# anything but a bare /* GAP-n */ marker or a comment containing TODO.
+# anything but a comment containing TODO.
 # Exit 1 if any is printed. A header that documents an external file format
 # is passed with -x and skipped.
 # Usage: header_residue.sh [-x allowed.h]... file.h...
@@ -11,7 +11,7 @@ for f in "$@"; do
     case " $skip " in *" $f "*) continue ;; esac
     awk -v file="$f" '
         function flush() {
-            if (text !~ /^\/\* GAP-[0-9?]+ \*\/$/ && text !~ /TODO/) {
+            if (text !~ /TODO/) {
                 printf "%s:%d: %s\n", file, start, substr(text, 1, 100)
                 bad = 1
             }

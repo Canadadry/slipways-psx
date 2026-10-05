@@ -59,7 +59,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 /* Ticks after the slipway is paid, long enough for the colonizing and
  * paying effects to leave the live entities: update_entities skips the
- * entity after one it takes out (GAP-5). */
+ * entity after one it takes out. */
 #define SETTLE_TICKS 120
 
 #define ANCHORS_HASH 0xC6D8AF55u
@@ -277,7 +277,7 @@ static void drop(void *mz) {
 }
 
 /* update_entities skips the entity after one it takes out of the live
- * entities (GAP-5): count ticks by state time, not by calls. */
+ * entities: count ticks by state time, not by calls. */
 static void until_state_time(const wormhole_t *mz, int t) {
     while (mz->header.state_time < p8_fixed_from_int(t)) {
         update_entities();

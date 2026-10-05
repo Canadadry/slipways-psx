@@ -721,8 +721,7 @@ static void test_offer_trade_wildcard_want(void) {
 }
 
 /* A route through trade_extend holds false, not absent: it no longer
- * answers a need with no resource, as a route with no resource does --
- * GAP-24. */
+ * answers a need with no resource, as a route with no resource does. */
 static void test_offer_trade_nil_want_after_extend(void) {
     trade_offer_t lw = {0};
     pointer_list_t *jy = malloc(sizeof *jy);
@@ -749,7 +748,7 @@ static void test_offer_trade_nil_want_after_extend(void) {
 /* economy_tiers_compute_tier counts for a need only the routes whose
  * resource equals the need's: a route with no resource is skipped by the
  * has_resource guard, and one through trade_extend holds false, which is
- * not the absent resource of a need with none -- GAP-24. */
+ * not the absent resource of a need with none. */
 static void test_compute_tier_counts_numbered_routes_only(void) {
     pointer_list_t *jy = malloc(sizeof *jy);
     trade_route_list_t *cc = malloc(sizeof *cc);

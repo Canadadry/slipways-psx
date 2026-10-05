@@ -50,9 +50,9 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 #define GALAXY_PLANETS 90
-#define GALAXY_HASH 0xE70E2EE3u
+#define GALAXY_HASH 0xE3AFB4DEu
 #define DAUGHTERS_HASH 0x668D1EBEu
-#define NEW_PLANET_HASH 0x48C32418u
+#define NEW_PLANET_HASH 0x8E844279u
 #define UPDATE_VANISHING_CALLS 62
 
 static p8_vram_t memory;
@@ -60,7 +60,7 @@ static p8_graphics_t graphics;
 static p8_input_t input;
 
 static const entity_message_t messages[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_HIT_TEST, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
-static const tag_t tags[] = {TAG_PLANET, TAG_NODE, TAG_TARGETING};
+static const tag_t tags[] = {TAG_PLANET, TAG_NODE};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -275,7 +275,7 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     assert_planet_members(class_of(entity));
     assert(planet->archetype == &planet_archetype);
     assert(planet->archetype == &planet_archetype);
-    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING)) && !(planet->has & PLANET_HAS_PRODUCTION) && planet->archetype->spacer == &planet_spacer_row);
+    assert(planet->header.class->tags == (TAG(TAG_PLANET) | TAG(TAG_NODE)) && !(planet->has & PLANET_HAS_PRODUCTION) && planet->archetype->spacer == &planet_spacer_row);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), entity));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_message(messages[index]), entity));
@@ -525,7 +525,7 @@ static void test_entities_by_tag_null_until_seen(void) {
     entity_registry_init(NULL);
     assert(entities_by_tag(TAG_PLANET) == NULL && entities_by_tag(TAG_NODE) == NULL);
     a = new_planet("p902", 5, 6);
-    assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_NODE) != NULL && entities_by_tag(TAG_TARGETING) != NULL);
+    assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_NODE) != NULL);
     assert(entities_by_tag(TAG_STRUCTURE) == NULL);
     entity_unregister(a);
     assert(entities_by_tag(TAG_PLANET) != NULL && entities_by_tag(TAG_PLANET)->count == 0);
