@@ -14,18 +14,6 @@ reworked. A deleted entry is a closed entry: see git.
 
 ---
 
-## GAP-19 — The font is rebuilt by hand
-
-PICO-8's glyphs belong to its runtime, not to the cart, so they are in no
-exportable asset. This port redraws them (3×5 pixels in a 4-wide cell,
-`font_glyph_rows`) and displays a solid block for any character not
-covered.
-
-Permanent, accepted visual divergence: the only way to close it would be
-to capture the glyphs from PICO-8 itself.
-
-File: `src/p8/gfx.c`.
-
 ## GAP-20 — An explicit `nil` as the color of `circ` is not verified on PICO-8
 
 Lua: `ga:kj`, `circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])`, `1 < l < 2`,
