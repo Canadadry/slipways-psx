@@ -100,24 +100,6 @@ Pinned by `test_scores_box_follows_is_shown` in `tests/test_message_box.c`
 
 File: `src/game/score_panel_display.c`.
 
-## GAP-14 — A loop that deletes its own element skips one
-
-Lua: `ei()`, `qy`.
-
-Same family as `update_entities`, in other places and on other lists:
-`emitter_update` walks its emitter's particles (`particles`) and deletes
-some in the middle of its own loop (`pointer_list_del`) without adjusting
-the index. The particle that takes the place of the one just removed is
-not visited this frame. The same pattern exists in the slipway display.
-
-No visible consequence: a particle lives one frame longer than intended,
-and it will be visited on the next frame. Recorded because this is the
-third site of the same pattern, and a future reader who fixes only one of
-them will make the three inconsistent with each other.
-
-Files: `src/game/particle.c`, `src/game/slipway_display.c`,
-and `src/engine/bootstrap.c` for the same pattern in `update_entities`.
-
 ## GAP-15 — Where Lua would crash, this port ignores it
 
 Lua: `bd()`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.

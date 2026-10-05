@@ -149,6 +149,7 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
 
                 /* No `else`: an expired particle is still drawn once more at its final position. */
                 if (new_l <= p8_fixed_from_int(0)) {
+                    /* Removing an element during this walk skips the next one; it is visited next frame. Compensating the index would change update timing and every replay. */
                     pointer_list_del(ts, t);
                     allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);
                 }

@@ -162,8 +162,7 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
             particle->life = p8_fixed_sub(particle->life, P8_FIXED_LIT(0x000023d7, 0.14));
 
             if (particle->life <= p8_fixed_from_int(1)) {
-                /* GAP-14 */
-                /* Never compensate the index: the particle sliding into the freed slot waits a frame. */
+                /* Removing an element during this walk skips the next one; it is visited next frame. Compensating the index would change update timing and every replay. */
                 pointer_list_del(particles, particle);
                 allocator_release(particle_zone(PARTICLE_SLOT_PARTICLE), (unsigned char *)particle);
             } else {
