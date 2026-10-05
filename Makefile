@@ -291,6 +291,9 @@ $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c
 $(TMP_DIR)/test_raylib_backend_coords: $(call objs,tests/test_raylib_backend_coords.c src/platform/raylib_backend_coords.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c) keymap.cfg | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_button_cursor: $(call objs,tests/test_button_cursor.c src/engine/button_cursor.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -591,6 +594,7 @@ UNIT_TESTS := \
     test_draw_layers_camera \
     test_demo \
     test_raylib_backend_coords \
+    test_keymap \
     test_button_cursor \
     test_replay_source \
     test_recording_continuity \

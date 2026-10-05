@@ -29,3 +29,6 @@ src/devtools/session_recorder.c | session recording of the interactive driver
 src/devtools/session_recorder.h | session recording of the interactive driver
 src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c
+src/platform/keymap.c | raylib backend, keymap.cfg parser
+src/platform/keymap.h | raylib backend, header of platform/keymap.c
+src/platform/keymap_names.h | raylib backend, raylib key and gamepad names

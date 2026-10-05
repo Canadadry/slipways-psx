@@ -1,0 +1,139 @@
+#ifndef PLATFORM_KEYMAP_NAMES_H
+#define PLATFORM_KEYMAP_NAMES_H
+
+/* raylib 6.0's KeyboardKey and GamepadButton values, without raylib.h: the
+ * raylib backend checks each one against KEY_<name> / GAMEPAD_BUTTON_<name>
+ * at compile time, so a renumbered key fails `make raylib`. The macro
+ * parameter is lowercase: `X` would also replace the key named X. */
+
+#define KEYMAP_KEYBOARD_NAMES(entry) \
+    entry(APOSTROPHE, 39) \
+    entry(COMMA, 44) \
+    entry(MINUS, 45) \
+    entry(PERIOD, 46) \
+    entry(SLASH, 47) \
+    entry(ZERO, 48) \
+    entry(ONE, 49) \
+    entry(TWO, 50) \
+    entry(THREE, 51) \
+    entry(FOUR, 52) \
+    entry(FIVE, 53) \
+    entry(SIX, 54) \
+    entry(SEVEN, 55) \
+    entry(EIGHT, 56) \
+    entry(NINE, 57) \
+    entry(SEMICOLON, 59) \
+    entry(EQUAL, 61) \
+    entry(A, 65) \
+    entry(B, 66) \
+    entry(C, 67) \
+    entry(D, 68) \
+    entry(E, 69) \
+    entry(F, 70) \
+    entry(G, 71) \
+    entry(H, 72) \
+    entry(I, 73) \
+    entry(J, 74) \
+    entry(K, 75) \
+    entry(L, 76) \
+    entry(M, 77) \
+    entry(N, 78) \
+    entry(O, 79) \
+    entry(P, 80) \
+    entry(Q, 81) \
+    entry(R, 82) \
+    entry(S, 83) \
+    entry(T, 84) \
+    entry(U, 85) \
+    entry(V, 86) \
+    entry(W, 87) \
+    entry(X, 88) \
+    entry(Y, 89) \
+    entry(Z, 90) \
+    entry(LEFT_BRACKET, 91) \
+    entry(BACKSLASH, 92) \
+    entry(RIGHT_BRACKET, 93) \
+    entry(GRAVE, 96) \
+    entry(SPACE, 32) \
+    entry(ESCAPE, 256) \
+    entry(ENTER, 257) \
+    entry(TAB, 258) \
+    entry(BACKSPACE, 259) \
+    entry(INSERT, 260) \
+    entry(DELETE, 261) \
+    entry(RIGHT, 262) \
+    entry(LEFT, 263) \
+    entry(DOWN, 264) \
+    entry(UP, 265) \
+    entry(PAGE_UP, 266) \
+    entry(PAGE_DOWN, 267) \
+    entry(HOME, 268) \
+    entry(END, 269) \
+    entry(CAPS_LOCK, 280) \
+    entry(SCROLL_LOCK, 281) \
+    entry(NUM_LOCK, 282) \
+    entry(PRINT_SCREEN, 283) \
+    entry(PAUSE, 284) \
+    entry(F1, 290) \
+    entry(F2, 291) \
+    entry(F3, 292) \
+    entry(F4, 293) \
+    entry(F5, 294) \
+    entry(F6, 295) \
+    entry(F7, 296) \
+    entry(F8, 297) \
+    entry(F9, 298) \
+    entry(F10, 299) \
+    entry(F11, 300) \
+    entry(F12, 301) \
+    entry(LEFT_SHIFT, 340) \
+    entry(LEFT_CONTROL, 341) \
+    entry(LEFT_ALT, 342) \
+    entry(LEFT_SUPER, 343) \
+    entry(RIGHT_SHIFT, 344) \
+    entry(RIGHT_CONTROL, 345) \
+    entry(RIGHT_ALT, 346) \
+    entry(RIGHT_SUPER, 347) \
+    entry(KB_MENU, 348) \
+    entry(KP_0, 320) \
+    entry(KP_1, 321) \
+    entry(KP_2, 322) \
+    entry(KP_3, 323) \
+    entry(KP_4, 324) \
+    entry(KP_5, 325) \
+    entry(KP_6, 326) \
+    entry(KP_7, 327) \
+    entry(KP_8, 328) \
+    entry(KP_9, 329) \
+    entry(KP_DECIMAL, 330) \
+    entry(KP_DIVIDE, 331) \
+    entry(KP_MULTIPLY, 332) \
+    entry(KP_SUBTRACT, 333) \
+    entry(KP_ADD, 334) \
+    entry(KP_ENTER, 335) \
+    entry(KP_EQUAL, 336) \
+    entry(BACK, 4) \
+    entry(MENU, 5) \
+    entry(VOLUME_UP, 24) \
+    entry(VOLUME_DOWN, 25)
+
+#define KEYMAP_GAMEPAD_NAMES(entry) \
+    entry(LEFT_FACE_UP, 1) \
+    entry(LEFT_FACE_RIGHT, 2) \
+    entry(LEFT_FACE_DOWN, 3) \
+    entry(LEFT_FACE_LEFT, 4) \
+    entry(RIGHT_FACE_UP, 5) \
+    entry(RIGHT_FACE_RIGHT, 6) \
+    entry(RIGHT_FACE_DOWN, 7) \
+    entry(RIGHT_FACE_LEFT, 8) \
+    entry(LEFT_TRIGGER_1, 9) \
+    entry(LEFT_TRIGGER_2, 10) \
+    entry(RIGHT_TRIGGER_1, 11) \
+    entry(RIGHT_TRIGGER_2, 12) \
+    entry(MIDDLE_LEFT, 13) \
+    entry(MIDDLE, 14) \
+    entry(MIDDLE_RIGHT, 15) \
+    entry(LEFT_THUMB, 16) \
+    entry(RIGHT_THUMB, 17)
+
+#endif
