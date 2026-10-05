@@ -254,24 +254,6 @@ Premise refuted by diagnosis in the emulators.
 
 File: `src/game/planet_family.c`.
 
-## GAP-21 — The palette of a burst born from a protostar is the class's
-
-Lua: `ga:kj`, `self.k_`, `k_`, `pm:pq()`, `ga`,
-`k_=o(1,2,8,14,14,14,14,8,8,2,2,1,1)`, `k_=o(1,2,4,9,9,10,10,7,7,7,7,7)`.
-
-`burst_draw` reads the instance's trail ramp when it has one
-(lua.lua:1091). `protostar_construct` gives one to the burst it creates
-(1,2,8,14,14,14,14,8,8,2,2,1,1; lua.lua:1030, 1033), which shadows the
-class's (1,2,4,9,9,10,10,7,7,7,7,7; lua.lua:1077). This port reads the
-class's ramp (`burst_trail_colors_seq`), never the instance's, so a
-protostar's burst gets the palette of an ordinary burst.
-
-Probable, not verified against PICO-8. `protostar_construct` runs in the
-e2e `tests/e2e/tech_starbirth_protostar.json`: its hash pins the port's
-rendering, divergence included.
-
-File: `src/game/planet_family.c`.
-
 ## GAP-22 — `tostr` below 0.0001 is not sourced
 
 Lua: `tostr`.
