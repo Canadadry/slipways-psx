@@ -125,11 +125,15 @@ static char *planet_dollar(const char *s) {
 static open_box_frame_t planet_open_box_frame(const planet_t *self) {
     open_box_frame_t frame = {0};
 
-    frame.description = self->description;
+    if (self->description != NULL) {
+        open_box_frame_set_description(&frame, self->description);
+    }
     frame.has_back_color = 1;
     frame.back_color = self->archetype->back_color;
-    frame.row_step = &self->archetype->row_step;
-    frame.pos = entity_has_pos(&self->header) ? &self->header.pos : NULL;
+    frame.has_row_step = 1;
+    frame.row_step = self->archetype->row_step;
+    frame.has_pos = entity_has_pos(&self->header);
+    frame.pos = self->header.pos;
     return frame;
 }
 

@@ -165,7 +165,7 @@ int economy_spend(economy_t *self, p8_fixed_t jt) {
     nz = self != NULL ? self->credits : p8_fixed_from_int(0);
 
     if (nz < jt) {
-        keys.text = "-no money-";
+        toast_keys_set_text(&keys, "-no money-");
         keys.color = p8_fixed_from_int(8);
         toast_new(&keys);
         return 0;
@@ -178,7 +178,7 @@ int economy_spend(economy_t *self, p8_fixed_t jt) {
     if (jt != p8_fixed_from_int(0)) {
         int color;
         char *text = collect_format_signed(frame_zone(), p8_fixed_neg(jt), 10, "$", &color);
-        keys.text = text;
+        toast_keys_set_text(&keys, text);
         keys.color = p8_fixed_from_int(color);
         toast_new(&keys);
     }

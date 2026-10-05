@@ -54,12 +54,15 @@ void help_screen_construct(probe_t *self) {
         bs[i].has_on_click = 1;
         bs[i].on_click = help_start_game_field_value();
     }
-    frame.fixed_pos = &self->archetype->fixed_pos;
+    frame.has_fixed_pos = 1;
+    frame.fixed_pos = self->archetype->fixed_pos;
     frame.clear_ephemerals_after = 1;
     frame.has_back_color = 1;
     frame.back_color = self->archetype->back_color;
-    frame.row_step = &self->archetype->row_step;
-    frame.pos = entity_has_pos(&self->header) ? &self->header.pos : NULL;
+    frame.has_row_step = 1;
+    frame.row_step = self->archetype->row_step;
+    frame.has_pos = entity_has_pos(&self->header);
+    frame.pos = self->header.pos;
     message_box_open_box(&frame, bs, DIFFICULTY_OPTIONS_COUNT);
 }
 

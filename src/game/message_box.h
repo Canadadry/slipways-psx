@@ -74,8 +74,6 @@ void message_box_shutdown(void);
 int message_box_ready(void);
 
 typedef struct {
-    const data_row_t *const *items;
-    int count;
     int has_duration_scale;
     p8_fixed_t duration_scale;
     message_box_keep_open_fn_t keep_open;
@@ -111,11 +109,15 @@ void toast_shutdown(void);
 int toast_ready(void);
 
 typedef struct {
-    const vec_t *pos;
+    int has_pos;
+    vec_t pos;
     entity_id_t source;
-    const char *text;
+    int has_text;
+    char text[TOAST_TEXT_CAP + 1];
     p8_fixed_t color;
 } toast_keys_t;
+
+void toast_keys_set_text(toast_keys_t *keys, const char *text);
 
 toast_t *toast_new(const toast_keys_t *keys);
 
@@ -124,15 +126,23 @@ void toast_update(toast_t *self);
 
 void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, vec_t p);
 
+enum { OPEN_BOX_DESCRIPTION_CAP = 17 };
+
 typedef struct {
-    const char *description;
-    const vec_t *fixed_pos;
+    int has_description;
+    char description[OPEN_BOX_DESCRIPTION_CAP + 1];
+    int has_fixed_pos;
+    vec_t fixed_pos;
     int clear_ephemerals_after;
     int has_back_color;
     p8_fixed_t back_color;
-    const vec_t *row_step;
-    const vec_t *pos;
+    int has_row_step;
+    vec_t row_step;
+    int has_pos;
+    vec_t pos;
 } open_box_frame_t;
+
+void open_box_frame_set_description(open_box_frame_t *frame, const char *description);
 
 void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *buttons, int button_count);
 

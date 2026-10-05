@@ -275,7 +275,7 @@ static const entity_class_t *toast_descriptor(void) {
     toast_keys_t keys = {0};
     const toast_t *ref;
 
-    keys.text = "ref";
+    toast_keys_set_text(&keys, "ref");
     ref = toast_new(&keys);
     return ref->header.class;
 }

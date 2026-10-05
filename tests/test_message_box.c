@@ -474,21 +474,17 @@ static void test_largest_scores_box_fits_its_slot(void) {
     economy_score_set_difficulty(dk != NULL ? &saved : NULL);
 }
 
-/* A box copies the rows its keys pass: rewriting the caller's row and
- * text after the box opened changes nothing the box draws. */
+/* A box copies the rows added to it: rewriting the caller's row and
+ * text after the row is added changes nothing the box draws. */
 static void test_box_copies_its_rows(void) {
     char text[] = "2 years remain";
     data_item_t items[] = {{.text = text}, {.number = P8_SCREEN_WIDTH / 2}, {.number = 40}, {.number = 9}, {.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)}};
     data_row_t row = {.count = 5, .items = items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
-    const data_row_t *rows[] = {&row};
-    message_box_keys_t keys = {0};
     uint32_t want;
 
     reset_world(NULL);
     cart_flush_exit_queue();
-    keys.items = rows;
-    keys.count = 1;
-    (void)message_box_new(&keys);
+    message_box_add_row(message_box_new(NULL), &row);
     want = draw_hash();
     assert(want != screen_hash_of_blank());
     strcpy(text, "XXXXXXXXXXXXXX");

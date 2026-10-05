@@ -342,7 +342,7 @@ void planet_new_year(const planet_t *self) {
 
         keys.source = entity_id_link(&self->header);
         text = collect_format_signed(frame_zone(), self->net_income, 10, "$", &color);
-        keys.text = text;
+        toast_keys_set_text(&keys, text);
         keys.color = p8_fixed_from_int(color);
         toast_new(&keys);
     }

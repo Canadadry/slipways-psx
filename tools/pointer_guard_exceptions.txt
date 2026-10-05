@@ -12,8 +12,7 @@ src/game/gen.h 3
 src/game/layout.h 4
 src/game/main_economy.h 2
 src/game/map_tables.h 21
-src/game/message_box.c 1
-src/game/message_box.h 9
+src/game/message_box.h 2
 src/game/mouse.h 1
 src/game/particle.h 2
 src/game/planet.c 2

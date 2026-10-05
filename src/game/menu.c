@@ -167,11 +167,17 @@ void menu_show_tech_tree_screen(void) {
         tmp2 = p8_concat2(frame_zone(), tmp1, diff2_str);
         ep = p8_concat2(frame_zone(), tmp2, ")");
 
-        frame.description = ep;
-        frame.fixed_pos = layout_block->fixed_pos;
+        open_box_frame_set_description(&frame, ep);
+        if (layout_block->fixed_pos != NULL) {
+            frame.has_fixed_pos = 1;
+            frame.fixed_pos = *layout_block->fixed_pos;
+        }
         frame.has_back_color = 1;
         frame.back_color = layout_block->back_color;
-        frame.row_step = layout_block->row_step;
+        if (layout_block->row_step != NULL) {
+            frame.has_row_step = 1;
+            frame.row_step = *layout_block->row_step;
+        }
         message_box_open_box(&frame, buttons, row_count);
     }
 }
@@ -271,10 +277,12 @@ static void galaxy_menu_button4_on_click_method(button_t *self) {
         bs[i].has_on_click = 1;
         bs[i].on_click = my[i];
     }
-    frame.fixed_pos = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS) ? &g_pause_menu_open_box.fixed_pos : NULL;
+    frame.has_fixed_pos = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_FIXED_POS) != 0;
+    frame.fixed_pos = g_pause_menu_open_box.fixed_pos;
     frame.has_back_color = g_pause_menu_open_box.has_back_color;
     frame.back_color = g_pause_menu_open_box.back_color;
-    frame.row_step = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP) ? &g_pause_menu_open_box.row_step : NULL;
+    frame.has_row_step = (g_pause_menu_open_box.has & PAUSE_MENU_OPEN_BOX_HAS_ROW_STEP) != 0;
+    frame.row_step = g_pause_menu_open_box.row_step;
     message_box_open_box(&frame, bs, PAUSE_MENU_COUNT);
 }
 

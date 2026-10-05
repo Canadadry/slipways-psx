@@ -1804,6 +1804,76 @@ static void test_open_box_layer_only_from_back_color(void) {
     assert(main_ui_ephemerals()->count == 1 && button_of(entity_id_list_at(main_ui_ephemerals(), 0))->header.layer == p8_fixed_from_int(14));
 }
 
+/* The frame holds its description and positions as values: rewriting it
+ * after the box opened changes no button. The box starts at the fixed
+ * position, and each row slides one row step further. */
+static void test_open_box_copies_its_frame(void) {
+    open_box_frame_t frame = {0};
+    button_keys_t row = {0};
+    char text[] = "earth-like";
+    vec_t at = vec_make(p8_fixed_from_int(10), p8_fixed_from_int(20));
+    vec_t step = vec_make(0, p8_fixed_from_int(11));
+    const button_t *description;
+    const button_t *first;
+
+    start_game();
+    open_box_frame_set_description(&frame, text);
+    frame.has_fixed_pos = 1;
+    frame.fixed_pos = at;
+    frame.has_row_step = 1;
+    frame.row_step = step;
+    frame.has_pos = 1;
+    frame.pos = vec_make(p8_fixed_from_int(99), p8_fixed_from_int(99));
+    strcpy(text, "XXXXXXXXXX");
+    message_box_open_box(&frame, &row, 1);
+    memset(&frame, 'X', sizeof frame);
+    assert(main_ui_ephemerals()->count == 2);
+    description = button_of(entity_id_list_at(main_ui_ephemerals(), 0));
+    first = button_of(entity_id_list_at(main_ui_ephemerals(), 1));
+    assert(description->layout_row->placed_items_count >= 1 && strcmp(description->layout_row->placed_items[0].text, "earth-like") == 0);
+    assert(description->slide_target.x == at.x && description->slide_target.y == at.y);
+    assert(first->slide_target.x == at.x && first->slide_target.y == at.y + step.y);
+}
+
+/* Without a fixed position, the box starts at the frame's position. */
+static void test_open_box_starts_at_its_position(void) {
+    open_box_frame_t frame = {0};
+    button_keys_t row = {0};
+    vec_t at = vec_make(p8_fixed_from_int(30), p8_fixed_from_int(40));
+    const button_t *b;
+
+    start_game();
+    frame.has_pos = 1;
+    frame.pos = at;
+    message_box_open_box(&frame, &row, 1);
+    assert(main_ui_ephemerals()->count == 1);
+    b = button_of(entity_id_list_at(main_ui_ephemerals(), 0));
+    assert(b->slide_target.x == at.x && b->slide_target.y == at.y);
+}
+
+static void set_too_long_description(void) {
+    open_box_frame_t frame = {0};
+
+    open_box_frame_set_description(&frame, "level 4 (-12/-12)X");
+}
+
+/* A description past OPEN_BOX_DESCRIPTION_CAP stops on its assert. */
+static void test_open_box_description_past_its_cap_aborts(void) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        set_too_long_description();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
 /* tech_gate_available_technologies writes the affordable flag for every
  * entry, kept or not; `data_init()` forgets them all. It rebuilds the
  * projects in the load sub-zone, which holds one set: the reset comes
@@ -2126,6 +2196,9 @@ int main(void) {
     in_fresh_child(test_pause_menu_open_box_is_a_struct);
     in_fresh_child(test_open_box_closed);
     in_fresh_child(test_open_box_layer_only_from_back_color);
+    in_fresh_child(test_open_box_copies_its_frame);
+    in_fresh_child(test_open_box_starts_at_its_position);
+    test_open_box_description_past_its_cap_aborts();
     in_fresh_child(test_available_technologies_writes_every_is_affordable);
     in_fresh_child(test_panels_are_structs);
     in_fresh_child(test_score_panel_are_structs);

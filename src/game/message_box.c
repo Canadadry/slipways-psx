@@ -202,7 +202,6 @@ void message_box_add_shared_row(message_box_t *self, message_box_row_fn_t row_of
 static message_box_t *message_box_create(const message_box_keys_t *keys) {
     const allocator_t *slot = ui_zone_slot(SLOT_KIND_MESSAGE_BOX);
     message_box_t *self = (message_box_t *)allocator_alloc(slot, sizeof *self);
-    int i;
 
     self->slot = slot;
     entity_init_instance(&self->header, &message_box_class_def, message_box_archetype.state, message_box_archetype.state_time);
@@ -215,9 +214,6 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
     self->header.is_dead = 0;
     self->articles_count = 0;
     if (keys != NULL) {
-        for (i = 0; i < keys->count; i++) {
-            message_box_add_row(self, keys->items[i]);
-        }
         if (keys->has_duration_scale) {
             self->duration_scale = keys->duration_scale;
         }
@@ -351,12 +347,10 @@ static toast_t *toast_create(const toast_keys_t *keys) {
         if (source != NULL && entity_has_pos(source)) {
             entity_set_pos(&self->header, source->pos);
             self->follow = keys->source;
-        } else if (keys->pos != NULL) {
-            entity_set_pos(&self->header, *keys->pos);
+        } else if (keys->has_pos) {
+            entity_set_pos(&self->header, keys->pos);
         }
-        if (keys->text != NULL) {
-            assert(strlen(keys->text) <= TOAST_TEXT_CAP &&
-                   "toast_create: a toast's text is a price or \"-no money-\": a longer one needs a bigger text array and toast slot");
+        if (keys->has_text) {
             strcpy(self->text, keys->text);
         }
         self->color = keys->color;
@@ -379,17 +373,29 @@ int toast_ready(void) {
     return g_toast_up;
 }
 
+void toast_keys_set_text(toast_keys_t *keys, const char *text) {
+    assert(strlen(text) <= TOAST_TEXT_CAP && "toast_keys_set_text: a toast's text is a price or \"-no money-\": a longer one needs a bigger text array and toast slot");
+    strcpy(keys->text, text);
+    keys->has_text = 1;
+}
+
 toast_t *toast_new(const toast_keys_t *keys) {
     return toast_create(keys);
 }
 
 typedef struct {
-    const open_box_frame_t *frame;
     vec_t button_pos;
     vec_t pos;
 } open_box_ctx_t;
 
-static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
+void open_box_frame_set_description(open_box_frame_t *frame, const char *description) {
+    assert(strlen(description) <= OPEN_BOX_DESCRIPTION_CAP &&
+           "open_box_frame_set_description: the longest is the tech tree's \"level 4 (-12/-12)\" -- stop, measure before widening");
+    strcpy(frame->description, description);
+    frame->has_description = 1;
+}
+
+static button_t *open_box_step(open_box_ctx_t *ctx, const open_box_frame_t *frame, const button_keys_t *row) {
     button_keys_t b = *row;
     vec_t gq;
 
@@ -399,12 +405,12 @@ static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     b.slide_target = ctx->button_pos;
 
     /* GAP-9 */
-    if (ctx->frame->has_back_color) {
-        b.layer = ctx->frame->back_color;
+    if (frame->has_back_color) {
+        b.layer = frame->back_color;
         b.has_layer = 1;
     }
 
-    gq = ctx->frame->row_step != NULL ? *ctx->frame->row_step : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    gq = frame->has_row_step ? frame->row_step : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     ctx->button_pos = vec_add(ctx->button_pos, gq);
 
     return button_new(&b);
@@ -422,29 +428,26 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     entity_id_list_t ephemerals = {0};
     ui_t *dispatcher;
     button_keys_t description_row = {0};
-    int has_description;
     int index;
 
     if (frame == NULL) {
         return;
     }
 
-    has_description = frame->description != NULL;
-    if (has_description) {
+    if (frame->has_description) {
         layout_row_keys_append(&description_row.layout_row_keys, layout_row_cell_string(frame->description));
         description_row.layout_row_keys.has_color = 1;
         description_row.layout_row_keys.color = p8_fixed_from_int(13);
     }
 
-    if (frame->fixed_pos != NULL) {
-        box_pos = *frame->fixed_pos;
-    } else if (frame->pos != NULL) {
-        box_pos = *frame->pos;
+    if (frame->has_fixed_pos) {
+        box_pos = frame->fixed_pos;
+    } else if (frame->has_pos) {
+        box_pos = frame->pos;
     } else {
         box_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     }
 
-    step_context.frame = frame;
     step_context.button_pos = vec_add(box_pos, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
     step_context.pos = box_pos;
 
@@ -454,11 +457,11 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     if (dispatcher != NULL) {
         ephemerals = ui_ephemerals_new();
     }
-    if (has_description) {
-        open_box_add(&ephemerals, dispatcher != NULL, open_box_step(&step_context, &description_row));
+    if (frame->has_description) {
+        open_box_add(&ephemerals, dispatcher != NULL, open_box_step(&step_context, frame, &description_row));
     }
     for (index = 0; index < button_count; index++) {
-        open_box_add(&ephemerals, dispatcher != NULL, open_box_step(&step_context, &buttons[index]));
+        open_box_add(&ephemerals, dispatcher != NULL, open_box_step(&step_context, frame, &buttons[index]));
     }
     if (dispatcher != NULL) {
         ui_set_ephemerals(dispatcher, ephemerals);

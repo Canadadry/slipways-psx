@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "p8/assets.h"
 #include "engine/entity_id.h"
@@ -111,8 +113,11 @@ static void fresh_world(void) {
 static toast_t *build(const vec_t *ra, const char *text, int color) {
     toast_keys_t keys = {0};
 
-    keys.pos = ra;
-    keys.text = text;
+    if (ra != NULL) {
+        keys.pos = *ra;
+        keys.has_pos = 1;
+    }
+    toast_keys_set_text(&keys, text);
     keys.color = p8_fixed_from_int(color);
     return toast_new(&keys);
 }
@@ -261,7 +266,7 @@ static void test_toast_is_a_struct_registered_under_draw(void) {
     int i;
 
     fresh_world();
-    keys.text = "z";
+    toast_keys_set_text(&keys, "z");
     direct = build(NULL, "z", 7);
     generic = toast_new(&keys);
 
@@ -318,6 +323,62 @@ static void test_toast_keeps_a_copy_of_its_text(void) {
     assert(draw_hash_of(e) == want);
 }
 
+/* The keys hold the toast's text and position as values: rewriting them
+ * after the toast is built changes nothing it shows. */
+static void test_toast_copies_its_keys(void) {
+    toast_keys_t keys = {0};
+    vec_t at = vec_make(p8_fixed_from_int(250), p8_fixed_from_int(260));
+    uint32_t want;
+    toast_t *e;
+
+    fresh_world();
+    want = draw_hash_of(build(&at, "+12$", 11));
+    fresh_world();
+    keys.pos = at;
+    keys.has_pos = 1;
+    toast_keys_set_text(&keys, "+12$");
+    keys.color = p8_fixed_from_int(11);
+    e = toast_new(&keys);
+    memset(&keys, 'X', sizeof keys);
+    assert(same_vec(e->header.pos, at) && strcmp(e->text, "+12$") == 0);
+    assert(draw_hash_of(e) == want);
+}
+
+/* A position given as zero is a position, not the mouse's. */
+static void test_toast_at_zero_is_not_placed_off_the_mouse(void) {
+    vec_t zero = vec_make(0, 0);
+    toast_t *e;
+
+    fresh_world();
+    e = build(&zero, "x", 7);
+    assert(same_vec(e->header.pos, zero));
+    e = build(NULL, "x", 7);
+    assert(!same_vec(e->header.pos, zero));
+}
+
+static void set_too_long_text(void) {
+    toast_keys_t keys = {0};
+
+    toast_keys_set_text(&keys, "12345678901234567");
+}
+
+/* A text past TOAST_TEXT_CAP stops on its assert. */
+static void test_toast_text_past_its_cap_aborts(void) {
+    int status;
+    pid_t child;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        set_too_long_text();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
 static planet_t *planet_at(vec_t at) {
     planet_keys_t keys = {0};
 
@@ -330,7 +391,7 @@ static toast_t *toast_from(const planet_t *source) {
     toast_keys_t keys = {0};
 
     keys.source = entity_id_link(&source->header);
-    keys.text = "+1$";
+    toast_keys_set_text(&keys, "+1$");
     keys.color = p8_fixed_from_int(11);
     return toast_new(&keys);
 }
@@ -400,6 +461,9 @@ int main(void) {
     test_toast_is_a_struct_registered_under_draw();
     test_toast_gives_its_slot_back();
     test_toast_keeps_a_copy_of_its_text();
+    test_toast_copies_its_keys();
+    test_toast_at_zero_is_not_placed_off_the_mouse();
+    test_toast_text_past_its_cap_aborts();
     test_toast_follows_its_source_until_its_first_update();
     test_toast_keeps_its_copy_once_its_source_is_flushed();
 
