@@ -74,7 +74,11 @@ Why: the C code is the reference (`CLAUDE.md`); the PICO-8 cart is no longer one
 
 ### Visual changes
 
-(each visual step appends its line here)
+- A protostar's burst now uses its own pink palette instead of the ordinary burst's.
+
+### Step 1.3
+
+`burst_draw` reads `self->emitter.trail_colors` and asserts every burst holds a ramp (the archetype's default or its construct keys'), so there is no fallback to the class ramp; `protostar_construct` and the ramp data needed no change. `make e2e` showed only `tech_starbirth_protostar` divergent, first at frame 75 (`make e2e-ref`, reference 4de72ac); re-baselined in the fix commit, the only sha changed. `LIFE_HASH` moved in `test_burst` and `test_protostar`. No `guideline` decision.
 
 ### Step 1.1
 
