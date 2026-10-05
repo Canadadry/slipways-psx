@@ -11,7 +11,6 @@
 typedef struct {
     entity_t header;
     const structure_icon_archetype_t *archetype;
-    const vec_t *pos;
     const entity_kind_t *kind;
     tooltip_t *tooltip;
     int is_revealed;

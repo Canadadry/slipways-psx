@@ -54,11 +54,10 @@ enum { TOAST_TEXT_CAP = 16 };
 typedef struct {
     entity_t header;
     const allocator_t *slot;
-    vec_t pos_box;
+    entity_id_t follow;
     char text_buf[TOAST_TEXT_CAP + 1];
     const toast_archetype_t *archetype;
     p8_fixed_t fade;
-    const vec_t *pos;
     const char *text;
     p8_fixed_t color;
 } toast_t;
@@ -69,6 +68,7 @@ int toast_ready(void);
 
 typedef struct {
     const vec_t *pos;
+    entity_id_t source;
     const char *text;
     p8_fixed_t color;
 } toast_keys_t;

@@ -167,11 +167,17 @@ message_box_t *message_box_new(const message_box_keys_t *keys) {
     return message_box_create(keys);
 }
 
-static vec_t toast_vec_or_zero(const vec_t *p) {
-    if (p != NULL) {
-        return *p;
+static vec_t toast_pos_or_zero(const entity_t *e) {
+    return e != NULL ? entity_pos(e) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+}
+
+/* The cart's toast shares its source's vector until its first update, drawn meanwhile (sometimes for several frames): a copy alone would miss a bob in between. */
+static void toast_follow_source(toast_t *self) {
+    const entity_t *source = entity_get(self->follow);
+
+    if (source != NULL && entity_has_pos(source)) {
+        entity_set_pos(&self->header, source->pos);
     }
-    return vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 void toast_construct(toast_t *self) {
@@ -179,14 +185,13 @@ void toast_construct(toast_t *self) {
         return;
     }
 
-    if (self->pos == NULL) {
+    if (!entity_has_pos(&self->header)) {
         const mouse_t *je = main_mouse_typed();
         const camera_t *mo = main_camera_typed();
-        vec_t main_mouse_pos = toast_vec_or_zero(je != NULL ? je->pos : NULL);
-        vec_t main_camera_pos = toast_vec_or_zero(mo != NULL ? mo->pos : NULL);
+        vec_t main_mouse_pos = toast_pos_or_zero(je != NULL ? &je->header : NULL);
+        vec_t main_camera_pos = toast_pos_or_zero(mo != NULL ? &mo->header : NULL);
         vec_t offset = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(5));
-        self->pos_box = vec_sub(vec_add(main_mouse_pos, main_camera_pos), offset);
-        self->pos = &self->pos_box;
+        entity_set_pos(&self->header, vec_sub(vec_add(main_mouse_pos, main_camera_pos), offset));
     }
 }
 
@@ -197,8 +202,9 @@ void toast_update(toast_t *self) {
         return;
     }
 
-    self->pos_box = vec_add(toast_vec_or_zero(self->pos), toast_vec_or_zero(&self->archetype->velocity));
-    self->pos = &self->pos_box;
+    toast_follow_source(self);
+    self->follow = ENTITY_ID_NONE;
+    entity_set_pos(&self->header, vec_add(entity_pos(&self->header), self->archetype->velocity));
 
     new_l = p8_fixed_add(self->fade, P8_FIXED_LIT(0x00001999, 0.1));
     self->fade = new_l;
@@ -231,8 +237,9 @@ void toast_draw(const p8_graphics_t *gfx, p8_vram_t *mem, const toast_t *self, v
 }
 
 static void toast_draw_method(entity_t *self, const vec_t *screen_pos) {
-    vec_t p = screen_pos != NULL ? *screen_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    toast_draw(dispatch_context_gfx(), dispatch_context_mem(), (const toast_t *)self, p);
+    (void)screen_pos;
+    toast_follow_source((toast_t *)self);
+    toast_draw(dispatch_context_gfx(), dispatch_context_mem(), (const toast_t *)self, entity_pos(self));
 }
 
 static void toast_release(entity_t *self) {
@@ -255,15 +262,21 @@ static toast_t *toast_create(const toast_keys_t *keys) {
     self->archetype = &toast_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.pos = &self->pos;
     self->fade = self->archetype->fade;
-    self->pos = NULL;
+    self->follow = ENTITY_ID_NONE;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;
     self->text = NULL;
     self->color = p8_fixed_from_int(0);
     if (keys != NULL) {
-        self->pos = keys->pos;
+        const entity_t *source = entity_get(keys->source);
+
+        if (source != NULL && entity_has_pos(source)) {
+            entity_set_pos(&self->header, source->pos);
+            self->follow = keys->source;
+        } else if (keys->pos != NULL) {
+            entity_set_pos(&self->header, *keys->pos);
+        }
         if (keys->text != NULL) {
             assert(strlen(keys->text) <= TOAST_TEXT_CAP &&
                    "toast_create: a toast's text is a price or \"-no money-\": a longer one needs a bigger text_buf and toast slot");

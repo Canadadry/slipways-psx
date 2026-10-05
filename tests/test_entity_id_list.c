@@ -148,13 +148,8 @@ static void clear_empties_and_a_reserved_list_grows_past_its_reserve(void) {
     entity_id_list_free(&list);
 }
 
-static vec_t g_positions[6];
-static const vec_t *g_position_of[6];
-
 static void place(int i, int x, int y) {
-    g_positions[i] = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
-    g_position_of[i] = &g_positions[i];
-    g_entities[i].map_pos = &g_position_of[i];
+    entity_set_map_pos(&g_entities[i], vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y)));
 }
 
 static void nearest_in_ids_skips_the_same_spot_and_ignores_unlisted_entities(void) {

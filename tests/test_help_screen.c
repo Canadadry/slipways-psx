@@ -38,6 +38,15 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 
 #define BUILT_HASH 0x5D3141B1u
 #define LIFE_HASH 0x58FB715Eu
@@ -319,10 +328,10 @@ static void test_built(void) {
     assert(emitter->archetype->lifetime == p8_fixed_from_int(17));
     assert(probe->archetype->back_color == p8_fixed_from_int(11));
     assert(probe->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
-    assert(probe->pos != NULL && emitter->trail_colors != NULL);
+    assert(pos_ref(&probe->header) != NULL && emitter->trail_colors != NULL);
     assert(probe->archetype->rows != NULL && targeting->archetype->confirmed_state != ENTITY_STATE_NONE);
     hash = fold_fixed_member(hash, probe->archetype->layer);
-    hash = fold_ref_member(hash, probe->pos);
+    hash = fold_ref_member(hash, pos_ref(&probe->header));
     hash = fold_ref_member(hash, &probe->archetype->fixed_pos);
     hash = fold_fixed_member(hash, probe->archetype->back_color);
     hash = fold_ref_member(hash, &probe->archetype->row_step);
@@ -347,11 +356,12 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, targeting->cost);
     hash = fold_bool_member(hash, targeting->archetype->clock_ticks != 0);
     hash = fold_fixed_member(hash, targeting->archetype->attach_distance);
-    hash = fold_vec(hash, probe->pos);
+    hash = fold_vec(hash, pos_ref(&probe->header));
     hash = fold_vec(hash, &probe->archetype->fixed_pos);
     hash = fold_vec(hash, &probe->archetype->row_step);
     hash = fold_box(hash, &probe->archetype->hit_box);
-    assert(probe->archetype == &help_screen_archetype && probe->pos == &help_screen_archetype.pos);
+    assert(probe->archetype == &help_screen_archetype && entity_has_pos(&probe->header) && probe->header.pos.x == help_screen_archetype.pos.x &&
+           probe->header.pos.y == help_screen_archetype.pos.y);
     assert(emitter->trail_colors == &help_screen_trail_colors_seq);
     assert(emitter->trail_colors != &probe_trail_colors_seq);
     assert(probe->archetype->rows == &help_screen_rows_row);
@@ -359,7 +369,7 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, probe->header.state_time);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
-    assert(!help_screen->header.is_hovered && probe->map_pos == NULL && targeting_target(targeting) == NULL && !probe->header.is_dead);
+    assert(!help_screen->header.is_hovered && map_pos_ref(&probe->header) == NULL && targeting_target(targeting) == NULL && !probe->header.is_dead);
     assert(class_of(help_screen)->new_year == NULL && class_of(help_screen)->refresh == NULL && class_of(help_screen)->states[ENTITY_STATE_NORMAL] == NULL &&
            class_of(help_screen)->left_press == NULL);
 
@@ -382,7 +392,7 @@ static void test_built(void) {
         qf = *b->slide_target;
         assert(qf.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 30) && qf.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 - 8 + 11 * key_index));
         hash = fold_vec(hash, b->slide_target);
-        hash = fold_vec(hash, b->pos);
+        hash = fold_vec(hash, pos_ref(&b->header));
         hash = fold_fixed_member(hash, b->header.layer);
     }
     for (index = 0; index < 5; index++) {
@@ -536,8 +546,8 @@ static void test_particle_takes_the_help_palette(void) {
 
     start_title();
     fv = the_help();
-    assert(fv->pos != NULL);
-    ra = *fv->pos;
+    assert(pos_ref(&fv->header) != NULL);
+    ra = *pos_ref(&fv->header);
     particle->pos = vec_make(0, 0);
     particle->velocity = vec_make(0, 0);
     particle->has_acceleration = 0;

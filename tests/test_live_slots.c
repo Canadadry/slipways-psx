@@ -606,8 +606,8 @@ static size_t route_list_bytes(const trade_route_list_t *list) {
     return bytes;
 }
 
-/* Footprint of the planets under the planet tag: struct, map_pos and pos
- * boxes, planet_id, and the slipways, outgoing_routes and incoming_routes
+/* Footprint of the planets under the planet tag: struct, the galaxy's
+ * map_pos and pos boxes, planet_id, and the slipways, outgoing_routes and incoming_routes
  * lists. No needs list nor copies of needs, which the planets of
  * galaxy_populate lack before any action. */
 static size_t planets_bytes(void) {
@@ -616,7 +616,7 @@ static size_t planets_bytes(void) {
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const planet_t *p = (const planet_t *)jo->items[i];
         assert(p->needs == NULL && "a planet has needs, which planets_bytes does not count");
-        bytes += block_bytes(sizeof *p) + block_bytes(sizeof *p->map_pos) + block_bytes(sizeof *p->pos) +
+        bytes += block_bytes(sizeof *p) + 2 * block_bytes(sizeof(vec_t)) +
                   block_bytes(strlen(p->planet_id) + 1) + planet_list_bytes(p->slipways) +
                   route_list_bytes(p->outgoing_routes) + route_list_bytes(p->incoming_routes);
     }
@@ -947,8 +947,8 @@ static void offscreen_planet_forgets_refused_grab(void) {
     assert(held != NULL && "f23: a structure is held");
     planet_t *p34 = planet_targeted_by(held);
     assert(p34 != NULL && "f23: the held structure sets a planet's targeted_by");
-    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
-    p34->pos = &far;
+    far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
+    entity_set_pos(&p34->header, far);
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
     assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
@@ -1038,8 +1038,8 @@ static void offscreen_planet_forgets_refused_slipway(void) {
     const slipway_t *held = held_slipway();
     planet_t *p = planet_targeted_by(&held->header);
     assert(p != NULL && "f345: the held slipway sets a planet's targeted_by");
-    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
-    p->pos = &far;
+    far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
+    entity_set_pos(&p->header, far);
     assert(!entity_geom_is_on_screen(&p->header) && "the planet is off screen");
     cart_draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
@@ -1169,8 +1169,8 @@ static void offscreen_planet_forgets_refused_probe(void) {
     const entity_t *held = &held_probe()->header;
     planet_t *p34 = planet_targeted_by(held);
     assert(p34 != NULL && "f74: the held probe sets a planet's targeted_by");
-    far = vec_add(*((const camera_t *)main_camera())->pos, vec_make(p8_fixed_from_int(500), 0));
-    p34->pos = &far;
+    far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
+    entity_set_pos(&p34->header, far);
     assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
     cart_draw();
     assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
@@ -1292,11 +1292,11 @@ static void message_box_hold_rewrites_boxes_in_place(void) {
     const mouse_t *je = main_mouse_typed();
     const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
-    const void *before[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
+    const void *before[5] = {&mo->header.map_pos, mo->velocity, &mo->header.pos, &je->header.pos, ok->mouse_world};
     size_t used_before = game_zone_used();
     play_until(45);
     assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
-    const void *after[5] = {mo->pos_before_shake, mo->velocity, mo->pos, je->pos, ok->mouse_world};
+    const void *after[5] = {&mo->header.map_pos, mo->velocity, &mo->header.pos, &je->header.pos, ok->mouse_world};
     int stables = 0;
     for (int i = 0; i < 5; i++) stables += before[i] == after[i];
     printf("  message_box_hold f44-45: %d / 5 per-tick boxes at the same address\n", stables);

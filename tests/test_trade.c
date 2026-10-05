@@ -140,9 +140,8 @@ static void start_game(void) {
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_planet(e)->map_pos;
-    assert(p != NULL);
-    return *p;
+    assert(entity_has_map_pos(&as_planet(e)->header));
+    return as_planet(e)->header.map_pos;
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {

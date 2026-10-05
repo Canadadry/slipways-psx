@@ -6,6 +6,7 @@
 #include "engine/collect.h"
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
+#include "engine/entity_id.h"
 #include "game/gen.h"
 #include "engine/entity.h"
 #include "game/message_box.h"
@@ -59,8 +60,6 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->archetype = archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.pos = (const vec_t *const *)&self->pos;
-    self->header.map_pos = (const vec_t *const *)&self->map_pos;
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = self->archetype->hit_box;
     self->header.has |= ENTITY_HAS_SHAKE;
@@ -70,8 +69,6 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.shake = self->archetype->shake;
     self->production = &g_planet_production_shared;
     self->planet_id = NULL;
-    self->map_pos = NULL;
-    self->pos = NULL;
     self->slipways = NULL;
     self->project = RESEARCH_PROJECT_ID_NONE;
     self->description = NULL;
@@ -102,10 +99,10 @@ static planet_t *planet_create(const planet_keys_t *keys) {
     planet_init_instance(self, &planet_class_def, &planet_archetype);
     if (keys != NULL) {
         if (keys->map_pos != NULL) {
-            self->map_pos = keys->map_pos;
+            entity_set_map_pos(&self->header, *keys->map_pos);
         }
         if (keys->pos != NULL) {
-            self->pos = keys->pos;
+            entity_set_pos(&self->header, *keys->pos);
         }
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -326,7 +323,7 @@ void planet_new_year(const planet_t *self) {
         int color = 0;
         char *text;
 
-        keys.pos = self->pos;
+        keys.source = entity_id_link(&self->header);
         text = collect_format_signed(frame_zone(), self->net_income, 10, "$", &color);
         keys.text = text;
         keys.color = p8_fixed_from_int(color);
@@ -335,13 +332,10 @@ void planet_new_year(const planet_t *self) {
 }
 
 void planet_bob(entity_t *self, p8_fixed_t t) {
-    vec_t *pos_vec;
-
     assert((self == NULL || planet_is_family(self)) && "planet_bob: self is a planet (structure and trading hub settled updates) -- stop");
-    pos_vec = self != NULL ? ((planet_t *)self)->pos : NULL;
-    if (pos_vec != NULL) {
+    if (self != NULL && entity_has_pos(self)) {
         p8_fixed_t delta = p8_fixed_mul(p8_fixed_sin(p8_fixed_mul(t, P8_FIXED_LIT(0x00000147, 0.005))),
                                                P8_FIXED_LIT(0x00000f5c, 0.06));
-        pos_vec->y = p8_fixed_add(pos_vec->y, delta);
+        self->pos.y = p8_fixed_add(self->pos.y, delta);
     }
 }

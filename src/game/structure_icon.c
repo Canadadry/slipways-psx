@@ -79,8 +79,11 @@ void structure_icon_refresh(structure_icon_t *self) {
 
     assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_refresh moves the shared cursor");
 
-    /* Rebind the cursor, never write through it: `self->pos` keeps the old vector. */
-    self->pos = g_cursor;
+    if (g_cursor != NULL) {
+        entity_set_pos(&self->header, *g_cursor);
+    } else {
+        entity_clear_pos(&self->header);
+    }
     self->is_revealed = 1;
     self->has_is_revealed = 1;
 
@@ -194,10 +197,9 @@ static structure_icon_t *structure_icon_create(const structure_icon_keys_t *keys
     self->archetype = &structure_icon_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.pos = &self->pos;
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = self->archetype->hit_box;
-    self->pos = &self->archetype->pos;
+    entity_set_pos(&self->header, self->archetype->pos);
     self->kind = NULL;
     self->tooltip = NULL;
     self->is_revealed = 0;

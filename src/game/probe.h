@@ -13,8 +13,6 @@ typedef struct {
     const probe_archetype_t *archetype;
     emitter_t *emitter;
     targeting_t *targeting;
-    const vec_t *pos;
-    const vec_t *map_pos;
     const allocator_t *grab_arena;
     emitter_t emitter_own;
     targeting_t targeting_own;

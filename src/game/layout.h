@@ -53,7 +53,6 @@ typedef struct {
     int background_is_bool;
     p8_fixed_t score;
     int has_score;
-    const vec_t *pos;
     layout_row_item_t *placed_items;
     int placed_items_count;
     p8_fixed_t width;

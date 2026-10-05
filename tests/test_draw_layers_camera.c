@@ -44,7 +44,6 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     p8_graphics_t graphics;
     planet_t *planet;
     entity_t *camera;
-    vec_t *pos_heap;
     int screen_x;
     int screen_y;
     unsigned char pixel_after;
@@ -83,9 +82,7 @@ static void test_draw_layers_draw_dispatches_main_camera_apply_camera_then_real_
     /* A position inside the camera's default (176,196) viewport, so the
      * off-screen early return of planet_draw is not taken and the real draw
      * body runs. */
-    pos_heap = malloc(sizeof *pos_heap);
-    *pos_heap = vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256));
-    planet->pos = pos_heap;
+    entity_set_pos(&planet->header, vec_make(p8_fixed_from_int(256), p8_fixed_from_int(256)));
 
     assert(camera->class == camera_class());
     g_spied_planet = *planet_class();

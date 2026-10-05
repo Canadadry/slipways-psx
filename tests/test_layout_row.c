@@ -46,6 +46,15 @@
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* Project 12, a colony that needs two resources and exports one; project
  * 3, with an output and no inputs, which exports to any planet a slipway
  * joins it to. */
@@ -256,7 +265,7 @@ static uint32_t fold_named(uint32_t h, const void *row) {
     h = fold_fixed_member(h, lq->has_color, lq->color);
     h = fold_background(h, lq);
     h = fold_fixed_member(h, lq->has_score, lq->score);
-    ra = lq->pos;
+    ra = pos_ref(&lq->header);
     if (ra == NULL) {
         return fnv(h, 0xFFFFFFFFu);
     }
@@ -345,7 +354,7 @@ static uint32_t fold_built_from(uint32_t h, const char *label, const layout_row_
     const void *lq = layout_row_new(&heap_allocator, k);
     uint32_t one = fold_row_from(2166136261u, lq, k, nil_at);
 
-    assert(((const entity_t *)lq)->pos == &as_layout_row(lq)->pos);
+    assert(entity_has_pos((const entity_t *)lq) == (k != NULL && k->pos != NULL));
 
     printf("  %s: w=%d fs=%d n=%d 0x%08X\n", label, p8_fixed_flr_int(width_of(lq)), placed_items_count(lq), row_count(lq),
            (unsigned)one);
@@ -680,7 +689,7 @@ static planet_t *as_planet(void *e) {
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_planet(e)->map_pos;
+    const vec_t *p = map_pos_ref(&as_planet(e)->header);
     assert(p != NULL);
     return *p;
 }
@@ -828,8 +837,7 @@ static void test_inspection_panel_wants_more(void) {
     planet->needs = jy;
     planet->has_development_tier = 1;
     planet->development_tier = p8_fixed_from_int(1);
-    planet->pos = malloc(sizeof *planet->pos);
-    *planet->pos = vec_xy(64, 64);
+    entity_set_pos(&planet->header, vec_xy(64, 64));
     planet_inspection_panel(planet);
 
     wants = panel_row("wants more:");
@@ -867,8 +875,7 @@ static void test_inspection_panel_w_maker_wants_no_more(void) {
     planet->production = kw;
     planet->has_development_tier = 1;
     planet->development_tier = p8_fixed_from_int(1);
-    planet->pos = malloc(sizeof *planet->pos);
-    *planet->pos = vec_xy(64, 64);
+    entity_set_pos(&planet->header, vec_xy(64, 64));
     planet_inspection_panel(planet);
 
     assert(panel_row("wants more:") == NULL && panel_row("needs:") == NULL);
@@ -896,8 +903,7 @@ static void test_inspection_panel_lab_wants_its_last(void) {
     lab->needs = jy;
     lab->has_development_tier = 1;
     lab->development_tier = p8_fixed_from_int(1);
-    lab->pos = malloc(sizeof *lab->pos);
-    *lab->pos = vec_xy(64, 64);
+    entity_set_pos(&lab->header, vec_xy(64, 64));
     planet_inspection_panel(lab);
 
     wants = panel_row("wants more:");

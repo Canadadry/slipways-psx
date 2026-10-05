@@ -51,6 +51,15 @@
 #include "engine/vec.h"
 #include "game/wormhole.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* Ticks after the slipway is paid, long enough for the colonizing and
  * paying effects to leave the live entities: update_entities skips the
  * entity after one it takes out (GAP-5). */
@@ -176,7 +185,7 @@ static uint32_t screen_hash(void) {
 /* The overlay drawn alone on a cleared screen is exactly the given sprite at
  * the main mouse position. */
 static uint32_t cursor_is(int id) {
-    vec_t at = vec_at(checked_main_mouse()->pos);
+    vec_t at = vec_at(pos_ref(&checked_main_mouse()->header));
     uint32_t drawn;
 
     p8_cls(&memory);
@@ -205,7 +214,7 @@ static ui_t *start_game(void) {
 }
 
 static vec_t pos_of(void *e) {
-    return vec_at(as_planet(e)->map_pos);
+    return vec_at(map_pos_ref(&as_planet(e)->header));
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -214,7 +223,7 @@ static p8_fixed_t dist2(vec_t a, vec_t b) {
 }
 
 static int placed(void *e) {
-    return as_planet(e)->map_pos != NULL;
+    return map_pos_ref(&as_planet(e)->header) != NULL;
 }
 
 /* The planet nearest to the given one, among those with a `map_pos`. */
@@ -347,7 +356,7 @@ static void test_fresh(void) {
 
     mouse_at(80, 96, 0);
     ui_update(&memory, main_ui());
-    want = vec_add(vec_at(checked_main_mouse()->pos), vec_at(checked_main_camera()->pos));
+    want = vec_add(vec_at(pos_ref(&checked_main_mouse()->header)), vec_at(pos_ref(&checked_main_camera()->header)));
     assert(vec_at(ok->mouse_world).x == want.x && vec_at(ok->mouse_world).y == want.y);
     assert(ok->hovered_by_layer != NULL && ui_hovered(ok) != NULL);
     assert(ui_previous_hovered(ok) == ui_hovered(ok));
@@ -363,11 +372,11 @@ static void test_fresh(void) {
 /* The first planet whose screen position is well inside. */
 static planet_t *planet_on_screen(int *sx, int *sy) {
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
-    vec_t cam = vec_at(checked_main_camera()->pos);
+    vec_t cam = vec_at(pos_ref(&checked_main_camera()->header));
     int i;
 
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        vec_t at = vec_at(as_planet(jo->items[i])->pos);
+        vec_t at = vec_at(pos_ref(&as_planet(jo->items[i])->header));
         int x = p8_fixed_flr_int(p8_fixed_sub(at.x, cam.x));
         int y = p8_fixed_flr_int(p8_fixed_sub(at.y, cam.y));
         if (x >= 32 && x <= 128 && y >= 12 && y <= 108) {
@@ -433,7 +442,7 @@ static void test_layers(void) {
     mouse_at(x, y, 0);
     ui_update(&memory, ok);
     qa = ok->mouse_world;
-    ra = checked_main_mouse()->pos;
+    ra = &main_mouse_typed()->header.pos;
     assert(qa != NULL && ra != NULL);
 
     entity_set_state(&planet->header, ENTITY_STATE_KNOWN);
@@ -466,13 +475,13 @@ static void test_right(void) {
     mouse_at(86, 86, 2);
     ui_update(&memory, ok);
     assert((void *)ui_right_held(ok) == bg);
-    h = fold_vec(h, vec_at(checked_main_camera()->pos));
+    h = fold_vec(h, vec_at(pos_ref(&checked_main_camera()->header)));
     h = fnv(h, cursor_is(9));
 
     mouse_at(86, 86, 0);
     ui_update(&memory, ok);
     assert(ui_right_held(ok) == NULL && ui_left_held(ok) == NULL);
-    h = fold_vec(h, vec_at(checked_main_camera()->pos));
+    h = fold_vec(h, vec_at(pos_ref(&checked_main_camera()->header)));
     h = fnv(h, cursor_is(58));
     check("right", h, RIGHT_HASH);
 }
@@ -503,7 +512,7 @@ static int slipways_count(void *planet) {
 
 /* Where the entity is on screen under the main camera. */
 static void screen_of(void *e, int *x, int *y) {
-    vec_t at = vec_sub(vec_at(as_planet(e)->pos), vec_at(checked_main_camera()->pos));
+    vec_t at = vec_sub(vec_at(pos_ref(&as_planet(e)->header)), vec_at(pos_ref(&checked_main_camera()->header)));
 
     *x = p8_fixed_flr_int(at.x);
     *y = p8_fixed_flr_int(at.y);

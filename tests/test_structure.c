@@ -44,6 +44,15 @@
 #include "engine/vec.h"
 #include "game/wormhole.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
@@ -325,8 +334,8 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -396,14 +405,14 @@ static void set_credits(int n) {
 static uint32_t fold_held(uint32_t h, void *e, const vec_t *mp) {
     const planet_t *qh = as_structure(e);
 
-    assert(pos_copies(qh->pos, mp));
-    h = fold_vec(h, qh->map_pos);
+    assert(pos_copies(pos_ref(&qh->header), mp));
+    h = fold_vec(h, map_pos_ref(&qh->header));
     h = fnv(h, target_state(qh));
     return fold_target(h, qh);
 }
 
 static uint32_t fold_pos_y(uint32_t h, void *e) {
-    const vec_t *ra = as_structure(e)->pos;
+    const vec_t *ra = pos_ref(&as_structure(e)->header);
     assert(ra != NULL);
     return fnv(h, (uint32_t)ra->y);
 }
@@ -435,7 +444,7 @@ static void test_life(void) {
 
     planet = entities_by_tag(TAG_PLANET)->items[0];
     assert(planet_is_family(planet));
-    planet_map_pos = ((const planet_t *)planet)->map_pos;
+    planet_map_pos = map_pos_ref(&((const planet_t *)planet)->header);
     assert(planet_map_pos != NULL);
     mouse_world = vec_ref(vec_add(vec_mul(*planet_map_pos, p8_fixed_from_int(128)), vec_xy(6, 0)));
     class_of(out_lab)->drag(out_lab, mouse_world, vec_ref(vec_xy(64, 64)));
@@ -468,18 +477,18 @@ static void test_life(void) {
     hash = fnv(hash, is_dead_state(as_structure(in_lab)));
     hash = fnv(hash, (uint32_t)credits());
     assert(as_structure(in_lab)->header.state == ENTITY_STATE_SETTLED && credits() == p8_fixed_from_int(100 - 15));
-    in_y = as_structure(in_lab)->pos->y;
+    in_y = pos_ref(&as_structure(in_lab)->header)->y;
 
-    pos_before = as_structure(out_lab)->pos;
+    pos_before = pos_ref(&as_structure(out_lab)->header);
     before = pos_before->y;
     for (index = 0; index < 4; index++) {
         hash = fold_pos_y(hash, in_lab);
         update_entities();
         hash = fold_fixed_member(hash, as_structure(in_lab)->header.state_time);
-        assert(as_structure(out_lab)->pos == pos_before && pos_before->y == before);
+        assert(pos_ref(&as_structure(out_lab)->header) == pos_before && pos_before->y == before);
     }
     hash = fold_pos_y(hash, in_lab);
-    assert(as_structure(in_lab)->pos->y != in_y);
+    assert(pos_ref(&as_structure(in_lab)->header)->y != in_y);
     hash = fnv(hash, (uint32_t)entity_list_listed(live_entities(), refused_lab));
     check("life", hash, LIFE_HASH);
 }
@@ -538,8 +547,8 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     h = fnv(h, (uint32_t)(qh->archetype->accepted_resources == &structure_accepted_resources_seq));
     assert(class_of(d)->drag == structure_class()->drag && class_of(d)->drop == structure_class()->drop);
     assert(class_of(d)->draw_overlay == structure_class()->draw_overlay);
-    if (qh->pos != NULL) {
-        vec_t *v = qh->pos;
+    if (entity_has_pos(&qh->header)) {
+        vec_t *v = &qh->header.pos;
         p8_fixed_t y = v->y;
         h = fnv(fnv(h, 1u), (uint32_t)y);
         class_of(d)->states[ENTITY_STATE_SETTLED](d, p8_fixed_from_int(50));
@@ -564,8 +573,8 @@ static void *bought(const entity_kind_t *kind) {
     const vec_t *main_camera_pos;
     int i;
 
-    assert(mo != NULL && mo->pos != NULL);
-    main_camera_pos = mo->pos;
+    assert(mo != NULL && pos_ref(&mo->header) != NULL);
+    main_camera_pos = pos_ref(&mo->header);
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {

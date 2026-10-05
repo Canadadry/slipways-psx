@@ -42,6 +42,20 @@
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 
+/* The burst copies the planet's position and map position, values and presence. */
+static int same_positions(const entity_t *a, const entity_t *b) {
+    return entity_has_pos(a) == entity_has_pos(b) && entity_has_map_pos(a) == entity_has_map_pos(b) && a->pos.x == b->pos.x && a->pos.y == b->pos.y && a->map_pos.x == b->map_pos.x && a->map_pos.y == b->map_pos.y;
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 
 #define BUILT_HASH 0xA539DD6Du
 #define LIFE_HASH 0x2603AEA8u
@@ -204,7 +218,7 @@ static vec_t near_main_camera(int x, int y) {
     const vec_t *main_camera_pos;
 
     assert(main_camera_typed() != NULL);
-    main_camera_pos = main_camera_typed()->pos;
+    main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     return vec_add(*main_camera_pos, vec_xy(x + 16, y - 4));
 }
@@ -268,7 +282,7 @@ static void *harvest(int x, int y, const char *id) {
     planet_apply_project(planet, harvest_recipe());
     made = burst_from(before + 1);
     assert(made != NULL && live_entities()->count == before + 2 && burst_from(0) == made);
-    assert(as_burst(made)->pos == planet->pos && as_burst(made)->map_pos == planet->map_pos);
+    assert(same_positions(&as_burst(made)->header, &planet->header));
     return made;
 }
 
@@ -286,7 +300,7 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     at = entity_list_rank_in(live_entities(), pm);
     assert(at >= 1 && is_burst(live_entities()->items[at - 1]));
     {
-        const vec_t *ra = as_burst(live_entities()->items[at - 1])->pos;
+        const vec_t *ra = pos_ref(&as_burst(live_entities()->items[at - 1])->header);
         vec_t want = vec_add(*keys.pos, ((planet_t *)pm)->archetype->spawn_offset);
         assert(ra != keys.pos && ra->x == want.x && ra->y == want.y);
     }
@@ -325,8 +339,8 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fold_string_member(hash, planet->planet_id);
     hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_is_dead(hash, planet);
-    hash = fold_vec(hash, planet->pos);
-    hash = fold_vec(hash, planet->map_pos);
+    hash = fold_vec(hash, pos_ref(&planet->header));
+    hash = fold_vec(hash, map_pos_ref(&planet->header));
     hash = fnv(hash, (uint32_t)(emitter->trail_colors == NULL ? -1 : emitter->trail_colors->count));
     hash = fnv(hash, (uint32_t)tag_count(planet->header.class->tags));
     hash = fnv(hash, (uint32_t)trade_route_list_count(planet->outgoing_routes));
@@ -362,8 +376,8 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -439,7 +453,7 @@ static void test_built(void) {
            as_burst(b)->emitter->particles != as_burst(c)->emitter->particles);
     assert(as_burst(a)->slipways != as_burst(b)->slipways);
     assert(as_burst(a)->outgoing_routes == as_burst(b)->outgoing_routes && as_burst(b)->outgoing_routes == as_burst(c)->outgoing_routes);
-    assert(as_burst(c)->pos == NULL && as_burst(c)->map_pos == NULL && as_burst(c)->planet_id == NULL);
+    assert(pos_ref(&as_burst(c)->header) == NULL && map_pos_ref(&as_burst(c)->header) == NULL && as_burst(c)->planet_id == NULL);
     assert(as_burst(a)->archetype->layer == p8_fixed_from_int(3) && as_burst(a)->speed == p8_fixed_from_int(3));
     assert(as_burst(a)->archetype->is_planet == 0);
     assert(as_burst(b)->speed == P8_FIXED_LIT(0x00018000, 1.5));
@@ -524,7 +538,7 @@ static uint32_t fold_layout_row(uint32_t h, void *e) {
         h = fold_fixed(fnv_str(h, "score"), lq->score);
         n++;
     }
-    assert(lq->pos == NULL && "fold_layout_row: no test folds a layout row whose pos is set: to fold one, fold the key \"pos\", then 0xEEEE then 0, count it with the other keys, as the frozen hashes did");
+    assert(pos_ref(&lq->header) == NULL && "fold_layout_row: no test folds a layout row whose pos is set: to fold one, fold the key \"pos\", then 0xEEEE then 0, count it with the other keys, as the frozen hashes did");
     /* As fold_ref folded the tagged list placed_items was: never live, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "placed_items"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_fixed(fnv_str(h, "width"), lq->width);
@@ -549,7 +563,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
 
     assert(qy != NULL && qy->count >= n);
     cut_particles(qy, n);
-    class_of(e)->draw(e, g->pos);
+    class_of(e)->draw(e, pos_ref(&g->header));
     h = fold_is_dead(h, g);
     return fnv(h, (uint32_t)qy->count);
 }
@@ -604,7 +618,7 @@ static void test_life(void) {
     hash = fold_cut(hash, first, 0);
     assert(as_burst(first)->header.is_dead);
 
-    hash = fold_bool(hash, class_of(second)->hit_test(second, as_burst(second)->pos, as_burst(second)->pos));
+    hash = fold_bool(hash, class_of(second)->hit_test(second, pos_ref(&as_burst(second)->header), pos_ref(&as_burst(second)->header)));
     hash = fold_bool(hash, class_of(second)->hit_test(second, vec_ref(near_main_camera(0, 0)), vec_ref(near_main_camera(0, 0))));
     hash = fnv(fnv(hash, 0xB0u), planet_is_colonized(second) ? 1u : 0u);
     assert(planet_is_colonized(first) == 0);

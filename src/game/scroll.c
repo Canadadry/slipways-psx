@@ -39,13 +39,11 @@ static camera_t *camera_create(void) {
 
     entity_init_instance(&self->header, &camera_class_def, camera_archetype.state, camera_archetype.state_time);
     self->archetype = &camera_archetype;
-    self->header.pos = &self->pos;
-    self->header.map_pos = &self->pos_before_shake;
     self->header.has |= ENTITY_HAS_SHAKE;
     self->velocity = &self->archetype->velocity;
     self->header.shake = self->archetype->shake;
-    self->pos_before_shake = &self->archetype->pos_before_shake;
-    self->pos = &self->archetype->pos;
+    entity_set_map_pos(&self->header, self->archetype->pos_before_shake);
+    entity_set_pos(&self->header, self->archetype->pos);
     entity_construct(&self->header);
     return self;
 }
@@ -106,7 +104,7 @@ void camera_update(const p8_input_t *input, camera_t *self) {
         }
     }
 
-    p = camera_vec(self->pos_before_shake);
+    p = camera_pos_before_shake(self);
     v = camera_vec(self->velocity);
 
     p = vec_add(p, v);
@@ -114,12 +112,10 @@ void camera_update(const p8_input_t *input, camera_t *self) {
 
     p = camera_bounded(p);
 
-    self->pos_before_shake_own = p;
-    self->pos_before_shake = &self->pos_before_shake_own;
+    entity_set_map_pos(&self->header, p);
     camera_set_velocity(self, v);
 
-    self->pos_own = camera_bounded(entity_geom_shake(p, (entity_t *)self));
-    self->pos = &self->pos_own;
+    entity_set_pos(&self->header, camera_bounded(entity_geom_shake(p, (entity_t *)self)));
 }
 
 void camera_set_velocity(camera_t *self, vec_t v) {
@@ -134,7 +130,7 @@ void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax) {
         return;
     }
 
-    cp = vec_mul(camera_vec(self->pos), parallax);
+    cp = vec_mul(entity_pos(&self->header), parallax);
     p8_camera(gfx, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y));
 }
 

@@ -90,7 +90,6 @@ static button_t *button_create(const button_keys_t *keys) {
     self->side_tooltip = NULL;
     self->has_side_tooltip = 0;
     self->tooltip = NULL;
-    self->pos = NULL;
     self->slide_target = NULL;
     self->on_click = NULL;
     self->has_on_click = 0;
@@ -110,14 +109,12 @@ static button_t *button_create(const button_keys_t *keys) {
     self->archetype = &button_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.pos = &self->pos;
     if (keys != NULL) {
         if (keys->has_layer) {
             self->header.layer = keys->layer;
         }
         if (keys->pos != NULL) {
-            self->pos_box = *keys->pos;
-            self->pos = &self->pos_box;
+            entity_set_pos(&self->header, *keys->pos);
         }
         if (keys->slide_target != NULL) {
             self->slide_target_box = *keys->slide_target;
@@ -209,12 +206,11 @@ void button_update(button_t *self) {
 
     if (self->slide_target != NULL) {
         vec_t qf = *self->slide_target;
-        vec_t ra = self->pos != NULL ? *self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        vec_t ra = entity_pos(&self->header);
         vec_t d = vec_sub(qf, ra);
         p8_fixed_t length_squared = vec_length_squared(d);
         vec_t delta = (length_squared <= p8_fixed_from_int(1)) ? d : vec_mul(d, P8_FIXED_LIT(0x00006666, 0.4));
-        self->pos_box = vec_add(ra, delta);
-        self->pos = &self->pos_box;
+        entity_set_pos(&self->header, vec_add(ra, delta));
     }
 }
 

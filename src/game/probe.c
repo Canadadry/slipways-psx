@@ -76,30 +76,6 @@ static int probe_panel_box_contains(vec_t rp) {
     return box_contains(hw, rp);
 }
 
-static void probe_host_set_positions(entity_t *self, vec_t *ra, vec_t *p) {
-    probe_t *g_;
-    planet_t *jo;
-    wormhole_t *mz;
-
-    if (self->class->lineage & LINEAGE(LINEAGE_PROBE)) {
-        g_ = (probe_t *)self;
-        g_->pos = ra;
-        g_->map_pos = p;
-        return;
-    }
-    if (planet_is_family(self)) {
-        jo = (planet_t *)self;
-        jo->pos = ra;
-        jo->map_pos = p;
-        return;
-    }
-    assert(self->class == wormhole_class() &&
-           "targeting_track: a host neither a probe, of the planet family nor a wormhole, none of whose drag runs it -- stop");
-    mz = (wormhole_t *)self;
-    mz->pos = ra;
-    mz->map_pos = p;
-}
-
 static int probe_is_target_class(const entity_class_t *cls) {
     return cls->states[ENTITY_STATE_SETTLED] != NULL || cls == planet_class() ||
            cls == slipway_class() || cls == targeting_track_target_class();
@@ -183,9 +159,14 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     targeting = self->targeting;
     mouse_world_vec = mouse_world != NULL ? *mouse_world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     p_vec = vec_div(mouse_world_vec, p8_fixed_from_int(128));
-    targeting->track_pos = mouse_world_vec;
-    targeting->track_map_pos = p_vec;
-    probe_host_set_positions(self, mouse_world != NULL ? &targeting->track_pos : NULL, &targeting->track_map_pos);
+    assert(((self->class->lineage & LINEAGE(LINEAGE_PROBE)) || planet_is_family(self) || self->class == wormhole_class()) &&
+           "targeting_track: a host neither a probe, of the planet family nor a wormhole, none of whose drag runs it -- stop");
+    if (mouse_world != NULL) {
+        entity_set_pos(self, mouse_world_vec);
+    } else {
+        entity_clear_pos(self);
+    }
+    entity_set_map_pos(self, p_vec);
 
     candidate = NULL;
     distance = entity_geom_nearest(p_vec, entities_by_tag(TAG_NODE), &candidate);
@@ -403,8 +384,6 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->archetype = archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.pos = &self->pos;
-    self->header.map_pos = &self->map_pos;
     self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
     self->header.fold_anchor = self->archetype->fold_anchor;
     self->header.has |= ENTITY_HAS_IS_DEAD;
@@ -413,8 +392,9 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->emitter = &self->emitter_own;
     self->emitter->archetype = &self->archetype->emitter;
     self->emitter->particles = NULL;
-    self->pos = self->archetype->has_pos ? &self->archetype->pos : NULL;
-    self->map_pos = NULL;
+    if (self->archetype->has_pos) {
+        entity_set_pos(&self->header, self->archetype->pos);
+    }
     self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
     targeting_set_target(self->targeting, NULL);

@@ -27,8 +27,6 @@ typedef struct targeting {
     targeting_target_t target;
     p8_fixed_t cost;
     int has_cost;
-    vec_t track_pos;
-    vec_t track_map_pos;
 } targeting_t;
 
 /* The entity, the static sentinel, or NULL once the entity was flushed. */

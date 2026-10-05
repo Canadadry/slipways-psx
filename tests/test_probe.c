@@ -34,9 +34,20 @@
 #include "game/planet.h"
 #include "game/probe.h"
 #include "game/slipway.h"
+#include "game/planet_family.h"
+#include "game/wormhole.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
 #include "engine/vec.h"
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
 
 /* pos is a copy of the mouse position, never the caller's box (NULL stays
  * NULL). */
@@ -355,7 +366,6 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     size_t index;
 
     assert(is_probe(&entity->header));
-    assert(entity->header.map_pos == &entity->map_pos);
     hash = fold_fixed_member(hash, entity->archetype->fold_anchor);
     hash = fold_string_member(hash, entity_state_name(targeting->archetype->confirmed_state));
     hash = fold_fixed_member(hash, targeting->cost);
@@ -381,7 +391,7 @@ static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
     assert(emitter->trail_colors == &probe_trail_colors_seq);
     hash = fnv(hash, (uint32_t)size_of(emitter->particles));
     assert(size_of(emitter->particles) == 0);
-    assert(entity->pos == NULL && entity->map_pos == NULL && targeting_target(targeting) == NULL && !entity->header.is_dead);
+    assert(pos_ref(&entity->header) == NULL && map_pos_ref(&entity->header) == NULL && targeting_target(targeting) == NULL && !entity->header.is_dead);
     assert(class_of(entity)->hit_test == NULL && class_of(entity)->new_year == NULL && class_of(entity)->refresh == NULL &&
            class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL && class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL);
     assert(class_of(entity)->drag == targeting_track_method);
@@ -489,8 +499,8 @@ static planet_t *a_planet(void) {
 
 static vec_t planet_map_pos(void) {
     const planet_t *planet = a_planet();
-    assert(planet->map_pos != NULL);
-    return *planet->map_pos;
+    assert(map_pos_ref(&planet->header) != NULL);
+    return *map_pos_ref(&planet->header);
 }
 
 /* A slipway between two bare planets far from each other and from the
@@ -537,11 +547,11 @@ static uint32_t fold_drag(uint32_t h, probe_t *e, vec_t at, int rp, uint32_t wan
     printf("[drag] target kind %u\n", (unsigned)kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(pos_copies(e->pos, mp));
+    assert(pos_copies(pos_ref(&e->header), mp));
     assert(kind == 1 || target_targeted_by(e) == e);
     h = fnv(h, kind);
     h = fold_target(h, e);
-    h = fold_vec(h, e->map_pos);
+    h = fold_vec(h, map_pos_ref(&e->header));
     return h;
 }
 
@@ -914,6 +924,37 @@ static void test_target_links_resolve_until_the_flush(void) {
     assert(targeting_target(second->targeting) == NULL);
 }
 
+static int header_at(const entity_t *e, vec_t world) {
+    vec_t map = vec_div(world, p8_fixed_from_int(128));
+
+    return entity_has_pos(e) && e->pos.x == world.x && e->pos.y == world.y && entity_has_map_pos(e) &&
+           e->map_pos.x == map.x && e->map_pos.y == map.y;
+}
+
+/* A drag writes the host's position and map position into its header; one
+ * without a mouse position clears the position and puts the map position at
+ * (0,0); the next drag overwrites both. */
+static void drag_writes_the_header_of(entity_t *host) {
+    vec_t first = vec_xy(640, 320);
+    vec_t second = vec_xy(256, 512);
+    vec_t screen = vec_xy(64, 64);
+
+    targeting_track(host, &first, &screen);
+    assert(header_at(host, first));
+    targeting_track(host, NULL, &screen);
+    assert(!entity_has_pos(host) && entity_has_map_pos(host) && host->map_pos.x == 0 && host->map_pos.y == 0);
+    targeting_track(host, &second, &screen);
+    assert(header_at(host, second));
+}
+
+static void test_drag_writes_the_host_header(void) {
+    start_game();
+    drag_writes_the_header_of(&probe_new(NULL)->header);
+    drag_writes_the_header_of(&help_screen_new()->header);
+    drag_writes_the_header_of(&structure_new(NULL)->header);
+    drag_writes_the_header_of(&wormhole_new()->header);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -935,6 +976,7 @@ int main(void) {
     in_fresh_child(test_targeting_track_target_is_a_struct);
     in_fresh_child(test_drop_near_an_edge_cancels);
     in_fresh_child(test_leaving_gives_back_its_particles);
+    in_fresh_child(test_drag_writes_the_host_header);
 
     printf("test_probe: all tests passed\n");
     return 0;

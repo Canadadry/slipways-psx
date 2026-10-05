@@ -11,8 +11,6 @@
 typedef struct {
     entity_t header;
     const mouse_archetype_t *archetype;
-    vec_t *pos;
-    vec_t pos_own;
 } mouse_t;
 
 void mouse_init(void);

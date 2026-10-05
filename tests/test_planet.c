@@ -40,6 +40,15 @@
 #include "engine/vec.h"
 #include "game/ui_zone.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 #define GALAXY_PLANETS 90
 #define GALAXY_HASH 0xE70E2EE3u
 #define DAUGHTERS_HASH 0x668D1EBEu
@@ -232,8 +241,8 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fold_fixed_member(hash, planet->archetype->layer);
     hash = fold_fixed_member(hash, planet->header.shake);
     hash = fold_fixed_member(hash, planet->archetype->back_color);
-    hash = fold_vec(hash, planet->map_pos);
-    hash = fold_vec(hash, planet->pos);
+    hash = fold_vec(hash, map_pos_ref(&planet->header));
+    hash = fold_vec(hash, pos_ref(&planet->header));
     hash = fold_vec(hash, &planet->archetype->row_step);
     /* The 1s of is_planet, trade_multiplier, layer, shake and back_color:
      * constant by the struct's shape, kept so that GALAXY_HASH and
@@ -252,8 +261,8 @@ static uint32_t fold_planet(uint32_t hash, const void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -374,8 +383,8 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     h = fold_vec(h, &jo->archetype->row_step);
     assert(jo->archetype->spacer == &planet_spacer_row);
     h = fnv(fnv(h, 0xB0u), planet_is_colonized(jo) ? 1u : 0u);
-    assert(jo->pos != NULL);
-    ra = *jo->pos;
+    assert(pos_ref(&jo->header) != NULL);
+    ra = *pos_ref(&jo->header);
     h = fold_bool(h, class_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
     ra = vec_add(ra, vec_make(p8_fixed_from_int(8), p8_fixed_from_int(8)));
     return fold_bool(h, class_of(d)->hit_test(d, vec_ref(ra), vec_ref(ra)));
@@ -389,8 +398,8 @@ static void *bought(const entity_kind_t *kind) {
     const vec_t *main_camera_pos;
     int i;
 
-    assert(mo != NULL && mo->pos != NULL);
-    main_camera_pos = mo->pos;
+    assert(mo != NULL && pos_ref(&mo->header) != NULL);
+    main_camera_pos = pos_ref(&mo->header);
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i];
         if (class_of(icon) == structure_icon_class() && ((const structure_icon_t *)icon)->kind == kind) {
@@ -605,7 +614,7 @@ static void test_planet_is_a_struct(void) {
     assert(is_a_planet_struct(a));
     {
         planet_t *bare = planet_new(NULL);
-        assert(is_a_planet_struct(bare) && bare->planet_id == NULL && bare->pos == NULL && bare->slipways != NULL);
+        assert(is_a_planet_struct(bare) && bare->planet_id == NULL && pos_ref(&bare->header) == NULL && bare->slipways != NULL);
     }
 
     (void)bought(structure_kind());

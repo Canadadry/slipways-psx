@@ -41,6 +41,15 @@
 #include "game/wormhole.h"
 #include "engine/game_zone.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* Ticks after the slipway is paid, long enough for the colonizing and
  * paying effects to leave the live entities: update_entities skips the
  * entity after one it takes out (GAP-5). */
@@ -137,12 +146,12 @@ static slipway_too_far_t *as_too_far(const void *e) {
 /* The mouse point's `pos` and `map_pos`, NULL when absent. */
 static const vec_t *mouse_point_pos(const void *re) {
     assert(is_throwaway(re));
-    return ((const slipway_mouse_point_t *)re)->pos;
+    return pos_ref(&((const slipway_mouse_point_t *)re)->header);
 }
 
 static const vec_t *mouse_point_map_pos(const void *re) {
     assert(is_throwaway(re));
-    return ((const slipway_mouse_point_t *)re)->map_pos;
+    return map_pos_ref(&((const slipway_mouse_point_t *)re)->header);
 }
 
 /* The word the frozen hashes fold before a boolean: 0xB0, then 0 or 1; any
@@ -323,7 +332,7 @@ static void start_game(void) {
 }
 
 static vec_t pos_of(const void *e) {
-    return vec_of(as_planet(e)->map_pos);
+    return vec_of(map_pos_ref(&as_planet(e)->header));
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -563,7 +572,7 @@ static void test_drag(void) {
     h = fold_slipway(h, far);
 
     twin = build_slipway(origin);
-    drag_over(twin, target, vec_ref_fixed(vec_of(as_planet(target)->pos)));
+    drag_over(twin, target, vec_ref_fixed(vec_of(pos_ref(&as_planet(target)->header))));
     assert(end_kind(twin) == END_PLANET && slipway_end(as_slipway(twin)) == target);
     assert(target_kind(twin) == TARGET_SLIPWAY && targeting_target(as_slipway(twin)->targeting) == old);
     assert(entity_get(as_slipway(old)->targeted_by) == twin);
@@ -639,7 +648,7 @@ static void test_draw(void) {
     old = the_slipway();
     origin = slipway_start(as_slipway(old));
     assert(main_camera_typed() != NULL);
-    main_camera_pos = vec_of(main_camera_typed()->pos);
+    main_camera_pos = vec_of(pos_ref(&main_camera_typed()->header));
     p8_camera(&graphics, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
     p8_cls(&memory);
     blank = screen_hash();
@@ -655,11 +664,11 @@ static void test_draw(void) {
     }
 
     p8_cls(&memory);
-    class_of(origin)->draw(origin, vec_ref_fixed(vec_of(as_planet(origin)->pos)));
+    class_of(origin)->draw(origin, vec_ref_fixed(vec_of(pos_ref(&as_planet(origin)->header))));
     plain = screen_hash();
     as_planet(origin)->targeted_by = entity_id_of(old);
     p8_cls(&memory);
-    class_of(origin)->draw(origin, vec_ref_fixed(vec_of(as_planet(origin)->pos)));
+    class_of(origin)->draw(origin, vec_ref_fixed(vec_of(pos_ref(&as_planet(origin)->header))));
     circled = screen_hash();
     assert(entity_get(as_planet(origin)->targeted_by) == NULL);
     assert(circled != plain);
@@ -699,7 +708,7 @@ static void test_too_far(void) {
     assert(end_kind(far_slipway) == END_THROWAWAY && target_kind(far_slipway) == TARGET_STATUS_TEXT);
     assert(target_kind(old_slipway) == TARGET_ABSENT);
     assert(main_camera_typed() != NULL);
-    main_camera_pos = vec_of(main_camera_typed()->pos);
+    main_camera_pos = vec_of(pos_ref(&main_camera_typed()->header));
     p8_camera(&graphics, p8_fixed_flr_int(main_camera_pos.x), p8_fixed_flr_int(main_camera_pos.y));
     p8_cls(&memory);
     empty = screen_hash();
@@ -709,14 +718,14 @@ static void test_too_far(void) {
     hash = fnv(hash, screen_hash());
 
     second_slipway = build_slipway(start_planet);
-    drag_over(second_slipway, target, vec_ref_fixed(vec_of(as_planet(target)->pos)));
+    drag_over(second_slipway, target, vec_ref_fixed(vec_of(pos_ref(&as_planet(target)->header))));
     assert(target_kind(second_slipway) == TARGET_SLIPWAY);
     near = build_slipway(start_planet);
     drag_over(near, NULL,
-            vec_ref_fixed(vec_add(vec_of(as_planet(start_planet)->pos), vec_make(p8_fixed_from_int(16), 0))));
+            vec_ref_fixed(vec_add(vec_of(pos_ref(&as_planet(start_planet)->header)), vec_make(p8_fixed_from_int(16), 0))));
     assert(end_kind(near) == END_THROWAWAY && target_kind(near) == TARGET_ABSENT && as_slipway(near)->targeting->has_cost);
     assert(main_mouse_typed() != NULL);
-    mouse = vec_of(main_mouse_typed()->pos);
+    mouse = vec_of(pos_ref(&main_mouse_typed()->header));
     p8_camera(&graphics, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
     p8_cls(&memory);
     class_of(far_slipway)->draw_overlay(far_slipway, NULL);
@@ -790,7 +799,6 @@ static void test_drag_mouse_point(void) {
     first_pos = vec_of(mouse_point_map_pos(first_end));
     assert(same_vec(first_pos, vec_div(vec_of(mouse_point_pos(first_end)), p8_fixed_from_int(128))));
     assert(mouse_point_map_pos(first_end) != first_mouse);
-    assert(*((const entity_t *)first_end)->map_pos == mouse_point_map_pos(first_end));
     assert(!entity_geom_is_on_screen(first_end));
     assert(!entity_list_listed(live_entities(), first_end) && !entity_list_listed(entities_by_tag(TAG_SLIPWAY), first_end) && !entity_list_listed(entities_by_tag(TAG_NODE), first_end));
     hash = fnv(hash, (uint32_t)first_pos.x);
@@ -822,13 +830,13 @@ static void test_drag_mouse_point(void) {
     assert(holds_copy_of(mouse_point_pos(first_end), second_mouse) && "another slipway's drag leaves this one's point as it was");
     hash = fold_slipway(hash, second);
 
-    drag_over(first, target, vec_ref_fixed(vec_of(as_planet(target)->pos)));
+    drag_over(first, target, vec_ref_fixed(vec_of(pos_ref(&as_planet(target)->header))));
     assert(slipway_end(as_slipway(first)) == target && end_kind(first) == END_PLANET);
     assert(holds_copy_of(mouse_point_pos(other_end), first_mouse));
     hash = fold_slipway(hash, first);
     check("mouse_point", hash, MOUSE_POINT_HASH);
 
-    on_camera = vec_add(vec_of(main_camera_typed()->pos),
+    on_camera = vec_add(vec_of(pos_ref(&main_camera_typed()->header)),
                               vec_make(p8_fixed_from_int(80), p8_fixed_from_int(60)));
     drag_over(second, NULL, vec_ref_fixed(on_camera));
     assert(entity_geom_is_on_screen(slipway_end(as_slipway(second))));
@@ -1176,7 +1184,7 @@ static void test_targeted_by_resolves_until_the_flush(void) {
     old = the_slipway();
     end = slipway_end(old);
     twin = build_slipway(slipway_start(old));
-    drag_over(twin, end, vec_ref_fixed(vec_of(as_planet(end)->pos)));
+    drag_over(twin, end, vec_ref_fixed(vec_of(pos_ref(&as_planet(end)->header))));
     assert(entity_get(as_slipway(old)->targeted_by) == twin);
     entity_unregister(twin);
     assert(entity_get(as_slipway(old)->targeted_by) == twin);

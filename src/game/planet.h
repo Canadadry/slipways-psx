@@ -18,8 +18,6 @@ typedef struct {
     const planet_archetype_t *archetype;
     production_t *production;
     const char *planet_id;
-    vec_t *map_pos;
-    vec_t *pos;
     entity_id_list_t *slipways;
     research_project_id_t project;
     const char *description;

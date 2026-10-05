@@ -40,6 +40,15 @@
 #include "engine/vec.h"
 #include "heap_allocator.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
@@ -311,8 +320,8 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -390,7 +399,7 @@ static void set_credits(int n) {
 }
 
 static uint32_t fold_pos_y(uint32_t h, const planet_t *qh) {
-    const vec_t *ra = qh->pos;
+    const vec_t *ra = pos_ref(&qh->header);
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -442,11 +451,11 @@ static void slot(void *e, int x, int y) {
     vec_t *mp;
 
     assert(main_camera_typed() != NULL);
-    main_camera_pos = main_camera_typed()->pos;
+    main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     mp = vec_ref(vec_add(*main_camera_pos, vec_xy(x + 16, y - 4)));
     class_of(e)->drag(e, mp, vec_ref(vec_xy(64, 64)));
-    assert(pos_copies(as_structure(e)->pos, mp));
+    assert(pos_copies(pos_ref(&as_structure(e)->header), mp));
 }
 
 /* A slipway drawn from the given planet by its left press, aimed by its
@@ -454,7 +463,7 @@ static void slot(void *e, int x, int y) {
  * comes from that planet alone. */
 static uint32_t fold_route(uint32_t h, void *from) {
     down_t jc = class_of(from)->left_press(from, NULL, NULL);
-    const vec_t *ra = as_structure(from)->pos;
+    const vec_t *ra = pos_ref(&as_structure(from)->header);
     int from_has_infraspace = class_of(from) == infraspace_gate_class();
     const slipway_t *made;
 

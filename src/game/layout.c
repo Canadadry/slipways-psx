@@ -297,7 +297,6 @@ static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
     self = (layout_row_t *)allocator_alloc(zone, sizeof *self);
 
     entity_init_header(&self->header, &layout_row_class_def);
-    self->header.pos = &self->pos;
     self->color = 0;
     self->has_color = 0;
     self->background = 0;
@@ -305,7 +304,6 @@ static layout_row_t *row_struct_alloc(const allocator_t *zone, int n) {
     self->background_is_bool = 0;
     self->score = 0;
     self->has_score = 0;
-    self->pos = NULL;
     self->placed_items = NULL;
     self->placed_items_count = 0;
     self->width = 0;
@@ -341,7 +339,9 @@ static layout_row_t *row_create(const allocator_t *zone, const layout_row_keys_t
             self->score = keys->score;
             self->has_score = 1;
         }
-        self->pos = keys->pos;
+        if (keys->pos != NULL) {
+            entity_set_pos(&self->header, *keys->pos);
+        }
     }
     return row_struct_finish(self);
 }
@@ -376,7 +376,9 @@ layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row) 
     self->background_is_bool = row->background_is_bool;
     self->score = row->score;
     self->has_score = row->has_score;
-    self->pos = row->pos;
+    if (entity_has_pos(&row->header)) {
+        entity_set_pos(&self->header, row->header.pos);
+    }
     return row_struct_finish(self);
 }
 

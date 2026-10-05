@@ -138,7 +138,7 @@ static int reset_then_draw_panel(void) {
     allocate_again();
     for (int i = 0; i < le->count; i++) {
         button_t *js = (button_t *)entity_id_list_at(le, i);
-        vec_t p = js->pos != NULL ? *js->pos : vec_make(0, 0);
+        vec_t p = entity_pos(&js->header);
 
         sink = (unsigned char)read_cells(js->layout_row);
         if (js->side_tooltip != NULL) sink = (unsigned char)read_cells(js->side_tooltip);

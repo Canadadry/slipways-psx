@@ -12,8 +12,13 @@
 
 typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
 
+/* A class property, not the position bit: a probe dragged without a mouse position carries a position that is absent. */
+static int emitter_host_carries_pos(const entity_t *self) {
+    return (self->class->lineage & (LINEAGE(LINEAGE_PROBE) | LINEAGE(LINEAGE_PLANET))) != 0;
+}
+
 static p8_fixed_t emitter_host_layer_pos(const entity_t *self, vec_t *ra) {
-    assert(entity_has(self, ENTITY_HAS_LAYER) && self->pos != NULL &&
+    assert(entity_has(self, ENTITY_HAS_LAYER) && emitter_host_carries_pos(self) &&
            "emitter_update: a host that carries no layer or no pos, none of whose draw runs it -- stop");
     *ra = entity_pos(self);
     return self->layer;

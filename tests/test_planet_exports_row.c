@@ -91,7 +91,6 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
     planet_t *planet;
     static production_t production;
     const data_row_t *production_row;
-    vec_t *planet_pos;
     const entity_id_list_t *ephemerals;
     const layout_row_t *exports_layout_row = NULL;
     layout_row_cell_t entry;
@@ -112,9 +111,7 @@ static void test_inspection_panel_exports_row_layout_row_receives_its_four_items
 
     /* The panel reads it, and the archetype's row_step, for the box's row
      * placement. */
-    planet_pos = malloc(sizeof *planet_pos);
-    *planet_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->pos = planet_pos;
+    entity_set_pos(&planet->header, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
 
     /* The call under test: this is where the overflow happened. */
     planet_inspection_panel(planet);

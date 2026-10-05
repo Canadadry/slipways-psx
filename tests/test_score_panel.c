@@ -37,6 +37,11 @@
 #include "game/ui_button.h"
 #include "engine/vec.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+
 #define BUILT_HASH 0x455004CBu
 #define SHARED_HASH 0xAAACD2E4u
 #define LIFE_HASH 0x7647D312u
@@ -563,11 +568,11 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
     assert(row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
     *head = row_item(lq, 0).as.text;
     h = fnv_str(h, *head);
-    ra = as_button(entity_id_list_at(le, 0))->pos;
+    ra = pos_ref(&as_button(entity_id_list_at(le, 0))->header);
     for (i = 0; i < le->count; i++) {
         const button_t *b = as_button(entity_id_list_at(le, i));
         vec_t qf = vec_of(b->slide_target);
-        assert(b->pos != NULL && b->pos->x == ra->x && b->pos->y == ra->y);
+        assert(pos_ref(&b->header) != NULL && pos_ref(&b->header)->x == ra->x && pos_ref(&b->header)->y == ra->y);
         assert(b->header.layer == p8_fixed_from_int(10));
         assert(qf.x == 0 && qf.y == p8_fixed_from_int(11 * (i + 1)));
         h = fold_fixed_member(h, b->header.layer);
@@ -908,11 +913,11 @@ static void test_end_buttons_are_centered(void) {
         if (!is_of(b, button_class()) || b->header.layer != p8_fixed_from_int(15) || b->layout_row == NULL) {
             continue;
         }
-        assert(b->pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
+        assert(pos_ref(&b->header)->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + 36));
         if (b->on_click == score_panel_init_field_value()) {
-            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 13));
+            assert(pos_ref(&b->header)->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 13));
         } else {
-            assert(b->pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 25));
+            assert(pos_ref(&b->header)->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2 - 25));
         }
         found++;
     }

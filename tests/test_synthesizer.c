@@ -43,6 +43,15 @@
 #include "engine/game_zone.h"
 #include "heap_allocator.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
@@ -381,8 +390,8 @@ static uint32_t fold_synthesizer(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -452,7 +461,7 @@ static void set_credits(int n) {
 }
 
 static uint32_t fold_pos_y(uint32_t h, const planet_t *hj) {
-    const vec_t *ra = hj->pos;
+    const vec_t *ra = pos_ref(&hj->header);
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -515,11 +524,11 @@ static void test_life(void) {
 
     placed = build_synthesizer();
     assert(main_camera_typed() != NULL);
-    main_camera_pos = main_camera_typed()->pos;
+    main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     mouse_world = vec_ref(vec_add(*main_camera_pos, vec_xy(28, 104)));
     class_of(placed)->drag(placed, mouse_world, vec_ref(vec_xy(64, 64)));
-    assert(pos_copies(as_ascension(placed)->pos, mouse_world));
+    assert(pos_copies(pos_ref(&as_ascension(placed)->header), mouse_world));
     set_credits(200);
     assert(class_of(placed)->drop == targeting_confirm_method);
     hash = targeting_confirm(placed) ? fnv(fnv(hash, 0xB0u), 1u) : fold_ref(hash, NULL);

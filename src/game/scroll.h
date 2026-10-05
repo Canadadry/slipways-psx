@@ -13,11 +13,7 @@ typedef struct {
     entity_t header;
     const camera_archetype_t *archetype;
     const vec_t *velocity;
-    const vec_t *pos_before_shake;
-    const vec_t *pos;
-    vec_t pos_before_shake_own;
     vec_t velocity_own;
-    vec_t pos_own;
 } camera_t;
 
 void camera_init(void);
@@ -36,5 +32,10 @@ void camera_set_velocity(camera_t *self, vec_t v);
 void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax);
 
 camera_t *main_camera_typed(void);
+
+/* The camera's map position is its position before shake; its position is the shaken one. */
+static inline vec_t camera_pos_before_shake(const camera_t *self) {
+    return entity_map_pos(&self->header);
+}
 
 #endif

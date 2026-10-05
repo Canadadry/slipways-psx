@@ -182,9 +182,8 @@ static int case_particles_release_releases_the_arena(void) {
  * layer 10, so drawn without the on-screen test, and spawn_rate 0, so
  * nothing is born. */
 static const emitter_archetype_t without_birth;
-static const entity_class_t host_class_def;
+static const entity_class_t host_class_def = {.lineage = LINEAGE(LINEAGE_PROBE)};
 static const p8_fixed_t layer_ten = 10 << 16;
-static const vec_t *const pos_nil = NULL;
 static emitter_t g_emitter;
 static entity_t g_host;
 static p8_graphics_t g_gfx;
@@ -198,7 +197,6 @@ static entity_t *host(void) {
     g_emitter.archetype = &without_birth;
     g_host.has |= ENTITY_HAS_LAYER;
     g_host.layer = layer_ten;
-    g_host.pos = &pos_nil;
     g_host.emitter = &g_emitter;
     emitter_init(&g_host);
     return &g_host;

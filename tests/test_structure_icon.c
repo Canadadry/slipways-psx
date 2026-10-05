@@ -39,6 +39,15 @@
 #include "game/wormhole.h"
 #include "heap_allocator.h"
 
+static int same_pos(vec_t a, vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+
 #define CONSTRUCTION_HASH 0x4639EF5Du
 #define START_HASH 0xC69B34A1u
 #define DIRECTED_HASH 0xD03BC385u
@@ -198,7 +207,7 @@ static uint32_t fold_shared(uint32_t h, void *icon) {
 static uint32_t fold_icon(uint32_t h, void *icon) {
     const structure_icon_t *ie = as_structure_icon(icon);
     h = fnv(h, is_revealed_state(ie));
-    h = fold_vec(h, ie->pos);
+    h = fold_vec(h, pos_ref(&ie->header));
     h = fnv(h, is_hovered_state(ie));
     return fold_fixed(h, ie->header.state_time);
 }
@@ -280,8 +289,8 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(ie->header.state_time == 0);
     assert(ie->archetype == &structure_icon_archetype);
     assert(ie->archetype->layer == p8_fixed_from_int(12));
-    assert(ie->pos == &ie->archetype->pos);
-    assert(ie->pos->x == p8_fixed_from_int(999) && ie->pos->y == p8_fixed_from_int(999));
+    assert(entity_has_pos(&ie->header));
+    assert(pos_ref(&ie->header)->x == p8_fixed_from_int(999) && pos_ref(&ie->header)->y == p8_fixed_from_int(999));
     assert(ie->archetype->rest_cursor.x == p8_fixed_from_int(P8_SCREEN_WIDTH - 10) && ie->archetype->rest_cursor.y == p8_fixed_from_int(P8_SCREEN_HEIGHT - 8));
     assert((const void *)ie->kind == ke);
     assert((const void *)ie->tooltip == jb);
@@ -297,7 +306,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     h = fold_string(h, entity_state_name(ie->header.state));
     h = fold_fixed(h, ie->archetype->layer);
     h = fold_hit_box(h, icon);
-    h = fold_vec(h, ie->pos);
+    h = fold_vec(h, pos_ref(&ie->header));
     h = fold_vec(h, &ie->archetype->rest_cursor);
     return fold_shared(h, icon);
 }
@@ -335,7 +344,7 @@ static void test_construction(void) {
     b = build_icon(classes[1], tooltip_b);
     h = check_fresh_icon(h, a, classes[0], tooltip_a);
     h = check_fresh_icon(h, b, classes[1], tooltip_b);
-    assert(as_structure_icon(a)->pos == as_structure_icon(b)->pos);
+    assert(same_pos(as_structure_icon(a)->header.pos, as_structure_icon(b)->header.pos));
     assert(as_structure_icon(a)->archetype == as_structure_icon(b)->archetype);
     assert(as_structure_icon(a)->archetype == as_structure_icon(all[0])->archetype);
     assert(icon_rank(a) == 7 && icon_rank(b) == 8);
@@ -362,10 +371,10 @@ static void test_start(void) {
     }
     printf("[start] first revealed icon %d\n", first);
     assert(first >= 0);
-    assert(as_structure_icon(all[first])->pos == &as_structure_icon(all[first])->archetype->rest_cursor);
+    assert(same_pos(as_structure_icon(all[first])->header.pos, as_structure_icon(all[first])->archetype->rest_cursor));
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) != 2) {
-            assert(as_structure_icon(all[i])->pos != as_structure_icon(all[first])->pos);
+            assert(!same_pos(as_structure_icon(all[i])->header.pos, as_structure_icon(all[first])->header.pos));
         }
     }
     h = fold_shared(h, all[0]);
@@ -383,7 +392,7 @@ static void test_revealed_icons_anchor_bottom_right(void) {
     start_game();
     n = icons(all, 16);
     for (i = 0; i < n; i++) {
-        const vec_t *pos = as_structure_icon(all[i])->pos;
+        const vec_t *pos = pos_ref(&as_structure_icon(all[i])->header);
         if (is_revealed_state(all[i]) != 2) {
             continue;
         }
@@ -407,7 +416,7 @@ static void test_hovered_icon_tooltip_starts_at_the_top(void) {
     as_structure_icon(shown)->header.is_hovered = 1;
     p8_camera(&graphics, 0, 0);
     p8_rectfill(&graphics, &memory, 0, 0, P8_SCREEN_WIDTH - 1, P8_SCREEN_HEIGHT - 1, 7);
-    class_of(shown)->draw(shown, as_structure_icon(shown)->pos);
+    class_of(shown)->draw(shown, pos_ref(&as_structure_icon(shown)->header));
     assert(memory.screen[0][0] != 7);
 }
 
@@ -432,7 +441,7 @@ static void test_directed(void) {
     void *hidden;
     void *all_icons[16];
     const vec_t *cursor_before;
-    const vec_t *pos_before;
+    vec_t pos_before;
     down_t made;
     p8_fixed_t first_id;
     vec_t icon_pos;
@@ -445,9 +454,9 @@ static void test_directed(void) {
     assert(shown != NULL && hidden != NULL);
 
     cursor_before = shared_cursor(as_structure_icon(shown));
-    pos_before = as_structure_icon(shown)->pos;
+    pos_before = as_structure_icon(shown)->header.pos;
     class_of(shown)->refresh(shown);
-    assert(as_structure_icon(shown)->pos == pos_before && shared_cursor(as_structure_icon(shown)) == cursor_before);
+    assert(same_pos(as_structure_icon(shown)->header.pos, pos_before) && shared_cursor(as_structure_icon(shown)) == cursor_before);
     class_of(hidden)->refresh(hidden);
     assert(is_revealed_state(hidden) == 0 && shared_cursor(as_structure_icon(hidden)) == cursor_before);
     hash = fold_icon(hash, shown);
@@ -467,8 +476,8 @@ static void test_directed(void) {
     hash = fold_string(hash, ((const planet_t *)entity_get(made.held))->planet_id);
     hash = fold_shared(hash, all_icons[3]);
 
-    assert(as_structure_icon(shown)->pos != NULL);
-    icon_pos = *as_structure_icon(shown)->pos;
+    assert(pos_ref(&as_structure_icon(shown)->header) != NULL);
+    icon_pos = *pos_ref(&as_structure_icon(shown)->header);
     assert(class_of(shown)->hit_test(shown, vec_ref(vec_at(-500, -500)), vec_ref(vec_add(icon_pos, vec_at(1, 1)))));
     assert(!class_of(shown)->hit_test(shown, vec_ref(vec_add(icon_pos, vec_at(1, 1))),
                               vec_ref(vec_add(icon_pos, vec_at(20, 20)))));
@@ -498,7 +507,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_alone(void *icon) {
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(icon)->draw(icon, as_structure_icon(icon)->pos);
+    class_of(icon)->draw(icon, pos_ref(&as_structure_icon(icon)->header));
     return screen_hash();
 }
 
@@ -579,8 +588,8 @@ static void test_kind_view(void) {
     {
         /* The targeting tooltip prints at the main mouse, (0,0) here: its
          * label would land off screen. */
-        assert(main_mouse_typed() != NULL && main_mouse_typed()->pos != NULL);
-        *main_mouse_typed()->pos = vec_at(64, 64);
+        assert(main_mouse_typed() != NULL);
+        entity_set_pos(&main_mouse_typed()->header, vec_at(64, 64));
     }
     for (i = 0; i < n; i++) {
         uint32_t plain = draw_alone(all[i]);
@@ -622,7 +631,7 @@ static void test_restart(void) {
     assert(shared_cursor(as_structure_icon(all[0])) != cursor_before);
     for (i = 0; i < n; i++) {
         if (is_revealed_state(all[i]) == 2) {
-            assert(as_structure_icon(all[i])->pos != &as_structure_icon(all[i])->archetype->rest_cursor);
+            assert(!same_pos(as_structure_icon(all[i])->header.pos, as_structure_icon(all[i])->archetype->rest_cursor));
         }
         h = fold_icon(h, all[i]);
     }

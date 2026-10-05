@@ -224,8 +224,6 @@ static wormhole_t *wormhole_create(void) {
     self->archetype = &wormhole_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.pos = &self->pos;
-    self->header.map_pos = &self->map_pos;
     self->header.targeting = &self->targeting_own;
     self->targeting = &self->targeting_own;
     self->targeting->archetype = &self->archetype->targeting;
@@ -234,8 +232,6 @@ static wormhole_t *wormhole_create(void) {
     self->targeting->has_cost = self->archetype->targeting.has_cost;
     self->too_far_target = &g_wormhole_too_far_target_wrapper;
     self->anchors = NULL;
-    self->pos = NULL;
-    self->map_pos = NULL;
     targeting_set_target(self->targeting, NULL);
     self->anchor = ENTITY_ID_NONE;
     self->header.has |= ENTITY_HAS_IS_DEAD;

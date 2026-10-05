@@ -23,8 +23,6 @@ int slipway_served_planets_has(const slipway_served_planets_t *hg, const char *i
 
 typedef struct {
     entity_t header;
-    const vec_t *pos;
-    const vec_t *map_pos;
 } slipway_mouse_point_t;
 
 typedef struct {
@@ -41,8 +39,6 @@ typedef struct {
     targeting_t *targeting;
     targeting_t targeting_own;
     slipway_mouse_point_t point;
-    vec_t point_pos;
-    vec_t point_map_pos;
 } slipway_t;
 
 #define SLIPWAY_CONSTRUCTION_BYTES                                         \

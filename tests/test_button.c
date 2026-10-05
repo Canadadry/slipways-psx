@@ -51,6 +51,15 @@
 #include "game/ui_zone.h"
 #include "heap_allocator.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* Research project 12, a colony that needs two resources and exports one;
  * project 3, a project with an output and no input, which exports to any
  * planet a slipway joins it to. */
@@ -365,7 +374,7 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     hash = fold_fixed(hash, button->header.layer);
     hash = fold_fixed(hash, button->width);
     hash = fold_hit_box(hash, button);
-    hash = fold_vec(hash, button->pos);
+    hash = fold_vec(hash, pos_ref(&button->header));
     hash = fold_vec(hash, button->slide_target);
     hash = fold_built(hash, button->layout_row);
     hash = fold_built_side_tooltip(hash, button);
@@ -432,7 +441,7 @@ static void check_shared_pos(void) {
     const entity_id_list_t *le = main_ui_ephemerals();
     int i;
     for (i = 1; le != NULL && i < le->count; i++) {
-        assert(same_vec(button_of(entity_id_list_at(le, i))->pos, button_of(entity_id_list_at(le, 0))->pos));
+        assert(same_vec(pos_ref(&button_of(entity_id_list_at(le, i))->header), pos_ref(&button_of(entity_id_list_at(le, 0))->header)));
     }
 }
 
@@ -499,7 +508,7 @@ static planet_t *as_planet(void *e) {
 }
 
 static vec_t pos_of(void *e) {
-    return vec_of(as_planet(e)->map_pos);
+    return vec_of(map_pos_ref(&as_planet(e)->header));
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -643,7 +652,7 @@ static void test_title(void) {
             if (first == NULL) {
                 first = e;
             }
-            assert(same_vec(button_of(e)->pos, button_of(first)->pos));
+            assert(same_vec(pos_ref(&button_of(e)->header), pos_ref(&button_of(first)->header)));
             h = fold_button(h, e);
             n++;
         }
@@ -705,9 +714,9 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
     int k;
 
     start_game();
-    assert(at(galaxy_menu_entry(4)->pos, 0, P8_SCREEN_HEIGHT - 11));
-    assert(at(galaxy_menu_entry(3)->pos, P8_SCREEN_WIDTH / 2 - 17, 0));
-    assert(at(galaxy_menu_entry(1)->pos, P8_SCREEN_WIDTH - 10, 0));
+    assert(at(pos_ref(&galaxy_menu_entry(4)->header), 0, P8_SCREEN_HEIGHT - 11));
+    assert(at(pos_ref(&galaxy_menu_entry(3)->header), P8_SCREEN_WIDTH / 2 - 17, 0));
+    assert(at(pos_ref(&galaxy_menu_entry(1)->header), P8_SCREEN_WIDTH - 10, 0));
     {
         button_t *next_year = galaxy_menu_entry(1);
         int touches = 0;
@@ -715,7 +724,7 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
 
         p8_camera(&graphics, 0, 0);
         p8_cls(&memory);
-        class_of(next_year)->draw(&next_year->header, next_year->pos);
+        class_of(next_year)->draw(&next_year->header, pos_ref(&next_year->header));
         for (y = 0; y < 11; y++) {
             touches |= memory.screen[y][P8_SCREEN_WIDTH - 1] != 0;
         }
@@ -725,7 +734,7 @@ static void test_bar_buttons_and_pause_menu_anchors(void) {
     le = main_ui_ephemerals();
     assert(le != NULL && le->count == 4);
     for (k = 0; k < le->count; k++) {
-        assert(at(button_of(entity_id_list_at(le, k))->pos, 0, P8_SCREEN_HEIGHT - 21));
+        assert(at(pos_ref(&button_of(entity_id_list_at(le, k))->header), 0, P8_SCREEN_HEIGHT - 21));
         assert(at(button_of(entity_id_list_at(le, k))->slide_target, 0, P8_SCREEN_HEIGHT - 21 - 11 * k));
     }
 }
@@ -838,7 +847,7 @@ static void test_difficulty(void) {
         printf("[difficulty] option %d: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
-            h = fold_vec(h, as_planet(jo->items[j])->pos);
+            h = fold_vec(h, pos_ref(&as_planet(jo->items[j])->header));
         }
     }
     check("difficulty", h, DIFFICULTY_HASH);
@@ -917,16 +926,16 @@ static void test_update(void) {
     }
     first_at = vec_of(first);
     while (steps < 40) {
-        vec_t before = vec_of(button_of(b)->pos);
+        vec_t before = vec_of(pos_ref(&button_of(b)->header));
         class_of(b)->states[ENTITY_STATE_NORMAL](b, p8_fixed_from_int(0));
         steps++;
-        h = fold_vec(h, button_of(b)->pos);
-        if (vec_of(button_of(b)->pos).x == before.x && vec_of(button_of(b)->pos).y == before.y) {
+        h = fold_vec(h, pos_ref(&button_of(b)->header));
+        if (vec_of(pos_ref(&button_of(b)->header)).x == before.x && vec_of(pos_ref(&button_of(b)->header)).y == before.y) {
             break;
         }
     }
     assert(first->x == first_at.x && first->y == first_at.y);
-    assert(vec_of(button_of(b)->pos).x == p8_fixed_from_int(40) && vec_of(button_of(b)->pos).y == p8_fixed_from_int(-20));
+    assert(vec_of(pos_ref(&button_of(b)->header)).x == p8_fixed_from_int(40) && vec_of(pos_ref(&button_of(b)->header)).y == p8_fixed_from_int(-20));
     printf("[update] %d step(s)\n", steps);
     h = fnv(h, (uint32_t)steps);
     check("update", h, UPDATE_HASH);
@@ -1060,7 +1069,7 @@ static void test_tech_tree_screen_on_click(void) {
 static uint32_t draw_alone(void *b) {
     p8_camera(&graphics, 0, 0);
     p8_cls(&memory);
-    class_of(b)->draw(b, button_of(b)->pos);
+    class_of(b)->draw(b, pos_ref(&button_of(b)->header));
     class_of(b)->draw_overlay(b, NULL);
     return screen_hash();
 }
@@ -1290,7 +1299,7 @@ static uint32_t fold_button_members(uint32_t h, const void *e) {
         h = fold_member_opt_ref(h, b->has_side_tooltip ? b->side_tooltip : NULL);
     }
     h = fold_member_opt_ref(h, b->tooltip);
-    h = fold_member_vec(h, b->pos);
+    h = fold_member_vec(h, pos_ref(&b->header));
     h = fold_member_vec(h, b->slide_target);
     h = fold_button_fn(h, b->has_on_click, b->on_click);
     h = (b->header.is_hovered != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->header.is_hovered) : fnv(h, 0u);
@@ -1328,7 +1337,7 @@ static void check_one_open_box(void *const *b, int n) {
     int j;
 
     for (i = 0; i < n; i++) {
-        assert(same_vec(button_of(b[i])->pos, button_of(b[0])->pos));
+        assert(same_vec(pos_ref(&button_of(b[i])->header), pos_ref(&button_of(b[0])->header)));
         for (j = 0; j < i; j++) {
             assert(button_of(b[i])->slide_target != NULL && button_of(b[i])->slide_target != button_of(b[j])->slide_target);
         }
@@ -1436,7 +1445,7 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     for (index = 0; index < 12; index++) {
         button = built(none);
         assert(button->name == NULL && !button->has_trade && !button->has_type_bias && !button->has_project_cost);
-        assert(button->pos == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
+        assert(pos_ref(&button->header) == NULL && button->slide_target == NULL && button->refresh == NULL && !button->has_on_click && button->technology == NULL);
         assert(entity_get(button->project_planet) == NULL && research_project_get(button->project) == NULL);
         hash = fold_and_drop(hash, button);
     }
@@ -1554,7 +1563,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->header.layer == p8_fixed_from_int(11));
         assert(b->width == p8_fixed_add(lq->width, p8_fixed_from_int(2)));
         assert(entity_has(&b->header, ENTITY_HAS_HIT_BOX));
-        assert(!b->has_side_tooltip && b->tooltip == NULL && b->pos == NULL && b->slide_target == NULL && !b->header.is_hovered);
+        assert(!b->has_side_tooltip && b->tooltip == NULL && pos_ref(&b->header) == NULL && b->slide_target == NULL && !b->header.is_hovered);
         assert(b->name == NULL && !b->has_trade && !b->has_type_bias && b->technology == NULL);
         assert(entity_get(b->project_planet) == NULL && research_project_get(b->project) == NULL && !b->has_project_cost);
         assert(on_click_state(fresh[key_index]) == 0 && button_of(fresh[key_index])->refresh == NULL);
@@ -1895,12 +1904,12 @@ static void test_button_slots_come_back(void) {
     printf("[slots] button: %d before the pause menu, %d open\n", base, open);
     assert(open == base + main_ui_ephemerals()->count && main_ui_ephemerals()->count > 0);
     last = entity_id_list_at(main_ui_ephemerals(), main_ui_ephemerals()->count - 1);
-    before = vec_of(button_of(last)->pos);
+    before = vec_of(pos_ref(&button_of(last)->header));
     for (i = 0; i < 30; i++) {
         one_frame();
         assert(button_slots() == open && "a sliding button takes no slot per tick");
     }
-    assert(!same_vec(button_of(last)->pos, &before) && "the menu slid");
+    assert(!same_vec(pos_ref(&button_of(last)->header), &before) && "the menu slid");
     ui_clear_ephemerals(main_ui());
     one_frame();
     assert(button_slots() == base);

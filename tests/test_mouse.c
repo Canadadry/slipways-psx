@@ -88,10 +88,10 @@ static int released_of(const mouse_button_t *b) {
 static int pos_of_main_mouse(vec_t *out) {
     const mouse_t *nf = main_mouse_typed();
 
-    if (nf == NULL || nf->pos == NULL) {
+    if (nf == NULL || !entity_has_pos(&nf->header)) {
         return 0;
     }
-    *out = *nf->pos;
+    *out = nf->header.pos;
     return 1;
 }
 
@@ -299,7 +299,7 @@ static void test_mouse_is_a_struct_sharing_its_buttons(void) {
     assert(((const entity_t *)generic)->class->draw == NULL);
     assert(mouse_left_button() != NULL && mouse_right_button() != NULL);
     assert(mouse_left_button() != mouse_right_button());
-    assert(*((const entity_t *)built)->pos == ((const mouse_t *)built)->pos);
+    assert(entity_has_pos((const entity_t *)built));
 }
 
 int main(void) {

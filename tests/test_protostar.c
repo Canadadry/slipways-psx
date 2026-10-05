@@ -38,6 +38,15 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 
 #define BUILT_HASH 0x9F8A0FC3u
 #define LIFE_HASH 0x8FC668CBu
@@ -265,11 +274,11 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
 
     assert(at >= 1 && class_of(e) == protostar_class());
     pm = e;
-    ra = pm->pos;
+    ra = pos_ref(&pm->header);
     ng = &pm->archetype->spawn_offset;
     assert(is_burst(hv->items[at - 1]));
     g = (const planet_t *)hv->items[at - 1];
-    gra = g->pos;
+    gra = pos_ref(&g->header);
     assert(gra != NULL && ng != NULL);
     if (ra != NULL) {
         assert(gra->x == p8_fixed_add(ra->x, ng->x) && gra->y == p8_fixed_add(ra->y, ng->y));
@@ -277,7 +286,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
         assert(gra->x == ng->x && gra->y == ng->y);
     }
     assert(gra != ra && gra != ng);
-    h = fold_vec(h, g->pos);
+    h = fold_vec(h, pos_ref(&g->header));
     h = fnv(h, (uint32_t)pointer_list_size(g->emitter->particles));
     assert(main_camera_typed() != NULL);
     return fold_fixed_member(h, main_camera_typed()->header.shake);
@@ -330,8 +339,8 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, planet->archetype->back_color);
     hash = fold_vec(hash, &protostar->archetype->spawn_offset);
     hash = fold_vec(hash, &planet->archetype->row_step);
-    hash = fold_vec(hash, planet->pos);
-    hash = fold_vec(hash, planet->map_pos);
+    hash = fold_vec(hash, pos_ref(&planet->header));
+    hash = fold_vec(hash, map_pos_ref(&planet->header));
     /* The 1s of the ten fixed emitter defaults, project_index, is_structure,
      * cost, clock_ticks, attach_distance, sprite, is_planet, trade_multiplier,
      * layer, shake, back_color: constant by the shape, so BUILT_HASH proves the reads. */
@@ -374,8 +383,8 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -446,7 +455,7 @@ static void test_built(void) {
 }
 
 static uint32_t fold_pos_y(uint32_t h, const planet_t *hj) {
-    const vec_t *ra = hj->pos;
+    const vec_t *ra = pos_ref(&hj->header);
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -504,7 +513,7 @@ static void test_life(void) {
 
     start_game();
     assert(main_camera_typed() != NULL);
-    main_camera_pos = main_camera_typed()->pos;
+    main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     ra = vec_add(*main_camera_pos, vec_xy(28, 104));
     placed = build_protostar(&map_pos, &ra, "s90");
@@ -531,7 +540,7 @@ static void test_life(void) {
     hash = fold_economy(hash, placed);
 
     bare = build_protostar(NULL, NULL, "s91");
-    assert(as_ascension(bare)->pos == NULL && as_ascension(bare)->map_pos == NULL && is_protostar(bare));
+    assert(pos_ref(&as_ascension(bare)->header) == NULL && map_pos_ref(&as_ascension(bare)->header) == NULL && is_protostar(bare));
     hash = fold_string_member(hash, as_ascension(bare)->planet_id);
     hash = fold_spawned(hash, bare);
     hash = fold_update_entities(hash, bare);
@@ -561,7 +570,7 @@ static void test_protostar_is_a_struct(void) {
     assert(protostar_ready());
     {
         planet_t *bare = protostar_new(NULL);
-        assert(is_a_protostar_struct(bare) && bare->planet_id == NULL && bare->pos == NULL &&
+        assert(is_a_protostar_struct(bare) && bare->planet_id == NULL && pos_ref(&bare->header) == NULL &&
                bare->slipways != NULL && pointer_list_size(bare->emitter->particles) == 0 &&
                entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }

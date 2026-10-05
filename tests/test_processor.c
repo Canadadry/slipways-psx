@@ -40,6 +40,15 @@
 #include "engine/vec.h"
 #include "heap_allocator.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
@@ -354,8 +363,8 @@ static uint32_t fold_processor(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -424,7 +433,7 @@ static void set_credits(int n) {
 }
 
 static uint32_t fold_pos_y(uint32_t h, const planet_t *qh) {
-    const vec_t *ra = qh->pos;
+    const vec_t *ra = pos_ref(&qh->header);
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -519,8 +528,8 @@ static void test_life(void) {
     placed = build_processor();
     mp = vec_ref(vec_xy(7680, 7552));
     class_of(placed)->drag(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(pos_copies(as_structure(placed)->pos, mp));
-    hash = fold_vec(hash, as_structure(placed)->map_pos);
+    assert(pos_copies(pos_ref(&as_structure(placed)->header), mp));
+    hash = fold_vec(hash, map_pos_ref(&as_structure(placed)->header));
     hash = fnv(hash, target_state(as_structure(placed)));
     hash = fold_target(hash, as_structure(placed));
     set_credits(100);

@@ -424,8 +424,8 @@ static void test_accept_drop(void) {
     assert(is_state(&ly->header, ENTITY_STATE_SETTLED));
 
     keys.planet_id = NULL;
-    keys.map_pos = ly->map_pos;
-    keys.pos = ly->pos;
+    keys.map_pos = &ly->header.map_pos;
+    keys.pos = &ly->header.pos;
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &bg->header);
     assert(r.stop && entity_get(r.held) == NULL);

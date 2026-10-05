@@ -45,6 +45,15 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* Project 12, a colony that needs two resources and exports one; project 3,
  * a project with an output and no inputs, which exports to any planet a
  * slipway joins it to. */
@@ -304,7 +313,7 @@ static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     assert(lq->placed_items != NULL);
     k = lq->placed_items_count;
     h = fold_view_head(h, lq->items_count + (lq->has_color != 0) +
-                              (lq->has_score != 0) + (lq->pos != NULL) + 2);
+                              (lq->has_score != 0) + (pos_ref(&lq->header) != NULL) + 2);
     for (i = 0; i < k; i++) {
         h = fold_layout_row_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
@@ -314,8 +323,8 @@ static uint32_t fold_layout_row_instance(uint32_t h, const void *l) {
     if (lq->has_score) {
         h = fold_fixed(fold_view_name(h, "score"), lq->score);
     }
-    if (lq->pos != NULL) {
-        h = fold_ref(fold_view_name(h, "pos"), lq->pos, 3);
+    if (pos_ref(&lq->header) != NULL) {
+        h = fold_ref(fold_view_name(h, "pos"), pos_ref(&lq->header), 3);
     }
     /* `placed_items` as the frozen hashes folded the tagged list it was: REF, its tag, its count, each entry a REF. */
     h = fnv(fnv(fold_view_name(h, "placed_items"), (uint32_t)REF_KIND), (uint32_t)VIEW_LIST_TAG);
@@ -368,7 +377,7 @@ static planet_t *as_planet(void *e) {
 }
 
 static vec_t pos_of(void *e) {
-    const vec_t *p = as_planet(e)->map_pos;
+    const vec_t *p = map_pos_ref(&as_planet(e)->header);
     assert(p != NULL);
     return *p;
 }
@@ -583,7 +592,7 @@ static void *new_planet(const char *id, int x, int y) {
     const vec_t *main_camera_pos;
 
     assert(main_camera_typed() != NULL);
-    main_camera_pos = main_camera_typed()->pos;
+    main_camera_pos = pos_ref(&main_camera_typed()->header);
     assert(main_camera_pos != NULL);
     keys.planet_id = id;
     keys.map_pos = vec_ref(vec_xy(x / 2, y / 2));

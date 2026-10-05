@@ -181,10 +181,10 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
             self->planet_id = keys->planet_id;
         }
         if (keys->map_pos != NULL) {
-            self->map_pos = keys->map_pos;
+            entity_set_map_pos(&self->header, *keys->map_pos);
         }
         if (keys->pos != NULL) {
-            self->pos = keys->pos;
+            entity_set_pos(&self->header, *keys->pos);
         }
     }
     planet_construct(self);

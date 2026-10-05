@@ -63,8 +63,8 @@ static int ui_to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
 
-static vec_t ui_vec_or_zero(const vec_t *v) {
-    return v != NULL ? *v : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+static vec_t ui_pos_or_zero(const entity_t *e) {
+    return e != NULL ? entity_pos(e) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
@@ -250,8 +250,8 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
 
     je = main_mouse_typed();
     mo = main_camera_typed();
-    qa = vec_add(ui_vec_or_zero(je != NULL ? je->pos : NULL),
-                       ui_vec_or_zero(mo != NULL ? mo->pos : NULL));
+    qa = vec_add(ui_pos_or_zero(je != NULL ? &je->header : NULL),
+                       ui_pos_or_zero(mo != NULL ? &mo->header : NULL));
     self->mouse_world_own = qa;
     self->mouse_world = &self->mouse_world_own;
 
@@ -292,7 +292,7 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self)
     }
 
     je = main_mouse_typed();
-    main_mouse_pos = ui_vec_or_zero(je != NULL ? je->pos : NULL);
+    main_mouse_pos = ui_pos_or_zero(je != NULL ? &je->header : NULL);
     p8_spr_default(gfx, mem, spr_id, ui_to_int(main_mouse_pos.x), ui_to_int(main_mouse_pos.y));
 }
 
@@ -315,7 +315,7 @@ void ui_update_hover(ui_t *self) {
     self->hovered = ENTITY_ID_NONE;
 
     mouse = main_mouse_typed();
-    main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
+    main_mouse_pos = mouse != NULL ? &mouse->header.pos : NULL;
 
     hit_test_bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (index = 0; index < hit_test_bucket->count; index++) {
@@ -368,7 +368,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     is_left = side == MOUSE_SIDE_LEFT;
     button = ui_main_mouse_button(side);
     mouse = main_mouse_typed();
-    main_mouse_pos = mouse != NULL ? mouse->pos : NULL;
+    main_mouse_pos = mouse != NULL ? &mouse->header.pos : NULL;
 
     if (button != NULL && button->pressed) {
         entity_t *kv = NULL;

@@ -64,7 +64,7 @@ void help_screen_construct(probe_t *self) {
     frame.has_back_color = 1;
     frame.back_color = self->archetype->back_color;
     frame.row_step = &self->archetype->row_step;
-    frame.pos = self->pos;
+    frame.pos = entity_has_pos(&self->header) ? &self->header.pos : NULL;
     message_box_open_box(&frame, bs, DIFFICULTY_OPTIONS_COUNT);
 }
 

@@ -19,8 +19,6 @@ typedef struct {
     p8_fixed_t radius;
     wormhole_too_far_target_t *too_far_target;
     entity_id_list_t *anchors;
-    const vec_t *pos;
-    const vec_t *map_pos;
     entity_id_t anchor;
     targeting_t *targeting;
     targeting_t targeting_own;

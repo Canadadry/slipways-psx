@@ -118,9 +118,14 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
         self->end = entity_id_link(hovered);
         self->end_is_point = 0;
     } else {
-        self->point_pos = mp != NULL ? *mp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-        self->point.pos = mp != NULL ? &self->point_pos : NULL;
-        self->point_map_pos = vec_div(self->point_pos, p8_fixed_from_int(128));
+        vec_t point_pos = mp != NULL ? *mp : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+
+        if (mp != NULL) {
+            entity_set_pos(&self->point.header, point_pos);
+        } else {
+            entity_clear_pos(&self->point.header);
+        }
+        entity_set_map_pos(&self->point.header, vec_div(point_pos, p8_fixed_from_int(128)));
         self->end = ENTITY_ID_NONE;
         self->end_is_point = 1;
     }
@@ -371,12 +376,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;
     entity_init_header(&self->point.header, &slipway_mouse_point_class_def);
-    self->point.header.pos = &self->point.pos;
-    self->point.header.map_pos = &self->point.map_pos;
-    self->point.pos = NULL;
-    self->point.map_pos = &self->point_map_pos;
-    self->point_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    self->point_map_pos = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    entity_set_map_pos(&self->point.header, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)));
     if (keys != NULL && entity_get(keys->start) != NULL) {
         assert(slipway_is_endpoint_class(entity_get(keys->start)->class) &&
                "slipway_create: a start key that is neither NULL nor a planet or a structure "

@@ -40,6 +40,15 @@
 #include "engine/zone.h"
 #include "engine/game_zone.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* Ticks after the slipway is paid, long enough for the colonizing and
  * paying effects to leave the live entities: update_entities skips the
  * entity after one it takes out (GAP-5). */
@@ -192,8 +201,8 @@ static void start_game(void) {
 
 static vec_t pos_of(void *e) {
     const planet_t *jo = as_planet(e);
-    assert(jo->map_pos != NULL);
-    return *jo->map_pos;
+    assert(map_pos_ref(&jo->header) != NULL);
+    return *map_pos_ref(&jo->header);
 }
 
 static p8_fixed_t dist2(vec_t a, vec_t b) {
@@ -324,7 +333,7 @@ static void check_fresh_wormhole(void *e) {
     assert(jj != NULL && jj->status_text != NULL && strcmp(jj->status_text, "-too far-") == 0);
     assert(wormhole_too_far_target_wrapper() == jj);
 
-    assert(mz->pos == NULL && mz->map_pos == NULL && targeting_target(mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
+    assert(pos_ref(&mz->header) == NULL && map_pos_ref(&mz->header) == NULL && targeting_target(mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
     assert(mz->anchors != NULL);
 
     assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
@@ -476,9 +485,8 @@ static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
     printf("[drag] target kind %d\n", kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(mz->header.pos == &mz->pos && mz->header.map_pos == &mz->map_pos);
-    h = fold_vec(h, mz->pos);
-    h = fold_vec(h, mz->map_pos);
+    h = fold_vec(h, pos_ref(&mz->header));
+    h = fold_vec(h, map_pos_ref(&mz->header));
     h = fnv(h, (uint32_t)kind);
     if (et != NULL) {
         if (et->class == wormhole_too_far_target_class() && ((const wormhole_too_far_target_t *)et)->status_text != NULL) {
@@ -623,7 +631,6 @@ static int unknown_count(void) {
 static wormhole_t *paid_wormhole_on_unknown(void) {
     wormhole_t *mz = build_wormhole();
     planet_t *unknown = first_planet_with_state(ENTITY_STATE_UNKNOWN);
-    vec_t *p = malloc(sizeof *p);
 
     assert(unknown != NULL);
     until_state_time(mz, 15);
@@ -631,9 +638,8 @@ static wormhole_t *paid_wormhole_on_unknown(void) {
     assert(target_kind(mz) == TARGET_FALSE);
     drop(mz);
     assert(is_state(&mz->header, ENTITY_STATE_UNFOLDING));
-    assert(unknown->map_pos != NULL);
-    *p = *unknown->map_pos;
-    mz->map_pos = p;
+    assert(entity_has_map_pos(&unknown->header));
+    entity_set_map_pos(&mz->header, unknown->header.map_pos);
     return mz;
 }
 
@@ -744,8 +750,8 @@ static void test_accept_drop(void) {
     assert(r.stop && entity_get(r.held) == NULL);
 
     keys.planet_id = NULL;
-    keys.map_pos = ly->map_pos;
-    keys.pos = ly->pos;
+    keys.map_pos = &ly->header.map_pos;
+    keys.pos = &ly->header.pos;
     nr = slipgate_new(&keys);
     r = slipgate_accept_drop(nr, &mz->header);
     assert(r.stop && entity_get(r.held) == NULL);

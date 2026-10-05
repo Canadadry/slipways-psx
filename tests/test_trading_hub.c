@@ -36,6 +36,15 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
+static const vec_t *pos_ref(const entity_t *e) {
+    return entity_has_pos(e) ? &e->pos : NULL;
+}
+
+static const vec_t *map_pos_ref(const entity_t *e) {
+    return entity_has_map_pos(e) ? &e->map_pos : NULL;
+}
+
+
 /* The first vector copies the second: another box, same x and y; NULL for NULL. */
 static int pos_copies(const vec_t *ra, const vec_t *mp) {
     return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
@@ -329,8 +338,8 @@ static uint32_t fold_trading_hub(uint32_t hash, const void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(planet->archetype->spacer != NULL));
     hash = fnv(hash, (uint32_t)(planet->planet_id != NULL));
-    hash = fnv(hash, (uint32_t)(planet->map_pos != NULL));
-    hash = fnv(hash, (uint32_t)(planet->pos != NULL));
+    hash = fnv(hash, (uint32_t)(map_pos_ref(&planet->header) != NULL));
+    hash = fnv(hash, (uint32_t)(pos_ref(&planet->header) != NULL));
     hash = fnv(hash, (uint32_t)(planet->slipways != NULL));
     hash = fnv(hash, (uint32_t)(research_project_get(planet->project) != NULL));
     hash = fnv(hash, (uint32_t)(planet->description != NULL));
@@ -401,7 +410,7 @@ static void set_credits(int n) {
 }
 
 static uint32_t fold_pos_y(uint32_t h, const planet_t *nl) {
-    const vec_t *ra = nl->pos;
+    const vec_t *ra = pos_ref(&nl->header);
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
@@ -454,8 +463,8 @@ static void test_life(void) {
     placed = build_trading_hub();
     mouse_world = vec_ref(vec_xy(7680, 7552));
     class_of(placed)->drag(&placed->header, mouse_world, vec_ref(vec_xy(64, 64)));
-    assert(pos_copies(placed->pos, mouse_world));
-    hash = fold_vec(hash, placed->map_pos);
+    assert(pos_copies(pos_ref(&placed->header), mouse_world));
+    hash = fold_vec(hash, map_pos_ref(&placed->header));
     hash = fnv(hash, target_state(placed));
     hash = fold_target(hash, placed);
     set_credits(100);

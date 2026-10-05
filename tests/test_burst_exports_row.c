@@ -85,7 +85,6 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     p8_graphics_t graphics;
     planet_t *planet;
     static production_t production;
-    vec_t *planet_pos;
     trade_route_list_t *outgoing;
     const trade_route_t route_a = trade_new(NULL);
     const trade_route_t route_b = trade_new(NULL);
@@ -105,9 +104,7 @@ static void test_burst_export_line_counts_the_outgoing_routes(void) {
     production.amount = p8_fixed_from_int(2);
     planet->production = &production;
 
-    planet_pos = malloc(sizeof *planet_pos);
-    *planet_pos = vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64));
-    planet->pos = planet_pos;
+    entity_set_pos(&planet->header, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
 
     /* A fresh burst exports nothing, against a capacity of the production amount. */
     planet_inspection_panel(planet);

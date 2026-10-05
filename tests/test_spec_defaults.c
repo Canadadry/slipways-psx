@@ -32,6 +32,11 @@
 #include "game/ui_button.h"
 #include "game/wormhole.h"
 
+static int same_vec(vec_t a, vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+
 static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t input;
@@ -88,23 +93,20 @@ static void test_button_defaults_and_ready(void) {
     assert(!button_ready());
 }
 
-/* The position is the module's shared vector, not the archetype's: two
- * fresh mice point at the same one. */
-static void test_mouse_pos_is_shared(void) {
+static void test_mouse_pos_starts_at_zero(void) {
     const mouse_t *nf = mouse_new();
-    const mouse_t *other = mouse_new();
 
     assert(nf->archetype == &mouse_archetype);
-    assert(nf->pos != NULL && nf->pos == other->pos);
+    assert(entity_has_pos(&nf->header) && nf->header.pos.x == 0 && nf->header.pos.y == 0);
 }
 
-/* The velocity, the position before shake and the position start on the
- * archetype's vectors. */
+/* The velocity starts on the archetype's vector; the position before shake
+ * and the position are copies of the archetype's. */
 static void test_camera_defaults_and_ready(void) {
     camera_t *qb = camera_new();
 
     assert(qb->archetype == &camera_archetype && qb->archetype->dpad_directions == &camera_dpad_directions_vecs);
-    assert(qb->velocity == &qb->archetype->velocity && qb->pos_before_shake == &qb->archetype->pos_before_shake && qb->pos == &qb->archetype->pos && qb->header.shake == qb->archetype->shake);
+    assert(qb->velocity == &qb->archetype->velocity && same_vec(qb->header.map_pos, qb->archetype->pos_before_shake) && entity_has_map_pos(&qb->header) && same_vec(qb->header.pos, qb->archetype->pos) && entity_has_pos(&qb->header) && qb->header.shake == qb->archetype->shake);
     assert(qb->header.state == qb->archetype->state && qb->header.state == ENTITY_STATE_NORMAL && qb->header.state_time == 0);
     assert(camera_ready());
     camera_shutdown();
@@ -140,7 +142,7 @@ static void test_help_screen_defaults_and_ready(void) {
 
     assert(g_->archetype == &help_screen_archetype && g_->emitter->archetype == &help_screen_archetype.emitter &&
            g_->targeting->archetype == &help_screen_archetype.targeting);
-    assert(g_->pos == &g_->archetype->pos);
+    assert(entity_has_pos(&g_->header) && same_vec(g_->header.pos, g_->archetype->pos));
     assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
     assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
     assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
@@ -170,7 +172,7 @@ static void test_probe_defaults_and_ready(void) {
     assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
     assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
     assert(g_->emitter->base_radius == g_->archetype->emitter.base_radius);
-    assert(g_->pos == NULL);
+    assert(!entity_has_pos(&g_->header));
     assert(g_->header.state == g_->archetype->state && g_->header.state == ENTITY_STATE_NORMAL && g_->header.state_time == 0);
     assert(probe_ready());
     probe_shutdown();
@@ -186,11 +188,10 @@ static void test_research_project_defaults_and_ready(void) {
     assert(!research_project_ready());
 }
 
-/* The position starts on the archetype's vector. */
 static void test_structure_icon_defaults_and_ready(void) {
     structure_icon_t *ie = structure_icon_new(NULL);
 
-    assert(ie->archetype == &structure_icon_archetype && ie->pos == &ie->archetype->pos);
+    assert(ie->archetype == &structure_icon_archetype && entity_has_pos(&ie->header) && same_vec(ie->header.pos, ie->archetype->pos));
     assert(ie->header.state == ie->archetype->state && ie->header.state == ENTITY_STATE_NORMAL && ie->header.state_time == 0);
     assert(structure_icon_ready());
     structure_icon_shutdown();
@@ -252,7 +253,7 @@ int main(void) {
     test_background_defaults_and_ready();
     test_button_defaults_and_ready();
     test_camera_defaults_and_ready();
-    test_mouse_pos_is_shared();
+    test_mouse_pos_starts_at_zero();
     test_wormhole_defaults_and_ready();
     test_layout_ready();
     test_help_screen_defaults_and_ready();

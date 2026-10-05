@@ -74,8 +74,8 @@ static void assert_placeholder(int entity_live) {
 static void assert_a_mouse(void) {
     const mouse_t *nf = main_mouse_typed();
 
-    assert(nf != NULL && nf->pos != NULL);
-    assert(nf->pos->x == 0 && nf->pos->y == 0);
+    assert(nf != NULL && entity_has_pos(&nf->header));
+    assert(nf->header.pos.x == 0 && nf->header.pos.y == 0);
     assert(mouse_left_button() != NULL && mouse_right_button() != NULL);
 }
 

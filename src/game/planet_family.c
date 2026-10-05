@@ -256,15 +256,12 @@ void protostar_construct(planet_t *self) {
     vec_t spawn_pos;
     burst_keys_t keys;
     planet_t *spawned;
-    const vec_t *ra;
 
     if (self == NULL) {
         return;
     }
 
-    ra = self->pos;
-    spawn_pos = vec_add(ra != NULL ? *ra : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0)),
-                             self->archetype->spawn_offset);
+    spawn_pos = vec_add(entity_pos(&self->header), self->archetype->spawn_offset);
 
     keys.planet.planet_id = NULL;
     keys.planet.map_pos = NULL;
@@ -306,10 +303,10 @@ static planet_t *protostar_create(const planet_keys_t *keys) {
     ascension_init_instance(self, &protostar_class_def, &protostar_archetype);
     if (keys != NULL) {
         if (keys->map_pos != NULL) {
-            self->map_pos = keys->map_pos;
+            entity_set_map_pos(&self->header, *keys->map_pos);
         }
         if (keys->pos != NULL) {
-            self->pos = keys->pos;
+            entity_set_pos(&self->header, *keys->pos);
         }
         if (keys->planet_id != NULL) {
             self->planet_id = keys->planet_id;
@@ -467,17 +464,14 @@ static planet_t *burst_create(const burst_keys_t *keys) {
     self->outgoing_routes = &g_burst_outgoing_routes;
     if (keys != NULL) {
         if (keys->planet.map_pos != NULL) {
-            self->map_pos = keys->planet.map_pos;
+            entity_set_map_pos(&self->header, *keys->planet.map_pos);
         }
         if (keys->planet.pos != NULL) {
-            self->pos = keys->planet.pos;
+            entity_set_pos(&self->header, *keys->planet.pos);
         }
         if (keys->pos_copy != NULL) {
-            vec_t *ra = (vec_t *)allocator_alloc(slot, sizeof *ra);
-
-            assert(keys->planet.pos == NULL && "burst_create: a burst borrows its position or copies it, not both");
-            *ra = *keys->pos_copy;
-            self->pos = ra;
+            assert(keys->planet.pos == NULL && "burst_create: a burst takes its position from the planet keys or from pos_copy, not both");
+            entity_set_pos(&self->header, *keys->pos_copy);
         }
         if (keys->planet.planet_id != NULL) {
             self->planet_id = keys->planet.planet_id;

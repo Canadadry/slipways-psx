@@ -55,6 +55,8 @@ struct targeting;
 #define ENTITY_HAS_SHAKE (1u << 5)
 #define ENTITY_HAS_IS_DEAD (1u << 6)
 #define ENTITY_HAS_IS_HOVERED (1u << 7)
+#define ENTITY_HAS_POS (1u << 8)
+#define ENTITY_HAS_MAP_POS (1u << 9)
 
 typedef struct {
     const entity_class_t *class;
@@ -62,8 +64,8 @@ typedef struct {
     p8_fixed_t state_time;
     uint16_t has;
     p8_fixed_t layer;
-    const vec_t *const *pos;
-    const vec_t *const *map_pos;
+    vec_t pos;
+    vec_t map_pos;
     box_t hit_box;
     p8_fixed_t cursor_sprite;
     p8_fixed_t infraspace;
@@ -85,21 +87,39 @@ static inline int entity_has(const entity_t *self, unsigned bit) {
 }
 
 static inline int entity_has_pos(const entity_t *self) {
-    return self->pos != NULL && *self->pos != NULL;
+    return entity_has(self, ENTITY_HAS_POS);
 }
 
 static inline int entity_has_map_pos(const entity_t *self) {
-    return self->map_pos != NULL && *self->map_pos != NULL;
+    return entity_has(self, ENTITY_HAS_MAP_POS);
 }
 
 /* The zero vector when the position is absent. */
 static inline vec_t entity_pos(const entity_t *self) {
-    return entity_has_pos(self) ? **self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return entity_has_pos(self) ? self->pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
 /* The zero vector when the map position is absent. */
 static inline vec_t entity_map_pos(const entity_t *self) {
-    return entity_has_map_pos(self) ? **self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    return entity_has_map_pos(self) ? self->map_pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+}
+
+static inline void entity_set_pos(entity_t *self, vec_t pos) {
+    self->pos = pos;
+    self->has |= ENTITY_HAS_POS;
+}
+
+static inline void entity_clear_pos(entity_t *self) {
+    self->has &= (uint16_t)~ENTITY_HAS_POS;
+}
+
+static inline void entity_set_map_pos(entity_t *self, vec_t map_pos) {
+    self->map_pos = map_pos;
+    self->has |= ENTITY_HAS_MAP_POS;
+}
+
+static inline void entity_clear_map_pos(entity_t *self) {
+    self->has &= (uint16_t)~ENTITY_HAS_MAP_POS;
 }
 
 typedef struct {
