@@ -330,6 +330,7 @@ void economy_total_production(resource_map_t *out) {
     for_each_tagged(TAG_PLANET, total_production_visit, out);
 }
 
+/* A planet with absent or empty needs is skipped where Lua would crash, like the malformed cases of entity_register. Making one site fatal alone breaks consistency. */
 static void crowding_penalty_visit(entity_t *l, void *ctx) {
     resource_map_t *d = (resource_map_t *)ctx;
     const pointer_list_t *jy;

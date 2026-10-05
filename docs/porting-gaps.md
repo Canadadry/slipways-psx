@@ -100,30 +100,6 @@ Pinned by `test_scores_box_follows_is_shown` in `tests/test_message_box.c`
 
 File: `src/game/score_panel_display.c`.
 
-## GAP-15 — Where Lua would crash, this port ignores it
-
-Lua: `bd()`, `lt`, `he`, `bm`, `dc`, `fa`, `ck()`.
-
-This is a general convention of the port, not a local oversight. When the
-cart indexes a missing table, Lua raises an error. This port reads the
-field as absent and carries on. The known sites:
-
-- `entity_register`/`entity_unregister` test the **presence** of the
-  class's message member, not its Lua truthiness: a member set to false
-  still registers the entity.
-- `entity_unregister` on a tag that was never registered does nothing.
-- `draw_layers` leaves out of every layer an entity with no `layer`, or
-  whose `layer` falls outside 1..15.
-- `economy_crowding_penalty` skips a planet whose needs list is absent or
-  empty.
-
-None of these cases is reached in normal play. They describe what would
-happen on malformed data. Recorded because a reader who "fixes" only one
-of them by making it fatal would make the port less tolerant than the cart
-in one place and not in the others.
-
-Files: `src/game/economy_formulas.c`, `src/engine/entity.c`.
-
 ## GAP-17 — The pseudo-random generator is not PICO-8's
 
 Lua: `rnd`.
