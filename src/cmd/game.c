@@ -2,8 +2,7 @@
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "game/cheat.h"
-#include "engine/button_cursor.h"
+#include "game/input_step.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "platform/raylib_backend.h"
@@ -12,9 +11,23 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
+
+static const char USAGE[] = "usage: game [--mouse] [<recording.json>]\n";
 
 int main(int argc, char **argv) {
-    const char *replay_path = (argc > 1) ? argv[1] : NULL;
+    const char *replay_path = NULL;
+    int mouse_requested = 0;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--mouse") == 0) {
+            mouse_requested = 1;
+        } else if (argv[i][0] == '-' || replay_path != NULL) {
+            fputs(USAGE, stderr);
+            return 2;
+        } else {
+            replay_path = argv[i];
+        }
+    }
 
     replay_source_t replay;
     if (replay_source_open(&replay, replay_path) == REPLAY_SOURCE_LOAD_FAILED) {
@@ -26,6 +39,23 @@ int main(int argc, char **argv) {
                 replay_path);
         replay_source_close(&replay);
         return 1;
+    }
+
+    p8_input_mode_t mode;
+    if (!replay_source_resolve_mode(&replay, mouse_requested, &mode)) {
+        assert(!IsWindowReady() && "a mode conflict must fail before the window opens");
+        fprintf(stderr,
+                "game: '%s' is a pad recording, which --mouse cannot play. "
+                "Drop --mouse to resume it.\n",
+                replay_path);
+        replay_source_close(&replay);
+        return 1;
+    }
+    /* TODO: drop the pad warning in the step that makes pad mode playable (phase 2 at the latest). */
+    if (mode == P8_INPUT_PAD) {
+        fprintf(stderr, "game: pad mode -- pad controls are not playable yet; run with --mouse to play with the mouse.\n");
+    } else {
+        fprintf(stderr, "game: mouse mode.\n");
     }
 
     if (replay_source_frame_count(&replay) > 0) {
@@ -51,17 +81,15 @@ int main(int argc, char **argv) {
 
     int keyboard_cursor = replay_source_keyboard_cursor(&replay);
     raylib_backend_t backend;
-    raylib_backend_init(&backend, keyboard_cursor, P8_INPUT_MOUSE);
+    raylib_backend_init(&backend, keyboard_cursor, mode);
 
     cart_load();
     /* Never click a difficulty here: a recording starts on the title screen and holds its own click. */
     cart_init();
 
     /* Step AND draw every recorded frame: drawing has side effects on game state. */
-    cheat_t cheat;
-    cheat_init(&cheat);
-    button_cursor_t cursor;
-    button_cursor_init(&cursor);
+    input_step_t step;
+    input_step_init(&step, mode, keyboard_cursor);
     while (raylib_backend_should_continue(&backend)) {
         p8_input_frame_t frame;
         int from_recording = replay_source_next_frame(&replay, &frame);
@@ -73,15 +101,7 @@ int main(int argc, char **argv) {
         raylib_backend_set_frame_rate_cap(replay_control_target_fps(&replay_control, from_recording));
         /* The raw frame, never the played one: a replay runs button_cursor again on what it reads. */
         raylib_backend_record_frame(&backend, &frame);
-        p8_input_frame_t played_frame = frame;
-        if (keyboard_cursor) {
-            button_cursor_step(&cursor, &frame, &played_frame);
-        }
-        p8_input_t played = { .frames = &played_frame, .frame_count = 1, .current_frame = 0 };
-        p8_input_t raw = { .frames = &frame, .frame_count = 1, .current_frame = 0 };
-        dispatch_context_set_input(&played);
-
-        cheat_step(&cheat, &raw);
+        input_step_run(&step, &frame);
         cart_update60();
         cart_draw();
 
@@ -94,7 +114,7 @@ int main(int argc, char **argv) {
                                                replay_status_text, sizeof replay_status_text);
             replay_status = replay_status_text;
         }
-        raylib_backend_present(&backend, &memory, &played_frame, replay_status);
+        raylib_backend_present(&backend, &memory, input_step_played_frame(&step), replay_status);
     }
 
     raylib_backend_shutdown(&backend);

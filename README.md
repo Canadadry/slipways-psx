@@ -9,17 +9,20 @@
 - A raylib session records its input as `events.json`: whatever a human played, an agent can replay without a window.
 - `worst-case/` holds fully built-up games: `make state` reports zone peaks, `make full-game` fails on any `p8_fatal`.
 
-## Controls
+## Running the game
+
+- `make raylib` builds `tmp/game`; run it as `tmp/game [--mouse] [<recording.json>]`.
+- The game starts in pad mode by default. Pad controls are not playable yet, so run with `--mouse` to play.
+- A recording decides its own mode: a mouse recording resumes in mouse mode, a pad recording in pad mode, and `--mouse` with a pad recording is refused.
+
+## Controls (mouse mode)
 
 - The mouse points and clicks as in the cart.
-- The arrows move the game's cursor, slowly for a sixth of a second, then faster.
-- Z (PICO-8's O) is the left mouse button and X the right one, held and released like a mouse button.
-- Pushing the cursor against a screen edge scrolls the map; X held with the arrows drags it.
-- Moving the mouse takes the cursor back from the keyboard at once.
-- Z and X are key positions named after the US layout: on an AZERTY keyboard, the left button is the key labelled W, and X stays X.
+- The arrows scroll the map, as the cart's D-pad does.
+- Z and X are PICO-8's O and X buttons. On an AZERTY keyboard, Z is the key labelled W.
 - The space bar bookmarks the current frame of the recording in its `.markers.txt` file.
 - During a replay, Page Up plays faster, Page Down slower, and End removes the frame-rate cap.
-- A resumed recording made before the keyboard cursor stays mouse-only: there, the arrows scroll the map.
+- A resumed recording that declares the keyboard cursor keeps it: the arrows move the game's cursor, Z and X are the left and right mouse buttons, and moving the mouse takes the cursor back.
 
 ## To do
 
