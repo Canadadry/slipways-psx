@@ -75,3 +75,7 @@ Why: the C code is the reference (`CLAUDE.md`); the PICO-8 cart is no longer one
 ### Visual changes
 
 (each visual step appends its line here)
+
+### Step 1.1
+
+`weighted_picker_new` lost its table and count parameters: it always pools `planet_types_table` and stores only the multiplier (`p8_fixed_t`), so `gen.h` stays at 3 pointers. A drawability check that consumes no random number triggers the refill; recent draws survive it. Two tests in `tests/test_map_tables.c` (no new binary) use a random source that asserts after 1000 calls, so the red phase aborts instead of hanging. All 30 sha identical; `make full-game` and `make sanitize-net` pass; no other entry cited GAP-16. No `guideline` decision.
