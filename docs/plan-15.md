@@ -289,3 +289,15 @@ None.
 - Deviation: the PRD said positional frame initialisers would keep compiling. Under `-Wextra -Werror` they don't, so 53 test initialisers got a trailing `0`.
 - Left for 1.2: `raylib_backend_poll_input` and the frame in `src/cmd/game.c` don't set `pad_buttons` yet. `make raylib` was not run, because raylib is not vendored in the session.
 - Every `*.sha256` is unchanged.
+
+### Step 1.2
+
+- Done: `make raylib-vendor-setup` worked in the session (raylib 6.0), and `make raylib` built before and after the step.
+- `replay_source_input_mode` (pad without a recording) and `replay_source_resolve_mode` (`--mouse`; refused with a pad recording). The session recorder takes the mode. A fresh session no longer declares `keyboard_cursor`, and the two tests that froze the old default were updated.
+- New module `src/game/input_step.{c,h}` does mode, then `TODO step 1.4` (pad nav), then cheat, then dispatch install. Pad mode zeroes mouse and `dpad` and keeps `pad_buttons`. × / ○ feed the cheat's O / X. `src/cmd/replay.c` and `src/cmd/game.c` both run on it.
+- `game [--mouse] [<recording>]` prints the mode at startup. In pad mode it says pad is not playable yet; that notice is a `TODO` to drop.
+- The README has a "Running the game" section and "Controls (mouse mode)".
+- Tests in `tests/test_input_step.c` (new, in `UNIT_TESTS`): per-mode played frame, pad cheat, live against recorded-and-replayed, and a forked quiet-against-noisy headless pad run (camera, hovered entity, full state text). That last test holds directions in non-opposing pairs, because opposite directions cancel in the camera. It draws once per run, to stay around 20 ms.
+- Breaks pointer rule 12 on purpose: `input_step_t` holds a `p8_input_t` whose `frames` points at the step's own played frame, because `dispatch_context_set_input` keeps a `p8_input_t *`. It is re-pointed on every run, and pointer-guard's count is unchanged.
+- The backend poll does not fill `pad_buttons` yet (step 1.3).
+- Every `*.sha256` is unchanged.
