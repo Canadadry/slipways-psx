@@ -275,30 +275,6 @@ below 0.0001. It can be settled by one more line in
 
 File: `src/p8/str.c`.
 
-## GAP-23 — A button line that carries its side tooltip or its tooltip as nil still gets its badge or its tooltip
-
-Lua: `h_`, `jb`, `js:pq`, `self.h_=self.h_ and lq(self.h_)`,
-`self.jb=self.jb and jb(self.jb)`, `lq`, `jo:fe`, `b:jb()`, `hp:jb`, `ii`,
-`jo:gh`, `kr`, `js`, `has_h_`, `has_jb`, `h_row`, `h_is_false`, `jb_row`.
-
-In the cart, building a button builds nothing for a nil key. This port
-builds an empty row (`layout_row_new`), or an empty tooltip, as soon as
-the line carries the key, even as nil (GAP-9: a named key written as nil
-stays present). Only `false` builds none.
-
-Reached by the e2e: the `planet_projects_panel` line of a building
-whose `research_project_tooltip` returns `NULL` (when the project has its
-`icon_sprite`) gets an empty tooltip, drawn on hover. The
-`planet_inspection_panel` line without `net_income` would get an empty
-badge; no replay reaches it. The `button_t` struct, where nil means
-absent, keeps this behavior: the presence of a nil `side_tooltip` or
-`tooltip` key is carried by `has_side_tooltip`/`has_tooltip` in
-`button_keys_t`, with no `side_tooltip_row` or `side_tooltip_is_false`
-(no `tooltip_row`). `button_construct` then builds an empty row or
-tooltip. Pinned by `test_nil_keys` in `tests/test_button.c`.
-
-File: `src/game/ui_button.c`.
-
 ## GAP-24 — `trade_extend` gives the new route a `false` resource when the route has no resource
 
 Lua: `trade:kg`, `qe=false`, `self.qe`, `qe`, `trade`, `jo:cn`, `jo:ib`,
