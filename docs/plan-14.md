@@ -93,3 +93,4 @@ Why: the C code is the reference (`CLAUDE.md`); the PICO-8 cart is no longer one
 ### Step 1.4
 
 Only a real row builds a side tooltip or a tooltip; a nil key now leaves the button unmarked, `false` keeps its meaning (marked, no row). `button_keys_t` kept its shape. Frozen value moved: `BUTTON_MEMBERS_HASH` in `test_button` only. All 30 sha identical. Deviation: the fix has a second visible effect (no empty side badge on a planet line without net income, reached by no replay); recorded as its own visual line so the user's list is complete. No `guideline` decision.
+Phase 1 review: `warn-review` raised 8 warnings; `plan-review` found no plan change. Seven predate plan 14 (frozen pointer counts). One is new and left as a follow-up outside the plan: `button_keys_t.has_tooltip` is still set by callers but no longer read since step 1.4 (harmless: every caller also sets the row).
