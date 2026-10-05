@@ -6,6 +6,8 @@ status: needs-triage
 
 ## Hypotheses on step 1.4
 
+Checked against step 1.4 as landed (its step note in `docs/plan-15.md`): every hypothesis holds. `pad_title` presses × at f18 and idles to f29; no panel failed.
+
 Step 1.4 (`docs/prd/triage/phase1-step4-pad-nav-title.md`) is not finished while this PRD is written. Its chunk 1 is committed at `HEAD` (`bc7088e`: `pad_nav`, generic panel focus, title tests). Chunk 2 (reachability tests for the other panels) and chunk 3 (the `pad_title` replay) are not. This PRD reads only committed code.
 
 **Rule for the implementer:** if step 1.4 landed with a different name or spelling, use what landed. Only a hypothesis whose *behavior* turns out false needs a line in the step note. When that happens, its fallback applies.

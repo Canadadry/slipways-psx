@@ -326,3 +326,8 @@ None.
   - **Help.** The mouse game has no help panel: the pause row "how to play?" is an empty handler in the cart and in the port. "Help" in this plan means the title screen, already covered by `pad_title`. No help panel is built. In step 3.3, `pad_message_box.json` shows that × on "how to play?" opens nothing and pause stays up, then ○ closes pause.
   - **Message box.** "Message box" means the buttonless year box ("5 years remain"). It has no hit test and is not modal. In 3.3 the replay shows pad input passing through while it is up. The modal rule of §2 Modality (L1/R1 ignored, close with × or ○) applies to the pause menu only. The replay keeps the name `pad_message_box`.
 - `make raylib` builds. Every earlier `*.sha256` is unchanged.
+- End of phase 1: `warn-review` raised 17 warnings on phase 1's code, and `plan-review` found no method change in them. The warnings:
+  - pointer rules: `input_step` pointer rules 11 and 12 (on purpose); `replay_source` keeps an unread `path`;
+  - duplication: the PSX name table in both `input_json.c` and `keymap.c`; the button count and P8_PAD_* index mapping restated; the dpad O/X indices redefined; bare `dpad[0..5]` indices; repeated header scanning and whitespace skipping in `input_json.c`;
+  - layering: `platform/` depends on `devtools/`; `p8_` functions are implemented in `devtools/`; PSX names and `keyboard_cursor` live in the p8 runtime;
+  - an unused `frame` parameter in `raylib_backend_present`.
