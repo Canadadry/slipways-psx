@@ -1,6 +1,7 @@
 #ifndef GAME_ECONOMY_SCORE_H
 #define GAME_ECONOMY_SCORE_H
 
+#include "engine/allocator.h"
 #include "engine/entity_class.h"
 #include "p8/fixed.h"
 #include "game/ui_button.h"
@@ -15,12 +16,15 @@ typedef struct {
     p8_fixed_t development;
     p8_fixed_t population;
     p8_fixed_t technology;
-    char *happiness;
+    p8_fixed_t happiness;
     p8_fixed_t total;
     p8_fixed_t tier;
 } final_score_t;
 
 final_score_t economy_score_final(void);
+
+/* Returns `value` printed with a trailing '%', allocated in `zone`. */
+char *economy_score_percent_text(const allocator_t *zone, p8_fixed_t value);
 
 p8_fixed_t economy_score_happiness(void);
 

@@ -160,9 +160,10 @@ static void sum_by_development_tier_visit(entity_t *pt, void *opaque_ctx) {
     }
 }
 
-static char *concat_percent(const char *s) {
+char *economy_score_percent_text(const allocator_t *zone, p8_fixed_t value) {
+    const char *s = p8_tostr_fixed(zone, value);
     size_t len = strlen(s);
-    char *out = (char *)allocator_alloc(frame_zone(), len + 2);
+    char *out = (char *)allocator_alloc(zone, len + 2);
     memcpy(out, s, len);
     out[len] = '%';
     out[len + 1] = '\0';
@@ -179,7 +180,6 @@ final_score_t economy_score_final(void) {
     p8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : p8_fixed_from_int(0);
     int invented_count = fm != NULL ? fm->invented.count : 0;
     const resource_map_t *main_economy_production = fm != NULL && (fm->has & ECONOMY_HAS_PRODUCTION) ? &fm->production : NULL;
-    char *happiness_str;
     final_score_t result;
 
     development_ctx.total = p8_fixed_from_int(0);
@@ -202,12 +202,10 @@ final_score_t economy_score_final(void) {
         p8_fixed_mul(p8_fixed_add(p8_fixed_add(development_ctx.total, population), technology), P8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = p8_tostr_fixed(frame_zone(), happiness);
-
     result.development = development_ctx.total;
     result.population = population;
     result.technology = technology;
-    result.happiness = concat_percent(happiness_str);
+    result.happiness = happiness;
     result.total = total;
     result.tier = fixed_min(p8_fixed_flr(p8_fixed_div(total, p8_fixed_from_int(2000))),
                             p8_fixed_from_int(5));

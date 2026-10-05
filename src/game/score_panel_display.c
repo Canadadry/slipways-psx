@@ -107,7 +107,7 @@ static int score_panel_update_keep_open_method(message_box_t *self) {
 }
 
 typedef struct {
-    const final_score_t *final_score;
+    final_score_t final_score;
 } score_panel_update_ctx_t;
 
 static char *score_panel_final_score_text(const final_score_t *s, int i) {
@@ -119,7 +119,7 @@ static char *score_panel_final_score_text(const final_score_t *s, int i) {
     case 3:
         return p8_tostr_fixed(frame_zone(), s->technology);
     case 4:
-        return p8_concat2(frame_zone(), s->happiness, "");
+        return economy_score_percent_text(frame_zone(), s->happiness);
     case 5:
         return p8_tostr_fixed(frame_zone(), s->total);
     case 6:
@@ -150,7 +150,7 @@ static void score_panel_update_add_row(message_box_t *box, const score_rows_entr
 
     score_i = entry->score;
 
-    values[2] = (data_item_t){.text = score_panel_final_score_text(context->final_score, score_i)};
+    values[2] = (data_item_t){.text = score_panel_final_score_text(&context->final_score, score_i)};
     has_value[2] = 1;
 
     if (score_i == 0) {
@@ -172,7 +172,7 @@ static void score_panel_update_add_row(message_box_t *box, const score_rows_entr
 
     if (score_i == 6) {
         for (index = 0; index < 5; index++) {
-            int icon = (index + 1 <= p8_fixed_flr_int(context->final_score->tier)) ? 56 : 57;
+            int icon = (index + 1 <= p8_fixed_flr_int(context->final_score.tier)) ? 56 : 57;
             values[index] = (data_item_t){.number = icon};
             has_value[index] = 1;
         }
@@ -251,14 +251,12 @@ void score_panel_update(score_panel_t *self) {
         }
 
         if (is_shown && !last_box_equals_shown_message_box) {
-            final_score_t s = economy_score_final();
+            score_panel_update_ctx_t ctx = {economy_score_final()};
             int is_ready = score_panel_ready();
-            score_panel_update_ctx_t ctx;
             message_box_keys_t keys = {0};
             message_box_t *made;
             int i;
 
-            ctx.final_score = &s;
             keys.has_duration_scale = 1;
             keys.duration_scale = p8_fixed_from_int(3);
             keys.keep_open = score_panel_update_keep_open_method;

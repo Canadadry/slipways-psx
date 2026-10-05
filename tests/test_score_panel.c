@@ -752,7 +752,7 @@ static void test_final_score_reads_invented_and_happiness(void) {
     fm->has_happiness = 1;
     s = economy_score_final();
     assert(s.development == 0 && s.population == 0 && s.technology == p8_fixed_from_int(1430));
-    assert(strcmp(s.happiness, "1%") == 0);
+    assert(s.happiness == p8_fixed_from_int(1));
     assert(s.total == p8_fixed_from_int(14) && s.tier == 0);
 }
 
@@ -780,13 +780,15 @@ static layout_row_item_t update_row_item(const message_box_t *mh, int k, int i) 
     return lq->placed_items[i - 1];
 }
 
-/* score_panel_update() shows economy_score_final(): the score-5 row (box
- * row 10) carries the total, and the tier row (11) lights as many of its
- * five icons as the tier. */
+/* score_panel_update() shows economy_score_final(): the score-4 row (box
+ * row 9) prints the happiness with its percent sign, the score-5 row (10)
+ * carries the total, and the tier row (11) lights as many of its five icons
+ * as the tier. */
 static void test_update_rows_show_final_score(void) {
     void *ju = start_game();
     economy_t *fm = main_economy_typed();
     const message_box_t *mh;
+    layout_row_item_t happiness;
     layout_row_item_t total;
     layout_row_item_t icon;
     int i;
@@ -801,6 +803,8 @@ static void test_update_rows_show_final_score(void) {
     class_of(ju)->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
     mh = shown_message_box();
     assert(mh != NULL && mh->articles_count == SCORE_ROWS_COUNT);
+    happiness = update_row_item(mh, 9, 3);
+    assert(happiness.kind == LAYOUT_ROW_ITEM_TEXT && strcmp(happiness.text, "1%") == 0);
     total = update_row_item(mh, 10, 3);
     assert(total.kind == LAYOUT_ROW_ITEM_TEXT && strcmp(total.text, "14") == 0);
     for (i = 1; i <= 5; i++) {
