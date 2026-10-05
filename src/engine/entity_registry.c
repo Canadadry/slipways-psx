@@ -173,7 +173,6 @@ entity_t *entity_register(entity_t *e) {
 void entity_unregister(entity_t *e) {
     int i;
 
-    /* GAP-5 */
     if (entity_list_del(&g_live_entities, e)) {
         exit_queue_put(e);
     }

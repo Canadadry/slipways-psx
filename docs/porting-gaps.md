@@ -36,20 +36,6 @@ this port with itself.
 
 Files: `src/p8/fixed.c`, `src/p8/quarter_wave.h`.
 
-## GAP-5 — `update_entities` skips an entity when an entity removes itself
-
-Lua: `dg()`, `hv`.
-
-`update_entities` walks the list of live entities (`live_entities`) by
-index. When an entity removes itself during its own visit
-(`entity_unregister`), the following ones shift down by one, and the one
-that takes its place is not visited this frame. Lua behaves differently.
-
-Accepted divergence: a skipped entity is simply processed on the next
-frame.
-
-File: `src/engine/bootstrap.c`.
-
 ## GAP-9 — No deletion of a named field
 
 Lua: `t[nom]=nil`.
@@ -118,11 +104,11 @@ File: `src/game/score_panel_display.c`.
 
 Lua: `ei()`, `qy`.
 
-Same family as GAP-5, in other places and on other lists: `emitter_update`
-walks its emitter's particles (`particles`) and deletes some in the middle
-of its own loop (`pointer_list_del`) without adjusting the index. The
-particle that takes the place of the one just removed is not visited this
-frame. The same pattern exists in the slipway display.
+Same family as `update_entities`, in other places and on other lists:
+`emitter_update` walks its emitter's particles (`particles`) and deletes
+some in the middle of its own loop (`pointer_list_del`) without adjusting
+the index. The particle that takes the place of the one just removed is
+not visited this frame. The same pattern exists in the slipway display.
 
 No visible consequence: a particle lives one frame longer than intended,
 and it will be visited on the next frame. Recorded because this is the
@@ -130,7 +116,7 @@ third site of the same pattern, and a future reader who fixes only one of
 them will make the three inconsistent with each other.
 
 Files: `src/game/particle.c`, `src/game/slipway_display.c`,
-and `src/engine/bootstrap.c` for the GAP-5 variant.
+and `src/engine/bootstrap.c` for the same pattern in `update_entities`.
 
 ## GAP-15 — Where Lua would crash, this port ignores it
 
