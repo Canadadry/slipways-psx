@@ -6,6 +6,8 @@ status: needs-triage
 
 ## Hypotheses on step 1.3
 
+Checked against step 1.3 as landed (its step note in `docs/plan-15.md`): every hypothesis holds. The pad-mode startup notice was reworded in 1.3; keep that wording.
+
 Step 1.3 (`docs/prd/triage/phase1-step3-keymap.md`: `keymap.cfg`, and the raylib backend filling the pad mask) is not done while this PRD is written. This PRD reads only committed code (`HEAD`: steps 1.1 and 1.2 landed, 1.3 not). Step 1.4 hardly depends on it: every check in this step feeds pad masks straight into the input step (unit tests) or from a pad replay (e2e). Neither goes through the backend or the keymap.
 
 **Rule for the implementer:** if step 1.3 landed with a different name or spelling, use what landed. Only a hypothesis whose *behavior* turns out false needs a line in the step note. When that happens, its fallback applies.
