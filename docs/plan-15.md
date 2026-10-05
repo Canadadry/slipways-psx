@@ -331,3 +331,15 @@ None.
   - duplication: the PSX name table in both `input_json.c` and `keymap.c`; the button count and P8_PAD_* index mapping restated; the dpad O/X indices redefined; bare `dpad[0..5]` indices; repeated header scanning and whitespace skipping in `input_json.c`;
   - layering: `platform/` depends on `devtools/`; `p8_` functions are implemented in `devtools/`; PSX names and `keyboard_cursor` live in the p8 runtime;
   - an unused `frame` parameter in `raylib_backend_present`.
+
+### Step 2.1
+
+- Done: `pad_nav_free_mode()` is derived each frame: a game is running and no panel is open.
+  - Free mode puts the cursor at (80,60) and pans through a new `camera_pan`: 1 px/frame, 2 after 10 frames held, 4 after 40, one counter per direction. The camera velocity stays 0.
+  - × engages the held left button on a press edge, unless the hit test finds something with a `left_press` other than the background under the centre. Engagement ends on release, when a panel opens, or when no game runs.
+  - ○ □ △ L1 R1 Start do nothing in free mode yet.
+- Deviation, decided in the PRD by the `guideline` rules: §2 says the camera "is not clamped (scroll.c)", but the code clamps it to the cart's frame, and with that clamp planets near the edges could never come under a centred cursor. So in pad mode only, the bound keeps the screen centre over the galaxy's planet area. Mouse mode keeps the cart's bound. A unit test checks that every planet is reachable.
+- "Place the starting wormhole" and "launch a probe" are one action in the code: the first background press makes the probe, and a later hold makes the fold.
+- Pad hash refreshed: `pad_title.json.sha256`, because from f19 the cursor sits at the centre instead of on the "reasonable" row. Its `make state` end state is unchanged and its `.txt` was updated. No mouse or `keyboard_*` hash moved.
+- `tests/e2e/pad_probe.json`, 77 frames: an Up pan (p14 is 19 px from the start centre, so × there is refused), a probe, a pan away, then × held 16 frames confirms the fold. End state: year 3401 month 2, credits 97, colonies 0, slipways 0, techs 0, p12 and p14 known. That pairs with `keyboard_slipway` cut at f70: month 2, credits 97, two planets known, in a different galaxy. It covers the probe-and-fold part of `keyboard_slipway`.
+- Tests that froze old behavior were updated: `test_pad_nav` (no panel open) and `test_input_step` (the quiet run now gets the same pad mask).
