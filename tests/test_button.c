@@ -1441,6 +1441,7 @@ static uint32_t fold_and_drop(uint32_t h, button_t *b) {
  * (written on the member: no key builds it), a row's keys as the layout
  * row's source. */
 static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
+    static layout_row_t side_tooltip;
     const button_keys_t none = {0};
     button_keys_t keys;
     layout_row_cell_t from_keys[2];
@@ -1500,7 +1501,8 @@ static uint32_t fold_keys(uint32_t hash, layout_row_t *source_row) {
     keys = none;
     keys.has_side_tooltip = 1;
     button = built(keys);
-    button->side_tooltip = layout_row_copy(&heap_allocator, source_row);
+    side_tooltip = *source_row;
+    button->side_tooltip = &side_tooltip;
     assert(button->has_side_tooltip && is_layout_row(button->side_tooltip) && button->side_tooltip != source_row);
     hash = fold_and_drop(hash, button);
 

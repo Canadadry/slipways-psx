@@ -8,7 +8,7 @@
 
 typedef void (*draw_functions_fn_t)(const data_row_t *e);
 
-void draw_functions_draw_rows(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n, p8_fixed_t nc);
+void draw_functions_draw_row(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *row);
 void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n);
 
 #endif

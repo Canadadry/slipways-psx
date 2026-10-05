@@ -3,9 +3,7 @@
 #include <assert.h>
 
 #include "game/hud.h"
-#include "game/layout.h"
 #include "p8/str.h"
-#include "engine/vec.h"
 #include "engine/frame_zone.h"
 
 static p8_graphics_t *g_draw_functions_gfx = NULL;
@@ -18,7 +16,7 @@ static const data_item_t *draw_functions_arg(const data_row_t *e, int i) {
         return NULL;
     }
     item = &e->items[i - 1];
-    assert(item->row == NULL && "a row drawn by draw_functions_draw_rows holds no nested row");
+    assert(item->row == NULL && "a row drawn by draw_functions holds no nested row");
     return item;
 }
 
@@ -27,7 +25,7 @@ static int is_number(const data_row_t *e, int i) {
     if (item == NULL || item->text != NULL) {
         return 0;
     }
-    if (item->is_false || item->is_ref) {
+    if (item->is_false || item->is_nil) {
         return 0;
     }
     return 1;
@@ -39,11 +37,6 @@ static p8_fixed_t number(const data_row_t *e, int i) {
         return p8_fixed_from_int(0);
     }
     return item->is_fixed ? item->fixed : p8_fixed_from_int(item->number);
-}
-
-static const void *draw_functions_ref(const data_row_t *e, int i) {
-    const data_item_t *item = draw_functions_arg(e, i);
-    return (item != NULL && item->text == NULL && !item->is_false && item->is_ref) ? item->ref : NULL;
 }
 
 static void draw_bar_entry(const data_row_t *e) {
@@ -90,29 +83,19 @@ static void spr_entry(const data_row_t *e) {
     }
 }
 
-static void draw_row_entry(const data_row_t *e) {
-    const layout_row_t *self = draw_functions_ref(e, 1);
-    const vec_t *at = draw_functions_ref(e, 2);
-    vec_t p = at != NULL
-                        ? *at
-                        : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    p8_fixed_t a = number(e, 3);
-    layout_row_draw_at(g_draw_functions_gfx, g_draw_functions_mem, self, p, a);
-}
-
 static const draw_functions_fn_t draw_functions_by_id[DRAW_FUNCTION_COUNT] = {
     [DRAW_FUNCTION_NONE] = NULL,
     [DRAW_FUNCTION_DRAW_BAR] = draw_bar_entry,
     [DRAW_FUNCTION_PRINT_OUTLINED] = print_outlined_entry,
     [DRAW_FUNCTION_DRAW_HELP_FRAME] = draw_help_frame_entry,
     [DRAW_FUNCTION_SPR] = spr_entry,
-    [DRAW_FUNCTION_DRAW_ROW] = draw_row_entry,
 };
 
 static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *e) {
     draw_functions_fn_t fn;
 
     assert((unsigned)e->draw_function < DRAW_FUNCTION_COUNT && "a row's draw_function is one of draw_function_t");
+    assert(e->draw_function != DRAW_FUNCTION_DRAW_ROW && "a layout row is drawn by its message box");
     fn = draw_functions_by_id[e->draw_function];
     g_draw_functions_gfx = gfx;
     g_draw_functions_mem = mem;
@@ -122,14 +105,8 @@ static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_vram_t *mem, const dat
     }
 }
 
-void draw_functions_draw_rows(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n, p8_fixed_t nc) {
-    int i;
-
-    for (i = 0; i < n; i++) {
-        p8_camera(gfx, p8_fixed_flr_int(nc), 0);
-        nc = p8_fixed_neg(nc);
-        draw_rows_dispatch_one(gfx, mem, rb[i]);
-    }
+void draw_functions_draw_row(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *row) {
+    draw_rows_dispatch_one(gfx, mem, row);
 }
 
 void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n) {

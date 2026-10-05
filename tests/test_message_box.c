@@ -10,7 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "p8/assets.h"
@@ -32,6 +34,7 @@
 #include "engine/allocator.h"
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
+#include "game/layout.h"
 
 #define YEAR_MESSAGE_TICKS 192
 #define YEAR_MESSAGE_SEQUENCE_HASH 0x6C50E246u
@@ -66,6 +69,11 @@ static uint32_t screen_hash(void) {
         }
     }
     return h;
+}
+
+static uint32_t screen_hash_of_blank(void) {
+    p8_cls(&memory);
+    return screen_hash();
 }
 
 static uint32_t draw_hash(void) {
@@ -413,9 +421,9 @@ static void scribble_frame_zone(void) {
     memset(reuse, 'X', 4096);
 }
 
-/* score_panel_update() makes its texts, rows and their draw_row wrappers in
- * the frame zone: the box draws them on later frames, after the zone is
- * reset and reused. */
+/* score_panel_update() makes its texts and cells in the frame zone: the box
+ * lays them out in its own slot and draws them on later frames, after the
+ * zone is reset and reused. */
 static void test_scores_box_keeps_its_articles(void) {
     score_panel_t *ju = game_main_score_panel();
     uint32_t want;
@@ -466,6 +474,131 @@ static void test_largest_scores_box_fits_its_slot(void) {
     economy_score_set_difficulty(dk != NULL ? &saved : NULL);
 }
 
+/* A box copies the rows its keys pass: rewriting the caller's row and
+ * text after the box opened changes nothing the box draws. */
+static void test_box_copies_its_rows(void) {
+    char text[] = "2 years remain";
+    data_item_t items[] = {{.text = text}, {.number = P8_SCREEN_WIDTH / 2}, {.number = 40}, {.number = 9}, {.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)}};
+    data_row_t row = {.count = 5, .items = items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
+    const data_row_t *rows[] = {&row};
+    message_box_keys_t keys = {0};
+    uint32_t want;
+
+    reset_world(NULL);
+    cart_flush_exit_queue();
+    keys.items = rows;
+    keys.count = 1;
+    (void)message_box_new(&keys);
+    want = draw_hash();
+    assert(want != screen_hash_of_blank());
+    strcpy(text, "XXXXXXXXXXXXXX");
+    memset(items + 1, 0, 4 * sizeof items[0]);
+    assert(draw_hash() == want);
+}
+
+/* Runs `write` in a child process, which must stop on an assert. */
+static void must_abort(void (*write)(void)) {
+    int status;
+    pid_t child;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static void add_too_many_rows(void) {
+    static const data_item_t bar_items[] = {{.number = 1}, {.number = 2}, {.number = 3}};
+    static const data_row_t bar = {.count = 3, .items = bar_items, .draw_function = DRAW_FUNCTION_DRAW_BAR};
+    message_box_t *box = message_box_new(NULL);
+    int i;
+
+    for (i = 0; i <= MESSAGE_BOX_ITEMS_CAP; i++) {
+        message_box_add_row(box, &bar);
+    }
+}
+
+static void add_six_arguments(void) {
+    static const data_item_t six[] = {{.number = 1}, {.number = 2}, {.number = 3}, {.number = 4}, {.number = 5}, {.number = 6}};
+    static const data_row_t row = {.count = 6, .items = six, .draw_function = DRAW_FUNCTION_SPR};
+    message_box_add_row(message_box_new(NULL), &row);
+}
+
+static void add_long_text(void) {
+    static const data_item_t text[] = {{.text = "seventeen letters"}, {.number = 2}};
+    static const data_row_t row = {.count = 2, .items = text, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
+    message_box_add_row(message_box_new(NULL), &row);
+}
+
+static void add_text_second(void) {
+    static const data_item_t text[] = {{.number = 2}, {.text = "late"}};
+    static const data_row_t row = {.count = 2, .items = text, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
+    message_box_add_row(message_box_new(NULL), &row);
+}
+
+static void add_layout_row_as_row(void) {
+    static const data_item_t three[] = {{.is_nil = 1}, {.is_nil = 1}, {.number = 0}};
+    static const data_row_t row = {.count = 3, .items = three, .draw_function = DRAW_FUNCTION_DRAW_ROW};
+    message_box_add_row(message_box_new(NULL), &row);
+}
+
+/* A box holds MESSAGE_BOX_ITEMS_CAP articles of five numbers at most, a
+ * text of MESSAGE_BOX_TEXT_CAP letters in the first one only, and takes a
+ * layout row only through message_box_add_layout_row(). */
+static void test_article_limits_stop(void) {
+    reset_world(NULL);
+    cart_flush_exit_queue();
+    must_abort(add_too_many_rows);
+    must_abort(add_six_arguments);
+    must_abort(add_long_text);
+    must_abort(add_text_second);
+    must_abort(add_layout_row_as_row);
+}
+
+/* A layout-row article draws what layout_row_draw_at() draws at its
+ * position and alignment once the box has settled (no camera offset);
+ * its texts are the box's own, not its keys'. */
+static void test_layout_row_article_draws_its_row(void) {
+    char text[] = "hi";
+    layout_row_cell_t cells[2];
+    layout_row_keys_t keys = {0};
+    layout_row_t *reference;
+    message_box_t *box;
+    uint32_t want;
+
+    reset_world(NULL);
+    cart_flush_exit_queue();
+    cells[0] = layout_row_cell_string(text);
+    cells[1] = layout_row_cell_fixed(p8_fixed_from_int(12));
+    keys.items = cells;
+    keys.count = 2;
+    keys.has_color = 1;
+    keys.color = p8_fixed_from_int(11);
+    reference = layout_row_new(frame_zone(), &keys);
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    layout_row_draw_at(&graphics, &memory, reference, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(30)),
+                       P8_FIXED_LIT(0x00008000, 0.5));
+    want = screen_hash();
+
+    box = message_box_new(NULL);
+    message_box_add_layout_row(box, &keys, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(30)), 1, P8_FIXED_LIT(0x00008000, 0.5));
+    assert(box->articles_count == 1 && box->articles[0].draw_function == DRAW_FUNCTION_DRAW_ROW);
+    text[0] = 'X';
+    scribble_frame_zone();
+    box->header.state_time = p8_fixed_mul(box->duration_scale, p8_fixed_from_int(10));
+    p8_gfx_init(&graphics);
+    p8_cls(&memory);
+    message_box_draw_overlay(&graphics, &memory, box);
+    assert(screen_hash() == want);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -489,6 +622,9 @@ int main(void) {
     test_box_gives_its_slot_back();
     test_year_box_keeps_its_label();
     test_largest_scores_box_fits_its_slot();
+    test_box_copies_its_rows();
+    test_article_limits_stop();
+    test_layout_row_article_draws_its_row();
 
     printf("test_message_box: all tests passed\n");
     return 0;

@@ -97,11 +97,11 @@ static void test_cheat_on_title(void) {
     }
     assert(available_technologies_affordable(t) == 0);
     score_panel_refresh();
-    assert(score_panel_readouts()->sub_items[2][0].is_ref && strcmp(score_panel_readouts()->sub_items[0][0].text, "0$") == 0);
+    assert(score_panel_readouts()->sub_items[2][0].is_nil && strcmp(score_panel_readouts()->sub_items[0][0].text, "0$") == 0);
     assert(type_cheat() == 1 && main_economy() == provisional);
     assert(available_technologies_affordable(t) == 1);
     score_panel_refresh();
-    assert(!score_panel_readouts()->sub_items[2][0].is_ref && strcmp(score_panel_readouts()->sub_items[0][0].text, "200$") == 0);
+    assert(!score_panel_readouts()->sub_items[2][0].is_nil && strcmp(score_panel_readouts()->sub_items[0][0].text, "200$") == 0);
     assert_cheated();
     assert(type_cheat() == 1 && main_economy() == provisional);
     assert_cheated();

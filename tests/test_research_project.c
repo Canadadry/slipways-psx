@@ -247,8 +247,8 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item, int depth) {
     if (item->is_false) {
         return fold_bool(h, 0);
     }
-    if (item->is_ref) {
-        return fold_ref(h, item->ref, depth);
+    if (item->is_nil) {
+        return fold_ref(h, NULL, depth);
     }
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }

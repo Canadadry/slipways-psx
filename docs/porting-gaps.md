@@ -390,8 +390,8 @@ a layout row. The row therefore carries indices 1 and 3, with no 2.
 In the cart, building the row walks it up to its border
 (lua.lua:289-290). The port instead takes every index key in ascending
 order (the loop in `score_panel_update` over `has_value`) and closes the
-hole: the row's `items` member keeps both elements, `placed_items` has
-two, and `width` counts both. The row's centering (alignment 0.5) depends
+hole: the row's cells hold both elements, so its `placed_items` keep
+both and `width` counts both. The row's centering (alignment 0.5) depends
 on it. Reached by the e2e (`game_end`, 4 constructions).
 
 Verified in the cart source: the row's line, the order of the writes in
@@ -405,7 +405,7 @@ Pre-existing: the row instance already walked every index key. The
 conversion to a struct preserves the divergence.
 
 Files: `src/game/layout.c` (row construction, `layout_row_construct`),
-`src/game/score_panel_display.c`.
+`src/game/score_panel_display.c` (`score_panel_update_add_row`).
 
 ## GAP-26 — An off-screen planet's target is cut off when the held object is released
 

@@ -47,6 +47,49 @@ static void message_box_draw_overlay_method(entity_t *self, const vec_t *screen_
     message_box_draw_overlay(dispatch_context_gfx(), dispatch_context_mem(), (message_box_t *)self);
 }
 
+static void message_box_draw_article(p8_graphics_t *gfx, p8_vram_t *mem, const message_box_article_t *article) {
+    data_item_t items[MESSAGE_BOX_ARGUMENTS_CAP];
+    data_row_t row = {0};
+    int i;
+
+    if (article->kind == MESSAGE_BOX_ARTICLE_SHARED_ROW) {
+        const data_row_t *shared = article->as.row_of();
+
+        if (shared != NULL) {
+            draw_functions_draw_row(gfx, mem, shared);
+        }
+        return;
+    }
+    if (article->kind == MESSAGE_BOX_ARTICLE_LAYOUT_ROW) {
+        vec_t p = article->as.layout.has_pos ? article->as.layout.pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+        layout_row_draw_at(gfx, mem, &article->as.layout.row, p, article->as.layout.align);
+        return;
+    }
+    for (i = 0; i < article->as.scalars.count; i++) {
+        const message_box_argument_t *argument = &article->as.scalars.arguments[i];
+
+        switch (argument->kind) {
+        case MESSAGE_BOX_ARGUMENT_TEXT:
+            items[i] = (data_item_t){.text = article->as.scalars.text};
+            break;
+        case MESSAGE_BOX_ARGUMENT_FALSE:
+            items[i] = (data_item_t){.is_false = 1};
+            break;
+        case MESSAGE_BOX_ARGUMENT_NIL:
+            items[i] = (data_item_t){.is_nil = 1};
+            break;
+        case MESSAGE_BOX_ARGUMENT_NUMBER:
+        default:
+            items[i] = (data_item_t){.is_fixed = 1, .fixed = argument->number};
+            break;
+        }
+    }
+    row.count = article->as.scalars.count;
+    row.items = items;
+    row.draw_function = article->draw_function;
+    draw_functions_draw_row(gfx, mem, &row);
+}
+
 void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t *self) {
     p8_fixed_t self_t, rh, t, nc, t3;
 
@@ -69,7 +112,13 @@ void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t 
     nc = p8_fixed_div(p8_fixed_neg(t3), p8_fixed_from_int(9));
 
     if (gfx != NULL && mem != NULL) {
-        draw_functions_draw_rows(gfx, mem, self->items, self->items_count, nc);
+        int i;
+
+        for (i = 0; i < self->articles_count; i++) {
+            p8_camera(gfx, p8_fixed_flr_int(nc), 0);
+            nc = p8_fixed_neg(nc);
+            message_box_draw_article(gfx, mem, &self->articles[i]);
+        }
         p8_camera_reset(gfx);
     }
 
@@ -90,32 +139,64 @@ static const entity_class_t message_box_class_def = {
     .release = message_box_release,
 };
 
-typedef struct {
-    data_row_t row;
-    data_item_t items[3];
-    vec_t pos;
-} message_box_draw_row_t;
+static message_box_article_t *message_box_next_article(message_box_t *self) {
+    assert(self->articles_count < MESSAGE_BOX_ITEMS_CAP &&
+           "message_box_next_article: the game builds two boxes, score_panel_new_year's (3 articles at most) and score_panel_update's (one per score row): a third needs more");
+    return &self->articles[self->articles_count++];
+}
 
-static const data_row_t *message_box_article(const allocator_t *slot, const data_row_t *e) {
-    message_box_draw_row_t *copy;
-    const vec_t *ra;
+void message_box_add_row(message_box_t *self, const data_row_t *row) {
+    message_box_article_t *article;
+    int i;
 
-    if (e->draw_function != DRAW_FUNCTION_DRAW_ROW) {
-        return e;
+    assert(row->draw_function != DRAW_FUNCTION_DRAW_ROW && "message_box_add_row: a layout row goes through message_box_add_layout_row");
+    assert(row->count <= MESSAGE_BOX_ARGUMENTS_CAP && "message_box_add_row: a draw function reads five arguments at most -- stop, do not widen");
+    article = message_box_next_article(self);
+    article->kind = MESSAGE_BOX_ARTICLE_SCALARS;
+    article->draw_function = row->draw_function;
+    article->as.scalars.count = row->count;
+    article->as.scalars.text[0] = '\0';
+    for (i = 0; i < row->count; i++) {
+        const data_item_t *item = &row->items[i];
+        message_box_argument_t *argument = &article->as.scalars.arguments[i];
+
+        assert(item->row == NULL && "message_box_add_row: a draw function reads no nested row");
+        argument->number = p8_fixed_from_int(0);
+        if (item->text != NULL) {
+            assert(i == 0 && "message_box_add_row: only print_outlined's first argument is read as text -- stop, do not widen");
+            assert(strlen(item->text) <= MESSAGE_BOX_TEXT_CAP &&
+                   "message_box_add_row: the longest article text is \"2 years remain\" -- stop, do not widen");
+            strcpy(article->as.scalars.text, item->text);
+            argument->kind = MESSAGE_BOX_ARGUMENT_TEXT;
+        } else if (item->is_false) {
+            argument->kind = MESSAGE_BOX_ARGUMENT_FALSE;
+        } else if (item->is_nil) {
+            argument->kind = MESSAGE_BOX_ARGUMENT_NIL;
+        } else {
+            argument->kind = MESSAGE_BOX_ARGUMENT_NUMBER;
+            argument->number = item->is_fixed ? item->fixed : p8_fixed_from_int(item->number);
+        }
     }
-    assert(e->count == 3 && e->items[0].is_ref && e->items[1].is_ref &&
-           "message_box_article: a draw_row article is {layout row, position, alignment}: the box copies its layout row and position");
-    copy = (message_box_draw_row_t *)allocator_alloc(slot, sizeof *copy);
-    ra = e->items[1].ref;
-    if (ra != NULL) {
-        copy->pos = *ra;
-    }
-    copy->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_copy(slot, e->items[0].ref)};
-    copy->items[1] = (data_item_t){.is_ref = 1, .ref = ra != NULL ? &copy->pos : NULL};
-    copy->items[2] = e->items[2];
-    copy->row = *e;
-    copy->row.items = copy->items;
-    return &copy->row;
+}
+
+void message_box_add_layout_row(message_box_t *self, const layout_row_keys_t *keys, vec_t pos, int has_pos, p8_fixed_t align) {
+    message_box_article_t *article = message_box_next_article(self);
+
+    article->kind = MESSAGE_BOX_ARTICLE_LAYOUT_ROW;
+    article->draw_function = DRAW_FUNCTION_DRAW_ROW;
+    layout_row_init(&article->as.layout.row, self->slot, keys);
+    article->as.layout.has_pos = has_pos;
+    article->as.layout.pos = has_pos ? pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    article->as.layout.align = align;
+}
+
+void message_box_add_shared_row(message_box_t *self, message_box_row_fn_t row_of) {
+    message_box_article_t *article = message_box_next_article(self);
+
+    assert(row_of != NULL && "message_box_add_shared_row: a shared row is read through its function at each draw");
+    article->kind = MESSAGE_BOX_ARTICLE_SHARED_ROW;
+    article->draw_function = DRAW_FUNCTION_NONE;
+    article->as.row_of = row_of;
 }
 
 static message_box_t *message_box_create(const message_box_keys_t *keys) {
@@ -132,12 +213,10 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
     self->keep_open = NULL;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;
-    self->items_count = 0;
+    self->articles_count = 0;
     if (keys != NULL) {
-        assert(keys->count <= MESSAGE_BOX_ITEMS_CAP &&
-               "message_box_create: the game builds two boxes, score_panel_new_year's (3 articles at most) and score_panel_update's (one per score row): a third needs more");
         for (i = 0; i < keys->count; i++) {
-            self->items[self->items_count++] = message_box_article(slot, keys->items[i]);
+            message_box_add_row(self, keys->items[i]);
         }
         if (keys->has_duration_scale) {
             self->duration_scale = keys->duration_scale;

@@ -94,11 +94,11 @@ void score_panel_refresh(void) {
     const main_economy_placeholder_t *economy_placeholder = main_economy_placeholder();
     p8_fixed_t main_economy_income = economy != NULL ? economy->income : p8_fixed_from_int(0);
     p8_fixed_t main_economy_credits = p8_fixed_from_int(0);
-    data_item_t main_economy_research_points = {.is_ref = 1};
+    data_item_t main_economy_research_points = {.is_nil = 1};
     p8_fixed_t main_economy_happiness = economy != NULL && economy->has_happiness ? economy->happiness : p8_fixed_from_int(0);
     p8_fixed_t main_economy_year_ticks = economy != NULL ? economy->year_ticks : p8_fixed_from_int(0);
     data_item_t main_economy_year = economy != NULL ? (data_item_t){.is_fixed = 1, .fixed = economy->year}
-                                       : (data_item_t){.is_ref = 1};
+                                       : (data_item_t){.is_nil = 1};
     const resource_map_t *main_economy_production = economy != NULL && (economy->has & ECONOMY_HAS_PRODUCTION) ? &economy->production : NULL;
     score_panel_readouts_t *readouts_state;
     data_item_t readouts[7];
@@ -147,7 +147,7 @@ void score_panel_refresh(void) {
     {
         int lo = p8_fixed_flr_int(main_economy_year_ticks);
         readouts[5] = (lo >= 1 && lo <= PERIOD_NAMES_COUNT) ? (data_item_t){.text = period_names_table[lo - 1]}
-                                                  : (data_item_t){.is_ref = 1};
+                                                  : (data_item_t){.is_nil = 1};
     }
 
     readouts[6] = main_economy_year;

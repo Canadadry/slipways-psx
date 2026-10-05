@@ -221,10 +221,9 @@ static int case_research_project_tooltip_survives_reset(void) {
 
 static int happiness_cells(const message_box_t *mh) {
     int found = 0;
-    for (int k = 0; k < mh->items_count; k++) {
-        const data_row_t *ld = mh->items[k];
-        if (ld->draw_function != DRAW_FUNCTION_DRAW_ROW || !ld->items[0].is_ref) continue;
-        const layout_row_t *lq = ld->items[0].ref;
+    for (int k = 0; k < mh->articles_count; k++) {
+        if (mh->articles[k].draw_function != DRAW_FUNCTION_DRAW_ROW) continue;
+        const layout_row_t *lq = &mh->articles[k].as.layout.row;
         for (int i = 0; i < lq->placed_items_count; i++)
             found += lq->placed_items[i].kind == LAYOUT_ROW_ITEM_TEXT && strcmp(lq->placed_items[i].text, "1%") == 0;
     }
@@ -302,7 +301,6 @@ static int case_panel_texts_survive_reset(void) {
     layout_row_cell_t two_texts[] = {layout_row_cell_string(frame_text("row")), layout_row_cell_string(frame_text("second"))};
     layout_row_keys_t two_keys = {.items = two_texts, .count = 2};
     layout_row_t *row = layout_row_new(&heap_allocator, &two_keys);
-    layout_row_t *copy = layout_row_copy(&heap_allocator, row_of_frame_text(frame_zone(), "copy"));
     tooltip_t *bubble = tooltip_new(&heap_allocator, &bubble_row);
     data_item_t *tuple_items = (data_item_t *)allocator_alloc(frame_zone(), 2 * sizeof *tuple_items);
     data_row_t *tuple = (data_row_t *)allocator_alloc(frame_zone(), sizeof *tuple);
@@ -315,9 +313,8 @@ static int case_panel_texts_survive_reset(void) {
     frame_zone_reset();
     allocate_again();
     of_tuple = layout_row_new(&heap_allocator, &tuple_keys);
-    sink = (unsigned char)(read_placed_texts(row) + read_placed_texts(copy) + read_placed_texts(bubble->rows[0]));
+    sink = (unsigned char)(read_placed_texts(row) + read_placed_texts(bubble->rows[0]));
     layout_row_draw_at_default(&graphics, &memory, row, vec_make(0, 0));
-    layout_row_draw_at_default(&graphics, &memory, copy, vec_make(0, 0));
     tooltip_draw_at(&graphics, &memory, bubble, 0, 0);
     layout_row_draw_at_default(&graphics, &memory, of_tuple, vec_make(0, 0));
     return 0;

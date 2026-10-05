@@ -2,7 +2,7 @@
  * items: direct constructions, the keys of
  * research_display_planet_resource_row_keys() and
  * research_project_layout_row_keys() laid out by a button,
- * layout_row_draw_at() through the class and through the draw_row dispatch,
+ * layout_row_draw_at() through the class and on a row laid out in place,
  * and a built planet's panel in a game built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -535,17 +535,15 @@ static uint32_t drawn_by_draw_at(const void *lq, vec_t at, p8_fixed_t a) {
     return screen_hash();
 }
 
-/* The class's draw_at as a planet's draw calls it, and a draw_row row
- * {row, position, 0.5} as the score panel hands it to the draw functions,
- * each drawing what layout_row_draw_at() draws. */
+/* The class's draw_at as a planet's draw calls it, and the same keys laid
+ * out in place (as a message box holds its layout-row article), each
+ * drawing what layout_row_draw_at() draws. */
 static void test_calls(void) {
     static const int tuple_values[] = {13, 8};
     layout_row_cell_t cells[] = {str("hi"), num(12), layout_row_cell_nothing()};
     layout_row_keys_t keys;
     void *layout_row;
-    data_item_t entry_items[3];
-    data_row_t entry = {0};
-    const data_row_t *rows[1];
+    layout_row_t in_place;
     uint32_t h = 2166136261u;
     uint32_t want;
 
@@ -560,17 +558,8 @@ static void test_calls(void) {
     layout_row_class()->draw_at(layout_row, vec_xy(64, 30), P8_FIXED_LIT(0x00008000, 0.5));
     assert(screen_hash() == want);
 
-    entry_items[0] = (data_item_t){.is_ref = 1, .ref = layout_row};
-    entry_items[1] = (data_item_t){.is_ref = 1, .ref = vec_ref(vec_xy(64, 30))};
-    entry_items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
-    entry.count = 3;
-    entry.items = entry_items;
-    entry.draw_function = DRAW_FUNCTION_DRAW_ROW;
-    rows[0] = &entry;
-    p8_gfx_init(&graphics);
-    p8_cls(&memory);
-    draw_functions_draw_rows_default(&graphics, &memory, rows, 1);
-    assert(screen_hash() == want);
+    layout_row_init(&in_place, &heap_allocator, &keys);
+    assert(drawn_by_draw_at(&in_place, vec_xy(64, 30), P8_FIXED_LIT(0x00008000, 0.5)) == want);
 
     want = drawn_by_draw_at(layout_row, vec_xy(20, 90), 0);
     h = fnv(h, want);
@@ -589,29 +578,31 @@ static void test_calls(void) {
 
 BUMP_ZONE_STORAGE(panel_cells, 4096);
 
-/* Built from eight cells, then copied, all in `zone`. */
-static uint32_t drawn_after_copy(const allocator_t *zone) {
+/* Built from eight cells in `zone`, and laid out in place from the same
+ * cells with its placed items in `zone`. */
+static uint32_t drawn_from_eight_cells(const allocator_t *zone) {
     layout_row_cell_t a[] = {str("ab"), num(12), str("cd"), num(17), str("cd"), num(19), str("cd"), num(21)};
     layout_row_keys_t t = with_color(positionals(8, a), 9);
     layout_row_t *lq = layout_row_new(zone, &t);
-    layout_row_t *copy = layout_row_copy(zone, lq);
+    layout_row_t in_place;
 
-    assert(row_count(copy) == 8 && copy->width == lq->width);
-    assert(drawn_by_draw_at(copy, vec_xy(64, 60), P8_FIXED_LIT(0x00008000, 0.5)) ==
+    layout_row_init(&in_place, zone, &t);
+    assert(row_count(&in_place) == 8 && in_place.width == lq->width);
+    assert(drawn_by_draw_at(&in_place, vec_xy(64, 60), P8_FIXED_LIT(0x00008000, 0.5)) ==
            drawn_by_draw_at(lq, vec_xy(64, 60), P8_FIXED_LIT(0x00008000, 0.5)));
-    return drawn_by_draw_at(copy, vec_xy(64, 60), P8_FIXED_LIT(0x00008000, 0.5));
+    return drawn_by_draw_at(lq, vec_xy(64, 60), P8_FIXED_LIT(0x00008000, 0.5));
 }
 
-/* A row built from all eight cells, and its copy, draw the same in a bump
- * zone and the heap. */
+/* A row built from all eight cells draws the same in a bump zone and the
+ * heap, allocated or laid out in place. */
 static void test_row_of_eight_cells_in_bump_zone(void) {
     bump_zone_t bump;
     allocator_t handle;
-    uint32_t want = drawn_after_copy(&heap_allocator);
+    uint32_t want = drawn_from_eight_cells(&heap_allocator);
 
     bump_zone_init(&bump, "test-panel", panel_cells, 4096);
     handle = allocator_from_bump_zone(&bump);
-    assert(drawn_after_copy(&handle) == want);
+    assert(drawn_from_eight_cells(&handle) == want);
 }
 
 BUMP_ZONE_STORAGE(stale_cells, 1024);
@@ -922,7 +913,8 @@ static void draw_at_on_other(void *e) {
 /* A row is a struct whose class has draw_at, no other method and no state.
  * A row of the data tables gives its keys but for a draw_function, a
  * resource or more items than the caller holds, and layout_row_draw_at()
- * refuses anything that is not a row. A copy holds its own placed items. */
+ * refuses anything that is not a row. A row laid out in place holds its
+ * own placed items and texts. */
 static void test_layout_row_is_a_struct(void) {
     static const data_item_t pair_items[] = {{.number = 24}, {.number = 5}};
     static const data_row_t pair = {.count = 2, .items = pair_items};
@@ -936,7 +928,7 @@ static void test_layout_row_is_a_struct(void) {
     layout_row_cell_t items[2];
     layout_row_keys_t t = with_color(positionals(2, cells), 9);
     layout_row_t *lq;
-    layout_row_t *copy;
+    layout_row_t in_place;
     int i;
 
     lq = layout_row_new(&heap_allocator, &t);
@@ -951,10 +943,10 @@ static void test_layout_row_is_a_struct(void) {
     assert(layout_row_ready());
     assert(lq->has_color && lq->color == p8_fixed_from_int(9));
     assert(!lq->has_background);
-    copy = layout_row_copy(&heap_allocator, lq);
-    assert(copy != lq && copy->placed_items != lq->placed_items && copy->placed_items[0].text != lq->placed_items[0].text);
-    assert(strcmp(copy->placed_items[0].text, "hi") == 0 && copy->placed_items[1].sprite_id == p8_fixed_from_int(12));
-    assert(copy->has_color && copy->color == p8_fixed_from_int(9) && copy->placed_items_count == 2 && copy->width == lq->width);
+    layout_row_init(&in_place, &heap_allocator, &t);
+    assert(in_place.header.class == row_class && in_place.placed_items != lq->placed_items && in_place.placed_items[0].text != lq->placed_items[0].text);
+    assert(strcmp(in_place.placed_items[0].text, "hi") == 0 && in_place.placed_items[1].sprite_id == p8_fixed_from_int(12));
+    assert(in_place.has_color && in_place.color == p8_fixed_from_int(9) && in_place.placed_items_count == 2 && in_place.width == lq->width);
 
     t = layout_row_keys_of_row(&nested, items, 2);
     assert(t.items == items && t.count == 2 && t.has_color && t.color == p8_fixed_from_int(7));

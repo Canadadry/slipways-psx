@@ -6,13 +6,53 @@
 #include "p8/gfx.h"
 #include "p8/vram.h"
 #include "game/ui_button.h"
+#include "game/layout.h"
 #include "engine/vec.h"
 
 typedef struct message_box message_box_t;
 
 typedef int (*message_box_keep_open_fn_t)(message_box_t *self);
 
-enum { MESSAGE_BOX_ITEMS_CAP = SCORE_ROWS_COUNT };
+enum { MESSAGE_BOX_ITEMS_CAP = SCORE_ROWS_COUNT, MESSAGE_BOX_ARGUMENTS_CAP = 5, MESSAGE_BOX_TEXT_CAP = 16 };
+
+typedef enum {
+    MESSAGE_BOX_ARGUMENT_NUMBER,
+    MESSAGE_BOX_ARGUMENT_FALSE,
+    MESSAGE_BOX_ARGUMENT_NIL,
+    MESSAGE_BOX_ARGUMENT_TEXT
+} message_box_argument_kind_t;
+
+typedef struct {
+    message_box_argument_kind_t kind;
+    p8_fixed_t number;
+} message_box_argument_t;
+
+typedef const data_row_t *(*message_box_row_fn_t)(void);
+
+typedef enum {
+    MESSAGE_BOX_ARTICLE_SCALARS,
+    MESSAGE_BOX_ARTICLE_LAYOUT_ROW,
+    MESSAGE_BOX_ARTICLE_SHARED_ROW
+} message_box_article_kind_t;
+
+typedef struct {
+    message_box_article_kind_t kind;
+    draw_function_t draw_function;
+    union {
+        struct {
+            int count;
+            message_box_argument_t arguments[MESSAGE_BOX_ARGUMENTS_CAP];
+            char text[MESSAGE_BOX_TEXT_CAP + 1];
+        } scalars;
+        struct {
+            layout_row_t row;
+            int has_pos;
+            vec_t pos;
+            p8_fixed_t align;
+        } layout;
+        message_box_row_fn_t row_of;
+    } as;
+} message_box_article_t;
 
 struct message_box {
     entity_t header;
@@ -20,8 +60,8 @@ struct message_box {
     const message_box_archetype_t *archetype;
     p8_fixed_t duration_scale;
     message_box_keep_open_fn_t keep_open;
-    const data_row_t *items[MESSAGE_BOX_ITEMS_CAP];
-    int items_count;
+    message_box_article_t articles[MESSAGE_BOX_ITEMS_CAP];
+    int articles_count;
 };
 
 message_box_t *shown_message_box(void);
@@ -42,6 +82,11 @@ typedef struct {
 } message_box_keys_t;
 
 message_box_t *message_box_new(const message_box_keys_t *keys);
+
+void message_box_add_row(message_box_t *self, const data_row_t *row);
+void message_box_add_layout_row(message_box_t *self, const layout_row_keys_t *keys, vec_t pos, int has_pos, p8_fixed_t align);
+/* The row is read through `row_of` at each draw (NULL draws nothing): it must live in static storage. */
+void message_box_add_shared_row(message_box_t *self, message_box_row_fn_t row_of);
 
 void message_box_construct(message_box_t *self);
 

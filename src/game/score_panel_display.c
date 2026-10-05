@@ -22,6 +22,12 @@ static int score_panel_new_year_keep_open_method(message_box_t *self) {
     return g_score_panel_new_year_keep_open > 0;
 }
 
+static const data_row_t *score_panel_year_banner_label_row(void) {
+    const score_panel_year_banner_t *year_banner = score_panel_year_banner();
+
+    return year_banner != NULL ? &year_banner->second : NULL;
+}
+
 void score_panel_new_year(p8_fixed_t year) {
     score_panel_year_banner_t *year_banner = score_panel_year_banner();
     const data_row_t *countdown_rows = score_panel_countdown_rows();
@@ -58,19 +64,20 @@ void score_panel_new_year(p8_fixed_t year) {
     }
 
     {
-        const data_row_t *items[3];
         message_box_keys_t keys = {0};
         message_box_t *made;
         int i;
 
-        for (i = 0; i < year_banner->row.count; i++) {
-            items[i] = year_banner->row.items[i].row;
-        }
-        keys.items = items;
-        keys.count = year_banner->row.count;
         keys.keep_open = year_banner->keep_open;
         made = message_box_new(&keys);
-        (void)made;
+        for (i = 0; i < year_banner->row.count; i++) {
+            if (year_banner->row.items[i].row == &year_banner->second) {
+                /* The cart's year boxes share the banner: a box still drawn when the next year opens shows the new year. */
+                message_box_add_shared_row(made, score_panel_year_banner_label_row);
+            } else {
+                message_box_add_row(made, year_banner->row.items[i].row);
+            }
+        }
     }
 }
 
@@ -123,27 +130,20 @@ static char *score_panel_final_score_text(const final_score_t *s, int i) {
     }
 }
 
-typedef struct {
-    data_row_t row;
-    data_item_t items[3];
-} score_panel_update_draw_row_t;
-
-static const data_row_t *score_panel_update_map(const score_rows_entry_t *entry, const score_panel_update_ctx_t *context) {
+static void score_panel_update_add_row(message_box_t *box, const score_rows_entry_t *entry, const score_panel_update_ctx_t *context) {
     int score_i;
     data_item_t values[5] = {{0}};
     int has_value[5] = {0};
     layout_row_cell_t items[5];
     layout_row_keys_t keys = {0};
-    layout_row_t *layout_row_inst;
-    score_panel_update_draw_row_t *article;
-    vec_t *pos = NULL;
     int index;
 
     if (!entry->has_score) {
-        return &entry->row;
+        message_box_add_row(box, &entry->row);
+        return;
     }
 
-    assert(entry->row.count <= 5 && "score_panel_update_map: a scored row holds at most the five items its line lays out");
+    assert(entry->row.count <= 5 && "score_panel_update_add_row: a scored row holds at most the five items its line lays out");
     for (index = 0; index < entry->row.count; index++) {
         values[index] = entry->row.items[index];
         has_value[index] = 1;
@@ -190,18 +190,8 @@ static const data_row_t *score_panel_update_map(const score_rows_entry_t *entry,
     keys.color = p8_fixed_from_int(entry->row.color);
     keys.has_score = 1;
     keys.score = p8_fixed_from_int(score_i);
-    if (entry->has_pos) {
-        pos = (vec_t *)allocator_alloc(frame_zone(), sizeof *pos);
-        *pos = vec_make(p8_fixed_from_int(entry->pos_x), p8_fixed_from_int(entry->pos_y));
-    }
-    keys.pos = pos;
-    layout_row_inst = layout_row_new(frame_zone(), &keys);
-    article = (score_panel_update_draw_row_t *)allocator_alloc(frame_zone(), sizeof *article);
-    article->items[0] = (data_item_t){.is_ref = 1, .ref = layout_row_inst};
-    article->items[1] = (data_item_t){.is_ref = 1, .ref = pos};
-    article->items[2] = (data_item_t){.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)};
-    article->row = (data_row_t){.count = 3, .items = article->items, .draw_function = DRAW_FUNCTION_DRAW_ROW};
-    return &article->row;
+    message_box_add_layout_row(box, &keys, vec_make(p8_fixed_from_int(entry->pos_x), p8_fixed_from_int(entry->pos_y)), entry->has_pos,
+                               P8_FIXED_LIT(0x00008000, 0.5));
 }
 
 void score_panel_update(score_panel_t *self) {
@@ -274,22 +264,18 @@ void score_panel_update(score_panel_t *self) {
             final_score_t s = economy_score_final();
             int is_ready = score_panel_ready();
             score_panel_update_ctx_t ctx;
-            const data_row_t *iw[SCORE_ROWS_COUNT];
             message_box_keys_t keys = {0};
             message_box_t *made;
             int i;
 
             ctx.final_score = &s;
-            for (i = 0; is_ready && i < SCORE_ROWS_COUNT; i++) {
-                iw[i] = score_panel_update_map(&score_rows_table[i], &ctx);
-            }
-
-            keys.items = iw;
-            keys.count = is_ready ? SCORE_ROWS_COUNT : 0;
             keys.has_duration_scale = 1;
             keys.duration_scale = p8_fixed_from_int(3);
             keys.keep_open = score_panel_update_keep_open_method;
             made = message_box_new(&keys);
+            for (i = 0; is_ready && i < SCORE_ROWS_COUNT; i++) {
+                score_panel_update_add_row(made, &score_rows_table[i], &ctx);
+            }
 
             if (self != NULL) {
                 score_panel_set_last_box(self, made);

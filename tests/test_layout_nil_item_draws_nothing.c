@@ -117,7 +117,7 @@ static void test_nil_item_draws_nothing(void) {
     int hits, drawn;
     layout_row_item_t placed;
 
-    placed = render_one_item((data_item_t){.is_ref = 1});
+    placed = render_one_item((data_item_t){.is_nil = 1});
     assert(placed.kind == LAYOUT_ROW_ITEM_NONE);
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);

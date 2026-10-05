@@ -105,6 +105,8 @@ typedef struct {
 } layout_row_keys_t;
 
 layout_row_t *layout_row_new(const allocator_t *zone, const layout_row_keys_t *keys);
+/* Lays the row out into `self`; its placed items and their texts go in `zone`, which must outlive `self`. */
+void layout_row_init(layout_row_t *self, const allocator_t *zone, const layout_row_keys_t *keys);
 
 layout_row_scalar_t layout_row_scalar_nothing(void);
 layout_row_scalar_t layout_row_scalar_fixed(p8_fixed_t x);
@@ -118,8 +120,6 @@ layout_row_cell_t layout_row_cell_row(const data_row_t *row);
 layout_row_cell_t layout_row_cell_item(const data_item_t *item);
 
 layout_row_keys_t layout_row_keys_of_row(const data_row_t *row, layout_row_cell_t *cells, int cap);
-
-layout_row_t *layout_row_copy(const allocator_t *zone, const layout_row_t *row);
 
 tooltip_t *tooltip_new(const allocator_t *zone, const data_row_t *row);
 

@@ -144,8 +144,8 @@ static uint32_t fold_item(uint32_t h, const data_item_t *item) {
     if (item->is_false) {
         return fold_bool(h, 0);
     }
-    if (item->is_ref) {
-        return fold_ref(h, item->ref);
+    if (item->is_nil) {
+        return fold_ref(h, NULL);
     }
     return fold_fixed(h, item->is_fixed ? item->fixed : p8_fixed_from_int(item->number));
 }
@@ -759,20 +759,21 @@ static const message_box_t *open_final_box(score_panel_t *ju) {
     main_economy_typed()->end_status = "final score";
     main_economy_typed()->has_end_status = 1;
     class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
-    assert(shown_message_box() != NULL && shown_message_box()->items_count == SCORE_ROWS_COUNT);
+    assert(shown_message_box() != NULL && shown_message_box()->articles_count == SCORE_ROWS_COUNT);
     return shown_message_box();
 }
 
-/* The given item (1-based) of the line that score_panel_update() put in the
- * box's given row (0-based), a draw_row article. */
-static layout_row_item_t update_row_item(const message_box_t *mh, int k, int i) {
-    const data_row_t *ld;
-    const layout_row_t *lq;
+/* The layout row of the box's given article (0-based), a layout-row one. */
+static const layout_row_t *article_row(const message_box_t *mh, int k) {
+    assert(k < mh->articles_count && mh->articles[k].draw_function == DRAW_FUNCTION_DRAW_ROW);
+    return &mh->articles[k].as.layout.row;
+}
 
-    assert(k < mh->items_count);
-    ld = mh->items[k];
-    assert(ld->draw_function == DRAW_FUNCTION_DRAW_ROW && ld->items[0].is_ref);
-    lq = ld->items[0].ref;
+/* The given item (1-based) of the line that score_panel_update() put in the
+ * box's given article (0-based), a layout-row article. */
+static layout_row_item_t update_row_item(const message_box_t *mh, int k, int i) {
+    const layout_row_t *lq = article_row(mh, k);
+
     assert(i <= lq->placed_items_count);
     return lq->placed_items[i - 1];
 }
@@ -797,7 +798,7 @@ static void test_update_rows_show_final_score(void) {
     fm->has_end_status = 1;
     class_of(ju)->states[ENTITY_STATE_NORMAL](ju, p8_fixed_from_int(0));
     mh = shown_message_box();
-    assert(mh != NULL && mh->items_count == SCORE_ROWS_COUNT);
+    assert(mh != NULL && mh->articles_count == SCORE_ROWS_COUNT);
     total = update_row_item(mh, 10, 3);
     assert(total.kind == LAYOUT_ROW_ITEM_TEXT && strcmp(total.text, "14") == 0);
     for (i = 1; i <= 5; i++) {
@@ -821,10 +822,10 @@ static void test_update_rebuilds_rows_from_the_table(void) {
     score_panel_set_last_box(ju, NULL);
     class_of(ju)->states[ENTITY_STATE_NORMAL](&ju->header, p8_fixed_from_int(0));
     second = shown_message_box();
-    assert(second != NULL && second != first && second->items_count == SCORE_ROWS_COUNT);
+    assert(second != NULL && second != first && second->articles_count == SCORE_ROWS_COUNT);
     for (k = 0; k < 7; k++) {
-        rows[0][k] = first->items[5 + k]->items[0].ref;
-        rows[1][k] = second->items[5 + k]->items[0].ref;
+        rows[0][k] = article_row(first, 5 + k);
+        rows[1][k] = article_row(second, 5 + k);
         assert(rows[0][k]->placed_items_count == rows[1][k]->placed_items_count);
         assert(rows[0][k]->width == rows[1][k]->width);
         for (i = 0; i < rows[0][k]->placed_items_count; i++) {
@@ -912,20 +913,17 @@ static void test_score_lines_are_centered(void) {
     int i;
 
     for (i = 0; i < 7; i++) {
-        const data_row_t *article = mh->items[5 + i];
-        const vec_t *pos;
-        assert(article->draw_function == DRAW_FUNCTION_DRAW_ROW && article->items[1].is_ref);
-        pos = article->items[1].ref;
-        assert(pos != NULL);
-        assert(pos->x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
-        assert(pos->y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
+        const message_box_article_t *article = &mh->articles[5 + i];
+        assert(article->draw_function == DRAW_FUNCTION_DRAW_ROW && article->as.layout.has_pos);
+        assert(article->as.layout.pos.x == p8_fixed_from_int(P8_SCREEN_WIDTH / 2));
+        assert(article->as.layout.pos.y == p8_fixed_from_int(P8_SCREEN_HEIGHT / 2 + (y128[i] - 64)));
     }
 }
 
 /* The five backgrounds of the score table, drawn alone, cover lines
  * H/2 - 40 to H/2 + 22: the cart's table (24 to 86) moved with the
- * center. Each states its draw function in its static row, and reaches the
- * box as it is. */
+ * center. Each states its draw function in its static row, and the box copies
+ * its arguments. */
 static void test_score_backgrounds_follow_the_center(void) {
     const data_row_t *backgrounds[5];
     const message_box_t *mh;
@@ -945,7 +943,14 @@ static void test_score_backgrounds_follow_the_center(void) {
     }
     mh = open_final_box(start_game());
     for (i = 0; i < 5; i++) {
-        assert(mh->items[i] == backgrounds[i]);
+        const message_box_article_t *article = &mh->articles[i];
+        int j;
+
+        assert(article->draw_function == DRAW_FUNCTION_DRAW_BAR && article->as.scalars.count == backgrounds[i]->count);
+        for (j = 0; j < backgrounds[i]->count; j++) {
+            assert(article->as.scalars.arguments[j].kind == MESSAGE_BOX_ARGUMENT_NUMBER &&
+                   article->as.scalars.arguments[j].number == p8_fixed_from_int(backgrounds[i]->items[j].number));
+        }
     }
 }
 
