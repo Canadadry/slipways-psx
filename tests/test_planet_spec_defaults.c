@@ -50,9 +50,9 @@ static void assert_planet_box(const box_t *kq) {
 /* The structure members every class below it inherits, its targeting's
  * archetype, and the targeting's init literals. */
 static void assert_structure_tail(const planet_t *qh, const planet_archetype_t *archetype) {
-    assert(qh->targeting->archetype == &archetype->targeting);
+    assert(qh->targeting.archetype == &archetype->targeting);
     assert(qh->development_tier == archetype->development_tier && qh->has_development_tier == 1);
-    assert(qh->targeting->has_cost == 1);
+    assert(qh->targeting.has_cost == 1);
 }
 
 /* The emitter of an ascension, protostar or synthesizer, and its archetype. */
@@ -82,7 +82,7 @@ static void test_structure_defaults(void) {
 
     assert(structure_ready());
     assert_same_state(qh->header.state, structure_archetype.state);
-    assert(qh->targeting->cost == structure_archetype.targeting.cost);
+    assert(qh->targeting.cost == structure_archetype.targeting.cost);
     assert(qh->sprite == structure_archetype.sprite);
     assert_structure_tail(qh, &structure_archetype);
     assert_planet_box(&qh->archetype->hit_box);
@@ -94,7 +94,7 @@ static void test_trading_hub_defaults(void) {
 
     assert(trading_hub_ready());
     assert(nl->sprite == trading_hub_archetype.sprite);
-    assert(nl->targeting->cost == trading_hub_archetype.targeting.cost);
+    assert(nl->targeting.cost == trading_hub_archetype.targeting.cost);
     assert(nl->palette_block == trading_hub_archetype.palette_block);
     assert_same_state(nl->header.state, trading_hub_archetype.state);
     assert_structure_tail(nl, &trading_hub_archetype);
@@ -107,7 +107,7 @@ static void test_processor_defaults(void) {
 
     assert(processor_ready());
     assert(os->sprite == processor_archetype.sprite);
-    assert(os->targeting->cost == processor_archetype.targeting.cost);
+    assert(os->targeting.cost == processor_archetype.targeting.cost);
     assert_same_state(os->header.state, processor_archetype.state);
     assert_structure_tail(os, &processor_archetype);
     assert_planet_box(&os->archetype->hit_box);
@@ -118,9 +118,9 @@ static void test_ascension_defaults(void) {
     planet_t *hj = ascension_new(NULL);
 
     assert(ascension_ready());
-    assert(hj->targeting->cost == ascension_archetype.targeting.cost);
+    assert(hj->targeting.cost == ascension_archetype.targeting.cost);
     assert(hj->sprite == ascension_archetype.sprite);
-    assert_emitter(hj->emitter, &ascension_archetype);
+    assert_emitter(&hj->emitter, &ascension_archetype);
     assert_same_state(hj->header.state, ascension_archetype.state);
     assert_structure_tail(hj, &ascension_archetype);
     assert_planet_box(&hj->archetype->hit_box);
@@ -133,8 +133,8 @@ static void test_protostar_defaults(void) {
     assert(protostar_ready());
     assert_same_state(pm->header.state, protostar_archetype.state);
     assert(pm->sprite == protostar_archetype.sprite);
-    assert_emitter(pm->emitter, &protostar_archetype);
-    assert(pm->targeting->cost == protostar_archetype.targeting.cost);
+    assert_emitter(&pm->emitter, &protostar_archetype);
+    assert(pm->targeting.cost == protostar_archetype.targeting.cost);
     assert_structure_tail(pm, &protostar_archetype);
     assert_planet_box(&pm->archetype->hit_box);
     assert_planet_tail(pm, &protostar_archetype);
@@ -146,14 +146,14 @@ static void test_burst_defaults(void) {
 
     assert(burst_ready());
     assert(ga->outgoing_routes != NULL && ga->outgoing_routes == other->outgoing_routes);
-    assert(ga->emitter->archetype == &burst_archetype.emitter);
-    assert(ga->emitter->matrix_xx == burst_archetype.emitter.matrix_xx);
-    assert(ga->emitter->matrix_xy == burst_archetype.emitter.matrix_xy);
-    assert(ga->emitter->matrix_yx == burst_archetype.emitter.matrix_yx);
-    assert(ga->emitter->matrix_yy == burst_archetype.emitter.matrix_yy);
-    assert(ga->emitter->trail_colors == burst_archetype.emitter.trail_colors);
+    assert(ga->emitter.archetype == &burst_archetype.emitter);
+    assert(ga->emitter.matrix_xx == burst_archetype.emitter.matrix_xx);
+    assert(ga->emitter.matrix_xy == burst_archetype.emitter.matrix_xy);
+    assert(ga->emitter.matrix_yx == burst_archetype.emitter.matrix_yx);
+    assert(ga->emitter.matrix_yy == burst_archetype.emitter.matrix_yy);
+    assert(ga->emitter.trail_colors == burst_archetype.emitter.trail_colors);
     assert(ga->acceleration_factor == burst_archetype.acceleration_factor);
-    assert(ga->emitter->speed_factor == burst_archetype.emitter.speed_factor);
+    assert(ga->emitter.speed_factor == burst_archetype.emitter.speed_factor);
     assert(ga->speed == burst_archetype.speed);
     assert_box(&ga->archetype->hit_box, 0, 0, -1, -1);
     assert_same_state(ga->header.state, ga->archetype->state);
@@ -168,7 +168,7 @@ static void test_burst_defaults(void) {
 /* What the slipgate and the infraspace gate inherit from the structure and
  * the planet, and the slipgate's hit box, which the infraspace gate keeps. */
 static void assert_slipgate_inherited(const planet_t *nr, const planet_archetype_t *archetype) {
-    assert(nr->targeting->cost == archetype->targeting.cost);
+    assert(nr->targeting.cost == archetype->targeting.cost);
     assert(nr->sprite == archetype->sprite);
     assert_box(&nr->archetype->hit_box, -4, -4, 5, 5);
     assert_same_state(nr->header.state, archetype->state);
@@ -195,9 +195,9 @@ static void test_synthesizer_defaults(void) {
 
     assert(synthesizer_ready());
     assert(mx->sprite == synthesizer_archetype.sprite);
-    assert(mx->targeting->cost == synthesizer_archetype.targeting.cost);
+    assert(mx->targeting.cost == synthesizer_archetype.targeting.cost);
     assert(mx->synthesizable_resources == synthesizer_archetype.synthesizable_resources);
-    assert_emitter(mx->emitter, &synthesizer_archetype);
+    assert_emitter(&mx->emitter, &synthesizer_archetype);
     assert_same_state(mx->header.state, synthesizer_archetype.state);
     assert_structure_tail(mx, &synthesizer_archetype);
     assert_planet_box(&mx->archetype->hit_box);

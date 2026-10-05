@@ -130,8 +130,8 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
         self->end_is_point = 1;
     }
 
-    self->targeting->cost = economy_formulas_route_base_cost(slipway_end_map_pos(slipway_start(self)), slipway_end_map_pos(slipway_end(self)));
-    self->targeting->has_cost = 1;
+    self->targeting.cost = economy_formulas_route_base_cost(slipway_end_map_pos(slipway_start(self)), slipway_end_map_pos(slipway_end(self)));
+    self->targeting.has_cost = 1;
 
     /* An infraspace of 0 still counts as one. */
     self->header.infraspace = p8_fixed_from_int(0);
@@ -140,9 +140,9 @@ void slipway_drag(slipway_t *self, vec_t *mp) {
         slipway_copy_infraspace(self, slipway_end(self));
     }
 
-    targeting_set_target(self->targeting, slipway_obstruction(self));
-    if (targeting_target(self->targeting) != NULL) {
-        probe_link_target(targeting_target(self->targeting), &self->header);
+    targeting_set_target(&self->targeting, slipway_obstruction(self));
+    if (targeting_target(&self->targeting) != NULL) {
+        probe_link_target(targeting_target(&self->targeting), &self->header);
     }
 
     self->header.layer = entity_has(&self->header, ENTITY_HAS_INFRASPACE) ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
@@ -359,19 +359,17 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
     self->archetype = &slipway_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.targeting = &self->targeting_own;
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
+    self->targeting.archetype = &self->archetype->targeting;
     self->fade_in_step = self->archetype->fade_in_step;
     self->start = ENTITY_ID_NONE;
     self->transit_dots = NULL;
     self->served_planets = NULL;
     self->end = ENTITY_ID_NONE;
     self->end_is_point = 0;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
     self->header.infraspace = 0;
-    targeting_set_target(self->targeting, NULL);
+    targeting_set_target(&self->targeting, NULL);
     self->targeted_by = ENTITY_ID_NONE;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;

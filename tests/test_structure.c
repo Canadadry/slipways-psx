@@ -144,7 +144,7 @@ static uint32_t is_dead_state(const planet_t *jo) {
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t target_state(const planet_t *qh) {
-    return targeting_target(qh->targeting) == NULL ? 1u : 3u;
+    return targeting_target(&qh->targeting) == NULL ? 1u : 3u;
 }
 
 static uint32_t fold_vec(uint32_t h, const vec_t *p) {
@@ -178,7 +178,7 @@ static uint32_t fold_target(uint32_t h, const planet_t *qh) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), targeting_target(qh->targeting));
+        return fold_ref(fnv(h, 1u), targeting_target(&qh->targeting));
     }
 }
 
@@ -294,11 +294,11 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
     hash = fold_string_member(hash, entity_state_name(planet->header.state));
     hash = fold_fixed_member(hash, planet->header.state_time);
     hash = fold_fixed_member(hash, structure->archetype->project_index);
-    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
+    hash = fold_string_member(hash, entity_state_name(structure->targeting.archetype->confirmed_state));
     hash = fold_structure(hash, structure);
-    hash = fold_fixed_member(hash, structure->targeting->cost);
-    hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
-    hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
+    hash = fold_fixed_member(hash, structure->targeting.cost);
+    hash = fold_fixed_member(hash, structure->targeting.archetype->clock_ticks);
+    hash = fold_fixed_member(hash, structure->targeting.archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
     hash = fold_fixed_member(hash, structure->sprite);
     hash = fold_is_planet(hash, planet);
@@ -312,14 +312,14 @@ static uint32_t fold_lab(uint32_t hash, void *entity) {
      * by the struct's shape, kept so that BUILT_HASH still proves the typed reads. */
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
+    hash = fnv(hash, (uint32_t)(structure->targeting.archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->accepted_resources != NULL));
-    hash = fnv(hash, targeting_target(structure->targeting) != NULL ? 1u : 0u);
+    hash = fnv(hash, targeting_target(&structure->targeting) != NULL ? 1u : 0u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -440,7 +440,7 @@ static void test_life(void) {
     mouse_world = vec_ref(vec_xy(7680, 7680));
     class_of(out_lab)->drag(out_lab, mouse_world, vec_ref(vec_xy(0, 0)));
     hash = fold_held(hash, out_lab, mouse_world);
-    assert(target_state(as_structure(out_lab)) == 3 && !entity_list_listed(live_entities(), targeting_target(as_structure(out_lab)->targeting)));
+    assert(target_state(as_structure(out_lab)) == 3 && !entity_list_listed(live_entities(), targeting_target(&as_structure(out_lab)->targeting)));
 
     planet = entities_by_tag(TAG_PLANET)->items[0];
     assert(planet_is_family(planet));
@@ -449,7 +449,7 @@ static void test_life(void) {
     mouse_world = vec_ref(vec_add(vec_mul(*planet_map_pos, p8_fixed_from_int(128)), vec_xy(6, 0)));
     class_of(out_lab)->drag(out_lab, mouse_world, vec_ref(vec_xy(64, 64)));
     hash = fold_held(hash, out_lab, mouse_world);
-    assert(targeting_target(as_structure(out_lab)->targeting) == planet &&
+    assert(targeting_target(&as_structure(out_lab)->targeting) == planet &&
            entity_get(((const planet_t *)planet)->targeted_by) == out_lab);
 
     refused_lab = build_lab();
@@ -537,9 +537,9 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     planet_t *nl = class_of(d) == trading_hub_class() ? (planet_t *)d : NULL;
     p8_fixed_t qw = nl != NULL ? nl->palette_block : 0;
 
-    h = fold_string_member(h, entity_state_name(qh->targeting->archetype->confirmed_state));
-    h = fold_fixed_member(h, qh->targeting->archetype->clock_ticks);
-    h = fold_fixed_member(h, qh->targeting->archetype->attach_distance);
+    h = fold_string_member(h, entity_state_name(qh->targeting.archetype->confirmed_state));
+    h = fold_fixed_member(h, qh->targeting.archetype->clock_ticks);
+    h = fold_fixed_member(h, qh->targeting.archetype->attach_distance);
     h = fold_is_planet(h, qh);
     h = qh->has_development_tier ? fold_fixed_member(h, qh->development_tier) : fold_absent(h);
     h = fnv(h, (uint32_t)(qh->header.class->tags == (TAG(TAG_STRUCTURE) | TAG(TAG_PLANET) | TAG(TAG_NODE) | TAG(TAG_TARGETING))));

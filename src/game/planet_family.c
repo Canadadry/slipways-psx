@@ -47,13 +47,12 @@ static const entity_class_t structure_class_def = {
 
 void structure_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
     planet_init_instance(self, cls, archetype);
-    self->header.targeting = &self->targeting_own;
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
+    self->has |= PLANET_HAS_TARGETING;
+    self->targeting.archetype = &self->archetype->targeting;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
     self->sprite = self->archetype->sprite;
-    targeting_set_target(self->targeting, NULL);
+    targeting_set_target(&self->targeting, NULL);
 }
 
 static planet_t *structure_create(const planet_keys_t *keys) {
@@ -190,7 +189,7 @@ void ascension_draw_method(entity_t *self, const vec_t *screen_pos) {
 
 void ascension_release_method(entity_t *self) {
     planet_release_row(self);
-    emitter_release_particles(self->emitter);
+    emitter_release_particles(emitter_of(self));
     planet_grab_arena_released((const planet_t *)self);
 }
 
@@ -219,18 +218,17 @@ static const entity_class_t ascension_class_def = {
 
 void ascension_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype) {
     structure_init_instance(self, cls, archetype);
-    self->header.emitter = &self->emitter_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->archetype = &self->archetype->emitter;
-    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
-    self->emitter->angle_slices = self->archetype->emitter.angle_slices;
-    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
-    self->emitter->base_radius = self->archetype->emitter.base_radius;
-    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
-    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
-    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
-    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
-    self->emitter->particles = NULL;
+    self->has |= PLANET_HAS_EMITTER;
+    self->emitter.archetype = &self->archetype->emitter;
+    self->emitter.speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter.angle_slices = self->archetype->emitter.angle_slices;
+    self->emitter.trail_colors = self->archetype->emitter.trail_colors;
+    self->emitter.base_radius = self->archetype->emitter.base_radius;
+    self->emitter.matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter.matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter.matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter.matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter.particles = NULL;
 }
 
 static planet_t *ascension_create(const planet_keys_t *keys) {
@@ -355,7 +353,7 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
 
     ms = self->speed;
     iu = self->acceleration_factor;
-    py = self->emitter->speed_factor;
+    py = self->emitter.speed_factor;
 
     v = vec_mul(p, ms);
     a = vec_mul(p, iu);
@@ -381,7 +379,7 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
         return;
     }
 
-    particles = self->emitter->particles;
+    particles = self->emitter.particles;
 
     screen_x = p8_fixed_flr_int(screen_pos.x);
     screen_y = p8_fixed_flr_int(screen_pos.y);
@@ -449,18 +447,17 @@ static planet_t *burst_create(const burst_keys_t *keys) {
 
     assert(g_family_up && "planet_family_init() must run first");
     planet_init_instance(self, &burst_class_def, &burst_archetype);
-    self->header.emitter = &self->emitter_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->archetype = &self->archetype->emitter;
-    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
-    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
-    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
-    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
-    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
+    self->has |= PLANET_HAS_EMITTER;
+    self->emitter.archetype = &self->archetype->emitter;
+    self->emitter.matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter.matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter.matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter.matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter.trail_colors = self->archetype->emitter.trail_colors;
     self->acceleration_factor = self->archetype->acceleration_factor;
-    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter.speed_factor = self->archetype->emitter.speed_factor;
     self->speed = self->archetype->speed;
-    self->emitter->particles = NULL;
+    self->emitter.particles = NULL;
     self->outgoing_routes = &g_burst_outgoing_routes;
     if (keys != NULL) {
         if (keys->planet.map_pos != NULL) {
@@ -477,13 +474,13 @@ static planet_t *burst_create(const burst_keys_t *keys) {
             self->planet_id = keys->planet.planet_id;
         }
         if (keys->construct != NULL) {
-            self->emitter->matrix_xx = keys->construct->matrix_xx;
-            self->emitter->matrix_xy = keys->construct->matrix_xy;
-            self->emitter->matrix_yx = keys->construct->matrix_yx;
-            self->emitter->matrix_yy = keys->construct->matrix_yy;
-            self->emitter->trail_colors = keys->construct->trail_colors;
+            self->emitter.matrix_xx = keys->construct->matrix_xx;
+            self->emitter.matrix_xy = keys->construct->matrix_xy;
+            self->emitter.matrix_yx = keys->construct->matrix_yx;
+            self->emitter.matrix_yy = keys->construct->matrix_yy;
+            self->emitter.trail_colors = keys->construct->trail_colors;
             self->acceleration_factor = keys->construct->acceleration_factor;
-            self->emitter->speed_factor = keys->construct->speed_factor;
+            self->emitter.speed_factor = keys->construct->speed_factor;
             self->speed = keys->construct->speed;
         }
     }

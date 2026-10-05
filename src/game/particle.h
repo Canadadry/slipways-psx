@@ -31,6 +31,10 @@ typedef struct emitter {
     particle_slot_kind_t particles_slot_kind;
 } emitter_t;
 
+/* Points into the host: a probe, a help screen or a planet that carries one;
+ * NULL for any other class. Valid while the host lives: never store it. */
+emitter_t *emitter_of(entity_t *e);
+
 void emitter_init(entity_t *self);
 void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind);
 

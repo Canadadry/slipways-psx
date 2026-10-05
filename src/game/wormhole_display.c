@@ -28,7 +28,7 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
     if (self->header.state == ENTITY_STATE_PLACING) {
         vec_t cp;
 
-        if (targeting_target(self->targeting) == NULL) {
+        if (targeting_target(&self->targeting) == NULL) {
             p8_fixed_t oi = self->radius;
             if (graphics != NULL && memory != NULL) {
                 p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(oi), 1);

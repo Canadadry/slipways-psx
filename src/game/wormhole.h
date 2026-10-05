@@ -20,8 +20,7 @@ typedef struct {
     wormhole_too_far_target_t *too_far_target;
     entity_id_list_t *anchors;
     entity_id_t anchor;
-    targeting_t *targeting;
-    targeting_t targeting_own;
+    targeting_t targeting;
 } wormhole_t;
 
 void wormhole_init(void);

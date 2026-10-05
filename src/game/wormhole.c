@@ -78,7 +78,7 @@ void wormhole_drag(wormhole_t *self, vec_t *mp, vec_t *rp) {
     threshold = tech_gate_if_unlocked("space folding", P8_FIXED_LIT(0x000030a3, 0.19), P8_FIXED_LIT(0x0000451e, 0.27));
 
     if (nq > threshold) {
-        targeting_set_target(self->targeting, &wormhole_too_far_target_wrapper()->header);
+        targeting_set_target(&self->targeting, &wormhole_too_far_target_wrapper()->header);
     }
 }
 
@@ -224,15 +224,13 @@ static wormhole_t *wormhole_create(void) {
     self->archetype = &wormhole_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.targeting = &self->targeting_own;
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
+    self->targeting.archetype = &self->archetype->targeting;
     self->radius = self->archetype->radius;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
     self->too_far_target = &g_wormhole_too_far_target_wrapper;
     self->anchors = NULL;
-    targeting_set_target(self->targeting, NULL);
+    targeting_set_target(&self->targeting, NULL);
     self->anchor = ENTITY_ID_NONE;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;

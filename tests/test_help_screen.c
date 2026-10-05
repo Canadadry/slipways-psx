@@ -320,8 +320,8 @@ static void test_built(void) {
     start_title();
     help_screen = the_help();
     probe = help_screen;
-    emitter = probe->emitter;
-    targeting = probe->targeting;
+    emitter = &probe->emitter;
+    targeting = &probe->targeting;
     live = live_entities();
 
     assert(probe->archetype->layer == p8_fixed_from_int(10));
@@ -427,7 +427,7 @@ static void test_life(void) {
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
-        hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
+        hash = fnv(hash, (uint32_t)size_of(fv->emitter.particles));
     }
     draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
     hash = fnv(hash, screen_hash());
@@ -449,7 +449,7 @@ static void test_life(void) {
         assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left, box_top), vec_ref(box_left, box_top)) == 1);
         assert(class_of(fv)->hit_test(&fv->header, vec_ref(box_left - 1, box_top), vec_ref(box_left - 1, box_top)) == 0);
     }
-    hash = fnv(hash, (uint32_t)size_of(fv->emitter->particles));
+    hash = fnv(hash, (uint32_t)size_of(fv->emitter.particles));
     check("life", hash, LIFE_HASH);
 }
 
@@ -552,7 +552,7 @@ static void test_particle_takes_the_help_palette(void) {
     particle->velocity = vec_make(0, 0);
     particle->has_acceleration = 0;
     particle->life = P8_FIXED_LIT(0x00068000, 6.5);
-    qy = fv->emitter->particles;
+    qy = fv->emitter.particles;
     empty_particles(qy);
     pointer_list_add(qy, particle);
     p8_camera_reset(&graphics);
@@ -702,13 +702,13 @@ static void test_start_game_gives_back_the_help_particles(void) {
     fv = the_help();
     emitter_spawn(&fv->header, p8_fixed_from_int(5));
     title = held_now();
-    assert(title.particles_help_screen == 1 && fv->emitter->particles->count >= 5);
-    assert(title.particle == fv->emitter->particles->count);
+    assert(title.particles_help_screen == 1 && fv->emitter.particles->count >= 5);
+    assert(title.particle == fv->emitter.particles->count);
     cart_start_game(NULL);
     cart_flush_exit_queue();
     after = held_now();
     assert(after.particles_help_screen == 0 && after.particle == 0);
-    assert(fv->emitter->particles == NULL);
+    assert(fv->emitter.particles == NULL);
 }
 
 int main(void) {

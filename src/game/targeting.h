@@ -33,6 +33,11 @@ typedef struct targeting {
 entity_t *targeting_target(const targeting_t *self);
 void targeting_set_target(targeting_t *self, entity_t *target);
 
+/* Points into the host: a probe, a help screen, a planet that carries one, a
+ * slipway or a wormhole; NULL for any other class. Valid while the host lives:
+ * never store it. */
+targeting_t *targeting_of(entity_t *e);
+
 void targeting_track(entity_t *self, vec_t *mp, vec_t *rp);
 
 void targeting_track_method(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen);

@@ -43,8 +43,8 @@ static vec_t emitted_particle_pos(probe_t *probe) {
 
     emitter_spawn((entity_t *)probe, p8_fixed_from_int(1));
 
-    assert(probe->emitter != NULL && probe->emitter->particles != NULL);
-    it = pointer_list_all(probe->emitter->particles);
+    assert(probe->emitter.particles != NULL);
+    it = pointer_list_all(probe->emitter.particles);
     assert(pointer_list_iter_next(&it, &particle) && particle != NULL);
     q = particle;
     return q->pos;

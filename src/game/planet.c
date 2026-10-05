@@ -89,8 +89,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.has |= ENTITY_HAS_IS_HOVERED;
     self->header.is_hovered = 0;
     self->production_own = (production_t){0};
-    self->targeting = NULL;
-    self->emitter = NULL;
+    self->has = 0;
 }
 
 static planet_t *planet_create(const planet_keys_t *keys) {

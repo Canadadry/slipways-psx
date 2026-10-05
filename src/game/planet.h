@@ -39,11 +39,13 @@ typedef struct {
     p8_fixed_t palette_block;
     p8_fixed_t acceleration_factor, speed;
     const int_seq_t *synthesizable_resources;
-    targeting_t *targeting;
-    emitter_t *emitter;
-    targeting_t targeting_own;
-    emitter_t emitter_own;
+    uint16_t has;
+    targeting_t targeting;
+    emitter_t emitter;
 } planet_t;
+
+#define PLANET_HAS_TARGETING (1u << 0)
+#define PLANET_HAS_EMITTER (1u << 1)
 
 /* GAP-8 */
 void planet_init(void);

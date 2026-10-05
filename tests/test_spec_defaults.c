@@ -118,11 +118,11 @@ static void test_camera_defaults_and_ready(void) {
 static void test_wormhole_defaults_and_ready(void) {
     wormhole_t *mz = wormhole_new();
 
-    assert(mz->archetype == &wormhole_archetype && mz->targeting->archetype == &wormhole_archetype.targeting);
+    assert(mz->archetype == &wormhole_archetype && mz->targeting.archetype == &wormhole_archetype.targeting);
     assert(mz->header.state == mz->archetype->state && mz->header.state == ENTITY_STATE_PLACING && mz->header.state_time == 0);
     assert(mz->radius == mz->archetype->radius);
-    assert(mz->targeting->cost == mz->archetype->targeting.cost && mz->targeting->cost == p8_fixed_from_int(3));
-    assert(mz->targeting->has_cost == mz->archetype->targeting.has_cost);
+    assert(mz->targeting.cost == mz->archetype->targeting.cost && mz->targeting.cost == p8_fixed_from_int(3));
+    assert(mz->targeting.has_cost == mz->archetype->targeting.has_cost);
     assert(mz->too_far_target == wormhole_too_far_target_wrapper() && mz->too_far_target->status_text == wormhole_too_far_target_status_text);
     assert(wormhole_ready());
     wormhole_shutdown();
@@ -140,17 +140,17 @@ static void test_layout_ready(void) {
 static void test_help_screen_defaults_and_ready(void) {
     const probe_t *g_ = help_screen_new();
 
-    assert(g_->archetype == &help_screen_archetype && g_->emitter->archetype == &help_screen_archetype.emitter &&
-           g_->targeting->archetype == &help_screen_archetype.targeting);
+    assert(g_->archetype == &help_screen_archetype && g_->emitter.archetype == &help_screen_archetype.emitter &&
+           g_->targeting.archetype == &help_screen_archetype.targeting);
     assert(entity_has_pos(&g_->header) && same_vec(g_->header.pos, g_->archetype->pos));
-    assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
-    assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
-    assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
-    assert(g_->emitter->angle_slices == g_->archetype->emitter.angle_slices && g_->emitter->base_radius == g_->archetype->emitter.base_radius);
-    assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
-    assert(g_->targeting->cost == g_->archetype->targeting.cost);
-    assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost);
-    assert(g_->targeting->has_cost == 1);
+    assert(g_->emitter.trail_colors == g_->archetype->emitter.trail_colors);
+    assert(g_->emitter.matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter.matrix_xy == g_->archetype->emitter.matrix_xy);
+    assert(g_->emitter.matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter.matrix_yy == g_->archetype->emitter.matrix_yy);
+    assert(g_->emitter.angle_slices == g_->archetype->emitter.angle_slices && g_->emitter.base_radius == g_->archetype->emitter.base_radius);
+    assert(g_->emitter.speed_factor == g_->archetype->emitter.speed_factor);
+    assert(g_->targeting.cost == g_->archetype->targeting.cost);
+    assert(g_->targeting.has_cost == g_->archetype->targeting.has_cost);
+    assert(g_->targeting.has_cost == 1);
     assert(g_->header.state == g_->archetype->state && g_->header.state == ENTITY_STATE_NORMAL && g_->header.state_time == 0);
     assert(help_screen_ready());
     help_shutdown();
@@ -162,16 +162,16 @@ static void test_help_screen_defaults_and_ready(void) {
 static void test_probe_defaults_and_ready(void) {
     probe_t *g_ = probe_new(NULL);
 
-    assert(g_->archetype == &probe_archetype && g_->emitter->archetype == &probe_archetype.emitter &&
-           g_->targeting->archetype == &probe_archetype.targeting);
-    assert(g_->targeting->cost == g_->archetype->targeting.cost);
-    assert(g_->targeting->has_cost == g_->archetype->targeting.has_cost && g_->targeting->has_cost == 1);
-    assert(g_->emitter->speed_factor == g_->archetype->emitter.speed_factor);
-    assert(g_->emitter->angle_slices == g_->archetype->emitter.angle_slices);
-    assert(g_->emitter->trail_colors == g_->archetype->emitter.trail_colors);
-    assert(g_->emitter->matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter->matrix_xy == g_->archetype->emitter.matrix_xy);
-    assert(g_->emitter->matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter->matrix_yy == g_->archetype->emitter.matrix_yy);
-    assert(g_->emitter->base_radius == g_->archetype->emitter.base_radius);
+    assert(g_->archetype == &probe_archetype && g_->emitter.archetype == &probe_archetype.emitter &&
+           g_->targeting.archetype == &probe_archetype.targeting);
+    assert(g_->targeting.cost == g_->archetype->targeting.cost);
+    assert(g_->targeting.has_cost == g_->archetype->targeting.has_cost && g_->targeting.has_cost == 1);
+    assert(g_->emitter.speed_factor == g_->archetype->emitter.speed_factor);
+    assert(g_->emitter.angle_slices == g_->archetype->emitter.angle_slices);
+    assert(g_->emitter.trail_colors == g_->archetype->emitter.trail_colors);
+    assert(g_->emitter.matrix_xx == g_->archetype->emitter.matrix_xx && g_->emitter.matrix_xy == g_->archetype->emitter.matrix_xy);
+    assert(g_->emitter.matrix_yx == g_->archetype->emitter.matrix_yx && g_->emitter.matrix_yy == g_->archetype->emitter.matrix_yy);
+    assert(g_->emitter.base_radius == g_->archetype->emitter.base_radius);
     assert(!entity_has_pos(&g_->header));
     assert(g_->header.state == g_->archetype->state && g_->header.state == ENTITY_STATE_NORMAL && g_->header.state_time == 0);
     assert(probe_ready());

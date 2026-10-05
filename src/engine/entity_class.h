@@ -44,8 +44,6 @@ typedef enum {
 #define LINEAGE(l) (1u << (l))
 
 typedef struct entity_class entity_class_t;
-struct emitter;
-struct targeting;
 
 #define ENTITY_HAS_LAYER (1u << 0)
 #define ENTITY_HAS_HIT_BOX (1u << 1)
@@ -73,8 +71,6 @@ typedef struct {
     p8_fixed_t fold_anchor;
     int is_dead;
     int is_hovered;
-    struct emitter *emitter;
-    struct targeting *targeting;
     entity_id_t id;
 } entity_t;
 

@@ -437,15 +437,15 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
 
     {
         /* GAP-26 */
-        const entity_t *targeted_by = entity_get(self->targeted_by);
+        entity_t *targeted_by = entity_get(self->targeted_by);
 
         if (targeted_by != NULL) {
             p8_fixed_t dw = p8_fixed_from_int(0);
             p8_fixed_t radius_f;
             int radius;
 
-            if (targeted_by->targeting != NULL) {
-                dw = targeted_by->targeting->archetype->attach_distance;
+            if (targeting_of(targeted_by) != NULL) {
+                dw = targeting_of(targeted_by)->archetype->attach_distance;
             }
             radius_f = p8_fixed_mul(p8_fixed_sqrt(dw), p8_fixed_from_int(128));
             radius = p8_fixed_flr_int(radius_f);

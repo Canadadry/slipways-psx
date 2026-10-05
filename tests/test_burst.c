@@ -318,7 +318,7 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
  * and the messages, under no tag -- and the camera's shake. */
 static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
     const planet_t *burst = as_burst(entity);
-    const emitter_t *emitter = burst->emitter;
+    const emitter_t *emitter = &burst->emitter;
     const planet_t *planet = burst;
     int inner_index;
 
@@ -449,8 +449,8 @@ static void test_built(void) {
     c = burst_new(NULL);
     hash = fold_burst(hash, c, 0);
     assert(a != b && b != c && a != c);
-    assert(as_burst(a)->emitter->particles != as_burst(b)->emitter->particles &&
-           as_burst(b)->emitter->particles != as_burst(c)->emitter->particles);
+    assert(as_burst(a)->emitter.particles != as_burst(b)->emitter.particles &&
+           as_burst(b)->emitter.particles != as_burst(c)->emitter.particles);
     assert(as_burst(a)->slipways != as_burst(b)->slipways);
     assert(as_burst(a)->outgoing_routes == as_burst(b)->outgoing_routes && as_burst(b)->outgoing_routes == as_burst(c)->outgoing_routes);
     assert(pos_ref(&as_burst(c)->header) == NULL && map_pos_ref(&as_burst(c)->header) == NULL && as_burst(c)->planet_id == NULL);
@@ -559,7 +559,7 @@ static void cut_particles(pointer_list_t *qy, int n) {
 /* The draw method on a burst whose particle list is cut in place to the given count: is_dead after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     planet_t *g = as_burst(e);
-    pointer_list_t *qy = g->emitter->particles;
+    pointer_list_t *qy = g->emitter.particles;
 
     assert(qy != NULL && qy->count >= n);
     cut_particles(qy, n);
@@ -602,10 +602,10 @@ static void test_life(void) {
         hash = fold_is_dead(hash, as_burst(first));
         hash = fold_is_dead(hash, as_burst(second));
         hash = fold_is_dead(hash, as_burst(third));
-        hash = fnv(hash, (uint32_t)pointer_list_size(as_burst(second)->emitter->particles));
+        hash = fnv(hash, (uint32_t)pointer_list_size(as_burst(second)->emitter.particles));
     }
 
-    cut_particles(as_burst(second)->emitter->particles, 3);
+    cut_particles(as_burst(second)->emitter.particles, 3);
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
@@ -690,7 +690,7 @@ static void test_emitter_update_moves_a_particle_in_place(void) {
 
     start_game();
     e = spawn(84, 60, "s73", NULL);
-    em = as_burst(e)->emitter;
+    em = &as_burst(e)->emitter;
     assert(em->matrix_yx != 0);
     particle->pos = p0;
     particle->velocity = v0;
@@ -794,7 +794,7 @@ static void test_leaving_gives_back_its_particles(void) {
     start_game();
     cart_flush_exit_queue();
     e = as_burst(harvest(40, 40, "s74"));
-    count = e->emitter->particles->count;
+    count = e->emitter.particles->count;
     assert(count == 140);
     built = held_now();
     entity_unregister(&e->header);

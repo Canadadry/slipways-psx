@@ -153,7 +153,7 @@ static planet_t *as_ascension(void *e) {
 }
 
 static uint32_t fold_quarter_turn(uint32_t h, const planet_t *hj) {
-    return fold_bool_member(h, hj->emitter->archetype->quarter_turn != 0);
+    return fold_bool_member(h, hj->emitter.archetype->quarter_turn != 0);
 }
 
 /* A particle record as probe_spawn_particle returns it: pos, velocity, life. */
@@ -287,7 +287,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     }
     assert(gra != ra && gra != ng);
     h = fold_vec(h, pos_ref(&g->header));
-    h = fnv(h, (uint32_t)pointer_list_size(g->emitter->particles));
+    h = fnv(h, (uint32_t)pointer_list_size(g->emitter.particles));
     assert(main_camera_typed() != NULL);
     return fold_fixed_member(h, main_camera_typed()->header.shake);
 }
@@ -302,7 +302,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
 static uint32_t fold_protostar(uint32_t hash, void *entity) {
     const planet_t *ascension = as_ascension(entity);
     const planet_t *protostar;
-    const emitter_t *emitter = ascension->emitter;
+    const emitter_t *emitter = &ascension->emitter;
     const planet_t *structure = ascension;
     const planet_t *planet = structure;
     size_t index;
@@ -317,7 +317,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_structure(hash, structure);
     hash = fold_fixed_member(hash, structure->archetype->project_index);
     hash = fold_fixed_member(hash, structure->sprite);
-    hash = fold_fixed_member(hash, structure->targeting->cost);
+    hash = fold_fixed_member(hash, structure->targeting.cost);
     hash = fold_fixed_member(hash, emitter->speed_factor);
     hash = fold_fixed_member(hash, emitter->archetype->lifetime);
     hash = fold_fixed_member(hash, emitter->angle_slices);
@@ -328,9 +328,9 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fold_fixed_member(hash, emitter->matrix_xy);
     hash = fold_fixed_member(hash, emitter->matrix_yx);
     hash = fold_fixed_member(hash, emitter->matrix_yy);
-    hash = fold_string_member(hash, entity_state_name(structure->targeting->archetype->confirmed_state));
-    hash = fold_fixed_member(hash, structure->targeting->archetype->clock_ticks);
-    hash = fold_fixed_member(hash, structure->targeting->archetype->attach_distance);
+    hash = fold_string_member(hash, entity_state_name(structure->targeting.archetype->confirmed_state));
+    hash = fold_fixed_member(hash, structure->targeting.archetype->clock_ticks);
+    hash = fold_fixed_member(hash, structure->targeting.archetype->attach_distance);
     hash = planet->has_development_tier ? fold_fixed_member(hash, planet->development_tier) : fold_absent(hash);
     hash = fold_is_planet(hash, planet);
     hash = fold_fixed_member(hash, planet->archetype->trade_multiplier);
@@ -352,7 +352,7 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
-    hash = fnv(hash, (uint32_t)(ascension->emitter->trail_colors != NULL));
+    hash = fnv(hash, (uint32_t)(ascension->emitter.trail_colors != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -361,14 +361,14 @@ static uint32_t fold_protostar(uint32_t hash, void *entity) {
     hash = fnv(hash, (uint32_t)(emitter->particles != NULL));
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->name != NULL));
-    hash = fnv(hash, (uint32_t)(structure->targeting->archetype->confirmed_state != ENTITY_STATE_NONE));
+    hash = fnv(hash, (uint32_t)(structure->targeting.archetype->confirmed_state != ENTITY_STATE_NONE));
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, (uint32_t)(structure->archetype->accepted_resources != NULL));
-    hash = fnv(hash, targeting_target(structure->targeting) != NULL ? 1u : 0u);
+    hash = fnv(hash, targeting_target(&structure->targeting) != NULL ? 1u : 0u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
     hash = fnv(hash, 1u);
@@ -448,7 +448,7 @@ static void test_built(void) {
     a = build_protostar(&pa, &pos_a, "s77");
     b = build_protostar(&pb, &pos_b, "s78");
     assert(a != b && is_protostar(a) && is_protostar(b));
-    assert(as_ascension(a)->emitter->particles != NULL && as_ascension(a)->emitter->particles != as_ascension(b)->emitter->particles);
+    assert(as_ascension(a)->emitter.particles != NULL && as_ascension(a)->emitter.particles != as_ascension(b)->emitter.particles);
     hash = fold_protostar(hash, a);
     hash = fold_protostar(hash, b);
     check("built", hash, BUILT_HASH);
@@ -494,7 +494,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static uint32_t fold_draw(uint32_t h, void *e) {
     draw_layers(ENTITY_MESSAGE_DRAW);
     h = fnv(h, screen_hash());
-    return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter->particles));
+    return fnv(h, (uint32_t)pointer_list_size(as_ascension(e)->emitter.particles));
 }
 
 /* update_entities in settled (the laboratory's settled update);
@@ -527,8 +527,8 @@ static void test_life(void) {
 
     hash = fold_particle(hash, class_of(placed)->spawn_particle(placed));
     emitter_spawn(placed, P8_FIXED_LIT(0x00028000, 2.5));
-    hash = fnv(hash, (uint32_t)pointer_list_size(as_ascension(placed)->emitter->particles));
-    assert(pointer_list_size(as_ascension(placed)->emitter->particles) >= 2);
+    hash = fnv(hash, (uint32_t)pointer_list_size(as_ascension(placed)->emitter.particles));
+    assert(pointer_list_size(as_ascension(placed)->emitter.particles) >= 2);
 
     hash = fold_draw(hash, placed);
     hash = fold_draw(hash, placed);
@@ -571,7 +571,7 @@ static void test_protostar_is_a_struct(void) {
     {
         planet_t *bare = protostar_new(NULL);
         assert(is_a_protostar_struct(bare) && bare->planet_id == NULL && pos_ref(&bare->header) == NULL &&
-               bare->slipways != NULL && pointer_list_size(bare->emitter->particles) == 0 &&
+               bare->slipways != NULL && pointer_list_size(bare->emitter.particles) == 0 &&
                entity_list_listed(entities_by_tag(TAG_PLANET), bare));
     }
 }
@@ -633,13 +633,13 @@ static void test_leaving_gives_back_its_particles(void) {
     e = as_ascension(build_protostar(&at, &at, "s90"));
     emitter_spawn(&e->header, p8_fixed_from_int(5));
     class_of(e)->refresh(&e->header);
-    assert(e->emitter->particles->count == 5);
+    assert(e->emitter.particles->count == 5);
     built = held_now();
     entity_unregister(&e->header);
     cart_flush_exit_queue();
     after = held_now();
     assert(after.particle == built.particle - 5 && after.particles == built.particles - 1);
-    assert(e->emitter->particles == NULL && e->layout_row_slot == NULL);
+    assert(e->emitter.particles == NULL && e->layout_row_slot == NULL);
 }
 
 int main(void) {

@@ -184,8 +184,8 @@ static uint32_t fold_is_dead(uint32_t h, const probe_t *g_) {
 
 /* A probe's 18 archetype defaults, in archetype order. */
 static uint32_t fold_defaults(uint32_t h, const probe_t *g_) {
-    const emitter_t *em = g_->emitter;
-    const targeting_t *pr = g_->targeting;
+    const emitter_t *em = &g_->emitter;
+    const targeting_t *pr = &g_->targeting;
 
     h = fold_ref_member(h, &g_->header.class->tags);
     h = fold_fixed_member(h, g_->archetype->fold_anchor);
@@ -361,8 +361,8 @@ static probe_t *keyed(void) {
  * list; none of the fields only targeting_track and targeting_confirm
  * write; its 5 methods, the public functions; where it was registered. */
 static uint32_t fold_probe(uint32_t hash, probe_t *entity) {
-    const emitter_t *emitter = entity->emitter;
-    const targeting_t *targeting = entity->targeting;
+    const emitter_t *emitter = &entity->emitter;
+    const targeting_t *targeting = &entity->targeting;
     size_t index;
 
     assert(is_probe(&entity->header));
@@ -426,12 +426,12 @@ static void test_built(void) {
     c = keyed();
     hash = fold_probe(hash, c);
     assert(a != b && b != c && a != c);
-    assert(a->emitter->particles != b->emitter->particles && b->emitter->particles != c->emitter->particles);
-    assert(a->archetype->layer == p8_fixed_from_int(2) && a->emitter->archetype->lifetime == p8_fixed_from_int(9));
-    assert(a->targeting->archetype->attach_distance == 0x666);
-    assert(c->emitter->angle_slices == p8_fixed_from_int(7) && c->header.state_time == p8_fixed_from_int(3) &&
-           c->emitter->base_radius == p8_fixed_from_int(10) && c->emitter->speed_factor == p8_fixed_from_int(1));
-    assert(b->emitter->angle_slices == p8_fixed_from_int(3) && b->header.state_time == p8_fixed_from_int(0));
+    assert(a->emitter.particles != b->emitter.particles && b->emitter.particles != c->emitter.particles);
+    assert(a->archetype->layer == p8_fixed_from_int(2) && a->emitter.archetype->lifetime == p8_fixed_from_int(9));
+    assert(a->targeting.archetype->attach_distance == 0x666);
+    assert(c->emitter.angle_slices == p8_fixed_from_int(7) && c->header.state_time == p8_fixed_from_int(3) &&
+           c->emitter.base_radius == p8_fixed_from_int(10) && c->emitter.speed_factor == p8_fixed_from_int(1));
+    assert(b->emitter.angle_slices == p8_fixed_from_int(3) && b->header.state_time == p8_fixed_from_int(0));
     check("built", hash, BUILT_HASH);
 }
 
@@ -448,10 +448,10 @@ static uint32_t fold_particle(uint32_t h, const particle_t *q) {
 static uint32_t target_kind(const probe_t *e) {
     const void *ref;
 
-    if (targeting_target(e->targeting) == NULL) {
+    if (targeting_target(&e->targeting) == NULL) {
         return 1;
     }
-    ref = targeting_target(e->targeting);
+    ref = targeting_target(&e->targeting);
     if (entity_list_listed(entities_by_tag(TAG_NODE), ref)) {
         return 2;
     }
@@ -466,7 +466,7 @@ static uint32_t target_kind(const probe_t *e) {
 /* The targeted_by of the probe's target, a planet, a slipway or the
  * throwaway. */
 static const void *target_targeted_by(const probe_t *e) {
-    entity_t *et = targeting_target(e->targeting);
+    entity_t *et = targeting_target(&e->targeting);
 
     assert(et != NULL);
     if (planet_is_family(et)) {
@@ -481,10 +481,10 @@ static const void *target_targeted_by(const probe_t *e) {
 /* The target as the frozen hashes fold it: a false boolean when NULL, else
  * the target. */
 static uint32_t fold_target(uint32_t h, const probe_t *e) {
-    if (targeting_target(e->targeting) == NULL) {
+    if (targeting_target(&e->targeting) == NULL) {
         return fnv(fnv(h, 0xB0u), 0u);
     }
-    return fold_ref(h, targeting_target(e->targeting));
+    return fold_ref(h, targeting_target(&e->targeting));
 }
 
 /* The first planet of the node tag. */
@@ -593,8 +593,8 @@ static void test_life(void) {
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
-        hash = fnv(hash, (uint32_t)size_of(first->emitter->particles));
-        hash = fnv(hash, (uint32_t)size_of(second->emitter->particles));
+        hash = fnv(hash, (uint32_t)size_of(first->emitter.particles));
+        hash = fnv(hash, (uint32_t)size_of(second->emitter.particles));
     }
     for (index = 0; index < 3; index++) {
         update_entities();
@@ -715,10 +715,10 @@ static void test_help_screen(void) {
     help_screen = (const probe_t *)help_entity;
     assert(help_screen->header.class->tags == (TAG(TAG_PROBE) | TAG(TAG_TARGETING)));
     assert(help_screen->archetype->fold_anchor == p8_fixed_from_int(1));
-    assert(help_screen->targeting->archetype->confirmed_state == ENTITY_STATE_SETTLED);
+    assert(help_screen->targeting.archetype->confirmed_state == ENTITY_STATE_SETTLED);
     assert(help_screen->archetype->layer == p8_fixed_from_int(10));
-    assert(help_screen->emitter->trail_colors == &help_screen_trail_colors_seq);
-    assert(help_screen->emitter->trail_colors != &probe_trail_colors_seq);
+    assert(help_screen->emitter.trail_colors == &help_screen_trail_colors_seq);
+    assert(help_screen->emitter.trail_colors != &probe_trail_colors_seq);
     assert(class_of(help_screen)->draw_overlay == targeting_tooltip_method);
     assert(class_of(help_screen)->spawn_particle == probe_spawn_particle);
     assert(class_of(help_screen)->drag == targeting_track_method);
@@ -727,8 +727,8 @@ static void test_help_screen(void) {
     assert(class_of(help_screen)->draw == help_screen_draw_method);
     assert(class_of(help_screen)->hit_test != NULL);
     assert(probe_ready());
-    assert(size_of(help_screen->emitter->particles) >= 0);
-    hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
+    assert(size_of(help_screen->emitter.particles) >= 0);
+    hash = fnv(hash, (uint32_t)size_of(help_screen->emitter.particles));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live, help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_PROBE), help_screen));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(entities_by_tag(TAG_TARGETING), help_screen));
@@ -737,7 +737,7 @@ static void test_help_screen(void) {
     for (index = 0; index < 3; index++) {
         draw_layers(ENTITY_MESSAGE_DRAW);
         hash = fnv(hash, screen_hash());
-        hash = fnv(hash, (uint32_t)size_of(help_screen->emitter->particles));
+        hash = fnv(hash, (uint32_t)size_of(help_screen->emitter.particles));
     }
     check("help_screen", hash, HELP_SCREEN_HASH);
 }
@@ -807,8 +807,8 @@ static void test_targeting_track_target_is_a_struct(void) {
     a = left_press();
     (void)a_slipway(&middle);
     class_of(a)->drag(&a->header, mouse_at(vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
-    assert(targeting_target(a->targeting) != NULL);
-    et = targeting_target(a->targeting);
+    assert(targeting_target(&a->targeting) != NULL);
+    et = targeting_target(&a->targeting);
     assert(is_targeting_track_target(et) && throwaway_targeted_by(et) == a);
     assert(class_of(et)->draw_overlay == NULL);
 }
@@ -890,13 +890,13 @@ static void test_leaving_gives_back_its_particles(void) {
     before = held_now();
     a = left_press();
     emitter_spawn(&a->header, p8_fixed_from_int(5));
-    assert(a->emitter->particles->count == 5);
+    assert(a->emitter.particles->count == 5);
     assert(held_now().particle == before.particle + 5 && held_now().particles == before.particles + 1);
     entity_unregister(&a->header);
     cart_flush_exit_queue();
     after = held_now();
     assert(after.particle == before.particle && after.particles == before.particles);
-    assert(a->emitter->particles == NULL);
+    assert(a->emitter.particles == NULL);
 }
 
 static void test_target_links_resolve_until_the_flush(void) {
@@ -908,7 +908,7 @@ static void test_target_links_resolve_until_the_flush(void) {
     first = left_press();
     class_of(first)->drag(&first->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
     planet = a_planet();
-    assert(targeting_target(first->targeting) == &planet->header);
+    assert(targeting_target(&first->targeting) == &planet->header);
     assert(entity_get(planet->targeted_by) == &first->header);
     entity_unregister(&first->header);
     assert(entity_get(planet->targeted_by) == &first->header);
@@ -917,11 +917,11 @@ static void test_target_links_resolve_until_the_flush(void) {
 
     second = probe_new(NULL);
     class_of(second)->drag(&second->header, mouse_at(planet_map_pos()), vec_ref(vec_xy(64, 64)));
-    assert(targeting_target(second->targeting) == &planet->header);
+    assert(targeting_target(&second->targeting) == &planet->header);
     entity_unregister(&planet->header);
-    assert(targeting_target(second->targeting) == &planet->header);
+    assert(targeting_target(&second->targeting) == &planet->header);
     cart_flush_exit_queue();
-    assert(targeting_target(second->targeting) == NULL);
+    assert(targeting_target(&second->targeting) == NULL);
 }
 
 static int header_at(const entity_t *e, vec_t world) {

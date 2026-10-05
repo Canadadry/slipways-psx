@@ -9,6 +9,8 @@
 #include "game/game_data.h"
 #include "engine/vec.h"
 #include "game/particle_zone.h"
+#include "game/planet.h"
+#include "game/probe.h"
 
 typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
 
@@ -36,6 +38,17 @@ const allocator_t *particle_burst_slot_take(void) {
     return particle_zone_slot(PARTICLE_SLOT_BURST);
 }
 
+emitter_t *emitter_of(entity_t *e) {
+    if (e->class->lineage & LINEAGE(LINEAGE_PROBE)) {
+        return &((probe_t *)e)->emitter;
+    }
+    if (planet_is_family(e)) {
+        planet_t *planet = (planet_t *)e;
+        return (planet->has & PLANET_HAS_EMITTER) ? &planet->emitter : NULL;
+    }
+    return NULL;
+}
+
 void emitter_init(entity_t *self) {
     emitter_init_in(self, PARTICLE_SLOT_LIST);
 }
@@ -48,10 +61,10 @@ void emitter_init_in(entity_t *self, particle_slot_kind_t slot_kind) {
     if (self == NULL) {
         return;
     }
-    assert(self->emitter != NULL && "emitter_init_in: a class that carries no particle emitter has no particle list -- stop");
+    emitter = emitter_of(self);
+    assert(emitter != NULL && "emitter_init_in: a class that carries no particle emitter has no particle list -- stop");
     assert((slot_kind == PARTICLE_SLOT_LIST || slot_kind == PARTICLE_SLOT_HELP_LIST) && "emitter_init_in: a particle list is a list or a help screen list");
 
-    emitter = self->emitter;
     emitter_release_particles(emitter);
     slot = particle_zone_slot(slot_kind);
     qy = (pointer_list_t *)allocator_alloc(slot, sizeof *qy);
@@ -83,7 +96,7 @@ void emitter_spawn(entity_t *self, p8_fixed_t n) {
     if (self == NULL) {
         return;
     }
-    emitter = self->emitter;
+    emitter = emitter_of(self);
     qy = emitter != NULL ? emitter->particles : NULL;
 
     while (p8_fixed_rnd_default() < n) {
@@ -112,9 +125,9 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
     if (self == NULL) {
         return;
     }
-    assert(self->emitter != NULL && "emitter_update: a class that carries no particle emitter is no receiver -- stop");
+    emitter = emitter_of(self);
+    assert(emitter != NULL && "emitter_update: a class that carries no particle emitter is no receiver -- stop");
 
-    emitter = self->emitter;
     layer = emitter_host_layer_pos(self, &screen_pos);
     if (layer < p8_fixed_from_int(10) && !entity_geom_is_on_screen(self)) {
         return;

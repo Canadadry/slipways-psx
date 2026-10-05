@@ -152,7 +152,7 @@ static const void *throwaway_targeted_by(const void *t) {
 }
 
 static int target_kind(const wormhole_t *mz) {
-    const void *et = targeting_target(mz->targeting);
+    const void *et = targeting_target(&mz->targeting);
 
     if (et == NULL) {
         return TARGET_FALSE;
@@ -314,12 +314,12 @@ static void check_fresh_wormhole(void *e) {
 
     assert(is_state(&mz->header, ENTITY_STATE_PLACING));
     assert(mz->header.state_time == 0);
-    assert(mz->targeting->archetype->attach_distance == 0);
-    assert(mz->targeting->archetype->confirmed_state == ENTITY_STATE_UNFOLDING);
+    assert(mz->targeting.archetype->attach_distance == 0);
+    assert(mz->targeting.archetype->confirmed_state == ENTITY_STATE_UNFOLDING);
     assert(mz->archetype->spawn_snd == p8_fixed_from_int(52));
     assert(mz->radius == 0);
-    assert(mz->targeting->cost == p8_fixed_from_int(3));
-    assert(mz->targeting->archetype->clock_ticks == p8_fixed_from_int(1));
+    assert(mz->targeting.cost == p8_fixed_from_int(3));
+    assert(mz->targeting.archetype->clock_ticks == p8_fixed_from_int(1));
     assert(mz->archetype->layer == p8_fixed_from_int(5));
     assert(entity_has(&mz->header, ENTITY_HAS_LAYER) && mz->header.layer == mz->archetype->layer);
 
@@ -333,7 +333,7 @@ static void check_fresh_wormhole(void *e) {
     assert(jj != NULL && jj->status_text != NULL && strcmp(jj->status_text, "-too far-") == 0);
     assert(wormhole_too_far_target_wrapper() == jj);
 
-    assert(pos_ref(&mz->header) == NULL && map_pos_ref(&mz->header) == NULL && targeting_target(mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
+    assert(pos_ref(&mz->header) == NULL && map_pos_ref(&mz->header) == NULL && targeting_target(&mz->targeting) == NULL && entity_get(mz->anchor) == NULL && !mz->header.is_dead);
     assert(mz->anchors != NULL);
 
     assert(entity_list_listed(live_entities(), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), mz) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), mz));
@@ -469,7 +469,7 @@ static void test_arena(void) {
 
 /* The targeted_by of the wormhole's target, a slipway or the throwaway. */
 static const void *target_targeted_by(const wormhole_t *mz) {
-    entity_t *et = targeting_target(mz->targeting);
+    entity_t *et = targeting_target(&mz->targeting);
 
     assert(et != NULL);
     if (et->class == slipway_class()) {
@@ -479,7 +479,7 @@ static const void *target_targeted_by(const wormhole_t *mz) {
 }
 
 static uint32_t fold_drag(uint32_t h, const wormhole_t *mz, int want_kind) {
-    const entity_t *et = targeting_target(mz->targeting);
+    const entity_t *et = targeting_target(&mz->targeting);
     int kind = target_kind(mz);
 
     printf("[drag] target kind %d\n", kind);
@@ -810,8 +810,8 @@ static void test_too_far_target_wrapper(void) {
     other = build_wormhole();
     drag(other, vec_ref(640, 640), vec_ref(64, 64));
     assert(target_kind(other) == TARGET_TOO_FAR);
-    assert(targeting_target(wormhole->targeting) != NULL && targeting_target(other->targeting) != NULL);
-    assert(targeting_target(wormhole->targeting) == targeting_target(other->targeting) && (void *)targeting_target(wormhole->targeting) == wrapper);
+    assert(targeting_target(&wormhole->targeting) != NULL && targeting_target(&other->targeting) != NULL);
+    assert(targeting_target(&wormhole->targeting) == targeting_target(&other->targeting) && (void *)targeting_target(&wormhole->targeting) == wrapper);
     check_too_far_target_untouched();
 }
 

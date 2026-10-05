@@ -209,7 +209,7 @@ static int end_kind(const void *jc) {
 enum { TARGET_ABSENT, TARGET_FALSE, TARGET_PLANET, TARGET_SLIPWAY, TARGET_STATUS_TEXT, TARGET_OTHER };
 
 static int target_kind(const void *jc) {
-    const void *et = targeting_target(as_slipway(jc)->targeting);
+    const void *et = targeting_target(&as_slipway(jc)->targeting);
     if (et == NULL) {
         return TARGET_ABSENT;
     }
@@ -269,7 +269,7 @@ static uint32_t fold_served_planets(uint32_t h, const void *jc) {
 static uint32_t fold_slipway(uint32_t h, const void *e) {
     const slipway_t *jc = as_slipway(e);
 
-    h = fold_fixed(h, jc->targeting->has_cost, jc->targeting->cost);
+    h = fold_fixed(h, jc->targeting.has_cost, jc->targeting.cost);
     h = fold_fixed(h, entity_has(&jc->header, ENTITY_HAS_INFRASPACE), jc->header.infraspace);
     h = fold_fixed(h, 1, jc->header.layer);
     h = fold_fixed(h, 1, jc->fade_in_step);
@@ -283,7 +283,7 @@ static uint32_t fold_slipway(uint32_t h, const void *e) {
         h = fold_vec(h, mouse_point_map_pos(slipway_end(jc)));
     }
     h = fnv(h, (uint32_t)target_kind(jc));
-    h = fold_ref(h, targeting_target(jc->targeting));
+    h = fold_ref(h, targeting_target(&jc->targeting));
     h = fold_ref(h, entity_get(jc->targeted_by));
     h = fnv(h, (uint32_t)holder_kind(entity_get(jc->targeted_by)));
     h = fnv(h, (uint32_t)pointer_list_count(jc->transit_dots));
@@ -454,13 +454,13 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     const slipway_served_planets_t *hg;
     size_t i;
 
-    assert(jc->archetype == &slipway_archetype && jc->targeting->archetype == &slipway_archetype.targeting);
+    assert(jc->archetype == &slipway_archetype && jc->targeting.archetype == &slipway_archetype.targeting);
     assert(jc->header.state == ENTITY_STATE_PLACING);
     assert(jc->header.state_time == 0);
     assert(jc->header.layer == p8_fixed_from_int(2));
-    assert(jc->targeting->archetype->clock_ticks == 0);
-    printf("[attach_distance] 0x%08X\n", (unsigned)jc->targeting->archetype->attach_distance);
-    assert(jc->targeting->archetype->attach_distance == (p8_fixed_t)ATTACH_DISTANCE_BITS);
+    assert(jc->targeting.archetype->clock_ticks == 0);
+    printf("[attach_distance] 0x%08X\n", (unsigned)jc->targeting.archetype->attach_distance);
+    assert(jc->targeting.archetype->attach_distance == (p8_fixed_t)ATTACH_DISTANCE_BITS);
     assert(jc->fade_in_step == p8_fixed_from_int(20));
 
     k_ = jc->archetype->trail_colors;
@@ -475,7 +475,7 @@ static void check_fresh_slipway(const void *e, const void *qu) {
     hg = jc->served_planets;
     assert(hg == &jc->served_planets_own && hg->count == 0);
 
-    assert(slipway_end(jc) == NULL && !jc->targeting->has_cost && jc->targeting->cost == 0 && !entity_has(&jc->header, ENTITY_HAS_INFRASPACE) && targeting_target(jc->targeting) == NULL);
+    assert(slipway_end(jc) == NULL && !jc->targeting.has_cost && jc->targeting.cost == 0 && !entity_has(&jc->header, ENTITY_HAS_INFRASPACE) && targeting_target(&jc->targeting) == NULL);
     assert(entity_get(jc->targeted_by) == NULL && !jc->header.is_dead);
     assert(class_of(jc)->drag != NULL && class_of(jc)->drop != NULL);
     assert(class_of(jc)->draw_overlay != NULL && class_of(jc)->draw != NULL);
@@ -527,8 +527,8 @@ static void test_drop(void) {
     assert(end_kind(held) == END_PLANET && target_kind(held) == TARGET_ABSENT);
     assert(id_list_count(as_planet(origin)->slipways) == 0 && id_list_count(as_planet(target)->slipways) == 0);
     before = credits();
-    assert(as_slipway(held)->targeting->has_cost);
-    od = as_slipway(held)->targeting->cost;
+    assert(as_slipway(held)->targeting.has_cost);
+    od = as_slipway(held)->targeting.cost;
     hash = fold_slipway(hash, held);
 
     refused = build_slipway(origin);
@@ -568,13 +568,13 @@ static void test_drag(void) {
     far = build_slipway(origin);
     drag_over(far, NULL, vec_ref(-640, -640));
     assert(end_kind(far) == END_THROWAWAY && target_kind(far) == TARGET_STATUS_TEXT);
-    assert(entity_get(as_too_far(targeting_target(as_slipway(far)->targeting))->targeted_by) == far);
+    assert(entity_get(as_too_far(targeting_target(&as_slipway(far)->targeting))->targeted_by) == far);
     h = fold_slipway(h, far);
 
     twin = build_slipway(origin);
     drag_over(twin, target, vec_ref_fixed(vec_of(pos_ref(&as_planet(target)->header))));
     assert(end_kind(twin) == END_PLANET && slipway_end(as_slipway(twin)) == target);
-    assert(target_kind(twin) == TARGET_SLIPWAY && targeting_target(as_slipway(twin)->targeting) == old);
+    assert(target_kind(twin) == TARGET_SLIPWAY && targeting_target(&as_slipway(twin)->targeting) == old);
     assert(entity_get(as_slipway(old)->targeted_by) == twin);
     h = fold_slipway(h, twin);
     h = fold_slipway(h, old);
@@ -723,7 +723,7 @@ static void test_too_far(void) {
     near = build_slipway(start_planet);
     drag_over(near, NULL,
             vec_ref_fixed(vec_add(vec_of(pos_ref(&as_planet(start_planet)->header)), vec_make(p8_fixed_from_int(16), 0))));
-    assert(end_kind(near) == END_THROWAWAY && target_kind(near) == TARGET_ABSENT && as_slipway(near)->targeting->has_cost);
+    assert(end_kind(near) == END_THROWAWAY && target_kind(near) == TARGET_ABSENT && as_slipway(near)->targeting.has_cost);
     assert(main_mouse_typed() != NULL);
     mouse = vec_of(pos_ref(&main_mouse_typed()->header));
     p8_camera(&graphics, p8_fixed_flr_int(mouse.x) - 64, p8_fixed_flr_int(mouse.y) - 64);
@@ -867,7 +867,7 @@ static void test_obstruction_crosses_a_slipway(void) {
         past = vec_add(mid, vec_div(vec_sub(mid, pos_of(q)), p8_fixed_from_int(8)));
         a = build_slipway(q);
         drag_over(a, NULL, vec_ref_fixed(vec_mul(past, p8_fixed_from_int(128))));
-        crossed = targeting_target(as_slipway(a)->targeting) == old;
+        crossed = targeting_target(&as_slipway(a)->targeting) == old;
         if (!crossed) {
             entity_unregister(a);
         }
@@ -913,17 +913,17 @@ static void test_targeting_track(void) {
                                                          p8_fixed_from_int(8)));
         class_of(probe)->drag(probe, vec_ref_fixed(vec_mul(at, p8_fixed_from_int(128))),
                           vec_ref(64, 64));
-        h = fold_ref(h, targeting_target(((probe_t *)probe)->targeting));
-        if (targeting_target(((probe_t *)probe)->targeting) == old) {
+        h = fold_ref(h, targeting_target(&((probe_t *)probe)->targeting));
+        if (targeting_target(&((probe_t *)probe)->targeting) == old) {
             break;
         }
     }
     printf("[targeting_track] on the slipway at %d/8\n", k);
-    assert(targeting_target(((probe_t *)probe)->targeting) == old);
+    assert(targeting_target(&((probe_t *)probe)->targeting) == old);
     assert(entity_get(as_slipway(old)->targeted_by) == probe);
     assert(holder_kind(entity_get(as_slipway(old)->targeted_by)) == TARGETED_BY_PROBE);
     h = fold_slipway(h, old);
-    h = fold_ref(h, targeting_target(((probe_t *)probe)->targeting));
+    h = fold_ref(h, targeting_target(&((probe_t *)probe)->targeting));
     check("targeting_track", h, TARGETING_TRACK_HASH);
 }
 
@@ -949,7 +949,7 @@ static void test_targeting_track_takes_the_first_slipway_of_entities_by_tag(void
     re = pos_of(slipway_end(as_slipway(old)));
     at = vec_div(vec_add(qu, re), p8_fixed_from_int(2));
     class_of(probe)->drag(probe, vec_ref_fixed(vec_mul(at, p8_fixed_from_int(128))), vec_ref(64, 64));
-    assert(targeting_target(((probe_t *)probe)->targeting) == old);
+    assert(targeting_target(&((probe_t *)probe)->targeting) == old);
     assert(entity_get(as_slipway(old)->targeted_by) == probe && entity_get(as_slipway(twin)->targeted_by) != probe);
 }
 
@@ -1040,13 +1040,13 @@ static void test_too_far_is_a_struct(void) {
     origin = slipway_start(the_slipway());
     far = build_slipway(origin);
     drag_over(far, NULL, vec_ref(-640, -640));
-    et = as_too_far(targeting_target(as_slipway(far)->targeting));
+    et = as_too_far(targeting_target(&as_slipway(far)->targeting));
     assert(entity_get(et->targeted_by) == far);
     assert(class_of(et)->draw_overlay == NULL && class_of(et)->draw == NULL && class_of(et)->drag == NULL);
 
     other = build_slipway(origin);
     drag_over(other, NULL, vec_ref(-640, -640));
-    assert(targeting_target(as_slipway(other)->targeting) == &et->header && entity_get(et->targeted_by) == other);
+    assert(targeting_target(&as_slipway(other)->targeting) == &et->header && entity_get(et->targeted_by) == other);
     assert(strcmp(et->status_text, "-too far-") == 0);
 }
 

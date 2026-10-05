@@ -143,6 +143,23 @@ void targeting_set_target(targeting_t *self, entity_t *target) {
     self->target = value;
 }
 
+targeting_t *targeting_of(entity_t *e) {
+    if (e->class->lineage & LINEAGE(LINEAGE_PROBE)) {
+        return &((probe_t *)e)->targeting;
+    }
+    if (planet_is_family(e)) {
+        planet_t *planet = (planet_t *)e;
+        return (planet->has & PLANET_HAS_TARGETING) ? &planet->targeting : NULL;
+    }
+    if (e->class == slipway_class()) {
+        return &((slipway_t *)e)->targeting;
+    }
+    if (e->class == wormhole_class()) {
+        return &((wormhole_t *)e)->targeting;
+    }
+    return NULL;
+}
+
 void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     targeting_t *targeting;
     vec_t mouse_world_vec;
@@ -154,9 +171,9 @@ void targeting_track(entity_t *self, vec_t *mouse_world, vec_t *mouse_screen) {
     if (self == NULL) {
         return;
     }
-    assert(self->targeting != NULL && "targeting_track: a class that carries no targeting is no receiver -- stop");
+    targeting = targeting_of(self);
+    assert(targeting != NULL && "targeting_track: a class that carries no targeting is no receiver -- stop");
 
-    targeting = self->targeting;
     mouse_world_vec = mouse_world != NULL ? *mouse_world : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     p_vec = vec_div(mouse_world_vec, p8_fixed_from_int(128));
     assert(((self->class->lineage & LINEAGE(LINEAGE_PROBE)) || planet_is_family(self) || self->class == wormhole_class()) &&
@@ -229,9 +246,9 @@ void targeting_tooltip(const p8_graphics_t *gfx, p8_vram_t *mem, entity_t *self)
     if (self == NULL) {
         return;
     }
-    assert(self->targeting != NULL && "targeting_tooltip: a class that carries no targeting is no receiver -- stop");
+    assert(targeting_of(self) != NULL && "targeting_tooltip: a class that carries no targeting is no receiver -- stop");
 
-    targeting_tooltip_show(gfx, mem, self->state, self->targeting);
+    targeting_tooltip_show(gfx, mem, self->state, targeting_of(self));
 }
 
 void targeting_tooltip_show(const p8_graphics_t *gfx, p8_vram_t *mem, state_t state, const targeting_t *pb) {
@@ -285,9 +302,9 @@ int targeting_confirm(entity_t *self) {
     if (self == NULL) {
         return 0;
     }
-    assert(self->targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
+    targeting = targeting_of(self);
+    assert(targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
 
-    targeting = self->targeting;
     has_target = targeting_target(targeting) != NULL;
 
     fm = main_economy_typed();
@@ -325,8 +342,8 @@ particle_t *probe_spawn_particle(entity_t *self) {
     particle_t *particle;
 
     if (self != NULL) {
-        assert(self->emitter != NULL && "probe_spawn_particle: a class that carries no particle emitter spawns nothing -- stop");
-        emitter = self->emitter;
+        emitter = emitter_of(self);
+        assert(emitter != NULL && "probe_spawn_particle: a class that carries no particle emitter spawns nothing -- stop");
         angle_slices = emitter->angle_slices;
         state_time = self->state_time;
         base_radius = emitter->base_radius;
@@ -362,7 +379,7 @@ particle_t *probe_spawn_particle(entity_t *self) {
 void probe_release_method(entity_t *self) {
     const probe_t *g_ = (const probe_t *)self;
 
-    emitter_release_particles(self->emitter);
+    emitter_release_particles(emitter_of(self));
     if (g_->grab_arena != NULL && self->state != ENTITY_STATE_SETTLED) {
         grab_arena_give_back(g_->grab_arena);
     }
@@ -387,29 +404,25 @@ void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_a
     self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
     self->header.fold_anchor = self->archetype->fold_anchor;
     self->header.has |= ENTITY_HAS_IS_DEAD;
-    self->header.emitter = &self->emitter_own;
-    self->header.targeting = &self->targeting_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->archetype = &self->archetype->emitter;
-    self->emitter->particles = NULL;
+    self->emitter.archetype = &self->archetype->emitter;
+    self->emitter.particles = NULL;
     if (self->archetype->has_pos) {
         entity_set_pos(&self->header, self->archetype->pos);
     }
-    self->targeting = &self->targeting_own;
-    self->targeting->archetype = &self->archetype->targeting;
-    targeting_set_target(self->targeting, NULL);
+    self->targeting.archetype = &self->archetype->targeting;
+    targeting_set_target(&self->targeting, NULL);
     self->header.is_dead = 0;
     self->grab_arena = NULL;
-    self->targeting->cost = self->archetype->targeting.cost;
-    self->targeting->has_cost = self->archetype->targeting.has_cost;
-    self->emitter->speed_factor = self->archetype->emitter.speed_factor;
-    self->emitter->angle_slices = self->archetype->emitter.angle_slices;
-    self->emitter->trail_colors = self->archetype->emitter.trail_colors;
-    self->emitter->matrix_xx = self->archetype->emitter.matrix_xx;
-    self->emitter->matrix_xy = self->archetype->emitter.matrix_xy;
-    self->emitter->matrix_yx = self->archetype->emitter.matrix_yx;
-    self->emitter->matrix_yy = self->archetype->emitter.matrix_yy;
-    self->emitter->base_radius = self->archetype->emitter.base_radius;
+    self->targeting.cost = self->archetype->targeting.cost;
+    self->targeting.has_cost = self->archetype->targeting.has_cost;
+    self->emitter.speed_factor = self->archetype->emitter.speed_factor;
+    self->emitter.angle_slices = self->archetype->emitter.angle_slices;
+    self->emitter.trail_colors = self->archetype->emitter.trail_colors;
+    self->emitter.matrix_xx = self->archetype->emitter.matrix_xx;
+    self->emitter.matrix_xy = self->archetype->emitter.matrix_xy;
+    self->emitter.matrix_yx = self->archetype->emitter.matrix_yx;
+    self->emitter.matrix_yy = self->archetype->emitter.matrix_yy;
+    self->emitter.base_radius = self->archetype->emitter.base_radius;
 }
 
 static probe_t *probe_create(const probe_keys_t *keys) {
@@ -424,13 +437,13 @@ static probe_t *probe_create(const probe_keys_t *keys) {
     if (keys != NULL) {
         self->header.state_time = keys->state_time;
         if (keys->has_angle_slices) {
-            self->emitter->angle_slices = keys->angle_slices;
+            self->emitter.angle_slices = keys->angle_slices;
         }
         if (keys->has_base_radius) {
-            self->emitter->base_radius = keys->base_radius;
+            self->emitter.base_radius = keys->base_radius;
         }
         if (keys->has_speed_factor) {
-            self->emitter->speed_factor = keys->speed_factor;
+            self->emitter.speed_factor = keys->speed_factor;
         }
     }
     emitter_init((entity_t *)self);

@@ -98,10 +98,11 @@ static registered_t count_registered(void) {
     registered_t n = {0, 0, 0, 0};
     const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
-        const entity_t *e = hv->items[i];
-        if (e->emitter != NULL && e->emitter->particles != NULL) {
+        entity_t *e = hv->items[i];
+        const emitter_t *emitter = emitter_of(e);
+        if (emitter != NULL && emitter->particles != NULL) {
             n.lists++;
-            n.particle += e->emitter->particles->count;
+            n.particle += emitter->particles->count;
         }
         if (e->class == burst_class()) n.bursts++;
     }

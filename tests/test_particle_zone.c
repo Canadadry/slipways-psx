@@ -184,22 +184,20 @@ static int case_particles_release_releases_the_arena(void) {
 static const emitter_archetype_t without_birth;
 static const entity_class_t host_class_def = {.lineage = LINEAGE(LINEAGE_PROBE)};
 static const p8_fixed_t layer_ten = 10 << 16;
-static emitter_t g_emitter;
-static entity_t g_host;
+static probe_t g_host;
 static p8_graphics_t g_gfx;
 static p8_vram_t g_mem;
 
 static entity_t *host(void) {
     p8_gfx_init(&g_gfx);
     p8_vram_init(&g_mem);
-    entity_init_header(&g_host, &host_class_def);
-    memset(&g_emitter, 0, sizeof g_emitter);
-    g_emitter.archetype = &without_birth;
-    g_host.has |= ENTITY_HAS_LAYER;
-    g_host.layer = layer_ten;
-    g_host.emitter = &g_emitter;
-    emitter_init(&g_host);
-    return &g_host;
+    memset(&g_host, 0, sizeof g_host);
+    entity_init_header(&g_host.header, &host_class_def);
+    g_host.emitter.archetype = &without_birth;
+    g_host.header.has |= ENTITY_HAS_LAYER;
+    g_host.header.layer = layer_ten;
+    emitter_init(&g_host.header);
+    return &g_host.header;
 }
 
 /* A particle that dies at the next emitter_update: life 1.1, minus 0.14. */
@@ -207,22 +205,22 @@ static particle_t *dying(entity_t *h) {
     particle_t *p = particle_take();
     memset(p, 0, sizeof *p);
     p->life = (1 << 16) + 6554;
-    pointer_list_add(h->emitter->particles, p);
+    pointer_list_add(emitter_of(h)->particles, p);
     return p;
 }
 
 static int case_emitter_init_takes_a_particles_list(void) {
     entity_t *h = host();
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1);
-    assert(h->emitter->particles != NULL && h->emitter->particles->count == 0);
-    emitter_release_particles(h->emitter);
+    assert(emitter_of(h)->particles != NULL && emitter_of(h)->particles->count == 0);
+    emitter_release_particles(emitter_of(h));
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
     return 0;
 }
 
 static int case_emitter_init_help_screen_takes_a_help_list(void) {
     entity_t *h = host();
-    emitter_release_particles(h->emitter);
+    emitter_release_particles(emitter_of(h));
     emitter_init_in(h, PARTICLE_SLOT_HELP_LIST);
     assert(particle_zone_live(PARTICLE_SLOT_HELP_LIST) == 1);
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 0);
@@ -236,7 +234,7 @@ static int case_second_emitter_init_gives_back_the_old_list(void) {
     emitter_init(h);
     assert(particle_zone_live(PARTICLE_SLOT_LIST) == 1 && "the old list is given back");
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 0 && "and its particles with it");
-    assert(h->emitter->particles->count == 0);
+    assert(emitter_of(h)->particles->count == 0);
     return 0;
 }
 
@@ -247,7 +245,7 @@ static int case_emitter_update_gives_back_a_dying_particle(void) {
     surviving->life = 5 << 16;
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 2);
     emitter_update(&g_gfx, &g_mem, h);
-    assert(h->emitter->particles->count == 1);
+    assert(emitter_of(h)->particles->count == 1);
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 1 && "emitter_update gives back the particle it removes");
     return 0;
 }
@@ -261,14 +259,14 @@ static int case_particle_dead_after_emitter_update(void) {
 }
 
 static int case_emitter_spawn_notes_the_list_length(void) {
-    static const entity_class_t cls = {.spawn_particle = probe_spawn_particle};
+    static const entity_class_t cls = {.spawn_particle = probe_spawn_particle, .lineage = LINEAGE(LINEAGE_PROBE)};
     static const emitter_archetype_t archetype = {.lifetime = 9 << 16, .spawn_rate = 1 << 16};
     entity_t *h = host();
-    g_host.class = &cls;
-    g_emitter.archetype = &archetype;
-    g_emitter.angle_slices = 1 << 16;
+    g_host.header.class = &cls;
+    g_host.emitter.archetype = &archetype;
+    g_host.emitter.angle_slices = 1 << 16;
     emitter_spawn(h, 3 << 16);
-    assert(h->emitter->particles->count == 3);
+    assert(emitter_of(h)->particles->count == 3);
     assert(particle_zone_live(PARTICLE_SLOT_PARTICLE) == 3 && "probe_spawn_particle takes from the particle handle");
     assert(particle_zone_max_elements(PARTICLE_SLOT_LIST) == 3);
     return 0;

@@ -855,20 +855,20 @@ static uint32_t fold_set_state_back(uint32_t h, void *e) {
 static void assert_own_emitter(entity_t *self, entity_t *other, size_t size) {
     entity_t *e = self;
     entity_t *o = other;
-    const char *at = (const char *)e->emitter;
+    const char *at = (const char *)emitter_of(e);
 
     assert(e->class == o->class);
-    assert((const void *)at != (const void *)o->emitter);
+    assert((const void *)at != (const void *)emitter_of(o));
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
 static void assert_own_probe(entity_t *self, entity_t *other, size_t size) {
     entity_t *e = self;
     entity_t *o = other;
-    const char *at = (const char *)e->targeting;
+    const char *at = (const char *)targeting_of(e);
 
     assert(e->class == o->class);
-    assert((const void *)at != (const void *)o->targeting);
+    assert((const void *)at != (const void *)targeting_of(o));
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
@@ -878,9 +878,9 @@ static entity_t *help_alone(entity_t *first) {
     static entity_t *previous;
     entity_t *fresh;
 
-    emitter_release_particles(first->emitter);
+    emitter_release_particles(emitter_of(first));
     if (previous != NULL) {
-        emitter_release_particles(previous->emitter);
+        emitter_release_particles(emitter_of(previous));
     }
     fresh = &help_screen_new()->header;
     previous = fresh;
@@ -925,10 +925,10 @@ static void test_components_carried(void) {
     entities[22] = modal_backdrop_new(NULL);
     entities[23] = wormhole_new();
     for (index = 0; index < 24; index++) {
-        const entity_t *header = entities[index];
+        entity_t *header = entities[index];
 
-        assert((header->emitter != NULL) == emitter[index]);
-        assert((header->targeting != NULL) == probe[index]);
+        assert((emitter_of(header) != NULL) == emitter[index]);
+        assert((targeting_of(header) != NULL) == probe[index]);
     }
 
     assert_own_emitter(entities[8], &ascension_new(NULL)->header, sizeof(planet_t));
@@ -1114,17 +1114,17 @@ static void test_entity_state_time_by_name(void) {
     keyed_keys.speed_factor = p8_fixed_from_int(1);
     keyed = probe_new(&keyed_keys);
     assert_state_time(keyed, 3);
-    assert(keyed->emitter->angle_slices == p8_fixed_from_int(7));
-    assert(keyed->emitter->base_radius == p8_fixed_from_int(10));
-    assert(keyed->emitter->speed_factor == p8_fixed_from_int(1));
+    assert(keyed->emitter.angle_slices == p8_fixed_from_int(7));
+    assert(keyed->emitter.base_radius == p8_fixed_from_int(10));
+    assert(keyed->emitter.speed_factor == p8_fixed_from_int(1));
     hash = fold_state_time(hash, keyed);
 
     zero_keys.state_time = 0;
     zero = probe_new(&zero_keys);
     assert_state_time(zero, 0);
-    assert(zero->emitter->angle_slices == probe_archetype.emitter.angle_slices);
-    assert(zero->emitter->base_radius == probe_archetype.emitter.base_radius);
-    assert(zero->emitter->speed_factor == probe_archetype.emitter.speed_factor);
+    assert(zero->emitter.angle_slices == probe_archetype.emitter.angle_slices);
+    assert(zero->emitter.base_radius == probe_archetype.emitter.base_radius);
+    assert(zero->emitter.speed_factor == probe_archetype.emitter.speed_factor);
     hash = fold_state_time(hash, zero);
 
     entity_set_state(&keyed->header, ENTITY_STATE_VANISHING);
