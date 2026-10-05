@@ -17,7 +17,7 @@ typedef struct {
     char markers_path[64];
 } raylib_backend_t;
 
-void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor);
+void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor, p8_input_mode_t mode);
 
 int raylib_backend_should_continue(const raylib_backend_t *backend);
 

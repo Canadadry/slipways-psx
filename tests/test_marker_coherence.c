@@ -71,7 +71,7 @@ static void run_resumed_session(const char *source_path, const char *resumed_pat
     assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, resumed_path, replay_source_keyboard_cursor(&replay));
+    session_recorder_open(&recorder, resumed_path, replay_source_keyboard_cursor(&replay), replay_source_input_mode(&replay));
 
     int live_index = 0;
     for (int i = 0; i < TOTAL_FRAME_COUNT; i++) {
@@ -153,7 +153,7 @@ static void test_markers_are_unchanged_when_no_recording_is_replayed(void) {
     assert(replay_source_open(&replay, NULL) == REPLAY_SOURCE_NONE);
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, path, replay_source_keyboard_cursor(&replay));
+    session_recorder_open(&recorder, path, replay_source_keyboard_cursor(&replay), replay_source_input_mode(&replay));
 
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
         p8_input_frame_t frame;

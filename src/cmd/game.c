@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
     int keyboard_cursor = replay_source_keyboard_cursor(&replay);
     raylib_backend_t backend;
-    raylib_backend_init(&backend, keyboard_cursor);
+    raylib_backend_init(&backend, keyboard_cursor, P8_INPUT_MOUSE);
 
     cart_load();
     /* Never click a difficulty here: a recording starts on the title screen and holds its own click. */

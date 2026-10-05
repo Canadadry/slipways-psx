@@ -12,13 +12,13 @@ static Color palette_color(unsigned char index) {
     return (Color){ rgb.red, rgb.green, rgb.blue, 0xFF };
 }
 
-void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor) {
+void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor, p8_input_mode_t mode) {
     /* One clock read for both names: a human pairs the marker file with its recording by name. */
     time_t now = time(NULL);
     char record_path[SESSION_RECORDER_PATH_MAX];
     snprintf(record_path, sizeof(record_path), "tmp/events_recorded_%ld.json", (long)now);
     snprintf(backend->markers_path, sizeof(backend->markers_path), "tmp/events_recorded_%ld.markers.txt", (long)now);
-    session_recorder_open(&backend->recorder, record_path, keyboard_cursor);
+    session_recorder_open(&backend->recorder, record_path, keyboard_cursor, mode);
 
     InitWindow(P8_SCREEN_WIDTH * RAYLIB_BACKEND_SCALE, P8_SCREEN_HEIGHT * RAYLIB_BACKEND_SCALE,
                "Slipways (raylib PC port)");

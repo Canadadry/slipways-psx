@@ -3,10 +3,13 @@
 #include <assert.h>
 #include <stdio.h>
 
-void session_recorder_open(session_recorder_t *recorder, const char *path, int keyboard_cursor) {
+void session_recorder_open(session_recorder_t *recorder, const char *path, int keyboard_cursor, p8_input_mode_t mode) {
     assert(recorder);
     assert(path);
     assert(keyboard_cursor == 0 || keyboard_cursor == 1);
+    assert(mode == P8_INPUT_MOUSE || mode == P8_INPUT_PAD);
+    assert(!(mode == P8_INPUT_PAD && keyboard_cursor) &&
+           "keyboard_cursor drives a mouse from the dpad: a pad session has neither, and its replay would not load");
 
     int written = snprintf(recorder->path, sizeof(recorder->path), "%s", path);
     assert(written > 0 && (size_t)written < sizeof(recorder->path) &&
@@ -14,6 +17,7 @@ void session_recorder_open(session_recorder_t *recorder, const char *path, int k
 
     recorder->frame_count = 0;
     recorder->keyboard_cursor = keyboard_cursor;
+    recorder->mode = mode;
     recorder->tail_offset = 0;
 }
 
@@ -21,7 +25,7 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
     assert(recorder);
     assert(frame);
 
-    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset, recorder->keyboard_cursor, P8_INPUT_MOUSE)) {
+    if (!p8_input_append(frame, recorder->path, &recorder->tail_offset, recorder->keyboard_cursor, recorder->mode)) {
         /* Dropped, not fatal: the count must stay unchanged, since the marker file indexes frames by it. */
         return 0;
     }
@@ -43,4 +47,5 @@ void session_recorder_close(session_recorder_t *recorder) {
     recorder->frame_count = 0;
     recorder->tail_offset = 0;
     recorder->keyboard_cursor = 0;
+    recorder->mode = P8_INPUT_MOUSE;
 }

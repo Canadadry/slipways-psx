@@ -24,6 +24,11 @@ int replay_source_frames_served(const replay_source_t *source);
 
 int replay_source_keyboard_cursor(const replay_source_t *source);
 
+p8_input_mode_t replay_source_input_mode(const replay_source_t *source);
+
+/* Returns 0 on a conflict (--mouse with a pad recording) and leaves *out_mode untouched. */
+int replay_source_resolve_mode(const replay_source_t *source, int mouse_requested, p8_input_mode_t *out_mode);
+
 int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_frame);
 
 void replay_source_close(replay_source_t *source);

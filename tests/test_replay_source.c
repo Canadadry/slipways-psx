@@ -73,6 +73,7 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
     assert(got->dpad[1] == want->dpad[1]);
     assert(got->dpad[2] == want->dpad[2]);
     assert(got->dpad[3] == want->dpad[3]);
+    assert(got->pad_buttons == want->pad_buttons);
 }
 
 static void test_loaded_recording_serves_its_first_frame(void) {
@@ -172,11 +173,13 @@ static void test_frames_served_tracks_the_replay_position(void) {
     replay_source_close(&source);
 }
 
-static void test_new_game_declares_the_keyboard_cursor(void) {
+/* Mouse mode is the cart without button_cursor: only a recording that
+ * declares keyboard_cursor still runs through it. */
+static void test_new_game_does_not_declare_the_keyboard_cursor(void) {
     replay_source_t source;
 
     assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
-    assert(replay_source_keyboard_cursor(&source) == 1);
+    assert(replay_source_keyboard_cursor(&source) == 0);
 
     replay_source_close(&source);
 }
@@ -214,6 +217,102 @@ static void test_failed_load_does_not_declare(void) {
     replay_source_close(&source);
 }
 
+static void test_no_recording_runs_in_pad_mode(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert(replay_source_input_mode(&source) == P8_INPUT_PAD);
+
+    replay_source_close(&source);
+}
+
+static void test_recording_without_input_header_runs_in_mouse_mode(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
+    assert(replay_source_input_mode(&source) == P8_INPUT_MOUSE);
+
+    replay_source_close(&source);
+}
+
+#define PAD_FRAME_COUNT 3
+static const p8_input_frame_t pad_frames[PAD_FRAME_COUNT] = {
+    { 0, 0, 0, { 0, 0, 0, 0 }, P8_PAD_CROSS },
+    { 0, 0, 0, { 0, 0, 0, 0 }, 0 },
+    { 0, 0, 0, { 0, 0, 0, 0 }, P8_PAD_UP | P8_PAD_CIRCLE | P8_PAD_START },
+};
+
+static void test_pad_recording_runs_in_pad_mode_and_serves_its_masks_in_order(void) {
+    const char *path = "tmp/test_replay_source_pad.json";
+    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path, 0, P8_INPUT_PAD));
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_input_mode(&source) == P8_INPUT_PAD);
+    assert(replay_source_frame_count(&source) == PAD_FRAME_COUNT);
+    for (int i = 0; i < PAD_FRAME_COUNT; i++) {
+        p8_input_frame_t frame;
+        assert(replay_source_next_frame(&source, &frame) == 1);
+        assert_frame_equals(&frame, &pad_frames[i]);
+    }
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void test_failed_load_runs_in_mouse_mode(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, "tests/fixtures/no_such_recording.json") ==
+           REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_input_mode(&source) == P8_INPUT_MOUSE);
+
+    replay_source_close(&source);
+}
+
+static void assert_resolves(const replay_source_t *source, int mouse_requested, p8_input_mode_t want) {
+    p8_input_mode_t mode = want == P8_INPUT_PAD ? P8_INPUT_MOUSE : P8_INPUT_PAD;
+    assert(replay_source_resolve_mode(source, mouse_requested, &mode) == 1);
+    assert(mode == want);
+}
+
+static void test_mouse_flag_picks_the_mode_of_a_fresh_session(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert_resolves(&source, 0, P8_INPUT_PAD);
+    assert_resolves(&source, 1, P8_INPUT_MOUSE);
+
+    replay_source_close(&source);
+}
+
+static void test_mouse_recording_resolves_to_mouse_with_or_without_the_flag(void) {
+    replay_source_t source;
+
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
+    assert_resolves(&source, 0, P8_INPUT_MOUSE);
+    assert_resolves(&source, 1, P8_INPUT_MOUSE);
+
+    replay_source_close(&source);
+}
+
+/* --mouse never beats a pad header: the two modes never mix, and a
+ * flag that silently does nothing is refused like a dead key. */
+static void test_mouse_flag_conflicts_with_a_pad_recording(void) {
+    const char *path = "tmp/test_replay_source_pad_conflict.json";
+    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path, 0, P8_INPUT_PAD));
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert_resolves(&source, 0, P8_INPUT_PAD);
+
+    p8_input_mode_t mode = P8_INPUT_PAD;
+    assert(replay_source_resolve_mode(&source, 1, &mode) == 0);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
 int main(void) {
     test_no_path_requests_no_recording();
     test_valid_recording_loads_with_its_frame_count();
@@ -224,10 +323,17 @@ int main(void) {
     test_exhausted_recording_reports_exhaustion_forever();
     test_no_recording_is_exhausted_from_the_first_frame();
     test_frames_served_tracks_the_replay_position();
-    test_new_game_declares_the_keyboard_cursor();
+    test_new_game_does_not_declare_the_keyboard_cursor();
     test_undeclared_recording_does_not_declare();
     test_declared_recording_declares();
     test_failed_load_does_not_declare();
+    test_no_recording_runs_in_pad_mode();
+    test_recording_without_input_header_runs_in_mouse_mode();
+    test_pad_recording_runs_in_pad_mode_and_serves_its_masks_in_order();
+    test_failed_load_runs_in_mouse_mode();
+    test_mouse_flag_picks_the_mode_of_a_fresh_session();
+    test_mouse_recording_resolves_to_mouse_with_or_without_the_flag();
+    test_mouse_flag_conflicts_with_a_pad_recording();
 
     printf("test_replay_source: all tests passed\n");
     return 0;
