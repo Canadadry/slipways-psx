@@ -770,8 +770,7 @@ static void test_planet_panel(void) {
     int i;
 
     built_planet_panel();
-    le = main_ui()->ephemerals;
-    assert(le != NULL);
+    le = &main_ui()->ephemerals;
     for (i = 0; i < le->count; i++) {
         const void *button = entity_id_list_at(le, i);
         if (button != NULL &&
@@ -789,10 +788,10 @@ static void test_planet_panel(void) {
 /* The row of the main ui's ephemerals whose first item is `head`, NULL when
  * none. */
 static const layout_row_t *panel_row(const char *head) {
-    const entity_id_list_t *le = main_ui()->ephemerals;
+    const entity_id_list_t *le = &main_ui()->ephemerals;
     int i;
 
-    for (i = 0; le != NULL && i < le->count; i++) {
+    for (i = 0; i < le->count; i++) {
         const entity_t *button = entity_id_list_at(le, i);
         const layout_row_t *lq;
         layout_row_cell_t v;

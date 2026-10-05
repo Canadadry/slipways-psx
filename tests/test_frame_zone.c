@@ -131,7 +131,7 @@ static size_t read_cells(const layout_row_t *lq) {
 /* Resets the frame zone once the panel is built, then rereads and draws
  * each button, tooltip included: returns the number of tooltips drawn. */
 static int reset_then_draw_panel(void) {
-    const entity_id_list_t *le = main_ui()->ephemerals;
+    const entity_id_list_t *le = &main_ui()->ephemerals;
     int bubbles = 0;
 
     frame_zone_reset();
@@ -164,7 +164,7 @@ static int case_inspection_panel_rows_survive_reset(void) {
     planet->production = kw;
     planet->has |= PLANET_HAS_PRODUCTION;
     planet_inspection_panel(planet);
-    assert(main_ui()->ephemerals->count >= 2 && "planet_inspection_panel: the icon and the exports row");
+    assert(main_ui()->ephemerals.count >= 2 && "planet_inspection_panel: the icon and the exports row");
     reset_then_draw_panel();
     return 0;
 }

@@ -198,9 +198,9 @@ static void test_false_on_click_keeps_the_veil(void) {
 }
 
 static int in_layer(int layer, const void *e) {
-    const ui_hovered_by_layer_t *ic = main_ui()->hovered_by_layer;
+    const ui_hovered_by_layer_t *ic = &main_ui()->hovered_by_layer;
 
-    if (ic == NULL) {
+    if (!(main_ui()->has & UI_HAS_HOVERED_BY_LAYER)) {
         return 0;
     }
     return entity_id_list_has(&ic->layers[layer], entity_id_of(e));

@@ -23,32 +23,34 @@ typedef enum { MAIN_MOUSE_NONE, MAIN_MOUSE_PLACEHOLDER, MAIN_MOUSE_REAL } main_m
 static main_mouse_state_t g_main_mouse_state = MAIN_MOUSE_NONE;
 static entity_id_t g_main_mouse;
 static entity_id_t g_main_ui;
-static entity_id_list_t g_shared_ephemerals;
 
 const box_t *ui_panel_box(void) {
     return g_ui_up ? &ui_archetype.panel_box : NULL;
 }
 
-entity_id_list_t *ui_ephemerals_shared(void) {
-    return &g_shared_ephemerals;
+entity_id_list_t ui_ephemerals_new(void) {
+    entity_id_list_t list;
+
+    entity_id_list_init_reserve(&list, ui_zone_slot(SLOT_KIND_EPHEMERALS), UI_EPHEMERALS_RESERVE);
+    return list;
 }
 
-entity_id_list_t *ui_ephemerals_new(void) {
-    const allocator_t *slot = ui_zone_slot(SLOT_KIND_EPHEMERALS);
-    entity_id_list_t *le = (entity_id_list_t *)allocator_alloc(slot, sizeof *le);
+void ui_set_ephemerals(ui_t *self, entity_id_list_t list) {
+    const allocator_t *old_zone = self->ephemerals.zone;
+    int owned_before = (self->has & UI_HAS_OWN_EPHEMERALS) != 0;
 
-    entity_id_list_init_reserve(le, slot, UI_EPHEMERALS_RESERVE);
-    return le;
-}
-
-void ui_set_ephemerals(ui_t *self, entity_id_list_t *le) {
-    entity_id_list_t *old = self->ephemerals;
-
-    if (le != &g_shared_ephemerals) ui_zone_record_ephemerals(le->count);
-    self->ephemerals = le;
-    if (old != NULL && old != &g_shared_ephemerals) {
-        exit_queue_put_arena(old->zone);
+    ui_zone_record_ephemerals(list.count);
+    self->ephemerals = list;
+    self->has |= UI_HAS_OWN_EPHEMERALS;
+    self->ephemerals_serial++;
+    if (owned_before) {
+        exit_queue_put_arena(old_zone);
     }
+}
+
+/* Valid only for the call it is passed to. */
+static vec_t *ui_mouse_world_or_null(ui_t *self) {
+    return (self->has & UI_HAS_MOUSE_WORLD) ? &self->mouse_world : NULL;
 }
 
 static const entity_class_t main_mouse_placeholder_class_def = {0};
@@ -84,10 +86,11 @@ static void ui_draw_overlay_method(entity_t *self, const vec_t *screen_pos) {
 }
 
 static void ui_ephemerals_release(ui_t *self) {
-    if (self->ephemerals != NULL && self->ephemerals != &g_shared_ephemerals) {
-        arena_release(self->ephemerals->zone);
+    if (self->has & UI_HAS_OWN_EPHEMERALS) {
+        arena_release(self->ephemerals.zone);
     }
-    self->ephemerals = NULL;
+    self->has &= (uint16_t)~UI_HAS_OWN_EPHEMERALS;
+    self->ephemerals = (entity_id_list_t){0};
 }
 
 static void ui_release_method(entity_t *self) {
@@ -111,12 +114,13 @@ static ui_t *ui_create(void) {
     self->header.layer = self->archetype->layer;
     self->header.has |= ENTITY_HAS_CURSOR_SPRITE;
     self->header.cursor_sprite = self->archetype->cursor_sprite;
-    self->ephemerals = &g_shared_ephemerals;
-    self->mouse_world = NULL;
-    self->hovered_by_layer = NULL;
-    self->hovered_by_layer_own.layer_count = UI_HOVER_LAYERS;
+    self->has = 0;
+    self->ephemerals_serial = 0;
+    self->ephemerals = (entity_id_list_t){0};
+    self->mouse_world = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
+    self->hovered_by_layer.layer_count = UI_HOVER_LAYERS;
     for (i = 0; i < UI_HOVER_LAYERS; i++) {
-        entity_id_list_init(&self->hovered_by_layer_own.layers[i], frame_zone());
+        entity_id_list_init(&self->hovered_by_layer.layers[i], frame_zone());
     }
     self->hovered = ENTITY_ID_NONE;
     self->previous_hovered = ENTITY_ID_NONE;
@@ -128,7 +132,6 @@ static ui_t *ui_create(void) {
 
 void ui_init(void) {
     ui_shutdown();
-    entity_id_list_init(&g_shared_ephemerals, game_zone_load_zone());
     g_ui_up = 1;
 
     ui_set_main_mouse(&g_main_mouse_placeholder.header);
@@ -136,7 +139,6 @@ void ui_init(void) {
 
 void ui_shutdown(void) {
     g_ui_up = 0;
-    entity_id_list_free(&g_shared_ephemerals);
     ui_set_main_mouse(NULL);
     g_main_ui = ENTITY_ID_NONE;
 }
@@ -179,11 +181,11 @@ background_t *ui_right_held(const ui_t *self) {
 void ui_forget_world(ui_t *self) {
     int index;
 
-    if (self->ephemerals != NULL && self->ephemerals != &g_shared_ephemerals) {
-        entity_id_list_clear(self->ephemerals);
+    if (self->has & UI_HAS_OWN_EPHEMERALS) {
+        entity_id_list_clear(&self->ephemerals);
     }
     for (index = 0; index < UI_HOVER_LAYERS; index++) {
-        entity_id_list_clear(&self->hovered_by_layer_own.layers[index]);
+        entity_id_list_clear(&self->hovered_by_layer.layers[index]);
     }
 }
 
@@ -232,8 +234,8 @@ void ui_set_main_ui(ui_t *ui) {
 }
 
 void ui_update(p8_vram_t *mem, ui_t *self) {
-    entity_id_list_t *ephemerals_ptr_before;
-    int ephemerals_count;
+    entity_id_list_t ephemerals_before;
+    uint16_t serial_before;
     vec_t qa;
     int hit;
     const mouse_button_t *left;
@@ -245,19 +247,19 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
         return;
     }
 
-    ephemerals_ptr_before = self->ephemerals;
-    ephemerals_count = self->ephemerals != NULL ? self->ephemerals->count : 0;
+    ephemerals_before = self->ephemerals;
+    serial_before = self->ephemerals_serial;
 
     je = main_mouse_typed();
     mo = main_camera_typed();
     qa = vec_add(ui_pos_or_zero(je != NULL ? &je->header : NULL),
                        ui_pos_or_zero(mo != NULL ? &mo->header : NULL));
-    self->mouse_world_own = qa;
-    self->mouse_world = &self->mouse_world_own;
+    self->mouse_world = qa;
+    self->has |= UI_HAS_MOUSE_WORLD;
 
     ui_update_hover(self);
 
-    hit = (ephemerals_count == 0) || entity_id_list_has(ephemerals_ptr_before, self->hovered);
+    hit = (ephemerals_before.count == 0) || entity_id_list_has(&ephemerals_before, self->hovered);
     if (hit) {
         ui_handle_button(self, MOUSE_SIDE_LEFT);
     }
@@ -265,7 +267,7 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
     ui_handle_button(self, MOUSE_SIDE_RIGHT);
 
     left = ui_main_mouse_button(MOUSE_SIDE_LEFT);
-    if (left != NULL && left->pressed && self->ephemerals == ephemerals_ptr_before) {
+    if (left != NULL && left->pressed && self->ephemerals_serial == serial_before) {
         ui_clear_ephemerals(self);
     }
 
@@ -309,9 +311,9 @@ void ui_update_hover(ui_t *self) {
     }
 
     for (index = 0; index < UI_HOVER_LAYERS; index++) {
-        entity_id_list_init(&self->hovered_by_layer_own.layers[index], frame_zone());
+        entity_id_list_init(&self->hovered_by_layer.layers[index], frame_zone());
     }
-    self->hovered_by_layer = &self->hovered_by_layer_own;
+    self->has |= UI_HAS_HOVERED_BY_LAYER;
     self->hovered = ENTITY_ID_NONE;
 
     mouse = main_mouse_typed();
@@ -321,13 +323,13 @@ void ui_update_hover(ui_t *self) {
     for (index = 0; index < hit_test_bucket->count; index++) {
         entity_t *e = hit_test_bucket->items[index];
 
-        if (e->class->hit_test != NULL && e->class->hit_test(e, self->mouse_world, main_mouse_pos)) {
+        if (e->class->hit_test != NULL && e->class->hit_test(e, ui_mouse_world_or_null(self), main_mouse_pos)) {
             if (entity_has(e, ENTITY_HAS_LAYER)) {
                 int fa = ui_to_int(e->layer);
 
                 assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
                        "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
-                entity_id_list_add(&self->hovered_by_layer->layers[fa], entity_id_link(e));
+                entity_id_list_add(&self->hovered_by_layer.layers[fa], entity_id_link(e));
             }
             hovered = e;
             self->hovered = entity_id_link(e);
@@ -375,7 +377,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
         down_t kn;
         const entity_t *given;
 
-        if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, self->mouse_world, main_mouse_pos, NULL, &kv, &kn) &&
+        if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, ui_mouse_world_or_null(self), main_mouse_pos, NULL, &kv, &kn) &&
             (given = entity_get(kn.held)) != NULL) {
             if (is_left) {
                 assert(ui_is_held_class(given->class) &&
@@ -398,7 +400,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
     }
 
     if (held_inst != NULL && held_inst->class->drag != NULL) {
-        held_inst->class->drag(held_inst, self->mouse_world, main_mouse_pos);
+        held_inst->class->drag(held_inst, ui_mouse_world_or_null(self), main_mouse_pos);
     }
 
     if (button != NULL && button->released && held_inst != NULL) {
@@ -427,12 +429,12 @@ int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, vec_t *mouse_
         return 0;
     }
 
-    if (self->hovered_by_layer == NULL) {
+    if (!(self->has & UI_HAS_HOVERED_BY_LAYER)) {
         return 0;
     }
 
     for (layer = UI_HOVER_LAYERS - 1; layer >= 0; layer--) {
-        entity_id_list_iter_t it = entity_id_list_all(&self->hovered_by_layer->layers[layer]);
+        entity_id_list_iter_t it = entity_id_list_all(&self->hovered_by_layer.layers[layer]);
         entity_t *h;
 
         while (entity_id_list_iter_next(&it, &h)) {
@@ -471,8 +473,8 @@ void ui_clear_ephemerals(ui_t *self) {
         return;
     }
 
-    if (self->ephemerals != NULL) {
-        entity_id_list_iter_t it = entity_id_list_all(self->ephemerals);
+    {
+        entity_id_list_iter_t it = entity_id_list_all(&self->ephemerals);
         entity_t *e;
         while (entity_id_list_iter_next(&it, &e)) {
             entity_unregister(e);

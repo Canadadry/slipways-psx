@@ -439,8 +439,8 @@ static const button_t *as_button(const void *e) {
 static const char *opened_box_description(void) {
     const layout_row_t *lq;
 
-    assert(main_ui() != NULL && main_ui()->ephemerals != NULL && main_ui()->ephemerals->count >= 1);
-    lq = as_button(entity_id_list_at(main_ui()->ephemerals, 0))->layout_row;
+    assert(main_ui() != NULL && main_ui()->ephemerals.count >= 1);
+    lq = as_button(entity_id_list_at(&main_ui()->ephemerals, 0))->layout_row;
     assert(lq != NULL && row_count(lq) > 0 && row_item(lq, 0).kind == LAYOUT_ROW_CELL_STRING);
     return row_item(lq, 0).as.text;
 }
@@ -567,8 +567,8 @@ static uint32_t fold_tech_tree_screen_ephemerals(uint32_t h, const char **head) 
     const vec_t *ra;
     int i;
 
-    assert(main_ui() != NULL && main_ui()->ephemerals != NULL);
-    le = main_ui()->ephemerals;
+    assert(main_ui() != NULL);
+    le = &main_ui()->ephemerals;
     assert(le->count >= 2);
     h = fnv(h, (uint32_t)le->count);
     lq = as_button(entity_id_list_at(le, 0))->layout_row;

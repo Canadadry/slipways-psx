@@ -36,8 +36,7 @@
 static const entity_id_list_t *main_ui_ephemerals(void) {
     const ui_t *ok = main_ui();
     assert(ok != NULL);
-    assert(ok->ephemerals != NULL);
-    return ok->ephemerals;
+    return &ok->ephemerals;
 }
 
 /* A button's layout row, after button_construct replaced the raw row keys

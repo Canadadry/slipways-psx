@@ -48,26 +48,21 @@ static mouse_button_t *mouse_left_of(const mouse_t *nf) {
 
 /* The second reset_world() (the one cart_start_game() runs) finds the
  * camera, the mouse and game/ui.c ready and leaves their state alone: a mark
- * written into the mouse's left button and into the shared ephemerals
- * survives it; the camera stays ready throughout. */
+ * written into the mouse's left button survives it; the camera and the ui
+ * stay ready throughout. */
 static void test_second_reset_world_keeps_specs(void) {
     mouse_button_t *mouse_left = mouse_left_of(main_mouse_typed());
-    entity_id_list_t *ui_ephemerals = ui_ephemerals_shared();
-    const entity_id_t mark = {1, 0x7777};
     int hm = mouse_left->released;
-    int ui_count;
 
     assert(camera_ready());
     mouse_left->released = 0x7777;
-    entity_id_list_add(ui_ephemerals, mark);
-    ui_count = ui_ephemerals->count;
+    assert(ui_ready());
 
     reset_world(NULL);
 
     assert(camera_ready());
     assert(mouse_left_of(main_mouse_typed()) == mouse_left && mouse_left_of(main_mouse_typed())->released == 0x7777);
-    assert(ui_ephemerals_shared() == ui_ephemerals && ui_ephemerals_shared()->count == ui_count);
-    assert(entity_id_list_del(ui_ephemerals, mark));
+    assert(ui_ready());
     mouse_left->released = hm;
 }
 

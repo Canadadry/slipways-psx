@@ -20,14 +20,18 @@ typedef struct {
     entity_id_list_t layers[UI_HOVER_LAYERS];
 } ui_hovered_by_layer_t;
 
+#define UI_HAS_MOUSE_WORLD (1u << 0)
+#define UI_HAS_HOVERED_BY_LAYER (1u << 1)
+#define UI_HAS_OWN_EPHEMERALS (1u << 2)
+
 typedef struct {
     entity_t header;
     const ui_archetype_t *archetype;
-    entity_id_list_t *ephemerals;
-    vec_t *mouse_world;
-    vec_t mouse_world_own;
-    ui_hovered_by_layer_t *hovered_by_layer;
-    ui_hovered_by_layer_t hovered_by_layer_own;
+    uint16_t has;
+    uint16_t ephemerals_serial;
+    entity_id_list_t ephemerals;
+    vec_t mouse_world;
+    ui_hovered_by_layer_t hovered_by_layer;
     entity_id_t hovered;
     entity_id_t previous_hovered;
     entity_id_t left_held;
@@ -44,11 +48,12 @@ const entity_class_t *ui_class(void);
 
 const box_t *ui_panel_box(void);
 
-entity_id_list_t *ui_ephemerals_shared(void);
+/* An empty list whose items live in a fresh ui-zone slot; ui_set_ephemerals
+ * hands the slot to the ui. */
+entity_id_list_t ui_ephemerals_new(void);
 
-entity_id_list_t *ui_ephemerals_new(void);
-
-void ui_set_ephemerals(ui_t *self, entity_id_list_t *le);
+/* Takes the list's slot; a slot the ui owned before goes to the exit queue. */
+void ui_set_ephemerals(ui_t *self, entity_id_list_t list);
 
 ui_t *ui_new(void);
 

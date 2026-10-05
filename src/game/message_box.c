@@ -330,8 +330,8 @@ static button_t *open_box_step(open_box_ctx_t *ctx, const button_keys_t *row) {
     return button_new(&b);
 }
 
-static void open_box_add(entity_id_list_t *le, button_t *button) {
-    if (le != NULL) {
+static void open_box_add(entity_id_list_t *le, int has_list, button_t *button) {
+    if (has_list) {
         entity_id_list_add(le, entity_id_link(&button->header));
     }
 }
@@ -340,7 +340,7 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     layout_row_cell_t description_cell;
     vec_t box_pos;
     open_box_ctx_t step_context;
-    entity_id_list_t *ephemerals;
+    entity_id_list_t ephemerals = {0};
     ui_t *dispatcher;
     button_keys_t description_row = {0};
     layout_row_keys_t description_layout_row = {0};
@@ -376,12 +376,14 @@ void message_box_open_box(const open_box_frame_t *frame, const button_keys_t *bu
     dispatcher = main_ui();
     ui_clear_ephemerals(dispatcher);
 
-    ephemerals = dispatcher != NULL ? ui_ephemerals_new() : NULL;
+    if (dispatcher != NULL) {
+        ephemerals = ui_ephemerals_new();
+    }
     if (has_description) {
-        open_box_add(ephemerals, open_box_step(&step_context, &description_row));
+        open_box_add(&ephemerals, dispatcher != NULL, open_box_step(&step_context, &description_row));
     }
     for (index = 0; index < button_count; index++) {
-        open_box_add(ephemerals, open_box_step(&step_context, &buttons[index]));
+        open_box_add(&ephemerals, dispatcher != NULL, open_box_step(&step_context, &buttons[index]));
     }
     if (dispatcher != NULL) {
         ui_set_ephemerals(dispatcher, ephemerals);

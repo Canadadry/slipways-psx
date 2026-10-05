@@ -362,7 +362,7 @@ static uint32_t fold_hit_box(uint32_t h, const button_t *b) {
 }
 
 static const entity_id_list_t *main_ui_ephemerals(void) {
-    return main_ui() == NULL ? NULL : main_ui()->ephemerals;
+    return main_ui() == NULL ? NULL : &main_ui()->ephemerals;
 }
 
 /* A button as button_new and button_construct left it: every construction
@@ -1982,10 +1982,10 @@ static int ephemerals_slots(void) {
  * until the next frame gives its slot back. */
 static void test_ephemerals_slots_come_back(void) {
     void *ix[4];
-    const entity_id_list_t *menu;
+    entity_id_list_t menu;
+    entity_id_t first;
     int base;
     int open;
-    int count;
     int i;
 
     start_game();
@@ -1996,12 +1996,14 @@ static void test_ephemerals_slots_come_back(void) {
     one_frame();
     open = ephemerals_slots();
     printf("[slots] ephemerals: %d before the pause menu, %d open\n", base, open);
-    assert(main_ui()->ephemerals != ui_ephemerals_shared() && open == 1 && "the main ui's ephemerals are one list in a slot");
+    assert((main_ui()->has & UI_HAS_OWN_EPHEMERALS) && open == 1 && "the main ui's ephemerals are one list in a slot");
     for (i = 0; i < 5; i++) {
-        menu = main_ui_ephemerals();
-        count = menu->count;
+        menu = main_ui()->ephemerals;
+        assert(menu.count > 0);
+        first = menu.items[0];
         ui_clear_ephemerals(main_ui());
-        assert(menu->count == count && "the replaced list lives until the next frame");
+        assert(menu.items[0].index == first.index && menu.items[0].generation == first.generation &&
+               "the replaced list lives until the next frame");
         call_on_click(ix[3]);
         one_frame();
         assert(ephemerals_slots() == open && "a replaced list gives its slot back");

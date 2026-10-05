@@ -1291,16 +1291,16 @@ static void message_box_hold_rewrites_boxes_in_place(void) {
     const mouse_t *je = main_mouse_typed();
     const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
-    const void *before[4] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos, ok->mouse_world};
+    const void *before[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     size_t used_before = game_zone_used();
     play_until(45);
     assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
-    const void *after[4] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos, ok->mouse_world};
+    const void *after[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     int stables = 0;
-    for (int i = 0; i < 4; i++) stables += before[i] == after[i];
-    printf("  message_box_hold f44-45: %d / 4 per-tick boxes at the same address\n", stables);
+    for (int i = 0; i < 3; i++) stables += before[i] == after[i];
+    printf("  message_box_hold f44-45: %d / 3 per-tick boxes at the same address\n", stables);
     fflush(stdout);
-    assert(stables == 4 && "the camera's pos_before_shake and pos, the mouse's pos and main_ui's mouse_world must be rewritten in place");
+    assert(stables == 3 && "the camera's pos_before_shake and pos and the mouse's pos must be rewritten in place");
     assert(game_zone_used() == used_before && "the game zone takes bytes every tick");
 }
 

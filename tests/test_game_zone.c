@@ -312,24 +312,15 @@ static int case_load_zone_full(void) {
     return 0;
 }
 
-static size_t four_ids_bytes(void) {
-    return ZONE_CELLS(4 * sizeof(entity_id_t)) * sizeof(zone_cell_t);
-}
-
 static int case_static_lists_in_load_zone(void) {
     load_cart_and_start();
     const size_t start = load_zone_used();
-    entity_id_list_t *le = ui_ephemerals_shared();
-    entity_id_list_add(le, (entity_id_t){1, 1});
-    assert(load_zone_used() == start + four_ids_bytes() &&
-           "the starting ui_ephemerals_shared list takes its capacity in the load sub-zone");
     trade_route_list_t *by = burst_new(NULL)->outgoing_routes;
     const trade_route_t route = {0};
     trade_route_list_add(by, &route);
-    assert(load_zone_used() == start + four_ids_bytes() + block_bytes(4 * sizeof(trade_route_t)) &&
+    assert(load_zone_used() == start + block_bytes(4 * sizeof(trade_route_t)) &&
            "the outgoing_routes list bursts share takes its capacity in the load sub-zone");
     cart_shutdown();
-    assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown forgets the starting list");
     assert(by->values.items == NULL && by->values.count == 0 && by->values.capacity == 0 && "the shutdown forgets the shared outgoing_routes list");
     return 0;
 }

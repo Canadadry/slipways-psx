@@ -146,8 +146,8 @@ static void test_update_on_placeholder(void) {
     entity_registry_init(NULL);
     ok = ui_new();
     ui_update(&memory, ok);
-    assert(ok->mouse_world != NULL);
-    qa = ok->mouse_world;
+    assert(ok->has & UI_HAS_MOUSE_WORLD);
+    qa = &ok->mouse_world;
     printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);
     fflush(stdout);
     assert(qa->x == UPDATE_MOUSE_WORLD_X && qa->y == UPDATE_MOUSE_WORLD_Y);

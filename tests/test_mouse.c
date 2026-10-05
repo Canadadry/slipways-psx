@@ -251,7 +251,7 @@ static void test_placeholder_main_mouse(void) {
     ok = ui_new();
     ui_update(&memory, ok);
     assert(ui_left_held(ok) == NULL && ui_right_held(ok) == NULL);
-    assert(ok->mouse_world != NULL);
+    assert(ok->has & UI_HAS_MOUSE_WORLD);
 }
 
 /* The title screen's main mouse, then cart_start_game starting a game with

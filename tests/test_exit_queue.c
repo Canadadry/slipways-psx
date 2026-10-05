@@ -101,27 +101,27 @@ static int case_entity_unregister_released_at_flush(void) {
 
 /* ui_clear_ephemerals replaces the ui's ephemerals; the frame still reads
  * the old list. */
-static const entity_id_list_t *replaced_ephemerals(void) {
+static entity_id_list_t replaced_ephemerals(void) {
     load_cart_and_start();
-    const entity_id_list_t *old = main_ui()->ephemerals;
-    assert(old != ui_ephemerals_shared());
+    const entity_id_list_t old = main_ui()->ephemerals;
+    assert((main_ui()->has & UI_HAS_OWN_EPHEMERALS) && old.capacity > 0);
     ui_clear_ephemerals(main_ui());
     assert(exit_queue_count() == 1 && "ui_clear_ephemerals queues the list it replaces");
     return old;
 }
 
 static int case_ephemerals_alive_until_flush(void) {
-    const entity_id_list_t *old = replaced_ephemerals();
-    sink = (unsigned char)old->count;
+    const entity_id_list_t old = replaced_ephemerals();
+    sink = (unsigned char)old.items[0].index;
     cart_update60();
     assert(exit_queue_count() == 0);
     return 0;
 }
 
 static int case_ephemerals_released_at_flush(void) {
-    const entity_id_list_t *old = replaced_ephemerals();
+    const entity_id_list_t old = replaced_ephemerals();
     cart_update60();
-    sink = (unsigned char)old->count;
+    sink = (unsigned char)old.items[0].index;
     return 0;
 }
 
