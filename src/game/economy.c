@@ -50,6 +50,7 @@ static economy_t *economy_create(void) {
     self->has_happiness = 0;
     self->end_status = NULL;
     self->has_end_status = 0;
+    self->save_pending = 0;
 
     self->credits = self->archetype->credits;
     self->income = p8_fixed_from_int(0);
@@ -99,6 +100,7 @@ void economy_advance_clock(economy_t *self, p8_fixed_t hx) {
     if (self == NULL) {
         return;
     }
+    self->save_pending = 1;
 
     kx = tech_gate_if_unlocked("time compression", p8_fixed_from_int(12), p8_fixed_from_int(15));
 
@@ -127,6 +129,7 @@ void economy_new_year(economy_t *self) {
     if (self == NULL) {
         return;
     }
+    self->save_pending = 1;
 
     credits = self->credits;
     income = self->income;
@@ -173,6 +176,7 @@ int economy_spend(economy_t *self, p8_fixed_t jt) {
 
     if (self != NULL) {
         self->credits = p8_fixed_sub(nz, jt);
+        self->save_pending = 1;
     }
 
     if (jt != p8_fixed_from_int(0)) {
@@ -266,6 +270,7 @@ void economy_invent(economy_t *self, const technologies_entry_t *t) {
     if (self == NULL) {
         return;
     }
+    self->save_pending = 1;
 
     jk = self->research_points;
     self->research_points = p8_fixed_sub(jk, tech_gate_research_cost(t));

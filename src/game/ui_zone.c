@@ -6,7 +6,7 @@
 #include "engine/zone_sizes.h"
 
 #define BUTTON_SIZE 6056u
-#define BUTTON_COUNT 14u
+#define BUTTON_COUNT 15u
 #define MODAL_BACKDROP_SIZE 280u
 #define MODAL_BACKDROP_COUNT 2u
 #define MESSAGE_BOX_SIZE 5128u
@@ -14,9 +14,9 @@
 #define TOAST_SIZE 344u
 #define TOAST_COUNT 48u
 #define ROW_SIZE 1184u
-#define ROW_COUNT 71u
+#define ROW_COUNT 66u
 #define EPHEMERALS_SIZE (96u + 24u + UI_EPHEMERALS_RESERVE * 4u)
-#define EPHEMERALS_COUNT 6u
+#define EPHEMERALS_COUNT 9u
 
 typedef char ui_zone_exceeded_t[
     (SLOT_ZONE_BYTES(BUTTON_SIZE, BUTTON_COUNT) + SLOT_ZONE_BYTES(MODAL_BACKDROP_SIZE, MODAL_BACKDROP_COUNT) +

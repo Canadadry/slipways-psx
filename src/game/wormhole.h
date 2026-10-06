@@ -34,6 +34,9 @@ const entity_class_t *wormhole_class(void);
 
 wormhole_t *wormhole_new(void);
 
+/* The entities in the wormhole tag list, a dying one included until the exit queue flushes; 0 when the list does not exist. */
+int wormhole_live_count(void);
+
 wormhole_too_far_target_t *wormhole_too_far_target_wrapper(void);
 const entity_class_t *wormhole_too_far_target_class(void);
 

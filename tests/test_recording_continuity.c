@@ -15,8 +15,10 @@
 
 #include "devtools/session_recorder.h"
 #include "devtools/replay_source.h"
+#include "game/save_storage.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -212,11 +214,100 @@ static void test_fresh_session_records_a_pad_replay(void) {
     remove(path);
 }
 
+/* The recorder writes the hex, the replay source reads it back and seeds
+ * the storage: the two halves of the encoding must agree on every byte. */
+static void assert_initial_save_round_trips(const uint8_t *save, int save_count) {
+    const char *path = "tmp/test_recording_continuity_initial_save.json";
+    session_recorder_t recorder;
+    session_recorder_open(&recorder, path);
+    session_recorder_set_initial_save(&recorder, save, save_count);
+    for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
+        assert(session_recorder_record_frame(&recorder, &source_frames[i]) == 1);
+    }
+    session_recorder_close(&recorder);
+
+    const uint8_t previous[2] = { 7, 7 };
+    assert(save_storage_write(previous, 2) == 1);
+
+    replay_source_t replay;
+    assert(replay_source_open(&replay, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&replay) == SOURCE_FRAME_COUNT);
+    for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
+        p8_input_frame_t frame;
+        assert(replay_source_next_frame(&replay, &frame) == 1);
+        assert_recorded_as(&frame, &source_frames[i]);
+    }
+    assert(replay_source_seed_storage(&replay) == 1);
+    replay_source_close(&replay);
+
+    static uint8_t got[SAVE_STATE_MAX_BYTES];
+    assert(save_storage_read(got, SAVE_STATE_MAX_BYTES) == save_count);
+    assert(memcmp(got, save, (size_t)save_count) == 0);
+
+    char *bytes = read_whole_file(path);
+    const char *member = strstr(bytes, "\"initial_save\"");
+    assert(member && member < strstr(bytes, "\"frames\""));
+    free(bytes);
+    remove(path);
+}
+
+static void test_initial_save_of_every_byte_value_round_trips(void) {
+    uint8_t save[256];
+    for (int i = 0; i < 256; i++) {
+        save[i] = (uint8_t)i;
+    }
+    assert_initial_save_round_trips(save, 256);
+}
+
+static void test_initial_save_of_the_full_size_round_trips(void) {
+    static uint8_t save[SAVE_STATE_MAX_BYTES];
+    for (int i = 0; i < SAVE_STATE_MAX_BYTES; i++) {
+        save[i] = (uint8_t)(i * 37 + 11);
+    }
+    assert_initial_save_round_trips(save, SAVE_STATE_MAX_BYTES);
+}
+
+/* No save, no key: the file stays what p8_input_save would write, and it
+ * seeds an empty storage. */
+static void test_recorder_without_initial_save_writes_no_key(void) {
+    const char *path = "tmp/test_recording_continuity_no_initial_save.json";
+    const char *reference_path = "tmp/test_recording_continuity_no_initial_save_reference.json";
+    session_recorder_t recorder;
+    session_recorder_open(&recorder, path);
+    session_recorder_set_initial_save(&recorder, NULL, 0);
+    for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
+        assert(session_recorder_record_frame(&recorder, &source_frames[i]) == 1);
+    }
+    session_recorder_close(&recorder);
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, reference_path));
+
+    char *bytes = read_whole_file(path);
+    char *reference = read_whole_file(reference_path);
+    assert(strcmp(bytes, reference) == 0);
+    free(bytes);
+    free(reference);
+
+    const uint8_t previous[2] = { 7, 7 };
+    assert(save_storage_write(previous, 2) == 1);
+    replay_source_t replay;
+    assert(replay_source_open(&replay, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_seed_storage(&replay) == 1);
+    replay_source_close(&replay);
+    static uint8_t got[SAVE_STATE_MAX_BYTES];
+    assert(save_storage_read(got, SAVE_STATE_MAX_BYTES) == 0);
+
+    remove(path);
+    remove(reference_path);
+}
+
 int main(void) {
     test_recorder_writes_a_loadable_recording();
     test_resumed_session_records_replayed_frames_then_new_ones();
     test_resumed_recording_is_itself_resumable();
     test_fresh_session_records_a_pad_replay();
+    test_initial_save_of_every_byte_value_round_trips();
+    test_initial_save_of_the_full_size_round_trips();
+    test_recorder_without_initial_save_writes_no_key();
 
     printf("test_recording_continuity: all tests passed\n");
     return 0;

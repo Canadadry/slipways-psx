@@ -29,6 +29,16 @@ void help_set_start_game(button_fn_t fn) {
     g_start_game_method = (fn != NULL) ? fn : screen_start_game_placeholder;
 }
 
+static button_fn_t g_resume_game_method = NULL;
+
+button_fn_t help_resume_game_field_value(void) {
+    return g_resume_game_method;
+}
+
+void help_set_resume_game(button_fn_t fn) {
+    g_resume_game_method = fn;
+}
+
 static int help_screen_hit_test_method(entity_t *self, mouse_pos_t mouse) {
     return entity_geom_contains_cursor(self, mouse);
 }
@@ -64,6 +74,18 @@ void help_screen_construct(probe_t *self) {
     frame.has_pos = entity_has_pos(&self->header);
     frame.pos = self->header.pos;
     message_box_open_box(&frame, bs, DIFFICULTY_OPTIONS_COUNT);
+
+    /* After the difficulty rows: the pad focus opens on the first button registered, forgiving. */
+    if (help_resume_game_field_value() != NULL) {
+        button_keys_t resume = {0};
+
+        resume.layout_row_keys = layout_row_keys_of_row(&resume_layout_row);
+        resume.name = "resume";
+        resume.has_on_click = 1;
+        resume.on_click = help_resume_game_field_value();
+        frame.fixed_pos = vec_sub(frame.fixed_pos, frame.row_step);
+        message_box_open_box(&frame, &resume, 1);
+    }
 }
 
 enum { HELP_SCREEN_ROWS_CAP = 4 };
@@ -126,11 +148,13 @@ void help_init(void) {
     g_help_screen_up = 1;
 
     help_set_start_game(NULL);
+    help_set_resume_game(NULL);
 }
 
 void help_shutdown(void) {
     g_help_screen_up = 0;
     help_set_start_game(NULL);
+    help_set_resume_game(NULL);
 }
 
 int help_screen_ready(void) {

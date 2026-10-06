@@ -110,6 +110,13 @@ static void test_listed_exception_is_allowed_up_to_600_frames(void) {
     assert(strstr(read_log(), DIR "/long.json") != NULL);
 }
 
+static void test_initial_save_header_line_passes(void) {
+    reset();
+    write_e2e_with("resume", "{\n  \"input\": \"pad\",\n  \"initial_save\": \"534c5759\",\n  \"frames\": [\n",
+                   180, "{ \"pad\": [] }", NULL);
+    assert(run(DIR "/resume.json") == 0);
+}
+
 static void test_missing_companion_file_fails(void) {
     reset();
     write_e2e("no_txt", 10, NULL);
@@ -159,6 +166,7 @@ int main(void) {
     test_e2e_over_180_frames_fails_and_is_named();
     test_frames_are_counted_by_their_pad_key();
     test_listed_exception_is_allowed_up_to_600_frames();
+    test_initial_save_header_line_passes();
     test_missing_companion_file_fails();
     test_missing_exceptions_list_fails();
     test_e2e_with_a_mouse_field_fails_and_is_named();

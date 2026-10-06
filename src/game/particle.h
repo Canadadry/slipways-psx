@@ -53,4 +53,10 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
 
 void emitter_update_method(entity_t *self, vec_t screen_pos);
 
+/* Off by default; only devtools turns it on. Hides the pixels of emitter
+   particles, burst rings and transit dots, and nothing else: their state and
+   every random draw are unchanged. */
+void particle_hide_pixels(int hidden);
+int particle_pixels_hidden(void);
+
 #endif

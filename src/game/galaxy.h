@@ -10,4 +10,8 @@
 
 void galaxy_populate(p8_fixed_t planet_count);
 
+/* The type picker and vanish walk of a new game, for the current difficulty.
+   Draws nothing from the RNG: a resume builds them the same way. */
+void galaxy_install_rolls(void);
+
 #endif

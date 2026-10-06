@@ -47,6 +47,7 @@ static background_t *background_create(void) {
     self->header.layer = self->archetype->layer;
     self->header.has |= ENTITY_HAS_IS_HOVERED;
     self->header.is_hovered = 0;
+    self->seed = p8_fixed_rnd_state();
     background_construct(dispatch_context_mem(), self);
     entity_construct(&self->header);
     return self;
@@ -71,6 +72,17 @@ const entity_class_t *background_class(void) {
 
 background_t *background_new(void) {
     return background_create();
+}
+
+const background_t *background_live(void) {
+    const entity_list_t *live = live_entities();
+    for (int i = 0; i < live->count; i++) {
+        const entity_t *candidate = live->items[i];
+        if (candidate->class == &background_class_def) {
+            return (const background_t *)candidate;
+        }
+    }
+    return NULL;
 }
 
 void background_construct(p8_vram_t *memory, background_t *self) {

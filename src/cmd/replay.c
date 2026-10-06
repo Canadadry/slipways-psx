@@ -6,7 +6,11 @@
  * "max_bytes load <bytes>".
  *
  * STATE=<file>: the devtools/state text of the last frame; after a p8_fatal,
- * "stopped p8_fatal frame <n>" first. */
+ * "stopped p8_fatal frame <n>" first.
+ *
+ * SAVE_HEX=<file>: the stored record as one line of lowercase hex (the
+ * initial_save format), then "save: " lines on stdout; exits 1 when the
+ * record does not decode, or when there is none (the file is then removed). */
 
 #include "p8/vram.h"
 #include "p8/assets.h"
@@ -14,10 +18,13 @@
 #include "p8/input.h"
 #include "game/input_step.h"
 #include "devtools/dump.h"
+#include "devtools/replay_source.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
+#include "game/save_state.h"
+#include "game/save_storage.h"
 #include "game/ui_zone.h"
 #include "game/particle_zone.h"
 #include "engine/game_zone.h"
@@ -62,6 +69,40 @@ static void write_fill(const char *path) {
     fclose(out);
 }
 
+/* Returns the replay's exit status. */
+static int write_save_hex(const char *path) {
+    static uint8_t bytes[SAVE_STATE_MAX_BYTES];
+    static save_state_t decoded;
+    int count = save_storage_read(bytes, (int)sizeof bytes);
+    if (count == 0) {
+        remove(path);
+        fprintf(stderr, "replay: no stored record at the end of the run, '%s' not written\n", path);
+        return 1;
+    }
+    FILE *out = fopen(path, "w");
+    if (out == NULL) {
+        fprintf(stderr, "replay: cannot open the save file '%s'\n", path);
+        return 1;
+    }
+    static const char hex_digits[] = "0123456789abcdef";
+    for (int i = 0; i < count; i++) {
+        fputc(hex_digits[bytes[i] >> 4], out);
+        fputc(hex_digits[bytes[i] & 0x0f], out);
+    }
+    fputc('\n', out);
+    if (fclose(out) != 0) {
+        fprintf(stderr, "replay: cannot write the save file '%s'\n", path);
+        return 1;
+    }
+    int decodes = save_state_decode(bytes, count, &decoded);
+    printf("save: bytes %d\n", count);
+    printf("save: version %d\n", count >= 6 ? bytes[4] | bytes[5] << 8 : -1);
+    printf("save: decodes %d\n", decodes);
+    if (!decodes) return 1;
+    state_write_save_summary(stdout, &decoded, "save: ");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 2 || argv[1][0] == '-') {
         fprintf(stderr, "usage: replay <events.json> [<capture.bin> [<dump.txt>]]\n");
@@ -79,13 +120,16 @@ int main(int argc, char **argv) {
 
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
 
-    p8_input_t input;
-    p8_input_init(&input);
-    assert(p8_input_load(&input, replay_path));
+    static replay_source_t source;
+    replay_source_status_t source_status = replay_source_open(&source, replay_path);
+    assert(source_status == REPLAY_SOURCE_LOADED);
+    int seeded = replay_source_seed_storage(&source);
+    assert(seeded);
+    p8_input_t *input = &source.recording;
 
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
-    dispatch_context_set_input(&input);
+    dispatch_context_set_input(input);
 
     cart_load();
     cart_init();
@@ -98,14 +142,14 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int frame_count = input.frame_count;
+    int frame_count = input->frame_count;
     const char *state_path = getenv("STATE");
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
     input_step_init(&step);
     for (i = 0; i < frame_count; i++) {
-        input_step_run(&step, &input.frames[input.current_frame]);
+        input_step_run(&step, &input->frames[input->current_frame]);
         cart_update60();
         cart_draw();
         /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
@@ -116,7 +160,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (i < frame_count - 1) {
-            p8_input_step(&input);
+            p8_input_step(input);
         }
     }
 
@@ -149,12 +193,15 @@ int main(int argc, char **argv) {
         write_fill(fill_path);
     }
 
-    p8_input_free(&input);
+    const char *save_hex_path = getenv("SAVE_HEX");
+    int status = save_hex_path != NULL ? write_save_hex(save_hex_path) : 0;
+
+    replay_source_close(&source);
 
     printf("replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
            frame_count, replay_path, dump_path);
     if (capture_path) {
         printf("replay: %d frame(s) captured to %s\n", frame_count, capture_path);
     }
-    return 0;
+    return status;
 }

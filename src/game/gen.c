@@ -23,6 +23,10 @@ p8_fixed_t random_walk_next(random_walk_t *state) {
     return v;
 }
 
+p8_fixed_t random_walk_draw(void *ctx) {
+    return random_walk_next((random_walk_t *)ctx);
+}
+
 /* Return, not continue, at the first unwritten slot: slots fill out of order. */
 static int weighted_picker_recent_contains(const weighted_picker_t *state, const planet_types_entry_t *e) {
     int i;
@@ -119,4 +123,11 @@ const planet_types_entry_t *weighted_picker_next(weighted_picker_t *state) {
         state->recent_set[slot - 1] = 1;
     }
     return e;
+}
+
+random_walk_t *weighted_picker_walk(const weighted_picker_t *state) {
+    if (state->random != random_walk_draw) {
+        return NULL;
+    }
+    return (random_walk_t *)state->random_ctx;
 }

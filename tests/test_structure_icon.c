@@ -769,6 +769,24 @@ static void test_kind_view_is_a_struct(void) {
     }
 }
 
+static void test_set_id_counter_is_read_back_and_bumped(void) {
+    const entity_kind_t *kinds[7];
+    void *built;
+
+    start_game();
+    fill_kind_table(kinds);
+    built = build_icon(kinds[2], tooltip_new(&heap_allocator, icon_tooltips_row(2)));
+    structure_icon_set_id_counter(p8_fixed_from_int(41));
+    assert(shared_id_fixed(as_structure_icon(built)) == p8_fixed_from_int(41));
+    (void)class_of(built)->left_press(built, (mouse_pos_t){0});
+    assert(shared_id_fixed(as_structure_icon(built)) == p8_fixed_from_int(42));
+}
+
+static void set_id_counter_before_init(void) {
+    structure_icon_shutdown();
+    structure_icon_set_id_counter(p8_fixed_from_int(3));
+}
+
 /* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -785,6 +803,21 @@ static void in_fresh_child(void (*test)(void)) {
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+}
+
+static void aborts_in_child(void (*test)(void)) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        test();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
 int main(void) {
@@ -808,6 +841,8 @@ int main(void) {
     in_fresh_child(test_kind_view);
     in_fresh_child(test_kind_view_is_a_struct);
     in_fresh_child(test_structure_icon_is_a_struct);
+    in_fresh_child(test_set_id_counter_is_read_back_and_bumped);
+    aborts_in_child(set_id_counter_before_init);
 
     printf("test_structure_icon: all tests passed\n");
     return 0;

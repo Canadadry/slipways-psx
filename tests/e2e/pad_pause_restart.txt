@@ -64,9 +64,9 @@ menu closing on the click, the game unchanged. Its third row, "how to
 play?", is pad_message_box's f94. With the pad, `make coverage` hits the
 two rows' handlers (src/game/menu.c) that only that file reached.
 
-The difficulty does not show in the end state (pad_title.txt): the
-f37 dump, with "challenging" the only colour-12 row when X is pressed,
-proves the choice.
+The end state shows the choice: `make state` at the last frame prints
+`difficulty challenging`, and the f37 dump has "challenging" as the only
+colour-12 row when X is pressed.
 
 Covers keyboard_menus. Its end state, at f102-106 of keyboard_menus.txt
 (a new game after pause -> "restart" -> "challenging", top bar at JAN

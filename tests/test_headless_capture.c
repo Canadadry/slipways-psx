@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #define FIXTURE "tests/fixtures/screencast_capture_events.json"
 #define DRIVER "./tmp/replay"
@@ -32,6 +33,7 @@
 #define DUMP_WITNESS "witness: this dump must not be rewritten\n"
 #define CAPTURE "tmp/test_headless_capture.bin"
 #define STDERR_LOG "tmp/test_headless_capture_stderr.txt"
+#define SAVE_HEX "tmp/test_headless_capture_save.hex"
 /* A path whose parent directory does not exist: the invalid path case,
  * reached without depending on file system permissions or on a full
  * disk. */
@@ -57,6 +59,25 @@ static char *read_whole_file(const char *path, size_t *out_len) {
 
     *out_len = (size_t)size;
     return buf;
+}
+
+static void stale_save_hex(void) {
+    FILE *stale = fopen(SAVE_HEX, "w");
+    assert(stale != NULL);
+    assert(fputs("00\n", stale) >= 0);
+    assert(fclose(stale) == 0);
+}
+
+/* The fixture never acts: the storage ends empty, so a fixture cut from it
+ * would be stale. Carried by a run another case needs, at no extra cost. */
+static void no_record_fails_and_removes_the_save_hex(int status) {
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 1);
+    assert(fopen(SAVE_HEX, "r") == NULL && "a stale file is removed, never kept");
+    size_t log_len;
+    char *log = read_whole_file(STDERR_LOG, &log_len);
+    assert(strstr(log, "no stored record") != NULL && strstr(log, SAVE_HEX) != NULL);
+    free(log);
+    remove(STDERR_LOG);
 }
 
 /* The text that dump_screen produces for a screen whose pixels are those
@@ -165,7 +186,10 @@ static void test_last_captured_frame_matches_the_text_dump(void) {
  * without a capture runs here as is and must produce that dump. */
 static void test_capturing_changes_nothing_the_replay_produces(void) {
     remove(DRIVER_DUMP);
-    assert(system(DRIVER " " FIXTURE " > /dev/null") == 0);
+    stale_save_hex();
+    remove(STDERR_LOG);
+    no_record_fails_and_removes_the_save_hex(
+        system("SAVE_HEX=" SAVE_HEX " " DRIVER " " FIXTURE " > /dev/null 2> " STDERR_LOG));
     size_t without_len;
     char *without = read_whole_file(DRIVER_DUMP, &without_len);
 

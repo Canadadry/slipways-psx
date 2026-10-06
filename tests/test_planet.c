@@ -498,6 +498,37 @@ static void test_new_planet_without_keys_has_no_id(void) {
     assert(!entity_has_pos(&made->header) && !entity_has_map_pos(&made->header));
 }
 
+static void spend_every_planet_synthesizable_resources(void) {
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    for (int i = 0; i < planets->count; i++) {
+        ((planet_t *)planets->items[i])->synthesizable_resources = &synthesizer_synthesizable_resources_seq;
+    }
+}
+
+static int planets_holding_their_archetype_synthesizable_resources(void) {
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    int held = 0;
+    for (int i = 0; i < planets->count; i++) {
+        const planet_t *planet = (const planet_t *)planets->items[i];
+        held += planet->synthesizable_resources == planet->archetype->synthesizable_resources;
+    }
+    assert(planets->count == GALAXY_PLANETS);
+    return held;
+}
+
+/* A restart builds the galaxy in game zone memory the previous games' planets
+   held: a new planet starts with its archetype's synthesizable resources,
+   not what the old one had spent. */
+static void test_new_planet_in_reused_memory_resets_synthesizable_resources(void) {
+    start_game();
+    spend_every_planet_synthesizable_resources();
+    start_game();
+    assert(planets_holding_their_archetype_synthesizable_resources() == GALAXY_PLANETS);
+    spend_every_planet_synthesizable_resources();
+    start_game();
+    assert(planets_holding_their_archetype_synthesizable_resources() == GALAXY_PLANETS);
+}
+
 static void set_too_long_id(void) {
     planet_keys_t keys = {0};
     assert(freopen("/dev/null", "w", stderr) != NULL);
@@ -638,6 +669,28 @@ static void test_roll_type_takes_vanishing(void) {
         assert(p->header.state == (took_vanishing ? ENTITY_STATE_VANISHING : ENTITY_STATE_KNOWN));
     }
     assert(took_vanishing);
+}
+
+static void test_installed_randomness_is_read_back(void) {
+    random_walk_t walk = {P8_FIXED_LIT(0x00008000, 0.5), 0};
+    random_walk_t vanish = {P8_FIXED_LIT(0x0000cccc, 0.8), P8_FIXED_LIT(0x00008000, 0.5)};
+    weighted_picker_t picker = {0};
+
+    planet_init();
+    assert(planet_type_picker() == NULL && planet_vanish_roll() == NULL);
+    picker.random = random_walk_draw;
+    picker.random_ctx = &walk;
+    planet_set_type_picker(&picker);
+    planet_set_vanish_roll(&vanish);
+    assert(planet_type_picker() == &picker && planet_vanish_roll() == &vanish);
+    planet_shutdown();
+    assert(planet_type_picker() == NULL && planet_vanish_roll() == NULL);
+}
+
+static void test_started_game_has_reachable_randomness(void) {
+    start_game();
+    assert(planet_type_picker() != NULL && planet_vanish_roll() != NULL);
+    assert(weighted_picker_walk(planet_type_picker()) != NULL);
 }
 
 static int is_a_planet_struct(const void *e) {
@@ -855,12 +908,15 @@ int main(void) {
     in_fresh_child(test_new_planet);
     in_fresh_child(test_new_planet_copies_its_keys);
     in_fresh_child(test_new_planet_without_keys_has_no_id);
+    in_fresh_child(test_new_planet_in_reused_memory_resets_synthesizable_resources);
     aborts_in_child(set_too_long_id);
     in_fresh_child(test_entities_by_tag_null_until_seen);
     in_fresh_child(test_update_vanishing);
     in_fresh_child(test_production_shared);
     in_fresh_child(test_needs_installed);
     in_fresh_child(test_roll_type_takes_vanishing);
+    in_fresh_child(test_installed_randomness_is_read_back);
+    in_fresh_child(test_started_game_has_reachable_randomness);
     in_fresh_child(test_planet_is_a_struct);
     in_fresh_child(test_refresh_row_slot);
     in_fresh_child(test_refresh_without_resource_takes_no_slot);

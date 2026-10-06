@@ -33,6 +33,9 @@ const entity_list_t *entities_by_message(entity_message_t message);
 
 const entity_list_t *entities_by_tag(tag_t tag);
 
+/* 0 when no entity of the tag was ever registered. */
+int entity_registry_count_tagged(tag_t tag);
+
 entity_t *entity_register(entity_t *e);
 void entity_unregister(entity_t *e);
 

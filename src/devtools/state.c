@@ -12,6 +12,8 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 #include "engine/zone_sizes.h"
+#include "game/economy_score.h"
+#include "game/game_data.h"
 #include "game/main_economy.h"
 #include "game/particle_zone.h"
 #include "game/planet.h"
@@ -98,6 +100,12 @@ static void write_clock(FILE *out) {
     fputs(" month ", out);
     write_fixed(out, economy->year_ticks);
     fputc('\n', out);
+}
+
+static void write_difficulty(FILE *out) {
+    const button_t *difficulty = economy_score_difficulty();
+    int running = main_economy_typed() != NULL && difficulty != NULL && difficulty->name != NULL;
+    fprintf(out, "difficulty %s\n", running ? difficulty->name : "-");
 }
 
 static void write_resources(FILE *out) {
@@ -247,6 +255,7 @@ static void write_caps(FILE *out) {
 
 void state_write(FILE *out) {
     write_clock(out);
+    write_difficulty(out);
     write_resources(out);
     int techs = write_techs(out);
     vec_t camera = write_camera(out);
@@ -258,8 +267,22 @@ void state_write(FILE *out) {
     fprintf(out, "count slipways %d\n", slipways);
     fprintf(out, "count structures %d\n", count_of(entities_by_tag(TAG_SLIPGATE)));
     fprintf(out, "count techs %d\n", techs);
+    fprintf(out, "count nodes %d\n", count_of(entities_by_tag(TAG_NODE)));
     write_zones(out);
     write_caps(out);
+}
+
+void state_write_save_summary(FILE *out, const save_state_t *state, const char *prefix) {
+    assert(out != NULL && state != NULL && prefix != NULL);
+    assert(state->difficulty >= 1 && state->difficulty <= DIFFICULTY_OPTIONS_COUNT);
+    fprintf(out, "%sdifficulty %s\n", prefix, difficulty_options_table[state->difficulty - 1].name);
+    fprintf(out, "%sclock year ", prefix);
+    write_fixed(out, state->economy.year);
+    fputs(" month ", out);
+    write_fixed(out, state->economy.year_ticks);
+    fprintf(out, "\n%sresources credits ", prefix);
+    write_fixed(out, state->economy.credits);
+    fprintf(out, "\n%scount nodes %d\n", prefix, state->node_count);
 }
 
 static const char *g_exit_path;

@@ -264,6 +264,11 @@ void synthesizer_attach_slipway(planet_t *self, entity_t *slipway) {
     planet_attach_slipway(self, slipway);
 }
 
+void synthesizer_set_spent(planet_t *self, int spent) {
+    assert(self != NULL && self->header.class == synthesizer_class() && "synthesizer_set_spent: self is a synthesizer");
+    self->synthesizable_resources = spent ? &synthesizer_synthesizable_resources_spent : self->archetype->synthesizable_resources;
+}
+
 static void synthesizer_attach_slipway_method(entity_t *self, entity_t *slipway) {
     synthesizer_attach_slipway((planet_t *)self, slipway);
 }
@@ -296,7 +301,6 @@ static planet_t *synthesizer_create(const planet_keys_t *keys) {
 
     assert(g_family_trade_up && "planet_family_trade_init() must run first");
     ascension_init_instance(self, &synthesizer_class_def, &synthesizer_archetype);
-    self->synthesizable_resources = self->archetype->synthesizable_resources;
     assert((keys == NULL || (!keys->has_map_pos && !keys->has_pos)) &&
            "synthesizer_create: the only construction key is planet_id (structure_icon_left_press); another key has no member "
            "-- stop, do not add one");

@@ -419,6 +419,38 @@ static void test_rnd_default_behaves_as_rnd_one(void) {
     }
 }
 
+static void test_rnd_state_set_is_read_back(void) {
+    static const uint32_t values[] = {0u, 1u, 0x12345678u, 0xFFFFFFFFu};
+    uint32_t saved = p8_fixed_rnd_state();
+    for (unsigned i = 0; i < sizeof values / sizeof values[0]; i++) {
+        p8_fixed_set_rnd_state(values[i]);
+        assert(p8_fixed_rnd_state() == values[i]);
+    }
+    p8_fixed_set_rnd_state(saved);
+}
+
+static void test_rnd_draw_changes_the_state(void) {
+    uint32_t before = p8_fixed_rnd_state();
+    p8_fixed_rnd(p8_fixed_from_int(1));
+    assert(p8_fixed_rnd_state() != before);
+}
+
+static void test_rnd_restored_state_replays_the_same_draws(void) {
+    static const int32_t arguments[] = {1, 10, -3, 0, 128, 7, -1, 2};
+    enum { DRAWS = 64 };
+    p8_fixed_t first[DRAWS];
+    uint32_t saved = p8_fixed_rnd_state();
+    for (int i = 0; i < DRAWS; i++) {
+        first[i] = p8_fixed_rnd(p8_fixed_from_int(arguments[i % 8]));
+    }
+    uint32_t after_first = p8_fixed_rnd_state();
+    p8_fixed_set_rnd_state(saved);
+    for (int i = 0; i < DRAWS; i++) {
+        assert(p8_fixed_rnd(p8_fixed_from_int(arguments[i % 8])) == first[i]);
+    }
+    assert(p8_fixed_rnd_state() == after_first);
+}
+
 /* sin/cos are bit-exact only at the 64 probed points, every 1/64 turn. */
 static void test_sin_matches_probe_block_e(void) {
     /* Block E (sin) of tools/pico8_reference_probe_out.txt: copied from the
@@ -649,6 +681,9 @@ int main(void) {
     test_rnd_zero_is_zero();
     test_rnd_result_in_documented_range();
     test_rnd_default_behaves_as_rnd_one();
+    test_rnd_state_set_is_read_back();
+    test_rnd_draw_changes_the_state();
+    test_rnd_restored_state_replays_the_same_draws();
     test_sin_zero_is_zero();
     test_cos_zero_is_one();
     test_sin_quarter_turn_sign_is_inverted();

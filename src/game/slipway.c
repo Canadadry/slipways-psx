@@ -61,6 +61,17 @@ static int slipway_copy_infraspace(slipway_t *self, const entity_t *from) {
     return 1;
 }
 
+/* The start's infraspace, else the end's, and the layer that follows. */
+static void slipway_inherit_infraspace(slipway_t *self) {
+    /* An infraspace of 0 still counts as one. */
+    self->header.infraspace = p8_fixed_from_int(0);
+    self->header.has &= (uint16_t)~ENTITY_HAS_INFRASPACE;
+    if (!slipway_copy_infraspace(self, slipway_start(self))) {
+        slipway_copy_infraspace(self, slipway_end(self));
+    }
+    self->header.layer = entity_has(&self->header, ENTITY_HAS_INFRASPACE) ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
+}
+
 void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id) {
     assert(id != NULL &&
            "slipway_served_planets_add: a NULL identifier does not fit the member's type -- stop, do not widen the member");
@@ -127,19 +138,20 @@ void slipway_drag(slipway_t *self, mouse_pos_t mouse) {
     self->targeting.cost = economy_formulas_route_base_cost(slipway_end_map_pos(slipway_start(self)), slipway_end_map_pos(slipway_end(self)));
     self->targeting.has_cost = 1;
 
-    /* An infraspace of 0 still counts as one. */
-    self->header.infraspace = p8_fixed_from_int(0);
-    self->header.has &= (uint16_t)~ENTITY_HAS_INFRASPACE;
-    if (!slipway_copy_infraspace(self, slipway_start(self))) {
-        slipway_copy_infraspace(self, slipway_end(self));
-    }
+    slipway_inherit_infraspace(self);
 
     targeting_set_target(&self->targeting, slipway_obstruction(self));
     if (targeting_target(&self->targeting) != NULL) {
         probe_link_target(targeting_target(&self->targeting), &self->header);
     }
+}
 
-    self->header.layer = entity_has(&self->header, ENTITY_HAS_INFRASPACE) ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
+void slipway_connect(slipway_t *self, entity_t *end) {
+    assert(self != NULL && end != NULL && "slipway_connect: a resumed slipway joins two saved nodes");
+    self->end = entity_id_link(end);
+    self->end_is_point = 0;
+    slipway_inherit_infraspace(self);
+    entity_set_state(&self->header, ENTITY_STATE_NORMAL);
 }
 
 void slipway_drop(slipway_t *self, entity_t *end_planet) {

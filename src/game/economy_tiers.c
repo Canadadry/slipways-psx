@@ -138,26 +138,36 @@ static void update_tiers_visit(entity_t *entity, void *context) {
         *changed = 1;
     }
 
-    if (development_tier != p8_fixed_from_int(0)) {
-        research_project_t *hn = research_project_get(planet->project);
-        if (hn != NULL) {
-            const production_tables_entry_t *po = research_project_production(hn);
-            if (po != NULL) {
-                int idx = p8_fixed_flr_int(development_tier);
-                int clamped_idx = (idx < po->count) ? idx : po->count;
-                p8_fixed_t base = p8_fixed_from_int(0);
-                p8_fixed_t jh = p8_fixed_from_int(0);
+    economy_tiers_compute_production_amount(planet, &planet_production(planet)->amount);
+}
 
-                if (clamped_idx >= 1) {
-                    base = p8_fixed_from_int(po->values[clamped_idx - 1]);
-                }
-                if (planet->has_production_bonus) {
-                    jh = planet->production_bonus;
-                }
-                planet_production(planet)->amount = p8_fixed_add(base, jh);
-            }
-        }
+int economy_tiers_compute_production_amount(const planet_t *planet, p8_fixed_t *out) {
+    research_project_t *project;
+    const production_tables_entry_t *table;
+    int idx;
+    int clamped_idx;
+    p8_fixed_t base = p8_fixed_from_int(0);
+    p8_fixed_t bonus = p8_fixed_from_int(0);
+
+    assert(planet != NULL && out != NULL);
+    if (!planet->has_development_tier || planet->development_tier == p8_fixed_from_int(0)) {
+        return 0;
     }
+    project = research_project_get(planet->project);
+    table = project != NULL ? research_project_production(project) : NULL;
+    if (table == NULL) {
+        return 0;
+    }
+    idx = p8_fixed_flr_int(planet->development_tier);
+    clamped_idx = (idx < table->count) ? idx : table->count;
+    if (clamped_idx >= 1) {
+        base = p8_fixed_from_int(table->values[clamped_idx - 1]);
+    }
+    if (planet->has_production_bonus) {
+        bonus = planet->production_bonus;
+    }
+    *out = p8_fixed_add(base, bonus);
+    return 1;
 }
 
 int economy_tiers_update_tiers(void) {

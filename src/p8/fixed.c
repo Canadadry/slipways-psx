@@ -128,6 +128,14 @@ p8_fixed_t p8_fixed_rnd(p8_fixed_t x) {
     return (x < 0) ? p8_fixed_neg(result) : result;
 }
 
+uint32_t p8_fixed_rnd_state(void) {
+    return rnd_state;
+}
+
+void p8_fixed_set_rnd_state(uint32_t state) {
+    rnd_state = state;
+}
+
 p8_fixed_t p8_fixed_rnd_default(void) {
     return p8_fixed_rnd(p8_fixed_from_int(1));
 }

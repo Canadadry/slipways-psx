@@ -206,7 +206,11 @@ int p8_input_load(p8_input_t *input, const char *path) {
     return 1;
 }
 
-#define JSON_PREFIX "{\n  \"input\": \"pad\",\n  \"frames\": [\n"
+#define JSON_HEADER "{\n  \"input\": \"pad\",\n"
+#define JSON_FRAMES_OPEN "  \"frames\": [\n"
+#define JSON_PREFIX JSON_HEADER JSON_FRAMES_OPEN
+#define HEADER_MEMBER_INDENT "  "
+#define HEADER_MEMBER_END ",\n"
 #define JSON_SUFFIX "\n  ]\n}\n"
 #define FRAME_SEPARATOR ",\n"
 #define FRAME_LINE_MAX 160
@@ -285,7 +289,7 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
     return 1;
 }
 
-int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset) {
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, const char *header_member) {
     if (!frame || !path || !tail_offset) {
         return 0;
     }
@@ -296,35 +300,52 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
     }
 
     int fresh = (*tail_offset <= 0);
-    const char *head = fresh ? JSON_PREFIX : FRAME_SEPARATOR;
+    const char *member = (fresh && header_member) ? header_member : NULL;
     long start = fresh ? 0 : *tail_offset;
 
-    char tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];
-    int written = snprintf(tail, sizeof(tail), "%s%s%s", head, line, JSON_SUFFIX);
-    if (written <= 0 || (size_t)written >= sizeof(tail)) {
-        return 0;
+    char fixed_tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];
+    char *tail = fixed_tail;
+    size_t tail_size = sizeof(fixed_tail);
+    if (member) {
+        tail_size += sizeof(HEADER_MEMBER_INDENT) + strlen(member) + sizeof(HEADER_MEMBER_END);
+        tail = malloc(tail_size);
+        if (!tail) {
+            return 0;
+        }
     }
 
-    FILE *f = fopen(path, fresh ? "wb" : "r+b");
-    if (!f) {
-        return 0;
+    int written;
+    if (!fresh) {
+        written = snprintf(tail, tail_size, "%s%s%s", FRAME_SEPARATOR, line, JSON_SUFFIX);
+    } else if (member) {
+        written = snprintf(tail, tail_size, "%s%s%s%s%s%s%s", JSON_HEADER, HEADER_MEMBER_INDENT, member,
+                           HEADER_MEMBER_END, JSON_FRAMES_OPEN, line, JSON_SUFFIX);
+    } else {
+        written = snprintf(tail, tail_size, "%s%s%s", JSON_PREFIX, line, JSON_SUFFIX);
     }
-    if (!fresh && fseek(f, start, SEEK_SET) != 0) {
-        fclose(f);
-        return 0;
+
+    int ok = written > 0 && (size_t)written < tail_size;
+    FILE *f = ok ? fopen(path, fresh ? "wb" : "r+b") : NULL;
+    ok = f != NULL;
+    if (ok && !fresh && fseek(f, start, SEEK_SET) != 0) {
+        ok = 0;
     }
 
     /* One fwrite of the whole tail: a process killed mid-session must never leave a torn frame. */
-    size_t tail_len = (size_t)written;
-    if (fwrite(tail, 1, tail_len, f) != tail_len) {
-        fclose(f);
-        return 0;
+    size_t tail_len = ok ? (size_t)written : 0;
+    if (ok && fwrite(tail, 1, tail_len, f) != tail_len) {
+        ok = 0;
     }
-    if (fclose(f) != 0) {
+    if (f && fclose(f) != 0) {
+        ok = 0;
+    }
+    if (tail != fixed_tail) {
+        free(tail);
+    }
+    if (!ok) {
         return 0;
     }
 
-    *tail_offset = start + (long)strlen(head) + (long)strlen(line);
-    assert(*tail_offset + (long)strlen(JSON_SUFFIX) == start + (long)written);
+    *tail_offset = start + (long)tail_len - (long)strlen(JSON_SUFFIX);
     return 1;
 }

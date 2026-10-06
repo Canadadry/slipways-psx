@@ -9,7 +9,9 @@ make raylib
 tmp/game            # keyboard or gamepad
 ```
 
-Run it from the repository root. Each session is recorded in `tmp/`; pass a recording to resume it. Space bookmarks a frame.
+Run it from the repository root. Each session is recorded in `tmp/`; pass a recording to resume it; replaying a recording replaces `save/slipways.sav` with the recording's startup save. Space bookmarks a frame.
+
+The game saves after every action, and the title's `resume` row brings that game back; a finished game is erased.
 
 ## Controls
 

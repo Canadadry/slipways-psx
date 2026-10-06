@@ -40,7 +40,10 @@ int p8_input_load(p8_input_t *input, const char *path);
 
 int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path);
 
-int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset);
+/* header_member: one JSON member such as `"key": "value"`, without indent or
+ * comma, written after "input" in a fresh file only; NULL for none, which
+ * keeps the file byte-identical to p8_input_save's. */
+int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, const char *header_member);
 
 void p8_input_free(p8_input_t *input);
 

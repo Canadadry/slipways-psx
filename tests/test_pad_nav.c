@@ -8,7 +8,9 @@
 #include "engine/geom.h"
 #include "engine/pointer_list.h"
 #include "game/cart.h"
+#include "game/economy.h"
 #include "game/economy_score.h"
+#include "game/game_data.h"
 #include "game/galaxy.h"
 #include "game/input_step.h"
 #include "game/help.h"
@@ -21,6 +23,8 @@
 #include "game/score_panel.h"
 #include "game/score_panel_display.h"
 #include "game/research.h"
+#include "game/save_state.h"
+#include "game/save_storage.h"
 #include "game/scroll.h"
 #include "game/slipway.h"
 #include "game/structure_icon.h"
@@ -150,6 +154,54 @@ static void test_title_cross_starts_the_focused_difficulty(void) {
     run_frame(&step, P8_PAD_CROSS);
     assert(main_economy_typed() != NULL);
     assert(strcmp(economy_score_difficulty()->name, "reasonable") == 0);
+}
+
+static save_state_t g_saved;
+
+/* A reasonable game saved at its first end turn, then the title again: g_saved holds the record. */
+static void start_title_with_a_save(input_step_t *step) {
+    static uint8_t bytes[SAVE_STATE_MAX_BYTES];
+    int count;
+
+    start_title(step);
+    cart_start_game((button_t *)title_button("reasonable"));
+    run_frame(step, 0);
+    economy_new_year(main_economy_typed());
+    run_frame(step, 0);
+    count = save_storage_read(bytes, (int)sizeof bytes);
+    assert(count > 0 && save_state_decode(bytes, count, &g_saved));
+    start_title(step);
+    assert(title_button("resume") != NULL);
+}
+
+static void test_title_with_a_save_still_focuses_forgiving(void) {
+    input_step_t step;
+    start_title_with_a_save(&step);
+    assert(pad_nav_first_item() == title_button("forgiving"));
+    assert_focused_and_hovered(&step, "forgiving");
+}
+
+static void test_title_up_reaches_resume_and_down_comes_back(void) {
+    input_step_t step;
+    start_title_with_a_save(&step);
+    tap(&step, P8_PAD_UP);
+    assert_focused_and_hovered(&step, "resume");
+    tap(&step, P8_PAD_UP);
+    assert_focused_and_hovered(&step, "resume");
+    tap(&step, P8_PAD_DOWN);
+    assert_focused_and_hovered(&step, "forgiving");
+}
+
+static void test_title_cross_on_resume_resumes_the_saved_game(void) {
+    input_step_t step;
+    start_title_with_a_save(&step);
+    tap(&step, P8_PAD_UP);
+    assert(main_economy_typed() == NULL);
+    run_frame(&step, P8_PAD_CROSS);
+    assert(main_economy_typed() != NULL);
+    assert(strcmp(economy_score_difficulty()->name, difficulty_options_table[g_saved.difficulty - 1].name) == 0);
+    assert(main_economy_typed()->year == g_saved.economy.year);
+    assert(entities_by_tag(TAG_NODE)->count == g_saved.node_count);
 }
 
 /* A move and a × on the same frame click the newly focused row. */
@@ -3613,6 +3665,19 @@ static void open_pause(input_step_t *step) {
     assert_restart_focused_and_hovered(step);
 }
 
+static void test_restart_from_pause_with_a_save_shows_resume(void) {
+    input_step_t step;
+    start_game(&step);
+    economy_new_year(main_economy_typed());
+    run_frame(&step, 0);
+    open_pause(&step);
+    tap(&step, P8_PAD_CROSS);
+    settle(&step);
+    assert(main_economy_typed() == NULL);
+    assert(title_button("resume") != NULL);
+    assert_focused_and_hovered(&step, "forgiving");
+}
+
 static void test_start_opens_pause_from_free_mode(void) {
     input_step_t step;
     start_game(&step);
@@ -4264,6 +4329,10 @@ int main(void) {
     in_fresh_child(test_title_held_direction_moves_once);
     in_fresh_child(test_title_cross_starts_the_focused_difficulty);
     in_fresh_child(test_title_cross_with_a_move_clicks_the_new_focus);
+    in_fresh_child(test_title_with_a_save_still_focuses_forgiving);
+    in_fresh_child(test_title_up_reaches_resume_and_down_comes_back);
+    in_fresh_child(test_title_cross_on_resume_resumes_the_saved_game);
+    in_fresh_child(test_restart_from_pause_with_a_save_shows_resume);
     in_fresh_child(test_cross_held_across_the_click_leaves_nothing_held);
     in_fresh_child(test_free_mode_holds_the_cursor_at_the_centre);
     in_fresh_child(test_free_mode_pans_with_the_speed_curve);

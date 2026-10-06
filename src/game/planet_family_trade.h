@@ -36,4 +36,6 @@ void slipgate_offer_trade(planet_t *self, trade_offer_t *offer);
 
 void synthesizer_attach_slipway(planet_t *self, entity_t *slipway);
 
+void synthesizer_set_spent(planet_t *self, int spent);
+
 #endif

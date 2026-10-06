@@ -49,6 +49,7 @@ int structure_icon_has_cursor(void);
 vec_t structure_icon_cursor(void);
 
 int structure_icon_id_counter(p8_fixed_t *out);
+void structure_icon_set_id_counter(p8_fixed_t id);
 
 void structure_icon_set_cursor(vec_t cursor);
 

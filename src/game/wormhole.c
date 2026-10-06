@@ -258,6 +258,11 @@ wormhole_t *wormhole_new(void) {
     return wormhole_create();
 }
 
+int wormhole_live_count(void) {
+    const entity_list_t *wormholes = entities_by_tag(TAG_WORMHOLE);
+    return wormholes != NULL ? wormholes->count : 0;
+}
+
 wormhole_too_far_target_t *wormhole_too_far_target_wrapper(void) {
     return &g_wormhole_too_far_target_wrapper;
 }

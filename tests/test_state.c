@@ -3,6 +3,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,11 +12,15 @@
 
 #include "devtools/state.h"
 #include "engine/zone_sizes.h"
+#include "game/save_state.h"
 #include "p8/input.h"
 #include "p8/fatal.h"
 
 #define STATE "tmp/test_state.txt"
-#define REPLAY(events) "STATE=" STATE " ./tmp/replay " events " tmp/test_state.bin tmp/test_state_dump.txt > /dev/null"
+#define REPLAY_TO(events, out) "STATE=" STATE " ./tmp/replay " events " tmp/test_state.bin tmp/test_state_dump.txt > " out
+#define REPLAY(events) REPLAY_TO(events, "/dev/null")
+#define SAVE_HEX "tmp/test_state_save.hex"
+#define SAVE_OUT "tmp/test_state_save.out"
 
 static char text[1 << 16];
 
@@ -26,6 +31,16 @@ static void replay(const char *command) {
     assert(f != NULL && "state file missing");
     size_t n = fread(text, 1, sizeof text - 1, f);
     text[n] = '\0';
+    fclose(f);
+}
+
+static char save_out[1 << 12];
+
+static void read_file(const char *path, char *buffer, size_t cap) {
+    FILE *f = fopen(path, "r");
+    assert(f != NULL);
+    size_t n = fread(buffer, 1, cap - 1, f);
+    buffer[n] = '\0';
     fclose(f);
 }
 
@@ -90,8 +105,60 @@ static void memory_lines_have_peak_and_limit(void) {
     assert(has(budget) && "the state carries the zone budget of the build");
 }
 
+static int hex_value(char digit) {
+    if (digit >= '0' && digit <= '9') return digit - '0';
+    if (digit >= 'a' && digit <= 'f') return digit - 'a' + 10;
+    return -1;
+}
+
+/* The state line `name ...` of the dump, printed with the "save: " prefix by SAVE_HEX. */
+static void save_line_matches_state(const char *name) {
+    size_t length = strlen(name);
+    const char *at = text;
+    while (at != NULL && !(strncmp(at, name, length) == 0 && at[length] == ' ')) {
+        at = strchr(at, '\n');
+        if (at != NULL) at++;
+    }
+    assert(at != NULL && "the state dump has the line");
+    char pattern[192];
+    snprintf(pattern, sizeof pattern, "save: %.*s\n", (int)strcspn(at, "\n"), at);
+    assert(strstr(save_out, pattern) != NULL && "the decoded record matches the state dump");
+}
+
+/* pad_tech_costs ends after its last action: the stored record is that game. */
+static void save_hex_writes_the_stored_record(void) {
+    static char hex[2 * SAVE_STATE_MAX_BYTES + 2];
+    static uint8_t bytes[SAVE_STATE_MAX_BYTES];
+    static save_state_t decoded;
+    read_file(SAVE_HEX, hex, sizeof hex);
+    size_t digits = strcspn(hex, "\n");
+    assert(hex[digits] == '\n' && hex[digits + 1] == '\0' && "one line");
+    assert(digits > 0 && digits % 2 == 0 && digits <= 2 * SAVE_STATE_MAX_BYTES);
+    for (size_t i = 0; i < digits / 2; i++) {
+        int high = hex_value(hex[2 * i]), low = hex_value(hex[2 * i + 1]);
+        assert(high >= 0 && low >= 0 && "lowercase hex digits only");
+        bytes[i] = (uint8_t)(high * 16 + low);
+    }
+    assert(save_state_decode(bytes, (int)(digits / 2), &decoded) == 1);
+    read_file(SAVE_OUT, save_out, sizeof save_out);
+    char count_line[64];
+    snprintf(count_line, sizeof count_line, "save: bytes %d\n", (int)(digits / 2));
+    assert(strstr(save_out, count_line) != NULL);
+    snprintf(count_line, sizeof count_line, "save: version %d\n", SAVE_STATE_VERSION);
+    assert(strstr(save_out, count_line) != NULL);
+    assert(strstr(save_out, "save: decodes 1\n") != NULL);
+    save_line_matches_state("difficulty");
+    save_line_matches_state("clock year");
+    save_line_matches_state("resources credits");
+    save_line_matches_state("count nodes");
+}
+
 static void pad_tech_costs_rich_mine(void) {
-    replay(REPLAY("tests/e2e/pad_tech_costs.json"));
+    remove(SAVE_HEX);
+    replay("SAVE_HEX=" SAVE_HEX " " REPLAY_TO("tests/e2e/pad_tech_costs.json", SAVE_OUT));
+    assert(has("difficulty reasonable") && "pad_title's prefix: Down, X on reasonable");
+    assert(has("count nodes 91") && "91 planets, no structure, no protostar");
+    save_hex_writes_the_stored_record();
     assert(has("count planets 91"));
     assert(has("count slipways 6"));
     assert(has("count colonies 6") && "p7, p12, p14, p39 and the two labs");
@@ -157,6 +224,8 @@ int main(void) {
     fatal_writes_the_stop_frame();
     remove(STATE);
     remove(CHEAT_CUT);
+    remove(SAVE_HEX);
+    remove(SAVE_OUT);
     remove("tmp/test_state.bin");
     remove("tmp/test_state_dump.txt");
     printf("test_state: all tests passed\n");

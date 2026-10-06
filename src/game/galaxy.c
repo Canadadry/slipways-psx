@@ -11,19 +11,10 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
-static p8_fixed_t picker_random(void *ctx) {
-    return random_walk_next((random_walk_t *)ctx);
-}
-
 void galaxy_populate(p8_fixed_t planet_count) {
     p8_fixed_t fixed_one = p8_fixed_from_int(1);
     p8_fixed_t threshold = P8_FIXED_LIT(0x00000ccc, 0.05);
     p8_fixed_t planet_id;
-    const button_t *difficulty;
-    p8_fixed_t difficulty_type_bias = p8_fixed_from_int(0);
-    random_walk_t *type_picker_random;
-    weighted_picker_t *type_picker_state;
-    random_walk_t *vanish_roll_state;
 
     for (planet_id = fixed_one; planet_id <= planet_count; planet_id = p8_fixed_add(planet_id, fixed_one)) {
         vec_t p_vec;
@@ -50,13 +41,22 @@ void galaxy_populate(p8_fixed_t planet_count) {
         (void)made;
     }
 
-    difficulty = economy_score_difficulty();
+    galaxy_install_rolls();
+}
+
+void galaxy_install_rolls(void) {
+    const button_t *difficulty = economy_score_difficulty();
+    p8_fixed_t difficulty_type_bias = p8_fixed_from_int(0);
+    random_walk_t *type_picker_random;
+    weighted_picker_t *type_picker_state;
+    random_walk_t *vanish_roll_state;
+
     if (difficulty != NULL && difficulty->has_type_bias) {
         difficulty_type_bias = difficulty->type_bias;
     }
 
     type_picker_random = random_walk_new(game_zone(), P8_FIXED_LIT(0x00008000, 0.5), difficulty_type_bias);
-    type_picker_state = weighted_picker_new(game_zone(), p8_fixed_from_int(2), picker_random, type_picker_random);
+    type_picker_state = weighted_picker_new(game_zone(), p8_fixed_from_int(2), random_walk_draw, type_picker_random);
     planet_set_type_picker(type_picker_state);
 
     vanish_roll_state = random_walk_new(game_zone(), P8_FIXED_LIT(0x0000cccc, 0.8), P8_FIXED_LIT(0x00008000, 0.5));

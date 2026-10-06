@@ -14,6 +14,16 @@
 
 typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
 
+static int g_pixels_hidden;
+
+void particle_hide_pixels(int hidden) {
+    g_pixels_hidden = hidden != 0;
+}
+
+int particle_pixels_hidden(void) {
+    return g_pixels_hidden;
+}
+
 /* A class property, not the position bit: a probe dragged without a mouse position carries a position that is absent. */
 static int emitter_host_carries_pos(const entity_t *self) {
     return (self->class->lineage & (LINEAGE(LINEAGE_PROBE) | LINEAGE(LINEAGE_PLANET))) != 0;
@@ -175,7 +185,9 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
                     int_seq_at(colors->items, colors->count, idx, &col);
                 }
 
-                p8_pset(graphics, memory, px, py, col);
+                if (!g_pixels_hidden) {
+                    p8_pset(graphics, memory, px, py, col);
+                }
             }
         }
     }

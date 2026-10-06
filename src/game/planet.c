@@ -89,6 +89,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->header.has |= ENTITY_HAS_IS_HOVERED;
     self->header.is_hovered = 0;
     self->production = (production_t){0};
+    self->synthesizable_resources = self->archetype->synthesizable_resources;
     self->has = 0;
 }
 
@@ -147,6 +148,14 @@ void planet_set_type_picker(weighted_picker_t *picker) {
 
 void planet_set_vanish_roll(random_walk_t *ir) {
     g_planet_vanish_roll = ir;
+}
+
+weighted_picker_t *planet_type_picker(void) {
+    return g_type_picker;
+}
+
+random_walk_t *planet_vanish_roll(void) {
+    return g_planet_vanish_roll;
 }
 
 int planet_ready(void) {

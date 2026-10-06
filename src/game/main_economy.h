@@ -31,6 +31,8 @@ typedef struct {
     int has_happiness;
     const char *end_status;
     int has_end_status;
+    /* Set by a player action, read and cleared by cart; not part of the save record. */
+    int save_pending;
 } economy_t;
 
 #define ECONOMY_HAS_PRODUCTION (1u << 0)

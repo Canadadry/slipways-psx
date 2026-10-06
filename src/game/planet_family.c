@@ -371,7 +371,9 @@ void burst_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_
             if (int_seq_at(ramp->items, ramp->count, idx, &trail_color)) {
                 color = trail_color;
             }
-            p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(vec_length(pt->pos)), color);
+            if (!particle_pixels_hidden()) {
+                p8_circ(graphics, memory, screen_x, screen_y, p8_fixed_flr_int(vec_length(pt->pos)), color);
+            }
         }
 
         /* A flag, not the particle: emitter_update may give it back before is_dead is written. */

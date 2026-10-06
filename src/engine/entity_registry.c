@@ -148,6 +148,11 @@ const entity_list_t *entities_by_tag(tag_t tag) {
     return g_entities_by_tag[tag].seen ? &g_entities_by_tag[tag].list : NULL;
 }
 
+int entity_registry_count_tagged(tag_t tag) {
+    const entity_list_t *tagged = entities_by_tag(tag);
+    return tagged == NULL ? 0 : tagged->count;
+}
+
 /* Missing or malformed data is skipped where Lua would crash: message members are tested by presence, unregistering an unknown entity does nothing, draw_layers drops an entity with no layer or one outside 1..15. Making one site fatal alone breaks consistency. */
 entity_t *entity_register(entity_t *e) {
     int i;

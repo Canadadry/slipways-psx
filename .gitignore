@@ -1,4 +1,5 @@
 tmp/
+save/
 third_party/
 psx-hello/build/
 .claude/worktrees/

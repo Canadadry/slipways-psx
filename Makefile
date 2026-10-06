@@ -15,11 +15,16 @@
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
 #                       framebuffer dump in tmp/replay_dump.txt, outside the
-#                       suite
+#                       suite; with SAVE_HEX=<file>, also writes the stored
+#                       record at the end as one line of hex (the
+#                       initial_save format) and prints its decoded
+#                       "save:" summary; fails when there is no record or
+#                       it does not decode
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
-#                       the state of the last frame (clock, planets,
-#                       slipways, structures), zone and cap use to
-#                       tmp/state.txt, outside the suite
+#                       the state of the last frame (clock, difficulty,
+#                       planets, slipways, structures, counts), zone and cap
+#                       use to tmp/state.txt, outside the suite; takes
+#                       SAVE_HEX=<file> as make replay does
 # make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
 #                       every e2e of tests/e2e/, each state in
 #                       tmp/state/<name>.txt, then
@@ -61,6 +66,34 @@
 #                       binary of make test; passes when every replay exits
 #                       cleanly (fails on any p8_fatal, a full zone or cap),
 #                       outside the suite
+# make rng-sync-probe -> builds and runs tests/test_rng_sync (pad_colonise
+#                       replayed to a save frame, forked, rnd_state compared
+#                       with and without the state a save never holds);
+#                       red while saving rnd_state is not enough, outside the
+#                       suite
+# make save-worst-case -> builds and runs tests/test_save_worst_case: replays
+#                       each worst-case/ game (FULL_GAME_EVENTS), and at every
+#                       frame of a running game with no wormhole captures,
+#                       encodes, decodes and re-encodes the save; fails if a
+#                       record exceeds 8 KiB or does not decode back to the
+#                       same bytes, prints the largest record with its game
+#                       and frame, outside the suite
+# make save-fuzz      -> builds and runs tests/test_save_fuzz: replays
+#                       worst-case/full_game.json, and at every frame that
+#                       writes a save resumes the stored record into a fresh
+#                       game after the title and compares it with the
+#                       original at that frame (bytes, state dump, screen
+#                       with particles hidden when no box is open); fails on
+#                       any mismatch, outside the suite
+# make resume-check EVENTS=<events> BEFORE=<frame> AFTER=<frame> -> builds
+#                       and runs tests/test_resume_check: replays that file
+#                       headless and compares the game after frame BEFORE
+#                       (the stored record, state dump, screen with particles
+#                       hidden) with the game the recording resumed by frame
+#                       AFTER; fails on any difference, on a storage write
+#                       between BEFORE and the resume, with no game at
+#                       either frame or no title between them, outside
+#                       the suite
 # make constants-check -> compares each P8_FIXED_LIT of the core with its
 #                       recorded hex value
 #                       (tools/pico8_reference_probe_out.txt); fails unless
@@ -232,6 +265,9 @@ ENGINE_SRCS := \
     src/engine/vec.c \
     src/game/wormhole.c \
     src/game/wormhole_display.c \
+    src/game/save_state.c \
+    src/game/save_load.c \
+    src/devtools/save_storage_memory.c \
     src/engine/zone.c \
     src/engine/allocator.c \
     src/engine/slot_tally.c \
@@ -260,6 +296,8 @@ CART_ONLY_SRCS := \
     src/game/planet_family_trade.c \
     src/game/score_panel.c \
     src/game/score_panel_display.c \
+    src/game/save_state.c \
+    src/game/save_load.c \
     src/game/structure_icon.c
 DATA_ENGINE_SRCS := $(filter-out $(CART_ONLY_SRCS),$(ENGINE_SRCS))
 
@@ -305,16 +343,16 @@ $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c
 $(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c) keymap.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_control: $(call objs,tests/test_replay_control.c src/devtools/replay_control.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/screencast.c src/p8/vram.c) | $(TMP_DIR)
@@ -388,6 +426,9 @@ $(TMP_DIR)/test_arena: $(call objs,tests/test_arena.c tests/heap_allocator.c src
 $(TMP_DIR)/test_entity_id: $(call objs,tests/test_entity_id.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_entity_registry: $(call objs,tests/test_entity_registry.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_entity_id_list: $(call objs,tests/test_entity_id_list.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -453,6 +494,18 @@ $(TMP_DIR)/test_button: $(call objs,tests/test_button.c tests/heap_allocator.c $
 $(TMP_DIR)/test_planet: $(call objs,tests/test_planet.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_gen: $(call objs,tests/test_gen.c tests/heap_allocator.c src/game/gen.c src/game/game_data.c src/p8/fixed.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_save_state: $(call objs,tests/test_save_state.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_save_storage_memory: $(call objs,tests/test_save_storage_memory.c tests/save_storage_contract.c src/devtools/save_storage_memory.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_save_storage_file: $(call objs,tests/test_save_storage_file.c tests/save_storage_contract.c src/platform/save_storage_file.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_structure: $(call objs,tests/test_structure.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -490,6 +543,18 @@ $(TMP_DIR)/test_infraspace_gate: $(call objs,tests/test_infraspace_gate.c tests/
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_burst: $(call objs,tests/test_burst.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_probe: $(call objs,tests/test_probe.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -531,13 +596,22 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
@@ -597,6 +671,7 @@ UNIT_TESTS := \
     test_pointer_list \
     test_entity_list \
     test_entity_id \
+    test_entity_registry \
     test_entity_id_list \
     test_value_list \
     test_str \
@@ -654,6 +729,13 @@ UNIT_TESTS := \
     test_structure_icon \
     test_button \
     test_planet \
+    test_gen \
+    test_save_state \
+    test_save_storage_memory \
+    test_save_storage_file \
+    test_save_check \
+    test_save_load \
+    test_cart \
     test_structure \
     test_trading_hub \
     test_entity_kind \
@@ -736,7 +818,7 @@ ifneq ($(filter replay,$(MAKECMDGOALS)),)
 endif
 
 replay: $(TMP_DIR)/replay
-	./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard pointer-guard data-guard p8-guard
 
@@ -849,6 +931,38 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
+rng-sync-probe: $(TMP_DIR)/test_rng_sync
+	./$<
+
+.PHONY: rng-sync-probe
+
+save-worst-case: $(TMP_DIR)/test_save_worst_case $(FULL_GAME_EVENTS)
+	./$< $(FULL_GAME_EVENTS)
+
+.PHONY: save-worst-case
+
+save-fuzz: $(TMP_DIR)/test_save_fuzz worst-case/full_game.json
+	./$< worst-case/full_game.json
+
+.PHONY: save-fuzz
+
+ifneq ($(filter resume-check,$(MAKECMDGOALS)),)
+    ifeq ($(strip $(EVENTS)),)
+        $(error EVENTS missing: make resume-check EVENTS=<events.json> BEFORE=<frame> AFTER=<frame>)
+    endif
+    ifeq ($(strip $(BEFORE)),)
+        $(error BEFORE missing: make resume-check EVENTS=<events.json> BEFORE=<frame> AFTER=<frame>)
+    endif
+    ifeq ($(strip $(AFTER)),)
+        $(error AFTER missing: make resume-check EVENTS=<events.json> BEFORE=<frame> AFTER=<frame>)
+    endif
+endif
+
+resume-check: $(TMP_DIR)/test_resume_check $(EVENTS)
+	./$< $(EVENTS) $(BEFORE) $(AFTER)
+
+.PHONY: resume-check
+
 $(TMP_DIR)/replay_coverage: $(call coverage_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -875,7 +989,7 @@ $(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
 
 ifneq ($(strip $(EVENTS)),)
 state: $(TMP_DIR)/replay
-	STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 else
 state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
@@ -964,7 +1078,8 @@ GAME_SRCS := \
     src/devtools/replay_control.c \
     src/devtools/replay_source.c \
     src/devtools/session_recorder.c \
-    $(ENGINE_SRCS)
+    src/platform/save_storage_file.c \
+    $(filter-out src/devtools/save_storage_memory.c,$(ENGINE_SRCS))
 
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ $(GAME_SRCS) third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)

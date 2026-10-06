@@ -76,6 +76,9 @@ const pause_menu_entry_t pause_menu_table[PAUSE_MENU_COUNT] = {
     {&pause_menu_4_layout_row},
 };
 
+static const data_item_t resume_layout_row_items[] = {{.number = 31}, {.text = "resume      "}};
+const data_row_t resume_layout_row = {.count = 2, .items = resume_layout_row_items};
+
 const pause_menu_tail_t pause_menu_tail = {0, P8_SCREEN_HEIGHT - 21, 0, -11, 14};
 
 static const data_item_t difficulty_options_1_layout_row_items[] = {{.number = 49}, {.text = "forgiving   "}};

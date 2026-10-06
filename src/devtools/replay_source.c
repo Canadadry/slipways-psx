@@ -1,13 +1,92 @@
 #include "devtools/replay_source.h"
 
+#include "game/save_storage.h"
+
 #include <assert.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Caller frees; NULL when the file cannot be read. */
+static char *read_whole_file(const char *path) {
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+        return NULL;
+    }
+    char *text = NULL;
+    long size = -1;
+    if (fseek(file, 0, SEEK_END) == 0) {
+        size = ftell(file);
+    }
+    if (size >= 0 && fseek(file, 0, SEEK_SET) == 0) {
+        text = malloc((size_t)size + 1);
+    }
+    if (text) {
+        size_t got = fread(text, 1, (size_t)size, file);
+        text[got] = '\0';
+    }
+    fclose(file);
+    return text;
+}
+
+static int hex_digit_value(char digit) {
+    if (digit >= '0' && digit <= '9') {
+        return digit - '0';
+    }
+    if (digit >= 'a' && digit <= 'f') {
+        return digit - 'a' + 10;
+    }
+    if (digit >= 'A' && digit <= 'F') {
+        return digit - 'A' + 10;
+    }
+    return -1;
+}
+
+/* Returns 0 when the header's initial_save is present but malformed; on 1,
+ * source->initial_save_count is 0 when the header has none. */
+static int parse_initial_save(replay_source_t *source, const char *json) {
+    static const char key[] = "\"initial_save\":";
+    source->initial_save_count = 0;
+
+    const char *header_end = strstr(json, "\"frames\":");
+    const char *p = strstr(json, key);
+    if (!p || !header_end || p >= header_end) {
+        return 1;
+    }
+    p += strlen(key);
+    while (*p == ' ' || *p == '\t') {
+        p++;
+    }
+    if (*p != '"') {
+        return 0;
+    }
+    p++;
+
+    int digit_count = 0;
+    while (p[digit_count] != '"') {
+        if (hex_digit_value(p[digit_count]) < 0 || digit_count == 2 * SAVE_STATE_MAX_BYTES) {
+            return 0;
+        }
+        digit_count++;
+    }
+    if (digit_count == 0 || digit_count % 2 != 0) {
+        return 0;
+    }
+
+    for (int i = 0; i < digit_count / 2; i++) {
+        source->initial_save[i] = (uint8_t)(hex_digit_value(p[2 * i]) * 16 + hex_digit_value(p[2 * i + 1]));
+    }
+    source->initial_save_count = digit_count / 2;
+    return 1;
+}
 
 replay_source_status_t replay_source_open(replay_source_t *source, const char *path) {
     assert(source);
 
     source->path = path;
     source->next_frame_index = 0;
+    source->initial_save_count = 0;
     p8_input_init(&source->recording);
 
     if (!path) {
@@ -15,7 +94,11 @@ replay_source_status_t replay_source_open(replay_source_t *source, const char *p
         return source->status;
     }
 
-    if (!p8_input_load(&source->recording, path)) {
+    char *json = read_whole_file(path);
+    int header_ok = json && parse_initial_save(source, json);
+    free(json);
+    if (!header_ok || !p8_input_load(&source->recording, path)) {
+        source->initial_save_count = 0;
         source->status = REPLAY_SOURCE_LOAD_FAILED;
         return source->status;
     }
@@ -49,6 +132,18 @@ int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_fram
     return 1;
 }
 
+int replay_source_seed_storage(const replay_source_t *source) {
+    assert(source);
+
+    if (source->status != REPLAY_SOURCE_LOADED) {
+        return 1;
+    }
+    if (source->initial_save_count == 0) {
+        return save_storage_erase();
+    }
+    return save_storage_write(source->initial_save, source->initial_save_count);
+}
+
 void replay_source_close(replay_source_t *source) {
     assert(source);
 
@@ -56,4 +151,5 @@ void replay_source_close(replay_source_t *source) {
     source->status = REPLAY_SOURCE_NONE;
     source->path = NULL;
     source->next_frame_index = 0;
+    source->initial_save_count = 0;
 }

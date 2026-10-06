@@ -283,6 +283,7 @@ extern const planet_types_entry_t planet_types_table[PLANET_TYPES_COUNT];
 extern const galaxy_menu_entry_t galaxy_menu_table[GALAXY_MENU_COUNT];
 extern const pause_menu_entry_t pause_menu_table[PAUSE_MENU_COUNT];
 extern const pause_menu_tail_t pause_menu_tail;
+extern const data_row_t resume_layout_row;
 extern const difficulty_options_entry_t difficulty_options_table[DIFFICULTY_OPTIONS_COUNT];
 extern const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT];
 

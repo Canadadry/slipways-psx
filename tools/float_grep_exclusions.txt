@@ -11,6 +11,7 @@ src/devtools/dump.c | host tool, text dump of the framebuffer
 src/devtools/dump.h | host tool, header of devtools/dump.c
 src/devtools/input_json.c | reads and writes events.json, host tool
 src/platform/fatal_pc.c | PC implementation of p8_fatal (stderr, exit), provided by the platform
+src/platform/save_storage_file.c | PC save file backend, stdio and POSIX, raylib driver
 src/devtools/fixed_test_double.c | test helper, outside the core: from_double/to_double, linked by the tests and the constants comparer
 src/devtools/fixed_test_double.h | test helper, outside the core: header of devtools/fixed_test_double.c, included by the tests and the constants comparer
 src/p8/palette.c | raylib backend, RGB presentation palette
@@ -27,6 +28,8 @@ src/devtools/session_recorder.c | session recording of the interactive driver
 src/devtools/session_recorder.h | session recording of the interactive driver
 src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c
+src/devtools/save_check.c | save comparison harness of the tests, writes the state dump through a FILE stream
+src/devtools/save_check.h | save comparison harness of the tests, header of devtools/save_check.c
 src/platform/keymap.c | raylib backend, keymap.cfg parser
 src/platform/keymap.h | raylib backend, header of platform/keymap.c
 src/platform/keymap_names.h | raylib backend, raylib key and gamepad names

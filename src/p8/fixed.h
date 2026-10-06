@@ -50,6 +50,9 @@ p8_fixed_t p8_fixed_rnd(p8_fixed_t x);
 
 p8_fixed_t p8_fixed_rnd_default(void);
 
+uint32_t p8_fixed_rnd_state(void);
+void p8_fixed_set_rnd_state(uint32_t state);
+
 p8_fixed_t p8_fixed_cos(p8_fixed_t x);
 
 p8_fixed_t p8_fixed_sin(p8_fixed_t x);

@@ -25,7 +25,10 @@
 #include "p8/fixed.h"
 #include "engine/geom.h"
 #include "p8/gfx.h"
+#include "game/economy.h"
 #include "game/help.h"
+#include "game/main_economy.h"
+#include "game/save_storage.h"
 #include "p8/input.h"
 #include "p8/vram.h"
 #include "game/particle.h"
@@ -709,6 +712,85 @@ static void test_start_game_gives_back_the_help_particles(void) {
     assert(particles_of(&fv->emitter) == NULL);
 }
 
+enum { TITLE_SETTLE_FRAMES = 30, RESUME_TOP = 41, RESUME_BOTTOM = 51, FORGIVING_TOP = 52 };
+
+typedef unsigned char screen_t[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
+
+static const button_t *title_button(const char *name) {
+    const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
+    for (int i = 0; i < bucket->count; i++) {
+        const button_t *b = (const button_t *)bucket->items[i];
+        if (b->header.class == button_class() && b->name != NULL && strcmp(b->name, name) == 0) return b;
+    }
+    return NULL;
+}
+
+/* In a child: a game played and saved, the save kept or erased, then the
+ * title settled from the same random state; its screen comes back through a pipe. */
+static void title_after_a_saved_game(int keep_save, screen_t out) {
+    int fds[2];
+    pid_t child;
+    int status;
+
+    assert(pipe(fds) == 0);
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        uint8_t bytes[SAVE_STATE_MAX_BYTES];
+
+        close(fds[0]);
+        start_title();
+        cart_start_game((button_t *)title_button("forgiving"));
+        cart_update60();
+        economy_new_year(main_economy_typed());
+        cart_update60();
+        assert(save_storage_read(bytes, (int)sizeof bytes) > 0 && "the end turn wrote a save");
+        if (!keep_save) assert(save_storage_erase());
+        p8_fixed_set_rnd_state(0x7171E5u);
+        cart_init();
+        for (int i = 0; i < TITLE_SETTLE_FRAMES; i++) {
+            cart_update60();
+            cart_draw();
+        }
+        assert((title_button("resume") != NULL) == keep_save);
+        assert(write(fds[1], memory.screen, sizeof memory.screen) == (ssize_t)sizeof memory.screen);
+        _exit(0);
+    }
+    close(fds[1]);
+    {
+        size_t got = 0;
+        while (got < sizeof(screen_t)) {
+            ssize_t n = read(fds[0], (unsigned char *)out + got, sizeof(screen_t) - got);
+            assert(n > 0);
+            got += (size_t)n;
+        }
+    }
+    close(fds[0]);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+}
+
+static void test_a_save_adds_the_resume_row_and_moves_nothing_else(void) {
+    static screen_t empty;
+    static screen_t saved;
+
+    title_after_a_saved_game(0, empty);
+    title_after_a_saved_game(1, saved);
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        if (y < RESUME_TOP || y > RESUME_BOTTOM) {
+            assert(memcmp(empty[y], saved[y], P8_SCREEN_WIDTH) == 0 && "the resume row moves no other row");
+        } else {
+            for (int x = 0; x < P8_SCREEN_WIDTH; x++) assert(empty[y][x] == 0 && "the band under the logo is free");
+        }
+    }
+    assert(memcmp(saved[RESUME_TOP], saved[FORGIVING_TOP], P8_SCREEN_WIDTH) == 0 && "the same top border as forgiving");
+    assert(memcmp(saved[RESUME_TOP + 1], saved[FORGIVING_TOP + 1], P8_SCREEN_WIDTH) == 0 && "the same fill as forgiving");
+    assert(memcmp(saved[RESUME_BOTTOM - 1], saved[FORGIVING_TOP + 1], P8_SCREEN_WIDTH) == 0 && "the same fill as forgiving");
+    assert(memcmp(saved[RESUME_BOTTOM], saved[FORGIVING_TOP + RESUME_BOTTOM - RESUME_TOP], P8_SCREEN_WIDTH) == 0 &&
+           "the same bottom border as forgiving");
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -728,6 +810,7 @@ int main(void) {
     in_fresh_child(test_help_screen_is_a_struct);
     in_fresh_child(test_start_game_gives_back_the_help_particles);
     in_fresh_child(test_probe_closed);
+    test_a_save_adds_the_resume_row_and_moves_nothing_else();
 
     printf("test_help_screen: all tests passed\n");
     return 0;

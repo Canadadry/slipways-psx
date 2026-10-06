@@ -30,6 +30,9 @@
 #include "game/planet_family_trade.h"
 #include "game/probe.h"
 #include "game/research.h"
+#include "game/save_load.h"
+#include "game/save_state.h"
+#include "game/save_storage.h"
 #include "game/structure_icon.h"
 #include "game/score_panel.h"
 #include "game/scroll.h"
@@ -140,6 +143,22 @@ void cart_shutdown(void) {
     entity_shutdown();
 }
 
+/* Shared by the title decode, the resume and the frame-end capture: they never overlap. */
+static save_state_t g_save_state;
+static uint8_t g_save_bytes[SAVE_STATE_MAX_BYTES];
+
+static void resume_saved_game(button_t *self) {
+    (void)self;
+    cart_resume_game(&g_save_state);
+}
+
+/* A bad save is a normal case: no resume row, and the stored bytes are left alone. */
+static button_fn_t title_resume_handler(void) {
+    int count = save_storage_read(g_save_bytes, (int)sizeof g_save_bytes);
+
+    return (count > 0 && save_state_decode(g_save_bytes, count, &g_save_state)) ? resume_saved_game : NULL;
+}
+
 void cart_init(void) {
     assert(structure_icon_ready() && "cart_init: cart_load() must run first");
     assert(help_start_game_field_value() == cart_start_game &&
@@ -160,6 +179,7 @@ void cart_init(void) {
     if (main_economy_typed() != NULL) probe_set_main_economy(NULL);
     score_panel_set_main(NULL);
 
+    help_set_resume_game(title_resume_handler());
     (void)help_screen_new();
 }
 
@@ -190,20 +210,21 @@ const entity_registry_reserve_t cart_game_registry_reserve = {
     },
 };
 
-void cart_start_game(button_t *chosen_option) {
-    const entity_kind_t *kind_table[7];
-    int index;
+static void start_world(const button_t *difficulty) {
+    assert(economy_ready() && structure_ready() && "game start: cart_load() must run first");
 
-    assert(economy_ready() && structure_ready() && "cart_start_game: cart_load() must run first");
-
-    economy_score_set_difficulty(chosen_option);
+    economy_score_set_difficulty(difficulty);
     game_zone_flip();
 
     /* Not redundant with cart_init()'s call: the registries, camera, mouse and UI must be rebuilt. */
     reset_world(&cart_game_registry_reserve);
     research_expire_project_ids();
     (void)background_new();
-    galaxy_populate(p8_fixed_from_int(90));
+}
+
+static void start_interface(void) {
+    const entity_kind_t *kind_table[7];
+    int index;
 
     probe_set_main_economy((entity_t *)economy_new());
     score_panel_set_main(score_panel_new());
@@ -231,9 +252,48 @@ void cart_start_game(button_t *chosen_option) {
         keys.tooltip = tooltip_new(game_zone(), &icon_tooltips_table[index]);
         (void)structure_icon_new(&keys);
     }
+}
 
-    assert(main_economy_typed() != NULL && "cart_start_game: the main economy must be this game's economy before economy_recompute()");
+static void recompute_economy(void) {
+    assert(main_economy_typed() != NULL && "game start: the main economy must be this game's economy before economy_recompute()");
     economy_recompute(main_economy_typed());
+}
+
+void cart_start_game(button_t *chosen_option) {
+    start_world(chosen_option);
+    galaxy_populate(p8_fixed_from_int(90));
+    start_interface();
+    recompute_economy();
+}
+
+void cart_resume_game(const save_state_t *state) {
+    button_t difficulty;
+
+    save_load_difficulty(state, &difficulty);
+    save_load_background_seed(state);
+    start_world(&difficulty);
+    assert(background_live()->seed == state->background_seed && "cart_resume_game: the RNG moved between the reseed and the background");
+    save_load_world(state);
+    start_interface();
+    save_load_globals(state);
+    recompute_economy();
+}
+
+/* Erase before write: the frame that ends a game also has a pending action, and a write winning
+   there would put a resume row on the title after "again?" (pad_game_end's hash). */
+static void save_at_frame_end(void) {
+    economy_t *economy = main_economy_typed();
+
+    /* No difficulty: only unit tests start one (cart_start_game(NULL)), and the record cannot hold it. */
+    if (economy == NULL || !economy->save_pending || economy_score_difficulty() == NULL) return;
+    if (economy->has_end_status && economy->end_status != NULL) {
+        (void)save_storage_erase();
+        economy->save_pending = 0;
+    } else if (wormhole_live_count() == 0) {
+        save_state_capture(&g_save_state);
+        (void)save_storage_write(g_save_bytes, save_state_encode(&g_save_state, g_save_bytes));
+        economy->save_pending = 0;
+    }
 }
 
 /* Here, not in a driver: every driver goes through cart_update60(), and cart_draw() reads what it wrote in the frame zone. */
@@ -242,6 +302,7 @@ void cart_update60(void) {
     cart_flush_exit_queue();
     update_entities();
     ui_update(dispatch_context_mem(), main_ui());
+    save_at_frame_end();
 }
 
 void cart_draw(void) {

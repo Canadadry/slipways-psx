@@ -9,9 +9,12 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
+#include <stdint.h>
+
 typedef struct {
     entity_t header;
     const background_archetype_t *archetype;
+    uint32_t seed;
 } background_t;
 
 void background_init(void);
@@ -22,7 +25,11 @@ int background_ready(void);
 
 const entity_class_t *background_class(void);
 
+/* Records the RNG state as its seed, then draws its tile map from the RNG. */
 background_t *background_new(void);
+
+/* The live background, or NULL when none is up. */
+const background_t *background_live(void);
 
 void background_construct(p8_vram_t *memory, background_t *self);
 

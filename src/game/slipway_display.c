@@ -10,6 +10,7 @@
 #include "game/slipway.h"
 #include "game/ui.h"
 #include "engine/vec.h"
+#include "game/particle.h"
 #include "game/particle_zone.h"
 
 typedef char transit_dot_fits_its_slot_t[sizeof(transit_dot_t) <= TRANSIT_DOTS_SLOT ? 1 : -1];
@@ -158,7 +159,7 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
                     allocator_release(particle_zone(PARTICLE_SLOT_TRANSIT_DOT), (unsigned char *)t);
                 }
 
-                {
+                if (!particle_pixels_hidden()) {
                     int x = to_int(new_pos.x);
                     int y = to_int(new_pos.y);
                     p8_rectfill(graphics, memory, x, y, x + 1, y + 1, 0);

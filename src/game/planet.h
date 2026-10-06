@@ -131,6 +131,9 @@ down_t planet_left_press(planet_t *self);
 
 void planet_set_type_picker(weighted_picker_t *picker);
 void planet_set_vanish_roll(random_walk_t *ir);
+/* NULL until set, and again after planet_shutdown. */
+weighted_picker_t *planet_type_picker(void);
+random_walk_t *planet_vanish_roll(void);
 
 void planet_bob(entity_t *self, p8_fixed_t t);
 

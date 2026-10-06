@@ -252,6 +252,12 @@ vec_t structure_icon_cursor(void) {
     return g_has_cursor ? g_cursor : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
+void structure_icon_set_id_counter(p8_fixed_t id) {
+    assert(g_structure_icon_up && "structure_icon_init() must run before structure_icon_set_id_counter, or the next init resets the counter");
+    g_id_counter = id;
+    g_has_id_counter = 1;
+}
+
 int structure_icon_id_counter(p8_fixed_t *out) {
     if (!g_has_id_counter) {
         return 0;

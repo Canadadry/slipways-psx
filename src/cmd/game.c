@@ -9,11 +9,15 @@
 #include "platform/keymap.h"
 #include "devtools/replay_source.h"
 #include "devtools/replay_control.h"
+#include "devtools/session_recorder.h"
+#include "game/save_state.h"
+#include "game/save_storage.h"
 
 #include <assert.h>
 #include <stdio.h>
 
 static const char KEYMAP_PATH[] = "keymap.cfg";
+static const char SAVE_PATH[] = "save/slipways.sav";
 static const char USAGE[] = "usage: game [<recording.json>]\n";
 
 int main(int argc, char **argv) {
@@ -56,11 +60,27 @@ int main(int argc, char **argv) {
         fprintf(stderr, "game: %s not found, using the built-in defaults.\n", KEYMAP_PATH);
     }
 
+    if (!replay_source_seed_storage(&replay)) {
+        assert(!IsWindowReady() && "a failed seed must stop before the window opens: never fall back to the disk save");
+        fprintf(stderr,
+                "game: could not replace %s with the startup save of '%s'. "
+                "Refusing to start instead of using the disk save.\n",
+                SAVE_PATH, replay_path);
+        replay_source_close(&replay);
+        return 1;
+    }
+
     if (replay_source_frame_count(&replay) > 0) {
         fprintf(stderr,
                 "game: replaying '%s' (%d frames), then handing control back.\n"
                 "game: during the replay -- PAGE UP faster, PAGE DOWN slower, END uncapped.\n",
                 replay_path, replay_source_frame_count(&replay));
+    }
+    if (replay.status == REPLAY_SOURCE_LOADED) {
+        fprintf(stderr, replay.initial_save_count > 0
+                            ? "game: the recording's startup save replaced %s.\n"
+                            : "game: the recording has no startup save: %s was erased.\n",
+                SAVE_PATH);
     }
 
     replay_control_t replay_control;
@@ -79,6 +99,10 @@ int main(int argc, char **argv) {
 
     raylib_backend_t backend;
     raylib_backend_init(&backend, &keymap);
+
+    static uint8_t startup_save[SAVE_STATE_MAX_BYTES];
+    int startup_save_count = save_storage_read(startup_save, (int)sizeof startup_save);
+    session_recorder_set_initial_save(&backend.recorder, startup_save, startup_save_count);
 
     cart_load();
     /* Never click a difficulty here: a recording starts on the title screen and holds its own click. */

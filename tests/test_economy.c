@@ -629,6 +629,43 @@ static void test_cheat_on_provisional(void) {
     assert(checked_main_economy()->credits == p8_fixed_from_int(100));
 }
 
+/* A built economy has nothing pending; each player action that changes the
+ * economy marks it, a refused spend does not, and the economy never clears it. */
+static void test_save_pending(void) {
+    economy_t *self;
+
+    start_game();
+    assert(!economy_new()->save_pending);
+    self = main_economy_self();
+
+    self->save_pending = 0;
+    assert(economy_spend(self, p8_fixed_from_int(101)) == 0);
+    assert(!self->save_pending);
+    assert(economy_spend(self, p8_fixed_from_int(0)) == 1);
+    assert(self->save_pending);
+    assert(economy_spend(self, p8_fixed_from_int(0)) == 1 && self->save_pending);
+
+    self->save_pending = 0;
+    assert(economy_spend(self, p8_fixed_from_int(30)) == 1 && self->save_pending);
+
+    self->save_pending = 0;
+    economy_advance_clock(self, p8_fixed_from_int(1));
+    assert(self->save_pending);
+
+    self->save_pending = 0;
+    economy_new_year(self);
+    assert(self->save_pending);
+
+    self->save_pending = 0;
+    self->research_points = p8_fixed_from_int(50);
+    economy_invent(self, tech("t1", 1));
+    assert(self->save_pending);
+
+    self->save_pending = 0;
+    economy_recompute(self);
+    assert(!self->save_pending);
+}
+
 static void must_abort(void (*write)(void *), void *e) {
     pid_t child;
     int status;
@@ -716,6 +753,7 @@ int main(void) {
     in_fresh_child(test_spend);
     in_fresh_child(test_recompute);
     in_fresh_child(test_invent);
+    in_fresh_child(test_save_pending);
     in_fresh_child(test_cheat_on_provisional);
     in_fresh_child(test_economy_is_a_struct);
 

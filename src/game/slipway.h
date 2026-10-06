@@ -78,6 +78,10 @@ void slipway_drag(slipway_t *self, mouse_pos_t mouse);
 
 void slipway_drop(slipway_t *self, entity_t *end_planet);
 
+/* Joins a built slipway to end as a confirmed drag would, without paying,
+   advancing the clock, attaching either end or touching the fade. */
+void slipway_connect(slipway_t *self, entity_t *end);
+
 entity_t *slipway_obstruction(slipway_t *self);
 
 const entity_class_t *slipway_too_far_class(void);
