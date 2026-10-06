@@ -33,11 +33,6 @@ typedef struct str_seq {
     const char *const *items;
 } str_seq_t;
 
-typedef struct {
-    int count;
-    const vec_t *items;
-} vec_seq_t;
-
 typedef struct kind_record {
     const char *required_tech;
     int has_sprite;
@@ -107,7 +102,6 @@ typedef struct {
 typedef struct {
     state_t state;
     p8_fixed_t state_time;
-    p8_fixed_t cursor_sprite;
     p8_fixed_t layer;
     box_t panel_box;
 } ui_archetype_t;
@@ -128,11 +122,9 @@ typedef struct {
 typedef struct {
     state_t state;
     p8_fixed_t state_time;
-    vec_t velocity;
     p8_fixed_t shake;
     vec_t pos_before_shake;
     vec_t pos;
-    const vec_seq_t *dpad_directions;
 } camera_archetype_t;
 
 typedef struct {
@@ -229,7 +221,6 @@ typedef struct {
     vec_t row_step;
     p8_fixed_t clear_ephemerals_after;
     box_t hit_box;
-    p8_fixed_t cursor_sprite;
     const data_row_t *rows;
     emitter_archetype_t emitter;
     targeting_archetype_t targeting;
@@ -321,7 +312,6 @@ extern const int_seq_t help_screen_trail_colors_seq;
 extern const int_seq_t slipway_trail_colors_seq;
 extern const int_seq_t wormhole_color_ramp_seq;
 extern const int_seq_t background_tile_choices_seq;
-extern const vec_seq_t camera_dpad_directions_vecs;
 extern const data_row_t research_project_row_tail_row;
 extern const data_row_t help_screen_rows_row;
 extern const data_row_t score_panel_countdown_rows_row;

@@ -8,12 +8,6 @@
 #include "engine/entity_id.h"
 #include "game/wormhole.h"
 
-static vec_t nearest_anchor_pos(const wormhole_t *self) {
-    const entity_t *anchor = entity_get(self->anchor);
-
-    return anchor != NULL ? entity_pos(anchor) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-}
-
 void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self, vec_t screen_pos) {
     int screen_x;
     int screen_y;
@@ -26,7 +20,7 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
     screen_y = p8_fixed_flr_int(screen_pos.y);
 
     if (self->header.state == ENTITY_STATE_PLACING) {
-        vec_t cp;
+        const entity_t *anchor = entity_get(self->anchor);
 
         if (targeting_target(&self->targeting) == NULL) {
             p8_fixed_t oi = self->radius;
@@ -35,10 +29,13 @@ void wormhole_draw(p8_graphics_t *graphics, p8_vram_t *memory, wormhole_t *self,
             }
         }
 
-        /* Outside the NULL-target guard on purpose: the line runs whether or not a target was found. */
-        cp = nearest_anchor_pos(self);
+        /* Outside the NULL-target guard on purpose: the line runs whether or not a target was found.
+         * No anchor (the cart would index nil): no line, not one to world (0,0). */
         if (graphics != NULL && memory != NULL) {
-            p8_line(graphics, memory, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y), screen_x, screen_y, 1);
+            if (anchor != NULL) {
+                vec_t cp = entity_pos(anchor);
+                p8_line(graphics, memory, p8_fixed_flr_int(cp.x), p8_fixed_flr_int(cp.y), screen_x, screen_y, 1);
+            }
             p8_spr_default(graphics, memory, 7, screen_x - 4, screen_y - 4);
         }
     } else {

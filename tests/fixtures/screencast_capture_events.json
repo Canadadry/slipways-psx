@@ -1,12 +1,13 @@
 {
+  "input": "pad",
   "frames": [
-    { "mouse_x": 40, "mouse_y": 40, "mouse_buttons": 0, "dpad": [false, false, false, false] },
-    { "mouse_x": 44, "mouse_y": 42, "mouse_buttons": 0, "dpad": [false, false, false, false] },
-    { "mouse_x": 48, "mouse_y": 44, "mouse_buttons": 0, "dpad": [false, false, false, false] },
-    { "mouse_x": 52, "mouse_y": 46, "mouse_buttons": 0, "dpad": [false, false, false, false] },
-    { "mouse_x": 56, "mouse_y": 48, "mouse_buttons": 0, "dpad": [false, false, false, false] },
-    { "mouse_x": 60, "mouse_y": 50, "mouse_buttons": 0, "dpad": [false, false, false, false] },
-    { "mouse_x": 64, "mouse_y": 52, "mouse_buttons": 0, "dpad": [false, false, false, false] },
-    { "mouse_x": 68, "mouse_y": 54, "mouse_buttons": 0, "dpad": [false, false, false, false] }
+    { "pad": [] },
+    { "pad": [] },
+    { "pad": [] },
+    { "pad": [] },
+    { "pad": [] },
+    { "pad": [] },
+    { "pad": [] },
+    { "pad": [] }
   ]
 }

@@ -25,7 +25,7 @@
 #include "engine/vec.h"
 
 #define SCRIPTED_TICKS 12
-#define SCRIPTED_HASH 0xEB03D064u
+#define SCRIPTED_HASH 0x06672AC5u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -62,14 +62,10 @@ static int in_any_entities_by_message(const void *e) {
     return 0;
 }
 
-/* The shared button states while the main mouse is a `mouse_t`, NULL on
+/* The shared left button state while the main mouse is a `mouse_t`, NULL on
  * the placeholder. */
 static const mouse_button_t *main_mouse_left(void) {
     return main_mouse_typed() != NULL ? mouse_left_button() : NULL;
-}
-
-static const mouse_button_t *main_mouse_right(void) {
-    return main_mouse_typed() != NULL ? mouse_right_button() : NULL;
 }
 
 /* -1 absent, else the boolean. */
@@ -96,12 +92,8 @@ static int pos_of_main_mouse(vec_t *out) {
 }
 
 static uint32_t fold_main_mouse(uint32_t h) {
-    const mouse_button_t *bts[2];
+    const mouse_button_t *left = main_mouse_left();
     vec_t ra;
-    int i;
-
-    bts[0] = main_mouse_left();
-    bts[1] = main_mouse_right();
 
     if (pos_of_main_mouse(&ra)) {
         h = fnv(h, (uint32_t)ra.x);
@@ -109,12 +101,9 @@ static uint32_t fold_main_mouse(uint32_t h) {
     } else {
         h = fnv(h, 0xDEADu);
     }
-    for (i = 0; i < 2; i++) {
-        h = fnv(h, (uint32_t)held_of(bts[i]));
-        h = fnv(h, (uint32_t)pressed_of(bts[i]));
-        h = fnv(h, (uint32_t)released_of(bts[i]));
-    }
-    return h;
+    h = fnv(h, (uint32_t)held_of(left));
+    h = fnv(h, (uint32_t)pressed_of(left));
+    return fnv(h, (uint32_t)released_of(left));
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -147,7 +136,7 @@ static void frame(int i, int x, int y, int buttons) {
 }
 
 /* `reset_world()` builds the main mouse: among the live
- * entities only, its position the zero default, both button states present
+ * entities only, its position the zero default, the left button state present
  * and still empty. */
 static void test_reset_world_builds_a_mouse_reader(void) {
     const void *je;
@@ -157,12 +146,11 @@ static void test_reset_world_builds_a_mouse_reader(void) {
     je = main_mouse();
     assert(entity_list_listed(live_entities(), je) && !in_any_entities_by_message(je));
     assert(pos_of_main_mouse(&ra) && ra.x == 0 && ra.y == 0);
-    assert(main_mouse_left() != NULL && main_mouse_right() != NULL && main_mouse_left() != main_mouse_right());
+    assert(main_mouse_left() != NULL);
     assert(held_of(main_mouse_left()) == -1 && pressed_of(main_mouse_left()) == -1 && released_of(main_mouse_left()) == -1);
-    assert(held_of(main_mouse_right()) == -1 && pressed_of(main_mouse_right()) == -1 && released_of(main_mouse_right()) == -1);
 }
 
-/* Left alone, right, middle, left+right, releases, moving each tick. */
+/* Left alone, then the other bits, which the left button ignores, and releases, moving each tick. */
 static void test_scripted_ticks(void) {
     static const int buttons[SCRIPTED_TICKS] = {0, 1, 1, 0, 2, 2, 4, 0, 3, 1, 2, 0};
     uint32_t h = 2166136261u;
@@ -184,24 +172,7 @@ static void test_scripted_ticks(void) {
     check("scripted", h, SCRIPTED_HASH);
 }
 
-/* No e2e replay ever holds the middle button, which the cart counts as
- * the right one. */
-static void test_middle_alone_presses_the_right_button(void) {
-    reset_world(NULL);
-    frame(0, 30, 30, P8_MOUSE_MIDDLE);
-    frame(1, 30, 30, 0);
-    script(2);
-    update_entities();
-    assert(pressed_of(main_mouse_right()) == 1 && held_of(main_mouse_right()) == 1);
-    assert(held_of(main_mouse_left()) == 0);
-    p8_input_step(&input);
-    update_entities();
-    unscript();
-    assert(released_of(main_mouse_right()) == 1 && held_of(main_mouse_right()) == 0);
-    assert(held_of(main_mouse_left()) == 0);
-}
-
-/* Every mouse shares the two button states: a left button held across
+/* Every mouse shares the left button state: a left button held across
  * `reset_world()` gives the new main mouse no fresh press. */
 static void test_buttons_survive_reset_world(void) {
     const mouse_button_t *l_before;
@@ -225,7 +196,7 @@ static void test_buttons_survive_reset_world(void) {
     assert(pressed_of(main_mouse_left()) == 0 && held_of(main_mouse_left()) == 1);
 }
 
-/* `mouse_init()` starts both button states afresh. */
+/* `mouse_init()` starts the left button state afresh. */
 static void test_mouse_init_starts_the_tables_afresh(void) {
     reset_world(NULL);
     frame(0, 10, 10, 1);
@@ -236,7 +207,7 @@ static void test_mouse_init_starts_the_tables_afresh(void) {
 
     mouse_init();
     reset_world(NULL);
-    assert(held_of(main_mouse_left()) == -1 && held_of(main_mouse_right()) == -1);
+    assert(held_of(main_mouse_left()) == -1);
 }
 
 /* After `ui_init()`, the main mouse is the member-less placeholder: no
@@ -247,10 +218,10 @@ static void test_placeholder_main_mouse(void) {
 
     reset_world(NULL);
     ui_init();
-    assert(main_mouse_left() == NULL && main_mouse_right() == NULL && !pos_of_main_mouse(&ra));
+    assert(main_mouse_left() == NULL && !pos_of_main_mouse(&ra));
     ok = ui_new();
     ui_update(&memory, ok);
-    assert(ui_left_held(ok) == NULL && ui_right_held(ok) == NULL);
+    assert(ui_left_held(ok) == NULL);
     assert(ok->has & UI_HAS_MOUSE_WORLD);
 }
 
@@ -283,7 +254,7 @@ static int is_a_mouse_struct(const void *e) {
 
 /* Built by `mouse_new`, a mouse is a struct among the live entities only;
  * its update is its method, `draw` is absent, and every mouse shares the
- * class's two button states. */
+ * class's left button state. */
 static void test_mouse_is_a_struct_sharing_its_buttons(void) {
     void *built;
     void *generic;
@@ -297,8 +268,7 @@ static void test_mouse_is_a_struct_sharing_its_buttons(void) {
     assert(entity_list_listed(live_entities(), generic) && !in_any_entities_by_message(generic));
     assert(((const entity_t *)generic)->class->states[ENTITY_STATE_NORMAL] != NULL);
     assert(((const entity_t *)generic)->class->draw == NULL);
-    assert(mouse_left_button() != NULL && mouse_right_button() != NULL);
-    assert(mouse_left_button() != mouse_right_button());
+    assert(mouse_left_button() != NULL);
     assert(entity_has_pos((const entity_t *)built));
 }
 
@@ -315,7 +285,6 @@ int main(void) {
 
     test_reset_world_builds_a_mouse_reader();
     test_scripted_ticks();
-    test_middle_alone_presses_the_right_button();
     test_buttons_survive_reset_world();
     test_mouse_init_starts_the_tables_afresh();
     test_placeholder_main_mouse();

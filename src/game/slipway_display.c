@@ -8,6 +8,7 @@
 #include "engine/entity_id.h"
 #include "game/planet.h"
 #include "game/slipway.h"
+#include "game/ui.h"
 #include "engine/vec.h"
 #include "game/particle_zone.h"
 
@@ -121,6 +122,9 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
         infraspace_truthy = entity_has(&self->header, ENTITY_HAS_INFRASPACE);
 
         line_color = target_or_targeted_by ? p8_fixed_from_int(2) : (infraspace_truthy ? p8_fixed_from_int(0) : fade_color);
+        if (!target_or_targeted_by && fade_in_step_i >= 20 && main_ui() != NULL && ui_pad_slipway(main_ui()) == &self->header) {
+            line_color = p8_fixed_from_int(12);
+        }
         border_color = infraspace_truthy ? fade_color : p8_fixed_from_int(0);
         dot_color = infraspace_truthy ? p8_fixed_from_int(5) : p8_fixed_from_int(13);
 

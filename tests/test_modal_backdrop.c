@@ -28,7 +28,6 @@
 #define ON_CLICK_TRUE_SEQUENCE_HASH 0xA6A43C27u
 #define BARE_SEQUENCE_HASH 0x52BE382Au
 #define HOVER_SEQUENCE_HASH 0xECF21A99u
-#define HOVER_CURSOR_HASH 0x1A3026B9u
 
 #define LEFT_PRESS_TICK 5
 #define IDLE_TICKS 30
@@ -42,17 +41,6 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     for (i = 0; i < 4; i++) {
         h ^= (word >> (8 * i)) & 0xFFu;
         h *= 16777619u;
-    }
-    return h;
-}
-
-static uint32_t screen_hash(void) {
-    uint32_t h = 2166136261u;
-    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
-        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
-            h ^= (uint32_t)memory.screen[y][x];
-            h *= 16777619u;
-        }
     }
     return h;
 }
@@ -208,7 +196,7 @@ static int in_layer(int layer, const void *e) {
 
 /* A started game, then a bare veil: the hover loop of `main_ui()` makes it
  * `hovered` (its hit test always hits) in layer 14, marks it `is_hovered`,
- * takes the left press but not the right one, and, once the veil is gone,
+ * takes the left press, and, once the veil is gone,
  * unmarks it through `previous_hovered`. */
 static void test_hover_loop_on_the_veil(void) {
     uint32_t h = 2166136261u;
@@ -227,17 +215,8 @@ static void test_hover_loop_on_the_veil(void) {
     assert(veil->header.is_hovered);
     h = fold_veil(h, veil);
 
-    p8_gfx_init(&graphics);
-    p8_cls(&memory);
-    ui_draw_overlay(&graphics, &memory, main_ui());
-    check("hover_cursor", screen_hash(), HOVER_CURSOR_HASH);
-
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn));
     assert((void *)kv == veil && kn.stop && entity_get(kn.held) == NULL);
-    kv = NULL;
-    if (ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn)) {
-        assert((void *)kv != veil);
-    }
     h = fold_veil(h, veil);
 
     entity_unregister(&veil->header);
@@ -272,7 +251,7 @@ static int is_a_veil_struct(const void *e) {
 
 /* Built by `modal_backdrop_new` with or without keys, a veil is a struct
  * among the live entities and under hit_test only; its hit test always
- * hits, and it has neither an update nor a right press. */
+ * hits, and it has no update. */
 static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
     const entity_message_t others[] = {ENTITY_MESSAGE_DRAW, ENTITY_MESSAGE_DRAW_OVERLAY, ENTITY_MESSAGE_NEW_YEAR, ENTITY_MESSAGE_REFRESH};
     const entity_class_t *cls = modal_backdrop_class();
@@ -294,7 +273,7 @@ static void test_modal_backdrop_is_a_struct_registered_under_hit_test(void) {
         assert(!entity_list_listed(entities_by_message(others[i]), built) && !entity_list_listed(entities_by_message(others[i]), generic));
     }
     assert(cls->hit_test == entity_registry_hit_test_always && cls->hit_test(generic, (mouse_pos_t){0}) == 1);
-    assert(cls->states[ENTITY_STATE_NORMAL] == NULL && cls->right_press == NULL);
+    assert(cls->states[ENTITY_STATE_NORMAL] == NULL);
     assert(((const modal_backdrop_t *)built)->on_click == score_panel_toggle_on_click());
 }
 

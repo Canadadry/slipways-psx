@@ -5,6 +5,7 @@
 #include "p8/input.h"
 #include "devtools/session_recorder.h"
 #include "devtools/replay_control.h"
+#include "platform/keymap.h"
 
 #include "raylib.h"
 
@@ -15,9 +16,10 @@ typedef struct {
     Color pixel_buffer[P8_SCREEN_WIDTH * P8_SCREEN_HEIGHT];
     session_recorder_t recorder;
     char markers_path[64];
+    keymap_t keymap;
 } raylib_backend_t;
 
-void raylib_backend_init(raylib_backend_t *backend, int keyboard_cursor);
+void raylib_backend_init(raylib_backend_t *backend, const keymap_t *keymap);
 
 int raylib_backend_should_continue(const raylib_backend_t *backend);
 

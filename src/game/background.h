@@ -12,8 +12,6 @@
 typedef struct {
     entity_t header;
     const background_archetype_t *archetype;
-    vec_t drag_mouse;
-    int has_drag_mouse;
 } background_t;
 
 void background_init(void);
@@ -31,9 +29,5 @@ void background_construct(p8_vram_t *memory, background_t *self);
 void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *self);
 
 down_t background_left_press(background_t *self);
-
-down_t background_right_press(background_t *self, mouse_pos_t mouse);
-
-void background_drag(background_t *self, mouse_pos_t mouse);
 
 #endif

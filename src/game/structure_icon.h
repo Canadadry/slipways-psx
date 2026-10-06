@@ -54,6 +54,9 @@ void structure_icon_set_cursor(vec_t cursor);
 
 void structure_icon_refresh(structure_icon_t *self);
 
+/* A live structure icon its refresh has revealed: drawn and hit-tested on screen. 0 for NULL or any other entity. */
+int structure_icon_is_revealed(const entity_t *e);
+
 down_t structure_icon_left_press(structure_icon_t *self);
 
 structure_icon_kind_t structure_icon_kind_view(const structure_icon_t *self);

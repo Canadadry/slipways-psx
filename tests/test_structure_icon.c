@@ -296,7 +296,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert((const void *)ie->tooltip == jb);
     assert(!ie->has_is_revealed && !ie->header.is_hovered);
     assert(class_of(icon)->states[ENTITY_STATE_NORMAL] == NULL && class_of(icon)->draw_overlay == NULL && class_of(icon)->new_year == NULL &&
-           class_of(icon)->right_press == NULL && class_of(icon)->accept_drop == NULL);
+           class_of(icon)->accept_drop == NULL);
     assert(class_of(icon)->hit_test != NULL && class_of(icon)->refresh != NULL && class_of(icon)->draw != NULL &&
            class_of(icon)->left_press != NULL);
     assert(entity_list_listed(live_entities(), icon) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_DRAW), icon) && entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), icon) &&
@@ -703,7 +703,7 @@ static void test_structure_icon_is_a_struct(void) {
         assert(class_of(all[i])->hit_test != NULL && class_of(all[i])->refresh != NULL && class_of(all[i])->draw != NULL &&
                class_of(all[i])->left_press != NULL);
         assert(class_of(all[i])->states[ENTITY_STATE_NORMAL] == NULL && class_of(all[i])->draw_overlay == NULL &&
-               class_of(all[i])->new_year == NULL && class_of(all[i])->right_press == NULL && class_of(all[i])->accept_drop == NULL);
+               class_of(all[i])->new_year == NULL && class_of(all[i])->accept_drop == NULL);
     }
 
     {

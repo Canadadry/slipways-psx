@@ -46,7 +46,6 @@ typedef struct entity_class entity_class_t;
 
 #define ENTITY_HAS_LAYER (1u << 0)
 #define ENTITY_HAS_HIT_BOX (1u << 1)
-#define ENTITY_HAS_CURSOR_SPRITE (1u << 2)
 #define ENTITY_HAS_INFRASPACE (1u << 3)
 #define ENTITY_HAS_FOLD_ANCHOR (1u << 4)
 #define ENTITY_HAS_SHAKE (1u << 5)
@@ -64,7 +63,6 @@ typedef struct {
     vec_t pos;
     vec_t map_pos;
     box_t hit_box;
-    p8_fixed_t cursor_sprite;
     p8_fixed_t infraspace;
     p8_fixed_t shake;
     p8_fixed_t fold_anchor;
@@ -164,7 +162,6 @@ struct entity_class {
     void (*refresh)(entity_t *self);
     int (*has_refresh)(const entity_t *self);
     down_t (*left_press)(entity_t *self, mouse_pos_t mouse);
-    down_t (*right_press)(entity_t *self, mouse_pos_t mouse);
     down_t (*accept_drop)(entity_t *self, const entity_t *s);
     void (*drag)(entity_t *self, mouse_pos_t mouse);
     void (*drop)(entity_t *self, entity_t *dropped);

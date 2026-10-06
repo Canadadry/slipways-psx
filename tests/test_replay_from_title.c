@@ -1,11 +1,12 @@
-/* tmp/replay replays every file from the title screen: the file's
- * difficulty click picks the difficulty, and the driver picks none before
- * the first frame.
+/* tmp/replay replays every file from the title screen: the X the file
+ * presses on a title row picks the difficulty, and the driver picks none
+ * before the first frame.
  *
- * The two fixtures differ only by the row they point at from frame 50 to
- * 69 and click at frame 60 (forgiving, reasonable); they then open the
- * score panel, whose score row shows the name of the chosen difficulty
- * button (economy_score_difficulty, read by score_panel_display.c). */
+ * The two fixtures differ only by the Down press at frame 10, which moves
+ * the title focus from forgiving to reasonable before X picks the row at
+ * frame 12; L1 at frame 16 then opens the score panel, whose score row
+ * shows the name of the chosen difficulty button (economy_score_difficulty,
+ * read by score_panel_display.c). */
 
 #include <assert.h>
 #include <stdio.h>
@@ -13,8 +14,8 @@
 #include <string.h>
 
 #define DRIVER "./tmp/replay"
-#define FORGIVING "tests/fixtures/title_click_forgiving.json"
-#define REASONABLE "tests/fixtures/title_click_reasonable.json"
+#define FORGIVING "tests/fixtures/title_pick_forgiving.json"
+#define REASONABLE "tests/fixtures/title_pick_reasonable.json"
 #define CAPTURE "tmp/test_replay_from_title.bin"
 #define DUMP_A "tmp/test_replay_from_title_a.txt"
 #define DUMP_B "tmp/test_replay_from_title_b.txt"
@@ -54,13 +55,13 @@ static int same_final_screen(void) {
     return same;
 }
 
-static void test_title_click_picks_the_difficulty(void) {
+static void test_title_pick_chooses_the_difficulty(void) {
     assert(!same_final_screen() &&
-           "the title-screen click must choose the difficulty shown in the score panel");
+           "the title-screen pick must choose the difficulty shown in the score panel");
 }
 
 int main(void) {
-    test_title_click_picks_the_difficulty();
+    test_title_pick_chooses_the_difficulty();
     remove(CAPTURE);
     remove(DUMP_A);
     remove(DUMP_B);

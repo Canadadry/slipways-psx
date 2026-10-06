@@ -71,8 +71,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 #define FUNCTIONS_HASH 0x6154CA4Fu
 #define FUNCTIONS_INVENTED_HASH 0xD71074AAu
 #define INSTALL_HASH 0x45B1D201u
-#define BUILT_WORLD_HASH 0x1FA5E0B2u
-#define HARVESTED_WORLD_HASH 0xAD954215u
+#define BUILT_WORLD_HASH 0x41A39EBCu
+#define HARVESTED_WORLD_HASH 0x091FA6C2u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -1064,7 +1064,7 @@ static void test_research_project_is_a_struct(void) {
 
     assert(b != NULL && b->header.class == cls);
     assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
-           cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
+           cls->has_refresh == NULL && cls->left_press == NULL && cls->accept_drop == NULL);
     assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
            cls->spawn_particle == NULL);
     for (j = 0; j < STATE_COUNT; j++) {

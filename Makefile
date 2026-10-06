@@ -9,9 +9,8 @@
 #                       sha256 of its capture to <name>.json.sha256; also fails
 #                       if an e2e lacks its .txt or its .json.sha256, or runs
 #                       past 180 frames (600 if listed in
-#                       tools/e2e_long_exceptions.txt), or if a keyboard_*
-#                       e2e lacks "keyboard_cursor": true, moves the mouse
-#                       or presses a mouse button
+#                       tools/e2e_long_exceptions.txt), or if an e2e does
+#                       not declare "input": "pad" or carries a mouse field
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
@@ -45,7 +44,13 @@
 # make sanitize-net  -> replays the e2e of tests/e2e/ under ASan+UBSan (`-O2`);
 #                       passes when every replay exits cleanly; also runs
 #                       test_live_slots (slots returned after each replay,
-#                       ~11 s), outside the suite
+#                       ~17 s), outside the suite
+# make coverage      -> builds tmp/replay_coverage (`--coverage -O0`), replays
+#                       COVERAGE_EVENTS (default: every e2e of tests/e2e/)
+#                       one after the other, writes tmp/coverage/lines.txt
+#                       (`<path>:<line> <0|1>` per executable line of
+#                       src/game/ and src/engine/, headers included) and
+#                       prints the totals, outside the suite
 # make full-game     -> replays each worst-case/ game (FULL_GAME_EVENTS:
 #                       full_game.json, then the same game followed by a new
 #                       game from the title, cut short by pause ->
@@ -104,11 +109,12 @@ TMP_DIR := tmp
 
 # One object tree per set of flags. An object compiled without -fsanitize is
 # not instrumented: sharing it with a target that is would leave the binary
-# blind on that code, silently. Do not merge the four.
+# blind on that code, silently. Do not merge the five.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
+OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
 
 # `-MMD -MP`: next to each object, the compiler writes the list of headers that
 # the translation unit actually opened. The include at the bottom of this file
@@ -117,6 +123,7 @@ DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 SANITIZE_OPT_CFLAGS := -O2
+COVERAGE_CFLAGS := --coverage -O0
 
 # `$(call objs,<sources>)` -> the paths of the matching object files in the
 # tree concerned. A target names its sources once; its prerequisites and its
@@ -125,6 +132,7 @@ objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
+coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
 
 # `mkdir -p $(@D)` in the recipe rather than a directory as a prerequisite:
 # the mtime of a directory changes with every file written into it, which would
@@ -145,8 +153,12 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
+$(OBJ_COVERAGE_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
 # The whole engine closure: all of src/ except the three entry points of
-# src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c` and
+# src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c`, `src/platform/keymap.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, replay_control, replay_source, screencast,
 # session_recorder, state). Used by the
@@ -155,8 +167,10 @@ ENGINE_SRCS := \
     src/p8/assets.c \
     src/game/background.c \
     src/engine/bootstrap.c \
-    src/engine/button_cursor.c \
     src/game/cheat.c \
+    src/game/input_step.c \
+    src/game/pad_nav.c \
+    src/game/pad_panel.c \
     src/game/cart.c \
     src/engine/collect.c \
     src/game/data_init.c \
@@ -237,6 +251,9 @@ CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/dump.c src/platform/fatal
 CART_ONLY_SRCS := \
     src/game/cart.c \
     src/game/cheat.c \
+    src/game/input_step.c \
+    src/game/pad_nav.c \
+    src/game/pad_panel.c \
     src/game/galaxy.c \
     src/game/help.c \
     src/game/menu.c \
@@ -269,7 +286,7 @@ $(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/ass
 $(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_malformed_five_dpad.json $(wildcard tests/fixtures/events_keyboard_cursor_*.json) | $(TMP_DIR)
+$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_mouse_recording_refused.json $(wildcard tests/fixtures/events_pad_*.json) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_dump: $(call objs,tests/test_dump.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c) | $(TMP_DIR)
@@ -285,13 +302,10 @@ $(TMP_DIR)/test_fixed: $(call objs,tests/test_fixed.c src/p8/fixed.c src/devtool
 $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_raylib_backend_coords: $(call objs,tests/test_raylib_backend_coords.c src/platform/raylib_backend_coords.c) | $(TMP_DIR)
+$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c) keymap.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_button_cursor: $(call objs,tests/test_button_cursor.c src/engine/button_cursor.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json tests/fixtures/events_keyboard_cursor_true.json tests/fixtures/events_keyboard_cursor_false.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
@@ -313,10 +327,10 @@ $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/scr
 $(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/replay tests/fixtures/title_click_forgiving.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/frames_tool: $(call objs,src/cmd/frames.c src/devtools/screencast.c src/devtools/dump.c src/p8/vram.c) | $(TMP_DIR)
@@ -505,6 +519,12 @@ $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c
 $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c src/devtools/state.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -584,8 +604,7 @@ UNIT_TESTS := \
     test_map_tables \
     test_draw_layers_camera \
     test_demo \
-    test_raylib_backend_coords \
-    test_button_cursor \
+    test_keymap \
     test_replay_source \
     test_recording_continuity \
     test_replay_control \
@@ -656,7 +675,9 @@ UNIT_TESTS := \
     test_research_project \
     test_layout_row \
     test_economy \
-    test_main_economy
+    test_main_economy \
+    test_input_step \
+    test_pad_nav
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
@@ -828,6 +849,16 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
+$(TMP_DIR)/replay_coverage: $(call coverage_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) -o $@ $(filter %.o,$^)
+
+COVERAGE_EVENTS ?= $(E2E_EVENTS)
+
+coverage: $(TMP_DIR)/replay_coverage tools/coverage.sh $(COVERAGE_EVENTS)
+	@sh tools/coverage.sh ./$(TMP_DIR)/replay_coverage $(OBJ_COVERAGE_DIR) $(TMP_DIR)/coverage "$(REPLAY_SRCS)" $(COVERAGE_EVENTS)
+
+.PHONY: coverage
+
 STATE_DIR := $(TMP_DIR)/state
 STATE_EVENTS := $(FULL_GAME_EVENTS) $(E2E_EVENTS)
 STATE_RUNS := $(addprefix state-run-,$(STATE_EVENTS))
@@ -924,13 +955,11 @@ raylib-vendor-setup:
 # CLAUDE.md. It needs third_party/raylib/src/libraylib.a, so `make raylib`
 # without vendoring fails with "no rule to make target".
 # The raylib target builds straight from the sources to the executable:
-# its files need `-I third_party/raylib/src`, which the others do not have,
-# and platform/raylib_backend_coords.c is also linked without that flag by a
-# test.
+# its files need `-I third_party/raylib/src`, which the others do not have.
 GAME_SRCS := \
     src/cmd/game.c \
     src/platform/raylib_backend.c \
-    src/platform/raylib_backend_coords.c \
+    src/platform/keymap.c \
     src/p8/palette.c \
     src/devtools/replay_control.c \
     src/devtools/replay_source.c \
@@ -948,4 +977,5 @@ raylib: $(TMP_DIR)/game
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d)
 

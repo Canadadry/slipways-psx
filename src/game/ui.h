@@ -13,7 +13,7 @@
 
 enum { UI_HOVER_LAYERS = 16 };
 
-typedef enum { MOUSE_SIDE_LEFT, MOUSE_SIDE_RIGHT } mouse_side_t;
+typedef enum { MOUSE_SIDE_LEFT } mouse_side_t;
 
 typedef struct {
     int layer_count;
@@ -35,8 +35,14 @@ typedef struct {
     entity_id_t hovered;
     entity_id_t previous_hovered;
     entity_id_t left_held;
-    entity_id_t right_held;
+    entity_id_t pad_selection;
+    entity_id_t pad_slipway;
+    int pad_selection_frames;
+    entity_id_t pad_tab;
+    int pad_crosshair;
 } ui_t;
+
+enum { UI_PAD_BLINK_PERIOD = 32, UI_PAD_CROSSHAIR_ARM = 2, UI_PAD_CROSSHAIR_COLOUR = 7 };
 
 void ui_init(void);
 
@@ -61,7 +67,24 @@ ui_t *ui_new(void);
 entity_t *ui_hovered(const ui_t *self);
 entity_t *ui_previous_hovered(const ui_t *self);
 entity_t *ui_left_held(const ui_t *self);
-background_t *ui_right_held(const ui_t *self);
+entity_t *ui_pad_selection(const ui_t *self);
+entity_t *ui_pad_slipway(const ui_t *self);
+entity_t *ui_pad_tab(const ui_t *self);
+
+/* NULL clears; anything else must be of a class a left press can hand over (asserted). */
+void ui_set_left_held(ui_t *self, const entity_t *held);
+
+/* NULL selection or slipway for none. frames_shown counts from the frame the selection was last shown. */
+void ui_set_pad_selection(ui_t *self, const entity_t *selection, const entity_t *slipway, int frames_shown);
+
+/* NULL for none: the active tab's HUD button, drawn as if hovered. */
+void ui_set_pad_tab(ui_t *self, const entity_t *button);
+
+/* Nonzero draws a crosshair at the screen centre. */
+void ui_set_pad_crosshair(ui_t *self, int shown);
+
+/* The pad selection while its circle's blink is on; NULL otherwise. */
+entity_t *ui_pad_circle(const ui_t *self);
 
 /* Empties the ui's own ephemerals list (kept, not replaced) and its hover
  * layers: their ids name entities of the world reset_world() abandons. */
@@ -89,7 +112,7 @@ void ui_update_hover(ui_t *self);
 
 void ui_handle_button(ui_t *self, mouse_side_t side);
 
-typedef enum { SEND_TO_HOVERED_LEFT_PRESS, SEND_TO_HOVERED_RIGHT_PRESS, SEND_TO_HOVERED_ACCEPT_DROP } send_to_hovered_slot_t;
+typedef enum { SEND_TO_HOVERED_LEFT_PRESS, SEND_TO_HOVERED_ACCEPT_DROP } send_to_hovered_slot_t;
 
 int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, mouse_pos_t mouse, const entity_t *held,
                 entity_t **out_target, down_t *out_down);

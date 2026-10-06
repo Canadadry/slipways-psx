@@ -21,7 +21,7 @@ src/engine/entity_class.h 2
 src/game/background.h 1
 src/game/economy_score.c 1
 src/game/game_data.c 1
-src/game/game_data.h 31
+src/game/game_data.h 29
 src/game/main_economy.h 2
 src/game/message_box.h 2
 src/game/mouse.h 1

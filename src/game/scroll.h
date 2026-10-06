@@ -4,7 +4,6 @@
 #include "p8/fixed.h"
 #include "game/game_data.h"
 #include "p8/gfx.h"
-#include "p8/input.h"
 #include "engine/entity.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
@@ -12,7 +11,6 @@
 typedef struct {
     entity_t header;
     const camera_archetype_t *archetype;
-    vec_t velocity;
 } camera_t;
 
 void camera_init(void);
@@ -24,9 +22,10 @@ const entity_class_t *camera_class(void);
 
 camera_t *camera_new(void);
 
-void camera_update(const p8_input_t *input, camera_t *self);
+void camera_update(camera_t *self);
 
-void camera_set_velocity(camera_t *self, vec_t v);
+/* Moves the map position and the position by whole pixels, within the camera bound. */
+void camera_pan(camera_t *self, int dx, int dy);
 
 void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax);
 

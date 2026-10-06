@@ -417,7 +417,7 @@ static uint32_t fold_button(uint32_t hash, const void *entity) {
     hash = fnv(hash, is_hovered_state(button));
     assert(class_of(button)->states[ENTITY_STATE_NORMAL] != NULL && class_of(button)->draw != NULL && class_of(button)->draw_overlay != NULL &&
            class_of(button)->left_press != NULL && class_of(button)->hit_test != NULL);
-    assert(class_of(button)->right_press == NULL && class_of(button)->accept_drop == NULL && class_of(button)->new_year == NULL);
+    assert(class_of(button)->accept_drop == NULL && class_of(button)->new_year == NULL);
     hash = fnv(hash, (uint32_t)entity_list_listed(live_entities(), button));
     for (index = 0; index < sizeof messages / sizeof messages[0]; index++) {
         hash = fnv(hash, (uint32_t)entity_list_listed(entities_by_message(messages[index]), button));
@@ -1772,7 +1772,7 @@ static void test_pause_menu_open_box_is_a_struct(void) {
     o = pause_menu_open_box();
     assert(o != NULL && o->class == pause_menu_open_box_class());
     assert(o->class->draw == NULL && o->class->draw_overlay == NULL && o->class->hit_test == NULL && o->class->new_year == NULL &&
-           o->class->refresh == NULL && o->class->left_press == NULL && o->class->right_press == NULL && o->class->accept_drop == NULL);
+           o->class->refresh == NULL && o->class->left_press == NULL && o->class->accept_drop == NULL);
     assert(o->class->drag == NULL && o->class->drop == NULL && o->class->attach_slipway == NULL && o->class->offer_trade == NULL && o->class->draw_at == NULL &&
            o->class->spawn_particle == NULL);
     for (i = 0; i < STATE_COUNT; i++) {

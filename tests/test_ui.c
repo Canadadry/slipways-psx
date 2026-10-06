@@ -70,11 +70,10 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 #define BUILT_HASH 0x86CE257Cu
 #define SHARED_HASH 0x690E4805u
-#define FRESH_HASH 0xAC467A96u
-#define HOVER_HASH 0xE6A09234u
-#define LAYERS_HASH 0xDBA4EEF8u
-#define RIGHT_HASH 0xF56595E2u
-#define LEFT_HASH 0xF1302109u
+#define FRESH_HASH 0x8669AF3Au
+#define HOVER_HASH 0x5F61B759u
+#define LAYERS_HASH 0x2C9F6F7Bu
+#define LEFT_HASH 0xCD10022Au
 #define CLEAR_EPHEMERALS_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
 #define ENTITY_STATE_HASH 0xD49B8748u
@@ -188,19 +187,17 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* The overlay drawn alone on a cleared screen is exactly the given sprite at
- * the main mouse position. */
-static uint32_t cursor_is(int id) {
-    vec_t at = vec_at(pos_ref(&checked_main_mouse()->header));
-    uint32_t drawn;
-
+/* Draws the overlay alone on a cleared screen. */
+static void draw_overlay_alone(void) {
     p8_cls(&memory);
     ui_draw_overlay(&graphics, &memory, main_ui());
-    drawn = screen_hash();
+}
+
+static void assert_overlay_draws_nothing(void) {
+    draw_overlay_alone();
+    uint32_t drawn = screen_hash();
     p8_cls(&memory);
-    p8_spr_default(&graphics, &memory, id, p8_fixed_flr_int(at.x), p8_fixed_flr_int(at.y));
     assert(drawn == screen_hash());
-    return drawn;
 }
 
 static int is_of(const void *e, const entity_class_t *cls) {
@@ -297,17 +294,15 @@ static void test_built(void) {
         assert(!entity_list_listed(entities_by_tag(tags[index]), ok));
     }
 
-    assert(ok->archetype->cursor_sprite == p8_fixed_from_int(58));
     assert(ok->archetype->layer == p8_fixed_from_int(15));
     assert(ok->header.state == ENTITY_STATE_NORMAL);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
     hash = fnv(fnv(hash, 1u), (uint32_t)ok->header.state_time);
-    assert(!(ok->has & UI_HAS_MOUSE_WORLD) && !(ok->has & UI_HAS_HOVERED_BY_LAYER) && ui_hovered(ok) == NULL && ui_previous_hovered(ok) == NULL && ui_left_held(ok) == NULL &&
-           ui_right_held(ok) == NULL);
+    assert(!(ok->has & UI_HAS_MOUSE_WORLD) && !(ok->has & UI_HAS_HOVERED_BY_LAYER) && ui_hovered(ok) == NULL && ui_previous_hovered(ok) == NULL && ui_left_held(ok) == NULL);
     assert(ui_class()->draw_overlay != NULL);
     assert(ui_class()->states[ENTITY_STATE_NORMAL] == NULL && ui_class()->left_press == NULL &&
-           ui_class()->right_press == NULL && ui_class()->hit_test == NULL);
+           ui_class()->hit_test == NULL);
 
     assert(!owns_ephemerals(ok));
     assert(ok->archetype == &ui_archetype);
@@ -331,7 +326,6 @@ static void test_shared(void) {
     ui_t *other = ui_new();
 
     assert(other != NULL && other != ok);
-    assert(entity_has(&other->header, ENTITY_HAS_CURSOR_SPRITE) && other->header.cursor_sprite == other->archetype->cursor_sprite);
     assert(!owns_ephemerals(other) && !owns_ephemerals(ok) && ephemerals_of(other)->count == 0 && ephemerals_of(ok)->count == 0);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), other));
     h = fnv(h, (uint32_t)entity_list_rank_in(entities_by_message(ENTITY_MESSAGE_DRAW_OVERLAY), other));
@@ -354,7 +348,7 @@ static void test_shared(void) {
 
 /* A fresh game's first ui_update: `mouse_world` is the mouse position plus
  * the camera position, `hovered_by_layer` built, `previous_hovered` is
- * `hovered`, and the overlay draws sprite 58 at the mouse position. */
+ * `hovered`, and the overlay draws nothing. */
 static void test_fresh(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -370,7 +364,7 @@ static void test_fresh(void) {
     h = fold_vec(h, ok->mouse_world);
     h = fold_layers(h, ok);
     h = fold_entity(h, ui_hovered(ok));
-    h = fnv(h, cursor_is(58));
+    assert_overlay_draws_nothing();
     assert(!owns_ephemerals(ok));
     check("fresh", h, FRESH_HASH);
 }
@@ -418,7 +412,7 @@ static void test_hover(void) {
     ui_update(&memory, ok);
     assert((void *)ui_previous_hovered(ok) == planet && (void *)ui_hovered(ok) == planet);
     assert(is_hovered_state(planet) == 2);
-    h = fnv(h, cursor_is(58));
+    assert_overlay_draws_nothing();
 
     mouse_at(x + 40 > 143 ? x - 40 : x + 40, y, 0);
     ui_update(&memory, ok);
@@ -429,8 +423,7 @@ static void test_hover(void) {
 }
 
 /* ui_send_to_hovered walks the layers from 15 down: over a planet, the left
- * press answers from the planet (layer 6) before the background (layer 1);
- * the right press only from the background, which answers itself. */
+ * press answers from the planet (layer 6) before the background (layer 1). */
 static void test_layers(void) {
     uint32_t h = 2166136261u;
     ui_t *ok = start_game();
@@ -453,60 +446,23 @@ static void test_layers(void) {
     assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_LEFT_PRESS, mouse, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && entity_get(kn.held) == NULL);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
-    kv = NULL;
-    assert(ui_send_to_hovered(main_ui(), SEND_TO_HOVERED_RIGHT_PRESS, mouse, NULL, &kv, &kn));
-    assert((void *)kv == the_background() && kn.stop && (void *)entity_get(kn.held) == the_background());
-    h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), kv));
     check("layers", h, LAYERS_HASH);
-}
-
-/* The right button held scrolls through the background's right press and
- * drag: `right_held` is the background and the cursor is sprite 9;
- * released, `right_held` goes. */
-static void test_right(void) {
-    uint32_t h = 2166136261u;
-    ui_t *ok = start_game();
-    void *bg;
-
-    mouse_at(80, 96, 0);
-    ui_update(&memory, ok);
-    bg = the_background();
-    mouse_at(80, 96, 2);
-    ui_update(&memory, ok);
-    assert((void *)ui_right_held(ok) == bg && ui_left_held(ok) == NULL);
-    h = fnv(h, cursor_is(9));
-
-    mouse_at(86, 86, 2);
-    ui_update(&memory, ok);
-    assert((void *)ui_right_held(ok) == bg);
-    h = fold_vec(h, vec_at(pos_ref(&checked_main_camera()->header)));
-    h = fnv(h, cursor_is(9));
-
-    mouse_at(86, 86, 0);
-    ui_update(&memory, ok);
-    assert(ui_right_held(ok) == NULL && ui_left_held(ok) == NULL);
-    h = fold_vec(h, vec_at(pos_ref(&checked_main_camera()->header)));
-    h = fnv(h, cursor_is(58));
-    check("right", h, RIGHT_HASH);
 }
 
 static void test_held_links_read_null_after_the_flush(void) {
     ui_t *ok = start_game();
-    background_t *bg;
     entity_t *probe;
 
     mouse_at(80, 96, 0);
     ui_update(&memory, ok);
-    bg = the_background();
-    mouse_at(80, 96, 3);
+    mouse_at(80, 96, 1);
     ui_update(&memory, ok);
     probe = ui_left_held(ok);
-    assert(is_of(probe, probe_class()) && ui_right_held(ok) == bg);
+    assert(is_of(probe, probe_class()));
     entity_unregister(probe);
-    entity_unregister(&bg->header);
-    assert(ui_left_held(ok) == probe && ui_right_held(ok) == bg);
+    assert(ui_left_held(ok) == probe);
     cart_flush_exit_queue();
-    assert(ui_left_held(ok) == NULL && ui_right_held(ok) == NULL);
+    assert(ui_left_held(ok) == NULL);
 }
 
 static int slipways_count(void *planet) {
@@ -568,11 +524,11 @@ static void test_left(void) {
     mouse_at(pixel_x, pixel_y, 1);
     ui_update(&memory, dispatcher);
     held = ui_left_held(dispatcher);
-    assert(held != NULL && is_of(held, slipway_class()) && ui_right_held(dispatcher) == NULL);
+    assert(held != NULL && is_of(held, slipway_class()));
     assert((void *)slipway_start(((const slipway_t *)held)) == start_planet && slipways_count(start_planet) == 0);
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), held));
     hash = fnv(hash, (uint32_t)entity_list_rank_in(live_entities(), start_planet));
-    hash = fnv(hash, cursor_is(58));
+    assert_overlay_draws_nothing();
 
     screen_of(other, &pixel_x, &pixel_y);
     mouse_at(pixel_x, pixel_y, 1);
@@ -584,7 +540,7 @@ static void test_left(void) {
 
     mouse_at(pixel_x, pixel_y, 0);
     ui_update(&memory, dispatcher);
-    assert(ui_left_held(dispatcher) == NULL && ui_right_held(dispatcher) == NULL);
+    assert(ui_left_held(dispatcher) == NULL);
     assert(slipways_count(start_planet) == 1 && slipways_count(target) == 1);
     hash = fnv(hash, (uint32_t)entities_by_tag(TAG_SLIPWAY)->count);
     check("left", hash, LEFT_HASH);
@@ -700,7 +656,7 @@ static void test_reset_world_drops_the_old_world_ids(void) {
     for (mf = 0; mf < UI_HOVER_LAYERS; mf++) {
         assert(layer_count(old, mf) == 0);
     }
-    assert(!ui_send_to_hovered(old, SEND_TO_HOVERED_RIGHT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn));
+    assert(!ui_send_to_hovered(old, SEND_TO_HOVERED_LEFT_PRESS, (mouse_pos_t){0}, NULL, &kv, &kn));
     ui_clear_ephemerals(old);
     assert(ephemerals_of(old)->count == 0);
 }
@@ -745,7 +701,7 @@ static void test_ui_is_a_struct(void) {
 
     assert(is_of(ok, cls));
     assert(cls->draw_overlay != NULL && cls->draw == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
-           cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL && cls->drag == NULL && cls->drop == NULL &&
+           cls->left_press == NULL && cls->accept_drop == NULL && cls->drag == NULL && cls->drop == NULL &&
            cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL && cls->spawn_particle == NULL);
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
@@ -786,7 +742,6 @@ static int giver_hit_test(entity_t *self, mouse_pos_t mouse) {
 static const entity_class_t giver_class_def = {
     .hit_test = giver_hit_test,
     .left_press = giver_down,
-    .right_press = giver_down,
 };
 
 static giver_t g_giver = {{.class = &giver_class_def, .has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_HOVERED, .layer = 0xf0000}};
@@ -798,16 +753,13 @@ static void press(void *ok, int buttons) {
     ui_update(&memory, ok);
 }
 
-static int g_hold_buttons;
-
 static void hold_given(void *ok) {
-    press(ok, g_hold_buttons);
+    press(ok, 1);
 }
 
 static void test_ui_held_aborts_on_other_classes(void) {
     ui_t *ok = start_game();
     void *left[8];
-    void *right[6];
     size_t i;
 
     entity_construct(&g_giver.header);
@@ -819,23 +771,26 @@ static void test_ui_held_aborts_on_other_classes(void) {
     left[5] = button_new(NULL);
     left[6] = structure_icon_new(NULL);
     left[7] = wormhole_too_far_target_wrapper();
-    right[0] = slipway_new(NULL);
-    right[1] = probe_new(NULL);
-    right[2] = wormhole_new();
-    right[3] = structure_new(NULL);
-    right[4] = left[2];
-    right[5] = left[4];
 
-    g_hold_buttons = 1;
     for (i = 0; i < 8; i++) {
         g_given = left[i];
         must_abort(hold_given, ok);
     }
-    g_hold_buttons = 2;
-    for (i = 0; i < 6; i++) {
-        g_given = right[i];
-        must_abort(hold_given, ok);
-    }
+}
+
+static void set_left_held_to_a_planet(void *ok) {
+    ui_set_left_held(ok, entities_by_tag(TAG_PLANET)->items[0]);
+}
+
+static void test_set_left_held_sets_and_clears(void) {
+    ui_t *ok = start_game();
+    planet_t *structure = structure_new(NULL);
+
+    ui_set_left_held(ok, &structure->header);
+    assert(ui_left_held(ok) == &structure->header);
+    ui_set_left_held(ok, NULL);
+    assert(ui_left_held(ok) == NULL);
+    must_abort(set_left_held_to_a_planet, ok);
 }
 
 static int same_point(vec_t a, vec_t b) {
@@ -1225,6 +1180,39 @@ static void test_probe_state_time_key_at_zero(void) {
     assert_state_time(made, 0);
 }
 
+/* Over a planet or not, the overlay draws the colour-7 crosshair at the
+ * screen centre while it is set, and nothing otherwise. */
+static void test_overlay_draws_only_the_crosshair(void) {
+    ui_t *ok = start_game();
+    int x;
+    int y;
+    int lit = 0;
+
+    mouse_at(80, 96, 0);
+    ui_update(&memory, ok);
+    planet_on_screen(&x, &y);
+    mouse_at(x, y, 0);
+    ui_update(&memory, ok);
+    assert(ui_hovered(ok) != NULL && (void *)ui_hovered(ok) != the_background());
+    assert_overlay_draws_nothing();
+
+    ui_set_pad_crosshair(ok, 1);
+    draw_overlay_alone();
+    for (int py = 0; py < P8_SCREEN_HEIGHT; py++) {
+        for (int px = 0; px < P8_SCREEN_WIDTH; px++) {
+            int dx = px - P8_SCREEN_WIDTH / 2;
+            int dy = py - P8_SCREEN_HEIGHT / 2;
+            int on_arm = (dx == 0) != (dy == 0) && abs(dx + dy) <= UI_PAD_CROSSHAIR_ARM;
+            assert(memory.screen[py][px] == (on_arm ? UI_PAD_CROSSHAIR_COLOUR : 0));
+            lit += on_arm;
+        }
+    }
+    assert(lit == 4 * UI_PAD_CROSSHAIR_ARM);
+
+    ui_set_pad_crosshair(ok, 0);
+    assert_overlay_draws_nothing();
+}
+
 /* Each scenario runs in a child forked right after cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -1257,8 +1245,8 @@ int main(void) {
     in_fresh_child(test_shared);
     in_fresh_child(test_fresh);
     in_fresh_child(test_hover);
+    in_fresh_child(test_overlay_draws_only_the_crosshair);
     in_fresh_child(test_layers);
-    in_fresh_child(test_right);
     in_fresh_child(test_left);
     in_fresh_child(test_held_links_read_null_after_the_flush);
     in_fresh_child(test_clear_ephemerals);
@@ -1271,6 +1259,7 @@ int main(void) {
     in_fresh_child(test_hover_hands_the_mouse_by_value);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_aborts_on_other_classes);
+    in_fresh_child(test_set_left_held_sets_and_clears);
     in_fresh_child(test_entity_closed);
     in_fresh_child(test_entity_state_by_name);
     in_fresh_child(test_components_carried);

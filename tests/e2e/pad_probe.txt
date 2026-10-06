@@ -1,0 +1,48 @@
+Probe and space fold in free mode, with the D-pad and X. 77 frames.
+
+In free mode the cursor is the screen centre (80, 60), marked by the
+colour-7 crosshair (x78-82 on y=60, y58-62 on x=80, the centre pixel
+undrawn), and the D-pad pans the camera (1 px a frame for the first 10
+frames of a held direction, 2 px up to 40). Readings below come from the
+framebuffer dump and `make state` of the file cut after that frame.
+
+- f0-9: idle while the title rows slide in. f10: Down. After f11:
+  reasonable (y64-72, x=108) is the only row in colour 12.
+- f12: X on "reasonable": the title rows are gone from f12, the game
+  starts. Camera at (176, 196), so the centre is world (256, 256).
+- f16: O tap in free mode: camera, entities and ephemerals identical at
+  f15 and f17.
+- f19-24: Up held 6 frames, camera y 196 -> 190, centre world
+  (256, 250). Without it, X at the start centre lands 19 px from p14
+  and the probe is refused (red hatched disk, nothing placed).
+- f26: X tap on empty space: the starting probe (entity count 107 ->
+  108, one particle emitter), dropped on the f27 release. $100, month 1.
+- f29-34: Up+Left held 6 frames, f35-39: Left alone 5 more. After f40
+  camera (164, 184): centre world (244, 244), 12 px left and 6 px up of
+  the probe, more than 20 px from every planet. The probe sits at screen
+  (92, 66), its colour-6 particles around it.
+- f41-56: X held 16 frames on empty space: the fold's colour-1 disk
+  grows round the centre (radius ~27 px at f56), the crosshair at its
+  middle and the colour-8 price "3" above it.
+- f57: X released (idle frame): the fold is confirmed, $100 -> $97,
+  month 2, a red "-3" label rises from the fold. f58-67: the unfolding
+  rings (colours 5, d, 6, 7) round (80, 60).
+- f68: p12 (screen 69, 37) and p14 (screen 79, 86) turn known, their
+  grey unknown sprites replaced by coloured planets. f69-76: idle.
+
+`make state` at f76: clock year 3401 month 2, credits 97, income 0,
+planets 90, colonies 0, slipways 0, structures 0, techs 0. Known:
+p12 type e, p14 type o; every other planet unknown.
+
+keyboard_slipway after its fold (its file cut at f70): clock year 3401
+month 2, credits 97, planets 90, colonies 0, slipways 0, structures 0,
+techs 0. Known: p30 type m, p88 type f; p28 revealed empty, vanishing.
+Same cost ($100 -> $97), same clock (month 1 -> 2), two planets known.
+
+The galaxies differ: the galaxy depends on the frame the game starts,
+keyboard_slipway clicks the title at f1 and a pad title needs the rows
+first (X at f12). Planet ids are therefore not compared.
+
+Covers the probe and fold part of keyboard_slipway (f27-69). Its two
+colonies are covered by pad_colonise (step 2.2) and its slipway by
+pad_slipway (step 2.3).

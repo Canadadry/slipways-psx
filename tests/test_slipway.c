@@ -1032,7 +1032,7 @@ static void test_slipway_is_a_struct(void) {
     assert(class_of(jc)->drag != NULL && class_of(jc)->drop != NULL);
     assert(class_of(jc)->draw_overlay != NULL && class_of(jc)->draw != NULL);
     assert(class_of(jc)->states[ENTITY_STATE_PLACING] == NULL && class_of(jc)->states[ENTITY_STATE_NORMAL] == NULL &&
-           class_of(jc)->left_press == NULL && class_of(jc)->right_press == NULL && class_of(jc)->accept_drop == NULL);
+           class_of(jc)->left_press == NULL && class_of(jc)->accept_drop == NULL);
 }
 
 /* Beyond range, every slipway gets the same struct: the status text fixed,

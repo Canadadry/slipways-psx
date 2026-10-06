@@ -421,7 +421,7 @@ static uint32_t fold_burst(uint32_t hash, void *entity, int from_protostar) {
            class_of(entity)->new_year != NULL && class_of(entity)->states[ENTITY_STATE_VANISHING] != NULL);
     assert(class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL && class_of(entity)->draw_overlay == NULL &&
            class_of(entity)->states[ENTITY_STATE_PLACING] == NULL && class_of(entity)->states[ENTITY_STATE_UNFOLDING] == NULL &&
-           class_of(entity)->right_press == NULL && class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL);
+           class_of(entity)->states[ENTITY_STATE_SETTLED] == NULL);
     assert(class_of(entity)->draw_at == NULL && class_of(entity)->drag == NULL && class_of(entity)->drop == NULL);
     assert(planet->header.class->tags == 0);
     assert(planet->archetype == &burst_archetype);
@@ -767,7 +767,7 @@ static void test_burst_is_a_struct(void) {
     }
     assert(cls->draw != NULL && cls->draw != jo->draw);
     assert(cls->draw_overlay == jo->draw_overlay && cls->hit_test == jo->hit_test && cls->new_year == jo->new_year && cls->refresh == jo->refresh &&
-           cls->has_refresh == jo->has_refresh && cls->left_press == jo->left_press && cls->right_press == jo->right_press && cls->accept_drop == jo->accept_drop);
+           cls->has_refresh == jo->has_refresh && cls->left_press == jo->left_press && cls->accept_drop == jo->accept_drop);
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == jo->states[j]);
     }

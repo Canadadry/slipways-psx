@@ -9,10 +9,9 @@ typedef struct {
     char path[SESSION_RECORDER_PATH_MAX];
     int frame_count;
     long tail_offset;
-    int keyboard_cursor;
 } session_recorder_t;
 
-void session_recorder_open(session_recorder_t *recorder, const char *path, int keyboard_cursor);
+void session_recorder_open(session_recorder_t *recorder, const char *path);
 
 int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_frame_t *frame);
 

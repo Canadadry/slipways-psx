@@ -1,7 +1,8 @@
 {
+  "input": "pad",
   "frames": [
-    { "mouse_x": 64, "mouse_y": 64, "mouse_buttons": 1, "dpad": [false, true, false, false] },
-    { "mouse_x": 10, "mouse_y": 20, "mouse_buttons": 3, "dpad": [true, false, true, false] },
-    { "mouse_x": 0, "mouse_y": 127, "mouse_buttons": 4, "dpad": [false, false, false, true] }
+    { "pad": ["right"] },
+    { "pad": ["up", "left"] },
+    { "pad": ["down"] }
   ]
 }

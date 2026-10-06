@@ -5,10 +5,8 @@
 
 #include <stddef.h>
 
-#define BTN_O 4
-#define BTN_X 5
-
-static const int sequence[] = {BTN_O, BTN_O, BTN_X, BTN_X, BTN_O, BTN_O, BTN_X, BTN_X};
+static const int sequence[] = {P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE,
+                               P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE};
 #define SEQUENCE_LENGTH ((int)(sizeof sequence / sizeof sequence[0]))
 
 void cheat_init(cheat_t *cheat) {
@@ -50,9 +48,9 @@ static int feed(cheat_t *cheat, int button) {
     return 1;
 }
 
-int cheat_step(cheat_t *cheat, const p8_input_t *input) {
-    int o = p8_btn(input, BTN_O);
-    int x = p8_btn(input, BTN_X);
+int cheat_step(cheat_t *cheat, int pad_buttons) {
+    int o = (pad_buttons & P8_PAD_CROSS) != 0;
+    int x = (pad_buttons & P8_PAD_CIRCLE) != 0;
     int o_edge = o && !cheat->prev_o;
     int x_edge = x && !cheat->prev_x;
     int fired = 0;
@@ -63,9 +61,9 @@ int cheat_step(cheat_t *cheat, const p8_input_t *input) {
     if (o_edge && x_edge) {
         cheat->matched = 0;
     } else if (o_edge) {
-        fired = feed(cheat, BTN_O);
+        fired = feed(cheat, P8_PAD_CROSS);
     } else if (x_edge) {
-        fired = feed(cheat, BTN_X);
+        fired = feed(cheat, P8_PAD_CIRCLE);
     }
     return fired;
 }

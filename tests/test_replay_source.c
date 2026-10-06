@@ -48,7 +48,7 @@ static void test_missing_path_reports_load_failure(void) {
 static void test_malformed_recording_reports_load_failure(void) {
     replay_source_t source;
 
-    assert(replay_source_open(&source, "tests/fixtures/events_malformed_missing_field.json") ==
+    assert(replay_source_open(&source, "tests/fixtures/events_pad_missing_buttons.json") ==
            REPLAY_SOURCE_LOAD_FAILED);
     assert(replay_source_frame_count(&source) == 0);
 
@@ -59,9 +59,9 @@ static void test_malformed_recording_reports_load_failure(void) {
  * exact values are what catch an off-by-one, a reversed order or a frame
  * served twice. */
 static const p8_input_frame_t events_valid_frames[] = {
-    { 64, 64, 1, { 0, 1, 0, 0 } },
-    { 10, 20, 3, { 1, 0, 1, 0 } },
-    { 0, 127, 4, { 0, 0, 0, 1 } }
+    { 0, 0, 0, P8_PAD_RIGHT },
+    { 0, 0, 0, P8_PAD_UP | P8_PAD_LEFT },
+    { 0, 0, 0, P8_PAD_DOWN }
 };
 static const int events_valid_count = 3;
 
@@ -69,10 +69,7 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
     assert(got->mouse_x == want->mouse_x);
     assert(got->mouse_y == want->mouse_y);
     assert(got->mouse_buttons == want->mouse_buttons);
-    assert(got->dpad[0] == want->dpad[0]);
-    assert(got->dpad[1] == want->dpad[1]);
-    assert(got->dpad[2] == want->dpad[2]);
-    assert(got->dpad[3] == want->dpad[3]);
+    assert(got->pad_buttons == want->pad_buttons);
 }
 
 static void test_loaded_recording_serves_its_first_frame(void) {
@@ -172,44 +169,36 @@ static void test_frames_served_tracks_the_replay_position(void) {
     replay_source_close(&source);
 }
 
-static void test_new_game_declares_the_keyboard_cursor(void) {
-    replay_source_t source;
+#define PAD_FRAME_COUNT 3
+static const p8_input_frame_t pad_frames[PAD_FRAME_COUNT] = {
+    { 0, 0, 0, P8_PAD_CROSS },
+    { 0, 0, 0, 0 },
+    { 0, 0, 0, P8_PAD_UP | P8_PAD_CIRCLE | P8_PAD_START },
+};
 
-    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
-    assert(replay_source_keyboard_cursor(&source) == 1);
+static void test_pad_recording_serves_its_masks_in_order(void) {
+    const char *path = "tmp/test_replay_source_pad.json";
+    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path));
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&source) == PAD_FRAME_COUNT);
+    for (int i = 0; i < PAD_FRAME_COUNT; i++) {
+        p8_input_frame_t frame;
+        assert(replay_source_next_frame(&source, &frame) == 1);
+        assert_frame_equals(&frame, &pad_frames[i]);
+    }
 
     replay_source_close(&source);
+    remove(path);
 }
 
-static void test_undeclared_recording_does_not_declare(void) {
+static void test_old_mouse_recording_reports_load_failure(void) {
     replay_source_t source;
 
-    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
-    assert(replay_source_keyboard_cursor(&source) == 0);
-    replay_source_close(&source);
-
-    assert(replay_source_open(&source, "tests/fixtures/events_keyboard_cursor_false.json") ==
-           REPLAY_SOURCE_LOADED);
-    assert(replay_source_keyboard_cursor(&source) == 0);
-    replay_source_close(&source);
-}
-
-static void test_declared_recording_declares(void) {
-    replay_source_t source;
-
-    assert(replay_source_open(&source, "tests/fixtures/events_keyboard_cursor_true.json") ==
-           REPLAY_SOURCE_LOADED);
-    assert(replay_source_keyboard_cursor(&source) == 1);
-
-    replay_source_close(&source);
-}
-
-static void test_failed_load_does_not_declare(void) {
-    replay_source_t source;
-
-    assert(replay_source_open(&source, "tests/fixtures/no_such_recording.json") ==
+    assert(replay_source_open(&source, "tests/fixtures/events_mouse_recording_refused.json") ==
            REPLAY_SOURCE_LOAD_FAILED);
-    assert(replay_source_keyboard_cursor(&source) == 0);
+    assert(replay_source_frame_count(&source) == 0);
 
     replay_source_close(&source);
 }
@@ -224,10 +213,8 @@ int main(void) {
     test_exhausted_recording_reports_exhaustion_forever();
     test_no_recording_is_exhausted_from_the_first_frame();
     test_frames_served_tracks_the_replay_position();
-    test_new_game_declares_the_keyboard_cursor();
-    test_undeclared_recording_does_not_declare();
-    test_declared_recording_declares();
-    test_failed_load_does_not_declare();
+    test_pad_recording_serves_its_masks_in_order();
+    test_old_mouse_recording_reports_load_failure();
 
     printf("test_replay_source: all tests passed\n");
     return 0;

@@ -1,0 +1,30 @@
+A lab refused on a planet, an empty planet fading out, a lab placed on
+its spot. 150 frames.
+
+Pad input declared ("input": "pad"). pad_probe's frames with 12 idle
+frames inserted before its fold (X held f53-68 instead of f41-56): the
+galaxy is pad_probe's, but the fold's reveal rolls differ, so p14
+turns `empty` (state vanishing) instead of type o. Readings come from
+`make state` of the file cut after the frame and from the capture.
+
+- f80: p12 (type e) and p14 (empty, vanishing) known; $97, month 2.
+- f81, f83: R1, X: a lab (s1) taken from the `build` tab. f85-101:
+  Up+Left 11, Up 6: s1 carried onto p12 (screen 81.44, 61.10), its
+  colour-2 hatched disk drawn at f103.
+- f103: X: refused, s1 gone at f104, $97 kept, planets 91 -> 90.
+- f105-134: Down+Right 10, Down 20: camera 162 210, p14 under the
+  centre. p14 draws on fewer frames as it ages
+  (planet_display's vanishing test).
+- f136, f138: R1, X: lab s2 carried at the centre over p14.
+- f142: p14 is dead (more than 60 ticks): planets 91 -> 90.
+- f143: X: s2 built at world (242, 270), p14's spot: $97 -> $82, month
+  2 -> 4, income -1; a "-15$" label rises from it.
+
+`make state` at f149: year 3401 month 4, credits 82, income -1, camera
+162 210, s2 colonized structure, p12 known type e, planets 90,
+colonies 1.
+
+Replaces empty_planet_fade (a lab refused on a mineral planet, an
+empty planet that fades out and disappears, a lab placed on its spot
+for $15). Same effects; here the refused lab is on an earth-like
+planet.

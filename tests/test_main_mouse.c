@@ -76,7 +76,7 @@ static void assert_a_mouse(void) {
 
     assert(nf != NULL && entity_has_pos(&nf->header));
     assert(nf->header.pos.x == 0 && nf->header.pos.y == 0);
-    assert(mouse_left_button() != NULL && mouse_right_button() != NULL);
+    assert(mouse_left_button() != NULL);
 }
 
 /* Between cart_load() and cart_init(). */
@@ -95,7 +95,7 @@ static void test_update_on_placeholder(void) {
     assert_placeholder(1);
     ok = ui_new();
     ui_update(&memory, ok);
-    assert(ui_left_held(ok) == NULL && ui_right_held(ok) == NULL);
+    assert(ui_left_held(ok) == NULL);
     assert(ok->has & UI_HAS_MOUSE_WORLD);
     qa = &ok->mouse_world;
     printf("[update mouse_world] (%d,%d)\n", (int)qa->x, (int)qa->y);

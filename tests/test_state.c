@@ -11,6 +11,7 @@
 
 #include "devtools/state.h"
 #include "engine/zone_sizes.h"
+#include "p8/input.h"
 #include "p8/fatal.h"
 
 #define STATE "tmp/test_state.txt"
@@ -82,8 +83,6 @@ static void memory_lines_have_peak_and_limit(void) {
     const char *frame = memory_line("zone frame");
     assert(memory_value(frame, 1) > 0);
     assert(memory_value(frame, 2) == (long)FRAME_ZONE_BYTES);
-    assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
-    assert(memory_value(memory_line("cap bytes_message_box"), 1) > 0);
     assert(memory_value(memory_line("cap entity_table"), 1) > 0 && "every constructed entity takes a slot");
     char budget[64];
     snprintf(budget, sizeof budget, "budget zones %lu %lu", (unsigned long)ZONE_BUDGET_USED_BYTES,
@@ -91,26 +90,37 @@ static void memory_lines_have_peak_and_limit(void) {
     assert(has(budget) && "the state carries the zone budget of the build");
 }
 
-static void trade_rich_mine(void) {
-    replay(REPLAY("tests/e2e/trade_rich_mine.json"));
-    assert(has("count planets 93"));
-    assert(has("count slipways 7"));
-    assert(has("count colonies 7") && "p1, p27, p48, p71 and the three labs");
+static void pad_tech_costs_rich_mine(void) {
+    replay(REPLAY("tests/e2e/pad_tech_costs.json"));
+    assert(has("count planets 91"));
+    assert(has("count slipways 6"));
+    assert(has("count colonies 6") && "p7, p12, p14, p39 and the two labs");
     assert(has("count structures 0"));
-    assert(has("planet p1 colonized planet e world 259.10 206.16 screen 83.10 10.16 visible 1"));
-    assert(has("planet p2 unknown planet - world 60.38 236.90 screen -115.61 40.90 visible 0"));
-    assert(has("slipway p27 p1 normal"));
-    assert(has("slipway p1 s1 normal"));
-    assert(has("camera world 176 196"));
+    assert(has("planet p12 colonized planet e world 233.44 221.10 screen 79.44 39.10 visible 1"));
+    assert(has("planet p2 unknown planet - world 25.45 343.24 screen -128.54 161.24 visible 0"));
+    assert(has("slipway p39 p12 normal"));
+    assert(has("slipway s2 p12 normal"));
+    assert(has("camera world 154 182"));
     assert(has("techs space folding"));
-    assert(has("techs geneseeds"));
+    assert(has("techs xenofoods"));
     assert(strstr(text, "stopped") == NULL && "a replay that runs to the end writes no stop line");
     memory_lines_have_peak_and_limit();
+    assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
+    assert(memory_value(memory_line("cap bytes_message_box"), 1) > 0);
 }
 
-/* The cheat replayed as is: 99 science, $200 at the last frame. */
-static void cheat_code(void) {
-    replay(REPLAY("tests/e2e/cheat_code.json"));
+#define CHEAT_CUT "tmp/test_state_cheat.json"
+
+/* pad_research cut after f32, the frame its cheat fires: 99 science, $200 at
+ * the last frame. */
+static void pad_research_cheat(void) {
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, "tests/e2e/pad_research.json"));
+    assert(input.frame_count > 33);
+    assert(p8_input_save(input.frames, 33, CHEAT_CUT));
+    p8_input_free(&input);
+    replay(REPLAY(CHEAT_CUT));
     assert(strstr(text, "\nresources credits 200\n") != NULL);
     assert(strstr(text, "\nresources science 99\n") != NULL);
     memory_lines_have_peak_and_limit();
@@ -142,10 +152,11 @@ static void fatal_writes_the_stop_frame(void) {
 }
 
 int main(void) {
-    trade_rich_mine();
-    cheat_code();
+    pad_tech_costs_rich_mine();
+    pad_research_cheat();
     fatal_writes_the_stop_frame();
     remove(STATE);
+    remove(CHEAT_CUT);
     remove("tmp/test_state.bin");
     remove("tmp/test_state_dump.txt");
     printf("test_state: all tests passed\n");

@@ -8,6 +8,7 @@
 #include "engine/geom.h"
 #include "engine/entity.h"
 #include "game/layout.h"
+#include "game/ui.h"
 #include "game/ui_zone.h"
 
 static int g_button_up = 0;
@@ -237,7 +238,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
     right = p8_fixed_sub(p8_fixed_add(draw_pos.x, width), p8_fixed_from_int(1));
     bottom = p8_fixed_add(draw_pos.y, p8_fixed_from_int(9));
     has_on_click = self->on_click != NULL;
-    hovered = self->header.is_hovered;
+    hovered = self->header.is_hovered || (main_ui() != NULL && ui_pad_tab(main_ui()) == &self->header);
 
     left_pixel = ui_to_int(draw_pos.x);
     top_pixel = ui_to_int(draw_pos.y);

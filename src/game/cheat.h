@@ -11,6 +11,6 @@ typedef struct {
 
 void cheat_init(cheat_t *cheat);
 
-int cheat_step(cheat_t *cheat, const p8_input_t *input);
+int cheat_step(cheat_t *cheat, int pad_buttons);
 
 #endif

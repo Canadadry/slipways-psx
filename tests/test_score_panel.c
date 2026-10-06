@@ -676,7 +676,7 @@ static void test_score_panel_is_a_struct(void) {
     assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
            cls->spawn_particle == NULL);
     assert(cls->refresh != NULL && cls->draw != NULL && cls->new_year != NULL && cls->states[ENTITY_STATE_NORMAL] != NULL);
-    assert(cls->draw_overlay == NULL && cls->hit_test == NULL && cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL &&
+    assert(cls->draw_overlay == NULL && cls->hit_test == NULL && cls->has_refresh == NULL && cls->left_press == NULL &&
            cls->accept_drop == NULL);
     for (j = 0; j < STATE_COUNT; j++) {
         assert((cls->states[j] != NULL) == (j == ENTITY_STATE_NORMAL));
@@ -698,7 +698,7 @@ static void test_tech_tree_screen_is_a_struct(void) {
     cr = score_panel_layout_block();
     assert(cr != NULL && is_of(cr, cls));
     assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
-           cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
+           cls->left_press == NULL && cls->accept_drop == NULL);
     assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
            cls->spawn_particle == NULL);
     for (j = 0; j < STATE_COUNT; j++) {

@@ -880,6 +880,35 @@ static void test_anchor_resolves_until_the_flush(void) {
     assert(entity_get(mz->anchor) == NULL);
 }
 
+/* A fold dragged onto its only anchor finds no anchor (one at the same
+ * position is skipped): "-too far-", and no line drawn toward the origin. */
+static void test_fold_on_its_only_anchor(void) {
+    const entity_list_t *jos;
+    planet_t *anchor;
+    wormhole_t *mz;
+    int k;
+
+    start_game();
+    jos = entities_by_tag(TAG_PLANET);
+    assert(jos != NULL && jos->count > 0);
+    anchor = as_planet(jos->items[0]);
+    planet_apply_project(anchor, research_project_new(NULL));
+    for (k = 0; k < SETTLE_TICKS; k++) {
+        update_entities();
+    }
+    mz = build_wormhole();
+    assert(mz->anchors.count == 1 && entity_id_list_has(&mz->anchors, entity_id_of(&anchor->header)));
+
+    drag(mz, vec_mul(pos_of(anchor), p8_fixed_from_int(128)), point(64, 64));
+    assert(entity_get(mz->anchor) == NULL);
+    assert(target_kind(mz) == TARGET_TOO_FAR);
+
+    draw(mz);
+    for (k = 0; k < 56; k++) {
+        assert(memory.screen[k][k] != 1 && "no anchor: no line toward the origin");
+    }
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -900,6 +929,7 @@ int main(void) {
     in_fresh_child(test_accept_drop);
     in_fresh_child(test_too_far_target_wrapper);
     in_fresh_child(test_wormhole_is_a_struct);
+    in_fresh_child(test_fold_on_its_only_anchor);
 
     printf("test_wormhole: all tests passed\n");
     return 0;

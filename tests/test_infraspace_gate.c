@@ -349,7 +349,7 @@ static uint32_t fold_gate(uint32_t hash, const void *entity, const void *slipgat
            class_of(entity)->states[ENTITY_STATE_VANISHING] != NULL && class_of(entity)->states[ENTITY_STATE_SETTLED] != NULL);
     assert(class_of(entity)->draw_at == NULL && class_of(entity)->spawn_particle == NULL);
     assert(class_of(entity)->states[ENTITY_STATE_NORMAL] == NULL && class_of(entity)->states[ENTITY_STATE_PLACING] == NULL &&
-           class_of(entity)->states[ENTITY_STATE_UNFOLDING] == NULL && class_of(entity)->right_press == NULL);
+           class_of(entity)->states[ENTITY_STATE_UNFOLDING] == NULL);
     assert(gate->archetype->link_sprites != &slipgate_link_sprites_seq);
     assert(planet->archetype == &infraspace_gate_archetype);
     assert(planet->header.class->tags == (TAG(TAG_SLIPGATE) | TAG(TAG_NODE)));
@@ -589,7 +589,7 @@ static void test_infraspace_gate_is_a_struct(void) {
     a = build_gate();
     assert(is_an_infraspace_gate_struct(a) && cls != nr && entity_list_listed(entities_by_tag(TAG_SLIPGATE), a));
     assert(cls->draw == nr->draw && cls->draw_overlay == nr->draw_overlay && cls->hit_test == nr->hit_test && cls->new_year == nr->new_year && cls->refresh == nr->refresh &&
-           cls->has_refresh == nr->has_refresh && cls->left_press == nr->left_press && cls->right_press == nr->right_press && cls->accept_drop == nr->accept_drop &&
+           cls->has_refresh == nr->has_refresh && cls->left_press == nr->left_press && cls->accept_drop == nr->accept_drop &&
            cls->drag == nr->drag && cls->drop == nr->drop && cls->attach_slipway == nr->attach_slipway && cls->offer_trade == nr->offer_trade && cls->draw_at == nr->draw_at &&
            cls->spawn_particle == nr->spawn_particle);
     for (j = 0; j < STATE_COUNT; j++) {

@@ -1,0 +1,72 @@
+A processor picked on the `build` tab with Left, carried away from p14
+and built with X, then a basic structure taken and cancelled with O. 63
+frames.
+
+f0-12 are pad_title's prefix, so the galaxy and pad_probe.txt's planet
+list apply. In free mode the cursor is the screen centre (80, 60),
+marked by the colour-7 crosshair (x78-82 on y=60, y58-62 on x=80, the
+centre pixel undrawn). The basic structure's icon has its focus point at
+(154, 116), the processor's at (144, 116). Readings below come from the
+framebuffer of each frame (the capture) and `make state` of the file cut
+after that frame.
+
+- f10: Down, f12: X on "reasonable": the game starts, camera (176, 196),
+  centre world (256, 256), $100, month 1, planets 90.
+- f16: R1: `build`. From f16 the cursor is on the basic structure's
+  icon (no sprite, no crosshair), its help tooltip covers the
+  map (colour-9 title, x69-89, y3-7) and its colour-8 cost "15" is drawn
+  above the icon (x148-158, y108-112). Nothing is spawned: planets 90.
+- f19: Left: the processor's icon. The cursor moves 10 px left, the
+  tooltip's title changes (x60-100, y3-7) and the cost "15" moves above
+  the processor's icon (x139-147).
+- f22: X: the processor taken. Only the icon area changes on this frame
+  (x139-148, y108-117); `make state`: `planet s1 placing processor`,
+  world (320, 312), screen (144, 116), planets 91.
+- f23: the `map` tab, carrying. The tooltip is gone; the processor is
+  drawn at the centre (s1 world (256, 256), screen (80, 60)), no
+  crosshair while it is carried, its colour-8 label above it and a
+  colour-2 hatched disk to its left: the spot is refused, 19 px from p14.
+- f24-35: Up held 12 frames, camera y 196 -> 182, s1 world (256, 242).
+  At f36 the hatched disk is gone and the colour-8 "15" stands above the
+  processor (x75-83, y52-56): the spot is accepted.
+- f37: X: the processor built. `make state` at f37: `planet s1
+  colonized processor`, $100 -> $85, month 1 -> 3, colonies 1. From
+  f38 a colour-8 "-15" label rises above it (y54-58 at f38). f38-40:
+  free mode, the crosshair at the centre.
+- f41: R1: `build`, the processor still focused (cost on its icon, the
+  same tooltip title as at f19).
+- f43: Right: the basic structure (the same tooltip title as at f16).
+- f45: X: the basic structure taken: `planet s2 placing structure` at
+  screen (154, 116), planets 92. f46: `map`, s2 at the centre, world
+  (256, 242), 0 px from s1: hatched, refused.
+- f47-50: Right held 4 frames, camera x 176 -> 180, s2 world
+  (260, 242), still hatched.
+- f52: O: the cancel. On this frame s2 and the cursor are on the basic
+  structure's icon (s2 world (334, 298), screen (154, 116)), with
+  its label above it.
+- f53: s2 is gone: planets 92 -> 91, $85, month 3. The crosshair is
+  back at the centre, the icon drawn as before, free mode.
+  f54-62: idle.
+
+Planets 91 from f22 (s1 carried, then built); 92 at f45-52 while s2 is
+carried; 91 again from f53.
+
+`make state` at f62: clock year 3401 month 3, credits 85, science 0,
+income 0, camera world 180 182, `planet s1 colonized processor - world
+256 241.46`, planets 91, colonies 1, slipways 0, structures 0, techs 0;
+every p planet unknown. No s2 line: the cancelled structure is gone and
+cost nothing. The processor is charged once ($15) and moves the clock
+two months.
+
+The X and O edges (X at f12, f22, f37, f45; O at f52) never type the
+cheat (X X O O X X O O).
+
+Covers no keyboard_* scenario: no keyboard replay places a structure
+(their `make state` end states have no s line and structures 0). The
+processor of place_processor_ascension (mouse, deleted in the
+remove-mouse-mode PRD) is this one; its ascension gate is
+pad_planet_projects'.
+
+Cost: cold `make e2e` (tmp/frames removed), 6 runs each, median about
+1193 ms before this replay (range 1095-1222) and 1254
+ms after (range 1234-1323); it adds 63 frames.

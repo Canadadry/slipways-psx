@@ -12,7 +12,6 @@
 
 static int g_mouse_up = 0;
 static mouse_button_t g_left_button;
-static mouse_button_t g_right_button;
 
 static void mouse_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
@@ -38,7 +37,6 @@ void mouse_init(void) {
     assert(entity_ready() && "mouse_init: entity_init() runs first");
     g_mouse_up = 1;
     memset(&g_left_button, 0, sizeof g_left_button);
-    memset(&g_right_button, 0, sizeof g_right_button);
 }
 
 void mouse_shutdown(void) {
@@ -47,10 +45,6 @@ void mouse_shutdown(void) {
 
 const mouse_button_t *mouse_left_button(void) {
     return g_mouse_up ? &g_left_button : NULL;
-}
-
-const mouse_button_t *mouse_right_button(void) {
-    return g_mouse_up ? &g_right_button : NULL;
 }
 
 int mouse_ready(void) {
@@ -75,7 +69,5 @@ void mouse_update(const p8_input_t *input, mouse_t *self) {
 
     if (g_mouse_up) {
         mouse_button_update(&g_left_button, (mouse.buttons & P8_MOUSE_LEFT) != 0);
-        /* The middle button counts as the right one, as in the cart. */
-        mouse_button_update(&g_right_button, (mouse.buttons & (P8_MOUSE_RIGHT | P8_MOUSE_MIDDLE)) != 0);
     }
 }

@@ -4,13 +4,14 @@
  * absent. The trap this pins is kept at the guard itself,
  * layout_row_cell_row() in src/game/layout.c.
  *
- * WHY THIS TEST EXISTS beside the e2e tests/e2e/colony_panel.json, which
- * replays the reported bug end to end: that one pins only the message box
- * half of the fix (message_box_open_box() testing has_description). Once the
- * message box stops building the bogus row, no absent item reaches a row in
- * any replay: reverting the NULL clause of layout_row_cell_row() alone left
- * the whole suite green. Without this test the guard is correct today and
- * free to rot the moment another caller hands a row an absent item.
+ * WHY THIS TEST EXISTS beside the e2e tests/e2e/pad_colonise.json, whose
+ * colony inspection panel replays the reported bug end to end: that one pins
+ * only the message box half of the fix (message_box_open_box() testing
+ * has_description). Once the message box stops building the bogus row, no
+ * absent item reaches a row in any replay: reverting the NULL clause of
+ * layout_row_cell_row() alone left the whole suite green. Without this test
+ * the guard is correct today and free to rot the moment another caller hands
+ * a row an absent item.
  *
  * row_measure_item() is static to src/game/layout.c, so this test never
  * names it: it builds a real row holding ONE positional item and renders it

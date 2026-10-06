@@ -79,14 +79,14 @@ static vec_t ui_pos_or_zero(const entity_t *e) {
     return e != NULL ? entity_pos(e) : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
 }
 
-static const mouse_button_t *ui_main_mouse_button(mouse_side_t side) {
+static const mouse_button_t *ui_main_mouse_button(void) {
     const mouse_button_t *b;
 
     assert(main_mouse() != NULL && "ui_main_mouse_button: reading a button of an absent main mouse stops the run");
     if (main_mouse_typed() == NULL) {
         return NULL;
     }
-    b = side == MOUSE_SIDE_LEFT ? mouse_left_button() : mouse_right_button();
+    b = mouse_left_button();
     return b != NULL && b->has_held ? b : NULL;
 }
 
@@ -122,8 +122,6 @@ static ui_t *ui_create(void) {
     self->archetype = &ui_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    self->header.has |= ENTITY_HAS_CURSOR_SPRITE;
-    self->header.cursor_sprite = self->archetype->cursor_sprite;
     self->has = 0;
     self->ephemerals_serial = 0;
     self->ephemerals = (entity_id_list_t){0};
@@ -135,7 +133,11 @@ static ui_t *ui_create(void) {
     self->hovered = ENTITY_ID_NONE;
     self->previous_hovered = ENTITY_ID_NONE;
     self->left_held = ENTITY_ID_NONE;
-    self->right_held = ENTITY_ID_NONE;
+    self->pad_selection = ENTITY_ID_NONE;
+    self->pad_slipway = ENTITY_ID_NONE;
+    self->pad_selection_frames = 0;
+    self->pad_tab = ENTITY_ID_NONE;
+    self->pad_crosshair = 0;
     entity_construct(&self->header);
     return self;
 }
@@ -181,11 +183,35 @@ entity_t *ui_left_held(const ui_t *self) {
     return entity_get(self->left_held);
 }
 
-background_t *ui_right_held(const ui_t *self) {
-    entity_t *held = entity_get(self->right_held);
+entity_t *ui_pad_selection(const ui_t *self) {
+    return entity_get(self->pad_selection);
+}
 
-    assert((held == NULL || held->class == background_class()) && "ui_right_held: only the background is ever held on the right");
-    return (background_t *)held;
+entity_t *ui_pad_slipway(const ui_t *self) {
+    return entity_get(self->pad_slipway);
+}
+
+void ui_set_pad_selection(ui_t *self, const entity_t *selection, const entity_t *slipway, int frames_shown) {
+    assert(frames_shown >= 0 && "ui_set_pad_selection: frames_shown counts up from 0");
+    self->pad_selection = entity_id_link(selection);
+    self->pad_slipway = entity_id_link(slipway);
+    self->pad_selection_frames = frames_shown;
+}
+
+entity_t *ui_pad_tab(const ui_t *self) {
+    return entity_get(self->pad_tab);
+}
+
+void ui_set_pad_tab(ui_t *self, const entity_t *button) {
+    self->pad_tab = entity_id_link(button);
+}
+
+void ui_set_pad_crosshair(ui_t *self, int shown) {
+    self->pad_crosshair = shown;
+}
+
+entity_t *ui_pad_circle(const ui_t *self) {
+    return self->pad_selection_frames % UI_PAD_BLINK_PERIOD < UI_PAD_BLINK_PERIOD / 2 ? ui_pad_selection(self) : NULL;
 }
 
 void ui_forget_world(ui_t *self) {
@@ -274,9 +300,7 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
         ui_handle_button(self, MOUSE_SIDE_LEFT);
     }
 
-    ui_handle_button(self, MOUSE_SIDE_RIGHT);
-
-    left = ui_main_mouse_button(MOUSE_SIDE_LEFT);
+    left = ui_main_mouse_button();
     if (left != NULL && left->pressed && self->ephemerals_serial == serial_before) {
         ui_clear_ephemerals(self);
     }
@@ -284,28 +308,24 @@ void ui_update(p8_vram_t *mem, ui_t *self) {
     self->previous_hovered = self->hovered;
 }
 
-void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self) {
-    vec_t main_mouse_pos;
-    const mouse_t *je;
-    const entity_t *hovered;
-    int spr_id = 0;
+static void ui_draw_pad_crosshair(const p8_graphics_t *gfx, p8_vram_t *mem) {
+    int x = P8_SCREEN_WIDTH / 2;
+    int y = P8_SCREEN_HEIGHT / 2;
+    for (int d = 1; d <= UI_PAD_CROSSHAIR_ARM; d++) {
+        p8_pset(gfx, mem, x - d, y, UI_PAD_CROSSHAIR_COLOUR);
+        p8_pset(gfx, mem, x + d, y, UI_PAD_CROSSHAIR_COLOUR);
+        p8_pset(gfx, mem, x, y - d, UI_PAD_CROSSHAIR_COLOUR);
+        p8_pset(gfx, mem, x, y + d, UI_PAD_CROSSHAIR_COLOUR);
+    }
+}
 
+void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self) {
     if (self == NULL || gfx == NULL || mem == NULL) {
         return;
     }
-
-    hovered = ui_hovered(self);
-    if (ui_right_held(self) != NULL) {
-        spr_id = 9;
-    } else if (hovered != NULL) {
-        spr_id = ui_to_int(entity_has(hovered, ENTITY_HAS_CURSOR_SPRITE) ? hovered->cursor_sprite : self->archetype->cursor_sprite);
-    } else {
-        spr_id = ui_to_int(self->archetype->cursor_sprite);
+    if (self->pad_crosshair) {
+        ui_draw_pad_crosshair(gfx, mem);
     }
-
-    je = main_mouse_typed();
-    main_mouse_pos = ui_pos_or_zero(je != NULL ? &je->header : NULL);
-    p8_spr_default(gfx, mem, spr_id, ui_to_int(main_mouse_pos.x), ui_to_int(main_mouse_pos.y));
 }
 
 void ui_update_hover(ui_t *self) {
@@ -364,8 +384,13 @@ static int ui_is_held_class(const entity_class_t *cls) {
            (cls->states[ENTITY_STATE_SETTLED] != NULL && cls != protostar_class());
 }
 
+void ui_set_left_held(ui_t *self, const entity_t *held) {
+    assert((held == NULL || ui_is_held_class(held->class)) &&
+           "ui_set_left_held: only a class a left press hands over can be held on the left");
+    self->left_held = entity_id_link(held);
+}
+
 void ui_handle_button(ui_t *self, mouse_side_t side) {
-    int is_left;
     const mouse_button_t *button;
     entity_t *held_inst;
     const mouse_t *mouse;
@@ -374,8 +399,8 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
         return;
     }
 
-    is_left = side == MOUSE_SIDE_LEFT;
-    button = ui_main_mouse_button(side);
+    (void)side;
+    button = ui_main_mouse_button();
     mouse = main_mouse_typed();
 
     if (button != NULL && button->pressed) {
@@ -383,26 +408,16 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
         down_t kn;
         const entity_t *given;
 
-        if (ui_send_to_hovered(self, is_left ? SEND_TO_HOVERED_LEFT_PRESS : SEND_TO_HOVERED_RIGHT_PRESS, ui_mouse_pos(self, mouse), NULL, &kv, &kn) &&
+        if (ui_send_to_hovered(self, SEND_TO_HOVERED_LEFT_PRESS, ui_mouse_pos(self, mouse), NULL, &kv, &kn) &&
             (given = entity_get(kn.held)) != NULL) {
-            if (is_left) {
-                assert(ui_is_held_class(given->class) &&
-                       "ui_handle_button: a left press hands over a slipway; a probe or a wormhole from the background; a "
-                       "structure, processor, slipgate, infraspace_gate, trading_hub, synthesizer or ascension from an icon");
-                self->left_held = kn.held;
-            } else {
-                assert(given->class == background_class() && "ui_handle_button: a right press hands over the background only");
-                self->right_held = kn.held;
-            }
+            assert(ui_is_held_class(given->class) &&
+                   "ui_handle_button: a left press hands over a slipway; a probe or a wormhole from the background; a "
+                   "structure, processor, slipgate, infraspace_gate, trading_hub, synthesizer or ascension from an icon");
+            self->left_held = kn.held;
         }
     }
 
-    if (is_left) {
-        held_inst = ui_left_held(self);
-    } else {
-        background_t *right = ui_right_held(self);
-        held_inst = right != NULL ? &right->header : NULL;
-    }
+    held_inst = ui_left_held(self);
 
     if (held_inst != NULL && held_inst->class->drag != NULL) {
         held_inst->class->drag(held_inst, ui_mouse_pos(self, mouse));
@@ -417,11 +432,7 @@ void ui_handle_button(ui_t *self, mouse_side_t side) {
         if (held_inst->class->drop != NULL) {
             held_inst->class->drop(held_inst, target);
         }
-        if (is_left) {
-            self->left_held = ENTITY_ID_NONE;
-        } else {
-            self->right_held = ENTITY_ID_NONE;
-        }
+        self->left_held = ENTITY_ID_NONE;
     }
 }
 
@@ -449,11 +460,6 @@ int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, mouse_pos_t m
             case SEND_TO_HOVERED_LEFT_PRESS:
                 if (h->class->left_press != NULL) {
                     kn = h->class->left_press(h, mouse);
-                }
-                break;
-            case SEND_TO_HOVERED_RIGHT_PRESS:
-                if (h->class->right_press != NULL) {
-                    kn = h->class->right_press(h, mouse);
                 }
                 break;
             case SEND_TO_HOVERED_ACCEPT_DROP:

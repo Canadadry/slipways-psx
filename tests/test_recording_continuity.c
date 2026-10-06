@@ -22,34 +22,32 @@
 #include <string.h>
 
 /* The session that is resumed: every field distinct, all coordinates
- * below 50, so a live frame can never be mistaken for a replayed one. */
+ * below 50, so a live frame can never be mistaken for a replayed one.
+ * Every frame carries mouse and pad bits at once: the recording
+ * must keep the pad mask alone. */
 #define SOURCE_FRAME_COUNT 5
 static const p8_input_frame_t source_frames[SOURCE_FRAME_COUNT] = {
-    { 10, 11, 0, { 0, 0, 0, 0 } },
-    { 12, 13, 1, { 1, 0, 0, 0 } },
-    { 14, 15, 2, { 0, 1, 0, 0 } },
-    { 16, 17, 4, { 0, 0, 1, 0 } },
-    { 18, 19, 3, { 0, 0, 0, 1 } },
+    { 10, 11, 0, P8_PAD_CROSS },
+    { 12, 13, 1, P8_PAD_CIRCLE },
+    { 14, 15, 2, P8_PAD_UP | P8_PAD_L1 },
+    { 16, 17, 4, P8_PAD_SQUARE },
+    { 18, 19, 3, P8_PAD_TRIANGLE },
 };
 
 /* What the player does after getting the controls back, in a value range
  * the replayed frames never reach. */
 #define LIVE_FRAME_COUNT 4
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
-    { 90, 91, 1, { 1, 1, 0, 0 } },
-    { 92, 93, 5, { 0, 0, 1, 1 } },
-    { 94, 95, 7, { 1, 0, 1, 0 } },
-    { 96, 97, 6, { 0, 1, 0, 1 } },
+    { 90, 91, 1, P8_PAD_START | P8_PAD_DOWN },
+    { 92, 93, 5, P8_PAD_R1 | P8_PAD_RIGHT },
+    { 94, 95, 7, P8_PAD_LEFT },
+    { 96, 97, 6, P8_PAD_CROSS | P8_PAD_CIRCLE },
 };
 
-static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_frame_t *want) {
-    assert(got->mouse_x == want->mouse_x);
-    assert(got->mouse_y == want->mouse_y);
-    assert(got->mouse_buttons == want->mouse_buttons);
-    assert(got->dpad[0] == want->dpad[0]);
-    assert(got->dpad[1] == want->dpad[1]);
-    assert(got->dpad[2] == want->dpad[2]);
-    assert(got->dpad[3] == want->dpad[3]);
+/* `want` is the raw frame; `got` is what the recording gives back. */
+static void assert_recorded_as(const p8_input_frame_t *got, const p8_input_frame_t *want) {
+    assert(got->mouse_x == 0 && got->mouse_y == 0 && got->mouse_buttons == 0);
+    assert(got->pad_buttons == want->pad_buttons);
 }
 
 /* Stands in for `raylib_backend_poll_input`, the one call below that
@@ -68,7 +66,7 @@ static void run_session(const char *source_path, const char *resumed_path, int i
     assert(replay_source_open(&replay, source_path) == expected);
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, resumed_path, replay_source_keyboard_cursor(&replay));
+    session_recorder_open(&recorder, resumed_path);
 
     int live_index = 0;
     for (int i = 0; i < iterations; i++) {
@@ -88,12 +86,12 @@ static void run_session(const char *source_path, const char *resumed_path, int i
 static void test_recorder_writes_a_loadable_recording(void) {
     const char *path = "tmp/test_recording_continuity_basic.json";
     p8_input_frame_t frames[2] = {
-        { 11, 22, 1, { 1, 0, 0, 0 } },
-        { 33, 44, 2, { 0, 1, 0, 0 } },
+        { 11, 22, 1, P8_PAD_LEFT },
+        { 33, 44, 2, P8_PAD_R1 | P8_PAD_SQUARE },
     };
 
     session_recorder_t recorder;
-    session_recorder_open(&recorder, path, 0);
+    session_recorder_open(&recorder, path);
     assert(session_recorder_frame_count(&recorder) == 0);
 
     for (int i = 0; i < 2; i++) {
@@ -107,7 +105,7 @@ static void test_recorder_writes_a_loadable_recording(void) {
     assert(p8_input_load(&loaded, path));
     assert(loaded.frame_count == 2);
     for (int i = 0; i < 2; i++) {
-        assert_frame_equals(&loaded.frames[i], &frames[i]);
+        assert_recorded_as(&loaded.frames[i], &frames[i]);
     }
     p8_input_free(&loaded);
 
@@ -121,7 +119,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
 
     run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
@@ -131,10 +129,10 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     assert(resumed.frame_count == SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
 
     for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
-        assert_frame_equals(&resumed.frames[i], &source_frames[i]);
+        assert_recorded_as(&resumed.frames[i], &source_frames[i]);
     }
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
-        assert_frame_equals(&resumed.frames[SOURCE_FRAME_COUNT + i], &live_frames[i]);
+        assert_recorded_as(&resumed.frames[SOURCE_FRAME_COUNT + i], &live_frames[i]);
     }
 
     p8_input_free(&resumed);
@@ -150,7 +148,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";
     const int total = SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT;
 
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
     run_session(source_path, resumed_path, total);
 
     replay_source_t second;
@@ -161,9 +159,9 @@ static void test_resumed_recording_is_itself_resumable(void) {
         p8_input_frame_t frame;
         assert(replay_source_next_frame(&second, &frame) == 1);
         if (i < SOURCE_FRAME_COUNT) {
-            assert_frame_equals(&frame, &source_frames[i]);
+            assert_recorded_as(&frame, &source_frames[i]);
         } else {
-            assert_frame_equals(&frame, &live_frames[i - SOURCE_FRAME_COUNT]);
+            assert_recorded_as(&frame, &live_frames[i - SOURCE_FRAME_COUNT]);
         }
     }
 
@@ -191,63 +189,23 @@ static char *read_whole_file(const char *path) {
     return bytes;
 }
 
-static void test_declared_recording_resumes_declared(void) {
-    const char *source_path = "tmp/test_recording_continuity_declared_source.json";
-    const char *resumed_path = "tmp/test_recording_continuity_declared_resumed.json";
-
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 1));
-    run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
-
-    p8_input_t resumed;
-    p8_input_init(&resumed);
-    assert(p8_input_load(&resumed, resumed_path));
-    assert(resumed.keyboard_cursor == 1);
-    assert(resumed.frame_count == SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
-    for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
-        assert_frame_equals(&resumed.frames[i], &source_frames[i]);
-    }
-    for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
-        assert_frame_equals(&resumed.frames[SOURCE_FRAME_COUNT + i], &live_frames[i]);
-    }
-
-    p8_input_free(&resumed);
-    remove(source_path);
-    remove(resumed_path);
-}
-
-static void test_undeclared_recording_resumes_undeclared(void) {
-    const char *source_path = "tmp/test_recording_continuity_undeclared_source.json";
-    const char *resumed_path = "tmp/test_recording_continuity_undeclared_resumed.json";
-
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, 0));
-    run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
-
-    char *bytes = read_whole_file(resumed_path);
-    assert(!strstr(bytes, "keyboard_cursor"));
-    free(bytes);
-
-    p8_input_t resumed;
-    p8_input_init(&resumed);
-    assert(p8_input_load(&resumed, resumed_path));
-    assert(resumed.keyboard_cursor == 0);
-    p8_input_free(&resumed);
-
-    remove(source_path);
-    remove(resumed_path);
-}
-
-static void test_fresh_session_records_declared(void) {
-    const char *path = "tmp/test_recording_continuity_fresh.json";
+/* The live frames carry mouse noise: a session records the pad
+ * masks alone, so its replay can never carry mouse input. */
+static void test_fresh_session_records_a_pad_replay(void) {
+    const char *path = "tmp/test_recording_continuity_fresh_pad.json";
 
     run_session(NULL, path, LIVE_FRAME_COUNT);
+
+    char *bytes = read_whole_file(path);
+    assert(strncmp(bytes, "{\n  \"input\": \"pad\",\n", strlen("{\n  \"input\": \"pad\",\n")) == 0);
+    free(bytes);
 
     p8_input_t recorded;
     p8_input_init(&recorded);
     assert(p8_input_load(&recorded, path));
-    assert(recorded.keyboard_cursor == 1);
     assert(recorded.frame_count == LIVE_FRAME_COUNT);
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
-        assert_frame_equals(&recorded.frames[i], &live_frames[i]);
+        assert_recorded_as(&recorded.frames[i], &live_frames[i]);
     }
 
     p8_input_free(&recorded);
@@ -258,9 +216,7 @@ int main(void) {
     test_recorder_writes_a_loadable_recording();
     test_resumed_session_records_replayed_frames_then_new_ones();
     test_resumed_recording_is_itself_resumable();
-    test_declared_recording_resumes_declared();
-    test_undeclared_recording_resumes_undeclared();
-    test_fresh_session_records_declared();
+    test_fresh_session_records_a_pad_replay();
 
     printf("test_recording_continuity: all tests passed\n");
     return 0;

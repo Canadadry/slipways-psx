@@ -22,8 +22,6 @@ int replay_source_frame_count(const replay_source_t *source);
 
 int replay_source_frames_served(const replay_source_t *source);
 
-int replay_source_keyboard_cursor(const replay_source_t *source);
-
 int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_frame);
 
 void replay_source_close(replay_source_t *source);

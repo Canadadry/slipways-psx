@@ -771,7 +771,7 @@ static void test_probe_is_a_struct(void) {
            descriptor->draw == emitter_update_method && descriptor->spawn_particle == probe_spawn_particle);
     assert(descriptor->attach_slipway == NULL && descriptor->offer_trade == NULL && descriptor->draw_at == NULL);
     assert(descriptor->hit_test == NULL && descriptor->new_year == NULL && descriptor->refresh == NULL && descriptor->has_refresh == NULL && descriptor->left_press == NULL &&
-           descriptor->right_press == NULL && descriptor->accept_drop == NULL);
+           descriptor->accept_drop == NULL);
     for (j = 0; j < STATE_COUNT; j++) {
         assert(descriptor->states[j] == NULL);
     }

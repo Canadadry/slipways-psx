@@ -7,22 +7,11 @@ void p8_input_init(p8_input_t *input) {
     input->frames = NULL;
     input->frame_count = 0;
     input->current_frame = 0;
-    input->keyboard_cursor = 0;
 }
 
 void p8_input_step(p8_input_t *input) {
     assert(input->current_frame + 1 < input->frame_count);
     input->current_frame++;
-}
-
-int p8_btn(const p8_input_t *input, int b) {
-    if (b < 0 || b > 5) {
-        return 0;
-    }
-    if (input->frame_count == 0 || input->current_frame >= input->frame_count) {
-        return 0;
-    }
-    return input->frames[input->current_frame].dpad[b];
 }
 
 p8_mouse_t p8_input_read_mouse(const p8_input_t *input) {

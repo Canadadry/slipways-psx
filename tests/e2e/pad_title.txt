@@ -1,0 +1,33 @@
+Pick "reasonable" on the title screen with the D-pad and X. 30 frames.
+
+Each press lasts one frame and is followed by a release frame: a held
+direction moves the focus once. Row colours below are read in the
+framebuffer dump (make replay on the file cut after that frame), at
+x=108 of each row: forgiving y53-61, reasonable y64-72, challenging
+y75-83, tough y86-94.
+
+- f0-9: idle while the rows slide in. After f9: forgiving in colour 12,
+  the other three in 13.
+- f10: Down. After f10: reasonable 12, the others 13.
+- f12: Down. After f12: challenging 12, the others 13.
+- f14: Right, nothing to the right. After f14: challenging still 12.
+- f16: Up. After f16 and f17: reasonable 12, the others 13.
+- f18: X on "reasonable": the title rows are gone from f18, the game
+  starts.
+- f19-29: idle into the first month, in free mode: the cursor is the
+  screen centre (80, 60), marked by the colour-7 crosshair (x78-82 on
+  y=60, y58-62 on x=80, the centre pixel undrawn). Pad mode draws no
+  cursor sprite on any frame.
+
+`make state` at f29: clock year 3401 month 1, credits 100, planets 90,
+colonies 0, slipways 0, structures 0, techs 0.
+
+The end state has no difficulty line and does not tell difficulties
+apart: the same file with X at f18 on each of the four rows gives
+identical `make state` lines (planets included). The chosen difficulty
+shows in the f17 dump above (reasonable is the only colour-12 row when
+X is pressed). test_pad_nav checks the started game's
+economy_score_difficulty().
+
+Covers no keyboard_* scenario: keyboard_menus is covered by
+pad_pause_restart (step 3.3).

@@ -1,0 +1,73 @@
+Six years, "nanomaterials" on the `tech` tab, an earth-like planet's
+menu at x0.85; then the cheat, "space folding" and "xenofoods", the same
+menu with improved recipes at x1.5. Then a mine linked to three people
+suppliers, a colony needing ore and two labs, rich at the year. 562
+frames.
+
+Pad input declared ("input": "pad"). f0-12 are pad_title's prefix, so
+the galaxy is pad_probe's. Readings come from `make state` of the file
+cut after the frame and from the capture.
+
+- f16, f18: R1 R1, `end turn`. f20-30: X six times: year 3407,
+  research 6.
+- f32: R1, `tech`. f36-40: Down x3, f42: X: "nanomaterials" (cost 6),
+  research 0, back on the map.
+- f46-84: pad_probe's probe and fold (Up 6, X, Up+Left 6, Left 5, X
+  held 16): $97, month 2. f95: p12 (type e, earth-like) and p14 known.
+- f95-111: the D-pad onto p12 (screen 81, 61). f113: triangle: its
+  menu, drawn f114-119. Row 2 (agroworld, base 5) ends in a colour-2
+  price tag at x149-159 whose first digit reads 4 (y86-90): 5 x 0.85.
+- f120: O closes it. f122-136: X X O O X X O O. The X taps on p12 open
+  no menu (a colour-8 label beside the centre at f130) and charge
+  nothing ($97, month 2 up to f135); f136: $200, research 99.
+- f140-150: R1 x3, Down, X: "space folding" (research 95). f154-164:
+  the same: the first row is now "xenofoods" (era 2): research 85.
+- f168: triangle on p12: from f169 row 2's recipe icons change
+  (x96-105, y84-90) and its tag reads 6 (5 x 1.5 x 0.85); rows 1 and 3
+  are pixel-identical to f119.
+
+`make state` at f174: year 3407 month 2, credits 200, research 85,
+techs nanomaterials, space folding, xenofoods; camera 152 160, p12
+known e, p14 known o, planets 90, colonies 0, slipways 0.
+
+Replaces tech_nanomaterials_discount (6 years, "nanomaterials", a build
+menu at x0.85) and tech_xenofoods_recipes (cheat, "space folding",
+"geneseeds", "xenofoods", an earth-like menu with improved recipes and
+x1.5): `research_project_cost` x0.85 and x1.5, the upgraded production
+entry. Two era-1 inventions open era 2 here, so "geneseeds" is not
+needed.
+
+Rich mine, f175-561 (remove-mouse-mode PRD, chunk 7; appended here to
+share the cheat, the techs and the probe instead of a separate
+pad_rich_mine file). Every capture frame up to f174 is unchanged, byte
+for byte.
+
+- f175-177: O closes p12's menu, square: free mode. f179-222: Down+Left
+  19, Left 5, Down, X held 16: a second fold, $197. By f240 p39 is
+  type m, p7 type x (p12 e and p14 o known). Without the six idle
+  frames f223-228, p7 rolls an iceball.
+- f229-248: p39 as "mine", $193.
+- f249-388: from p39, three times square (twice the first time), the
+  D-pad onto the target, triangle, X on its first row, then X: the
+  target colonised, the slipway from p39 built, network on it, X back
+  to p39: p12 "hiveworld", p7 "colony", p14 "colony" (needs ore).
+- f389-443: R1, X: a lab, built at (204, 228), square twice, X on p39:
+  `slipway s1 p39`. f444-533: a second lab at (234, 246), `slipway s2
+  p12`, X back to s2, `slipway s2 p39` (f532): p12 feeds s2 people.
+  The year passes on its own at f532.
+- f534-543: R1 R1, X on `end turn` (f538): year 3410, the "year 3410"
+  box; L1 L1, the map.
+- f546: triangle on p39: "rich", "receives:" three people, "exports:
+  3/3". f552: O; f554: X to s2; f556: triangle: "laboratory", "wants
+  more:", "receives:", "makes: 1".
+
+`make state` at f561: year 3410 month 1, credits 154, research 90,
+income 17; camera 154 182; p39 colonized m, p12 colonized e, p7
+colonized x, p14 colonized o, s1 and s2 colonized structure; slipways
+p39 p12, p39 p7, p39 p14, s1 p39, s2 p12, s2 p39; planets 91, colonies
+6, transit dots live at the end. Peak: transit_dots 24.
+
+Replaces trade_rich_mine (a mine linked to three people suppliers and
+three labs, rich at the year, its "exports:" panel, a served lab's
+panel). Same effects; here the third export is a colony's ore need and
+one of the two labs is served by the hiveworld.

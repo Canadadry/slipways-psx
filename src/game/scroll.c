@@ -9,13 +9,13 @@
 #include "engine/entity_geom.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
-#include "game/background.h"
+#include "game/galaxy.h"
 
 static int g_camera_up = 0;
 
 static void camera_update_method(entity_t *self, p8_fixed_t t) {
     (void)t;
-    camera_update(dispatch_context_input(), (camera_t *)self);
+    camera_update((camera_t *)self);
 }
 
 static void camera_apply_method(entity_t *self, p8_fixed_t parallax) {
@@ -33,7 +33,6 @@ static camera_t *camera_create(void) {
     entity_init_instance(&self->header, &camera_class_def, camera_archetype.state, camera_archetype.state_time);
     self->archetype = &camera_archetype;
     self->header.has |= ENTITY_HAS_SHAKE;
-    self->velocity = self->archetype->velocity;
     self->header.shake = self->archetype->shake;
     entity_set_map_pos(&self->header, self->archetype->pos_before_shake);
     entity_set_pos(&self->header, self->archetype->pos);
@@ -63,55 +62,38 @@ camera_t *camera_new(void) {
     return camera_create();
 }
 
-static p8_fixed_t camera_bound(p8_fixed_t p, int frame_size) {
-    p8_fixed_t far = p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - frame_size), layer_fades_table[0]);
+/* The pad has no mouse to reach the screen's edges: the bound keeps the screen centre over the galaxy's planet area. */
+static p8_fixed_t camera_pad_bound(p8_fixed_t p, int frame_size) {
+    p8_fixed_t scale = p8_fixed_from_int(GALAXY_MAP_SCALE);
+    p8_fixed_t half = p8_fixed_from_int(frame_size / 2);
+    p8_fixed_t near = p8_fixed_sub(p8_fixed_mul(GALAXY_MAP_MARGIN, scale), half);
+    p8_fixed_t far = p8_fixed_sub(p8_fixed_mul(p8_fixed_add(GALAXY_MAP_MARGIN, GALAXY_MAP_SPAN), scale), half);
 
-    return p8_fixed_mid(p8_fixed_from_int(0), far, p);
+    return p8_fixed_mid(near, far, p);
 }
 
 static vec_t camera_bounded(vec_t p) {
-    return vec_make(camera_bound(p.x, P8_SCREEN_WIDTH), camera_bound(p.y, P8_SCREEN_HEIGHT));
+    return vec_make(camera_pad_bound(p.x, P8_SCREEN_WIDTH), camera_pad_bound(p.y, P8_SCREEN_HEIGHT));
 }
 
-void camera_update(const p8_input_t *input, camera_t *self) {
-    vec_t direction = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    const vec_seq_t *dpad_directions = NULL;
+void camera_update(camera_t *self) {
     vec_t p;
-    vec_t v;
-    int b;
 
-    if (self == NULL || input == NULL) {
+    if (self == NULL) {
         return;
     }
 
-    dpad_directions = self->archetype->dpad_directions;
-
-    for (b = 0; b <= 3; b++) {
-        if (p8_btn(input, b)) {
-            vec_t dir = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-            if (dpad_directions != NULL && b < dpad_directions->count) {
-                dir = dpad_directions->items[b];
-            }
-            direction = vec_add(direction, vec_mul(dir, p8_fixed_from_int(3)));
-        }
-    }
-
-    p = camera_pos_before_shake(self);
-    v = self->velocity;
-
-    p = vec_add(p, v);
-    v = vec_add(v, vec_mul(vec_sub(direction, v), P8_FIXED_LIT(0x00003333, 0.2)));
-
-    p = camera_bounded(p);
-
+    p = camera_bounded(camera_pos_before_shake(self));
     entity_set_map_pos(&self->header, p);
-    camera_set_velocity(self, v);
-
     entity_set_pos(&self->header, camera_bounded(entity_geom_shake(p, (entity_t *)self)));
 }
 
-void camera_set_velocity(camera_t *self, vec_t v) {
-    self->velocity = v;
+void camera_pan(camera_t *self, int dx, int dy) {
+    vec_t step = vec_make(p8_fixed_from_int(dx), p8_fixed_from_int(dy));
+
+    assert(self != NULL && "camera_pan: the caller checks for the placeholder camera");
+    entity_set_map_pos(&self->header, camera_bounded(vec_add(camera_pos_before_shake(self), step)));
+    entity_set_pos(&self->header, camera_bounded(vec_add(entity_pos(&self->header), step)));
 }
 
 void camera_apply(p8_graphics_t *gfx, camera_t *self, p8_fixed_t parallax) {

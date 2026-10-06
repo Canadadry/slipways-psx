@@ -25,6 +25,7 @@
 #include "p8/vram.h"
 #include "game/background.h"
 #include "game/planet_family.h"
+#include "game/galaxy.h"
 #include "game/scroll.h"
 #include "engine/entity_class.h"
 #include "engine/vec.h"
@@ -38,8 +39,6 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 }
 
 
-#define SCRIPTED_TICKS 110
-#define SCRIPTED_HASH 0xD63EDC0Eu
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
@@ -89,38 +88,10 @@ static vec_t must_vec(const vec_t *v) {
     return *v;
 }
 
-static uint32_t fold_vec(uint32_t h, const vec_t *v) {
-    if (v == NULL) {
-        return fnv(h, 0xDEADu);
-    }
-    h = fnv(h, (uint32_t)v->x);
-    return fnv(h, (uint32_t)v->y);
-}
-
-static uint32_t fold_main_camera(uint32_t h) {
-    const camera_t *mo = checked_main_camera();
-
-    h = fold_vec(h, map_pos_ref(&mo->header));
-    h = fold_vec(h, &mo->velocity);
-    h = fold_vec(h, pos_ref(&mo->header));
-    h = fnv(h, (uint32_t)mo->header.shake);
-    h = fnv(h, (uint32_t)graphics.camera_x);
-    return fnv(h, (uint32_t)graphics.camera_y);
-}
-
 static void check(const char *label, uint32_t got, uint32_t want) {
     printf("[%s] 0x%08Xu\n", label, (unsigned)got);
     fflush(stdout);
     assert(got == want);
-}
-
-static p8_input_frame_t g_frames[SCRIPTED_TICKS];
-
-static void script(int n) {
-    input.frames = g_frames;
-    input.frame_count = n;
-    input.current_frame = 0;
-    dispatch_context_set_input(&input);
 }
 
 static void unscript(void) {
@@ -128,44 +99,20 @@ static void unscript(void) {
     dispatch_context_set_input(&input);
 }
 
-static void pad(int i, int left, int right, int up, int down) {
-    memset(&g_frames[i], 0, sizeof g_frames[i]);
-    g_frames[i].dpad[0] = left;
-    g_frames[i].dpad[1] = right;
-    g_frames[i].dpad[2] = up;
-    g_frames[i].dpad[3] = down;
-}
-
-static int is_vec(vec_t v, int x, int y) {
-    return v.x == p8_fixed_from_int(x) && v.y == p8_fixed_from_int(y);
-}
-
 /* `reset_world()` builds the main camera: among the live entities only, the
- * archetype's defaults, the entity's state and state time, the dpad
- * directions in the order left, right, up, down, and the position before
- * shake and the position two distinct vectors. */
+ * archetype's defaults, the entity's state and state time, and the position
+ * before shake and the position two distinct vectors. */
 static void check_fresh_main_camera(const camera_t *mo) {
-    const vec_seq_t *pc;
     vec_t p = must_vec(map_pos_ref(&mo->header));
     vec_t ra = must_vec(pos_ref(&mo->header));
-    vec_t v = mo->velocity;
 
     assert(entity_list_listed(live_entities(), mo) && !in_any_entities_by_message(mo));
     assert(p.x == p8_fixed_from_int(176) && p.y == p8_fixed_from_int(196));
     assert(ra.x == p8_fixed_from_int(176) && ra.y == p8_fixed_from_int(196));
-    assert(v.x == 0 && v.y == 0);
     assert(mo->header.shake == 0);
     assert(mo->header.state_time == 0);
     assert(mo->header.state == ENTITY_STATE_NORMAL);
     assert(map_pos_ref(&mo->header) != pos_ref(&mo->header));
-
-    pc = mo->archetype->dpad_directions;
-    assert(pc != NULL);
-    assert(pc == &camera_dpad_directions_vecs && pc->count == 4);
-    assert(is_vec(pc->items[0], -1, 0));
-    assert(is_vec(pc->items[1], 1, 0));
-    assert(is_vec(pc->items[2], 0, -1));
-    assert(is_vec(pc->items[3], 0, 1));
 }
 
 static void test_reset_world_builds_a_camera(void) {
@@ -190,100 +137,24 @@ static void test_apply_camera_sets_the_camera(void) {
     apply_camera_to(p8_fixed_from_int(1), 176, 196);
 }
 
-/* Idle, left, right+up, down held into the bottom bound, then released. */
-static void test_scripted_ticks(void) {
-    uint32_t h = 2166136261u;
-    int bounded = 0;
-    int i;
+/* Pushed far past each corner, camera_update brings the screen centre back
+ * to the edge of the planet area, (0.125, 2.875) * 128 on both axes. */
+static void test_update_keeps_the_screen_centre_over_the_planet_area(void) {
+    static const int pushed[2] = { -1000, 1000 };
+    p8_fixed_t scale = p8_fixed_from_int(GALAXY_MAP_SCALE);
+    p8_fixed_t edges[2] = { p8_fixed_mul(GALAXY_MAP_MARGIN, scale),
+                            p8_fixed_mul(p8_fixed_add(GALAXY_MAP_MARGIN, GALAXY_MAP_SPAN), scale) };
 
     reset_world(NULL);
-    for (i = 0; i < SCRIPTED_TICKS; i++) {
-        if (i < 3) {
-            pad(i, 0, 0, 0, 0);
-        } else if (i < 8) {
-            pad(i, 1, 0, 0, 0);
-        } else if (i < 16) {
-            pad(i, 0, 1, 1, 0);
-        } else if (i < 90) {
-            pad(i, 0, 0, 0, 1);
-        } else {
-            pad(i, 0, 0, 0, 0);
-        }
-    }
-    script(SCRIPTED_TICKS);
-    for (i = 0; i < SCRIPTED_TICKS; i++) {
-        update_entities();
-        h = fold_main_camera(h);
-        h = fnv(h, (uint32_t)checked_main_camera()->header.state_time);
-        if (must_vec(map_pos_ref(&checked_main_camera()->header)).y == p8_fixed_div(p8_fixed_from_int(BACKGROUND_GRID_EDGE + 1 - P8_SCREEN_HEIGHT), layer_fades_table[0])) {
-            bounded++;
-        }
-        if (i < SCRIPTED_TICKS - 1) {
-            p8_input_step(&input);
-        }
-    }
     unscript();
-    printf("[scripted] pos_before_shake.y at the bottom bound on %d ticks\n", bounded);
-    assert(bounded > 0);
-    check("scripted", h, SCRIPTED_HASH);
-}
-
-/* Every pixel of the frame, drawn at the background's half parallax, lies on
- * the grid [0, BACKGROUND_GRID_EDGE]; at full parallax it still reaches the
- * hit box (7 px) of a planet anywhere galaxy_populate places one,
- * (0.125 + rnd(2.75)) * 128, so in [16, 368). */
-static void check_frame_in_grid(void) {
-    camera_t *mo = checked_main_camera();
-
-    camera_apply(&graphics, mo, layer_fades_table[0]);
-    assert(graphics.camera_x >= 0 && graphics.camera_x + P8_SCREEN_WIDTH - 1 <= BACKGROUND_GRID_EDGE);
-    assert(graphics.camera_y >= 0 && graphics.camera_y + P8_SCREEN_HEIGHT - 1 <= BACKGROUND_GRID_EDGE);
-}
-
-static void check_frame_reaches_every_planet(int far) {
-    camera_t *mo = checked_main_camera();
-
-    camera_apply(&graphics, mo, layer_fades_table[1]);
-    printf("[grid] world frame at %d,%d\n", graphics.camera_x, graphics.camera_y);
-    if (far) {
-        assert(graphics.camera_x + P8_SCREEN_WIDTH - 1 >= 368 - 7);
-        assert(graphics.camera_y + P8_SCREEN_HEIGHT - 1 >= 368 - 7);
-    } else {
-        assert(graphics.camera_x <= 16 + 7 && graphics.camera_y <= 16 + 7);
-    }
-}
-
-static void hold_dpad_checking_each_tick(int left, int right, int up, int down) {
-    int i;
-
-    for (i = 0; i < SCRIPTED_TICKS; i++) {
-        pad(i, left, right, up, down);
-    }
-    script(SCRIPTED_TICKS);
-    for (i = 0; i < SCRIPTED_TICKS; i++) {
-        if (i % 20 == 0) {
-            checked_main_camera()->header.shake = p8_fixed_from_int(3);
-        }
+    for (int i = 0; i < 2; i++) {
+        camera_t *mo = checked_main_camera();
+        entity_set_map_pos(&mo->header, vec_make(p8_fixed_from_int(pushed[i]), p8_fixed_from_int(pushed[i])));
         update_entities();
-        check_frame_in_grid();
-        if (i < SCRIPTED_TICKS - 1) {
-            p8_input_step(&input);
-        }
+        vec_t p = must_vec(map_pos_ref(&mo->header));
+        assert(p8_fixed_add(p.x, p8_fixed_from_int(P8_SCREEN_WIDTH / 2)) == edges[i]);
+        assert(p8_fixed_add(p.y, p8_fixed_from_int(P8_SCREEN_HEIGHT / 2)) == edges[i]);
     }
-    unscript();
-}
-
-/* Held into each bound, shaken by a burst every 20 ticks. */
-static void test_held_dpad_keeps_the_frame_in_the_grid(void) {
-    assert(background_archetype.layer == p8_fixed_from_int(1));
-    reset_world(NULL);
-    hold_dpad_checking_each_tick(0, 1, 0, 1);
-    hold_dpad_checking_each_tick(0, 1, 0, 1);
-    check_frame_reaches_every_planet(1);
-    hold_dpad_checking_each_tick(1, 0, 1, 0);
-    hold_dpad_checking_each_tick(1, 0, 1, 0);
-    hold_dpad_checking_each_tick(1, 0, 1, 0);
-    check_frame_reaches_every_planet(0);
 }
 
 /* A shake of 3, as a burst's construction writes it, decays by 0.1 per
@@ -340,34 +211,6 @@ static void test_placeholder_main_camera(void) {
     assert(main_camera()->class != camera_class());
     assert(graphics.camera_x == 5 && graphics.camera_y == 6);
     assert(main_camera_typed() == NULL);
-}
-
-/* A game started as cart_start_game starts it, the right button pressed over
- * empty space then dragged: `main_ui()` hands the press to the background,
- * whose drag moves the main camera. */
-static void test_right_drag_moves_the_camera(void) {
-    vec_t before;
-    vec_t after;
-    int i;
-
-    cart_init();
-    cart_start_game(NULL);
-    for (i = 0; i < 20; i++) {
-        memset(&g_frames[i], 0, sizeof g_frames[i]);
-        g_frames[i].mouse_x = 64 + 2 * i;
-        g_frames[i].mouse_y = 64 + i;
-        g_frames[i].mouse_buttons = i < 18 ? 2 : 0;
-    }
-    script(20);
-    cart_update60();
-    before = must_vec(map_pos_ref(&checked_main_camera()->header));
-    for (i = 1; i < 20; i++) {
-        p8_input_step(&input);
-        cart_update60();
-    }
-    unscript();
-    after = must_vec(map_pos_ref(&checked_main_camera()->header));
-    assert(after.x != before.x || after.y != before.y);
 }
 
 static int burst_alive(void) {
@@ -427,7 +270,7 @@ static int is_a_camera_struct(const void *e) {
 
 /* The main camera of `reset_world()` and one built by camera_new are camera
  * structs among the live entities only, with an update and an apply as
- * methods and no draw; the update keeps a zero velocity at zero. */
+ * methods and no draw; inside the bound, unshaken, the update keeps it in place. */
 static void test_camera_is_a_struct(void) {
     camera_t *generic;
 
@@ -443,9 +286,7 @@ static void test_camera_is_a_struct(void) {
     {
         vec_t p_before = must_vec(map_pos_ref(&generic->header));
 
-        camera_set_velocity(generic, vec_make(0, 0));
         camera_class()->states[ENTITY_STATE_NORMAL](&generic->header, p8_fixed_from_int(0));
-        assert(generic->velocity.x == 0 && generic->velocity.y == 0);
         assert(map_pos_ref(&generic->header)->x == p_before.x && map_pos_ref(&generic->header)->y == p_before.y);
     }
 }
@@ -460,13 +301,11 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
-    in_fresh_child(test_right_drag_moves_the_camera);
     in_fresh_child(test_burst_shakes);
 
     test_reset_world_builds_a_camera();
     test_apply_camera_sets_the_camera();
-    test_scripted_ticks();
-    test_held_dpad_keeps_the_frame_in_the_grid();
+    test_update_keeps_the_screen_centre_over_the_planet_area();
     test_shake_decays();
     test_second_reset_world();
     test_placeholder_main_camera();

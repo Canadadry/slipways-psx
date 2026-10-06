@@ -1,0 +1,75 @@
+25 years ended with X on `end turn`, the "final score" panel, X on
+"again?", the title. X held into the panel and into the title presses
+nothing. 104 frames.
+
+f0-20 are pad_end_turn's frames verbatim (Down f10, X f12 on
+"reasonable", R1 f16, R1 f18), so the galaxy is pad_end_turn's. HUD
+buttons are read at one fill pixel each: tech (1, 1), score (64, 1),
+year skip (152, 1); colour 12 is the lit tab, 13 the others. "again?" is
+read at (70, 98), the title rows at x=108 (forgiving y57, reasonable
+y68, challenging y79, tough y90). Readings come from the framebuffer
+dump of the file cut after each frame, the clock from `make state` of
+the same cut.
+
+- f0-20: as pad_end_turn. From f18 `end turn`: the year skip in colour
+  12, the other two 13. After f20: year 3401, research 0.
+- f21, f23, ..., f67: X for one frame every other frame, 24 taps, one
+  year each: 3402, research 1 after f21; 3425, research 24 after f67
+  and f68. The year boxes from 3421 on block none of them. The year
+  skip stays colour 12 through f69.
+- f69-80: X held 12 frames, the 25th press: year 3426, research 25,
+  $100 after f69. f70: the final score panel opens (modal_backdrop 1,
+  buttons 4 -> 6), the curtain covers the HUD (the three HUD pixels
+  colour 1 on f70-74, 0 from f75); "again?" is colour 13 on f70.
+  From f71 "again?" is focused and drawn hovered, colour 12 (161
+  colour-12 pixels in rows 96-110, x67-104), while X is still held:
+  the held X gives the panel no press edge. After f80: still 3426,
+  research 25, 90 planets, the game running.
+- f81-95: nothing. The panel slides in; the dump is identical from f93
+  to f95.
+- f96-99: X held 4 frames. f96: the fresh press clicks "again?": the
+  title (clock "-", 0 planets, buttons 10 then 4). The rows slide in,
+  forgiving colour 12 (hovered) from f97 while X is still held, the
+  other rows 13 as they arrive (all four by f101). After f99: still the
+  title, no game started: the held X gives the first row no press edge.
+- f100-103: nothing, the title.
+
+`make state` after f69: clock year 3426 month 1, credits 100, research
+25, income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
+structures 0, techs 0; every planet unknown. That is pad_end_turn's
+start with 25 years skipped: year +25, research +25, credits + 25 x
+income (income 0 with no colony). The same lines after f80.
+
+`make state` after f103 (the file's end): clock year - month -, credits
+-, research -, income -, camera world 176 196, planets 0, colonies 0,
+slipways 0, structures 0, techs 0: the title. Same after f96 and f99.
+
+Next to keyboard_game_end's end states:
+
+- keyboard_game_end f93: 3426, research 25 (25 O taps on the year
+  skip). pad_game_end f69: 3426, research 25 (25 X presses on the year
+  skip).
+- keyboard_game_end f154: O on "again?", the title (clock "-", 0
+  planets). pad_game_end f96: X on "again?", the title (clock "-", 0
+  planets), still the title at f103.
+
+The galaxies differ (keyboard_game_end has its own title click); the
+clock and research effects are equal (+25 years, +25 research), the
+same final score panel opens, and both end on the title through
+"again?".
+
+Covers keyboard_game_end.
+
+The X and O edges never type the cheat (O O X X O O X X on the PICO-8
+buttons; the pad's X is the PICO-8 O, its O the PICO-8 X): 27 X press
+edges (the title, 25 years, "again?") and no O, so the sequence never
+gets past its second step.
+
+No long-replay exception: 104 frames, within 180.
+
+Cost: cold `make e2e` (tmp/frames removed), 13 runs without this file
+(8 of them interleaved) and 8 with it, median about 1310 ms without
+(range 1165-1418) and 1436 ms with it (range 1322-1551); a warm `make
+e2e` stays about 0.6 s. The file adds 104 frames (its replay alone
+about 66 ms); deleting keyboard_game_end (160 frames, about 99 ms) in
+step 4.1 gives more back.

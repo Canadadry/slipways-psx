@@ -215,7 +215,7 @@ static void assert_planet_members(const entity_class_t *c) {
            c->states[ENTITY_STATE_VANISHING] != NULL);
     assert(c->attach_slipway == jo->attach_slipway && c->offer_trade == jo->offer_trade && c->attach_slipway != NULL && c->offer_trade != NULL);
     assert(c->drag == NULL && c->drop == NULL && c->draw_at == NULL && c->spawn_particle == NULL);
-    assert(c->draw_overlay == NULL && c->has_refresh == NULL && c->right_press == NULL && c->states[ENTITY_STATE_NORMAL] == NULL &&
+    assert(c->draw_overlay == NULL && c->has_refresh == NULL && c->states[ENTITY_STATE_NORMAL] == NULL &&
            c->states[ENTITY_STATE_SETTLED] == NULL && c->states[ENTITY_STATE_PLACING] == NULL &&
            c->states[ENTITY_STATE_UNFOLDING] == NULL);
 }

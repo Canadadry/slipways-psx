@@ -1,0 +1,83 @@
+Start opens the pause menu, the D-pad moves on its rows, X on "restart"
+goes back to the title, then "challenging" starts a new game, where X on
+"toggle music" and on "toggle sfx" each close the pause menu. 76 frames.
+
+f0-12 are pad_probe's frames (Down, X on "reasonable"). Readings come
+from the capture's framebuffer at each frame, and the state from `make
+state` of the file cut after that frame. The hovered pause row is the
+one filled with colour 12 (read at x=40); title rows are read at x=108
+as in pad_title.txt (forgiving y57, reasonable y68, challenging y79,
+tough y90). In free mode the colour-7 crosshair marks the centre (x78-82
+on y=60, y58-62 on x=80, the centre pixel undrawn).
+
+- f0-12: as pad_probe. f13-15: free mode, the crosshair at the centre.
+- f16: Start. The cursor point jumps onto the HUD's pause button, the
+  crosshair still drawn at the centre on this frame only, the button
+  filled in colour 12 (hovered, read at (0, 111):
+  colour 13 on f15 and f17); the click's press. f17: its release,
+  the menu box slides up from the bottom. From f20 it is settled:
+  "how to play?" y70-76, "toggle sfx" y79-87, "toggle music" y89-97,
+  "restart" y99-108. "restart" is the colour-12 row from f17, the
+  cursor on it, no crosshair under the menu. `make state`
+  at f16, f17, f21 and f25: clock year 3401 month 1, camera (176, 196),
+  90 unknown planets, as at f15.
+- f22: Up: "toggle music" is the colour-12 row (y89-97), f22-23.
+- f24: Down: "restart" colour 12 again, f24-25.
+- f26: X on "restart": back to the title screen. `make state` at f26:
+  clock "-", credits "-", 0 planets. The title rows slide in again:
+  forgiving colour 12 from f27, all four rows drawn from f31, forgiving
+  12 and the other three 13 (f31-33).
+- f34: Down: reasonable 12 (f34-35). f36: Down: challenging 12, the
+  others 13 (f36-37).
+- f38: X on "challenging": the title rows are gone from f38, a new game.
+  f39-47: idle in free mode, the crosshair at the centre.
+
+`make state` at f47: clock year 3401 month 1, credits 100, research 0,
+income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
+structures 0, techs 0; every planet unknown. The galaxy is a new one:
+p1 is at world (184, 122.26), not at pad_probe's (280.44, 129.19).
+
+f0-47 are the 48-frame version of this file verbatim: its capture is the
+first 48 frames of this one, byte for byte. The hovered row is read here
+at x=7 (its fill), the crosshair at (78, 60) and (80, 58).
+
+- f48: Start: the pause button colour 12 (f48), the menu from f49,
+  "restart" focused (y100-108 by f53). f54: Up: "toggle music" colour 12
+  (y89-97, f54-55). `make state` at f55: button 8.
+- f56: X on "toggle music": the menu is gone on f56, the crosshair back
+  from f57. `make state` at f57: button 4, modal_backdrop 0, the rest as
+  at f47.
+- f60: Start again, "restart" focused. f66: Up: "toggle music". f68: Up:
+  "toggle sfx" colour 12 (y78-86, f68-69).
+- f70: X on "toggle sfx": the menu is gone on f70, the crosshair from
+  f71. f71-75: idle in free mode.
+
+`make state` at f75: the same lines as at f47 (year 3401 month 1,
+credits 100, research 0, camera world 176 196, 90 planets, 0 colonies,
+slipways, structures, techs); button 4, modal_backdrop 0, message_box
+0. The f75 capture equals f47's pixel for pixel: the two rows change
+nothing the state or the screen shows (sound is out of scope).
+
+Covers pause_menu_rows (mouse, deleted in the remove-mouse-mode PRD):
+"toggle music" and "toggle sfx" each clicked from the pause menu, the
+menu closing on the click, the game unchanged. Its third row, "how to
+play?", is pad_message_box's f94. With the pad, `make coverage` hits the
+two rows' handlers (src/game/menu.c) that only that file reached.
+
+The difficulty does not show in the end state (pad_title.txt): the
+f37 dump, with "challenging" the only colour-12 row when X is pressed,
+proves the choice.
+
+Covers keyboard_menus. Its end state, at f102-106 of keyboard_menus.txt
+(a new game after pause -> "restart" -> "challenging", top bar at JAN
+3401, 90 planets, 0 colonies, $100), is this file's at f47: clock year
+3401 month 1, planets 90, colonies 0, credits 100. Both go through the
+same steps: the HUD's pause button clicked, "restart" pressed, the
+title, "challenging" pressed.
+
+The X edges never type the cheat (O O X X O O X X on the PICO-8
+buttons; the pad's X is the PICO-8 O): five X presses and no O match
+at most two steps.
+
+Cost: cold `make e2e`, measured before and after this file and
+pad_message_box, in pad_message_box.txt.

@@ -10,7 +10,7 @@ The full game compiled for MIPS, in a `.bin/.cue` that boots in the emulator, sh
 
 - **GPU rendering.** Each PICO-8 draw call (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`, `map`, `print`, `fillp`, `palt`) becomes GPU primitives, instead of copying a 160×120 framebuffer. Sprites and the font live in VRAM.
 - **Accepted divergence.** PSX rendering may differ from PC by a few pixels (circles, lines). The difference will be judged when we get there, not before.
-- **Controller.** The button → mouse layer (`src/engine/button_cursor`), wired to the controller driver.
+- **Controller.** The PSX controller driver fills the PSX buttons of the input frame (`pad_buttons` in `p8_input_frame_t`, `src/p8/input.h`), as `keymap.cfg` does on PC. The pad navigation (`src/game/pad_nav.c`, with `src/game/pad_panel.c`) turns them into the game's input, unchanged.
 - **The core doesn't move.** Only `src/p8/` and a new PSX `src/platform/` adapt.
 - **Prerequisites.** Plans 7 to 9 done. Plan 7 left 1,980 bytes under the 768 KB of zones; the GPU primitive buffers live in the half it freed. Plan 9 produces a VRAM capture, not just TTY output: step 4 is checked against it.
 - **Invariant for every commit.** `make test-all` passes, the `*.sha256` in `tests/e2e/` don't change, `make test` and `make e2e` don't get slower; `make sanitize-net`, `make full-game` and `make state` (with its 1/8 margin) pass too.

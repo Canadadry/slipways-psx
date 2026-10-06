@@ -3,7 +3,7 @@
  *
  * THIS TEST RUNS THE REAL DRIVER, NOT A COPY. tmp/replay is invoked by
  * system() on a short fixture. Redoing the driver's sequence here
- * (cart_load, cart_init, then per frame cheat_step, cart_update60,
+ * (cart_load, cart_init, then per frame input_step_run, cart_update60,
  * cart_draw and the capture write) would add one more copy of a sequence
  * that src/cmd/game.c and src/cmd/replay.c already hold, so one more
  * subtly different replay: the test would prove that a replay writes the

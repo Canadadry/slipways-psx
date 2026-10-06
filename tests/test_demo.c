@@ -87,32 +87,26 @@ int main(void) {
     assert(screen_pixel(&memory, 4, 116) == 0);
     assert(screen_pixel(&memory, 5, 116) == 11);
 
-    /* This block asserts the four-frame scenario's exact mouse/btn()
-     * values, so it reads a fixture of its own, never the root
-     * events.json: a playtest recording can replace that file at any time.
-     * The root recording is covered, for shape and loadability rather than
-     * fixed values, by tests/test_input.c. */
+    /* This block asserts the four-frame scenario's exact pad buttons, so it
+     * reads a fixture of its own, never a playtest recording, which can be
+     * replaced at any time. The fixture's shape and loadability are also
+     * covered by tests/test_input.c. */
     p8_input_t input;
     p8_input_init(&input);
     assert(p8_input_load(&input, DEMO_EVENTS_PATH));
+    assert(input.frame_count == 4);
 
-    assert(p8_input_read_mouse(&input).x == 64);
-    assert(p8_input_read_mouse(&input).y == 32);
-    assert(p8_input_read_mouse(&input).buttons == 1);
-    assert(p8_btn(&input, 0) == 0);
-    assert(p8_btn(&input, 1) == 1);
-    assert(p8_btn(&input, 2) == 0);
-    assert(p8_btn(&input, 3) == 0);
+    assert(input.frames[input.current_frame].pad_buttons == (P8_PAD_RIGHT | P8_PAD_CROSS));
+    assert(p8_input_read_mouse(&input).x == 0);
+    assert(p8_input_read_mouse(&input).buttons == 0);
 
     p8_input_step(&input);
 
-    assert(p8_input_read_mouse(&input).x == 70);
-    assert(p8_input_read_mouse(&input).y == 40);
-    assert(p8_input_read_mouse(&input).buttons == 0);
-    assert(p8_btn(&input, 0) == 0);
-    assert(p8_btn(&input, 1) == 0);
-    assert(p8_btn(&input, 2) == 1);
-    assert(p8_btn(&input, 3) == 0);
+    assert(input.frames[input.current_frame].pad_buttons == P8_PAD_UP);
+
+    p8_input_step(&input);
+
+    assert(input.frames[input.current_frame].pad_buttons == 0);
 
     p8_input_free(&input);
 

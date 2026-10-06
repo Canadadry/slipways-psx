@@ -1,0 +1,107 @@
+The cheat typed as X X O O X X O O on the map, R1 to `tech`, "space
+folding" invented, back on the map. Then trade: a slipgate relaying a
+protostar's energy to a nanotech forgeworld, a trading hub fed tech and
+food, the protostar panned off screen. 553 frames.
+
+f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
+pad_probe's. HUD buttons are read at one fill pixel each: tech (1, 1),
+score (64, 1), year skip (152, 1); colour 12 is the lit tab, 13 the
+others. In free mode the colour-7 crosshair marks the centre (x78-82 on
+y=60, y58-62 on x=80, the centre pixel undrawn), as on f13-35 and
+f47-59. Readings come from the capture's framebuffer at each frame, and
+the economy from `make state` of the file cut after that frame.
+
+- f0-12: as pad_probe. The title's X was an O edge on the PICO-8
+  buttons, so the cheat matcher stands at 1.
+- f16: O tap in free mode, with no starting planet: nothing on the map.
+  It is the cheat's X and brings the matcher back to 0, as
+  keyboard_research's f3 does. Checked: without it the same file ends
+  the cheat with $100 and research 0.
+- f18-32: X X O O X X O O, one tap every two frames, at the start
+  centre. Each X makes a probe on its press (entities 107 -> 108 at
+  f18) that lands 19 px from p14 and is refused: a colour-2 hatched
+  disk round p14 (screen 66, 73) at f18-19, nothing placed, $100 and
+  month 1 kept, the entities back to 107 by f33. The O taps do nothing
+  on the map. The cheat fires at f32: $100 -> $200, research 0 -> 99.
+- f36: R1 (`build`, f36-37: nothing lit, no crosshair, the cursor on
+  the basic structure's icon, its tooltip shown over the
+  top of the screen, hiding the HUD buttons, its cost in colour 8
+  above the icon), f38: R1 (`end turn`, the year skip in
+  colour 12, f38-39).
+- f40: R1: `tech`. The tech button is colour 12 from f40 (the year skip
+  back to 13), the cursor on it. The landing clicks the button: the
+  tech panel is drawn from f41 (its header y11-20 in colour 5), the
+  cursor on the header row.
+- f44: Down: the first technology row, "space folding" (keyboard_
+  research's (30, 24)), turns colour 12 and the cursor moves onto it;
+  f45 the row stands at y22-30. Research still 99.
+- f46: X on it: "space folding" invented, research 99 -> 95. The panel
+  is gone on f46's capture, the tech button still colour 12 on that
+  frame.
+- f47: back on `map`: nothing lit, the crosshair at the centre.
+  f47-59: idle, free mode.
+
+`make state` at f59: clock year 3401 month 1, credits 200, research 95,
+income 0, `techs space folding`, camera world 176 196, planets 90,
+colonies 0, slipways 0, structures 0, techs 1; every planet unknown.
+
+keyboard_research at its end (f89): `techs space folding`, 1 tech,
+$200, 95 research, JAN 3401. The same end state: the cheat's $200 and
+99 research, "space folding" for 4 research, no month spent.
+
+The galaxies differ: the galaxy depends on the frame the game starts,
+keyboard_research clicks the title at f1 and a pad title needs the rows
+first (X at f12). The refused probes do not depend on it here: the
+cheat's X taps at the start centre are refused in this galaxy too
+(pad_probe.txt), so no pan was needed.
+
+Covers keyboard_research.
+
+Cost: the three replays of step 3.1 add 186 frames; cold `make e2e`,
+measured before and after them, in pad_score.txt.
+
+Trade, f60-552 (remove-mouse-mode PRD, chunk 7; appended here to share
+the title and the cheat instead of separate pad_slipgate,
+pad_trading_hub and pad_protostar files). Every capture frame up to f59
+is unchanged, byte for byte.
+
+- f60-67: Up 6, X: the starting probe. f69-121: "geneseeds",
+  "slipgates", "trade league", "starbirth" (research 37).
+- f123-147: Down+Right 2, Right 4, X held 16: a fold, $197. By f159
+  p17 is type m, p14 type f, p36 type o.
+- f160-195: p36 as "algae" (food). f197-231: R1, Left x3, X: the
+  trading hub s1 built at (287, 244). f232-255: square twice, X on p36:
+  `slipway s1 p36`. f256: X travels back to s1.
+- f258-290: R1, Right, X: the slipgate s2 built at (257, 247).
+  f292-321: square twice, X on s1: `slipway s2 s1`, placed first on s2.
+- f322-370: square twice, triangle on p17, "collapse": p17 a protostar,
+  burst 1, $153 -> $123. f372-406: p14 as "nanotech".
+- f407-435: square, X on s2: `slipway p14 s2`, dropped on the slipgate.
+  The tech crosses s2 to the hub, and the offer finds the amount at 0
+  on s2's next slipway (`slipgate_offer_trade`'s `continue`). Income
+  -2 -> 7.
+- f436-480: square twice, the D-pad onto p17, square twice, X on s2:
+  `slipway p17 s2`. The energy crosses s2 and replaces p14's ore need.
+  Income 23: the hub at level 2 (tech and food).
+- f481-490: R1 R1, X on `end turn`: year 3403, the "year 3403" box;
+  L1 L1, the map. Transit dots on the slipways.
+- f499-508: Right, X: network on p14; triangle: its panel, "content",
+  "wants more:", "receives:", "exports: 1/3". f509: O.
+- f511-550: square twice, Left 36: camera 100 209, p17 at screen x 174,
+  visible 0: its particles are no longer drawn.
+
+`make state` at f552: year 3403 month 1, credits 130, research 39,
+income 23, techs + geneseeds, slipgates, trade league, starbirth; camera
+100 209; p14 colonized f, p36 colonized o, p17 colonized protostar, s1
+colonized trading_hub, structure s2 slipgate links 3; slipways s1 p36,
+s2 s1, p14 s2, p17 s2; planets 91, colonies 4. Peaks: bytes_row 720
+(tech_trade_league_hub's 600), burst 1.
+
+Replaces tech_slipgates_relay (a mine's ore relayed by a slipgate to a
+forgeworld, "content" panel), slipgate_outgoing_first (the slipgate's
+outgoing slipway placed first, the offer's amount at 0 on the next),
+tech_trade_league_hub (a hub fed ore and tech, level 2 at the year) and
+tech_starbirth_protostar ("collapse", the protostar's energy powering a
+forgeworld, the protostar moved off screen by a right drag). Same
+effects; here the slipgate relays energy and tech, and the hub takes
+food in place of ore.

@@ -89,7 +89,6 @@ static void assert_links(const entity_t *h, entity_t want) {
     assert(!entity_has(h, ENTITY_HAS_MAP_POS) || same_vec(h->map_pos, want.map_pos));
     assert(!entity_has(h, ENTITY_HAS_HIT_BOX) || (h->hit_box.left == want.hit_box.left && h->hit_box.top == want.hit_box.top &&
                                                   h->hit_box.right == want.hit_box.right && h->hit_box.bottom == want.hit_box.bottom));
-    assert(!entity_has(h, ENTITY_HAS_CURSOR_SPRITE) || h->cursor_sprite == want.cursor_sprite);
     assert(!entity_has(h, ENTITY_HAS_INFRASPACE) || h->infraspace == want.infraspace);
     assert(!entity_has(h, ENTITY_HAS_SHAKE) || h->shake == want.shake);
     assert(!entity_has(h, ENTITY_HAS_FOLD_ANCHOR) || h->fold_anchor == want.fold_anchor);
@@ -152,15 +151,14 @@ static void test_carriers_link_their_storage(void) {
     assert_links(&structure_icon->header,
                  (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_POS | ENTITY_HAS_HIT_BOX | ENTITY_HAS_IS_HOVERED, .layer = structure_icon->archetype->layer, .pos = structure_icon->archetype->pos, .hit_box = structure_icon->archetype->hit_box});
     assert_links(&modal_backdrop->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED, .layer = modal_backdrop->archetype->layer});
-    assert_links(&built_ui->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_CURSOR_SPRITE, .layer = built_ui->archetype->layer, .cursor_sprite = built_ui->archetype->cursor_sprite});
+    assert_links(&built_ui->header, (entity_t){.has = ENTITY_HAS_LAYER, .layer = built_ui->archetype->layer});
     assert_links(&camera->header, (entity_t){.has = ENTITY_HAS_SHAKE | ENTITY_HAS_POS | ENTITY_HAS_MAP_POS, .pos = camera->archetype->pos, .map_pos = camera->archetype->pos_before_shake, .shake = camera->archetype->shake});
     assert_links(&message_box->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD, .layer = message_box->archetype->layer});
     assert_links(&toast->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_IS_DEAD | ENTITY_HAS_POS, .layer = toast->archetype->layer, .pos = toast_pos});
-    assert_links(&help_screen->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_POS | ENTITY_HAS_HIT_BOX | ENTITY_HAS_CURSOR_SPRITE | ENTITY_HAS_FOLD_ANCHOR | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED,
+    assert_links(&help_screen->header, (entity_t){.has = ENTITY_HAS_LAYER | ENTITY_HAS_POS | ENTITY_HAS_HIT_BOX | ENTITY_HAS_FOLD_ANCHOR | ENTITY_HAS_IS_DEAD | ENTITY_HAS_IS_HOVERED,
                                                          .layer = help_screen->archetype->layer,
                                                          .pos = help_screen->archetype->pos,
                                                          .hit_box = help_screen->archetype->hit_box,
-                                                         .cursor_sprite = help_screen->archetype->cursor_sprite,
                                                          .fold_anchor = help_screen->archetype->fold_anchor});
     assert_components(&help_screen->header, &help_screen->targeting, &help_screen->emitter);
     assert(help_screen->header.fold_anchor == p8_fixed_from_int(1) &&

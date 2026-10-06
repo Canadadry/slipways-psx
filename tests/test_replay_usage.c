@@ -45,7 +45,7 @@ static void test_no_argument_prints_usage_and_fails(void) {
 /* The driver takes no option: an argument starting with a dash is not
  * taken for an events file. */
 static void test_option_prints_usage_and_fails(void) {
-    assert_usage_and_failure(" --from-title tests/fixtures/title_click_forgiving.json");
+    assert_usage_and_failure(" --from-title tests/fixtures/title_pick_forgiving.json");
 }
 
 int main(void) {

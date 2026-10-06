@@ -212,9 +212,6 @@ const int_seq_t wormhole_color_ramp_seq = {9, wormhole_color_ramp_items};
 static const int background_tile_choices_items[] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
 const int_seq_t background_tile_choices_seq = {15, background_tile_choices_items};
 
-static const vec_t camera_dpad_directions_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
-const vec_seq_t camera_dpad_directions_vecs = {4, camera_dpad_directions_items};
-
 static const data_item_t help_screen_rows_1_items[] = {{.number = 192}, {.number = P8_SCREEN_WIDTH / 2 - 64}, {.number = P8_SCREEN_HEIGHT / 2 - 53}, {.number = 16},
     {.number = 4}};
 static const data_row_t help_screen_rows_1 = {.count = 5, .items = help_screen_rows_1_items, .draw_function = DRAW_FUNCTION_SPR};
@@ -300,7 +297,6 @@ const background_archetype_t background_archetype = {
 const ui_archetype_t ui_archetype = {
     .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
-    .cursor_sprite = 0x3a0000,
     .layer = 0xf0000,
     .panel_box = {0xa0000, 0xa0000, P8_FIXED_INT(P8_SCREEN_WIDTH - 10), P8_FIXED_INT(P8_SCREEN_HEIGHT - 10)},
 };
@@ -321,11 +317,9 @@ const modal_backdrop_archetype_t modal_backdrop_archetype = {
 const camera_archetype_t camera_archetype = {
     .state = ENTITY_STATE_NORMAL,
     .state_time = 0x0,
-    .velocity = {0x0, 0x0},
     .shake = 0x0,
     .pos_before_shake = {0xb00000, 0xc40000},
     .pos = {0xb00000, 0xc40000},
-    .dpad_directions = &camera_dpad_directions_vecs,
 };
 
 const mouse_archetype_t mouse_archetype = {
@@ -414,7 +408,6 @@ const probe_archetype_t help_screen_archetype = {
     .row_step = {0x0, 0xb0000},
     .clear_ephemerals_after = 0x10000,
     .hit_box = {-0x280000, 0x4e0000, 0x280000, 0x620000},
-    .cursor_sprite = 0xb0000,
     .rows = &help_screen_rows_row,
     .emitter = {.angle_slices = 0x50000, .base_radius = 0xf0000, .speed_factor = 0x1b6, .lifetime = 0x110000, .quarter_turn = 0x10000, .spawn_rate = 0x50000,
                 .trail_colors = &help_screen_trail_colors_seq, .matrix_xx = 0x1051e, .matrix_xy = -0x1ca, .matrix_yx = 0x1ca, .matrix_yy = 0x1051e},

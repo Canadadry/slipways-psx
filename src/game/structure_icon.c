@@ -96,6 +96,14 @@ void structure_icon_refresh(structure_icon_t *self) {
     structure_icon_set_cursor(vec_sub(structure_icon_cursor(), vec_make(p8_fixed_from_int(10), p8_fixed_from_int(0))));
 }
 
+int structure_icon_is_revealed(const entity_t *e) {
+    if (e == NULL || e->is_dead || e->class != structure_icon_class()) {
+        return 0;
+    }
+    const structure_icon_t *icon = (const structure_icon_t *)e;
+    return icon->has_is_revealed && icon->is_revealed;
+}
+
 static void structure_icon_refresh_method(entity_t *self) {
     structure_icon_refresh((structure_icon_t *)self);
 }

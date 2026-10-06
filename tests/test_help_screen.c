@@ -57,9 +57,9 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 
-#define BUILT_HASH 0xF2B889C9u
-#define LIFE_HASH 0x58FB715Eu
-#define HOVER_HASH 0xEABC449Fu
+#define BUILT_HASH 0xB7038702u
+#define LIFE_HASH 0xB4AFA291u
+#define HOVER_HASH 0x56A42FA7u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -358,7 +358,6 @@ static void test_built(void) {
     hash = fold_fixed_member(hash, emitter->archetype->quarter_turn);
     hash = fold_fixed_member(hash, emitter->archetype->lifetime);
     hash = fold_ref_member(hash, &probe->archetype->hit_box);
-    hash = fold_fixed_member(hash, probe->archetype->cursor_sprite);
     hash = fold_ref_member(hash, probe->archetype->rows);
     hash = fold_tags(fnv(fnv(hash, 1u), 0x7Au), probe->header.class->tags);
     hash = fold_fixed_member(hash, probe->archetype->fold_anchor);
@@ -500,12 +499,10 @@ static void mouse_at(int x, int y) {
 }
 
 /* The mouse over "need help?": main_ui()'s hovered, is_hovered, the help
- * in layer 10 of hovered_by_layer, the cursor sprite; then out, is_hovered
- * false. */
+ * in layer 10 of hovered_by_layer; then out, is_hovered false. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
     probe_t *fv;
-    uint32_t drawn;
 
     start_title();
     fv = the_help();
@@ -515,14 +512,6 @@ static void test_hover(void) {
     assert(is_hovered_state(fv) == 2);
     assert(in_layer(10, fv));
     h = fnv(h, is_hovered_state(fv));
-
-    p8_cls(&memory);
-    ui_draw_overlay(&graphics, &memory, main_ui());
-    drawn = screen_hash();
-    p8_cls(&memory);
-    p8_spr_default(&graphics, &memory, 11, P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 + 48);
-    assert(drawn == screen_hash());
-    h = fnv(h, drawn);
 
     mouse_at(P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2 - 54);
     ui_update(&memory, main_ui());
@@ -601,7 +590,7 @@ static void test_help_screen_is_a_struct(void) {
     assert(cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL);
     assert(cls->draw_overlay != NULL && cls->draw_overlay == g_->draw_overlay);
     assert(cls->draw == help_screen_draw_method && cls->hit_test != NULL);
-    assert(cls->new_year == NULL && cls->refresh == NULL && cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL &&
+    assert(cls->new_year == NULL && cls->refresh == NULL && cls->has_refresh == NULL && cls->left_press == NULL &&
            cls->accept_drop == NULL);
     for (j = 0; j < STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);

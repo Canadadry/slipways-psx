@@ -37,13 +37,13 @@
 #include "game/layout.h"
 
 #define YEAR_MESSAGE_TICKS 192
-#define YEAR_MESSAGE_SEQUENCE_HASH 0x6C50E246u
+#define YEAR_MESSAGE_SEQUENCE_HASH 0xE6D93DEAu
 #define YEAR_SILENT_TICKS 104
-#define YEAR_SILENT_SEQUENCE_HASH 0x1AD4FEEBu
+#define YEAR_SILENT_SEQUENCE_HASH 0x7D2BC640u
 #define TWO_YEARS_TICKS 213
-#define TWO_YEARS_SEQUENCE_HASH 0x7A1BEE68u
+#define TWO_YEARS_SEQUENCE_HASH 0x5A23C244u
 #define SCORES_TICKS 113
-#define SCORES_SEQUENCE_HASH 0x49018588u
+#define SCORES_SEQUENCE_HASH 0xAEC98B0Eu
 
 #define MAX_BOXES 4
 
@@ -480,11 +480,14 @@ static void test_box_copies_its_rows(void) {
     char text[] = "2 years remain";
     data_item_t items[] = {{.text = text}, {.number = P8_SCREEN_WIDTH / 2}, {.number = 40}, {.number = 9}, {.is_fixed = 1, .fixed = P8_FIXED_LIT(0x00008000, 0.5)}};
     data_row_t row = {.count = 5, .items = items, .draw_function = DRAW_FUNCTION_PRINT_OUTLINED};
+    message_box_t *box;
     uint32_t want;
 
     reset_world(NULL);
     cart_flush_exit_queue();
-    message_box_add_row(message_box_new(NULL), &row);
+    box = message_box_new(NULL);
+    message_box_add_row(box, &row);
+    box->header.state_time = p8_fixed_mul(box->duration_scale, p8_fixed_from_int(10));
     want = draw_hash();
     assert(want != screen_hash_of_blank());
     strcpy(text, "XXXXXXXXXXXXXX");

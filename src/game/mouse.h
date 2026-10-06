@@ -18,7 +18,6 @@ void mouse_init(void);
 void mouse_shutdown(void);
 
 const mouse_button_t *mouse_left_button(void);
-const mouse_button_t *mouse_right_button(void);
 
 int mouse_ready(void);
 const entity_class_t *mouse_class(void);

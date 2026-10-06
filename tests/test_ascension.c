@@ -267,7 +267,7 @@ static void assert_structure_members_but_draw(const entity_class_t *c) {
 
     assert(c->draw != NULL && c->draw != qh->draw);
     assert(c->draw_overlay == qh->draw_overlay && c->hit_test == qh->hit_test && c->new_year == qh->new_year && c->refresh == qh->refresh && c->has_refresh == qh->has_refresh &&
-           c->left_press == qh->left_press && c->right_press == qh->right_press && c->accept_drop == qh->accept_drop);
+           c->left_press == qh->left_press && c->accept_drop == qh->accept_drop);
     assert(c->draw_overlay != NULL && c->hit_test != NULL && c->new_year != NULL && c->refresh != NULL && c->left_press != NULL && c->accept_drop != NULL);
     assert(c->drag == qh->drag && c->drop == qh->drop && c->attach_slipway == qh->attach_slipway && c->offer_trade == qh->offer_trade && c->draw_at == NULL);
     assert(c->drag != NULL && c->drop != NULL && c->attach_slipway != NULL && c->offer_trade != NULL);
@@ -275,7 +275,7 @@ static void assert_structure_members_but_draw(const entity_class_t *c) {
         assert(c->states[j] == qh->states[j]);
     }
     assert(c->states[ENTITY_STATE_VANISHING] != NULL && c->states[ENTITY_STATE_SETTLED] != NULL);
-    assert(c->right_press == NULL && c->states[ENTITY_STATE_NORMAL] == NULL && c->states[ENTITY_STATE_PLACING] == NULL &&
+    assert(c->states[ENTITY_STATE_NORMAL] == NULL && c->states[ENTITY_STATE_PLACING] == NULL &&
            c->states[ENTITY_STATE_UNFOLDING] == NULL);
 }
 

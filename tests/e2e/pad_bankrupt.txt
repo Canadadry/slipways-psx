@@ -1,0 +1,37 @@
+Five labs from the `build` tab, the cheat, seven years on `end turn`, a
+refused lab ("-no money-"), the bankrupt screen. 180 frames.
+
+Pad input declared ("input": "pad"). f0-12 are pad_title's prefix, so
+the galaxy is pad_probe's. A lab is the `build` tab's basic structure
+($15, 2 months, upkeep the square of the colony count). Readings come
+from `make state` of the file cut after the frame and from the capture.
+
+- f16-21: Up 6, f22: X: the free starting probe (entities 107 -> 108),
+  only there for the entity_table peak.
+- f24-93: four labs, each R1, X, D-pad, X: s1 (258, 248), s2 (284,
+  242), s3 (300, 262), s4 (322, 260). After f93: $40, month 9,
+  income -16.
+- f95-111: O, then X X O O X X O O (the O first leaves the matcher
+  at 0): $200, research 99 at f111.
+- f113-134: the fifth lab s5 (302, 286): $185, month 11, income -25.
+- f136, f138: R1 R1, `end turn`. f140-152: X seven times, one year
+  each: $185 -> $10, year 3408, toasts 7 -> 36.
+- f154-170: L1, X: s6 carried to (318, 302), a free spot; X at f170:
+  "-no money-" in colour 8 above the centre (x64-100, y55-59 at f171),
+  s6 gone, $10 kept.
+- f172-176: R1 R1, X: year 3409, $10 - 25 = -$15, income -25: the end
+  box opens at f177 (modal_backdrop 1, message_box 3), its colour-12 row
+  at y97-106 with the colour-6 text x73-97, the row game_end_bankrupt's
+  last frame showed in colour 13.
+
+`make state` at f179: year 3409 month 1, credits -15, research 107,
+income -25, camera 238 242, s1-s5 colonized structure, planets 95,
+colonies 5, slipways 0, techs 0. Peaks: toast 42, entity_table 161,
+message_box 3, modal_backdrop 1, all reached at f177.
+
+Replaces game_end_bankrupt (6 labs, $5 after 4 years, refused lab, -$31
+bankrupt). Same effects: `economy_spend` refusal, bankrupt at the year.
+Five labs instead of six: toasts live 50 frames and a pad lab move takes
+13-18, so six labs peaked at 38 toasts (the cheat's $200 allows only 4
+years); five allow 7 years, 1 + 7 x 5 + 1 + 5 = 42, game_end_bankrupt's
+peak.

@@ -65,7 +65,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 #define PLANET_RESOURCE_ROW_HASH 0x14A29E3Fu
 #define RESEARCH_PROJECT_LAYOUT_ROW_HASH 0xBF1572BEu
 #define CALLS_HASH 0xAF82B163u
-#define PANEL_HASH 0xBAD9AD32u
+#define PANEL_HASH 0xA6746726u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -943,7 +943,7 @@ static void test_layout_row_is_a_struct(void) {
     assert(lq != NULL && lq->header.class == row_class);
     assert(row_class->draw_at != NULL);
     assert(row_class->draw == NULL && row_class->draw_overlay == NULL && row_class->hit_test == NULL && row_class->new_year == NULL && row_class->refresh == NULL &&
-           row_class->left_press == NULL && row_class->right_press == NULL && row_class->accept_drop == NULL && row_class->drag == NULL && row_class->drop == NULL &&
+           row_class->left_press == NULL && row_class->accept_drop == NULL && row_class->drag == NULL && row_class->drop == NULL &&
            row_class->attach_slipway == NULL && row_class->offer_trade == NULL && row_class->spawn_particle == NULL);
     for (i = 0; i < STATE_COUNT; i++) {
         assert(row_class->states[i] == NULL);

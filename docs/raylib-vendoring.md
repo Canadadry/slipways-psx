@@ -36,7 +36,4 @@ documents for linking an external PLATFORM_DESKTOP program on OSX.
 
 ## Files involved
 
-`src/cmd/game.c`, `src/platform/raylib_backend.c`,
-`src/platform/raylib_backend_coords.c`. The last one deliberately has no
-raylib dependency and is tested by `tests/test_raylib_backend_coords.c`, which
-is part of `make test`.
+`src/cmd/game.c`, `src/platform/raylib_backend.c`.

@@ -1,5 +1,5 @@
 /* tools/e2e_limits.sh, the guard of new e2e files (companion files, 180
- * frames, 600 for a listed exception, keyboard_ files without the mouse), on
+ * frames, 600 for a listed exception, the pad header, no mouse field), on
  * built events files. */
 
 #include <assert.h>
@@ -12,14 +12,8 @@
 #define LOG DIR "/log.txt"
 #define EXCEPTIONS DIR "/exceptions.txt"
 
-#define FRAME "{ \"mouse_x\": %d, \"mouse_y\": %d, \"mouse_buttons\": %d, " \
-              "\"dpad\": [false, false, false, false, false, false] }"
-
-typedef struct {
-    int x, y, buttons;
-} mouse_t;
-
-static const mouse_t still = {64, 64, 0};
+#define OLD_MOUSE_FRAME "{ \"mouse_x\": 64, \"mouse_y\": 64, \"mouse_buttons\": 0, " \
+                        "\"dpad\": [false, false, false, false, false, false] }"
 
 static void write_file(const char *path, const char *text) {
     FILE *file = fopen(path, "w");
@@ -39,20 +33,18 @@ static const char *read_log(void) {
     return buf;
 }
 
-/* A complete e2e: <name>.json of `frames` frames, <name>.txt and
- * <name>.json.sha256. Frame 1 has the mouse `odd`, every other one `still`;
- * `declared` writes the keyboard_cursor member before "frames". */
-static void write_e2e_mouse(const char *name, int frames, int declared, mouse_t odd) {
+/* A complete e2e: <name>.json opening with `header`, then `frames` copies
+ * of `frame` except frame 1, which is `odd` when not NULL; <name>.txt and
+ * <name>.json.sha256. */
+static void write_e2e_with(const char *name, const char *header, int frames, const char *frame, const char *odd) {
     char path[256];
     snprintf(path, sizeof path, DIR "/%s.json", name);
     FILE *file = fopen(path, "w");
     assert(file != NULL);
-    fputs(declared ? "{\n  \"keyboard_cursor\": true,\n  \"frames\": [\n"
-                   : "{\n  \"frames\": [\n", file);
+    fputs(header, file);
     for (int i = 0; i < frames; i++) {
-        mouse_t mouse = i == 1 ? odd : still;
         fputs("    ", file);
-        fprintf(file, FRAME, mouse.x, mouse.y, mouse.buttons);
+        fputs(i == 1 && odd != NULL ? odd : frame, file);
         fputs(i + 1 < frames ? ",\n" : "\n", file);
     }
     fputs("  ]\n}\n", file);
@@ -63,8 +55,10 @@ static void write_e2e_mouse(const char *name, int frames, int declared, mouse_t 
     write_file(path, "0000\n");
 }
 
-static void write_e2e(const char *name, int frames) {
-    write_e2e_mouse(name, frames, 0, still);
+#define PAD_HEADER "{\n  \"input\": \"pad\",\n  \"frames\": [\n"
+
+static void write_e2e(const char *name, int frames, const char *odd) {
+    write_e2e_with(name, PAD_HEADER, frames, "{ \"pad\": [] }", odd);
 }
 
 static int run(const char *events) {
@@ -85,37 +79,44 @@ static void test_no_e2e_passes(void) {
 
 static void test_e2e_of_180_frames_passes(void) {
     reset();
-    write_e2e("short", 180);
+    write_e2e("short", 180, NULL);
     assert(run(DIR "/short.json") == 0);
 }
 
 static void test_e2e_over_180_frames_fails_and_is_named(void) {
     reset();
-    write_e2e("short", 10);
-    write_e2e("long", 181);
+    write_e2e("short", 10, NULL);
+    write_e2e("long", 181, NULL);
     assert(run(DIR "/short.json " DIR "/long.json") != 0);
     assert(strstr(read_log(), DIR "/long.json") != NULL);
     assert(strstr(read_log(), "181") != NULL);
     assert(strstr(read_log(), DIR "/short.json:") == NULL);
 }
 
+static void test_frames_are_counted_by_their_pad_key(void) {
+    reset();
+    write_e2e_with("pressed", PAD_HEADER, 181, "{ \"pad\": [\"cross\", \"up\"] }", NULL);
+    assert(run(DIR "/pressed.json") != 0);
+    assert(strstr(read_log(), "181 frames") != NULL);
+}
+
 static void test_listed_exception_is_allowed_up_to_600_frames(void) {
     reset();
-    write_e2e("long", 600);
-    write_file(EXCEPTIONS, DIR "/long.json the probe takes 9 s to come back\n");
+    write_e2e("long", 600, NULL);
+    write_file(EXCEPTIONS, DIR "/long.json the game takes long to end\n");
     assert(run(DIR "/long.json") == 0);
-    write_e2e("long", 601);
+    write_e2e("long", 601, NULL);
     assert(run(DIR "/long.json") != 0);
     assert(strstr(read_log(), DIR "/long.json") != NULL);
 }
 
 static void test_missing_companion_file_fails(void) {
     reset();
-    write_e2e("no_txt", 10);
+    write_e2e("no_txt", 10, NULL);
     assert(system("rm " DIR "/no_txt.txt") == 0);
     assert(run(DIR "/no_txt.json") != 0);
     assert(strstr(read_log(), DIR "/no_txt.txt") != NULL);
-    write_e2e("no_sha", 10);
+    write_e2e("no_sha", 10, NULL);
     assert(system("rm " DIR "/no_sha.json.sha256") == 0);
     assert(run(DIR "/no_sha.json") != 0);
     assert(strstr(read_log(), DIR "/no_sha.json.sha256") != NULL);
@@ -129,54 +130,39 @@ static void test_missing_exceptions_list_fails(void) {
     assert(run("") != 0);
 }
 
-static void test_keyboard_e2e_declared_with_still_mouse_passes(void) {
+static void test_e2e_with_a_mouse_field_fails_and_is_named(void) {
     reset();
-    write_e2e_mouse("keyboard_ok", 10, 1, still);
-    assert(run(DIR "/keyboard_ok.json") == 0);
+    write_e2e("mouse_x", 10, "{ \"pad\": [], \"mouse_x\": 64 }");
+    assert(run(DIR "/mouse_x.json") != 0);
+    assert(strstr(read_log(), DIR "/mouse_x.json") != NULL);
+    write_e2e("dpad", 10, "{ \"pad\": [], \"dpad\": [false, false, false, false] }");
+    assert(run(DIR "/dpad.json") != 0);
+    assert(strstr(read_log(), DIR "/dpad.json") != NULL);
 }
 
-static void test_declared_e2e_not_named_keyboard_may_move_the_mouse(void) {
+static void test_e2e_without_the_pad_header_fails_and_is_named(void) {
     reset();
-    write_e2e_mouse("takeover", 10, 1, (mouse_t){30, 20, 1});
-    assert(run(DIR "/takeover.json") == 0);
-}
-
-static void test_keyboard_e2e_with_moved_mouse_fails_and_is_named(void) {
-    reset();
-    write_e2e_mouse("keyboard_x", 10, 1, (mouse_t){65, 64, 0});
-    assert(run(DIR "/keyboard_x.json") != 0);
-    assert(strstr(read_log(), DIR "/keyboard_x.json") != NULL);
-    write_e2e_mouse("keyboard_y", 10, 1, (mouse_t){64, 63, 0});
-    assert(run(DIR "/keyboard_y.json") != 0);
-    assert(strstr(read_log(), DIR "/keyboard_y.json") != NULL);
-}
-
-static void test_keyboard_e2e_with_mouse_button_fails_and_is_named(void) {
-    reset();
-    write_e2e_mouse("keyboard_click", 10, 1, (mouse_t){64, 64, 1});
-    assert(run(DIR "/keyboard_click.json") != 0);
-    assert(strstr(read_log(), DIR "/keyboard_click.json") != NULL);
-}
-
-static void test_keyboard_e2e_without_declaration_fails_and_is_named(void) {
-    reset();
-    write_e2e_mouse("keyboard_undeclared", 10, 0, still);
-    assert(run(DIR "/keyboard_undeclared.json") != 0);
-    assert(strstr(read_log(), DIR "/keyboard_undeclared.json") != NULL);
+    write_e2e_with("no_header", "{\n  \"frames\": [\n", 10, "{ \"pad\": [] }", NULL);
+    assert(run(DIR "/no_header.json") != 0);
+    assert(strstr(read_log(), DIR "/no_header.json") != NULL);
+    write_e2e_with("old_mouse", "{\n  \"frames\": [\n", 10, OLD_MOUSE_FRAME, NULL);
+    assert(run(DIR "/old_mouse.json") != 0);
+    assert(strstr(read_log(), DIR "/old_mouse.json") != NULL);
+    write_e2e_with("mouse_header", "{\n  \"input\": \"mouse\",\n  \"frames\": [\n", 10, "{ \"pad\": [] }", NULL);
+    assert(run(DIR "/mouse_header.json") != 0);
+    assert(strstr(read_log(), DIR "/mouse_header.json") != NULL);
 }
 
 int main(void) {
     test_no_e2e_passes();
     test_e2e_of_180_frames_passes();
     test_e2e_over_180_frames_fails_and_is_named();
+    test_frames_are_counted_by_their_pad_key();
     test_listed_exception_is_allowed_up_to_600_frames();
     test_missing_companion_file_fails();
     test_missing_exceptions_list_fails();
-    test_keyboard_e2e_declared_with_still_mouse_passes();
-    test_declared_e2e_not_named_keyboard_may_move_the_mouse();
-    test_keyboard_e2e_with_moved_mouse_fails_and_is_named();
-    test_keyboard_e2e_with_mouse_button_fails_and_is_named();
-    test_keyboard_e2e_without_declaration_fails_and_is_named();
+    test_e2e_with_a_mouse_field_fails_and_is_named();
+    test_e2e_without_the_pad_header_fails_and_is_named();
     assert(system("rm -rf " DIR) == 0);
     printf("test_e2e_limits: all tests passed\n");
     return 0;

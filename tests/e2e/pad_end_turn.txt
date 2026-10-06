@@ -1,0 +1,71 @@
+The shoulder buttons cycle the tabs, X on `end turn` ends two years,
+then L1/L1 and R1/R1/O back to the map; there, the starting probe and a
+held X on the same spot: a fold with no anchor, refused with no line
+drawn. 91 frames.
+
+f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
+pad_probe's. HUD buttons are read at one fill pixel each: tech (1, 1),
+score (64, 1), year skip (152, 1); colour 12 is the lit tab, 13 the
+others. Readings come from the capture's framebuffer at each frame, and
+the clock from `make state` of the file cut after that frame.
+
+- f0-12: as pad_probe. After f12: free mode, the colour-7 crosshair at
+  the centre (x78-82 on y=60, y58-62 on x=80, the centre pixel
+  undrawn), the three HUD buttons in colour 13. Pad mode draws no
+  cursor sprite on any frame.
+- f16: R1: `build`. f16-17: nothing lit, no crosshair, the cursor on
+  the basic structure's icon, its tooltip shown: the
+  tooltip box over the top of the screen (text y3-40) hides the HUD
+  buttons (colour 1 at the three fill pixels), its cost in colour 8 at
+  x149-158, y108-112.
+- f18: R1: `end turn`. From f18 the year-skip button is colour 12, the
+  other two 13, and the cursor point sits on it.
+  f18-20: year 3401, research 0.
+- f21: X tap: year 3402, research 1, $100 (income 0).
+- f25-44: X held 20 frames: year 3403 on f25, research 2, and still
+  3403 at f44 and f45: one press, one year.
+- f48: L1: `build`, f48-49 as f16-17: nothing lit, the cursor on the
+  structure icon, its tooltip shown. f50: L1: `map`, nothing lit, the
+  crosshair back at the centre (f50-53).
+- f54: R1 (`build`, f54-55 as f16-17), f56: R1 (`end turn`): the year
+  skip in colour 12 again on f56-58, the cursor on it.
+- f59: O: `map`. f59-64: nothing lit, the crosshair at the centre. The
+  camera stays (176, 196) up to f64.
+- f65-70: Up held 6 frames, camera (176, 196) -> (176, 190), as
+  pad_probe's f19-24. f71: X tap on empty space: the starting probe
+  (entity count 108 -> 109), dropped on the f72 release.
+- f73-88: X held 16 frames with no pan: the fold lands on the probe's
+  own point. The anchor search skips a candidate at the same position,
+  so the fold has no anchor and is refused: "-too far-" in colour 8
+  across x62-96, y52-56 on every frame f73-89, the crosshair at the
+  centre. No line runs from the fold toward the top-left: on f73-89
+  the diagonal x28-77, y9-57 (x - y = 19) holds only the colour-1
+  pixels (57, 38) and (58, 39), already there at f72. f89: X
+  released: nothing is charged and no month passes. f90: the label is
+  gone.
+- The same file replayed by the build of 85399b1~1 (the commit before
+  "draw no anchor line for a fold without an anchor") differs from
+  this capture on f73-89 only, by 33 or 34 colour-1 pixels each, all
+  on that diagonal: (28, 9), (29, 10) ... (49, 30), (60, 40) ...
+  (70, 50) and (77, 57) on f80, the line drawn toward world (0, 0)
+  that the user saw. The f0-72 frames are identical.
+
+`make state` at f64: clock year 3403 month 1, credits 100, research 2,
+income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
+structures 0, techs 0; every planet unknown. That is pad_title's end
+state with two years skipped: year +2, research +2, credits + 2 x
+income (income 0 with no colony).
+
+`make state` at f90 (the file's end): the same lines but camera world
+176 190: the probe is free and the refused fold charged nothing ($100,
+year 3403 month 1).
+
+The X and O edges never type the cheat (X X O O X X O O): the title's X,
+the X presses and the O match at most two steps.
+
+Covers no keyboard_* scenario on its own. Its year skip is the
+mechanism pad_game_end (step 3.4) uses to cover keyboard_game_end,
+whose 25 years are skipped through the same HUD button.
+
+Cost: the three replays of step 3.1 add 186 frames; cold `make e2e`,
+measured before and after them, in pad_score.txt.

@@ -11,7 +11,6 @@
 #include "game/gen.h"
 #include "engine/entity.h"
 #include "game/probe.h"
-#include "game/scroll.h"
 #include "engine/vec.h"
 #include "game/wormhole.h"
 #include "engine/frame_zone.h"
@@ -33,26 +32,11 @@ static down_t background_left_press_method(entity_t *self, mouse_pos_t mouse) {
     return background_left_press((background_t *)self);
 }
 
-static down_t background_right_press_method(entity_t *self, mouse_pos_t mouse) {
-    return background_right_press((background_t *)self, mouse);
-}
-
-static void background_drag_method(entity_t *self, mouse_pos_t mouse) {
-    background_drag((background_t *)self, mouse);
-}
-
 static const entity_class_t background_class_def = {
     .draw = background_draw_method,
     .hit_test = entity_registry_hit_test_always,
     .left_press = background_left_press_method,
-    .right_press = background_right_press_method,
-    .drag = background_drag_method,
 };
-
-static void background_set_drag_mouse(background_t *self, mouse_pos_t mouse) {
-    self->has_drag_mouse = mouse_pos_has_screen(mouse);
-    self->drag_mouse = mouse_pos_screen(mouse);
-}
 
 static background_t *background_create(void) {
     background_t *self = (background_t *)allocator_alloc(game_zone(), sizeof *self);
@@ -61,7 +45,6 @@ static background_t *background_create(void) {
     self->archetype = &background_archetype;
     self->header.has |= ENTITY_HAS_LAYER;
     self->header.layer = self->archetype->layer;
-    background_set_drag_mouse(self, (mouse_pos_t){0});
     self->header.has |= ENTITY_HAS_IS_HOVERED;
     self->header.is_hovered = 0;
     background_construct(dispatch_context_mem(), self);
@@ -174,35 +157,4 @@ down_t background_left_press(background_t *self) {
     out.stop = made != NULL;
     out.held = entity_id_link(made);
     return out;
-}
-
-down_t background_right_press(background_t *self, mouse_pos_t mouse) {
-    down_t out = {0, ENTITY_ID_NONE};
-
-    if (self != NULL) {
-        background_set_drag_mouse(self, mouse);
-        out.stop = 1;
-        out.held = entity_id_link(&self->header);
-    }
-    return out;
-}
-
-/* The stored drag mouse is read before the last statement overwrites it: that is the drag delta. */
-void background_drag(background_t *self, mouse_pos_t mouse) {
-    vec_t zero = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-    vec_t mq;
-    camera_t *mo;
-
-    if (self == NULL) {
-        return;
-    }
-
-    mq = self->has_drag_mouse ? self->drag_mouse : zero;
-    if (main_camera() != NULL) {
-        mo = main_camera_typed();
-        assert(mo != NULL && "background_drag: the camera placeholder has no velocity; a drag before reset_world() stops the run");
-        camera_set_velocity(mo, vec_sub(mq, mouse_pos_screen(mouse)));
-    }
-
-    background_set_drag_mouse(self, mouse);
 }

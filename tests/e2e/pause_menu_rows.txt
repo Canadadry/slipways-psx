@@ -1,9 +1,0 @@
-The three pause menu rows that do not leave the game. 25 frames.
-
-- f0: click "reasonable" on the title screen (76,70).
-- f2: `ix[4]` (2,111) opens the pause menu. f7: "toggle music" (10,94),
-  the menu closes.
-- f9: pause. f14: "toggle sfx" (10,84), the menu closes.
-- f16: pause. f21: "how to play?" (10,75), the menu closes.
-
-Replaces the unit test `pause_menu_music`.

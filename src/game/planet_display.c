@@ -21,6 +21,7 @@
 #include "game/slipway.h"
 #include "p8/str.h"
 #include "game/tech_gate.h"
+#include "game/ui.h"
 #include "game/ui_button.h"
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
@@ -390,6 +391,10 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
         int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, mi, &color);
         p8_circ(graphics, memory, screen_x, screen_y, 6, color);
         p8_spr_default(graphics, memory, mi + 1, screen_x - 3, screen_y - 6);
+    }
+
+    if (main_ui() != NULL && ui_pad_circle(main_ui()) == &self->header) {
+        p8_circ(graphics, memory, screen_x, screen_y, 9, 7);
     }
 
     {

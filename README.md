@@ -2,24 +2,36 @@
 
 *Slipways* (PICO-8 edition) ported to C, running on PC through raylib.
 
-## How it's built
+## Running the game
 
-- Ported from `pico8/lua.lua` (the cart's decompiled source), which stays as an archive. The C code is now the reference.
-- The game talks to a fixed PICO-8 API (a 160×120 software framebuffer) served by two backends: a headless replay (`events.json` in, text dump of the framebuffer out) and interactive raylib.
-- A raylib session records its input as `events.json`: whatever a human played, an agent can replay without a window.
-- `worst-case/` holds fully built-up games: `make state` reports zone peaks, `make full-game` fails on any `p8_fatal`.
+```sh
+make raylib
+tmp/game            # keyboard or gamepad
+```
+
+Run it from the repository root. Each session is recorded in `tmp/`; pass a recording to resume it. Space bookmarks a frame.
 
 ## Controls
 
-- The mouse points and clicks as in the cart.
-- The arrows move the game's cursor, slowly for a sixth of a second, then faster.
-- Z (PICO-8's O) is the left mouse button and X the right one, held and released like a mouse button.
-- Pushing the cursor against a screen edge scrolls the map; X held with the arrows drags it.
-- Moving the mouse takes the cursor back from the keyboard at once.
-- Z and X are key positions named after the US layout: on an AZERTY keyboard, the left button is the key labelled W, and X stays X.
-- The space bar bookmarks the current frame of the recording in its `.markers.txt` file.
-- During a replay, Page Up plays faster, Page Down slower, and End removes the frame-rate cap.
-- A resumed recording made before the keyboard cursor stays mouse-only: there, the arrows scroll the map.
+| Button | Keyboard (QWERTY) | AZERTY | Gamepad |
+|---|---|---|---|
+| D-pad | arrows | arrows | D-pad |
+| × confirm | X | X | bottom |
+| ○ back | C | C | right |
+| □ | Z | W | left |
+| △ planet menu | V | V | top |
+| L1 / R1 tabs | A / S | Q / S | shoulders |
+| Start pause | Enter | Enter | right middle |
+
+Keys can be changed in `keymap.cfg`.
+
+- **Menus:** the D-pad moves, × picks, ○ closes.
+- **Tabs:** L1/R1 switch between map, build, end turn, tech and score.
+- **Free mode** (crosshair): the D-pad moves the camera. × launches a probe, hold × to fold space. △ opens a planet's menu. □ selects a colony.
+- **Network mode** (blinking planet): Left/Right pick a slipway, × travels along it. □ starts a slipway from this planet.
+- **Building a slipway:** aim at another colony and press ×. The line turns red if it can't be built. □ again cancels it.
+- **Build tab:** Left/Right pick a structure, × takes it, × again places it, ○ cancels.
+- **End turn tab:** × ends the year.
 
 ## To do
 

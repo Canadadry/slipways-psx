@@ -36,21 +36,6 @@ int replay_source_frames_served(const replay_source_t *source) {
     return source->next_frame_index;
 }
 
-int replay_source_keyboard_cursor(const replay_source_t *source) {
-    assert(source);
-
-    switch (source->status) {
-    case REPLAY_SOURCE_NONE:
-        return 1;
-    case REPLAY_SOURCE_LOADED:
-        return source->recording.keyboard_cursor;
-    case REPLAY_SOURCE_LOAD_FAILED:
-        return 0;
-    }
-    assert(0 && "unknown replay source status");
-    return 0;
-}
-
 int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_frame) {
     assert(source);
     assert(out_frame);

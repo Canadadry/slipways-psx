@@ -1,0 +1,91 @@
+The cheat, "geoharvesting" and "harvest" on an earth-like planet with
+its burst to the end; "replication" and "mechanize" on an ocean planet,
+colonised; that colony panned off screen with the D-pad before a year
+passes. Then the structures: "infraspace", an infragate and its slipway;
+"void synthesis", two synthesizers linked to that colony; "ascension",
+the gate placed. 554 frames.
+
+Pad input declared ("input": "pad"). f0-68 are pad_probe's frames, so
+p12 (type e) and p14 (type o) are known. Readings come from `make
+state` of the file cut after the frame and from the capture.
+
+- f69-85: pad_tech_costs' pan onto p12 (camera 152 160). f87-103: X,
+  then X X O O X X O O on p12 (the first X brings the matcher from 2 to
+  0; X taps on a planet open nothing): $200, research 99 at f103.
+- f105-157: four times R1 R1 R1, Down xN, X: "space folding" (row 1,
+  research 95), "geneseeds" (row 1, 90, era 2 opens), "geoharvesting"
+  (row 3, 76), "replication" (row 4, 58).
+- f159-170: triangle on p12, Down x4, X on "harvest" (row 4, under
+  hiveworld, agroworld, luxury; colour 12 at f168): $200 -> $220,
+  month 2 -> 4. f171: p12 is a ring of yellow particles, burst 1,
+  particle 59 -> 199. The burst lives to f253; at f254 burst 0 and
+  particles 2 -> 1 (test_live_slots' readings).
+- f172-201: Down+Right 10, Down 20: p14 under the centre (80.70,
+  59.68). f202-213: triangle, Down x4, X on "mechanize" (row 4, "20$"):
+  $220 -> $200, month 4 -> 6, p14 type o -> f (the header still reads
+  "ocean").
+- f215-220: triangle, Down, X on "nanotech": p14 colonised, $192,
+  month 9, income -1.
+- f222, f224: square twice, plain free mode. f226-266: Up 41: camera
+  162 135, p14 at screen (80.70, 134.68), visible 0.
+- f268-272: R1 R1, X on `end turn`: year 3402, $192 -> $191. p14 pays
+  its -1 off screen, so planet_new_year returns before its toast.
+
+`make state` at f274: year 3402 month 1, credits 191, research 59,
+income -1, techs space folding, geneseeds, geoharvesting, replication;
+camera 162 135, p14 colonized type f, planets 89, colonies 1. Peaks:
+burst 1, bytes_burst 536, elements_particles 140, as
+tech_geoharvesting_burst.
+
+Replaces tech_geoharvesting_burst ("harvest" on a mineral planet: +$20,
+a burst that burns out), tech_replication_mechanize ("mechanize" turns
+a mineral planet into a forgeworld) and colony_income_offscreen (a
+colony at -1 off screen at the year, no toast). Same effects here on
+an earth-like and an ocean planet: harvest takes "efmorxjisg",
+mechanize "mrsoijx".
+
+Structures, f275-553 (remove-mouse-mode PRD, chunk 6; appended here to
+share the cheat, the research and the colony instead of separate
+pad_infragate, pad_synthesizer and pad_ascension files). Every capture
+frame up to f274 is unchanged, byte for byte.
+
+- f276-290: R1 (`end turn` -> `tech`), Down x5, X: "infraspace"
+  (research 59 -> 28). f291-306: X, then X X O O X X O O (the first X
+  brings the matcher from 2 to 0); the first O lands network mode on
+  p14 (camera 162 209): $200, research 99.
+- f307-341: "autoassemblers", "skill implants" (era 4 opens), "void
+  synthesis" (row 2): research 20.
+- f342-378: R1, Left x2, X: the infragate s1 carried; Up+Right 2, Up
+  25, X: s1 built at (244, 225), $200 -> $175.
+- f379-411: square twice (network on s1, then its drag), Down 27, X on
+  p14: `slipway s1 p14 infragate`, $168.
+- f412-434: R1, Left, X: synthesizer s2, Up+Left 8, Up 7, X: built at
+  (234, 249), $128. f435-456: R1, X, Up+Right 13, Up 3, X: s3 at
+  (258, 247), $88.
+- f457-478: square twice, Down+Left 12, Down 4, X on p14: `slipway s3
+  p14 normal`, $85, income -2 -> 6: s3 synthesizes p14's ore need. The
+  drag is checked against s1's infraspace slipway, on another plane.
+- f479-497: square from p14, Up+Left 8, Up 7, X on s2: `slipway p14 s2
+  normal`, $82, income still 6: s2 skips the need s3 already serves.
+- f498-513: X X O O X X O O: $200, research 99. f514-530: "ascension"
+  (row 4): research 49.
+- f531-553: R1, Left, X: the ascension gate s4; Up+Left 13, Up, X:
+  built at (218, 227), $140, month 11.
+
+At f553 the infragate's slipway is two parallel colour-1 lines (x105
+and x108, y64-96) from s1 to p14; the ordinary slipways are single
+diagonal lines.
+
+`make state` at f553: year 3402 month 11, credits 140, research 49,
+income 6, techs + infraspace, autoassemblers, skill implants, void
+synthesis, ascension; camera 138 167; s2, s3 colonized synthesizer, s4
+colonized ascension, structure s1 infragate links 1; slipways s1 p14
+infragate, s3 p14 normal, p14 s2 normal; planets 92, colonies 4. Peaks:
+particles 4 (synthesizer_second_link's 3), zone frame 13872.
+
+Replaces tech_infraspace_infragate (an infragate and its slipway from a
+mine, then an ordinary slipway that ignores it), synthesizer_second_link
+(two synthesizers linked to one xeno colony, the second skipping the
+need the first serves) and place_processor_ascension (the ascension
+gate placed; its processor is pad_build's). Same effects; here the
+colony is a nanotech forgeworld needing ore.

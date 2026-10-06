@@ -1,6 +1,6 @@
 /* Live slots of the UI and particle zones, and the bytes of the game zone,
  * on replays of tests/e2e/ and tests/fixtures/ driven as src/cmd/game.c
- * drives a frame (cheat_step, cart_update60, cart_draw): after a session each
+ * drives a frame (input_step_run, cart_update60, cart_draw): after a session each
  * slot kind returns to its starting level, and none rises during an idle
  * window. Each count is read after a flush of the exit queue. One replay per
  * child process: the zone maxima and module state last as long as the
@@ -20,7 +20,7 @@
 #include "p8/assets.h"
 #include "game/background.h"
 #include "game/cart.h"
-#include "game/cheat.h"
+#include "game/input_step.h"
 #include "engine/entity_id.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
@@ -141,6 +141,8 @@ static void print_reading(const char *e2e, const reading_t *r) {
            (unsigned long)r->game_zone);
 }
 
+static input_step_t g_step;
+
 /* Runs cart_load and cart_init to replay the named e2e (NULL: no input; a
  * path when the name holds a '/') and returns its input, which is static. */
 static p8_input_t *load_e2e(const char *e2e) {
@@ -160,9 +162,15 @@ static p8_input_t *load_e2e(const char *e2e) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
+    input_step_init(&g_step);
     cart_load();
     cart_init();
     return &input;
+}
+
+/* The current frame of the input, as the player's input step plays it. */
+static void play_input(const p8_input_t *input) {
+    input_step_run(&g_step, &input->frames[input->current_frame]);
 }
 
 /* Takes and prints a reading after each listed frame (BEFORE_F0: after
@@ -176,11 +184,8 @@ static void replay_e2e(const char *e2e, const int *frames, int n, reading_t *out
         print_reading(e2e, &out[k]);
         k++;
     }
-    cheat_t cheat;
-    cheat_init(&cheat);
     for (int i = 0; i < input->frame_count && k < n; i++) {
-        dispatch_context_set_input(input);
-        cheat_step(&cheat, input);
+        play_input(input);
         cart_update60();
         cart_draw();
         if (frames[k] == i) {
@@ -193,20 +198,21 @@ static void replay_e2e(const char *e2e, const int *frames, int n, reading_t *out
     assert(k == n && "a reading frame lies past the end of the replay");
 }
 
-/* Replays the whole e2e, checking the invariant after every frame. */
+/* Replays the whole e2e, checking the invariant after every frame and that
+ * the replay starts a game. */
 static void replay_under_invariant(const char *e2e) {
     p8_input_t *input = load_e2e(e2e);
     check_invariant(e2e, BEFORE_F0);
-    cheat_t cheat;
-    cheat_init(&cheat);
+    int started = 0;
     for (int i = 0; i < input->frame_count; i++) {
-        dispatch_context_set_input(input);
-        cheat_step(&cheat, input);
+        play_input(input);
         cart_update60();
         cart_draw();
         check_invariant(e2e, i);
+        started |= main_economy_typed() != NULL;
         if (i < input->frame_count - 1) p8_input_step(input);
     }
+    assert(started && "the replay never leaves the title screen: its input is not played");
 }
 
 /* Everything but the particle count, which an active emitter moves without
@@ -275,11 +281,13 @@ static void invariant_on_current_e2e(void) {
     replay_under_invariant(g_e2e);
 }
 
-/* Every frame of every e2e of tests/e2e/; returns how many e2e ran. */
-static int invariant_on_all_e2e(void) {
+/* Every frame of every e2e of tests/e2e/; returns how many e2e ran, and in
+ * *pad how many of them are pad_ replays. */
+static int invariant_on_all_e2e(int *pad) {
     DIR *dir = opendir("tests/e2e");
     struct dirent *ent;
     int n = 0;
+    *pad = 0;
     assert(dir != NULL);
     while ((ent = readdir(dir)) != NULL) {
         size_t len = strlen(ent->d_name);
@@ -289,21 +297,22 @@ static int invariant_on_all_e2e(void) {
         g_e2e[len - 5] = '\0';
         in_child(invariant_on_current_e2e);
         n++;
+        *pad += strncmp(g_e2e, "pad_", 4) == 0;
     }
     closedir(dir);
     return n;
 }
 
-/* f7: 'restart'; f11: title screen, before the f12 click. */
-static void pause_restart_returns_to_title(void) {
-    const int frames[] = {BEFORE_F0, 11};
+/* f26: 'restart'; f37: title screen, before the f38 click. */
+static void pad_pause_restart_returns_to_title(void) {
+    const int frames[] = {BEFORE_F0, 37};
     reading_t r[2];
-    replay_e2e("pause_restart", frames, 2, r);
+    replay_e2e("pad_pause_restart", frames, 2, r);
     assert(same_counts(&r[0], &r[1]) && "reset_world must give back every slot it drops");
     assert(r[0].particles_help_screen == 1 && r[0].particles == 0 && r[0].burst == 0);
     /* No help screen particle dies before 115 draws: 5 per draw, no draw
-     * before f0, and the draws of f7 to f11 for the help screen of 'restart'. */
-    assert(r[0].particle == 0 && r[1].particle == 5 * 5 && "reset_world must give back the help screen particles");
+     * before f0, and the draws of f26 to f37 for the help screen of 'restart'. */
+    assert(r[0].particle == 0 && r[1].particle == 5 * 12 && "reset_world must give back the help screen particles");
 }
 
 /* volatile: the optimizer must not drop the read of a released sentinel,
@@ -311,7 +320,6 @@ static void pause_restart_returns_to_title(void) {
 static volatile unsigned char g_spend;
 
 static p8_input_t *g_input;
-static cheat_t g_cheat;
 static int g_frame;
 
 /* Without take_reading: its flush of the exit queue would release the
@@ -319,8 +327,7 @@ static int g_frame;
  * click. */
 static void play_until(int last) {
     for (; g_frame <= last && g_frame < g_input->frame_count; g_frame++) {
-        dispatch_context_set_input(g_input);
-        cheat_step(&g_cheat, g_input);
+        play_input(g_input);
         cart_update60();
         cart_draw();
         if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
@@ -330,7 +337,6 @@ static void play_until(int last) {
 
 static void start_e2e(const char *e2e) {
     g_input = load_e2e(e2e);
-    cheat_init(&g_cheat);
     g_frame = 0;
 }
 
@@ -344,115 +350,115 @@ static void check_sentinel(const unsigned char *s) {
     for (int i = 0; i < 64; i++) assert(s[i] == i && "the game zone sentinel changed");
 }
 
-/* f12: 'challenging' click, so cart_start_game: the zone flips, and the
- * generation of the f7 title screen lives until the end of the frame. */
-static void pause_restart_keeps_title_during_click(void) {
-    start_e2e("pause_restart");
-    play_until(11);
+/* f38: 'challenging' click, so cart_start_game: the zone flips, and the
+ * generation of the f26 title screen lives until the end of the frame. */
+static void pad_pause_restart_keeps_title_during_click(void) {
+    start_e2e("pad_pause_restart");
+    play_until(37);
     assert(!game_zone_pending());
     unsigned char *s = sentinel();
     size_t used_before = game_zone_used();
-    play_until(12);
-    assert(game_zone_pending() && "the f12 click flips the game zone");
+    play_until(38);
+    assert(game_zone_pending() && "the f38 click flips the game zone");
     check_sentinel(s);
     assert(game_zone_used() >= used_before && "the used bytes count the quit game until it is released");
-    printf("  pause_restart f12: game=%lu, sentinel read\n", (unsigned long)game_zone_used());
+    printf("  pad_pause_restart f38: game=%lu, sentinel read\n", (unsigned long)game_zone_used());
 }
 
-/* f13: cart_update60 flushes the exit queue, then releases the title
+/* f39: cart_update60 flushes the exit queue, then releases the title
  * generation. */
-static void pause_restart_releases_title_next_frame(void) {
-    start_e2e("pause_restart");
-    play_until(11);
+static void pad_pause_restart_releases_title_next_frame(void) {
+    start_e2e("pad_pause_restart");
+    play_until(37);
     unsigned char *s = sentinel();
-    play_until(13);
+    play_until(39);
     g_spend = s[63];
 }
 
-/* f7: 'restart' (cart_init) flips the zone, so the title screen has its
+/* f26: 'restart' (cart_init) flips the zone, so the title screen has its
  * own generation; the quit game lives until the end of the click frame. */
-static void pause_restart_keeps_game_during_restart_click(void) {
-    start_e2e("pause_restart");
-    play_until(6);
+static void pad_pause_restart_keeps_game_during_restart_click(void) {
+    start_e2e("pad_pause_restart");
+    play_until(25);
     assert(!game_zone_pending());
     unsigned char *s = sentinel();
-    play_until(7);
+    play_until(26);
     assert(game_zone_pending() && "'restart' flips the game zone");
     check_sentinel(s);
 }
 
-/* f8: cart_update60 releases the generation of the game quit at f7. */
-static void pause_restart_releases_game_after_restart(void) {
-    start_e2e("pause_restart");
-    play_until(6);
+/* f27: cart_update60 releases the generation of the game quit at f26. */
+static void pad_pause_restart_releases_game_after_restart(void) {
+    start_e2e("pad_pause_restart");
+    play_until(25);
     unsigned char *s = sentinel();
-    play_until(8);
+    play_until(27);
     assert(!game_zone_pending());
     g_spend = s[63];
 }
 
-/* f8: the quit game's economy and score panel died at the release; the
+/* f27: the quit game's economy and score panel died at the release; the
  * title screen must not keep them as main economy and main score panel,
  * which the exit-queue flush, the cheat and make state read. */
-static void pause_restart_title_drops_quit_economy_and_panel(void) {
-    start_e2e("pause_restart");
-    play_until(8);
+static void pad_pause_restart_title_drops_quit_economy_and_panel(void) {
+    start_e2e("pad_pause_restart");
+    play_until(27);
     assert(main_economy() == NULL && "the title after 'restart' keeps the released economy");
     assert(main_score_panel() == NULL && "the title after 'restart' keeps the released score panel");
 }
 
 static const planet_t *planet_of_first_game(void) {
-    start_e2e("pause_restart");
-    play_until(6);
+    start_e2e("pad_pause_restart");
+    play_until(25);
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     assert(jo != NULL && jo->count > 0 && "the first game has planets");
     return (const planet_t *)jo->items[0];
 }
 
-/* f7: the 'restart' click flips the zone; the planets of the quit game
+/* f26: the 'restart' click flips the zone; the planets of the quit game
  * still live. */
-static void pause_restart_keeps_quit_planets_during_click(void) {
+static void pad_pause_restart_keeps_quit_planets_during_click(void) {
     const planet_t *p = planet_of_first_game();
-    play_until(7);
+    play_until(26);
     assert(game_zone_pending());
     g_spend = (unsigned char)p->has_production_bonus;
 }
 
-/* f8: they die with their generation. */
-static void pause_restart_releases_quit_planets(void) {
+/* f27: they die with their generation. */
+static void pad_pause_restart_releases_quit_planets(void) {
     const planet_t *p = planet_of_first_game();
-    play_until(8);
+    play_until(27);
     g_spend = (unsigned char)p->has_production_bonus;
 }
 
 static const economy_t *economy_of_first_game(void) {
-    start_e2e("pause_restart");
-    play_until(6);
+    start_e2e("pad_pause_restart");
+    play_until(25);
     const economy_t *fm = main_economy_typed();
     assert(fm != NULL && "the first game has its main economy");
     return fm;
 }
 
-/* f7: its generation lives until the end of the frame. */
-static void pause_restart_keeps_quit_economy_during_click(void) {
+/* f26: its generation lives until the end of the frame. */
+static void pad_pause_restart_keeps_quit_economy_during_click(void) {
     const economy_t *fm = economy_of_first_game();
-    play_until(7);
+    play_until(26);
     assert(game_zone_pending());
     g_spend = (unsigned char)fm->credits;
 }
 
-/* f8: it dies with its generation. */
-static void pause_restart_releases_quit_economy(void) {
+/* f27: it dies with its generation. */
+static void pad_pause_restart_releases_quit_economy(void) {
     const economy_t *fm = economy_of_first_game();
-    play_until(8);
+    play_until(27);
     g_spend = (unsigned char)fm->credits;
 }
 
-/* f6: the live entities hold the structure icons of the first game; the
- * reset_world of cart_init removes them at f7. */
+/* f25: the live entities hold the structure icons of the first game; the
+ * reset_world of cart_init removes them at f26. */
 static const structure_icon_t *icon_of_first_game(void) {
-    start_e2e("pause_restart");
-    play_until(6);
+    start_e2e("pad_pause_restart");
+    play_until(25);
     const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
         if (hv->items[i]->class == structure_icon_class()) return (const structure_icon_t *)hv->items[i];
@@ -461,16 +467,16 @@ static const structure_icon_t *icon_of_first_game(void) {
     return NULL;
 }
 
-static void pause_restart_keeps_quit_icons_during_click(void) {
+static void pad_pause_restart_keeps_quit_icons_during_click(void) {
     const structure_icon_t *ie = icon_of_first_game();
-    play_until(7);
+    play_until(26);
     assert(game_zone_pending());
     g_spend = (unsigned char)ie->is_revealed;
 }
 
-static void pause_restart_releases_quit_icons(void) {
+static void pad_pause_restart_releases_quit_icons(void) {
     const structure_icon_t *ie = icon_of_first_game();
-    play_until(8);
+    play_until(27);
     g_spend = (unsigned char)ie->is_revealed;
 }
 
@@ -486,9 +492,9 @@ static const probe_t *help_screen_in_live_entities(void) {
 
 static const background_t *background_in_live_entities(void);
 
-/* The first five live in the generation of the first game, read at f6 and
- * released at f8; the last four in that of the f7 title screen, read at
- * f11 and released at f13. */
+/* The first five live in the generation of the first game, read at f25 and
+ * released at f27; the last four in that of the f26 title screen, read at
+ * f37 and released at f39. */
 enum {
     SINGLETON_GAME_CAMERA, SINGLETON_GAME_MOUSE, SINGLETON_GAME_UI, SINGLETON_BACKGROUND, SINGLETON_MAIN_SCORE_PANEL,
     SINGLETON_TITLE_CAMERA, SINGLETON_TITLE_MOUSE, SINGLETON_TITLE_UI, SINGLETON_HELP_SCREEN, SINGLETON_COUNT
@@ -498,61 +504,61 @@ static const char *const NAMES_OF_SINGLETONS[SINGLETON_COUNT] = {
     "title main_camera", "title main_mouse", "title main_ui", "help_screen"};
 
 static void singletons_of_quit_game(const void *out[SINGLETON_COUNT]) {
-    start_e2e("pause_restart");
-    play_until(6);
+    start_e2e("pad_pause_restart");
+    play_until(25);
     out[SINGLETON_GAME_CAMERA] = main_camera_typed();
     out[SINGLETON_GAME_MOUSE] = main_mouse_typed();
     out[SINGLETON_GAME_UI] = main_ui();
     out[SINGLETON_BACKGROUND] = background_in_live_entities();
     out[SINGLETON_MAIN_SCORE_PANEL] = main_score_panel();
-    for (int k = 0; k < SINGLETON_TITLE_CAMERA; k++) assert(out[k] != NULL && "a singleton is missing at f6");
+    for (int k = 0; k < SINGLETON_TITLE_CAMERA; k++) assert(out[k] != NULL && "a singleton is missing at f25");
 }
 
 static void singletons_of_title(const void *out[SINGLETON_COUNT]) {
     singletons_of_quit_game(out);
-    play_until(11);
+    play_until(37);
     out[SINGLETON_TITLE_CAMERA] = main_camera_typed();
     out[SINGLETON_TITLE_MOUSE] = main_mouse_typed();
     out[SINGLETON_TITLE_UI] = main_ui();
     out[SINGLETON_HELP_SCREEN] = help_screen_in_live_entities();
-    for (int k = SINGLETON_TITLE_CAMERA; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "a singleton is missing at f11");
+    for (int k = SINGLETON_TITLE_CAMERA; k < SINGLETON_COUNT; k++) assert(out[k] != NULL && "a singleton is missing at f37");
 }
 
-/* f7: the quit main_ui finishes its update after the reset_world of
+/* f26: the quit main_ui finishes its update after the reset_world of
  * cart_init. */
-static void pause_restart_keeps_quit_singletons_during_click(void) {
+static void pad_pause_restart_keeps_quit_singletons_during_click(void) {
     const void *s[SINGLETON_COUNT];
     singletons_of_quit_game(s);
-    play_until(7);
+    play_until(26);
     assert(game_zone_pending());
     assert(main_camera_typed() != s[SINGLETON_GAME_CAMERA] && main_ui() != s[SINGLETON_GAME_UI] &&
-           "the f7 click makes new singletons");
+           "the f26 click makes new singletons");
     for (int k = 0; k < SINGLETON_TITLE_CAMERA; k++) g_spend = *(const unsigned char *)s[k];
 }
 
-/* f12: the title main_ui finishes its update after the reset_world of
+/* f38: the title main_ui finishes its update after the reset_world of
  * cart_start_game. */
-static void pause_restart_keeps_title_singletons_during_click(void) {
+static void pad_pause_restart_keeps_title_singletons_during_click(void) {
     const void *s[SINGLETON_COUNT];
     singletons_of_title(s);
-    play_until(12);
+    play_until(38);
     assert(game_zone_pending());
     assert(main_camera_typed() != s[SINGLETON_TITLE_CAMERA] && main_ui() != s[SINGLETON_TITLE_UI] &&
-           "the f12 click makes new singletons");
+           "the f38 click makes new singletons");
     for (int k = SINGLETON_TITLE_CAMERA; k < SINGLETON_COUNT; k++) g_spend = *(const unsigned char *)s[k];
 }
 
 static int g_singleton;
 
 /* Each one dies with its generation. */
-static void pause_restart_releases_singleton(void) {
+static void pad_pause_restart_releases_singleton(void) {
     const void *s[SINGLETON_COUNT];
     if (g_singleton < SINGLETON_TITLE_CAMERA) {
         singletons_of_quit_game(s);
-        play_until(8);
+        play_until(27);
     } else {
         singletons_of_title(s);
-        play_until(13);
+        play_until(39);
     }
     g_spend = *(const unsigned char *)s[g_singleton];
 }
@@ -683,31 +689,31 @@ static size_t singletons_bytes(void) {
            block_bytes(sizeof(score_panel_t));
 }
 
-/* After the f13 release, the generation holds only what the f12
+/* After the f39 release, the generation holds only what the f38
  * cart_start_game made and what has grown since: the galaxy_populate states,
  * the registries at their reserves, its planets, its economy and
  * structure icons, and its singletons. */
-static void pause_restart_bounds_dead_registry_blocks(void) {
+static void pad_pause_restart_bounds_dead_registry_blocks(void) {
     const size_t g = populate_galaxy_states();
-    start_e2e("pause_restart");
-    play_until(13);
+    start_e2e("pad_pause_restart");
+    play_until(39);
     const size_t r = registries_bytes();
     const size_t p = planets_bytes();
-    printf("  pause_restart f13: game=%lu, galaxy_populate states=%lu, registries=%lu, planets=%lu\n",
+    printf("  pad_pause_restart f39: game=%lu, galaxy_populate states=%lu, registries=%lu, planets=%lu\n",
            (unsigned long)game_zone_used(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
     assert(game_zone_used() == g + r + p + research_and_economy_bytes() + singletons_bytes() &&
            "the registries take their reserves and leave no dead block, and nothing else gets in");
 }
 
-/* f11: the title screen alone, built by cart_init with empty registries;
- * f13: the game the f12 cart_start_game started, its registries taken at
- * their reserves, none of which the pause_restart game exceeds. */
-static void pause_restart_reserves_registries_at_game_start_only(void) {
+/* f37: the title screen alone, built by cart_init with empty registries;
+ * f39: the game the f38 cart_start_game started, its registries taken at
+ * their reserves, none of which the pad_pause_restart game exceeds. */
+static void pad_pause_restart_reserves_registries_at_game_start_only(void) {
     const entity_registry_reserve_t *rv = &cart_game_registry_reserve;
-    start_e2e("pause_restart");
-    play_until(11);
+    start_e2e("pad_pause_restart");
+    play_until(37);
     assert(live_entities()->capacity < rv->live && "the title screen takes the reserves of a game");
-    play_until(13);
+    play_until(39);
     assert(live_entities()->capacity == rv->live);
     for (int m = 0; m < ENTITY_MESSAGE_COUNT; m++) {
         assert(entities_by_message((entity_message_t)m)->capacity == rv->by_message[m]);
@@ -716,38 +722,38 @@ static void pause_restart_reserves_registries_at_game_start_only(void) {
         const entity_list_t *list = entities_by_tag((tag_t)t);
         assert((list == NULL || list->capacity == rv->by_tag[t]) && "a registry of the game grew past its reserve");
     }
-    printf("  pause_restart f13: live %d/%d\n", live_entities()->count, live_entities()->capacity);
+    printf("  pad_pause_restart f39: live %d/%d\n", live_entities()->count, live_entities()->capacity);
 }
 
 /* Only cart_load fills the load zone: two games add nothing to it. */
-static void pause_restart_leaves_load_zone_alone(void) {
-    start_e2e("pause_restart");
+static void pad_pause_restart_leaves_load_zone_alone(void) {
+    start_e2e("pad_pause_restart");
     play_until(1);
     const size_t f1 = load_zone_used();
     assert(f1 > 0 && "the research projects live in the load zone");
     play_until(g_input->frame_count - 1);
-    printf("  pause_restart: load=%lu at f1 and at the end of the replay\n", (unsigned long)f1);
+    printf("  pad_pause_restart: load=%lu at f1 and at the end of the replay\n", (unsigned long)f1);
     assert(load_zone_used() == f1 && "a game takes from the load zone");
     assert(game_zone_load_zone_max() == f1);
 }
 
-/* f11: the title screen alone, the quit game released at f8; f12: the
+/* f37: the title screen alone, the quit game released at f27; f38: the
  * galaxy_populate of the new game takes its states beside the title
- * generation, released at f13. */
-static void pause_restart_counts_populate_galaxy_states(void) {
+ * generation, released at f39. */
+static void pad_pause_restart_counts_populate_galaxy_states(void) {
     const size_t g = populate_galaxy_states();
-    start_e2e("pause_restart");
-    play_until(11);
-    const size_t f11 = game_zone_used();
-    play_until(12);
-    const size_t f12 = game_zone_used();
-    assert(f12 >= f11 + g && "the title generation lives beside the new game until the release");
-    play_until(13);
+    start_e2e("pad_pause_restart");
+    play_until(37);
+    const size_t f37 = game_zone_used();
+    play_until(38);
+    const size_t f38 = game_zone_used();
+    assert(f38 >= f37 + g && "the title generation lives beside the new game until the release");
+    play_until(39);
     assert(game_zone_used() == g + registries_bytes() + planets_bytes() + research_and_economy_bytes() +
                                              singletons_bytes() &&
-           "the f13 release leaves the states, registries, planets, economy and singletons of the new game");
-    assert(game_zone_max() >= f12);
-    printf("  pause_restart f11/f12/f13: game=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
+           "the f39 release leaves the states, registries, planets, economy and singletons of the new game");
+    assert(game_zone_max() >= f38);
+    printf("  pad_pause_restart f37/f38/f39: game=%lu/%lu/%lu, max=%lu\n", (unsigned long)f37, (unsigned long)f38,
            (unsigned long)game_zone_used(), (unsigned long)game_zone_max());
 }
 
@@ -757,34 +763,34 @@ static size_t game_without_registries(void) {
     return game_zone_used() - registries_bytes();
 }
 
-/* f3-51: 25 year jumps, so as many economy_tiers_rebuild_incoming_routes
- * calls, which must not grow the generation: each incoming_routes list is
- * emptied in place. */
-static void game_end_final_score_rebuild_does_not_grow_game(void) {
-    start_e2e("game_end_final_score");
-    play_until(2);
-    const size_t f2 = game_without_registries();
-    play_until(51);
-    const size_t f51 = game_without_registries();
-    printf("  game_end_final_score f2/f51: game - registries = %lu/%lu\n", (unsigned long)f2, (unsigned long)f51);
-    assert(f2 == f51 && "an incoming routes rebuild grows the generation");
+/* f22-69: 24 year jumps after the f21 one, so as many
+ * economy_tiers_rebuild_incoming_routes calls, which must not grow the
+ * generation: each incoming_routes list is emptied in place. */
+static void pad_game_end_rebuild_does_not_grow_game(void) {
+    start_e2e("pad_game_end");
+    play_until(21);
+    const size_t f21 = game_without_registries();
+    play_until(69);
+    const size_t f69 = game_without_registries();
+    printf("  pad_game_end f21/f69: game - registries = %lu/%lu\n", (unsigned long)f21, (unsigned long)f69);
+    assert(f21 == f69 && "an incoming routes rebuild grows the generation");
 }
 
-/* f140-151: the f140 year jump over seven placed slipways, so
- * planet_rebuild_trades, planet_offer_trade and slipgate_offer_trade, which
- * offer known routes again. The f139 rebuild keeps the route of the slipway
- * placed at f136. The refused slipway of the f142 click takes an arena, which
- * the f148 one reuses. */
-static void trade_rich_mine_route_rebuild_does_not_grow_game(void) {
-    start_e2e("trade_rich_mine");
-    play_until(139);
-    const size_t f139 = game_without_registries();
-    play_until(151);
-    const size_t f151 = game_without_registries();
-    printf("  trade_rich_mine f139/f151: game - registries = %lu/%lu\n", (unsigned long)f139,
-           (unsigned long)f151);
-    assert(f151 == f139 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
-           "a rebuild over routes grows the generation, or the f148 refusal does not reuse the f142 arena");
+/* f538-561: the f538 year jump over six placed slipways, so
+ * planet_rebuild_trades and planet_offer_trade, which offer known routes
+ * again. The f537 rebuild keeps the route of the slipway placed at f532. The
+ * press of the f546 triangle takes a slipway construction arena, which the
+ * f556 one reuses. */
+static void pad_tech_costs_route_rebuild_does_not_grow_game(void) {
+    start_e2e("pad_tech_costs");
+    play_until(537);
+    const size_t f537 = game_without_registries();
+    play_until(561);
+    const size_t f561 = game_without_registries();
+    printf("  pad_tech_costs f537/f561: game - registries = %lu/%lu\n", (unsigned long)f537,
+           (unsigned long)f561);
+    assert(f561 == f537 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
+           "a rebuild over routes grows the generation, or the f556 press does not reuse the f546 arena");
 }
 
 static const planet_t *planet_with_id(const char *id) {
@@ -797,48 +803,48 @@ static const planet_t *planet_with_id(const char *id) {
     return NULL;
 }
 
-/* A route of outgoing_routes kept by the f139 rebuild reads back at f151,
- * after twelve resets of the frame zone where its candidates are made. */
-static void trade_rich_mine_kept_route_survives_frame(void) {
+/* A route of outgoing_routes kept by the f537 rebuild reads back at f561,
+ * after 24 resets of the frame zone where its candidates are made. */
+static void pad_tech_costs_kept_route_survives_frame(void) {
     entity_id_t lp[16];
     entity_id_t rl[16];
-    start_e2e("trade_rich_mine");
-    play_until(139);
-    const planet_t *p27 = planet_with_id("p27");
-    const trade_route_list_t *by = &p27->outgoing_routes;
-    assert((p27->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
+    start_e2e("pad_tech_costs");
+    play_until(537);
+    const planet_t *p39 = planet_with_id("p39");
+    const trade_route_list_t *by = &p39->outgoing_routes;
+    assert((p39->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f537: p39 keeps a route");
     const trade_route_t *t = trade_route_list_at(by, trade_route_list_count(by) - 1);
     const int nlp = t->planets.count;
     const int nrl = t->slipways.count;
     assert(nlp <= 16 && nrl <= 16);
     memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
     memcpy(rl, t->slipways.items, (size_t)nrl * sizeof *rl);
-    play_until(151);
+    play_until(561);
     assert(t->planets.count == nlp && memcmp(lp, t->planets.items, (size_t)nlp * sizeof *lp) == 0);
     assert(t->slipways.count == nrl && memcmp(rl, t->slipways.items, (size_t)nrl * sizeof *rl) == 0);
-    printf("  trade_rich_mine: p27 route (%d planets, %d slipways) read back at f151\n", nlp, nrl);
+    printf("  pad_tech_costs: p39 route (%d planets, %d slipways) read back at f561\n", nlp, nrl);
 }
 
-/* At f139, a rebuild of p27 over its kept routes gives back to the frame
+/* At f537, a rebuild of p39 over its kept routes gives back to the frame
  * zone every candidate offer it made, and the routes it hands back still
  * read the same. */
-static void trade_rich_mine_rebuild_gives_back_frame(void) {
+static void pad_tech_costs_rebuild_gives_back_frame(void) {
     entity_id_t lp[16];
-    start_e2e("trade_rich_mine");
-    play_until(139);
-    planet_t *p27 = (planet_t *)planet_with_id("p27");
-    assert(p27->slipways.zone != NULL && p27->slipways.count > 0 && "f139: p27 is linked");
-    const trade_route_list_t *by = &p27->outgoing_routes;
-    assert((p27->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f139: p27 keeps a route");
+    start_e2e("pad_tech_costs");
+    play_until(537);
+    planet_t *p39 = (planet_t *)planet_with_id("p39");
+    assert(p39->slipways.zone != NULL && p39->slipways.count > 0 && "f537: p39 is linked");
+    const trade_route_list_t *by = &p39->outgoing_routes;
+    assert((p39->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f537: p39 keeps a route");
     const int n = trade_route_list_count(by);
     const trade_route_t *t = trade_route_list_at(by, n - 1);
     const int nlp = t->planets.count;
     assert(nlp <= 16);
     memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
     const size_t before = frame_zone_used();
-    trade_route_list_t *out = planet_rebuild_trades(p27);
+    trade_route_list_t *out = planet_rebuild_trades(p39);
     const size_t after = frame_zone_used();
-    printf("  trade_rich_mine f139: frame %lu -> %lu across a rebuild of p27\n", (unsigned long)before,
+    printf("  pad_tech_costs f537: frame %lu -> %lu across a rebuild of p39\n", (unsigned long)before,
            (unsigned long)after);
     assert(after == before && "planet_rebuild_trades keeps its candidate offers in the frame zone");
     assert(out == by && trade_route_list_count(out) == n && "the rebuild hands back the kept routes");
@@ -848,36 +854,38 @@ static void trade_rich_mine_rebuild_gives_back_frame(void) {
 /* The transit dots still alive at the end of the game go back to the
  * particle zone through the release method of the slipway class, on the next
  * cart_load. */
-static void trade_rich_mine_releases_trails_on_reload(void) {
-    start_e2e("trade_rich_mine");
+static void pad_tech_costs_releases_trails_on_reload(void) {
+    start_e2e("pad_tech_costs");
     play_until(g_input->frame_count - 1);
     const int end = particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT);
     cart_load();
     const int after = particle_zone_live(PARTICLE_SLOT_TRANSIT_DOT);
-    printf("  trade_rich_mine: transit_dots %d at the end of the replay, %d after reload (max %d, list max %d)\n", end, after,
+    printf("  pad_tech_costs: transit_dots %d at the end of the replay, %d after reload (max %d, list max %d)\n", end, after,
            particle_zone_max_live(PARTICLE_SLOT_TRANSIT_DOT),
            particle_zone_max_elements(PARTICLE_SLOT_TRANSIT_DOT));
-    assert(end > 0 && "trade_rich_mine ends with live transit dots");
+    assert(end > 0 && "pad_tech_costs ends with live transit dots");
     assert(after == 0 && "releasing a slipway gives back its transit dots");
 }
 
 #define GRABS "tests/fixtures/grabs_refused.json"
 
-/* GRABS: f0-20 of empty_planet_fade; then 7-frame grabs (press on the
- * icon at (154,116), drag, release, three frames of waiting): twenty refused
- * over p34 (f21-160), one placed (f161-167), one refused (f168-174); 'restart'
- * and a new game (click at f185); one grab (f189-195). */
+/* GRABS: f0-68 of pad_probe (probe at f26, fold f41-57, its wormhole dead
+ * at f84), Down 10 so the centre lies 16 px from p14; then 7-frame grabs (R1,
+ * X takes the basic structure at f+2, X at f+4 refuses it near p14, three
+ * frames of waiting): twenty refused (f80-219), one carried Up 10 and placed
+ * at f235 (f220-237), Down 10, one refused near p14 again (f249-256);
+ * 'restart' at f262 and a new game (X at f270); one grab (f274-280). */
 static void refused_grabs_do_not_grow_game(void) {
     start_e2e(GRABS);
-    play_until(27);
+    play_until(86);
     const size_t a = game_without_registries();
-    play_until(160);
+    play_until(219);
     const size_t twenty = game_without_registries();
     printf("  refused grabs 1/20: game - registries = %lu/%lu\n", (unsigned long)a, (unsigned long)twenty);
     assert(a == twenty && "a refused grab leaves its structure in the generation");
 }
 
-/* The structure placed at f161-164, the only planet under the planet tag
+/* The structure placed at f235, the only planet under the planet tag
  * whose identifier starts with an 's'. */
 static const planet_t *placed_grab(void) {
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
@@ -888,19 +896,19 @@ static const planet_t *placed_grab(void) {
         assert(placed == NULL && "a single grab was placed");
         placed = p;
     }
-    assert(placed != NULL && placed->header.state == ENTITY_STATE_SETTLED && "the f161-164 grab was not placed");
+    assert(placed != NULL && placed->header.state == ENTITY_STATE_SETTLED && "the f235 grab was not placed");
     return placed;
 }
 
-/* The f4 wormhole's arena, free since f48, is too small for a structure:
+/* The f41 wormhole's arena, free since f84, is too small for a structure:
  * the grabs take one new arena of the structure's size, full, and the
  * rebuild after the placement makes the outgoing_routes and incoming_routes
  * lists in the generation, outside the arena. */
 static void placed_grab_does_not_fit_dead_wormhole_arena(void) {
     start_e2e(GRABS);
-    play_until(160);
+    play_until(219);
     const size_t before = game_without_registries();
-    play_until(174);
+    play_until(256);
     const size_t after = game_without_registries();
     const planet_t *placed = placed_grab();
     const allocator_t *arena = placed->slipways.zone;
@@ -910,13 +918,12 @@ static void placed_grab_does_not_fit_dead_wormhole_arena(void) {
            (unsigned long)before, (unsigned long)after, (unsigned long)arena_size(arena), (unsigned long)lists);
     assert(arena_used(arena) == arena_size(arena) && "the placed structure fills its arena");
     assert(after == before + arena_size(arena) + lists &&
-           "one new arena for the grabs past the f4 wormhole's, too small, and the placed grab's route lists");
+           "one new arena for the grabs past the f41 wormhole's, too small, and the placed grab's route lists");
 }
 
 /* One replay frame; when draw is 0, no draw method clears targeted_by. */
 static void play_one_frame(int draw) {
-    dispatch_context_set_input(g_input);
-    cheat_step(&g_cheat, g_input);
+    play_input(g_input);
     cart_update60();
     if (draw) cart_draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
@@ -932,48 +939,49 @@ static planet_t *planet_targeted_by(const entity_t *held) {
     return NULL;
 }
 
-/* f23: the structure held over p34 sets its targeted_by; p34 moves off
+/* f83: the structure carried over p14 sets its targeted_by; p14 moves off
  * screen before the draw, and its draw returns without clearing targeted_by.
- * Refused at f24, the structure is freed by the f26 flush, and the f28 press
+ * Refused at f84, the structure is freed by the f85 flush, and the f89 take
  * reuses its arena: targeted_by must not point at the new structure. */
 static void offscreen_planet_forgets_refused_grab(void) {
     static vec_t far;
     start_e2e(GRABS);
-    play_until(22);
-    dispatch_context_set_input(g_input);
-    cheat_step(&g_cheat, g_input);
+    play_until(82);
+    play_input(g_input);
     cart_update60();
     const entity_t *held = ui_left_held(main_ui());
-    assert(held != NULL && "f23: a structure is held");
-    planet_t *p34 = planet_targeted_by(held);
-    assert(p34 != NULL && "f23: the held structure sets a planet's targeted_by");
+    assert(held != NULL && "f83: a structure is held");
+    planet_t *p14 = planet_targeted_by(held);
+    assert(p14 != NULL && "f83: the held structure sets a planet's targeted_by");
     far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
-    entity_set_pos(&p34->header, far);
-    assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
+    entity_set_pos(&p14->header, far);
+    assert(!entity_geom_is_on_screen(&p14->header) && "p14 is off screen");
     cart_draw();
-    assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p14->targeted_by) == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
-    while (g_frame <= 27) play_one_frame(1);
+    while (g_frame <= 88) play_one_frame(1);
     play_one_frame(0);
-    assert(ui_left_held(main_ui()) == held && "f28: the next grab reuses the arena, at the same address");
-    assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
+    assert(ui_left_held(main_ui()) == held && "f89: the next grab reuses the arena, at the same address");
+    assert(entity_get(p14->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled grab");
 }
 
 static void refused_grab_crosses_new_game(void) {
     start_e2e(GRABS);
-    play_until(195);
+    play_until(280);
 }
 
 #define SLIPWAYS "tests/fixtures/slipways_refused.json"
 
-/* SLIPWAYS: f0-34 of slipway_build (p27 and p48 settled); then 15-frame
- * cycles: press on p27 at (104,33), ten frames held, release, three frames of
- * waiting. Twenty refusals held at (56,96) (f35-334), one drag placed from
- * p27 to p48 (f335-338, waiting f339-341), one refusal held at (89,87),
- * beyond p48 (f342-356); 'restart' and a new game (click at f367); one icon
- * grab (f371-377). A refusal is released on the 12th frame of its cycle and
- * freed by the flush of the 14th. */
+/* SLIPWAYS: f0-98 of pad_colonise (probe, fold, p14 colonised), then its
+ * f175-213 (p12 colonised, network mode on p12); then 16-frame cycles:
+ * square starts the drag from p12, Down 10 holds it over empty space, square
+ * drops it there, refused, circle goes back to p12. Twenty refusals
+ * (f140-459), one drag placed from p12 to p14 (f460-502, X at f500), one
+ * refusal held from p14 beyond p12 (f503-558, square at f555); 'restart' at
+ * f564 and a new game (X at f572); one icon grab (f576-582). A refusal is
+ * dropped on the 13th frame of its cycle and freed by the flush of the
+ * 14th. */
 static const slipway_t *held_slipway(void) {
     const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == slipway_class() && "a slipway is held");
@@ -982,94 +990,94 @@ static const slipway_t *held_slipway(void) {
 
 static void held_slipway_does_not_grow_game(void) {
     start_e2e(SLIPWAYS);
-    play_until(36);
+    play_until(141);
     const slipway_t *held = held_slipway();
-    const size_t f36 = game_zone_used();
-    play_until(45);
-    assert(held_slipway() == held && slipway_end(held) == &held->point.header && "f45: held over empty space");
-    printf("  held slipway f36/f45: game = %lu/%lu\n", (unsigned long)f36, (unsigned long)game_zone_used());
-    assert(game_zone_used() == f36 && "a held slipway allocates every frame");
+    const size_t f141 = game_zone_used();
+    play_until(151);
+    assert(held_slipway() == held && slipway_end(held) == &held->point.header && "f151: held over empty space");
+    printf("  held slipway f141/f151: game = %lu/%lu\n", (unsigned long)f141, (unsigned long)game_zone_used());
+    assert(game_zone_used() == f141 && "a held slipway allocates every frame");
 }
 
 static void refused_slipways_do_not_grow_game(void) {
     start_e2e(SLIPWAYS);
-    play_until(49);
+    play_until(155);
     const size_t first_refusal = game_without_registries();
-    play_until(334);
+    play_until(459);
     const size_t twenty = game_without_registries();
     printf("  refused slipways 1/20: game - registries = %lu/%lu\n", (unsigned long)first_refusal, (unsigned long)twenty);
     assert(first_refusal == twenty && "a refused slipway leaves its arena in the generation");
 }
 
-static size_t slipways_of_p27_and_p48_bytes(void) {
-    return id_list_bytes(&planet_with_id("p27")->slipways) + id_list_bytes(&planet_with_id("p48")->slipways);
+static size_t slipways_of_p12_and_p14_bytes(void) {
+    return id_list_bytes(&planet_with_id("p12")->slipways) + id_list_bytes(&planet_with_id("p14")->slipways);
 }
 
-/* The f4 wormhole's arena, free since f48, is too small for a slipway: the
+/* The f41 wormhole's arena, free since f84, is too small for a slipway: the
  * placed slipway reuses the arena of the last refused one, the next refused
  * one takes a new arena of a slipway's size. The planet_attach_slipway of
  * the placement grows the slipways lists at both ends, in the generation,
  * outside the arena. */
 static void placed_slipway_does_not_fit_dead_wormhole_arena(void) {
     start_e2e(SLIPWAYS);
-    play_until(334);
+    play_until(459);
     const size_t before = game_without_registries();
-    const size_t slipways_before = slipways_of_p27_and_p48_bytes();
-    play_until(356);
+    const size_t slipways_before = slipways_of_p12_and_p14_bytes();
+    play_until(558);
     const size_t after = game_without_registries();
-    const size_t oe = slipways_of_p27_and_p48_bytes() - slipways_before;
-    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1 && "f338: one placed slipway");
+    const size_t oe = slipways_of_p12_and_p14_bytes() - slipways_before;
+    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1 && "f500: one placed slipway");
     printf("  slipway placed then refused: game - registries = %lu -> %lu (slipways %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)oe);
     assert(after == before + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) + oe &&
-           "one new slipway arena past the f4 wormhole's, too small, and the slipways lists of the placement");
+           "one new slipway arena past the f41 wormhole's, too small, and the slipways lists of the placement");
 }
 
-/* f345: the slipway held from p27 towards (89,87) sets the targeted_by of
- * p48, on its way, which is pushed off screen: its draw no longer clears
- * targeted_by. Refused at f353, the slipway is freed by the f355 flush. */
+/* f554: the slipway held from p14 beyond p12 sets the targeted_by of p12,
+ * on its way, which is pushed off screen: its draw no longer clears
+ * targeted_by. Refused at f555, the slipway is freed by the f556 flush. */
 static void offscreen_planet_forgets_refused_slipway(void) {
     static vec_t far;
     start_e2e(SLIPWAYS);
-    play_until(344);
-    dispatch_context_set_input(g_input);
-    cheat_step(&g_cheat, g_input);
+    play_until(553);
+    play_input(g_input);
     cart_update60();
     const slipway_t *held = held_slipway();
     planet_t *p = planet_targeted_by(&held->header);
-    assert(p != NULL && "f345: the held slipway sets a planet's targeted_by");
+    assert(p != NULL && "f554: the held slipway sets a planet's targeted_by");
     far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
     entity_set_pos(&p->header, far);
     assert(!entity_geom_is_on_screen(&p->header) && "the planet is off screen");
     cart_draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
-    play_until(354);
+    play_until(555);
     assert(entity_get(p->targeted_by) == &held->header && "off screen, the draw leaves targeted_by set");
-    play_until(355);
-    printf("  refused slipway: targeted_by of %s cleared by the f355 flush\n", planet_id_or_null(p));
+    play_until(556);
+    printf("  refused slipway: targeted_by of %s cleared by the f556 flush\n", planet_id_or_null(p));
     assert(entity_get(p->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
 }
 
 static void refused_slipway_crosses_new_game(void) {
     start_e2e(SLIPWAYS);
-    play_until(356);
+    play_until(558);
     assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1);
-    play_until(371);
+    play_until(578);
     assert(entities_by_tag(TAG_SLIPWAY) == NULL || entities_by_tag(TAG_SLIPWAY)->count == 0);
-    assert(ui_left_held(main_ui()) != NULL && "f371: a grab in the new game");
-    play_until(377);
+    assert(ui_left_held(main_ui()) != NULL && "f578: a grab in the new game");
+    play_until(582);
 }
 
 #define WORMHOLES "tests/fixtures/wormholes.json"
 
-/* WORMHOLES: f0-3 of slipway_build (probe at f2); then 7-frame cycles at
- * (96,51): four frames held from the press, three released. Twenty refused
- * wormholes (f4-143), one held sixteen frames (f144-159) and opened by the
- * f160 release, freed at f188; one refused press (f193-199); 'restart' and a
- * new game (click at f210); one probe at (71,46) (f216), one refused wormhole
- * (f218-224). A refusal is released on the 5th frame of its cycle and freed
- * by the flush of the 7th. */
+/* WORMHOLES: f0-40 of pad_probe (probe at f26, the centre moved off it);
+ * then 7-frame cycles: X held four frames, three released, a fold abandoned
+ * under 15 ticks. Twenty refused wormholes (f41-180), one held sixteen
+ * frames (f181-196) and opened by the f197 release, freed at f224; one
+ * refused press (f230-236); 'restart' at f242 and a new game (X at f250);
+ * one probe moved off the planets and placed at f268, one refused wormhole
+ * (f270-276). A refusal is released on the 5th frame of its cycle and freed
+ * by the flush of the 6th. */
 static const wormhole_t *held_wormhole(void) {
     const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == wormhole_class() && "a wormhole is held");
@@ -1078,20 +1086,20 @@ static const wormhole_t *held_wormhole(void) {
 
 static void held_wormhole_does_not_grow_game(void) {
     start_e2e(WORMHOLES);
-    play_until(4);
+    play_until(41);
     const wormhole_t *held = held_wormhole();
-    const size_t f4 = game_zone_used();
-    play_until(7);
+    const size_t f41 = game_zone_used();
+    play_until(44);
     assert(held_wormhole() == held);
-    printf("  held wormhole f4/f7: game = %lu/%lu\n", (unsigned long)f4, (unsigned long)game_zone_used());
-    assert(game_zone_used() == f4 && "a held wormhole allocates every frame");
+    printf("  held wormhole f41/f44: game = %lu/%lu\n", (unsigned long)f41, (unsigned long)game_zone_used());
+    assert(game_zone_used() == f41 && "a held wormhole allocates every frame");
 }
 
 static void refused_wormholes_do_not_grow_game(void) {
     start_e2e(WORMHOLES);
-    play_until(10);
+    play_until(47);
     const size_t first_refusal = game_without_registries();
-    play_until(143);
+    play_until(180);
     const size_t twenty = game_without_registries();
     printf("  refused wormholes 1/20: game - registries = %lu/%lu\n", (unsigned long)first_refusal, (unsigned long)twenty);
     assert(first_refusal == twenty && "a refused wormhole leaves its arena in the generation");
@@ -1099,14 +1107,14 @@ static void refused_wormholes_do_not_grow_game(void) {
 
 static void open_wormhole_releases_arena_on_death(void) {
     start_e2e(WORMHOLES);
-    play_until(143);
+    play_until(180);
     const size_t before = game_without_registries();
-    play_until(160);
+    play_until(197);
     const entity_list_t *mz = entities_by_tag(TAG_WORMHOLE);
     assert(mz != NULL && mz->count == 1 && ((const wormhole_t *)mz->items[0])->header.state == ENTITY_STATE_UNFOLDING &&
-           "f160: the wormhole is open");
-    play_until(193);
-    assert(entities_by_tag(TAG_WORMHOLE)->count == 1 && "f193: only the pressed wormhole lives");
+           "f197: the wormhole is open");
+    play_until(230);
+    assert(entities_by_tag(TAG_WORMHOLE)->count == 1 && "f230: only the pressed wormhole lives");
     const size_t after = game_without_registries();
     printf("  open wormhole: game - registries = %lu -> %lu\n", (unsigned long)before, (unsigned long)after);
     assert(after == before && "an open wormhole keeps its arena after its death");
@@ -1114,21 +1122,21 @@ static void open_wormhole_releases_arena_on_death(void) {
 
 static void refused_wormhole_crosses_new_game(void) {
     start_e2e(WORMHOLES);
-    play_until(218);
+    play_until(270);
     held_wormhole();
-    play_until(224);
+    play_until(276);
 }
 
 #define PROBES "tests/fixtures/probes_refused.json"
 
-/* PROBES: 'reasonable' click (f0-1); then 7-frame cycles over empty space,
- * outside the UI panel (ui_panel_box), at (21,96): four frames held from the
- * press, three released. Ten refused probes (f2-71); one pressed at (21,96)
- * at f72, dragged and released over p34 at (47,80) (f73-78); one refusal
- * (f79-85); one probe placed at (71,46) (f86-87); one wormhole held
- * (f88-94); 'restart' and a new game (click at f105); one refusal
- * (f109-115). A refusal is released on the 5th frame of its cycle and freed
- * by the flush of the 7th. */
+/* PROBES: f0-12 of pad_probe ('reasonable' at f12), the centre 19 px from
+ * p14; then 7-frame cycles there: X held four frames from the press, three
+ * released, the probe refused near p14. Ten refused probes (f14-83); one
+ * pressed at f84 and held four frames with Down, towards p14 (f84-90); Up
+ * 12, away from p14, one probe placed by X at f104; one wormhole held
+ * (f106-112); 'restart' at f118 and a new game (X at f126); one refusal
+ * (f130-136). A refusal is released on the 5th frame of its cycle and freed
+ * by the flush of the 6th. */
 static const probe_t *held_probe(void) {
     const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == probe_class() && "a probe is held");
@@ -1137,9 +1145,9 @@ static const probe_t *held_probe(void) {
 
 static void refused_probes_do_not_grow_game(void) {
     start_e2e(PROBES);
-    play_until(8);
+    play_until(20);
     const size_t a = game_without_registries();
-    play_until(71);
+    play_until(83);
     const size_t ten = game_without_registries();
     printf("  refused probes 1/10: game - registries = %lu/%lu\n", (unsigned long)a, (unsigned long)ten);
     assert(a == ten && "a refused probe leaves its arena in the generation");
@@ -1147,46 +1155,45 @@ static void refused_probes_do_not_grow_game(void) {
 
 static void each_refused_probe_reuses_previous_arena(void) {
     start_e2e(PROBES);
-    play_until(2);
+    play_until(14);
     const probe_t *first = held_probe();
     for (int k = 1; k < 10; k++) {
-        play_until(2 + 7 * k);
+        play_until(14 + 7 * k);
         assert(held_probe() == first && "the next probe reuses the refused one's arena, at the same address");
     }
     printf("  refused probes: ten probes at the same address\n");
 }
 
-/* f74: the probe held over p34 sets its targeted_by; p34 moves off screen
- * before the draw. Refused at f76, the probe is freed by the f78 flush, and
- * the f79 press reuses its arena. */
+/* f86: the probe held over p14 sets its targeted_by; p14 moves off screen
+ * before the draw. Refused at f88, the probe is freed by the f89 flush, and
+ * the f104 press, away from p14, reuses its arena. */
 static void offscreen_planet_forgets_refused_probe(void) {
     static vec_t far;
     start_e2e(PROBES);
-    play_until(73);
-    dispatch_context_set_input(g_input);
-    cheat_step(&g_cheat, g_input);
+    play_until(85);
+    play_input(g_input);
     cart_update60();
     const entity_t *held = &held_probe()->header;
-    planet_t *p34 = planet_targeted_by(held);
-    assert(p34 != NULL && "f74: the held probe sets a planet's targeted_by");
+    planet_t *p14 = planet_targeted_by(held);
+    assert(p14 != NULL && "f86: the held probe sets a planet's targeted_by");
     far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
-    entity_set_pos(&p34->header, far);
-    assert(!entity_geom_is_on_screen(&p34->header) && "p34 is off screen");
+    entity_set_pos(&p14->header, far);
+    assert(!entity_geom_is_on_screen(&p14->header) && "p14 is off screen");
     cart_draw();
-    assert(entity_get(p34->targeted_by) == held && "off screen, the draw leaves targeted_by set");
+    assert(entity_get(p14->targeted_by) == held && "off screen, the draw leaves targeted_by set");
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
-    while (g_frame <= 78) play_one_frame(1);
+    while (g_frame <= 103) play_one_frame(1);
     play_one_frame(0);
-    assert(ui_left_held(main_ui()) == held && "f79: the next probe reuses the arena, at the same address");
-    assert(entity_get(p34->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
+    assert(ui_left_held(main_ui()) == held && "f104: the next probe reuses the arena, at the same address");
+    assert(entity_get(p14->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, recycled probe");
 }
 
-/* f90: the anchors of the held wormhole keep only placed probes; the placed
+/* f108: the anchors of the held wormhole keep only placed probes; the placed
  * probe keeps its arena, and the wormhole takes another one. */
 static void wormhole_targets_only_placed_probe(void) {
     start_e2e(PROBES);
-    play_until(90);
+    play_until(108);
     const wormhole_t *mz = held_wormhole();
     const probe_t *placed = NULL;
     for (int i = 0; i < mz->anchors.count; i++) {
@@ -1195,68 +1202,68 @@ static void wormhole_targets_only_placed_probe(void) {
         assert(placed == NULL && e->state == ENTITY_STATE_SETTLED && "the anchors keep a single probe, a placed one");
         placed = (const probe_t *)e;
     }
-    assert(placed != NULL && "f86: the placed probe is an anchor of the wormhole");
+    assert(placed != NULL && "f104: the placed probe is an anchor of the wormhole");
     assert(placed->grab_arena != NULL && placed->grab_arena != mz->anchors.zone && "the placed probe keeps its arena");
 }
 
 static void refused_probe_crosses_new_game(void) {
     start_e2e(PROBES);
-    play_until(109);
+    play_until(130);
     held_probe();
-    play_until(115);
+    play_until(136);
 }
 
 #define WORMHOLE_ABANDONED "tests/fixtures/wormhole_abandoned.json"
 
-/* WORMHOLE_ABANDONED: f0-20 of slipway_build (wormhole opened at f20), then
- * f2-17 of pause_restart: 'restart' at f26 abandons the wormhole and flips
- * the game zone. */
+/* WORMHOLE_ABANDONED: f0-57 of pad_probe (wormhole opened at f57), then
+ * Start and X: 'restart' at f63 abandons the wormhole and flips the game
+ * zone. */
 static const wormhole_t *abandoned_wormhole(void) {
     start_e2e(WORMHOLE_ABANDONED);
-    play_until(22);
+    play_until(59);
     const entity_list_t *mz = entities_by_tag(TAG_WORMHOLE);
-    assert(mz != NULL && mz->count == 1 && "f22: a wormhole lives");
+    assert(mz != NULL && mz->count == 1 && "f59: a wormhole lives");
     return (const wormhole_t *)mz->items[0];
 }
 
 static void abandoned_wormhole_rereads_during_click(void) {
     const wormhole_t *mz = abandoned_wormhole();
-    play_until(26);
-    assert(game_zone_pending() && "the f26 'restart' flips the game zone");
+    play_until(63);
+    assert(game_zone_pending() && "the f63 'restart' flips the game zone");
     g_spend = (unsigned char)mz->header.is_dead;
 }
 
 static void abandoned_wormhole_dies_with_its_game(void) {
     const wormhole_t *mz = abandoned_wormhole();
-    play_until(27);
+    play_until(64);
     g_spend = (unsigned char)mz->header.is_dead;
 }
 
-/* f11: title after 'restart'. Reloading gives back the slots of the live
+/* f37: title after 'restart'. Reloading gives back the slots of the live
  * entities, and the reset_world of cart_init does not read back the
  * registries cleared by cart_load. */
-static void pause_restart_reloads_after_title(void) {
+static void pad_pause_restart_reloads_after_title(void) {
     reading_t fresh, title, reloads;
-    start_e2e("pause_restart");
+    start_e2e("pad_pause_restart");
     take_reading(&fresh, BEFORE_F0);
-    play_until(11);
-    take_reading(&title, 11);
-    print_reading("pause_restart", &title);
+    play_until(37);
+    take_reading(&title, 37);
+    print_reading("pad_pause_restart", &title);
     cart_shutdown();
     cart_load();
     cart_init();
     cart_update60();
     cart_draw();
     take_reading(&reloads, 0);
-    print_reading("pause_restart reload", &reloads);
+    print_reading("pad_pause_restart reload", &reloads);
     assert(same_counts(&fresh, &reloads) && "reloading must give back the slots of the live entities");
 }
 
-/* After the f13 release, the vanish roll and the type picker must point
+/* After the f39 release, the vanish roll and the type picker must point
  * into the new generation, or ASan stops at the first read. */
-static void pause_restart_reveals_on_new_game_states(void) {
-    start_e2e("pause_restart");
-    play_until(13);
+static void pad_pause_restart_reveals_on_new_game_states(void) {
+    start_e2e("pad_pause_restart");
+    play_until(39);
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     const planet_types_entry_t *ll = planet_types_lookup("vanishing");
     int revealed = 0;
@@ -1270,58 +1277,47 @@ static void pause_restart_reveals_on_new_game_states(void) {
     }
     assert(revealed > 0 && "the new game has unknown planets");
     assert(from_type_picker > 0 && "no reveal read the type picker");
-    printf("  pause_restart f13: %d planets revealed, %d through the type picker\n", revealed, from_type_picker);
+    printf("  pad_pause_restart f39: %d planets revealed, %d through the type picker\n", revealed, from_type_picker);
 }
 
-/* f42-90: the year's message box kept open by its keep_open callback, with
- * no click. */
-static void message_box_hold_idle_does_not_grow(void) {
-    const int frames[] = {45, 90};
+/* f115-121: the year's message box kept open by its keep_open callback, with
+ * no button. */
+static void pad_message_box_idle_does_not_grow(void) {
+    const int frames[] = {115, 121};
     reading_t r[2];
-    replay_e2e("message_box_hold", frames, 2, r);
+    replay_e2e("pad_message_box", frames, 2, r);
     assert(same_counts(&r[0], &r[1]) && r[0].particle == r[1].particle && "a slot kind takes a slot per tick");
     assert(r[0].game_zone == r[1].game_zone && "the game zone takes bytes every tick");
 }
 
-/* f44-45: the year's message box kept open, with no action. The boxes
+/* f116-117: the year's message box kept open, with no action. The boxes
  * remade every tick are rewritten in place: they keep their address. */
-static void message_box_hold_rewrites_boxes_in_place(void) {
-    start_e2e("message_box_hold");
-    play_until(44);
+static void pad_message_box_rewrites_boxes_in_place(void) {
+    start_e2e("pad_message_box");
+    play_until(116);
     const camera_t *mo = main_camera_typed();
     const mouse_t *je = main_mouse_typed();
     const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
     const void *before[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     size_t used_before = game_zone_used();
-    play_until(45);
+    play_until(117);
     assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
     const void *after[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     int stables = 0;
     for (int i = 0; i < 3; i++) stables += before[i] == after[i];
-    printf("  message_box_hold f44-45: %d / 3 per-tick boxes at the same address\n", stables);
+    printf("  pad_message_box f116-117: %d / 3 per-tick boxes at the same address\n", stables);
     fflush(stdout);
     assert(stables == 3 && "the camera's pos_before_shake and pos and the mouse's pos must be rewritten in place");
     assert(game_zone_used() == used_before && "the game zone takes bytes every tick");
 }
 
-static int no_button(const p8_input_frame_t *f) {
-    if (f->mouse_buttons != 0) return 0;
-    for (int b = 0; b < 6; b++) {
-        if (f->dpad[b]) return 0;
-    }
-    return 1;
-}
-
 static int idle_frame(const p8_input_t *input, int i) {
-    const p8_input_frame_t *f = &input->frames[i];
-    const p8_input_frame_t *before = &input->frames[i - (i > 0)];
-    return i > 0 && no_button(f) && no_button(before) && f->mouse_x == before->mouse_x &&
-           f->mouse_y == before->mouse_y;
+    return i > 0 && input->frames[i].pad_buttons == 0 && input->frames[i - 1].pad_buttons == 0;
 }
 
-/* A window: at least two frames with no button nor D-pad and a still
- * mouse, the frame before included. The generation at its second frame (the
+/* A window: at least two frames with no pad button, the frame before
+ * included. The generation at its second frame (the
  * first may still flush what the action before left) is the one at its last.
  * Without take_reading, whose flush would release the generation early. */
 static int idle_windows_of_current_e2e(void) {
@@ -1383,34 +1379,24 @@ static int idle_windows_on_all_e2e(void) {
     return total;
 }
 
-/* f25-94: p40 fades; its released row may lower the row slot count. */
-static void empty_planet_fade_does_not_grow(void) {
-    const int frames[] = {25, 94};
+/* f107-135: p14 fades while only the camera pans; its released row may lower the row slot count. */
+static void pad_empty_planet_does_not_grow(void) {
+    const int frames[] = {107, 135};
     reading_t r[2];
-    replay_e2e("empty_planet_fade", frames, 2, r);
-    assert(none_rises(&r[0], &r[1]) && "a slot kind rises while p40 fades");
+    replay_e2e("pad_empty_planet", frames, 2, r);
+    assert(none_rises(&r[0], &r[1]) && "a slot kind rises while p14 fades");
 }
 
-/* f56: 'harvest', p27 becomes a burst. At f139 the burst still lives: the
- * replay goes on with no action (the mouse stays at (116,58), no click)
- * until it burns out. */
-static void tech_geoharvesting_burst_releases_burst(void) {
-    const int frames[] = {55, 56, 139};
-    reading_t r[3];
-    reading_t end;
-    int frame;
-    replay_e2e("tech_geoharvesting_burst", frames, 3, r);
+/* f170: 'harvest', p12 becomes a burst that lives to f253 and is gone at f254. */
+static void pad_planet_projects_releases_burst(void) {
+    const int frames[] = {169, 170, 253, 254};
+    reading_t r[4];
+    replay_e2e("pad_planet_projects", frames, 4, r);
     assert(r[0].burst == 0 && r[1].burst == 1 && "'harvest' makes a burst");
     assert(r[1].particle - r[0].particle >= 140 && "a burst is born with 140 particles");
-    end = r[2];
-    for (frame = 140; end.burst != 0 && frame < 160; frame++) {
-        cart_update60();
-        cart_draw();
-        take_reading(&end, frame);
-    }
-    print_reading("tech_geoharvesting_burst", &end);
-    assert(end.burst == 0 && "a burnt-out burst must give back its slot");
-    assert(end.particles == r[0].particles && "a burnt-out burst must give back its list");
+    assert(r[2].burst == 1 && "the burst burns out at f254, not before");
+    assert(r[3].burst == 0 && "a burnt-out burst must give back its slot");
+    assert(r[3].particles == r[0].particles && "a burnt-out burst must give back its list");
 }
 
 /* With no input, the help screen emits 5 particles per draw and each lives
@@ -1472,13 +1458,13 @@ static int same_bytes(const char *a_path, const char *b_path) {
  * those of the load zone, leaving the capture, the dump and the exit status
  * alone. */
 static void replay_writes_fill_at_session_end(void) {
-    const int frames[] = {17};
+    const int frames[] = {75};
     reading_t reading[1];
-    replay_e2e("pause_restart", frames, 1, reading);
+    replay_e2e("pad_pause_restart", frames, 1, reading);
 
     remove(FILL);
-    assert(system(DRIVER " tests/e2e/pause_restart.json " CAPTURE_A " " DUMP_A " > /dev/null") == 0);
-    assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/pause_restart.json " CAPTURE_B " " DUMP_B
+    assert(system(DRIVER " tests/e2e/pad_pause_restart.json " CAPTURE_A " " DUMP_A " > /dev/null") == 0);
+    assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/pad_pause_restart.json " CAPTURE_B " " DUMP_B
                   " > /dev/null") == 0);
     assert(same_bytes(CAPTURE_A, CAPTURE_B) && "the fill file does not change the capture");
     assert(same_bytes(DUMP_A, DUMP_B) && "the fill file does not change the dump");
@@ -1541,18 +1527,17 @@ static long fill_value(const char *fill, const char *key) {
     return n;
 }
 
-/* The f56 burst dies at f141, after the end of the replay (f139), but its
- * 140 particles are born at once and most are dead by f139: a maximum read
+/* The f170 burst's 140 particles are born at once and dead by f254, before the end of the replay: a maximum read
  * only at the end of the session would stay under 140. */
 static void replay_writes_session_peak(void) {
     remove(FILL);
-    assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/tech_geoharvesting_burst.json " CAPTURE_A
+    assert(system("REPLAY_FILL=" FILL " " DRIVER " tests/e2e/pad_planet_projects.json " CAPTURE_A
                   " " DUMP_A " > /dev/null") == 0);
     size_t len;
     char *writes = read_file(FILL, &len);
     long particle = fill_value(writes, "particle");
     long max_particle = fill_value(writes, "max_live particle");
-    printf("  tech_geoharvesting_burst: particle %ld at the end of the session, max %ld; burst %ld, max %ld\n", particle,
+    printf("  pad_planet_projects: particle %ld at the end of the session, max %ld; burst %ld, max %ld\n", particle,
            max_particle, fill_value(writes, "burst"), fill_value(writes, "max_live burst"));
     assert(fill_value(writes, "max_live burst") >= 1 && "'harvest' makes a burst");
     assert(max_particle >= 140 && particle < 140 && "the maximum is read at every take, not at the end of the session");
@@ -1563,38 +1548,39 @@ static void replay_writes_session_peak(void) {
 }
 
 int main(void) {
-    int e2e_count = invariant_on_all_e2e();
-    printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e, every frame\n", e2e_count);
-    assert(e2e_count >= 26 && "tests/e2e/ lost some of its 26 mouse replays");
-    in_child(pause_restart_returns_to_title);
-    in_child(pause_restart_keeps_title_during_click);
-    in_child_dying_by_asan(pause_restart_releases_title_next_frame);
-    in_child(pause_restart_keeps_game_during_restart_click);
-    in_child_dying_by_asan(pause_restart_releases_game_after_restart);
-    in_child(pause_restart_title_drops_quit_economy_and_panel);
-    in_child(pause_restart_keeps_quit_planets_during_click);
-    in_child_dying_by_asan(pause_restart_releases_quit_planets);
-    in_child(pause_restart_keeps_quit_economy_during_click);
-    in_child_dying_by_asan(pause_restart_releases_quit_economy);
-    in_child(pause_restart_keeps_quit_icons_during_click);
-    in_child_dying_by_asan(pause_restart_releases_quit_icons);
-    in_child(pause_restart_keeps_quit_singletons_during_click);
-    in_child(pause_restart_keeps_title_singletons_during_click);
+    int pad_count;
+    int e2e_count = invariant_on_all_e2e(&pad_count);
+    printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e (%d pad), every frame\n", e2e_count, pad_count);
+    assert(pad_count >= 11 && "tests/e2e/ lost some of its 11 pad replays");
+    in_child(pad_pause_restart_returns_to_title);
+    in_child(pad_pause_restart_keeps_title_during_click);
+    in_child_dying_by_asan(pad_pause_restart_releases_title_next_frame);
+    in_child(pad_pause_restart_keeps_game_during_restart_click);
+    in_child_dying_by_asan(pad_pause_restart_releases_game_after_restart);
+    in_child(pad_pause_restart_title_drops_quit_economy_and_panel);
+    in_child(pad_pause_restart_keeps_quit_planets_during_click);
+    in_child_dying_by_asan(pad_pause_restart_releases_quit_planets);
+    in_child(pad_pause_restart_keeps_quit_economy_during_click);
+    in_child_dying_by_asan(pad_pause_restart_releases_quit_economy);
+    in_child(pad_pause_restart_keeps_quit_icons_during_click);
+    in_child_dying_by_asan(pad_pause_restart_releases_quit_icons);
+    in_child(pad_pause_restart_keeps_quit_singletons_during_click);
+    in_child(pad_pause_restart_keeps_title_singletons_during_click);
     for (g_singleton = 0; g_singleton < SINGLETON_COUNT; g_singleton++) {
         printf("  singleton %s:", NAMES_OF_SINGLETONS[g_singleton]);
-        in_child_dying_by_asan(pause_restart_releases_singleton);
+        in_child_dying_by_asan(pad_pause_restart_releases_singleton);
     }
-    in_child(pause_restart_counts_populate_galaxy_states);
-    in_child(pause_restart_leaves_load_zone_alone);
-    in_child(pause_restart_reserves_registries_at_game_start_only);
-    in_child(pause_restart_bounds_dead_registry_blocks);
-    in_child(pause_restart_reloads_after_title);
-    in_child(pause_restart_reveals_on_new_game_states);
-    in_child(game_end_final_score_rebuild_does_not_grow_game);
-    in_child(trade_rich_mine_route_rebuild_does_not_grow_game);
-    in_child(trade_rich_mine_kept_route_survives_frame);
-    in_child(trade_rich_mine_rebuild_gives_back_frame);
-    in_child(trade_rich_mine_releases_trails_on_reload);
+    in_child(pad_pause_restart_counts_populate_galaxy_states);
+    in_child(pad_pause_restart_leaves_load_zone_alone);
+    in_child(pad_pause_restart_reserves_registries_at_game_start_only);
+    in_child(pad_pause_restart_bounds_dead_registry_blocks);
+    in_child(pad_pause_restart_reloads_after_title);
+    in_child(pad_pause_restart_reveals_on_new_game_states);
+    in_child(pad_game_end_rebuild_does_not_grow_game);
+    in_child(pad_tech_costs_route_rebuild_does_not_grow_game);
+    in_child(pad_tech_costs_kept_route_survives_frame);
+    in_child(pad_tech_costs_rebuild_gives_back_frame);
+    in_child(pad_tech_costs_releases_trails_on_reload);
     in_child(refused_grabs_do_not_grow_game);
     in_child(placed_grab_does_not_fit_dead_wormhole_arena);
     in_child(refused_grab_crosses_new_game);
@@ -1615,13 +1601,13 @@ int main(void) {
     in_child(refused_probe_crosses_new_game);
     in_child(abandoned_wormhole_rereads_during_click);
     in_child_dying_by_asan(abandoned_wormhole_dies_with_its_game);
-    in_child(message_box_hold_idle_does_not_grow);
+    in_child(pad_message_box_idle_does_not_grow);
     int windows = idle_windows_on_all_e2e();
-    printf("  generation constant over %d idle windows of the 26 e2e\n", windows);
+    printf("  generation constant over %d idle windows of the %d e2e\n", windows, e2e_count);
     assert(windows > 0);
-    in_child(message_box_hold_rewrites_boxes_in_place);
-    in_child(empty_planet_fade_does_not_grow);
-    in_child(tech_geoharvesting_burst_releases_burst);
+    in_child(pad_message_box_rewrites_boxes_in_place);
+    in_child(pad_empty_planet_does_not_grow);
+    in_child(pad_planet_projects_releases_burst);
     in_child(idle_title_screen_settles);
     in_child(replay_writes_fill_at_session_end);
     in_child(replay_writes_session_peak);

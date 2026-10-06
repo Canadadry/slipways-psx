@@ -40,24 +40,22 @@ static void assert_at_rest(void) {
     assert(!fm->has_research_points && !fm->has_credits);
 }
 
-/* A A B B A A B B, one press every other frame; returns how often it fired. */
+/* × × ○ ○ × × ○ ○, one press every other frame; returns how often it fired. */
 static int type_cheat(void) {
-    static const int presses[] = {4, 4, 5, 5, 4, 4, 5, 5};
-    p8_input_frame_t frames[16];
-    p8_input_t pad;
+    static const int presses[] = {P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE,
+                                  P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE};
+    int frames[16];
     cheat_t cheat;
     int fired = 0;
     int i;
 
     memset(frames, 0, sizeof frames);
     for (i = 0; i < 8; i++) {
-        frames[2 * i].dpad[presses[i]] = 1;
+        frames[2 * i] = presses[i];
     }
-    pad.frames = frames;
-    pad.frame_count = 16;
     cheat_init(&cheat);
-    for (pad.current_frame = 0; pad.current_frame < 16; pad.current_frame++) {
-        fired += cheat_step(&cheat, &pad);
+    for (i = 0; i < 16; i++) {
+        fired += cheat_step(&cheat, frames[i]);
     }
     return fired;
 }
@@ -152,7 +150,7 @@ static void test_main_economy_is_a_struct(void) {
     assert(provisional != NULL);
     assert(((const entity_t *)provisional)->class == cls);
     assert(cls->draw == NULL && cls->draw_overlay == NULL && cls->hit_test == NULL && cls->new_year == NULL && cls->refresh == NULL &&
-           cls->has_refresh == NULL && cls->left_press == NULL && cls->right_press == NULL && cls->accept_drop == NULL);
+           cls->has_refresh == NULL && cls->left_press == NULL && cls->accept_drop == NULL);
     assert(cls->drag == NULL && cls->drop == NULL && cls->attach_slipway == NULL && cls->offer_trade == NULL && cls->draw_at == NULL &&
            cls->spawn_particle == NULL);
     for (j = 0; j < STATE_COUNT; j++) {
