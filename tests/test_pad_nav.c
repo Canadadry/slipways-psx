@@ -1759,7 +1759,7 @@ static void test_a_full_slipgate_as_starting_planet_presses_nothing(void) {
     pan_to_empty_space(&step);
     planet_t *gate = full_slipgate_under_centre(&step);
     tap(&step, P8_PAD_TRIANGLE);
-    tap(&step, P8_PAD_CIRCLE);
+    run_frame(&step, 0);
     assert(main_ui()->ephemerals.count == 0);
     assert_network_on(&step, gate);
     world_count_t before = world_count();
@@ -4967,6 +4967,23 @@ static void test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing
     assert_world_unchanged(before);
 }
 
+static void test_circle_in_network_mode_returns_to_jump_mode_on_that_planet(void) {
+    input_step_t step;
+    start_game(&step);
+    planet_t *planet = network_on_known_planet(&step);
+    assert_network_on(&step, planet);
+    vec_t from = camera_at();
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    assert(pad_nav_selection(&step.pad_nav) == NULL && pad_nav_selected_slipway(&step.pad_nav) == NULL);
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+    int x, y;
+    rest_screen_point(&planet->header, &x, &y);
+    assert(pad_jump_inside(x, y));
+    assert_moved(from, 0, 0);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -5041,6 +5058,7 @@ int main(void) {
     in_fresh_child(test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_comes_back);
     in_fresh_child(test_triangle_on_a_hovered_colony_opens_its_panel_and_no_jump_shares_the_click);
     in_fresh_child(test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing);
+    in_fresh_child(test_circle_in_network_mode_returns_to_jump_mode_on_that_planet);
     in_fresh_child(test_the_ui_pad_selection_is_the_planet_only_in_network_mode_without_a_box);
     in_fresh_child(test_square_in_network_mode_enters_free_mode_on_the_planet);
     in_fresh_child(test_square_in_free_mode_forgets_the_starting_planet_then_changes_nothing);

@@ -589,7 +589,8 @@ static void travel_to(pad_nav_t *nav, const entity_t *planet) {
 }
 
 /* On △'s release frame the cursor must stay on the clicked planet: a move would drop its held slipway elsewhere. */
-static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, int releasing, p8_input_frame_t *played) {
+static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, int releasing, int circle_returns,
+                         p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
     int turn = pressed_direction(pressed & (P8_PAD_LEFT | P8_PAD_RIGHT));
     entity_t *resumed = live(entity_get(nav->resume_start));
@@ -597,6 +598,12 @@ static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, 
         nav->resume_start = ENTITY_ID_NONE;
     } else if (!releasing && !nav->release_pending) {
         resume_free_mode(nav, resumed, played);
+        return;
+    }
+    if (circle_returns && !releasing) {
+        reset_map_mode(nav);
+        nav->jump.hovered = entity_id_link(selected);
+        screen_point(selected, &nav->cursor_x, &nav->cursor_y);
         return;
     }
     entity_t *slipway = pad_nav_selected_slipway(nav);
@@ -999,9 +1006,9 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
 }
 
-/* Returns whether jump mode ran this frame. */
-static int map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
-                    p8_input_frame_t *played, const entity_t **shown) {
+/* *jump_ran says whether jump mode ran this frame. */
+static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
+                     p8_input_frame_t *played, const entity_t **shown, int *jump_ran) {
     if (pad_nav_placing(nav) != NULL) {
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
@@ -1011,18 +1018,16 @@ static int map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction,
         free_mode_step(nav, pad_buttons, pressed, circle_returns, release, played);
     } else if (pad_nav_selection(nav) != NULL) {
         reset_free_mode(nav);
-        network_step(nav, pad_nav_selection(nav), pressed, release, played);
+        network_step(nav, pad_nav_selection(nav), pressed, release, circle_returns, played);
         /* A click opens its box only in this frame's dispatch, the settled planet's on the release: neither frame shows the selection. */
         if (!release && !nav->release_pending) {
             *shown = pad_nav_selection(nav);
         }
-    } else if (pad_nav_jump_mode(nav)) {
-        jump_step(nav, pad_buttons, pressed, release, played, shown);
-        return 1;
     } else {
-        reset_free_mode(nav);
+        assert(pad_nav_jump_mode(nav) && "map_step: drop_stale_map_mode leaves jump mode as the only other map mode");
+        jump_step(nav, pad_buttons, pressed, release, played, shown);
+        *jump_ran = 1;
     }
-    return 0;
 }
 
 /* Returns whether the tab changed; *cancelled says what held thing a shoulder cancelled. */
@@ -1197,7 +1202,7 @@ void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
             played->mouse_buttons = P8_MOUSE_LEFT;
         }
     } else if (nav->tab == PAD_NAV_TAB_MAP) {
-        jump_ran = map_step(nav, pad_buttons, pressed, direction, release, circle_returns, played, &shown);
+        map_step(nav, pad_buttons, pressed, direction, release, circle_returns, played, &shown, &jump_ran);
     } else {
         reset_free_mode(nav);
         tab_step(nav, pad_buttons, pressed, direction, release, played);

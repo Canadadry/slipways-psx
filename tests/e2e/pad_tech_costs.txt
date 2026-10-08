@@ -6,7 +6,11 @@ frames.
 
 Jump mode is the map's root, where every game starts: square on f17
 leaves it for plain free mode, the camera unmoved, as games started
-before it. Every frame is the one this file had without it.
+before it. O in network mode now returns to jump mode, so the cheat
+moved there, where X and O do nothing: f126 O leaves network mode on
+p31, the cheat runs two frames later over two idle frames, and f170
+square, f172 triangle land network mode on p31 again from free mode.
+Every other frame is the one this file had before.
 
 Pad input declared ("input": "pad"). The title takes Down at f10 and X
 on "reasonable" at f16, 4 frames later than pad_title's: the title
@@ -30,14 +34,15 @@ from the capture.
   144 216). f117: triangle: its menu, drawn f118-123. Row 2 (agroworld,
   base 5) ends in a colour-2 price tag at x144-156 whose first digit
   reads 4 (x148-153, y84-88): 5 x 0.85.
-- f124: O closes it. f126-140: X X O O X X O O. The X taps on p31 open
-  no menu (a colour-8 label beside the centre, x96-106, y43-47 at
-  f134) and charge nothing ($97, month 2 up to f139); f140: $200,
-  research 99.
+- f124: O closes it. f126: O leaves network mode for jump mode on p31.
+  f128-142: X X O O X X O O. The X taps on p31 open no menu (a
+  colour-8 label beside the centre, x96-106, y43-47 at f134) and
+  charge nothing ($97, month 2 up to f141); f142: $200, research 99.
 - f144-154: R1 x3, Down, X: "space folding" (research 95). f158-168:
   the same: the first row is now "xenofoods" (era 2): research 85.
-- f172: triangle on p31: from f173 row 2's recipe icons change (from
-  x97, y83-89) and its tag reads 6 (5 x 1.5 x 0.85); row 1 is
+- f170: square, plain free mode, p31 under the centre. f172: triangle
+  on p31, network mode on it: from f173 row 2's recipe icons change
+  (from x97, y83-89) and its tag reads 6 (5 x 1.5 x 0.85); row 1 is
   pixel-identical to f123, row 3 but for 3 pixels of row 2's tag
   border (x143-145, y91).
 

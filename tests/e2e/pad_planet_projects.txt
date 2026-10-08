@@ -3,13 +3,22 @@ its burst to the end; "replication" and "mechanize" on a remnant planet,
 colonised; that colony panned off screen with the D-pad before a year
 passes. Then the structures: "infraspace", an infragate and its slipway;
 "void synthesis", two synthesizers linked to that colony; "ascension",
-the gate placed. 562 frames.
+the gate placed. 568 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 leaves it for plain free mode, the camera unmoved, as games started
 before it; f173: the same once the f172 colony replaced the selected
 planet, whose dead selection falls back to jump mode. Every frame is the
-one this file had without them.
+one this file had without them up to f290.
+
+O in network mode now returns to jump mode, so both cheats moved there,
+where X and O do nothing: 4 frames before the first cheat, 2 before the
+second, and every later frame shifted by them. The second cheat's X
+taps no longer travel s2 -> p47 -> s2 in network mode, so the carry of
+s4 no longer centres the camera on s2: one Up tap re-pans the pixel
+that leaves. Later captures differ from the old ones by the shift
+alone (animation phases, transit dots, particles); the game state does
+not.
 
 Pad input declared ("input": "pad"). f0-68 are pad_probe's frames, so
 p25 (type f) and p47 (type r) are known. Readings come from `make
@@ -58,34 +67,39 @@ pad_infragate, pad_synthesizer and pad_ascension files). Every capture
 frame up to f274 is unchanged, byte for byte.
 
 - f276-290: R1 (`end turn` -> `tech`), Down x5, X: "infraspace"
-  (research 59 -> 28). f291-306: X, then X X O O X X O O (the first X
-  brings the matcher from 2 to 0); the first O lands network mode on
-  p47 (camera 190 205): $200, research 99.
-- f307-341: "autoassemblers", "skill implants" (era 4 opens), "void
+  (research 59 -> 28; this X brings the cheat matcher from 2 to 0).
+  f291: O lands network mode on p47 (camera 190 205); f293: O leaves it
+  for jump mode on p47. f295-310: X X O O X X O O: $200, research 99
+  at f309.
+- f311-345: "autoassemblers", "skill implants" (era 4 opens), "void
   synthesis" (row 2): research 20.
-- f342-378: R1, Left x2, X: the infragate s1 carried; Up+Right 2, Up
+- f346-382: R1, Left x2, X: the infragate s1 carried; Up+Right 2, Up
   25, X: s1 built at (272, 221), $200 -> $175, on the spot p25 left.
-- f379-411: square twice (network on s1, then its drag), Down 27, X on
+- f383-415: square twice (network on s1, then its drag), Down 27, X on
   p47: `slipway s1 p47 infragate`, $168.
-- f412-434: R1, Left, X: synthesizer s2, Up+Left 8, Up 7, X: built at
-  (262, 245), $128. f435-456: R1, X, Up+Right 13, Up 3, X: s3 at
+- f416-438: R1, Left, X: synthesizer s2, Up+Left 8, Up 7, X: built at
+  (262, 245), $128. f439-460: R1, X, Up+Right 13, Up 3, X: s3 at
   (286, 243), $88.
-- f457-478: square twice, Down+Left 12, Down 4, X on p47: `slipway s3
+- f461-482: square twice, Down+Left 12, Down 4, X on p47: `slipway s3
   p47 normal`, $85, income -2 -> 6: s3 synthesizes p47's ore need. The
   drag is checked against s1's infraspace slipway, on another plane.
-- f479-497: square from p47, Up+Left 8, Up 7, X on s2: `slipway p47 s2
-  normal`, $82, income still 6: s2 skips the need s3 already serves.
-- f498-513: X X O O X X O O: $200, research 99. f514-530: "ascension"
-  (row 4): research 49.
-- f531-561: R1, Left, X: the ascension gate s4; Up+Right 17, Right 5,
-  X (f559): built at (296, 217), $140, month 11. Up and left of s2, 16
-  px from p6, the spot would be refused.
+- f483-501: square from p47, Up+Left 8, Up 7, X on s2: `slipway p47 s2
+  normal`, $82, income still 6: s2 skips the need s3 already serves;
+  network on s2, camera 182 182.
+- f502: O leaves network mode for jump mode on s2. f504-519: X X O O X
+  X O O: $200, research 99 at f518. f520-536: "ascension" (row 4):
+  research 49.
+- f537-567: R1, Left, X: the ascension gate s4 carried from camera 182
+  182; Up+Right 17, Right, Up+Right, Right 3 (the lone Up puts the
+  camera back on the old route's 182 181 line), X (f565): built at
+  (296, 217), $140, month 11. Up and left of s2, 16 px from p6, the
+  spot would be refused.
 
-At f561 the infragate's slipway is two parallel colour-1 lines (x55
+At f567 the infragate's slipway is two parallel colour-1 lines (x55
 and x58, y69-101) from s1 to p47; the ordinary slipways are single
 diagonal lines.
 
-`make state` at f561: year 3402 month 11, credits 140, research 49,
+`make state` at f567: year 3402 month 11, credits 140, research 49,
 income 6, techs + infraspace, autoassemblers, skill implants, void
 synthesis, ascension; camera 216 157; s2, s3 colonized synthesizer, s4
 colonized ascension, structure s1 infragate links 1; slipways s1 p47
