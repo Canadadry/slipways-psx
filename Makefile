@@ -72,6 +72,18 @@
 #                       (`<path>:<line> <0|1>` per executable line of
 #                       src/game/ and src/engine/, headers included) and
 #                       prints the totals, outside the suite
+# make coverage-compare -> make coverage, then maps each line hit at
+#                       COVERAGE_BASELINE_COMMIT (default 6346485) to the
+#                       current tree through `git diff -U0 -M --histogram`
+#                       of src/game/ and src/engine/ (the default algorithm
+#                       pairs a closing brace with another function's) and
+#                       tools/coverage_compare.sh: prints the unhit and
+#                       deleted ones (a rewritten line is deleted) and the
+#                       totals, full report in
+#                       tmp/coverage-compare/report.txt; fails if a line is
+#                       unhit; the baseline's lines are built once from a
+#                       worktree of that commit and kept in
+#                       tmp/coverage-baseline-<commit>/, outside the suite
 # make full-game     -> replays each worst-case/ game (FULL_GAME_EVENTS:
 #                       full_game.json, then the same game followed by a new
 #                       game from the title, cut short by pause ->
@@ -407,6 +419,9 @@ $(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_p
 $(TMP_DIR)/test_end_state: $(call objs,tests/test_end_state.c) tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_coverage_compare: $(call objs,tests/test_coverage_compare.c) tools/coverage_compare.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -718,6 +733,7 @@ UNIT_TESTS := \
     test_e2e_limits \
     test_state_peaks \
     test_end_state \
+    test_coverage_compare \
     test_float_guard \
     test_alloc_guard \
     test_pointer_guard \
@@ -997,6 +1013,25 @@ coverage: $(TMP_DIR)/replay_coverage tools/coverage.sh $(COVERAGE_EVENTS)
 	@sh tools/coverage.sh ./$(TMP_DIR)/replay_coverage $(OBJ_COVERAGE_DIR) $(TMP_DIR)/coverage "$(REPLAY_SRCS)" $(COVERAGE_EVENTS)
 
 .PHONY: coverage
+
+COVERAGE_BASELINE_COMMIT ?= 6346485
+COVERAGE_BASELINE_DIR := $(TMP_DIR)/coverage-baseline-$(COVERAGE_BASELINE_COMMIT)
+COVERAGE_COMPARE_DIR := $(TMP_DIR)/coverage-compare
+
+$(COVERAGE_BASELINE_DIR)/lines.txt:
+	rm -rf $(COVERAGE_BASELINE_DIR)/tree
+	git worktree prune
+	git worktree add --detach $(COVERAGE_BASELINE_DIR)/tree $(COVERAGE_BASELINE_COMMIT)
+	env -u MAKEFLAGS -u MFLAGS -u MAKELEVEL $(MAKE) -C $(COVERAGE_BASELINE_DIR)/tree coverage
+	cp $(COVERAGE_BASELINE_DIR)/tree/$(TMP_DIR)/coverage/lines.txt $@
+	git worktree remove --force $(COVERAGE_BASELINE_DIR)/tree
+
+coverage-compare: coverage $(COVERAGE_BASELINE_DIR)/lines.txt tools/coverage_compare.sh
+	@mkdir -p $(COVERAGE_COMPARE_DIR)
+	@git diff --no-ext-diff --no-color --no-relative -U0 -M --histogram --src-prefix=a/ --dst-prefix=b/ $(COVERAGE_BASELINE_COMMIT) -- src/game src/engine > $(COVERAGE_COMPARE_DIR)/diff.txt
+	@sh tools/coverage_compare.sh $(COVERAGE_BASELINE_DIR)/lines.txt $(TMP_DIR)/coverage/lines.txt $(COVERAGE_COMPARE_DIR)/diff.txt > $(COVERAGE_COMPARE_DIR)/report.txt; status=$$?; grep -v '^hit ' $(COVERAGE_COMPARE_DIR)/report.txt; echo "coverage-compare: report in $(COVERAGE_COMPARE_DIR)/report.txt"; exit $$status
+
+.PHONY: coverage-compare
 
 STATE_DIR := $(TMP_DIR)/state
 STATE_EVENTS := $(FULL_GAME_EVENTS) $(E2E_EVENTS)
