@@ -224,3 +224,36 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - Added beyond the plan: at equal score, the smaller |perpendicular| wins, then the earlier entry in the list.
 - `tests/test_pad_target.c`: 9 hand-built layouts, 2 ms. A verifier's mutation run found that weight 3 survived. One layout was tightened, and weights 0, 1, 3 and 4 are now caught.
 - No caller yet. E2e and end-state unchanged. Re-authoring cost: none.
+
+### Step 5
+- **Commits:**
+  - `97f3814`: random-stream guard. `tools/random_guard.sh` and `tools/random_guard_exceptions.txt`, run by `make test`. It counts game-stream, generator and visual-stream uses per file. It also lists `save_load.c`, which restores the stream.
+  - `5fa102e`: `src/game/pad_jump.{c,h}`.
+    - Repeat timing: 18, then every 8.
+    - Inner rectangle: x 20–139, y 20–88. The bottom margin is 31, over the HUD row at y 109.
+    - Edge scroll: at most 8 px per axis per frame.
+    - Also: world point from `map_pos`, nearest, seed, candidates.
+  - `162af4d`: jump root.
+  - `4a1dca9`: D-pad jumps and hold repeat. A unit test shows jumps, repeats and scrolls leave the game stream unchanged.
+  - `875cd0a`: △ on the hovered object.
+  - `6e841dc`: ○ in network mode returns to jump mode.
+- **Behaviour:**
+  - At game start the cursor hovers the first colony, else the known object nearest the centre, else nothing until one appears. A new game is detected when the main economy id changes.
+  - Candidates come from `TAG_NODE`: gates carry no `TAG_PLANET`.
+  - □ from jump mode enters today's plain free mode with the camera unmoved.
+  - × and ○ do nothing in jump mode.
+  - △ presses only once the object's rest point is inside the rectangle and no HUD item covers it.
+- **`guideline` decisions:**
+  - ○ in network mode returning to jump mode is in scope: it gives a dead press a job and is free mode's only way back before step 7.
+  - "△ again closes the planet menu" is left to step 8, with the ○ "close the box or panel" rung.
+- **Re-authoring:**
+  - Chunk 3: all 17 replays and 5 live-slots fixtures broke. Each replaced one idle frame (two after a new game or resume) with □ on its first map frame. Every capture stayed byte-identical: no hash, `.txt` reading or pinned value changed. About 9 minutes.
+  - Chunk 6: `pad_tech_costs` and `pad_planet_projects` typed their cheats in network mode. The cheats are now typed in jump mode, with the same counts and end states. `pad_planet_projects` grew from 562 to 568 frames and needs one Up tap under rule 8. Its incidental s2 → p47 → s2 network travel inside the cheat is gone; `pad_slipway` still covers it. About 15 minutes.
+  - Total: about 24 minutes, well under the step 5b trigger (170 minutes). No generator is inserted.
+- **Checks:**
+  - `make end-state`: all 17 e2e, `title_idle` and `full_game_pause_restart` pass. `full_game`, `full_game_new_game` and `full_game_pause_idle` are stale (their scripts lack the □); a scratch `full_game` with □ at f13 matches.
+  - `make coverage-compare`: 0 unhit. Chunks 4–5 had briefly left one baseline line unhit (`map_step` turned `int`), and chunk 6 restored it.
+  - `make full-game` runs clean.
+- **Known gaps:**
+  - No replay hovers anything yet, so jump mode is covered only by unit tests.
+  - No test covers △ refused under a HUD item.
