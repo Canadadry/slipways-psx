@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: psx_hello_check.sh <install-dir> --exe <file> <known-line> <frames> <out-dir>
+# usage: psx_hello_check.sh <install-dir> <--exe|--iso> <file> <known-line> <frames> <out-dir>
 # Boots the input twice and nothing once, and checks that psx-hello ran. Every
 # condition is checked before concluding, one line per failure, exit 1 if any
 # failed.
@@ -11,7 +11,7 @@ fail() {
     exit 1
 }
 
-usage="usage: psx_hello_check.sh <install-dir> --exe <file> <known-line> <frames> <out-dir>"
+usage="usage: psx_hello_check.sh <install-dir> <--exe|--iso> <file> <known-line> <frames> <out-dir>"
 [ $# -eq 6 ] || fail "$usage"
 install_dir=$1
 input_flag=$2
@@ -20,7 +20,7 @@ known_line=$4
 frames=$5
 out_dir=$6
 case $input_flag in
-    --exe) ;;
+    --exe|--iso) ;;
     *) fail "$usage" ;;
 esac
 [ -f "$input" ] || fail "missing input: $input"
@@ -69,10 +69,30 @@ distinct_pixels() {
     tail -c +$((${#header} + 2)) "$1" | od -An -v -tx1 -w$size | uniq | head -n 2 | wc -l
 }
 
-if [ "$(head -c 8 "$input")" = "PS-X EXE" ]; then
-    pass magic
+# Prints the .bin named by the .cue's FILE line, resolved next to the .cue;
+# prints nothing when there is no FILE line.
+cue_bin() {
+    name=$(sed -n 's/^[[:space:]]*FILE[[:space:]]*"\([^"]*\)".*/\1/p' "$input" | head -n 1)
+    [ -n "$name" ] && echo "$(dirname "$input")/$name"
+}
+
+if [ "$input_flag" = --exe ]; then
+    if [ "$(head -c 8 "$input")" = "PS-X EXE" ]; then
+        pass magic
+    else
+        report magic "$input does not start with PS-X EXE (elf2x failed?)"
+    fi
 else
-    report magic "$input does not start with PS-X EXE (elf2x failed?)"
+    bin=$(cue_bin)
+    if [ -z "$bin" ]; then
+        report cue "$input has no FILE \"<bin>\" line"
+    elif [ ! -s "$bin" ]; then
+        report cue "$bin, named by $input, is missing or empty"
+    elif [ $(($(wc -c <"$bin") % 2352)) -ne 0 ]; then
+        report cue "$bin is $(wc -c <"$bin") bytes, not a whole number of 2352-byte sectors"
+    else
+        pass cue
+    fi
 fi
 
 if detail=$(need run1 run2); then
@@ -117,6 +137,8 @@ fi
 
 [ "$failed" -eq 0 ] || exit 1
 echo "psx-hello-check: $(sha256sum "$input")"
+# The .bin hash changes on every build (mkpsxiso stamps the build time): never compare it.
+[ "$input_flag" = --iso ] && echo "psx-hello-check: $(sha256sum "$bin")"
 for name in run1 run2 empty; do
     echo "psx-hello-check: $(head -n 1 "$out_dir/$name.vram") $(sha256sum "$out_dir/$name.vram")"
 done

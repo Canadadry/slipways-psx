@@ -171,8 +171,13 @@
 #                       differ from the empty one and are not one color, and
 #                       PSX_HELLO_TTY_LINE is in its TTY; never runs a setup,
 #                       outside the suite
+# make psx-hello-cd-check -> builds psx-hello-cd, then the same check on
+#                       PSX_HELLO_CUE (outputs in tmp/psx/hello-cd-check,
+#                       ~35 s), with a cue condition (the .cue names a .bin
+#                       of whole 2352-byte sectors) in place of the magic;
+#                       never runs a setup, outside the suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-cd psx-hello-check psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1146,6 +1151,10 @@ PSX_HELLO_TTY_LINE ?= psx-hello: main loop started
 psx-hello-check: psx-hello
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
 		--exe psx-hello/build/psx-hello.exe '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-check
+
+psx-hello-cd-check: psx-hello-cd
+	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
+		--iso $(PSX_HELLO_CUE) '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-cd-check
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.
