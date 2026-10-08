@@ -27,8 +27,8 @@ In this sandbox: `psx-hello` compiled, packed into a `.bin/.cue`, and booted in 
 ### Phase 2 — Toolchain and image
 
 1. **Toolchain.** `make psn00bsdk-toolchain-setup` installs the fixed versions from step 1.1, then `make psx-hello` produces an `.exe`. Verified, after running the setup target into an empty install directory (nothing left over from earlier attempts): that `.exe` boots in the step 1.2 emulator, its capture is deterministic, and it proves `psx-hello` ran: its capture differs from a boot with no program. A hang or a black screen is deterministic too. `psx-hello` also prints one known line over TTY, and that line is in the TTY file: plan 10 step 1 reads the game state the same way.
-2. **CD image.** A `make` target produces `psx-hello.bin/.cue` (with a tool like `mkpsxiso`), including the license and `SYSTEM.CNF`. Verified: two boots give byte-identical captures, as in step 1.2, with the same proof that `psx-hello` ran as in step 2.1.
-3. **Check target.** A `make` target, outside `make test-all`, builds the image, boots it, and fails if the capture's sha256 differs from its committed reference, like the e2e. The reference is committed only from a boot that passed step 2.2's proof. Verified: it passes, and fails on a deliberately altered reference.
+2. **CD image.** A `make` target produces `psx-hello.bin/.cue` (with a tool like `mkpsxiso`), including the license and `SYSTEM.CNF`. Verified: two boots give byte-identical captures, as in step 1.2, with the same proof that `psx-hello` ran as in step 2.1. The proof is step 2.1's check script, extended to take the CD image as well as the `.exe`, not a second script.
+3. **Check target.** A `make` target, outside `make test-all`, builds the image, boots it, and fails if the capture's sha256 differs from its committed reference, like the e2e. The reference is committed only from a boot that passed step 2.2's proof: the target runs that same check on the image before comparing the sha256. Verified: it passes, and fails on a deliberately altered reference.
 4. **Docs.** `docs/psx-hello-world.md` rewritten to describe what actually works.
 
 ## 4. Done when
