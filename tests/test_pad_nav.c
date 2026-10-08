@@ -488,6 +488,87 @@ static void test_free_mode_other_buttons_do_nothing(void) {
     assert(tagged_count(TAG_MESSAGE_BOX) == boxes && main_ui()->ephemerals.count == 0);
 }
 
+enum { SELECT_RUN_FRAMES = 120 };
+
+typedef struct {
+    int mouse_x;
+    int mouse_y;
+    int mouse_buttons;
+    vec_t camera;
+    pad_nav_t nav;
+    cheat_t cheat;
+    int live;
+    int panel_open;
+} select_snapshot_t;
+
+static int select_run_base(int frame) {
+    if (frame >= 5 && frame < 15) {
+        return P8_PAD_RIGHT;
+    }
+    if (frame == 20) {
+        return P8_PAD_CROSS;
+    }
+    if (frame == 70 || frame == 80) {
+        return frame == 70 ? P8_PAD_START : P8_PAD_DOWN;
+    }
+    return frame == 90 ? P8_PAD_CIRCLE : 0;
+}
+
+/* Variant 0 never presses Select, 1 adds it to every frame, 2 taps it once and holds it for 40 frames. */
+static int select_run_mask(int frame, int variant) {
+    int select = variant == 1 || (variant == 2 && (frame == 2 || (frame >= 25 && frame < 65)));
+    return select_run_base(frame) | (select ? P8_PAD_SELECT : 0);
+}
+
+static void select_run(int variant, select_snapshot_t snapshots[SELECT_RUN_FRAMES]) {
+    input_step_t step;
+    start_game(&step);
+    for (int i = 0; i < SELECT_RUN_FRAMES; i++) {
+        run_frame(&step, select_run_mask(i, variant));
+        const p8_input_frame_t *played = input_step_played_frame(&step);
+        select_snapshot_t *shot = &snapshots[i];
+        memset(shot, 0, sizeof *shot);
+        shot->mouse_x = played->mouse_x;
+        shot->mouse_y = played->mouse_y;
+        shot->mouse_buttons = played->mouse_buttons;
+        shot->camera = camera_at();
+        shot->nav = step.pad_nav;
+        shot->nav.previous_pad &= ~P8_PAD_SELECT;
+        shot->cheat = step.cheat;
+        shot->live = live_entities()->count;
+        shot->panel_open = pad_nav_panel_open();
+    }
+}
+
+static void test_select_changes_nothing_yet(void) {
+    static select_snapshot_t plain[SELECT_RUN_FRAMES];
+    static select_snapshot_t pressed[SELECT_RUN_FRAMES];
+    const char *path = "tmp/test_pad_nav_select_plain.bin";
+    if (in_forked_copy()) {
+        select_run(0, plain);
+        FILE *file = fopen(path, "wb");
+        assert(file != NULL);
+        assert(fwrite(plain, sizeof plain, 1, file) == 1);
+        assert(fclose(file) == 0);
+        end_forked_copy();
+    }
+    FILE *file = fopen(path, "rb");
+    assert(file != NULL);
+    assert(fread(plain, sizeof plain, 1, file) == 1);
+    fclose(file);
+    remove(path);
+    assert(plain[15].camera.x != plain[0].camera.x && plain[75].panel_open && !plain[95].panel_open);
+    for (int variant = 1; variant <= 2; variant++) {
+        if (in_forked_copy()) {
+            select_run(variant, pressed);
+            for (int i = 0; i < SELECT_RUN_FRAMES; i++) {
+                assert(memcmp(&pressed[i], &plain[i], sizeof pressed[i]) == 0);
+            }
+            end_forked_copy();
+        }
+    }
+}
+
 /* The world point under the centre cursor, with the camera as the next frame's hit test sees it. */
 static vec_t centre_world(void) {
     vec_t centre = vec_make(p8_fixed_from_int(P8_SCREEN_WIDTH / 2), p8_fixed_from_int(P8_SCREEN_HEIGHT / 2));
@@ -4382,6 +4463,7 @@ int main(void) {
     in_fresh_child(test_free_mode_diagonal_cancel_and_reset);
     in_fresh_child(test_free_mode_bound_brings_every_planet_under_the_centre);
     in_fresh_child(test_free_mode_other_buttons_do_nothing);
+    in_fresh_child(test_select_changes_nothing_yet);
     in_fresh_child(test_free_mode_first_cross_places_the_probe);
     in_fresh_child(test_free_mode_short_cross_hold_abandons_the_fold);
     in_fresh_child(test_free_mode_cross_on_a_planet_presses_nothing);
