@@ -71,3 +71,13 @@ Done: `make psx-emulator-setup` (`tools/install_psx_emulator.sh`), `make psx-boo
 - Check: exit 0 in ~55 s. exe captures `c9b5ccda…` ×2 (test-all draws nothing: all-zero but deterministic); known line in the exe TTY; BuzzyBee 320×240 `23cd1099…` ×2; empty boot 640×478 `d5b36d08…`, different.
 - Scripted pad input works headless and deterministically: `PCSX.SIO0.slots[1].pads[1].setOverride(PCSX.CONSTS.PAD.BUTTON.CROSS)` / `clearOverride` from the `GPU::Vsync` listener changed BuzzyBee's screen, same capture over two runs. Trial only, nothing committed.
 - Deviations: the check also prints one `ok` line per passing condition. No `guideline` decisions.
+
+### Step 2.1
+
+Done: `make psn00bsdk-toolchain-setup` rewritten (`tools/install_psn00bsdk_toolchain.sh`: the pinned PSn00bSDK 0.24 zip, sha256-checked, into `PSN00BSDK_DIR`, default `third_party/psn00bsdk`; ~7 s; GCC no longer built, `ftpmirror.gnu.org` gone), `make psx-hello` (SDK `sdk.cmake`, `cmake --fresh`, fails without the SDK stamp), the TTY line `psx-hello: main loop started`, and `make psx-hello-check` (`tools/psx_hello_check.sh <install> --exe <file> <line> <frames> <out-dir>`), all outside `make test-all`.
+
+- Setup into an empty `tmp/psn00bsdk`: stamp written; re-run exits 0 at once. `elf2x` did not crash; `.exe` sha256 `b79ccaeb…`, identical across build directories.
+- Check against the step 1.2 emulator: exit 0 in ~32 s; five conditions hold (`magic`, `deterministic`, `differs-from-empty`, `not-uniform`, `tty-line`). Captures 320×240×16 `b4934260…` ×2; empty boot `d5b36d08…` (same as step 1.2).
+- A pad is present on port 1 headless: the capture shows `PORT 1: TYPE=4`.
+- Failure paths hand-tested: wrong TTY line, missing emulator install with a fake `.exe`, uniform synthetic capture, missing SDK, non-empty dir without stamp, wrong sha256.
+- Deviations: the check also prints one `ok` line per condition; it calls `tools/psx_boot.sh` directly. The verification reused the chunk 1 toolchain install and the step 1.2 emulator install (both created from empty directories). No `guideline` decisions.
