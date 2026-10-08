@@ -135,8 +135,15 @@
 #                       set; exits 0 at once on a complete install, fails on
 #                       a non-empty directory without its stamp, outside the
 #                       suite
+# make psx-boot [PSX_EXE=<exe> | PSX_ISO=<cue>] -> boots that input (or
+#                       nothing) headless in PSX_EMULATOR_DIR for PSX_FRAMES
+#                       vsyncs (default 600), writes PSX_OUT.vram (capture:
+#                       "psx-vram <w> <h> <depth>" line, then raw bytes),
+#                       PSX_OUT.tty.txt and PSX_OUT.log (default PSX_OUT
+#                       tmp/psx/boot); fails naming the input after
+#                       PSX_BOOT_TIMEOUT s (default 120), outside the suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-net-check psx-emulator-setup unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-net-check psx-emulator-setup psx-boot unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1079,6 +1086,15 @@ PSX_EMULATOR_DIR ?= third_party/pcsx-redux
 
 psx-emulator-setup: psx-net-check
 	sh tools/install_psx_emulator.sh $(PSX_EMULATOR_DIR) $(PSX_SOURCES)
+
+PSX_FRAMES ?= 600
+PSX_OUT ?= $(TMP_DIR)/psx/boot
+PSX_BOOT_TIMEOUT ?= 120
+
+psx-boot:
+	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) \
+		$(if $(PSX_EXE),--exe $(PSX_EXE)) $(if $(PSX_ISO),--iso $(PSX_ISO)) \
+		$(PSX_FRAMES) $(PSX_OUT)
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.
