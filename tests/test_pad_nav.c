@@ -4888,6 +4888,85 @@ static void test_jumps_repeats_and_edge_scrolls_leave_the_game_stream_unchanged(
     assert(p8_fixed_rnd_state() == game && "jump mode draws no game number");
 }
 
+static void test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_comes_back(void) {
+    entity_t *rows[ITEMS_CAP];
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *planet = known_planet_closest_to_centre();
+    hold(&step, 0, 2);
+    assert_hovering(&step, &planet->header);
+    run_frame(&step, P8_PAD_TRIANGLE);
+    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+    assert_cursor_on(&step, &planet->header);
+    run_frame(&step, 0);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    int count = box_entries(rows);
+    assert(count > 0 && is_button_of(rows[count - 1], planet));
+    assert(pad_nav_panel_open() && pad_nav_hovered(&step.pad_nav) == &planet->header);
+    assert(pad_nav_selection(&step.pad_nav) == NULL);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(!pad_nav_panel_open());
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+}
+
+/* △ then a release frame; returns the hovered object after both. */
+static entity_t *triangle_click(input_step_t *step, int with_press, int with_release) {
+    run_frame(step, P8_PAD_TRIANGLE | with_press);
+    assert(input_step_played_frame(step)->mouse_buttons == P8_MOUSE_LEFT);
+    assert(!pad_nav_panel_open());
+    run_frame(step, with_release);
+    assert(input_step_played_frame(step)->mouse_buttons == 0);
+    return pad_nav_hovered(&step->pad_nav);
+}
+
+/* A direction pressed with △, or on its release frame, jumps nowhere: the cursor stays on the clicked colony. */
+static void test_triangle_on_a_hovered_colony_opens_its_panel_and_no_jump_shares_the_click(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(&step, colony);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &colony->header);
+    int direction = expected_jump(&colony->header, P8_PAD_RIGHT) != NULL ? P8_PAD_RIGHT : P8_PAD_LEFT;
+    assert(expected_jump(&colony->header, direction) != NULL);
+    if (in_forked_copy()) {
+        assert(triangle_click(&step, direction, direction) == &colony->header);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        assert(triangle_click(&step, 0, direction) == &colony->header);
+        assert_cursor_on(&step, &colony->header);
+        end_forked_copy();
+    }
+    assert(triangle_click(&step, 0, 0) == &colony->header);
+    settle(&step);
+    assert(pad_nav_panel_open() && main_ui()->ephemerals.count > 0);
+    assert(pad_nav_hovered(&step.pad_nav) == &colony->header && pad_nav_selection(&step.pad_nav) == NULL);
+}
+
+static void test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *planet = planet_farthest_outside();
+    assert(planet != NULL);
+    make_known(planet);
+    run_frame(&step, 0);
+    assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
+    int x, y;
+    rest_screen_point(&planet->header, &x, &y);
+    assert(!pad_jump_inside(x, y));
+    world_count_t before = world_count();
+    for (int i = 0; i < 2; i++) {
+        run_frame(&step, i == 0 ? P8_PAD_TRIANGLE : 0);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert_cursor_on(&step, &planet->header);
+    }
+    assert(!pad_nav_panel_open() && main_ui()->ephemerals.count == 0);
+    assert_world_unchanged(before);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -4959,6 +5038,9 @@ int main(void) {
     in_fresh_child(test_a_hold_through_pause_repeats_no_jump_until_pressed_again);
     in_fresh_child(test_a_jump_scrolls_only_to_bring_the_target_just_inside);
     in_fresh_child(test_jumps_repeats_and_edge_scrolls_leave_the_game_stream_unchanged);
+    in_fresh_child(test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_comes_back);
+    in_fresh_child(test_triangle_on_a_hovered_colony_opens_its_panel_and_no_jump_shares_the_click);
+    in_fresh_child(test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing);
     in_fresh_child(test_the_ui_pad_selection_is_the_planet_only_in_network_mode_without_a_box);
     in_fresh_child(test_square_in_network_mode_enters_free_mode_on_the_planet);
     in_fresh_child(test_square_in_free_mode_forgets_the_starting_planet_then_changes_nothing);

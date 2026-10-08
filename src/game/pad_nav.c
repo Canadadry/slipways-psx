@@ -915,19 +915,44 @@ static void seed_hovered(pad_nav_t *nav) {
     nav->jump.seeded |= hovered != NULL;
 }
 
-/* The rest point and the camera before shake: the scroll follows neither the bob nor a shake. */
+/* The rest point and the camera before shake: what the edge scroll and △ read, so neither follows the bob or a shake. */
+static void rest_screen_point(const camera_t *camera, const entity_t *hovered, int *x, int *y) {
+    vec_t from = camera_pos_before_shake(camera);
+    pad_jump_world_point(hovered, x, y);
+    *x -= p8_fixed_flr_int(from.x);
+    *y -= p8_fixed_flr_int(from.y);
+}
+
 static void edge_scroll(const entity_t *hovered) {
     camera_t *camera = main_camera_typed();
     if (camera == NULL) {
         return;
     }
     int x, y, dx, dy;
-    vec_t from = camera_pos_before_shake(camera);
-    pad_jump_world_point(hovered, &x, &y);
-    pad_jump_scroll(x - p8_fixed_flr_int(from.x), y - p8_fixed_flr_int(from.y), &dx, &dy);
+    rest_screen_point(camera, hovered, &x, &y);
+    pad_jump_scroll(x, y, &dx, &dy);
     if (dx != 0 || dy != 0) {
         camera_pan(camera, dx, dy);
     }
+}
+
+/* Returns whether △ clicked: never while the object is still outside the inner rectangle or under a HUD item. */
+static int triangle_on_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
+    const camera_t *camera = main_camera_typed();
+    int x, y;
+    if (camera == NULL) {
+        return 0;
+    }
+    rest_screen_point(camera, hovered, &x, &y);
+    if (!pad_jump_inside(x, y)) {
+        return 0;
+    }
+    screen_point(hovered, &x, &y);
+    if (pressed_before(hovered, x, y)) {
+        return 0;
+    }
+    click(nav, played);
+    return 1;
 }
 
 /* hovered stays when the cone is empty. */
@@ -943,7 +968,8 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
 
 /* × and ○ do nothing here. On a click's press and release frames no jump runs and the camera and the marker wait;
  * the hold-repeat count keeps running through them. */
-static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, const entity_t **shown) {
+static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, p8_input_frame_t *played,
+                      const entity_t **shown) {
     reset_free_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
@@ -958,6 +984,9 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         nav->cursor_x = P8_SCREEN_WIDTH / 2;
         nav->cursor_y = P8_SCREEN_HEIGHT / 2;
         return;
+    }
+    if (!clicking && (pressed & P8_PAD_TRIANGLE)) {
+        clicking = triangle_on_hovered(nav, hovered, played);
     }
     if (direction != 0 && !clicking) {
         jump_from(nav, hovered, direction);
@@ -988,7 +1017,7 @@ static int map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction,
             *shown = pad_nav_selection(nav);
         }
     } else if (pad_nav_jump_mode(nav)) {
-        jump_step(nav, pad_buttons, pressed, release, shown);
+        jump_step(nav, pad_buttons, pressed, release, played, shown);
         return 1;
     } else {
         reset_free_mode(nav);
