@@ -135,6 +135,10 @@
 #                       PSN00BSDK_DIR, reconfigured from scratch each time;
 #                       fails pointing at psn00bsdk-toolchain-setup when the
 #                       SDK is missing, outside the suite
+# make psx-hello-cd  -> builds psx-hello, then its CD image
+#                       psx-hello/build/psx-hello.bin and PSX_HELLO_CUE
+#                       (default psx-hello/build/psx-hello.cue), outside the
+#                       suite
 # make psx-net-check -> probes every host of PSX_SOURCES (default
 #                       tools/psx_sources.txt) without downloading; fails,
 #                       naming each unreachable host, outside the suite
@@ -168,7 +172,7 @@
 #                       PSX_HELLO_TTY_LINE is in its TTY; never runs a setup,
 #                       outside the suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-check psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-cd psx-hello-check psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1104,6 +1108,12 @@ psx-hello:
 	cmake --fresh -S psx-hello -B psx-hello/build \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake
 	cmake --build psx-hello/build
+
+PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
+
+psx-hello-cd: psx-hello
+	cmake --build psx-hello/build --target psx-hello-iso
+	@[ -f psx-hello/build/psx-hello.bin ] && [ -f $(PSX_HELLO_CUE) ] || { echo "psx-hello-cd: psx-hello/build/psx-hello.bin or $(PSX_HELLO_CUE) missing" >&2; exit 1; }
 
 psx-hello-clean:
 	rm -rf psx-hello/build
