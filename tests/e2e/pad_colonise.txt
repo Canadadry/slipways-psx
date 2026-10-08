@@ -4,7 +4,7 @@ slipway drag, then plain free mode), a fold there, and circle back to
 the colony. Then the slipway rules: a second colony, a drag whose path
 crosses a planet refused, a slipway built, the same slipway refused, a
 fold held on its middle from plain free mode and abandoned, a year with
-the slipway. 345 frames.
+the slipway. 315 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 leaves it for plain free mode, the camera unmoved, as games started
@@ -90,7 +90,7 @@ Covers the first-colony part of keyboard_slipway (f77-92). Its second
 colony and its slipway are covered by pad_slipway (step 2.3), its probe
 and fold by pad_probe (step 2.1).
 
-Slipway rules, f175-344 (remove-mouse-mode PRD, chunk 5; appended here
+Slipway rules, f175-314 (remove-mouse-mode PRD, chunk 5; appended here
 to share the colony instead of a separate pad_slipway_rules file).
 Every capture frame up to f174 is unchanged, byte for byte.
 
@@ -106,22 +106,39 @@ Every capture frame up to f174 is unchanged, byte for byte.
   nothing built ($81, slipways 0); f259-260 the background press is a
   fold, its "3$" price drawn (x76-82, y52-56), released before 15 ticks
   and abandoned. The drag from p25 is back from f261 (camera 185 228).
-- f261-277: Up+Right 6, Up 11, idle f278: p47 under the centre. f279:
-  X: `slipway p25 p47`, $81 -> $76, month 9 -> 10; network mode on p47.
-- f281: square: the drag from p47. f283-305: Up+Right 10, Up 13, idle
-  f306-311: p25 under the centre; f311 the line and the existing
-  slipway are colour 2, the forbidden sign above. f312: X: refused,
-  $76, slipways 1. The drag from p47 is back.
-- f315-328: Down+Left 5, Down 9, idle f329-331: camera 195 187, the
-  centre on the slipway's middle. f332: square: plain free mode, the
-  slipway colour 1 again. f334-336: X held 3 frames: a fold press
-  whose target is the slipway (the slipway colour 2: 71 colour-2
-  pixels against 40 at f333); released at f337, under 15 ticks:
-  abandoned, nothing charged.
-- f338-342: R1 R1, X on `end turn`: year 3402, $76 -> $79, income 3
+- f261: the drag from p25 is back, its press at p25's screen point
+  (96, 0). f262: square: the drag dropped, plain free mode, p25 the
+  last planet. f264: circle: network mode back on p25 (camera 200 169).
+  f266: circle: jump mode on p25.
+
+From here the slipway is built the cross way (plan 12 step 6): X on the
+hovered colony starts it, the D-pad aims, X builds, and slipway mode
+continues from the target. f0-260 are the frames of the old file, byte
+for byte. f215-260 stay on the old drag until step 7 removes it: the
+crossed planet needs a candidate beyond p47, and only p25 and p47 are
+known here; the drop on empty space and the fold under a drag exist only
+there.
+
+- f269: X on p25: the pad presses it, the ui holds the slipway from
+  f270. f271: Down: the aim jumps to p47 (the only other candidate), the
+  edge scroll takes the camera 200 169 -> 200 177, the dragged line runs
+  from p25 to p47, the cursor on p47.
+- f275: X on p47: `slipway p25 p47`, $81 -> $76, month 9 -> 10.
+  f276: the pad presses p47, the new start; slipway mode from p47.
+- f279: Up: the aim on p25. The line and the existing slipway are
+  colour 2, the forbidden sign above p25, the blinking marker round it.
+  f283: X: refused, $76, slipways 1. f284: p47 pressed again.
+- f287: circle: the slipway dropped with no target, jump mode on p47.
+- f289: square: plain free mode, the camera unmoved (200 177).
+  f291-300: Down+Left 5, Down 5: camera 195 187, the reference camera,
+  the centre on the slipway's middle. f304-306: X held 3 frames: a fold
+  press whose target is the slipway (the slipway colour 2: 55 colour-2
+  pixels in x30-129, y20-99 against 40 at f303); released at f307, under
+  15 ticks: abandoned, nothing charged.
+- f308-312: R1 R1, X on `end turn`: year 3402, $76 -> $79, income 3
   (the strip's ore feeds the nanotech colony).
 
-`make state` at f344: year 3402 month 1, credits 79, research 1, income
+`make state` at f314: year 3402 month 1, credits 79, research 1, income
 3, camera 195 187, `slipway p25 p47 normal`, p25 colonized type f, p47
 colonized type r, planets 90, colonies 2, slipways 1.
 
