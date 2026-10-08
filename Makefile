@@ -176,8 +176,16 @@
 #                       ~35 s), with a cue condition (the .cue names a .bin
 #                       of whole 2352-byte sectors) in place of the magic;
 #                       never runs a setup, outside the suite
+# make psx-hello-e2e -> runs psx-hello-cd-check, then compares the sha256 of
+#                       its first capture with PSX_HELLO_REFERENCE (default
+#                       psx-hello/psx-hello-cd.vram.sha256); fails on a failed
+#                       proof, a mismatch, a missing reference or a PSX_FRAMES
+#                       other than 600; never runs a setup, ~35 s, outside
+#                       the suite
+# make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
+#                       never run by any other target
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1155,6 +1163,20 @@ psx-hello-check: psx-hello
 psx-hello-cd-check: psx-hello-cd
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
 		--iso $(PSX_HELLO_CUE) '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-cd-check
+
+PSX_HELLO_REFERENCE ?= psx-hello/psx-hello-cd.vram.sha256
+PSX_HELLO_REFERENCE_FRAMES := 600
+PSX_HELLO_CD_CAPTURE := $(TMP_DIR)/psx/hello-cd-check/run1.vram
+# A prerequisite, not a recipe line: under -j it fails while the image builds, so the boots never start.
+psx-hello-frames-guard:
+	@[ "$(PSX_FRAMES)" = "$(PSX_HELLO_REFERENCE_FRAMES)" ] || { echo "psx-hello-e2e: PSX_FRAMES is $(PSX_FRAMES), the reference was taken at $(PSX_HELLO_REFERENCE_FRAMES)" >&2; exit 1; }
+
+psx-hello-e2e: psx-hello-frames-guard psx-hello-cd-check
+	@sh tools/psx_reference_check.sh $(PSX_HELLO_REFERENCE) $(PSX_HELLO_CD_CAPTURE)
+
+psx-hello-e2e-baseline: psx-hello-frames-guard psx-hello-cd-check
+	@h=$$($(SHA256_CMD) $(PSX_HELLO_CD_CAPTURE)) && echo "$${h%% *}" > $(PSX_HELLO_REFERENCE) \
+		&& echo "psx-hello-e2e: reference set in $(PSX_HELLO_REFERENCE) ($${h%% *})"
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.
