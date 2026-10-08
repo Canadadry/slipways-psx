@@ -160,8 +160,15 @@
 #                       pairs of captures match, PSX_KNOWN_LINE is in the exe
 #                       TTY and the .cue capture differs from the empty one;
 #                       never runs the setup, outside the suite
+# make psx-hello-check -> builds psx-hello, boots it twice and nothing once in
+#                       PSX_EMULATOR_DIR (outputs in tmp/psx/hello-check,
+#                       ~35 s); fails, one line per failed condition, unless
+#                       the .exe has the PS-EXE magic, its captures match,
+#                       differ from the empty one and are not one color, and
+#                       PSX_HELLO_TTY_LINE is in its TTY; never runs a setup,
+#                       outside the suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-check psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1123,6 +1130,12 @@ PSX_KNOWN_LINE ?= Auto test all GTE valid opcodes/registers
 psx-emulator-check:
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_emulator_check.sh $(PSX_EMULATOR_DIR) \
 		$(PSX_SOURCES) $(TMP_DIR)/psx/media $(TMP_DIR)/psx/check '$(PSX_KNOWN_LINE)' $(PSX_FRAMES)
+
+PSX_HELLO_TTY_LINE ?= psx-hello: main loop started
+
+psx-hello-check: psx-hello
+	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
+		--exe psx-hello/build/psx-hello.exe '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-check
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.
