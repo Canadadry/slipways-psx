@@ -128,8 +128,15 @@
 # make psx-net-check -> probes every host of PSX_SOURCES (default
 #                       tools/psx_sources.txt) without downloading; fails,
 #                       naming each unreachable host, outside the suite
+# make psx-emulator-setup -> runs psx-net-check, then builds the pinned
+#                       PCSX-Redux and its OpenBIOS from PSX_SOURCES into
+#                       PSX_EMULATOR_DIR (default third_party/pcsx-redux),
+#                       ~10 min; apt via sudo unless PSX_EMULATOR_SKIP_APT is
+#                       set; exits 0 at once on a complete install, fails on
+#                       a non-empty directory without its stamp, outside the
+#                       suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-net-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-net-check psx-emulator-setup unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1067,6 +1074,11 @@ PSX_SOURCES ?= tools/psx_sources.txt
 
 psx-net-check:
 	sh tools/psx_net_check.sh $(PSX_SOURCES)
+
+PSX_EMULATOR_DIR ?= third_party/pcsx-redux
+
+psx-emulator-setup: psx-net-check
+	sh tools/install_psx_emulator.sh $(PSX_EMULATOR_DIR) $(PSX_SOURCES)
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.
