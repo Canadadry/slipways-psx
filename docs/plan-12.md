@@ -116,3 +116,8 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - "Colonies needing attention" depends on what the game tracks (step 9 decides, with a fallback).
 
 ## 6. Step notes
+
+### Step 1
+- Fixed by `6059d8e` (fix-bug, unattended). Cause proven under gdb: `begin_drag` pressed on any settled start, `slipgate_left_press` refused, and the press fell through to the background, which made a wormhole (or a probe) that died on the next frame's release.
+- Fix: new `slipgate_takes_slipway` (`planet_family_trade.c`), used by `slipgate_accept_drop` and by a guard in `begin_drag`, so no press goes out to a full slipgate or infraspace gate. The `network_step` □ assert accepts that refusal.
+- Deviation: the plan asked for a short pad e2e as the reproduction. The proof used a throwaway replay in `tmp/`, and the regression test is a unit test (`test_a_full_slipgate_as_starting_planet_presses_nothing` in `tests/test_pad_nav.c`, 8 ms), per check-e2e's rule that a bug's test is a unit test, never a new e2e. No e2e was added or changed: there are still 17 replays.
