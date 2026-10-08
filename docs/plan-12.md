@@ -210,3 +210,10 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - The resumed game starts on `map`.
   - The title lines must stay covered by other replays.
 - Re-authoring cost: no replay was re-authored in this step.
+
+### Step 3
+- Select is bit 2048, `select` in `src/devtools/input_json.c` and `src/platform/keymap.c` (`KEYMAP_BUTTON_COUNT` 12). `keymap.cfg` and the built-in default get `select = RIGHT_SHIFT, MIDDLE_LEFT`. The plan named no keyboard key: Right Shift is free and sits in the same place on QWERTY and AZERTY.
+- A player's own older `keymap.cfg` without a `select` line is refused at launch, naming `select`, as for any missing button.
+- The unknown-button fixture and keymap test used `select` as their unknown name. They now use `l2`.
+- `test_select_changes_nothing_yet` (`tests/test_pad_nav.c`) shows the bit is ignored. Every e2e and end-state reference is unchanged. `make raylib` links.
+- Re-authoring cost: none.
