@@ -124,7 +124,17 @@
 #                       outside the suite
 # make raylib        -> compiles and LINKS the interactive binary, never runs
 #                       it (needs make raylib-vendor-setup first)
-# make psx-hello     -> PSX test project (needs psn00bsdk-toolchain-setup)
+# make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
+#                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
+#                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
+#                       (default third_party/psn00bsdk); apt via sudo unless
+#                       PSN00BSDK_SKIP_APT is set; exits 0 at once on a
+#                       complete install, fails on a non-empty directory
+#                       without its stamp, outside the suite
+# make psx-hello     -> builds psx-hello/build/psx-hello.exe against
+#                       PSN00BSDK_DIR, reconfigured from scratch each time;
+#                       fails pointing at psn00bsdk-toolchain-setup when the
+#                       SDK is missing, outside the suite
 # make psx-net-check -> probes every host of PSX_SOURCES (default
 #                       tools/psx_sources.txt) without downloading; fails,
 #                       naming each unreachable host, outside the suite
@@ -1076,16 +1086,20 @@ sin-table: $(TMP_DIR)/gen_quarter_wave
 
 .PHONY: sin-table
 
-psn00bsdk-toolchain-setup:
-	sh tools/install_psn00bsdk_toolchain.sh
+PSX_SOURCES ?= tools/psx_sources.txt
+PSN00BSDK_DIR ?= third_party/psn00bsdk
+
+psn00bsdk-toolchain-setup: psx-net-check
+	sh tools/install_psn00bsdk_toolchain.sh $(PSN00BSDK_DIR) $(PSX_SOURCES)
 
 psx-hello:
-	cmake -S psx-hello -B psx-hello/build && cmake --build psx-hello/build
+	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-hello: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
+	cmake --fresh -S psx-hello -B psx-hello/build \
+		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake
+	cmake --build psx-hello/build
 
 psx-hello-clean:
 	rm -rf psx-hello/build
-
-PSX_SOURCES ?= tools/psx_sources.txt
 
 psx-net-check:
 	sh tools/psx_net_check.sh $(PSX_SOURCES)

@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <stdio.h>
 #include <psxgpu.h>
 #include <psxpad.h>
 #include <psxapi.h>
@@ -62,6 +63,9 @@ int main(int argc, const char *argv[]) {
 	InitPAD(pad_buff[0], 34, pad_buff[1], 34);
 	StartPAD();
 	ChangeClearPAD(0);
+
+	// make psx-hello-check and plan 10 search the TTY for this line verbatim.
+	printf("psx-hello: main loop started\n");
 
 	int cursor_x = SCREEN_XRES / 2;
 	int cursor_y = SCREEN_YRES / 2;
