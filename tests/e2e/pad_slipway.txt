@@ -7,6 +7,10 @@ plain free mode. It is the regression guard for the drag the pad once
 lacked (a blind press-release gesture drew nothing while aiming). 348
 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 f0-98 are pad_colonise's frames verbatim (f0-68 being pad_probe's), so
 the galaxy and pad_probe.txt's planet list apply, and p47 (type r) is
 colony A. In free mode the cursor is the screen centre (80, 60), marked

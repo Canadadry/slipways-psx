@@ -3,9 +3,10 @@
 
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
+#include "game/pad_jump.h"
 #include "p8/input.h"
 
-typedef enum { PAD_NAV_MAP_FREE, PAD_NAV_MAP_NETWORK } pad_nav_map_mode_t;
+typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_FREE, PAD_NAV_MAP_NETWORK } pad_nav_map_mode_t;
 
 typedef enum {
     PAD_NAV_TAB_MAP,
@@ -64,6 +65,7 @@ typedef struct {
     int cursor_y;
     int held_frames[4];
     int cross_engaged;
+    pad_jump_t jump;
 } pad_nav_t;
 
 void pad_nav_init(pad_nav_t *nav);
@@ -81,6 +83,13 @@ pad_nav_tab_t pad_nav_tab(const pad_nav_t *nav);
 
 /* A game is running on the map tab, no panel is open and the map mode is free: the cursor is the screen centre and the D-pad pans the camera. */
 int pad_nav_free_mode(const pad_nav_t *nav);
+
+/* A game is running on the map tab, no panel is open and the map mode is jump: the cursor sits on the hovered object. */
+int pad_nav_jump_mode(const pad_nav_t *nav);
+
+/* The hovered object while the map mode is jump, panel open or not; NULL in any other mode, when nothing is hovered,
+ * or once the hovered object is no longer a pad_target_is_candidate. */
+entity_t *pad_nav_hovered(const pad_nav_t *nav);
 
 /* The focused structure icon on the build tab; NULL on every other tab or once it is no longer a revealed icon. */
 entity_t *pad_nav_build_icon(const pad_nav_t *nav);

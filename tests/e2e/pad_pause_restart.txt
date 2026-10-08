@@ -2,6 +2,11 @@ Start opens the pause menu, the D-pad moves on its rows, X on "restart"
 goes back to the title, then "challenging" starts a new game, where X on
 "toggle music" and on "toggle sfx" each close the pause menu. 76 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it; f39: the same after the new game of f38. Every frame is the
+one this file had without them.
+
 f0-12 are pad_probe's frames (Down, X on "reasonable"). Readings come
 from the capture's framebuffer at each frame, and the state from `make
 state` of the file cut after that frame. The hovered pause row is the

@@ -2,6 +2,10 @@
 "again?", the title. X held into the panel and into the title presses
 nothing. 104 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 f0-20 are pad_end_turn's frames verbatim (Down f10, X f12 on
 "reasonable", R1 f16, R1 f18), so the galaxy is pad_end_turn's. HUD
 buttons are read at one fill pixel each: tech (1, 1), score (64, 1),

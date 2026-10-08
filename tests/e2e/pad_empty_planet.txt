@@ -1,6 +1,10 @@
 A lab refused on a planet, an empty planet fading out, a lab placed on
 its spot. 148 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 Pad input declared ("input": "pad"). pad_probe's frames up to f28, then
 its fold moved 14 px further right: Up+Right 4, Right 14 (f29-46),
 camera (202, 186), centre world (282, 246), X held f48-63. The galaxy is

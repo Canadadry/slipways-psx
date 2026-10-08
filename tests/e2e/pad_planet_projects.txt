@@ -5,6 +5,12 @@ passes. Then the structures: "infraspace", an infragate and its slipway;
 "void synthesis", two synthesizers linked to that colony; "ascension",
 the gate placed. 562 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it; f173: the same once the f172 colony replaced the selected
+planet, whose dead selection falls back to jump mode. Every frame is the
+one this file had without them.
+
 Pad input declared ("input": "pad"). f0-68 are pad_probe's frames, so
 p25 (type f) and p47 (type r) are known. Readings come from `make
 state` of the file cut after the frame and from the capture.

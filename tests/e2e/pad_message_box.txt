@@ -5,6 +5,10 @@ navigated, X on "how to play?", closed with O and with Start. Then the
 score box running out. 190 frames (listed in
 tools/e2e_long_exceptions.txt).
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each as in
 pad_end_turn.txt: tech (1, 1), score (64, 1), year skip (152, 1); colour

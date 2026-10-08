@@ -2,6 +2,10 @@ A launch with a save on disk: the header's initial_save is seeded into
 the storage before the first frame, the title shows "resume" from f0,
 Up and X on it resume pad_research's end game. 48 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 The fixture is cut, never typed, from pad_research replayed to its last
 frame (f576), whose last record is the save of its last action (the
 "end turn" to year 3403; no wormhole lives at the end, the record is

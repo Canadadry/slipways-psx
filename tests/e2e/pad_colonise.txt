@@ -6,6 +6,10 @@ crosses a planet refused, a slipway built, the same slipway refused, a
 fold held on its middle from plain free mode and abandoned, a year with
 the slipway. 345 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 f0-68 are pad_probe's frames verbatim (title, starting probe, fold, p25
 and p47 turning known at f63 and f65), so the galaxy and pad_probe.txt's
 planet list apply; pad_probe's idle f69-76 are dropped. Readings below come

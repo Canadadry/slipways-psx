@@ -3,6 +3,12 @@ folding" invented, back on the map. Then trade: a slipgate relaying a
 protostar's energy to a nanotech forgeworld, a trading hub fed tech and
 food, the protostar panned off screen. 577 frames.
 
+Jump mode is the map's root, where every game starts: square on f25
+leaves it for plain free mode, the camera unmoved, as games started
+before it; f390: the same once the f389 colony replaced the selected
+planet, whose dead selection falls back to jump mode. Every frame is the
+one this file had without them.
+
 The title takes Down at f10 and X on "reasonable" at f24, 12 frames
 later than pad_probe's: the title draws one game-stream number per
 frame, so the galaxy is the one of a game started at f24, chosen for

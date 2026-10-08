@@ -6,7 +6,9 @@
 #include "game/background.h"
 #include "game/main_economy.h"
 #include "game/menu.h"
+#include "game/pad_jump.h"
 #include "game/pad_panel.h"
+#include "game/pad_target.h"
 #include "game/planet.h"
 #include "game/planet_family_trade.h"
 #include "game/scroll.h"
@@ -34,6 +36,20 @@ int pad_nav_free_mode(const pad_nav_t *nav) {
 /* NULL once the entity is gone or dead. */
 static entity_t *live(entity_t *e) {
     return e != NULL && !e->is_dead ? e : NULL;
+}
+
+int pad_nav_jump_mode(const pad_nav_t *nav) {
+    return main_economy_typed() != NULL && nav->tab == PAD_NAV_TAB_MAP && !pad_nav_panel_open() &&
+           nav->map_mode == PAD_NAV_MAP_JUMP;
+}
+
+static entity_t *hovered_object(const pad_nav_t *nav) {
+    entity_t *hovered = entity_get(nav->jump.hovered);
+    return pad_target_is_candidate(hovered) ? hovered : NULL;
+}
+
+entity_t *pad_nav_hovered(const pad_nav_t *nav) {
+    return nav->map_mode == PAD_NAV_MAP_JUMP ? hovered_object(nav) : NULL;
 }
 
 entity_t *pad_nav_selection(const pad_nav_t *nav) {
@@ -197,8 +213,11 @@ static int drag_due(const pad_nav_t *nav) {
     return nav->drag.phase != PAD_NAV_DRAG_NONE && nav->drag.phase != PAD_NAV_DRAG_HELD;
 }
 
+/* Keeps the jump state's game and seeded flag: a reset within a game reseeds from the centre, never on the first colony. */
 static void reset_map_mode(pad_nav_t *nav) {
-    nav->map_mode = PAD_NAV_MAP_FREE;
+    nav->map_mode = PAD_NAV_MAP_JUMP;
+    nav->jump.hovered = ENTITY_ID_NONE;
+    pad_jump_repeat_clear(&nav->jump);
     nav->selection = ENTITY_ID_NONE;
     nav->selection_frames = 0;
     nav->selected_slipway = ENTITY_ID_NONE;
@@ -226,6 +245,7 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->focus = ENTITY_ID_NONE;
     nav->build_icon = ENTITY_ID_NONE;
     set_tab(nav, PAD_NAV_TAB_MAP);
+    pad_jump_init(&nav->jump);
     reset_map_mode(nav);
     nav->release_pending = 0;
     nav->pause_due = 0;
@@ -336,6 +356,20 @@ static void enter_free_mode(pad_nav_t *nav, const entity_t *selected) {
     nav->selection = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
+}
+
+/* Moves no camera: a snap here would shift every later point action of a replay off its reference world point. */
+static void enter_plain_free_mode(pad_nav_t *nav) {
+    nav->map_mode = PAD_NAV_MAP_FREE;
+    nav->selection = ENTITY_ID_NONE;
+    nav->selected_slipway = ENTITY_ID_NONE;
+    nav->starting_planet = ENTITY_ID_NONE;
+    nav->starting_slipway = ENTITY_ID_NONE;
+    nav->last_planet = ENTITY_ID_NONE;
+    nav->last_slipway = ENTITY_ID_NONE;
+    nav->cursor_x = P8_SCREEN_WIDTH / 2;
+    nav->cursor_y = P8_SCREEN_HEIGHT / 2;
+    pad_jump_repeat_clear(&nav->jump);
 }
 
 /* NULL when no slipway joins the two planets. */
@@ -588,7 +622,18 @@ static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, 
     }
 }
 
-/* The title and a new game rebuild the id table above every old generation, so an old selection resolves to NULL. */
+/* The title and a new game rebuild the id table above every old generation, so the old game's economy id, like an old
+ * selection, resolves to NULL: no title frame is needed in between. */
+static void start_new_game(pad_nav_t *nav) {
+    entity_t *economy = main_economy_typed() != NULL ? &main_economy_typed()->header : NULL;
+    if (economy == NULL || entity_get(nav->jump.game) == economy) {
+        return;
+    }
+    pad_jump_init(&nav->jump);
+    nav->jump.game = entity_id_link(economy);
+    reset_map_mode(nav);
+}
+
 static void drop_stale_map_mode(pad_nav_t *nav) {
     if (nav->map_mode == PAD_NAV_MAP_NETWORK && pad_nav_selection(nav) == NULL) {
         reset_map_mode(nav);
@@ -744,7 +789,7 @@ static void tab_cursor(pad_nav_t *nav) {
     entity_t *button = tab_button(nav->tab);
     entity_t *icon = nav->tab == PAD_NAV_TAB_BUILD ? repaired_build_icon(nav) : NULL;
     if (nav->tab == PAD_NAV_TAB_MAP) {
-        entity_t *selection = pad_nav_selection(nav);
+        entity_t *selection = pad_nav_selection(nav) != NULL ? pad_nav_selection(nav) : pad_nav_hovered(nav);
         if (selection != NULL) {
             screen_point(selection, &nav->cursor_x, &nav->cursor_y);
         } else {
@@ -798,6 +843,8 @@ static int begin_placement(pad_nav_t *nav) {
     nav->placement = PAD_NAV_PLACEMENT_CARRYING;
     if (pad_nav_selection(nav) != NULL) {
         enter_free_mode(nav, pad_nav_selection(nav));
+    } else if (nav->map_mode == PAD_NAV_MAP_JUMP) {
+        enter_plain_free_mode(nav);
     }
     return 1;
 }
@@ -833,6 +880,70 @@ static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_inpu
     played->mouse_buttons = P8_MOUSE_LEFT;
 }
 
+/* Above the TAG_NODE reservation in cart.c. */
+enum { JUMP_CANDIDATES_CAP = 128 };
+
+static void centre_world_point(int *x, int *y) {
+    const camera_t *camera = main_camera_typed();
+    vec_t at = camera != NULL ? camera_pos_before_shake(camera) : vec_make(0, 0);
+    *x = p8_fixed_flr_int(at.x) + P8_SCREEN_WIDTH / 2;
+    *y = p8_fixed_flr_int(at.y) + P8_SCREEN_HEIGHT / 2;
+}
+
+/* A game stays unseeded until its first candidate: the first colony then, else the nearest; later, the nearest. */
+static void seed_hovered(pad_nav_t *nav) {
+    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
+    if (hovered_object(nav) != NULL || nodes == NULL) {
+        return;
+    }
+    entity_t *storage[JUMP_CANDIDATES_CAP];
+    entity_list_t candidates;
+    (void)pad_jump_candidates(nodes, storage, JUMP_CANDIDATES_CAP, &candidates);
+    int x, y;
+    centre_world_point(&x, &y);
+    entity_t *hovered = nav->jump.seeded ? pad_jump_nearest(x, y, &candidates) : pad_jump_seed(&candidates, x, y);
+    nav->jump.hovered = entity_id_link(hovered);
+    nav->jump.seeded |= hovered != NULL;
+}
+
+/* The rest point and the camera before shake: the scroll follows neither the bob nor a shake. */
+static void edge_scroll(const entity_t *hovered) {
+    camera_t *camera = main_camera_typed();
+    if (camera == NULL) {
+        return;
+    }
+    int x, y, dx, dy;
+    vec_t from = camera_pos_before_shake(camera);
+    pad_jump_world_point(hovered, &x, &y);
+    pad_jump_scroll(x - p8_fixed_flr_int(from.x), y - p8_fixed_flr_int(from.y), &dx, &dy);
+    if (dx != 0 || dy != 0) {
+        camera_pan(camera, dx, dy);
+    }
+}
+
+/* × and ○ do nothing here. On a click's press and release frames the camera and the marker wait. */
+static void jump_step(pad_nav_t *nav, int pressed, int release, const entity_t **shown) {
+    reset_free_mode(nav);
+    nav->focus = ENTITY_ID_NONE;
+    seed_hovered(nav);
+    if (pressed & P8_PAD_SQUARE) {
+        enter_plain_free_mode(nav);
+        return;
+    }
+    entity_t *hovered = hovered_object(nav);
+    int clicking = release || nav->release_pending;
+    if (hovered == NULL) {
+        nav->cursor_x = P8_SCREEN_WIDTH / 2;
+        nav->cursor_y = P8_SCREEN_HEIGHT / 2;
+        return;
+    }
+    if (!clicking) {
+        edge_scroll(hovered);
+        *shown = hovered;
+    }
+    screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
+}
+
 static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
                      p8_input_frame_t *played, const entity_t **shown) {
     if (pad_nav_placing(nav) != NULL) {
@@ -849,6 +960,8 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
         if (!release && !nav->release_pending) {
             *shown = pad_nav_selection(nav);
         }
+    } else if (pad_nav_jump_mode(nav)) {
+        jump_step(nav, pressed, release, shown);
     } else {
         reset_free_mode(nav);
     }
@@ -976,6 +1089,7 @@ void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
     if (!pause_menu_shown()) {
         nav->pause_cross_armed = 0;
     }
+    start_new_game(nav);
     drop_stale_map_mode(nav);
     int tab_changed = begin_placement(nav);
     if (resume_placement(nav)) {

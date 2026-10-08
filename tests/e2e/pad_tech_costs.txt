@@ -4,6 +4,10 @@ menu with improved recipes at x1.5. Then a mine linked to three people
 suppliers, a colony needing ore and two labs, rich at the year. 571
 frames.
 
+Jump mode is the map's root, where every game starts: square on f17
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 Pad input declared ("input": "pad"). The title takes Down at f10 and X
 on "reasonable" at f16, 4 frames later than pad_title's: the title
 draws one game-stream number per frame, so the galaxy is the one of a

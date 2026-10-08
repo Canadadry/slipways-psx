@@ -1,6 +1,10 @@
 The score panel opened and closed both ways round the tab cycle, with
 the tech -> score and score -> tech hand-overs. 61 frames.
 
+Jump mode is the map's root, where every game starts: square on f13
+leaves it for plain free mode, the camera unmoved, as games started
+before it. Every frame is the one this file had without it.
+
 f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each: tech (1, 1),
 score (64, 1), year skip (152, 1); colour 12 is the lit tab, 13 the
