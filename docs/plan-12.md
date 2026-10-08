@@ -161,3 +161,52 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - `make sanitize-net` and `make coverage`: every e2e.
   - The 22 `.end-state` references, every e2e `.txt`, and the `pad_resume_at_start` fixture, cut from `pad_research`'s last record.
   - Comments only: `tests/test_layout_nil_item_draws_nothing.c` and the cart.
+
+### Step 2b
+- **Committed:** `8f17c25`, `make coverage-compare` and `tools/coverage_compare.sh`. It maps the hit lines of baseline `6346485` through `git diff -U0 -M --histogram`; Myers paired the wrong braces. First run: 7596 hit, 0 unhit, 12 deleted (step 1b's draw sites and step 2a's `bob_delta`). `0bd59c7`, `worst-case/peaks-8c4bbf4.txt`, with its rebuild command in the commit message.
+- **Verdict: reachable.** Measured on `pad_probe` → `pad_colonise`.
+  - Pass: the old 5-idle-frame edit, idle frames inserted anywhere after the title X, pan holds split up, other camera paths (x first, y first, overshoot, 1 px taps, fast pans), and combinations up to 680 frames.
+  - Fail, as controls: title X one frame later, idle frames before the title X, a reversed slipway, and fold points moved by ≥ 2.24 px. A fold moved that far keeps the revealed set but flips the reveal order, so the types swap.
+  - After the title, the only game-stream draws are reveals (`planet_roll_type`). Year ends, structures and toasts draw nothing.
+  - The end-state check does not see a dropped situation: a `pad_colonise` without its refusals still passes. The `.txt` guardrail stays necessary.
+- **Re-authoring discipline:**
+  1. The title X lands on the reference frame; extra frames go after it. In a resumed game, title timing is free.
+  2. Every probe and fold is confirmed at the reference world point.
+  3. Reveal order is kept, across and within folds.
+  4. Reveals are the only game draws after the title.
+  5. Actions keep their number and costs; their timing is free.
+  6. A slipway keeps its direction, and a structure keeps its world point. A press on a bobbing entity aims at least 4 px inside its hit area.
+  7. The cheat count is kept.
+  8. After a camera snap onto a structure or trading hub (`centre_camera_on` uses `pos`, bob included), re-pan to the reference camera before the next point action. Evidence: `pad_research` with idle frames inserted at f244 places s2 2 px off and loses 2 slipways. Jump mode's edge scroll in steps 5–7 risks the same.
+- **Bob:** no game rule reads it (lengths, crossings and placement use `map_pos`). The rest-y fix holds across resumes: 214 idle-appended `pad_resume_at_start` variants pass, and so do 15 `pad_bankrupt` cut-and-resume variants.
+- **Relaxed comparison**, defined but not committed, since the verdict is reachable.
+  - Kept: difficulty, year, colony, slipway, structure and tech counts, one kind line per `s` id, and the cheat count.
+  - Dropped: month, resources, every other planet line, slipways, techs, and planet and node counts.
+  - The first step that needs it adds the exceptions file in `tools/` (`<events> <first differing field>: <reason>`) and its support in `tools/end_state.sh`.
+- **Worst-case verdict:** the 5 `worst-case/` games are judged by the 8c4bbf4 peak rule: every zone and cap peak must match or exceed `worst-case/peaks-8c4bbf4.txt`. Their step 2a references stay, to catch accidental changes, and step 13 re-baselines them on purpose.
+- **Select-hold budget:** 31 frames per year. A route fits when it needs ≤ 90% of the limit.
+
+  | Replay | Years | Frames with holds | Limit | Route |
+  |---|---|---|---|---|
+  | `pad_colonise` | 1 | 374 | 600 | hold |
+  | `pad_end_turn` | 2 | 130 | 180 | hold |
+  | `pad_planet_projects` | 1 | 522 | 600 | `initial_save` cut at f86; 2 extra X taps after the resume keep the cheat count at 3 |
+  | `pad_message_box` | 20 | 181 | 600 | `initial_save` cut at f58 |
+  | `pad_game_end` | 25 | 136 | 180 | `initial_save` cut at f64; passes strictly at f80 |
+  | `pad_tech_costs` | 7 | 564 | 600 | `initial_save` cut at f49; fits the limit but not 540 |
+  | `pad_research` | 1 | 606 | 600 | none: no record exists before its cheat (f30–44) |
+  | `pad_bankrupt` | 8 | 330 at best | 180 | none: the cut must precede the cheat (f96); 7 years × 5 toasts inside 50 frames can't fit at 31 frames a year |
+
+  - **Open for step 9 (`guideline` decides):**
+    - `pad_research` fits only by dropping the tab presses (8 frames) and compressing idle frames (≤ 63).
+    - `pad_tech_costs` fits only up to 564, against the 540 target.
+    - `pad_bankrupt` has no allowed route.
+- **`initial_save` traps:**
+  - A cheat typed before the cut is lost.
+  - A cut between the cheat and the next record loses the cheat's money.
+  - No record is written while a wormhole lives.
+  - There is no record before the first record-writing action.
+  - The resume title's X moves the cheat matcher.
+  - The resumed game starts on `map`.
+  - The title lines must stay covered by other replays.
+- Re-authoring cost: no replay was re-authored in this step.
