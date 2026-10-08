@@ -130,3 +130,34 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - Pinned values re-derived: `test_state` (the `pad_research` cheat cut is 45 frames, was 33), `test_live_slots` and its 4 fixtures, `test_rng_sync` (now asserts that run A's visual stream moves over the window), `test_save_load`, `test_save_fuzz`, golden frame hashes.
 - Long checks pass: `make full-game`, `make save-worst-case` (largest record 3973 B), `make save-fuzz`, `make rng-sync-probe`. Coverage at `6346485`: 7608 lines hit. Now 7613: every baseline line is still hit, the 10 rewritten draw-site lines in their new form.
 - `guideline` decision: the `worst-case/` games are not re-authored before step 13. They run clean but collapsed: full_game 3426 with 27 colonies → 3421 with 2; full_game_pause_idle 27 → 2 colonies; full_game_new_game 0 → 2. Their `make state` peaks dropped (cap row 29 → 8, zone game 119816 → 84136, transit_dots 48 → 25). The e2e replays now hold most peaks. Step 2b chooses how they are judged: the 8c4bbf4 peak rule, not their step 2a end state.
+
+### Step 2a
+- `b19f302`: the replay tool appends `cheat activations <n>` to its state file. `tools/end_state.sh` normalizes, checks and baselines. `make end-state` (all 22, or `EVENTS=`, with optional `REFERENCE=`) and `make end-state-baseline` (writes only missing references) sit outside `make test-all`. `tests/test_end_state.c` takes 33 ms.
+- **Reference commit `8defcba`:** one `<events>.end-state` per replay, 17 in `tests/e2e/` and 5 in `worst-case/`. Re-baselining after deleting them reproduces them byte for byte, and all 22 pass. `pad_research` cut to 45 frames fails with its cheat count matching. `pad_research` with 60 idle frames appended passes.
+- **Field table.**
+  - Kept: `clock`, `difficulty`, `resources` (credits, science, income), `techs`, `slipway` (direction as printed), `count`, `cheat activations`. From `planet` lines, everything through `world x y`. From `structure` lines, id, kind, world and links. World positions are compared exactly.
+  - Dropped: `camera`, the `screen` and `visible` fields, and `zone`, `budget` and `cap` lines.
+  - A `stopped` line or an unknown line kind fails the check. The normalized text is sorted in C order.
+- **Measurement and deviations.** 24 timing variants of 6 replays (30 idle frames inserted at idle points, or 60 appended):
+  - No clock or resources field moved, so they are compared rather than ignored.
+  - Deviation: settled structures and trading hubs bob (`planet_bob`), so their world y drifted by up to 3 px with idle frames. The state writer now prints their y at rest, recomputed exactly from `state_time` (`planet_bob_total`, `planet_family_bobs`). This changes `make state` output for those lines. Game behaviour is unchanged.
+  - Known limit: the rest y assumes the bob ran on every frame since the planet settled.
+  - One variant failed: idle frames inserted on the title screen (`pad_build` f7) gave a different galaxy, because title timing still seeds the game (step 1b's seed tick). Step 2b studies it.
+- **Cheat activations:** `pad_bankrupt` 1, `pad_planet_projects` 3, `pad_research` 1, `pad_tech_costs` 1, the other e2e 0. `full_game` 30, `full_game_new_game` 30, `full_game_pause_idle` 24, `full_game_pause_restart` 24, `title_idle` 0.
+- **Inventory of tests and tools that load a replay and pin values in it:**
+  - `tests/test_live_slots.c`: every e2e.
+    - Pinned frames: `pad_pause_restart` f1 and f25–39; `pad_game_end` f21 and f69; `pad_tech_costs` f546, f555, f565 and f570, with `p54`; `pad_message_box` f115–121; `pad_empty_planet` f98 and f133; `pad_planet_projects` f171, f172, f255 and f256.
+    - Its 4 fixtures in `tests/fixtures/` are prefixes cut from replays.
+  - `tests/test_state.c`:
+    - `pad_tech_costs`: the counts, the `p31` and `p2` lines, slipways `p54 p31` and `s2 p31`, camera `127 234`, the save summary, and cheat 1.
+    - `pad_research` cut at 45 frames: credits 200, science 99, cheat 1.
+    - `pad_build` plus 60 idle frames: `s1` is a settled processor and its world line is unchanged.
+  - `tests/test_rng_sync.c` (`make rng-sync-probe`): `pad_colonise`. The burst case runs f98–198 with the harvest on `p12`; the quiet case runs f280–344.
+  - `tests/test_exit_queue.c`: the constant `FULL_GAME_LIVE_ENTITIES 130`, the largest worst-case reset burst with margin. It is not loaded.
+  - The save-load, save-fuzz and resume-check tests: the wormhole seed `0x5EED2026` and the probe at 90, 50.
+  - `make full-game`, `make save-worst-case` and `make save-fuzz`: the `worst-case/` games. They require clean runs, the 8 KiB limit and round trips.
+  - `make state` and its peaks: every replay, with the 1/8 margin.
+  - `make e2e` and its tooling, plus `tools/e2e_long_exceptions.txt`: the frame counts in its reasons.
+  - `make sanitize-net` and `make coverage`: every e2e.
+  - The 22 `.end-state` references, every e2e `.txt`, and the `pad_resume_at_start` fixture, cut from `pad_research`'s last record.
+  - Comments only: `tests/test_layout_nil_item_draws_nothing.c` and the cart.
