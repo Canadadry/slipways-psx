@@ -42,6 +42,8 @@ planet_t *ascension_new(const planet_keys_t *keys);
 void ascension_init_instance(planet_t *self, const entity_class_t *cls, const planet_archetype_t *archetype);
 
 void structure_update_settled_method(entity_t *self, p8_fixed_t t);
+/* 1 when e is settled and its settled update calls planet_bob. */
+int planet_family_bobs(const entity_t *e);
 void ascension_draw_method(entity_t *self, vec_t screen_pos);
 void ascension_release_method(entity_t *self);
 

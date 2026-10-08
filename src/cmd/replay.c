@@ -5,8 +5,9 @@
  * "game <bytes>", "max_bytes game <bytes>", "load <bytes>",
  * "max_bytes load <bytes>".
  *
- * STATE=<file>: the devtools/state text of the last frame; after a p8_fatal,
- * "stopped p8_fatal frame <n>" first.
+ * STATE=<file>: the devtools/state text of the last frame, then "cheat
+ * activations <n>"; after a p8_fatal, "stopped p8_fatal frame <n>" first and
+ * no cheat line.
  *
  * SAVE_HEX=<file>: the stored record as one line of lowercase hex (the
  * initial_save format), then "save: " lines on stdout; exits 1 when the
@@ -148,8 +149,9 @@ int main(int argc, char **argv) {
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
     input_step_init(&step);
+    int cheat_activations = 0;
     for (i = 0; i < frame_count; i++) {
-        input_step_run(&step, &input->frames[input->current_frame]);
+        cheat_activations += input_step_run(&step, &input->frames[input->current_frame]);
         cart_update60();
         cart_draw();
         /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
@@ -185,6 +187,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         state_write(state_out);
+        fprintf(state_out, "cheat activations %d\n", cheat_activations);
         fclose(state_out);
     }
 

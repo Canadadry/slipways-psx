@@ -23,7 +23,8 @@
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
-#                       use to tmp/state.txt, outside the suite; takes
+#                       use, then the cheat activation count, to
+#                       tmp/state.txt, outside the suite; takes
 #                       SAVE_HEX=<file> as make replay does
 # make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
 #                       every e2e of tests/e2e/, each state in
@@ -33,6 +34,21 @@
 #                       and prints the bytes left under ZONE_BUDGET_BYTES;
 #                       fails if a replay stops or a peak eats its 1/8
 #                       margin (9 x peak > 8 x limit), outside the suite
+# make end-state     -> replays every file make state replays, normalizes
+#                       each last-frame state with tools/end_state.sh (game
+#                       fields and cheat activations kept; camera, screen,
+#                       visible, zone, budget and cap dropped; sorted) and
+#                       compares it with the committed <events>.end-state;
+#                       fails on any difference, a stopped replay, a missing
+#                       reference or a state line the script does not know,
+#                       after examining every replay, outside the suite
+# make end-state EVENTS=<events> [REFERENCE=<reference>] -> the same check
+#                       for that file alone, against <events>.end-state or
+#                       REFERENCE, state in tmp/end-state/, outside the suite
+# make end-state-baseline -> same replays, writes each missing
+#                       <events>.end-state and never overwrites one (delete a
+#                       reference to re-baseline it); refuses a stopped
+#                       replay or an unknown line, outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -388,6 +404,9 @@ $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limit
 $(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_peaks.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_end_state: $(call objs,tests/test_end_state.c) tools/end_state.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -698,6 +717,7 @@ UNIT_TESTS := \
     test_frames_check \
     test_e2e_limits \
     test_state_peaks \
+    test_end_state \
     test_float_guard \
     test_alloc_guard \
     test_pointer_guard \
@@ -1000,6 +1020,25 @@ state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
 	@echo "state: $(words $(STATE_EVENTS)) replays, peaks in $(TMP_DIR)/state.txt"
 endif
+
+END_STATE_DIR := $(TMP_DIR)/end-state
+end_state_triples = $(foreach e,$(1),$(e) $(call state_file,$(e)) $(e).end-state)
+
+ifneq ($(strip $(EVENTS)),)
+end-state: $(TMP_DIR)/replay tools/end_state.sh
+	@mkdir -p $(END_STATE_DIR)
+	@rm -f $(END_STATE_DIR)/state.txt
+	@STATE=$(END_STATE_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS) /dev/null $(END_STATE_DIR)/dump.txt > $(END_STATE_DIR)/log.txt 2>&1 || true
+	@sh tools/end_state.sh check $(EVENTS) $(END_STATE_DIR)/state.txt $(or $(REFERENCE),$(EVENTS).end-state)
+else
+end-state: $(STATE_RUNS) tools/end_state.sh
+	@sh tools/end_state.sh check $(call end_state_triples,$(STATE_EVENTS))
+endif
+
+end-state-baseline: $(STATE_RUNS) tools/end_state.sh
+	@sh tools/end_state.sh baseline $(call end_state_triples,$(STATE_EVENTS))
+
+.PHONY: end-state end-state-baseline
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)

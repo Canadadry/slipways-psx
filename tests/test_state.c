@@ -170,6 +170,7 @@ static void pad_tech_costs_rich_mine(void) {
     assert(has("camera world 127 234"));
     assert(has("techs space folding"));
     assert(has("techs xenofoods"));
+    assert(has("cheat activations 1"));
     assert(strstr(text, "stopped") == NULL && "a replay that runs to the end writes no stop line");
     memory_lines_have_peak_and_limit();
     assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
@@ -190,7 +191,44 @@ static void pad_research_cheat(void) {
     replay(REPLAY(CHEAT_CUT));
     assert(strstr(text, "\nresources credits 200\n") != NULL);
     assert(strstr(text, "\nresources science 99\n") != NULL);
+    assert(has("cheat activations 1"));
     memory_lines_have_peak_and_limit();
+}
+
+#define IDLE_TAIL "tmp/test_state_idle_tail.json"
+
+/* Returns the "planet s1 ... world <x> <y>" prefix of the state just read; static buffer. */
+static const char *placed_structure_world(void) {
+    static char line[128];
+    const char *at = strstr(text, "\nplanet s1 ");
+    assert(at != NULL && "pad_build places s1");
+    const char *screen = strstr(at, " screen ");
+    assert(screen != NULL);
+    snprintf(line, sizeof line, "%.*s", (int)(screen - at - 1), at + 1);
+    return line;
+}
+
+/* A settled structure bobs every frame: its world y is printed at rest, so
+ * idle frames at the end leave it unchanged. */
+static void bobbing_structure_world_ignores_idle_frames(void) {
+    replay(REPLAY("tests/e2e/pad_build.json"));
+    static char before[128];
+    snprintf(before, sizeof before, "%s", placed_structure_world());
+    assert(strstr(before, "colonized processor") != NULL && "s1 is settled and bobs");
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, "tests/e2e/pad_build.json"));
+    static p8_input_frame_t frames[1024];
+    int count = input.frame_count;
+    assert(count + 60 <= (int)(sizeof frames / sizeof frames[0]));
+    memcpy(frames, input.frames, (size_t)count * sizeof frames[0]);
+    for (int i = 0; i < 60; i++) {
+        memset(&frames[count + i], 0, sizeof frames[0]);
+    }
+    p8_input_free(&input);
+    assert(p8_input_save(frames, count + 60, IDLE_TAIL));
+    replay(REPLAY(IDLE_TAIL));
+    assert(strcmp(placed_structure_world(), before) == 0);
 }
 
 /* A p8_fatal still writes the state, with the stop frame first. */
@@ -221,9 +259,11 @@ static void fatal_writes_the_stop_frame(void) {
 int main(void) {
     pad_tech_costs_rich_mine();
     pad_research_cheat();
+    bobbing_structure_world_ignores_idle_frames();
     fatal_writes_the_stop_frame();
     remove(STATE);
     remove(CHEAT_CUT);
+    remove(IDLE_TAIL);
     remove(SAVE_HEX);
     remove(SAVE_OUT);
     remove("tmp/test_state.bin");

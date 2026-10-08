@@ -86,6 +86,14 @@ static void trading_hub_update_settled_method(entity_t *self, p8_fixed_t t) {
     trading_hub_update_settled((planet_t *)self, t);
 }
 
+int planet_family_bobs(const entity_t *e) {
+    if (e == NULL || e->state != ENTITY_STATE_SETTLED || e->class == NULL) {
+        return 0;
+    }
+    state_fn_t settled = e->class->states[ENTITY_STATE_SETTLED];
+    return settled == structure_update_settled_method || settled == trading_hub_update_settled_method;
+}
+
 static const entity_class_t trading_hub_class_def = {
     .draw = planet_draw_method,
     .draw_overlay = targeting_tooltip_method,
