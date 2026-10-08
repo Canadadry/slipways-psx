@@ -60,6 +60,7 @@ typedef struct {
     int selection_frames;
     int release_pending;
     int previous_pad;
+    int chord_held;
     int left_was_down;
     int cursor_x;
     int cursor_y;
@@ -71,7 +72,7 @@ typedef struct {
 void pad_nav_init(pad_nav_t *nav);
 
 /* Writes only the played frame's mouse_x, mouse_y and mouse_buttons, and the main ui's pad selection, pad tab and pad crosshair. */
-void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played);
+void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played);
 
 /* NULL when no panel is open, the panel has no item, or the focus is no longer one of its items. */
 entity_t *pad_nav_focus(const pad_nav_t *nav);

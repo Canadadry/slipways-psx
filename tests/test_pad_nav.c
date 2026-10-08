@@ -3006,9 +3006,12 @@ static void test_circle_on_a_tab_returns_to_the_map(void) {
         if (in_forked_copy()) {
             go_to_tab(&step, tabs[t]);
             run_frame(&step, P8_PAD_CIRCLE | P8_PAD_CROSS);
+            assert(pad_nav_tab(&step.pad_nav) == tabs[t] && input_step_played_frame(&step)->mouse_buttons == 0);
+            run_frame(&step, 0);
+            run_frame(&step, P8_PAD_CIRCLE);
             assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
             assert_played(&step, P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2, 0);
-            run_frame(&step, P8_PAD_CROSS);
+            run_frame(&step, P8_PAD_CIRCLE);
             assert(pad_nav_free_mode(&step.pad_nav));
             assert_played(&step, P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2, 0);
             end_forked_copy();
@@ -4984,6 +4987,103 @@ static void test_circle_in_network_mode_returns_to_jump_mode_on_that_planet(void
     assert_moved(from, 0, 0);
 }
 
+#define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
+
+/* Four chords, one every 2 frames; returns how often the cheat fired and asserts no mouse button is played. */
+static int type_chords(input_step_t *step) {
+    int fired = 0;
+    for (int i = 0; i < 2 * CHEAT_CHORDS; i++) {
+        p8_input_frame_t raw = { 0, 0, 0, i % 2 == 0 ? CHORD : 0 };
+        fired += input_step_run(step, &raw);
+        cart_update60();
+        assert(input_step_played_frame(step)->mouse_buttons == 0);
+    }
+    return fired;
+}
+
+static void test_four_chords_on_a_hovered_colony_cheat_and_change_nothing_else(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(&step, colony);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &colony->header);
+    world_count_t before = world_count();
+    vec_t from = camera_at();
+    uint32_t game = p8_fixed_rnd_state();
+    int mouse_x = input_step_played_frame(&step)->mouse_x, mouse_y = input_step_played_frame(&step)->mouse_y;
+    assert(type_chords(&step) == 1);
+    assert(main_economy_typed()->credits == p8_fixed_from_int(200));
+    assert(main_economy_typed()->research_points == p8_fixed_from_int(99));
+    before.credits = main_economy_typed()->credits;
+    assert_world_unchanged(before);
+    assert_hovering(&step, &colony->header);
+    assert(input_step_played_frame(&step)->mouse_x == mouse_x && input_step_played_frame(&step)->mouse_y == mouse_y);
+    assert_moved(from, 0, 0);
+    assert(p8_fixed_rnd_state() == game);
+}
+
+/* The chord's × would click the focused row and its ○ would close the menu. */
+static void test_a_chord_on_a_planet_menu_presses_no_row_and_closes_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *planet = known_planet_closest_to_centre();
+    hold(&step, 0, 2);
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    assert(pad_nav_panel_open());
+    world_count_t before = world_count();
+    assert(type_chords(&step) == 1);
+    before.credits = main_economy_typed()->credits;
+    assert(pad_nav_panel_open());
+    assert_world_unchanged(before);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(!pad_nav_panel_open());
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+}
+
+/* × held after the chord's ○ goes up, and ○ pressed again under it, still press nothing until both are up. */
+static void test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    known_planet_closest_to_centre();
+    hold(&step, 0, 2);
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    assert(pad_nav_panel_open());
+    world_count_t before = world_count();
+    static const int frames[] = { CHORD, P8_PAD_CROSS, P8_PAD_CROSS, CHORD, CHORD, P8_PAD_CIRCLE, P8_PAD_CIRCLE };
+    for (int i = 0; i < (int)(sizeof frames / sizeof frames[0]); i++) {
+        run_frame(&step, frames[i]);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert(pad_nav_panel_open());
+    }
+    run_frame(&step, 0);
+    assert_world_unchanged(before);
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(!pad_nav_panel_open());
+}
+
+/* In free mode the chord's × would place a probe; in network mode its ○ would return to jump mode. */
+static void test_a_chord_places_no_probe_and_leaves_network_mode_alone(void) {
+    input_step_t step;
+    start_game(&step);
+    pan_to_empty_space(&step);
+    world_count_t before = world_count();
+    assert(type_chords(&step) == 1);
+    hold(&step, 0, 10);
+    before.credits = main_economy_typed()->credits;
+    assert_world_unchanged(before);
+    assert(pad_nav_free_mode(&step.pad_nav));
+
+    planet_t *planet = network_on_known_planet(&step);
+    assert_network_on(&step, planet);
+    assert(type_chords(&step) == 1);
+    assert_network_on(&step, planet);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -5180,6 +5280,10 @@ int main(void) {
     in_fresh_child(test_pad_free_mode_draws_a_crosshair_at_the_centre);
     in_fresh_child(test_a_drag_draws_the_partial_slipway_and_its_cost);
     in_fresh_child(test_a_drag_across_a_planet_draws_the_refused_feedback);
+    in_fresh_child(test_four_chords_on_a_hovered_colony_cheat_and_change_nothing_else);
+    in_fresh_child(test_a_chord_on_a_planet_menu_presses_no_row_and_closes_nothing);
+    in_fresh_child(test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up);
+    in_fresh_child(test_a_chord_places_no_probe_and_leaves_network_mode_alone);
     printf("test_pad_nav: ok\n");
     return 0;
 }

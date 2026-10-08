@@ -1,4 +1,4 @@
-The cheat typed as X X O O X X O O on the map, R1 to `tech`, "space
+The cheat typed as four X + O chords on the map, R1 to `tech`, "space
 folding" invented, back on the map. Then trade: a slipgate relaying a
 protostar's energy to a nanotech forgeworld, a trading hub fed tech and
 food, the protostar panned off screen. 577 frames.
@@ -20,18 +20,17 @@ y=60, y58-62 on x=80, the centre pixel undrawn), as on f25-47 and
 f59-71. Readings come from the capture's framebuffer at each frame, and
 the economy from `make state` of the file cut after that frame.
 
-- f0-24: the title. The title's X was an O edge on the PICO-8
-  buttons, so the cheat matcher stands at 1.
+- f0-24: the title. Its X is a lone X press, which leaves the cheat
+  matcher at 0.
 - f28: O tap in free mode, with no starting planet: nothing on the map.
-  It is the cheat's X and brings the matcher back to 0, as
-  keyboard_research's f3 does. Checked: without it the same file ends
-  the cheat with $100 and research 0.
-- f30-44: X X O O X X O O, one tap every two frames, at the start
-  centre. Each X makes a probe on its press (entities 107 -> 108 at
-  f30) that lands 14 px from p78 and is refused: a colour-2 hatched
-  disk round p78 (screen 70, 50) at f30-33, nothing placed, $100 and
-  month 1 kept, the entities back to 107 by f45. The O taps do nothing
-  on the map. The cheat fires at f44: $100 -> $200, research 0 -> 99.
+- f30-36: X four times, one tap every two frames, at the start centre.
+  Each X makes a probe on its press (entities 107 -> 108 at f30) that
+  lands 14 px from p78 and is refused: a colour-2 hatched disk round
+  p78 (screen 70, 50) at f30-33, nothing placed, $100 and month 1 kept,
+  the entities back to 107 by f43.
+- f38-44: the cheat, four X + O chords one every two frames. The pad
+  ignores X and O from a chord until both are up, so the chords place
+  no probe. The cheat fires at f44: $100 -> $200, research 0 -> 99.
 - f48: R1 (`build`, f48-49: nothing lit, no crosshair, the cursor on
   the basic structure's icon, its tooltip shown over the
   top of the screen, hiding the HUD buttons, its cost in colour 8
@@ -61,7 +60,7 @@ $200, 95 research, JAN 3401. The same end state: the cheat's $200 and
 The galaxies differ: the galaxy depends on the frame the game starts,
 keyboard_research clicks the title at f1 and a pad title needs the rows
 first (X at f24 here). The refused probes do not depend on it: the
-cheat's X taps at the start centre are refused in this galaxy too, so
+X taps at the start centre are refused in this galaxy too, so
 no pan was needed.
 
 Covers keyboard_research.

@@ -1,5 +1,5 @@
 Five labs from the `build` tab, the cheat, seven years on `end turn`, a
-refused lab ("-no money-"), the bankrupt screen. 180 frames.
+refused lab ("-no money-"), the bankrupt screen. 170 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 leaves it for plain free mode, the camera unmoved, as games started
@@ -15,24 +15,25 @@ from `make state` of the file cut after the frame and from the capture.
 - f24-94: four labs, each R1, X, D-pad, X: s1 (254, 248), s2 (246,
   270), s3 (262, 288), s4 (286, 285), each spot at least 23 px from
   every planet and lab. After f94: $40, month 9, income -16.
-- f96-112: O, then X X O O X X O O (the O first leaves the matcher
-  at 0): $200, research 99 at f112.
-- f114-134: the fifth lab s5 (304, 269): $185, month 11, income -25.
-- f136, f138: R1 R1, `end turn`. f140-152: X seven times, one year
-  each: $185 -> $10, year 3408, toasts 7 -> 36.
-- f154-171: L1, X: s6 carried to (288, 251), a free spot; X at f171:
-  "-no money-" in colour 8 above the centre (x60-98, y55-59 at f172),
+- f96-102: the cheat, four X + O chords one every 2 frames: $200,
+  research 99 at f102. The pad ignores X and O from a chord until both
+  are up, so the chords place no probe.
+- f104-124: the fifth lab s5 (304, 269): $185, month 11, income -25.
+- f126, f128: R1 R1, `end turn`. f130-142: X seven times, one year
+  each: $185 -> $10, year 3408, toasts 7 -> 37.
+- f144-161: L1, X: s6 carried to (288, 251), a free spot; X at f161:
+  "-no money-" in colour 8 above the centre (x60-98, y55-59 at f162),
   s6 gone, $10 kept.
-- f173-177: R1 R1, X: year 3409, $10 - 25 = -$15, income -25: the end
-  box opens at f178 (modal_backdrop 1, message_box 3), its colour-12 row
-  drawn from f179 (x58-103, y97-105), the row game_end_bankrupt's last
+- f163-167: R1 R1, X: year 3409, $10 - 25 = -$15, income -25: the end
+  box opens at f168 (modal_backdrop 1, message_box 3), its colour-12 row
+  drawn from f169 (x58-103, y97-105), the row game_end_bankrupt's last
   frame showed in colour 13.
 
-`make state` at f179: year 3409 month 1, credits -15, research 107,
+`make state` at f169: year 3409 month 1, credits -15, research 107,
 income -25, camera 208 191, s1-s5 colonized structure, planets 95,
-colonies 5, slipways 0, techs 0. Peaks: toast 42 (from f177),
+colonies 5, slipways 0, techs 0. Peaks: toast 42 (from f167),
 entity_table 161, message_box 3, modal_backdrop 1, all reached by
-f178.
+f168.
 
 Replaces game_end_bankrupt (6 labs, $5 after 4 years, refused lab, -$31
 bankrupt). Same effects: `economy_spend` refusal, bankrupt at the year.

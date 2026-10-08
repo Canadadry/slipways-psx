@@ -64,10 +64,8 @@ same final score panel opens, and both end on the title through
 
 Covers keyboard_game_end.
 
-The X and O edges never type the cheat (O O X X O O X X on the PICO-8
-buttons; the pad's X is the PICO-8 O, its O the PICO-8 X): 27 X press
-edges (the title, 25 years, "again?") and no O, so the sequence never
-gets past its second step.
+The X and O edges never type the cheat (four X + O chords): 27 lone X
+press edges (the title, 25 years, "again?") and no O, none a chord.
 
 No long-replay exception: 104 frames, within 180.
 

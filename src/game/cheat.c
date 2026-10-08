@@ -5,14 +5,10 @@
 
 #include <stddef.h>
 
-static const int sequence[] = {P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE,
-                               P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE};
-#define SEQUENCE_LENGTH ((int)(sizeof sequence / sizeof sequence[0]))
-
 void cheat_init(cheat_t *cheat) {
-    cheat->prev_o = 0;
-    cheat->prev_x = 0;
-    cheat->matched = 0;
+    cheat->previous_cross = 0;
+    cheat->previous_circle = 0;
+    cheat->chords = 0;
 }
 
 static void apply(void) {
@@ -34,36 +30,27 @@ static void apply(void) {
     hy->credits = p8_fixed_from_int(200);
 }
 
-static int feed(cheat_t *cheat, int button) {
-    if (sequence[cheat->matched] != button) {
-        cheat->matched = 0;
+int cheat_step(cheat_t *cheat, int pad_buttons) {
+    int cross = (pad_buttons & P8_PAD_CROSS) != 0;
+    int circle = (pad_buttons & P8_PAD_CIRCLE) != 0;
+    int cross_edge = cross && !cheat->previous_cross;
+    int circle_edge = circle && !cheat->previous_circle;
+
+    cheat->previous_cross = cross;
+    cheat->previous_circle = circle;
+
+    if (!cross_edge && !circle_edge) {
         return 0;
     }
-    cheat->matched++;
-    if (cheat->matched < SEQUENCE_LENGTH) {
+    if (!(cross_edge && circle_edge)) {
+        cheat->chords = 0;
         return 0;
     }
-    cheat->matched = 0;
+    cheat->chords++;
+    if (cheat->chords < CHEAT_CHORDS) {
+        return 0;
+    }
+    cheat->chords = 0;
     apply();
     return 1;
-}
-
-int cheat_step(cheat_t *cheat, int pad_buttons) {
-    int o = (pad_buttons & P8_PAD_CROSS) != 0;
-    int x = (pad_buttons & P8_PAD_CIRCLE) != 0;
-    int o_edge = o && !cheat->prev_o;
-    int x_edge = x && !cheat->prev_x;
-    int fired = 0;
-
-    cheat->prev_o = o;
-    cheat->prev_x = x;
-
-    if (o_edge && x_edge) {
-        cheat->matched = 0;
-    } else if (o_edge) {
-        fired = feed(cheat, P8_PAD_CROSS);
-    } else if (x_edge) {
-        fired = feed(cheat, P8_PAD_CIRCLE);
-    }
-    return fired;
 }

@@ -25,9 +25,9 @@ p25 (type f) and p47 (type r) are known. Readings come from `make
 state` of the file cut after the frame and from the capture.
 
 - f69-82: Up+Right 11, Up 2 (two taps), idle f83-85: p25 under the
-  centre (camera 200 169). f87-103: X, then X X O O X X O O on p25 (the
-  first X brings the matcher from 2 to 0; X taps on a planet open
-  nothing): $200, research 99 at f103.
+  centre (camera 200 169). f87-95: X five times on p25 (X taps on a
+  planet open nothing). f97-103: the cheat, four X + O chords one every
+  two frames: $200, research 99 at f103.
 - f105-157: four times R1 R1 R1, Down xN, X: "space folding" (row 1,
   research 95), "geneseeds" (row 1, 90, era 2 opens), "geoharvesting"
   (row 3, 76), "replication" (row 4, 58).
@@ -67,10 +67,10 @@ pad_infragate, pad_synthesizer and pad_ascension files). Every capture
 frame up to f274 is unchanged, byte for byte.
 
 - f276-290: R1 (`end turn` -> `tech`), Down x5, X: "infraspace"
-  (research 59 -> 28; this X brings the cheat matcher from 2 to 0).
+  (research 59 -> 28).
   f291: O lands network mode on p47 (camera 190 205); f293: O leaves it
-  for jump mode on p47. f295-310: X X O O X X O O: $200, research 99
-  at f309.
+  for jump mode on p47. f295-302: idle. f303-309: the cheat, four
+  X + O chords: $200, research 99 at f309.
 - f311-345: "autoassemblers", "skill implants" (era 4 opens), "void
   synthesis" (row 2): research 20.
 - f346-382: R1, Left x2, X: the infragate s1 carried; Up+Right 2, Up
@@ -86,8 +86,8 @@ frame up to f274 is unchanged, byte for byte.
 - f483-501: square from p47, Up+Left 8, Up 7, X on s2: `slipway p47 s2
   normal`, $82, income still 6: s2 skips the need s3 already serves;
   network on s2, camera 182 182.
-- f502: O leaves network mode for jump mode on s2. f504-519: X X O O X
-  X O O: $200, research 99 at f518. f520-536: "ascension" (row 4):
+- f502: O leaves network mode for jump mode on s2. f504-511: idle.
+  f512-518: the cheat, four X + O chords: $200, research 99 at f518. f520-536: "ascension" (row 4):
   research 49.
 - f537-567: R1, Left, X: the ascension gate s4 carried from camera 182
   182; Up+Right 17, Right, Up+Right, Right 3 (the lone Up puts the

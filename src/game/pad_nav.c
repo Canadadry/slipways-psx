@@ -251,6 +251,7 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->pause_due = 0;
     nav->pause_cross_armed = 0;
     nav->previous_pad = 0;
+    nav->chord_held = 0;
     nav->left_was_down = 0;
     nav->cursor_x = 0;
     nav->cursor_y = 0;
@@ -1141,11 +1142,23 @@ static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_i
     }
 }
 
-void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
+/* × and ○ going down on the same frame are a cheat chord: no mode sees either until both are up again. */
+static int without_chord(pad_nav_t *nav, int raw_buttons) {
+    const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
+    if ((raw_buttons & ~nav->previous_pad & face) == face) {
+        nav->chord_held = 1;
+    } else if (!(raw_buttons & face)) {
+        nav->chord_held = 0;
+    }
+    return nav->chord_held ? raw_buttons & ~face : raw_buttons;
+}
+
+void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
+    int pad_buttons = without_chord(nav, raw_buttons);
     int pressed = pad_buttons & ~nav->previous_pad;
     int direction = pressed_direction(pressed);
     int release = nav->release_pending;
-    nav->previous_pad = pad_buttons;
+    nav->previous_pad = raw_buttons;
     nav->release_pending = 0;
     played->mouse_buttons = 0;
     const entity_t *shown = NULL;

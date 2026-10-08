@@ -72,21 +72,14 @@ static void test_pad_keeps_only_the_pad_mask(void) {
     }
 }
 
-typedef enum { PRESS_O, PRESS_X } press_t;
-static const press_t cheat_sequence[8] = { PRESS_O, PRESS_O, PRESS_X, PRESS_X, PRESS_O, PRESS_O, PRESS_X, PRESS_X };
+#define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
 
-static p8_input_frame_t pad_press(press_t press) {
-    p8_input_frame_t frame = { 0, 0, 0, 0 };
-    frame.pad_buttons = press == PRESS_O ? P8_PAD_CROSS : P8_PAD_CIRCLE;
-    return frame;
-}
-
-/* Each press followed by a release frame; returns a bitmask of the presses on which the step reported the cheat. */
+/* Each chord followed by a release frame; returns a bitmask of the chords on which the step reported the cheat. */
 static int type_cheat(input_step_t *step) {
     static const p8_input_frame_t release = { 0, 0, 0, 0 };
     int fired_on = 0;
-    for (int i = 0; i < 8; i++) {
-        p8_input_frame_t frame = pad_press(cheat_sequence[i]);
+    for (int i = 0; i < CHEAT_CHORDS; i++) {
+        p8_input_frame_t frame = { 0, 0, 0, CHORD };
         if (input_step_run(step, &frame)) {
             fired_on |= 1 << i;
         }
@@ -105,11 +98,11 @@ static void test_pad_cheat_fires_on_cross_and_circle(void) {
     cart_start_game(NULL);
     input_step_init(&step);
     assert(!economy_cheated());
-    assert(type_cheat(&step) == 1 << 7);
+    assert(type_cheat(&step) == 1 << (CHEAT_CHORDS - 1));
     assert(economy_cheated());
 }
 
-/* Noisy live frames with the cheat typed on × and ○ in the middle: the recording keeps only the
+/* Noisy live frames with the cheat chords typed in the middle: the recording keeps only the
  * pad mask, so the replayed session must play and cheat exactly as the live one did. */
 static void test_live_and_replayed_pad_frames_play_alike(void) {
     const char *path = "tmp/test_input_step_live.json";
@@ -118,8 +111,8 @@ static void test_live_and_replayed_pad_frames_play_alike(void) {
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
         p8_input_frame_t frame = noisy_frames[i % NOISY_FRAME_COUNT];
         frame.mouse_x = (frame.mouse_x + 7 * i) % 128;
-        if (i >= 10 && i < 26) {
-            frame.pad_buttons = (i % 2 == 0) ? pad_press(cheat_sequence[(i - 10) / 2]).pad_buttons | P8_PAD_UP : P8_PAD_LEFT;
+        if (i >= 10 && i < 10 + 2 * CHEAT_CHORDS) {
+            frame.pad_buttons = (i % 2 == 0) ? CHORD | P8_PAD_UP : P8_PAD_LEFT;
         } else if (i < 10) {
             frame.pad_buttons &= ~(P8_PAD_CROSS | P8_PAD_CIRCLE);
         }

@@ -101,9 +101,9 @@ the pad, `make coverage` hits the closing box's end in
 message_box_draw_overlay (src/game/message_box.c), which only that file
 reached.
 
-The X and O edges never type the cheat (O O X X O O X X on the PICO-8
-buttons; the pad's X is the PICO-8 O, its O the PICO-8 X): 21 X
-presses, O, X, O, O; $100 and research 20 at f189 show it never fired.
+The X and O edges never type the cheat (four X + O chords): 21 X
+presses, O, X, O, O, none a chord; $100 and research 20 at f189 show it
+never fired.
 
 Covers no keyboard_* scenario. Its year skip is the one pad_game_end
 (step 3.4) uses to cover keyboard_game_end.

@@ -57,8 +57,8 @@ structures 0, techs 0; every planet unknown. The same lines as
 pad_title's at f29: looking at the score and the tech panel changes
 nothing.
 
-The X and O edges never type the cheat (X X O O X X O O): the title's X,
-the X at f24 and the O taps match at most four steps.
+The X and O edges never type the cheat (four X + O chords): the title's
+X, the X at f24 and the O taps are lone presses, none a chord.
 
 Covers no keyboard_* scenario: no keyboard replay opens the score
 panel during play (keyboard_game_end's final score panel is step

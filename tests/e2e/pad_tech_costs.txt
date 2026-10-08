@@ -35,9 +35,10 @@ from the capture.
   base 5) ends in a colour-2 price tag at x144-156 whose first digit
   reads 4 (x148-153, y84-88): 5 x 0.85.
 - f124: O closes it. f126: O leaves network mode for jump mode on p31.
-  f128-142: X X O O X X O O. The X taps on p31 open no menu (a
-  colour-8 label beside the centre, x96-106, y43-47 at f134) and
-  charge nothing ($97, month 2 up to f141); f142: $200, research 99.
+  f128-134: X four times. The X taps on p31 open no menu (a colour-8
+  label beside the centre, x96-106, y43-47 at f134) and charge nothing
+  ($97, month 2 up to f141). f136-142: the cheat, four X + O chords one
+  every two frames; f142: $200, research 99.
 - f144-154: R1 x3, Down, X: "space folding" (research 95). f158-168:
   the same: the first row is now "xenofoods" (era 2): research 85.
 - f170: square, plain free mode, p31 under the centre. f172: triangle

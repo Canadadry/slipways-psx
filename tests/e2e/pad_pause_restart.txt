@@ -80,9 +80,8 @@ Covers keyboard_menus. Its end state, at f102-106 of keyboard_menus.txt
 same steps: the HUD's pause button clicked, "restart" pressed, the
 title, "challenging" pressed.
 
-The X edges never type the cheat (O O X X O O X X on the PICO-8
-buttons; the pad's X is the PICO-8 O): five X presses and no O match
-at most two steps.
+The X edges never type the cheat (four X + O chords): five lone X
+presses and no O, none a chord.
 
 Cost: cold `make e2e`, measured before and after this file and
 pad_message_box, in pad_message_box.txt.

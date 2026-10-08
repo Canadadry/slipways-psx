@@ -65,8 +65,8 @@ income (income 0 with no colony).
 176 190: the probe is free and the refused fold charged nothing ($100,
 year 3403 month 1).
 
-The X and O edges never type the cheat (X X O O X X O O): the title's X,
-the X presses and the O match at most two steps.
+The X and O edges never type the cheat (four X + O chords): the title's
+X, the X presses and the O are lone presses, none of them a chord.
 
 Covers no keyboard_* scenario on its own. Its year skip is the
 mechanism pad_game_end (step 3.4) uses to cover keyboard_game_end,
