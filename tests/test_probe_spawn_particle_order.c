@@ -1,11 +1,11 @@
-/* probe_spawn_particle draws rnd(angle_slices) before rnd(0.5): the angle
- * sums flr(rnd(angle_slices)) and rnd(0.5), drawn left to right. The
- * particle a probe emits through emitter_spawn must land where that order
- * puts it, whatever the compiler.
+/* probe_spawn_particle draws rnd(angle_slices) before rnd(0.5) on the
+ * visual stream: the angle sums flr(rnd(angle_slices)) and rnd(0.5), drawn
+ * left to right. The particle a probe emits through emitter_spawn must land
+ * where that order puts it, whatever the compiler.
  *
- * The generator has no public reseed, so the same state is reached twice by
- * fork(): the child emits the particle, the parent redraws the expected
- * sequence from the identical state with p8_fixed_rnd. */
+ * The same visual state is reached twice by fork(): the child emits the
+ * particle, the parent redraws the expected sequence from the identical
+ * state with visual_random_draw. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -21,6 +21,7 @@
 #include "engine/entity.h"
 #include "game/particle.h"
 #include "game/probe.h"
+#include "game/visual_random.h"
 #include "engine/vec.h"
 
 /* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
@@ -91,12 +92,12 @@ static void test_probe_particle_draws_rnd_angle_slices_before_rnd_half(void) {
     assert(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0);
 
     /* emitter_spawn's loop test, then the angle's two draws, left to right. */
-    (void)p8_fixed_rnd_default();
-    first = p8_fixed_rnd(angle_slices);
-    second = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
+    (void)visual_random_draw_one();
+    first = visual_random_draw(angle_slices);
+    second = visual_random_draw(P8_FIXED_LIT(0x00008000, 0.5));
     a = p8_fixed_add(p8_fixed_div(p8_fixed_add(p8_fixed_flr(first), second), angle_slices),
                         p8_fixed_mul(state_time, P8_FIXED_LIT(0x00000041, 0.001)));
-    want = vec_from_polar(p8_fixed_add(base_radius, p8_fixed_rnd_default()), a);
+    want = vec_from_polar(p8_fixed_add(base_radius, visual_random_draw_one()), a);
 
     if (got.x != want.x || got.y != want.y) {
         fprintf(stderr, "probe_spawn_particle particle pos = (%08x,%08x), left-to-right order gives (%08x,%08x)\n", (unsigned)got.x,

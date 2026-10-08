@@ -192,9 +192,9 @@ static void test_a_one_colony_game_resumes_equal_from_the_title(void) {
 }
 
 /* Fixes the galaxy, whatever the cases before this one drew. */
-static const uint32_t WORMHOLE_GAME_SEED = 0x5EED2025u;
+static const uint32_t WORMHOLE_GAME_SEED = 0x5EED2026u;
 
-enum { QUIET_FRAME_CAP = 150, WORMHOLE_PLACING_FRAMES = 16, PROBE_SCREEN_X = 40, PROBE_SCREEN_Y = 72, WORMHOLE_OFFSET_X = 30 };
+enum { QUIET_FRAME_CAP = 150, WORMHOLE_PLACING_FRAMES = 16, PROBE_SCREEN_X = 90, PROBE_SCREEN_Y = 50, WORMHOLE_OFFSET_X = 30 };
 
 static vec_t layer_camera(const entity_t *e) {
     p8_fixed_t parallax;

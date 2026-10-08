@@ -1,4 +1,4 @@
-A processor picked on the `build` tab with Left, carried away from p14
+A processor picked on the `build` tab with Left, carried away from p47
 and built with X, then a basic structure taken and cancelled with O. 63
 frames.
 
@@ -19,16 +19,19 @@ after that frame.
 - f19: Left: the processor's icon. The cursor moves 10 px left, the
   tooltip's title changes (x60-100, y3-7) and the cost "15" moves above
   the processor's icon (x139-147).
-- f22: X: the processor taken. Only the icon area changes on this frame
-  (x139-148, y108-117); `make state`: `planet s1 placing processor`,
-  world (320, 312), screen (144, 116), planets 91.
+- f22: X: the processor taken. On this frame the icon area changes
+  and a colour-2 hatched disk is drawn round p7 (x109-147, y88-117): at
+  the icon's world point the processor is 17 px from p7. `make state`:
+  `planet s1 placing processor`, world (320, 312), screen (144, 116),
+  planets 91.
 - f23: the `map` tab, carrying. The tooltip is gone; the processor is
   drawn at the centre (s1 world (256, 256), screen (80, 60)), no
   crosshair while it is carried, its colour-8 label above it and a
-  colour-2 hatched disk to its left: the spot is refused, 19 px from p14.
+  colour-2 hatched disk below it to the right (x75-113, y50-88): the
+  spot is refused, 17 px from p47.
 - f24-35: Up held 12 frames, camera y 196 -> 182, s1 world (256, 242).
-  At f36 the hatched disk is gone and the colour-8 "15" stands above the
-  processor (x75-83, y52-56): the spot is accepted.
+  The hatched disk is gone from f28, and at f36 the colour-8 "15"
+  stands above the processor (x75-83, y52-56): the spot is accepted.
 - f37: X: the processor built. `make state` at f37: `planet s1
   colonized processor`, $100 -> $85, month 1 -> 3, colonies 1. From
   f38 a colour-8 "-15" label rises above it (y54-58 at f38). f38-40:

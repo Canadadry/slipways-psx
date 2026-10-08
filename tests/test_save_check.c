@@ -18,6 +18,7 @@
 #include "game/ui.h"
 #include "game/ui_zone.h"
 #include "game/ui_button.h"
+#include "game/visual_random.h"
 #include "p8/assets.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
@@ -214,16 +215,21 @@ static int is_particle_pixel(const probe_t *probe, int x, int y) {
 
 static void test_hidden_particles_change_pixels_only(void) {
     uint32_t seed = p8_fixed_rnd_state();
+    uint32_t visual_seed = visual_random_state();
     uint32_t hidden_rnd;
+    uint32_t hidden_visual;
     probe_t *probe;
     int differing = 0;
 
     play_probe_game(seed, 1);
     hidden_rnd = p8_fixed_rnd_state();
+    hidden_visual = visual_random_state();
+    visual_random_set_state(visual_seed);
     probe = play_probe_game(seed, 0);
     memcpy(g_shown_screen, memory.screen, sizeof g_shown_screen);
 
-    assert(p8_fixed_rnd_state() == hidden_rnd && "hiding particles draws no random number");
+    assert(p8_fixed_rnd_state() == hidden_rnd && "hiding particles draws no game number");
+    assert(visual_random_state() == hidden_visual && "hiding particles draws no visual number");
     if (save_check_compare(&g_first, &g_second, g_report, sizeof g_report) != 0) {
         fprintf(stderr, "test_save_check: %s\n", g_report);
         assert(0 && "hiding particles changes no state");

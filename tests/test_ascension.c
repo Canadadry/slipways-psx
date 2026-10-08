@@ -69,8 +69,8 @@ static int pos_copies(const vec_t *ra, vec_t mp) {
 #define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define BUILT_HASH 0xA5EBBBC3u
-#define LIFE_HASH 0xCC266A25u
-#define HEIRS_HASH 0x2E00DEDDu
+#define LIFE_HASH 0x25450044u
+#define HEIRS_HASH 0x45C774C4u
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
  * frozen hashes fold: any other value moves every *_HASH. */

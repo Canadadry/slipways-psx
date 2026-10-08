@@ -35,7 +35,7 @@ on y=60, y58-62 on x=80, the centre pixel undrawn).
 `make state` at f47: clock year 3401 month 1, credits 100, research 0,
 income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
 structures 0, techs 0; every planet unknown. The galaxy is a new one:
-p1 is at world (184, 122.26), not at pad_probe's (280.44, 129.19).
+p1 is at world (336.35, 334.88), not at pad_probe's (130.25, 273.95).
 
 f0-47 are the 48-frame version of this file verbatim: its capture is the
 first 48 frames of this one, byte for byte. The hovered row is read here

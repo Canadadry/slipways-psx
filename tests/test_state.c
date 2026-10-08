@@ -156,18 +156,18 @@ static void save_hex_writes_the_stored_record(void) {
 static void pad_tech_costs_rich_mine(void) {
     remove(SAVE_HEX);
     replay("SAVE_HEX=" SAVE_HEX " " REPLAY_TO("tests/e2e/pad_tech_costs.json", SAVE_OUT));
-    assert(has("difficulty reasonable") && "pad_title's prefix: Down, X on reasonable");
-    assert(has("count nodes 91") && "91 planets, no structure, no protostar");
+    assert(has("difficulty reasonable") && "the title: Down, X on reasonable");
+    assert(has("count nodes 90") && "90 planets, no structure, no protostar");
     save_hex_writes_the_stored_record();
-    assert(has("count planets 91"));
+    assert(has("count planets 90"));
     assert(has("count slipways 6"));
-    assert(has("count colonies 6") && "p7, p12, p14, p39 and the two labs");
+    assert(has("count colonies 6") && "p1, p31, p37, p54 and the two labs");
     assert(has("count structures 0"));
-    assert(has("planet p12 colonized planet e world 233.44 221.10 screen 79.44 39.10 visible 1"));
-    assert(has("planet p2 unknown planet - world 25.45 343.24 screen -128.54 161.24 visible 0"));
-    assert(has("slipway p39 p12 normal"));
-    assert(has("slipway s2 p12 normal"));
-    assert(has("camera world 154 182"));
+    assert(has("planet p31 colonized planet e world 223.89 276.36 screen 96.89 42.36 visible 1"));
+    assert(has("planet p2 unknown planet - world 159.28 30.36 screen 32.28 -203.63 visible 0"));
+    assert(has("slipway p54 p31 normal"));
+    assert(has("slipway s2 p31 normal"));
+    assert(has("camera world 127 234"));
     assert(has("techs space folding"));
     assert(has("techs xenofoods"));
     assert(strstr(text, "stopped") == NULL && "a replay that runs to the end writes no stop line");
@@ -178,14 +178,14 @@ static void pad_tech_costs_rich_mine(void) {
 
 #define CHEAT_CUT "tmp/test_state_cheat.json"
 
-/* pad_research cut after f32, the frame its cheat fires: 99 science, $200 at
+/* pad_research cut after f44, the frame its cheat fires: 99 science, $200 at
  * the last frame. */
 static void pad_research_cheat(void) {
     p8_input_t input;
     p8_input_init(&input);
     assert(p8_input_load(&input, "tests/e2e/pad_research.json"));
-    assert(input.frame_count > 33);
-    assert(p8_input_save(input.frames, 33, CHEAT_CUT));
+    assert(input.frame_count > 45);
+    assert(p8_input_save(input.frames, 45, CHEAT_CUT));
     p8_input_free(&input);
     replay(REPLAY(CHEAT_CUT));
     assert(strstr(text, "\nresources credits 200\n") != NULL);

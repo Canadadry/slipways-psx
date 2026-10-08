@@ -282,7 +282,7 @@ void save_load_world(const save_state_t *state) {
     }
     /* A protostar's constructor bursts; the save never holds a burst. */
     remove_bursts();
-    /* Before the slipways: the probe and infraspace slipways share a layer and both draw from the RNG. */
+    /* Before the slipways: the probe and infraspace slipways share a layer, drawn in registration order. */
     if (state->has_probe) {
         load_probe(&state->probe);
     }

@@ -43,12 +43,13 @@ the clock from `make state` of the file cut after that frame.
   pixels (57, 38) and (58, 39), already there at f72. f89: X
   released: nothing is charged and no month passes. f90: the label is
   gone.
-- The same file replayed by the build of 85399b1~1 (the commit before
-  "draw no anchor line for a fold without an anchor") differs from
-  this capture on f73-89 only, by 33 or 34 colour-1 pixels each, all
-  on that diagonal: (28, 9), (29, 10) ... (49, 30), (60, 40) ...
-  (70, 50) and (77, 57) on f80, the line drawn toward world (0, 0)
-  that the user saw. The f0-72 frames are identical.
+- When the fix landed, the same file replayed by the build of
+  85399b1~1 (the commit before "draw no anchor line for a fold without
+  an anchor") differed from the capture of that time on f73-89 only,
+  by 33 or 34 colour-1 pixels each, all on that diagonal: (28, 9),
+  (29, 10) ... (49, 30), (60, 40) ... (70, 50) and (77, 57) on f80,
+  the line drawn toward world (0, 0) that the user saw. The f0-72
+  frames were identical.
 
 `make state` at f64: clock year 3403 month 1, credits 100, research 2,
 income 0, camera world 176 196, planets 90, colonies 0, slipways 0,

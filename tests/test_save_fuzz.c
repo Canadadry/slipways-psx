@@ -241,7 +241,7 @@ static int fuzz_game(const char *path, int cores) {
                 oldest = (oldest + 1) % CHILDREN_CAP;
                 live--;
             }
-            /* Forked before cart_draw: the record holds the end-of-update RNG state and drawing consumes the RNG. */
+            /* Forked before cart_draw, right after the update whose end wrote the record. */
             children[(oldest + live) % CHILDREN_CAP] = start_child(frame);
             children[(oldest + live) % CHILDREN_CAP].size = size;
             live++;

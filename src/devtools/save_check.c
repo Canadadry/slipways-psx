@@ -169,7 +169,7 @@ void save_check_capture_screen(save_check_snapshot_t *out) {
     assert(save_check_screen_comparable() && "compared screen: a message box, panel, menu or the pause menu is open");
     assert(particle_pixels_hidden() && "save_check: the frame was drawn with particles shown; call save_check_hide_particles(1) before it");
     assert(particle_zone_live(PARTICLE_SLOT_BURST) == 0 &&
-           "save_check: a burst is live and draws from the RNG every frame, so the compared frames desync");
+           "save_check: a burst is live and the save never holds one, so the compared frames differ");
     memcpy(out->screen, dispatch_context_mem()->screen, sizeof out->screen);
     out->has_screen = 1;
 }

@@ -9,6 +9,7 @@
 #include "game/planet.h"
 #include "game/slipway.h"
 #include "game/ui.h"
+#include "game/visual_random.h"
 #include "engine/vec.h"
 #include "game/particle.h"
 #include "game/particle_zone.h"
@@ -25,8 +26,8 @@ void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_
     if (self == NULL) {
         return;
     }
-    /* The random draw must stay before the served planets test, or the RNG desynchronises. */
-    if (p8_fixed_rnd_default() >= P8_FIXED_LIT(0x0000147a, 0.08)) {
+    /* The visual draw must stay before the served planets test, or the visual stream desynchronises. */
+    if (visual_random_draw_one() >= P8_FIXED_LIT(0x0000147a, 0.08)) {
         return;
     }
 

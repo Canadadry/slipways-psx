@@ -2,7 +2,9 @@
  * is replayed from boot to a save frame, then forked: run A (the parent)
  * goes on as is, run B (the child) first drops the state a save never holds
  * (save_check_drop_unsaved_state). Both play the same following frames and
- * rnd_state is compared after each one. */
+ * rnd_state, the game stream, is compared after each one. The draws the
+ * drop could disturb (particles, bursts, transit dots) are on the visual
+ * stream, so run A's visual stream must move over the window. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -35,6 +37,7 @@
 #include "game/planet_family.h"
 #include "game/probe.h"
 #include "game/research.h"
+#include "game/visual_random.h"
 
 #define RECORDING "tests/e2e/pad_colonise.json"
 #define WINDOW_CAP 128
@@ -43,7 +46,7 @@ typedef struct {
     const char *name;
     int save_frame;
     int last_frame;
-    int harvest_p12;
+    int harvest_p25;
 } probe_case_t;
 
 static p8_vram_t memory;
@@ -136,25 +139,26 @@ static void assert_save_frame_conditions(void) {
     assert(!pause_menu_shown() && "save frame: the pause menu is open");
 }
 
-static void apply_harvest_to_p12(void) {
-    planet_t *p12 = planet_named("p12");
+static void apply_harvest_to_p25(void) {
+    planet_t *p25 = planet_named("p25");
 
-    assert(p12 != NULL);
-    assert(p12->header.state == ENTITY_STATE_KNOWN && "p12 is known at f98");
-    assert(!planet_is_colonized(p12) && p12->slipways.count == 0);
-    assert(entity_geom_is_on_screen(&p12->header));
+    assert(p25 != NULL);
+    assert(p25->header.state == ENTITY_STATE_KNOWN && "p25 is known at f98");
+    assert(!planet_is_colonized(p25) && p25->slipways.count == 0);
+    assert(entity_geom_is_on_screen(&p25->header));
     assert(first_burst() == NULL);
-    planet_apply_project(p12, harvest_recipe());
+    planet_apply_project(p25, harvest_recipe());
 }
 
 static int window_length(const probe_case_t *c) {
     return c->last_frame - c->save_frame;
 }
 
-static void run_window(const probe_case_t *c, uint32_t *states) {
+static void run_window(const probe_case_t *c, uint32_t *states, uint32_t *visual_states) {
     for (int frame = c->save_frame + 1; frame <= c->last_frame; frame++) {
         play_frame(frame);
         states[frame - c->save_frame - 1] = p8_fixed_rnd_state();
+        visual_states[frame - c->save_frame - 1] = visual_random_state();
     }
 }
 
@@ -180,8 +184,11 @@ static void write_all(int fd, const void *buffer, size_t size) {
 static int run_case(const probe_case_t *c) {
     uint32_t states_a[WINDOW_CAP];
     uint32_t states_b[WINDOW_CAP];
+    uint32_t visual_a[WINDOW_CAP];
+    uint32_t visual_b[WINDOW_CAP];
     int n = window_length(c);
     uint32_t at_save;
+    uint32_t visual_at_save;
     int fds[2];
     pid_t run_b;
     int status;
@@ -192,8 +199,8 @@ static int run_case(const probe_case_t *c) {
     for (int frame = 0; frame <= c->save_frame; frame++) {
         play_frame(frame);
     }
-    if (c->harvest_p12) {
-        apply_harvest_to_p12();
+    if (c->harvest_p25) {
+        apply_harvest_to_p25();
         assert(first_burst() != NULL && !first_burst()->is_dead && "burst case: a live burst at the save frame");
         assert(entity_geom_is_on_screen(first_burst()) && "burst case: the burst is on screen at the save frame");
     } else {
@@ -204,6 +211,7 @@ static int run_case(const probe_case_t *c) {
     }
     assert_save_frame_conditions();
     at_save = p8_fixed_rnd_state();
+    visual_at_save = visual_random_state();
 
     assert(pipe(fds) == 0);
     fflush(stdout);
@@ -212,19 +220,19 @@ static int run_case(const probe_case_t *c) {
     if (run_b == 0) {
         close(fds[0]);
         save_check_drop_unsaved_state();
-        run_window(c, states_b);
+        run_window(c, states_b, visual_b);
         write_all(fds[1], states_b, (size_t)n * sizeof states_b[0]);
         close(fds[1]);
         _exit(0);
     }
     close(fds[1]);
-    run_window(c, states_a);
+    run_window(c, states_a, visual_a);
     read_all(fds[0], states_b, (size_t)n * sizeof states_b[0]);
     close(fds[0]);
     assert(waitpid(run_b, &status, 0) == run_b && WIFEXITED(status) && WEXITSTATUS(status) == 0);
 
-    assert(states_a[n - 1] != at_save && "run A's rnd_state never moved over the window");
-    if (c->harvest_p12) {
+    assert(visual_a[n - 1] != visual_at_save && "run A's visual stream never moved over the window");
+    if (c->harvest_p25) {
         assert(live_burst_count() == 0 && "burst case: the burst outlives the window");
     }
 

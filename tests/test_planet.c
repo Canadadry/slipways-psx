@@ -22,6 +22,7 @@
 #include "game/economy.h"
 #include "game/economy_formulas.h"
 #include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "game/help.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
@@ -39,6 +40,7 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 #include "game/ui_zone.h"
+#include "game/visual_random.h"
 
 static const vec_t *pos_ref(const entity_t *e) {
     return entity_has_pos(e) ? &e->pos : NULL;
@@ -585,6 +587,28 @@ static void test_update_vanishing(void) {
     check_int("update_vanishing_calls", calls, UPDATE_VANISHING_CALLS);
 }
 
+/* The flicker of a vanishing planet on screen is visual only: its roll
+ * draws from the visual stream and leaves the game stream where it was. */
+static void test_vanishing_flicker_draws_from_the_visual_stream(void) {
+    planet_keys_t keys;
+    planet_t *a;
+    uint32_t game;
+    uint32_t visual;
+
+    start_game();
+    keys = planet_keys_at("p902", 0, 0);
+    keys.pos = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    a = planet_new(&keys);
+    assert(entity_geom_is_on_screen(&a->header));
+    entity_set_state(&a->header, ENTITY_STATE_VANISHING);
+    a->header.state_time = p8_fixed_from_int(40);
+    game = p8_fixed_rnd_state();
+    visual = visual_random_state();
+    planet_draw(&graphics, &memory, a, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    assert(p8_fixed_rnd_state() == game && "the vanishing flicker draws no game number");
+    assert(visual_random_state() != visual);
+}
+
 /* The production of a planet that never ran planet_install_project is the
  * class's shared one: an in-place write to it is seen by every such planet
  * and by the class, until the next planet_init() puts it back to zero. */
@@ -903,6 +927,7 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
+    in_fresh_child(test_vanishing_flicker_draws_from_the_visual_stream);
     in_fresh_child(test_galaxy);
     in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);

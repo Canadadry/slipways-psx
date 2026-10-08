@@ -6,63 +6,65 @@ crosses a planet refused, a slipway built, the same slipway refused, a
 fold held on its middle from plain free mode and abandoned, a year with
 the slipway. 345 frames.
 
-f0-68 are pad_probe's frames verbatim (title, starting probe, fold, p12
-and p14 turning known at f68), so the galaxy and pad_probe.txt's planet
-list apply; pad_probe's idle f69-76 are dropped. Readings below come
+f0-68 are pad_probe's frames verbatim (title, starting probe, fold, p25
+and p47 turning known at f63 and f65), so the galaxy and pad_probe.txt's
+planet list apply; pad_probe's idle f69-76 are dropped. Readings below come
 from the framebuffer dump and `make state` of the file cut after that
 frame.
 
-- f0-68: as pad_probe. After f68: camera (164, 184), $97, month 2, p12
-  (type e) and p14 (type o) known.
-- f69-86: Down held 18 frames, camera y 184 -> 210. p14 is drawn round
-  screen (78, 59), under the centre cursor: the colour-7 crosshair
-  (x78-82 on y=60, y58-62 on x=80, the centre pixel undrawn) marks it.
-  Pad mode draws no cursor sprite on any frame.
-- f88: triangle on p14: its menu opens beside the planet (colour-5
-  header box from x=77, y=59), with the colonise row below it at y70-80
+- f0-68: as pad_probe. After f68: camera (188, 184), $97, month 2, p25
+  (type f) and p47 (type r) known.
+- f69-84: Down+Right 2, Down 14, camera (188, 184) -> (190, 206);
+  f85-86 idle. p47 is drawn round screen (80, 60), under the centre
+  cursor: the colour-7 crosshair (x78-82 on y=60, y58-62 on x=80, the
+  centre pixel undrawn) marks it. Pad mode draws no cursor sprite on
+  any frame.
+- f88: triangle on p47: its menu opens beside the planet (colour-5
+  header box from x=79, y=59), with the colonise row ("strip") below it
   and two more rows below that. Focus starts on the header (row 0, no
   click): the cursor point is inside it. The crosshair is gone from
   f88: no crosshair under a panel.
-- f92: Down: the colonise row turns colour 12.
-  f94: Down: the next row (y81-91) turns colour 12.
-  f96: Up: back on the colonise row in colour 12.
-- f98: X on the colonise row: p14 colonised, $97 -> $87, month 2 -> 5.
+- f92: Down: the colonise row turns colour 12 (x80-131, y70-77 as the
+  menu slides in).
+  f94: Down: the next row (y81-89) turns colour 12.
+  f96: Up: back on the colonise row in colour 12 (y71-79).
+- f98: X on the colonise row: p47 colonised, $97 -> $92, month 2 -> 5.
   The menu is gone on the same frame and the colony ring (colour 2,
   radius ~6) circles the planet.
-- f99-134: idle, network mode on p14. No crosshair on any of these
+- f99-134: idle, network mode on p47. No crosshair on any of these
   frames. The colour-7 circle of radius 9 round the planet shows at
   f99-114, is gone at f115-130, and shows again at f131-134.
 - f135: triangle again on the colony; its inspection panel opens on the
-  f136 release (colour-5 panel x77-141, y59-83). The circle is hidden
+  f136 release (colour-5 panel x79-142, y59-78). The circle is hidden
   while the panel is open; the cursor point is on the planet on
   f135-136, the click's two frames, with nothing drawn there.
 - f139: O closes the panel. f139-145: no crosshair, and the circle
   shows from f139, its blink restarted when the panel closed.
-- f146: square on p14: free mode with p14 as the starting planet, the
-  camera centres on it, (164, 210) -> (162, 209), and the pad presses
-  p14. From f147 the ui holds the slipway dragged out of it, the left
+- f146: square on p47: free mode with p47 as the starting planet, the
+  camera centres on it, (190, 206) -> (190, 205), and the pad presses
+  p47. From f147 the ui holds the slipway dragged out of it, the left
   button held at the centre; the crosshair is back.
-- f147-154: Up, camera (162, 209) -> (162, 201), p14 at screen (80.70,
-  68.68). f154: the colour-1 dragged line runs from p14 up to the
+- f147-154: Up, camera (190, 205) -> (190, 197), p47 at screen (80.24,
+  68.75). f154: the colour-1 dragged line runs from p47 up to the
   crosshair (x81-82 at y59 and y61 outside the crosshair) with the
   colour-8 cost label above it (x76-82, y52-56).
 - f155: square again: the drag is dropped on nothing (the slipway's own
   null drop) and free mode is plain, no starting planet. Camera still
-  (162, 201): against f154, the label and the line pixels are gone, and
-  nothing else changes but the probe's particles. $87, month 5,
+  (190, 197): against f154, the label and the line pixels are gone, and
+  nothing else changes but the probe's particles. $92, month 5,
   slipways 0. No drag starts again.
-- f156-171: X held 16 frames on empty space (centre world (242, 261)):
+- f156-171: X held 16 frames on empty space (centre world (270, 257)):
   a probe exists, so the background press starts a fold, its colour-1
   disk growing round the crosshair with the colour-8 price "3" above it
-  (x76-82, y52-56). f172: X released: the fold is confirmed, $87 ->
-  $84, month 5 -> 6. No planet turns known.
-- f173: circle: network mode back on p14, the planet square left, the
-  camera (162, 201) -> (162, 209), p14 at screen (80.70, 60.68); the
-  crosshair is gone. f174: the colour-7 circle round p14 shows again.
+  (x76-82, y52-56). f172: X released: the fold is confirmed, $92 ->
+  $89, month 5 -> 6. No planet turns known.
+- f173: circle: network mode back on p47, the planet square left, the
+  camera (190, 197) -> (190, 205), p47 at screen (80.24, 60.75); the
+  crosshair is gone. f174: the colour-7 circle round p47 shows again.
 
-`make state` at f174: clock year 3401 month 6, credits 84, income -1,
-camera world 162 209, planets 90, colonies 1, slipways 0, structures
-0, techs 0. p14 colonized type o, p12 known type e; every other planet
+`make state` at f174: clock year 3401 month 6, credits 89, income -1,
+camera world 190 205, planets 90, colonies 1, slipways 0, structures
+0, techs 0. p47 colonized type r, p25 known type f; every other planet
 unknown.
 
 keyboard_slipway after its first colony (its file cut at f92): clock
@@ -74,7 +76,7 @@ The galaxies differ: the galaxy depends on the frame the game starts,
 keyboard_slipway clicks the title at f1 and a pad title needs the rows
 first (X at f12). The pairing compares the colony's cost and clock
 effect, not planet ids: both colonies are charged from the menu's
-colonise row ($10 for this type o planet, $5 for keyboard_slipway's
+colonise row ($5 for this type r planet and for keyboard_slipway's
 type m) and both take the clock from month 2 to 5.
 
 f146-174 have no keyboard_slipway counterpart: it had no free mode to
@@ -88,32 +90,36 @@ Slipway rules, f175-344 (remove-mouse-mode PRD, chunk 5; appended here
 to share the colony instead of a separate pad_slipway_rules file).
 Every capture frame up to f174 is unchanged, byte for byte.
 
-- f175, f177: square twice, plain free mode. f179-207: Up+Left 9, Up
-  20: camera 153 161, p12 under the centre. f208-213: triangle, Down, X
-  on "hiveworld": p12 colonised, $84 -> $79, month 6 -> 9.
-- f215: square: the drag from p12. f217-257: Down+Right 12, Down 29:
-  camera 167 235, the centre 25 px beyond p14. f257: the colour-2 line
-  crosses p14, which gets the hatched disk, and the forbidden sign.
+- f175, f177: square twice, plain free mode. f179-201: Up+Right 10, Up
+  13, then idle f202-207: camera 200 169, p25 under the centre.
+  f208-213: triangle, Down, X on "nanotech": p25 colonised, $89 -> $81,
+  month 6 -> 9.
+- f215: square: the drag from p25. f217-251: Down+Left 13, Down 22,
+  then idle f252-257: camera 184 229, the centre 24 px beyond p47.
+  f257: the colour-2 line crosses p47, which gets the hatched disk, and
+  the forbidden sign.
 - f258: X on empty space: the drag is dropped there and refused,
-  nothing built ($79, slipways 0); f259-260 the background press is a
-  fold, its "3$" price drawn, released before 15 ticks and abandoned.
-  The drag from p12 is back from f261.
-- f261-278: Up+Left 4, Up 14: p14 under the centre. f279: X:
-  `slipway p12 p14`, $79 -> $71, month 9 -> 10; network mode on p14.
-- f281: square: the drag from p14. f283-311: Up+Left 9, Up 20: p12
-  under the centre; f311 the line and the existing slipway are colour
-  2, the forbidden sign above. f312: X: refused, $71, slipways 1. The
-  drag from p14 is back.
-- f315-331: Down+Right 5, Down 12: camera 158 185, the centre on the
-  slipway's middle. f332: square: plain free mode, the slipway colour 1
-  again. f334-336: X held 3 frames: a fold press whose target is the
-  slipway (the slipway colour 2, a line from the probe to the centre);
-  released at f337, under 15 ticks: abandoned, nothing charged.
-- f338-342: R1 R1, X on `end turn`: year 3402, $71 -> $69, income -2.
+  nothing built ($81, slipways 0); f259-260 the background press is a
+  fold, its "3$" price drawn (x76-82, y52-56), released before 15 ticks
+  and abandoned. The drag from p25 is back from f261 (camera 185 228).
+- f261-277: Up+Right 6, Up 11, idle f278: p47 under the centre. f279:
+  X: `slipway p25 p47`, $81 -> $76, month 9 -> 10; network mode on p47.
+- f281: square: the drag from p47. f283-305: Up+Right 10, Up 13, idle
+  f306-311: p25 under the centre; f311 the line and the existing
+  slipway are colour 2, the forbidden sign above. f312: X: refused,
+  $76, slipways 1. The drag from p47 is back.
+- f315-328: Down+Left 5, Down 9, idle f329-331: camera 195 187, the
+  centre on the slipway's middle. f332: square: plain free mode, the
+  slipway colour 1 again. f334-336: X held 3 frames: a fold press
+  whose target is the slipway (the slipway colour 2: 71 colour-2
+  pixels against 40 at f333); released at f337, under 15 ticks:
+  abandoned, nothing charged.
+- f338-342: R1 R1, X on `end turn`: year 3402, $76 -> $79, income 3
+  (the strip's ore feeds the nanotech colony).
 
-`make state` at f344: year 3402 month 1, credits 69, research 1, income
--2, camera 158 185, `slipway p12 p14 normal`, p12 colonized type e, p14
-colonized type o, planets 90, colonies 2, slipways 1.
+`make state` at f344: year 3402 month 1, credits 79, research 1, income
+3, camera 195 187, `slipway p25 p47 normal`, p25 colonized type f, p47
+colonized type r, planets 90, colonies 2, slipways 1.
 
 Replaces slipway_refused and slipway_build (mouse, deleted in the
 remove-mouse-mode PRD: two colonies; a drag across the second one

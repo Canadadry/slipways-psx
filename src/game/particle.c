@@ -11,6 +11,7 @@
 #include "game/particle_zone.h"
 #include "game/planet.h"
 #include "game/probe.h"
+#include "game/visual_random.h"
 
 typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
 
@@ -106,7 +107,7 @@ void emitter_spawn(entity_t *self, p8_fixed_t n) {
     emitter = emitter_of(self);
     qy = emitter != NULL && (emitter->has & EMITTER_HAS_PARTICLES) ? &emitter->particles : NULL;
 
-    while (p8_fixed_rnd_default() < n) {
+    while (visual_random_draw_one() < n) {
         if (qy != NULL && self->class->spawn_particle != NULL) {
             pointer_list_add(qy, self->class->spawn_particle(self));
             particle_zone_record_elements(emitter->particles_slot_kind, qy->count);
