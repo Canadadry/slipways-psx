@@ -7,7 +7,7 @@ leaves it for plain free mode, the camera unmoved, as games started
 before it. Every frame is the one this file had without it.
 
 The fixture is cut, never typed, from pad_research replayed to its last
-frame (f576), whose last record is the save of its last action (the
+frame (f457), whose last record is the save of its last action (the
 "end turn" to year 3403; no wormhole lives at the end, the record is
 written):
 
@@ -37,7 +37,7 @@ challenging y75-83, tough y86-94), the crosshair at (78, 60) and
 - f10: Up: "resume" colour 12, forgiving back to 13 (f10-11).
 - f12: X on "resume": the title rows are gone on f12, the game is
   resumed during that frame's update; the crosshair is back from f13,
-  centred on the slipgate s2 (the camera of the record).
+  on the camera of the record (176 209).
 - f13-47: idle in free mode on the resumed map.
 
 Check 1 (the fixture decodes):
@@ -51,7 +51,7 @@ Check 2 (the frame-0 replay shows the saved game), `make state` at f47:
 clock year 3403 month 1, difficulty reasonable, credits 122, count
 nodes 92, the four `save:` lines above. Also: research 39, income 23,
 techs space folding, geneseeds, slipgates, trade league, starbirth;
-camera world 176 220; p78 colonized f, p23 colonized o, p47 colonized
+camera world 176 209; p78 colonized f, p23 colonized o, p47 colonized
 protostar, s1 colonized trading_hub, structure s2 slipgate links 3;
 slipways s1 p23, s2 s1, p78 s2, p47 s2; planets 91, colonies 4,
 slipways 4, structures 1, techs 5. The camera is the record's, not
