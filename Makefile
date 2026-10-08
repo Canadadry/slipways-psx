@@ -223,6 +223,7 @@ ENGINE_SRCS := \
     src/game/galaxy.c \
     src/game/game_data.c \
     src/game/gen.c \
+    src/game/visual_random.c \
     src/engine/geom.c \
     src/p8/gfx.c \
     src/game/help.c \
@@ -494,6 +495,9 @@ $(TMP_DIR)/test_button: $(call objs,tests/test_button.c tests/heap_allocator.c $
 $(TMP_DIR)/test_planet: $(call objs,tests/test_planet.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_visual_random: $(call objs,tests/test_visual_random.c src/game/visual_random.c src/p8/fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_gen: $(call objs,tests/test_gen.c tests/heap_allocator.c src/game/gen.c src/game/game_data.c src/p8/fixed.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -730,6 +734,7 @@ UNIT_TESTS := \
     test_button \
     test_planet \
     test_gen \
+    test_visual_random \
     test_save_state \
     test_save_storage_memory \
     test_save_storage_file \
