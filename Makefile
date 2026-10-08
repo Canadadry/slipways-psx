@@ -2,8 +2,8 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + pointer-guard + data-guard + p8-guard,
-#                       the fast loop
+#                       alloc-guard + pointer-guard + random-guard +
+#                       data-guard + p8-guard, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -144,6 +144,14 @@
 #                       finds for them) for any floating-point type or call,
 #                       the rest of src/ excluded by
 #                       tools/float_grep_exclusions.txt, in make test
+# make random-guard  -> counts, per file of src/, the names of the game
+#                       stream (p8_fixed_rnd*, p8_fixed_set_rnd_state), of
+#                       the generator on a caller's state
+#                       (p8_fixed_rnd_from_state) and of the visual stream
+#                       (visual_random_draw*), comments and strings left
+#                       out; fails on any difference from
+#                       tools/random_guard_exceptions.txt (strict counts,
+#                       updated by hand), in make test
 # make float-link    -> links the objects of tmp/replay without `-lm` into a
 #                       throwaway binary, never run; outside the suite: make
 #                       test already builds tmp/replay, with the same link
@@ -434,6 +442,9 @@ $(TMP_DIR)/test_pointer_guard: $(call objs,tests/test_pointer_guard.c) tools/poi
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_grep.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_random_guard: $(call objs,tests/test_random_guard.c) tools/random_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
@@ -743,6 +754,7 @@ UNIT_TESTS := \
     test_alloc_guard \
     test_pointer_guard \
     test_float_grep \
+    test_random_guard \
     test_float_link \
     test_constants_check \
     test_background_draw \
@@ -867,7 +879,7 @@ endif
 replay: $(TMP_DIR)/replay
 	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -1121,6 +1133,13 @@ float-grep: tools/float_grep.sh $(FLOAT_GREP_EXCLUSIONS)
 	@sh tools/float_grep.sh "$(CC)" "$(CFLAGS)" $(FLOAT_GREP_EXCLUSIONS) src $(CORE_SRCS)
 
 .PHONY: float-grep
+
+RANDOM_GUARD_EXCEPTIONS := tools/random_guard_exceptions.txt
+
+random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS)
+	@sh tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS) src
+
+.PHONY: random-guard
 
 float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh
 	@sh tools/float_link.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-link/replay $(call objs,$(REPLAY_SRCS))
