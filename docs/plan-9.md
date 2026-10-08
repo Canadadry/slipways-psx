@@ -60,3 +60,14 @@ Done: `tools/psx_sources.txt` (single list of URLs and pins) and `make psx-net-c
 Hosts: `github.com`, `release-assets.githubusercontent.com`, `psx.arthus.net`, `archive.ubuntu.com`, `security.ubuntu.com`.
 
 Deviations: the network was never opened by the human. GitHub git clones and release downloads (via `release-assets.githubusercontent.com`) work through the session proxy; GitHub web/API pages and `distrib.app.pcsx-redux.consoledev.net` (PCSX-Redux prebuilts) do not, so the emulator is built from source (~8.5 min on 4 cores in the PRD's trial). "Prebuilt" holds for GCC. Rejected: DuckStation (many hosts, no headless pad scripting), Mednafen and MAME (need a Sony BIOS), PCSX-Reloaded (needs a display). The PRD's trial already saw headless TTY output, identical CD captures and a different no-disc capture; scripted pad input (Lua `setOverride`) is untried. No `guideline` decisions.
+
+### Step 1.2
+
+Done: `make psx-emulator-setup` (`tools/install_psx_emulator.sh`), `make psx-boot` (`tools/psx_boot.sh`, `tools/psx_capture.lua`), `make psx-emulator-check` (`tools/psx_emulator_check.sh`), all outside `make test-all`.
+
+- Setup into an empty directory: exit 0 in 610 s, stamp written; re-run exits 0 at once. The emulator finds `src/mips/openbios/openbios.bin` by its own fallback (next to the binary), so the BIOS needs no placement.
+- Boot: `-cli -stdout -softgpu -interpreter -run` plus `-loadexe`/`-iso` and a Lua `-dofile` that writes the capture at frame `PSX_FRAMES` (600) and quits; each boot in a throwaway HOME. Capture format: `psx-vram <w> <h> <16|24>\n` then the raw `PCSX.GPU.takeScreenShot()` bytes. A 600-frame boot takes ~11 s (real-time pace).
+- The TTY file also holds emulator log lines with per-boot temp paths: never compare TTY files whole, only grep them.
+- Check: exit 0 in ~55 s. exe captures `c9b5ccda…` ×2 (test-all draws nothing: all-zero but deterministic); known line in the exe TTY; BuzzyBee 320×240 `23cd1099…` ×2; empty boot 640×478 `d5b36d08…`, different.
+- Scripted pad input works headless and deterministically: `PCSX.SIO0.slots[1].pads[1].setOverride(PCSX.CONSTS.PAD.BUTTON.CROSS)` / `clearOverride` from the `GPU::Vsync` listener changed BuzzyBee's screen, same capture over two runs. Trial only, nothing committed.
+- Deviations: the check also prints one `ok` line per passing condition. No `guideline` decisions.
