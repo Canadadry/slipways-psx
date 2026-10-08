@@ -101,3 +101,7 @@ Done: `make psx-hello-e2e` and `make psx-hello-e2e-baseline` (both depend on `ps
 - Hand-tested: missing/malformed reference, missing/empty capture, wrong argument count; a failing proof stops make before any comparison; `PSX_FRAMES=10` fails in 0.4 s with no boot.
 - `make test` and `make e2e` pass, no `tests/e2e/*.sha256` changed.
 - Deviation: the frame guard is a separate prerequisite target (a recipe line ran after the proof had already failed). Verification reused the existing installs. No `guideline` decisions.
+
+### Step 2.4
+
+Done: `docs/psx-hello-world.md` rewritten at the same path (pointers in CLAUDE.md and `psx-hello/CMakeLists.txt` stay valid): what psx-hello is, sources and network, setup, build, boot and capture, the four checks, traps, still to do (pad mapping unchecked; scripted pad input only trialled). Dropped the GCC-from-source build, `--no-ui`, other emulators' advice and the `elf2x` trap (did not occur with 0.24). No hash values in the doc. Cross-checked: every named target is in `.PHONY`, every path exists or is gitignored output, every variable is used. CLAUDE.md, README and the Makefile legend needed no change. No `guideline` decisions, no deviations.
