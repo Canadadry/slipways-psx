@@ -8,6 +8,7 @@
 #include "game/menu.h"
 #include "game/pad_panel.h"
 #include "game/planet.h"
+#include "game/planet_family_trade.h"
 #include "game/scroll.h"
 #include "game/slipway.h"
 #include "game/structure_icon.h"
@@ -383,11 +384,16 @@ static void leave_starting_planet(pad_nav_t *nav) {
     nav->starting_slipway = ENTITY_ID_NONE;
 }
 
+/* A refused press falls through to the background, which makes a probe or a wormhole. */
+static int takes_slipway(const entity_t *start) {
+    return !(start->class->tags & TAG(TAG_SLIPGATE)) || slipgate_takes_slipway((const planet_t *)start);
+}
+
 /* Returns whether the press went out: on the settled starting planet, whose left press hands the ui a slipway, as a
  * mouse press there. The press needs the left button up on the frame before. */
 static int begin_drag(pad_nav_t *nav, p8_input_frame_t *played) {
     entity_t *start = pad_nav_starting_planet(nav);
-    if (start == NULL || start->state != ENTITY_STATE_SETTLED || nav->left_was_down) {
+    if (start == NULL || start->state != ENTITY_STATE_SETTLED || nav->left_was_down || !takes_slipway(start)) {
         return 0;
     }
     int x, y;
@@ -567,7 +573,7 @@ static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, 
     } else if (pressed & P8_PAD_SQUARE) {
         enter_free_mode(nav, selected);
         int pressed_start = !releasing && begin_drag(nav, played);
-        assert((pressed_start || releasing || selected->state != ENTITY_STATE_SETTLED) &&
+        assert((pressed_start || releasing || selected->state != ENTITY_STATE_SETTLED || !takes_slipway(selected)) &&
                "network_step: centred, the settled planet lies clear of the HUD, so the press reaches it");
         (void)pressed_start;
     } else if (slipway == NULL || releasing) {

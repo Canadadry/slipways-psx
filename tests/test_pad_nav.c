@@ -20,6 +20,7 @@
 #include "game/message_box.h"
 #include "game/pad_panel.h"
 #include "game/planet.h"
+#include "game/planet_family_trade.h"
 #include "game/score_panel.h"
 #include "game/score_panel_display.h"
 #include "game/research.h"
@@ -1642,6 +1643,48 @@ static void test_no_drag_starts_again_while_the_hud_covers_the_starting_planet(v
     run_frame(&step, 0);
     run_frame(&step, 0);
     assert_dragging(&step, start);
+}
+
+static planet_t *full_slipgate_under_centre(input_step_t *step) {
+    planet_keys_t keys = {0};
+    keys.pos = centre_world();
+    keys.has_pos = 1;
+    keys.map_pos = vec_div(keys.pos, p8_fixed_from_int(128));
+    keys.has_map_pos = 1;
+    planet_t *gate = slipgate_new(&keys);
+    entity_set_state(&gate->header, ENTITY_STATE_SETTLED);
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    for (int i = 0; i < 3; i++) {
+        slipway_keys_t slipway_keys = { .start = entity_id_link(&gate->header) };
+        slipway_t *slipway = slipway_new(&slipway_keys);
+        slipway_connect(slipway, planets->items[i]);
+        gate->header.class->attach_slipway(&gate->header, &slipway->header);
+        planets->items[i]->class->attach_slipway(planets->items[i], &slipway->header);
+    }
+    assert(gate->slipways.count == 3);
+    pan_planet_under_centre(step, gate, 0);
+    return gate;
+}
+
+/* A full slipgate refuses a new slipway: the drag gives up, and no press reaches the background under it. */
+static void test_a_full_slipgate_as_starting_planet_presses_nothing(void) {
+    input_step_t step;
+    start_game(&step);
+    pan_to_empty_space(&step);
+    planet_t *gate = full_slipgate_under_centre(&step);
+    tap(&step, P8_PAD_TRIANGLE);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(main_ui()->ephemerals.count == 0);
+    assert_network_on(&step, gate);
+    world_count_t before = world_count();
+    run_frame(&step, P8_PAD_SQUARE);
+    for (int i = 0; i < 16; i++) {
+        assert_free_from(&step, gate);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert(ui_left_held(main_ui()) == NULL);
+        assert_world_unchanged(before);
+        run_frame(&step, 0);
+    }
 }
 
 static void test_cross_on_empty_space_drops_the_slipway_then_places_the_probe(void) {
@@ -4371,6 +4414,7 @@ int main(void) {
     in_fresh_child(test_square_in_network_mode_enters_free_mode_on_the_planet);
     in_fresh_child(test_square_in_free_mode_forgets_the_starting_planet_then_changes_nothing);
     in_fresh_child(test_square_on_a_colony_holds_its_slipway_at_the_centre);
+    in_fresh_child(test_a_full_slipgate_as_starting_planet_presses_nothing);
     in_fresh_child(test_cross_on_a_colony_builds_a_slipway_and_lands_on_it);
     in_fresh_child(test_cross_builds_from_an_off_screen_starting_planet);
     in_fresh_child(test_cross_on_a_known_planet_is_refused);

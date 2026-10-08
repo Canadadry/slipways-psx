@@ -26,6 +26,8 @@ const entity_class_t *synthesizer_class(void);
 
 planet_t *synthesizer_new(const planet_keys_t *keys);
 
+int slipgate_takes_slipway(const planet_t *self);
+
 down_t slipgate_accept_drop(const planet_t *self, const entity_t *s);
 
 down_t slipgate_left_press(planet_t *self);
