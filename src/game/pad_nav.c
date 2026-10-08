@@ -52,6 +52,15 @@ entity_t *pad_nav_hovered(const pad_nav_t *nav) {
     return nav->map_mode == PAD_NAV_MAP_JUMP ? hovered_object(nav) : NULL;
 }
 
+entity_t *pad_nav_slipway_start(const pad_nav_t *nav) {
+    return nav->map_mode == PAD_NAV_MAP_SLIPWAY ? live(entity_get(nav->slipway.start)) : NULL;
+}
+
+entity_t *pad_nav_slipway_target(const pad_nav_t *nav) {
+    entity_t *target = nav->map_mode == PAD_NAV_MAP_SLIPWAY ? entity_get(nav->slipway.target) : NULL;
+    return pad_target_is_candidate(target) ? target : NULL;
+}
+
 entity_t *pad_nav_selection(const pad_nav_t *nav) {
     return nav->map_mode == PAD_NAV_MAP_NETWORK ? live(entity_get(nav->selection)) : NULL;
 }
@@ -229,6 +238,7 @@ static void reset_map_mode(pad_nav_t *nav) {
     nav->placement = PAD_NAV_PLACEMENT_NONE;
     nav->suspended_carry = ENTITY_ID_NONE;
     clear_drag(nav);
+    pad_slipway_init(&nav->slipway);
 }
 
 static int opens_a_panel(pad_nav_tab_t tab) {
@@ -408,6 +418,38 @@ static void cancel_drag(pad_nav_t *nav) {
         ui_set_left_held(main_ui(), NULL);
     }
     clear_drag(nav);
+}
+
+/* NULL unless the ui holds a live slipway. */
+static entity_t *held_slipway(void) {
+    entity_t *held = main_ui() != NULL ? live(ui_left_held(main_ui())) : NULL;
+    return held != NULL && held->class == slipway_class() ? held : NULL;
+}
+
+static void drop_held_slipway(void) {
+    entity_t *held = held_slipway();
+    if (held != NULL) {
+        held->class->drop(held, NULL);
+        ui_set_left_held(main_ui(), NULL);
+    }
+}
+
+/* Jump mode hovering e, or nothing when e is no candidate: the jump mode reseed then runs. */
+static void back_to_jump_mode(pad_nav_t *nav, const entity_t *e) {
+    nav->map_mode = PAD_NAV_MAP_JUMP;
+    nav->jump.hovered = pad_target_is_candidate(e) ? entity_id_link(e) : ENTITY_ID_NONE;
+    pad_slipway_init(&nav->slipway);
+}
+
+/* Returns whether a slipway was held, and so dropped: nothing built or charged, jump mode back on the start. */
+static int cancel_slipway(pad_nav_t *nav) {
+    if (nav->map_mode != PAD_NAV_MAP_SLIPWAY) {
+        return 0;
+    }
+    int held = held_slipway() != NULL;
+    drop_held_slipway();
+    back_to_jump_mode(nav, pad_nav_slipway_start(nav));
+    return held;
 }
 
 /* Plain free mode: no starting planet, so no drag starts again; ○ goes back to the planet it came from. */
@@ -688,11 +730,16 @@ static int planet_menu_open(const pad_nav_t *nav) {
     return nav->tab == PAD_NAV_TAB_MAP && pad_panel_box_open() && !pause_menu_shown();
 }
 
+/* A slipway released on this frame is judged on the next: tabs and pause wait for it, as for a drag's release. */
+static int map_action_due(const pad_nav_t *nav) {
+    return drag_due(nav) || (nav->map_mode == PAD_NAV_MAP_SLIPWAY && nav->slipway.phase == PAD_SLIPWAY_RELEASED);
+}
+
 static int tabs_can_switch(const pad_nav_t *nav, int release) {
     if ((foreign_panel_open(nav) && !planet_menu_open(nav)) || release || nav->landing_due) {
         return 0;
     }
-    return nav->tab != PAD_NAV_TAB_MAP || !drag_due(nav);
+    return nav->tab != PAD_NAV_TAB_MAP || !map_action_due(nav);
 }
 
 typedef enum { CANCELLED_NOTHING, CANCELLED_STRUCTURE, CANCELLED_SLIPWAY } cancelled_t;
@@ -709,6 +756,9 @@ static cancelled_t unwind_sub_modes(pad_nav_t *nav) {
                             : dragged_slipway(nav) != NULL ? CANCELLED_SLIPWAY
                                                            : CANCELLED_NOTHING;
     cancel_drag(nav);
+    if (cancel_slipway(nav) && cancelled == CANCELLED_NOTHING) {
+        cancelled = CANCELLED_SLIPWAY;
+    }
     return_to_starting_planet(nav);
     return cancelled;
 }
@@ -944,22 +994,42 @@ static void edge_scroll(const entity_t *hovered) {
     }
 }
 
-/* Returns whether △ clicked: never while the object is still outside the inner rectangle or under a HUD item. */
-static int triangle_on_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
+/* Never while the object is still outside the inner rectangle or under a HUD item. */
+static int pressable(const entity_t *e) {
     const camera_t *camera = main_camera_typed();
     int x, y;
     if (camera == NULL) {
         return 0;
     }
-    rest_screen_point(camera, hovered, &x, &y);
+    rest_screen_point(camera, e, &x, &y);
     if (!pad_jump_inside(x, y)) {
         return 0;
     }
-    screen_point(hovered, &x, &y);
-    if (pressed_before(hovered, x, y)) {
+    screen_point(e, &x, &y);
+    return !pressed_before(e, x, y);
+}
+
+/* Returns whether △ clicked. */
+static int triangle_on_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
+    if (!pressable(hovered)) {
         return 0;
     }
     click(nav, played);
+    return 1;
+}
+
+/* Returns whether × pressed the hovered object, as the mouse does: its left press hands the ui a slipway, held from
+ * the next frame. A refused start presses nothing, and no later frame retries it. */
+static int cross_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
+    if (!pad_slipway_can_start(hovered) || !pressable(hovered) || nav->left_was_down) {
+        return 0;
+    }
+    screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
+    played->mouse_buttons = P8_MOUSE_LEFT;
+    nav->map_mode = PAD_NAV_MAP_SLIPWAY;
+    pad_slipway_init(&nav->slipway);
+    nav->slipway.start = entity_id_link(hovered);
+    nav->slipway.phase = PAD_SLIPWAY_PRESSED;
     return 1;
 }
 
@@ -974,7 +1044,7 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
     }
 }
 
-/* × and ○ do nothing here. On a click's press and release frames no jump runs and the camera and the marker wait;
+/* ○ does nothing here. On a click's press and release frames no jump runs and the camera and the marker wait;
  * the hold-repeat count keeps running through them. */
 static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, p8_input_frame_t *played,
                       const entity_t **shown) {
@@ -996,6 +1066,9 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     if (!clicking && (pressed & P8_PAD_TRIANGLE)) {
         clicking = triangle_on_hovered(nav, hovered, played);
     }
+    if (!clicking && (pressed & P8_PAD_CROSS) && cross_starts_slipway(nav, hovered, played)) {
+        return;
+    }
     if (direction != 0 && !clicking) {
         jump_from(nav, hovered, direction);
         hovered = hovered_object(nav);
@@ -1005,6 +1078,85 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         *shown = hovered;
     }
     screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
+}
+
+/* The re-press after a release, from the start the outcome left: its screen point may lie off screen. Returns whether
+ * it went out. */
+static int press_start_again(pad_nav_t *nav, const entity_t *start, p8_input_frame_t *played) {
+    if (!pad_slipway_can_start(start)) {
+        return 0;
+    }
+    int x, y;
+    screen_point(start, &x, &y);
+    if (pressed_before(start, x, y)) {
+        return 0;
+    }
+    nav->cursor_x = x;
+    nav->cursor_y = y;
+    played->mouse_buttons = P8_MOUSE_LEFT;
+    return 1;
+}
+
+/* The left button held on the aimed object is the mouse's drag, so the game draws its own line; × lets it go on the
+ * target, where the ui's drop builds or refuses. The press, release and re-press frames show no marker. */
+static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
+                         p8_input_frame_t *played, const entity_t **shown) {
+    reset_free_mode(nav);
+    nav->focus = ENTITY_ID_NONE;
+    entity_t *start = pad_nav_slipway_start(nav);
+    if (start == NULL || !planet_is_family(start)) {
+        drop_held_slipway();
+        back_to_jump_mode(nav, pad_nav_slipway_target(nav));
+        return;
+    }
+    if (nav->slipway.phase == PAD_SLIPWAY_RELEASED) {
+        pad_slipway_outcome_t outcome =
+            pad_slipway_outcome(start, entity_get(nav->slipway.target), nav->slipway.linked_before);
+        pad_slipway_rebase(&nav->slipway, outcome);
+        start = live(entity_get(nav->slipway.start));
+        if (!press_start_again(nav, start, played)) {
+            back_to_jump_mode(nav, start);
+        }
+        return;
+    }
+    if (nav->slipway.phase == PAD_SLIPWAY_PRESSED) {
+        if (held_slipway() == NULL) {
+            back_to_jump_mode(nav, start);
+            return;
+        }
+        nav->slipway.phase = PAD_SLIPWAY_HELD;
+    }
+    if (circle_returns) {
+        drop_held_slipway();
+        back_to_jump_mode(nav, start);
+        screen_point(start, &nav->cursor_x, &nav->cursor_y);
+        return;
+    }
+    int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
+    entity_t *target = pad_nav_slipway_target(nav);
+    nav->slipway.target = entity_id_link(target);
+    if ((pressed & P8_PAD_CROSS) && !release && target != NULL && pressable(target)) {
+        pad_slipway_release(&nav->slipway, pad_slipway_between(start, target) != NULL);
+        screen_point(target, &nav->cursor_x, &nav->cursor_y);
+        return;
+    }
+    if (direction != 0 && !(pressed & P8_PAD_CROSS)) {
+        entity_t *storage[JUMP_CANDIDATES_CAP];
+        entity_t *others[JUMP_CANDIDATES_CAP];
+        entity_list_t candidates, targets;
+        live_candidates(storage, &candidates);
+        (void)pad_slipway_candidates(&candidates, start, others, JUMP_CANDIDATES_CAP, &targets);
+        entity_t *picked = pad_target_pick(target != NULL ? target : start, direction, &targets);
+        if (picked != NULL) {
+            target = picked;
+            nav->slipway.target = entity_id_link(target);
+        }
+    }
+    const entity_t *aimed = target != NULL ? target : start;
+    edge_scroll(aimed);
+    screen_point(aimed, &nav->cursor_x, &nav->cursor_y);
+    played->mouse_buttons = P8_MOUSE_LEFT;
+    *shown = aimed;
 }
 
 /* *jump_ran says whether jump mode ran this frame. */
@@ -1024,8 +1176,12 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
         if (!release && !nav->release_pending) {
             *shown = pad_nav_selection(nav);
         }
+    } else if (nav->map_mode == PAD_NAV_MAP_SLIPWAY) {
+        slipway_step(nav, pad_buttons, pressed, circle_returns, release, played, shown);
+        *jump_ran = 1;
     } else {
-        assert(pad_nav_jump_mode(nav) && "map_step: drop_stale_map_mode leaves jump mode as the only other map mode");
+        assert(pad_nav_jump_mode(nav) &&
+               "map_step: drop_stale_map_mode leaves jump and slipway mode as the only other map modes");
         jump_step(nav, pad_buttons, pressed, release, played, shown);
         *jump_ran = 1;
     }
@@ -1056,7 +1212,7 @@ static int switch_tab(pad_nav_t *nav, int pressed, int release, int foreign_was_
 /* NULL when Start cannot open pause: no game, a panel up, a click half done, a drag's release acting next frame, a
  * fold held, or a tab whose own panel is due. */
 static entity_t *pause_button_free(const pad_nav_t *nav, int release) {
-    if (main_economy_typed() == NULL || pad_nav_panel_open() || release || drag_due(nav) ||
+    if (main_economy_typed() == NULL || pad_nav_panel_open() || release || map_action_due(nav) ||
         nav->cross_engaged || opens_a_panel(nav->tab)) {
         return NULL;
     }
@@ -1115,6 +1271,7 @@ static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t
         suspend_placement(nav, carried);
     } else {
         cancel_drag(nav);
+        (void)cancel_slipway(nav);
     }
     if (nav->left_was_down && !due) {
         nav->pause_due = 1;
@@ -1186,6 +1343,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     }
     if (pad_nav_panel_open()) {
         cancel_drag(nav);
+        (void)cancel_slipway(nav);
     }
     cancelled_t cancelled = CANCELLED_NOTHING;
     int jump_ran = 0;

@@ -4,9 +4,10 @@
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
 #include "game/pad_jump.h"
+#include "game/pad_slipway.h"
 #include "p8/input.h"
 
-typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_FREE, PAD_NAV_MAP_NETWORK } pad_nav_map_mode_t;
+typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_FREE, PAD_NAV_MAP_NETWORK, PAD_NAV_MAP_SLIPWAY } pad_nav_map_mode_t;
 
 typedef enum {
     PAD_NAV_TAB_MAP,
@@ -67,6 +68,7 @@ typedef struct {
     int held_frames[4];
     int cross_engaged;
     pad_jump_t jump;
+    pad_slipway_t slipway;
 } pad_nav_t;
 
 void pad_nav_init(pad_nav_t *nav);
@@ -91,6 +93,13 @@ int pad_nav_jump_mode(const pad_nav_t *nav);
 /* The hovered object while the map mode is jump, panel open or not; NULL in any other mode, when nothing is hovered,
  * or once the hovered object is no longer a pad_target_is_candidate. */
 entity_t *pad_nav_hovered(const pad_nav_t *nav);
+
+/* The slipway's start while the map mode is slipway; NULL in any other mode or once the start is dead. */
+entity_t *pad_nav_slipway_start(const pad_nav_t *nav);
+
+/* The aimed target while the map mode is slipway; NULL while aimed at the start, in any other mode, or once the
+ * target is no longer a pad_target_is_candidate. */
+entity_t *pad_nav_slipway_target(const pad_nav_t *nav);
 
 /* The focused structure icon on the build tab; NULL on every other tab or once it is no longer a revealed icon. */
 entity_t *pad_nav_build_icon(const pad_nav_t *nav);

@@ -63,9 +63,11 @@ static entity_t *title_button(const char *name) {
     return NULL;
 }
 
+static int cheats_fired;
+
 static void run_frame(input_step_t *step, int pad_buttons) {
     p8_input_frame_t raw = { 0, 0, 0, pad_buttons };
-    input_step_run(step, &raw);
+    cheats_fired += input_step_run(step, &raw);
     cart_update60();
 }
 
@@ -4989,16 +4991,18 @@ static void test_circle_in_network_mode_returns_to_jump_mode_on_that_planet(void
 
 #define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
 
-/* Four chords, one every 2 frames; returns how often the cheat fired and asserts no mouse button is played. */
-static int type_chords(input_step_t *step) {
-    int fired = 0;
+/* Four chords, one every 2 frames; returns how often the cheat fired and asserts the mouse buttons played. */
+static int type_chords_playing(input_step_t *step, int mouse_buttons) {
+    int fired = cheats_fired;
     for (int i = 0; i < 2 * CHEAT_CHORDS; i++) {
-        p8_input_frame_t raw = { 0, 0, 0, i % 2 == 0 ? CHORD : 0 };
-        fired += input_step_run(step, &raw);
-        cart_update60();
-        assert(input_step_played_frame(step)->mouse_buttons == 0);
+        run_frame(step, i % 2 == 0 ? CHORD : 0);
+        assert(input_step_played_frame(step)->mouse_buttons == mouse_buttons);
     }
-    return fired;
+    return cheats_fired - fired;
+}
+
+static int type_chords(input_step_t *step) {
+    return type_chords_playing(step, 0);
 }
 
 static void test_four_chords_on_a_hovered_colony_cheat_and_change_nothing_else(void) {
@@ -5082,6 +5086,531 @@ static void test_a_chord_places_no_probe_and_leaves_network_mode_alone(void) {
     assert_network_on(&step, planet);
     assert(type_chords(&step) == 1);
     assert_network_on(&step, planet);
+}
+
+/* The slipway mode's targets: the jump candidates minus the start. */
+static entity_t *slipway_pick(const entity_t *start, const entity_t *origin, int direction) {
+    static entity_t *storage[128];
+    static entity_t *others[128];
+    entity_list_t candidates, targets;
+    (void)pad_jump_candidates(entities_by_tag(TAG_NODE), storage, 128, &candidates);
+    (void)pad_slipway_candidates(&candidates, start, others, 128, &targets);
+    return pad_target_pick(origin, direction, &targets);
+}
+
+enum { JUMP_PATH_CAP = 128 };
+
+/* The shortest D-pad path from origin to target, through slipway_pick from start, or expected_jump when start is NULL;
+ * returns its length, -1 when none exists. */
+static int path_to(const entity_t *start, const entity_t *origin, const entity_t *target, int directions[JUMP_PATH_CAP]) {
+    static const int all[] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
+    const entity_t *seen[JUMP_PATH_CAP];
+    int parent[JUMP_PATH_CAP], via[JUMP_PATH_CAP];
+    int count = 1, head = 0;
+    seen[0] = origin;
+    parent[0] = -1;
+    while (head < count && seen[head] != target) {
+        for (int d = 0; d < 4; d++) {
+            const entity_t *next = start != NULL ? slipway_pick(start, seen[head], all[d]) : expected_jump(seen[head], all[d]);
+            int known = next == NULL;
+            for (int i = 0; i < count && !known; i++) {
+                known = seen[i] == next;
+            }
+            if (!known && count < JUMP_PATH_CAP) {
+                seen[count] = next;
+                parent[count] = head;
+                via[count++] = all[d];
+            }
+        }
+        head++;
+    }
+    if (head == count) {
+        return -1;
+    }
+    int length = 0;
+    for (int i = head; parent[i] >= 0; i = parent[i]) {
+        length++;
+    }
+    for (int i = head, k = length - 1; parent[i] >= 0; i = parent[i], k--) {
+        directions[k] = via[i];
+    }
+    return length;
+}
+
+/* Taps the path, then lets the edge scroll finish. */
+static void tap_path(input_step_t *step, const entity_t *start, const entity_t *origin, const entity_t *target) {
+    int directions[JUMP_PATH_CAP];
+    int length = path_to(start, origin, target, directions);
+    assert(length >= 0 && "tap_path: the D-pad reaches the target");
+    for (int i = 0; i < length; i++) {
+        tap(step, directions[i]);
+    }
+    hold(step, 0, 40);
+}
+
+static void hover_object(input_step_t *step, const entity_t *e) {
+    run_frame(step, 0);
+    entity_t *hovered = pad_nav_hovered(&step->pad_nav);
+    assert(hovered != NULL);
+    tap_path(step, NULL, hovered, e);
+    assert_hovering(step, e);
+}
+
+static void aim_at(input_step_t *step, const entity_t *target) {
+    entity_t *start = pad_nav_slipway_start(&step->pad_nav);
+    entity_t *aimed = pad_nav_slipway_target(&step->pad_nav);
+    assert(start != NULL);
+    tap_path(step, start, aimed != NULL ? aimed : start, target);
+    assert(pad_nav_slipway_target(&step->pad_nav) == target);
+}
+
+/* The ui holds a slipway out of start, the pad holds the left button on the aimed object. */
+static void assert_slipway_mode(const input_step_t *step, const entity_t *start, const entity_t *target) {
+    assert(!pad_nav_jump_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == NULL);
+    assert(pad_nav_slipway_start(&step->pad_nav) == start && pad_nav_slipway_target(&step->pad_nav) == target);
+    entity_t *held = ui_left_held(main_ui());
+    assert(held != NULL && held->class == slipway_class() && slipway_start((const slipway_t *)held) == start);
+    assert(input_step_played_frame(step)->mouse_buttons == P8_MOUSE_LEFT);
+    assert_cursor_on(step, target != NULL ? target : start);
+    assert(!pad_nav_free_mode(&step->pad_nav));
+}
+
+/* × on the hovered object: its press on this frame, the slipway held from the next. */
+static void start_slipway(input_step_t *step, const entity_t *start) {
+    assert_hovering(step, start);
+    run_frame(step, P8_PAD_CROSS);
+    assert(input_step_played_frame(step)->mouse_buttons == P8_MOUSE_LEFT);
+    assert_cursor_on(step, start);
+    run_frame(step, 0);
+    assert_slipway_mode(step, start, NULL);
+}
+
+/* × on the aimed target: the release there, then the re-press of the start the outcome leaves, then its hold. */
+static void cross_on_target(input_step_t *step) {
+    entity_t *target = pad_nav_slipway_target(&step->pad_nav);
+    assert(target != NULL);
+    run_frame(step, P8_PAD_CROSS);
+    assert(input_step_played_frame(step)->mouse_buttons == 0);
+    assert_cursor_on(step, target);
+    run_frame(step, 0);
+    run_frame(step, 0);
+}
+
+static p8_fixed_t slipway_cost(const entity_t *start, const entity_t *end) {
+    entity_t *slipway = slipway_between(start, end);
+    assert(slipway != NULL);
+    return ((const slipway_t *)slipway)->targeting.cost;
+}
+
+/* a, b and c settled on one row, 10 px apart: Right goes from a to b, then from b to c. */
+static void settled_row(input_step_t *step, planet_t **a, planet_t **b, planet_t **c) {
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    *a = most_isolated_planet();
+    planet_t *others[2];
+    for (int i = 0, n = 0; n < 2; i++) {
+        if (planets->items[i] != &(*a)->header) {
+            others[n++] = (planet_t *)planets->items[i];
+        }
+    }
+    *b = others[0];
+    *c = others[1];
+    place_near(*b, *a, 10, 0);
+    place_near(*c, *a, 20, 0);
+    settle_planet(step, *a);
+    settle_planet(step, *b);
+    settle_planet(step, *c);
+    main_economy_typed()->credits = p8_fixed_from_int(999);
+    assert(slipway_pick(&(*a)->header, &(*a)->header, P8_PAD_RIGHT) == &(*b)->header);
+    assert(slipway_pick(&(*b)->header, &(*b)->header, P8_PAD_RIGHT) == &(*c)->header);
+}
+
+static void test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways(void) {
+    input_step_t step;
+    planet_t *a, *b, *c;
+    start_game_in_jump_mode(&step);
+    settled_row(&step, &a, &b, &c);
+    hover_object(&step, &a->header);
+    world_count_t before = world_count();
+    start_slipway(&step, &a->header);
+    tap(&step, P8_PAD_RIGHT);
+    assert_slipway_mode(&step, &a->header, &b->header);
+    cross_on_target(&step);
+    assert_slipway_mode(&step, &b->header, NULL);
+    tap(&step, P8_PAD_RIGHT);
+    assert_slipway_mode(&step, &b->header, &c->header);
+    cross_on_target(&step);
+    assert_slipway_mode(&step, &c->header, NULL);
+    world_count_t now = world_count();
+    assert(now.slipways == before.slipways + 2);
+    p8_fixed_t spent = p8_fixed_add(slipway_cost(&a->header, &b->header), slipway_cost(&b->header, &c->header));
+    assert(spent > 0 && now.credits == p8_fixed_sub(before.credits, spent));
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(slipways_left_placing() == 0 && ui_left_held(main_ui()) == NULL);
+    run_frame(&step, 0);
+    assert_hovering(&step, &c->header);
+    assert(world_count().slipways == now.slipways && world_count().credits == now.credits);
+}
+
+static planet_t *hovered_colony_near_centre(input_step_t *step) {
+    make_every_planet_known();
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(step, colony);
+    hold(step, 0, 40);
+    assert_hovering(step, &colony->header);
+    return colony;
+}
+
+static void assert_camera_step_at_most_8(vec_t from) {
+    vec_t moved = vec_sub(camera_at(), from);
+    assert(absolute_int(p8_fixed_flr_int(moved.x)) <= 8 && absolute_int(p8_fixed_flr_int(moved.y)) <= 8);
+}
+
+/* Each press and each hold repeat aims at slipway_pick from the aimed object, never at the start. */
+static void test_cross_on_a_hovered_colony_holds_its_slipway_and_the_d_pad_aims_past_it(void) {
+    static const int directions[] = { P8_PAD_RIGHT, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_UP };
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *colony = hovered_colony_near_centre(&step);
+    start_slipway(&step, &colony->header);
+    int aimed_away = 0;
+    for (int t = 0; t < 12; t++) {
+        int direction = directions[t % 4];
+        entity_t *before = pad_nav_slipway_target(&step.pad_nav);
+        entity_t *expected = slipway_pick(&colony->header, before != NULL ? before : &colony->header, direction);
+        vec_t from = camera_at();
+        run_frame(&step, direction);
+        assert_camera_step_at_most_8(from);
+        assert(pad_nav_slipway_target(&step.pad_nav) == (expected != NULL ? expected : before));
+        assert(pad_nav_slipway_target(&step.pad_nav) != &colony->header);
+        aimed_away += pad_nav_slipway_target(&step.pad_nav) != NULL;
+        for (int i = 0; i < 12; i++) {
+            from = camera_at();
+            run_frame(&step, 0);
+            assert_camera_step_at_most_8(from);
+        }
+        assert_slipway_mode(&step, &colony->header, pad_nav_slipway_target(&step.pad_nav));
+    }
+    assert(aimed_away > 0);
+    for (int i = 0; i <= 34; i++) {
+        entity_t *before = pad_nav_slipway_target(&step.pad_nav);
+        entity_t *expected = before;
+        if (i == 0 || i == 18 || i == 26 || i == 34) {
+            entity_t *picked = slipway_pick(&colony->header, before != NULL ? before : &colony->header, P8_PAD_RIGHT);
+            expected = picked != NULL ? picked : before;
+        }
+        run_frame(&step, P8_PAD_RIGHT);
+        assert(pad_nav_slipway_target(&step.pad_nav) == expected);
+    }
+    hold(&step, 0, 40);
+    entity_t *target = pad_nav_slipway_target(&step.pad_nav);
+    assert(target != NULL);
+    int x, y;
+    rest_screen_point(target, &x, &y);
+    assert(pad_jump_inside(x, y));
+    assert_slipway_mode(&step, &colony->header, target);
+}
+
+/* From b, Left would aim back at the start a without the exclusion: no other object lies left of b. */
+static void test_no_direction_aims_at_the_start(void) {
+    input_step_t step;
+    planet_t *a, *b, *c;
+    start_game_in_jump_mode(&step);
+    settled_row(&step, &a, &b, &c);
+    hover_object(&step, &a->header);
+    start_slipway(&step, &a->header);
+    tap(&step, P8_PAD_RIGHT);
+    assert_slipway_mode(&step, &a->header, &b->header);
+    assert(expected_jump(&b->header, P8_PAD_LEFT) == &a->header);
+    tap(&step, P8_PAD_LEFT);
+    assert_slipway_mode(&step, &a->header, &b->header);
+}
+
+static planet_t *gate_hovered_full(input_step_t *step) {
+    planet_t *gate = full_slipgate_under_centre(step);
+    hover_object(step, &gate->header);
+    return gate;
+}
+
+/* No button on the × frame or the next 10, nothing held, the mode still jump. */
+static void assert_cross_starts_nothing(input_step_t *step, const entity_t *hovered) {
+    world_count_t before = world_count();
+    for (int i = 0; i < 11; i++) {
+        run_frame(step, i == 0 ? P8_PAD_CROSS : 0);
+        assert(input_step_played_frame(step)->mouse_buttons == 0);
+        assert(pad_nav_jump_mode(&step->pad_nav) && pad_nav_slipway_start(&step->pad_nav) == NULL);
+        assert(hovered == NULL || pad_nav_hovered(&step->pad_nav) == hovered);
+    }
+    assert(ui_left_held(main_ui()) == NULL);
+    assert_world_unchanged(before);
+}
+
+static void test_a_refused_start_holds_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    if (in_forked_copy()) {
+        planet_t *gate = gate_hovered_full(&step);
+        assert_cross_starts_nothing(&step, &gate->header);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        planet_t *colony = hovered_colony_near_centre(&step);
+        cover_with_icon(live_of_class(structure_icon_class()), colony);
+        assert_cross_starts_nothing(&step, &colony->header);
+        end_forked_copy();
+    }
+    planet_t *far = planet_farthest_outside();
+    settle_planet(&step, far);
+    int x, y;
+    rest_screen_point(&far->header, &x, &y);
+    assert(pad_nav_hovered(&step.pad_nav) == &far->header && !pad_jump_inside(x, y));
+    assert_cross_starts_nothing(&step, &far->header);
+}
+
+static void test_cross_with_nothing_hovered_presses_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    assert(pad_nav_hovered(&step.pad_nav) == NULL);
+    assert_cross_starts_nothing(&step, NULL);
+}
+
+/* start settled and hovered, then × on it. */
+static void slipway_from(input_step_t *step, planet_t *start) {
+    settle_planet(step, start);
+    hover_object(step, &start->header);
+    start_slipway(step, &start->header);
+}
+
+static void assert_target_refused(input_step_t *step, const entity_t *start, const entity_t *target) {
+    aim_at(step, target);
+    world_count_t before = world_count();
+    cross_on_target(step);
+    assert_slipway_mode(step, start, NULL);
+    assert_world_unchanged(before);
+    hold(step, 0, 10);
+    assert_slipway_mode(step, start, NULL);
+}
+
+static void test_a_refused_target_aims_again_from_the_same_start(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    if (in_forked_copy()) {
+        find_pair(near_pair, &start, &target);
+        make_known(target);
+        slipway_from(&step, start);
+        assert_target_refused(&step, &start->header, &target->header);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        find_pair(too_far_pair, &start, &target);
+        settle_planet(&step, target);
+        slipway_from(&step, start);
+        assert_target_refused(&step, &start->header, &target->header);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        find_pair(near_pair, &start, &target);
+        settle_planet(&step, target);
+        slipway_from(&step, start);
+        main_economy_typed()->credits = p8_fixed_from_int(0);
+        assert_target_refused(&step, &start->header, &target->header);
+        end_forked_copy();
+    }
+    find_pair(near_pair, &start, &target);
+    settle_planet(&step, target);
+    slipway_from(&step, start);
+    aim_at(&step, &target->header);
+    cross_on_target(&step);
+    assert(slipway_between(&start->header, &target->header) != NULL);
+    assert_slipway_mode(&step, &target->header, NULL);
+    assert_target_refused(&step, &target->header, &start->header);
+}
+
+static void test_circle_cancels_the_slipway_back_on_its_start(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    find_pair(near_pair, &start, &target);
+    settle_planet(&step, target);
+    slipway_from(&step, start);
+    world_count_t before = world_count();
+    for (int aimed = 0; aimed < 2; aimed++) {
+        if (aimed) {
+            start_slipway(&step, &start->header);
+            aim_at(&step, &target->header);
+        }
+        run_frame(&step, P8_PAD_CIRCLE);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert(ui_left_held(main_ui()) == NULL && slipways_left_placing() == 0);
+        run_frame(&step, 0);
+        assert_hovering(&step, &start->header);
+        assert_world_unchanged(before);
+        hold(&step, 0, 40);
+    }
+}
+
+/* The edge scroll keeps the target just inside; a pan of the camera then puts the start off screen. */
+static void test_an_off_screen_start_still_builds(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    find_pair(off_screen_pair, &start, &target);
+    settle_planet(&step, target);
+    slipway_from(&step, start);
+    aim_at(&step, &target->header);
+    int x, y, sx, sy;
+    rest_screen_point(&target->header, &x, &y);
+    rest_screen_point(&start->header, &sx, &sy);
+    camera_pan(main_camera_typed(), 0, sy < y ? y - 20 : y - 88);
+    run_frame(&step, 0);
+    vec_t at = vec_sub(entity_pos(&start->header), camera_at());
+    assert(off_screen(p8_fixed_flr_int(at.x), p8_fixed_flr_int(at.y)));
+    world_count_t before = world_count();
+    cross_on_target(&step);
+    assert(slipway_between(&start->header, &target->header) != NULL);
+    assert(world_count().slipways == before.slipways + 1);
+    assert_slipway_mode(&step, &target->header, NULL);
+}
+
+/* After pause, a tab visit or a box, the cancelled slipway left nothing held or built and jump mode hovers its start. */
+static void test_pause_a_tab_change_and_a_box_cancel_the_slipway(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    find_pair(near_pair, &start, &target);
+    make_known(target);
+    slipway_from(&step, start);
+    aim_at(&step, &target->header);
+    world_count_t before = world_count();
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_START);
+        settle(&step);
+        assert(pause_menu_shown() && ui_left_held(main_ui()) == NULL && slipways_left_placing() == 0);
+        tap(&step, P8_PAD_START);
+        settle(&step);
+        assert(!pause_menu_shown());
+        assert_hovering(&step, &start->header);
+        assert_world_unchanged(before);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_R1);
+        assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_BUILD);
+        assert(ui_left_held(main_ui()) == NULL && slipways_left_placing() == 0);
+        tap(&step, P8_PAD_L1);
+        run_frame(&step, 0);
+        assert_hovering(&step, &start->header);
+        assert_world_unchanged(before);
+        end_forked_copy();
+    }
+    (void)planet_left_press(target);
+    assert(main_ui()->ephemerals.count > 0);
+    run_frame(&step, 0);
+    assert(ui_left_held(main_ui()) == NULL && slipways_left_placing() == 0);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(main_ui()->ephemerals.count == 0);
+    run_frame(&step, 0);
+    assert_hovering(&step, &start->header);
+    assert_world_unchanged(before);
+}
+
+/* The target is a colony, so a plain release on it would build: the drop has no target. */
+static void test_a_start_that_dies_drops_the_slipway(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    find_pair(near_pair, &start, &target);
+    settle_planet(&step, target);
+    slipway_from(&step, start);
+    aim_at(&step, &target->header);
+    start->header.is_dead = 1;
+    assert(pad_nav_slipway_start(&step.pad_nav) == NULL);
+    run_frame(&step, 0);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0 && ui_left_held(main_ui()) == NULL);
+    run_frame(&step, 0);
+    assert_hovering(&step, &target->header);
+    assert(world_count().slipways == 0 && slipways_left_placing() == 0);
+}
+
+static void test_triangle_and_square_do_nothing_in_slipway_mode(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    find_pair(near_pair, &start, &target);
+    make_known(target);
+    slipway_from(&step, start);
+    aim_at(&step, &target->header);
+    world_count_t before = world_count();
+    vec_t from = camera_at();
+    static const int presses[] = { P8_PAD_TRIANGLE, 0, P8_PAD_SQUARE, 0, P8_PAD_TRIANGLE | P8_PAD_SQUARE, 0 };
+    for (int i = 0; i < 6; i++) {
+        run_frame(&step, presses[i]);
+        assert_slipway_mode(&step, &start->header, &target->header);
+    }
+    assert(main_ui()->ephemerals.count == 0);
+    assert_moved(from, 0, 0);
+    assert_world_unchanged(before);
+}
+
+static void test_chords_in_slipway_mode_neither_build_nor_cancel(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    find_pair(near_pair, &start, &target);
+    settle_planet(&step, target);
+    slipway_from(&step, start);
+    aim_at(&step, &target->header);
+    world_count_t before = world_count();
+    assert(type_chords_playing(&step, P8_MOUSE_LEFT) == 1);
+    hold(&step, 0, 4);
+    assert_slipway_mode(&step, &start->header, &target->header);
+    assert(world_count().slipways == before.slipways && slipway_between(&start->header, &target->header) == NULL);
+    assert(main_economy_typed()->credits == p8_fixed_from_int(200));
+}
+
+/* × D-pad × ○ ○, twice: build a slipway, back out, and again; the cheat never fires. */
+static void test_building_and_backing_out_never_types_the_cheat(void) {
+    input_step_t step;
+    planet_t *a, *b, *c;
+    start_game_in_jump_mode(&step);
+    settled_row(&step, &a, &b, &c);
+    hover_object(&step, &a->header);
+    world_count_t before = world_count();
+    cheats_fired = 0;
+    planet_t *starts[2] = { a, b };
+    planet_t *ends[2] = { b, c };
+    for (int round = 0; round < 2; round++) {
+        start_slipway(&step, &starts[round]->header);
+        tap(&step, P8_PAD_RIGHT);
+        cross_on_target(&step);
+        assert_slipway_mode(&step, &ends[round]->header, NULL);
+        tap(&step, P8_PAD_CIRCLE);
+        assert_hovering(&step, &ends[round]->header);
+        tap(&step, P8_PAD_CIRCLE);
+        assert_hovering(&step, &ends[round]->header);
+    }
+    assert(cheats_fired == 0 && world_count().slipways == before.slipways + 2);
+    assert(main_economy_typed()->credits != p8_fixed_from_int(200));
+}
+
+static void test_building_refusing_and_cancelling_leave_the_game_stream_unchanged(void) {
+    input_step_t step;
+    planet_t *a, *b, *c;
+    start_game_in_jump_mode(&step);
+    settled_row(&step, &a, &b, &c);
+    hover_object(&step, &a->header);
+    uint32_t game = p8_fixed_rnd_state();
+    start_slipway(&step, &a->header);
+    aim_at(&step, &b->header);
+    cross_on_target(&step);
+    aim_at(&step, &a->header);
+    cross_on_target(&step);
+    aim_at(&step, &c->header);
+    hold(&step, P8_PAD_LEFT, 40);
+    tap(&step, P8_PAD_CIRCLE);
+    hold(&step, P8_PAD_RIGHT, 40);
+    assert(slipway_between(&a->header, &b->header) != NULL && slipway_between(&b->header, &c->header) == NULL);
+    assert(p8_fixed_rnd_state() == game && "slipway mode draws no game number");
 }
 
 int main(void) {
@@ -5284,6 +5813,20 @@ int main(void) {
     in_fresh_child(test_a_chord_on_a_planet_menu_presses_no_row_and_closes_nothing);
     in_fresh_child(test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up);
     in_fresh_child(test_a_chord_places_no_probe_and_leaves_network_mode_alone);
+    in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
+    in_fresh_child(test_cross_on_a_hovered_colony_holds_its_slipway_and_the_d_pad_aims_past_it);
+    in_fresh_child(test_no_direction_aims_at_the_start);
+    in_fresh_child(test_a_refused_start_holds_nothing);
+    in_fresh_child(test_cross_with_nothing_hovered_presses_nothing);
+    in_fresh_child(test_a_refused_target_aims_again_from_the_same_start);
+    in_fresh_child(test_circle_cancels_the_slipway_back_on_its_start);
+    in_fresh_child(test_an_off_screen_start_still_builds);
+    in_fresh_child(test_pause_a_tab_change_and_a_box_cancel_the_slipway);
+    in_fresh_child(test_a_start_that_dies_drops_the_slipway);
+    in_fresh_child(test_triangle_and_square_do_nothing_in_slipway_mode);
+    in_fresh_child(test_chords_in_slipway_mode_neither_build_nor_cancel);
+    in_fresh_child(test_building_and_backing_out_never_types_the_cheat);
+    in_fresh_child(test_building_refusing_and_cancelling_leave_the_game_stream_unchanged);
     printf("test_pad_nav: ok\n");
     return 0;
 }
