@@ -81,3 +81,13 @@ Done: `make psn00bsdk-toolchain-setup` rewritten (`tools/install_psn00bsdk_toolc
 - A pad is present on port 1 headless: the capture shows `PORT 1: TYPE=4`.
 - Failure paths hand-tested: wrong TTY line, missing emulator install with a fake `.exe`, uniform synthetic capture, missing SDK, non-empty dir without stamp, wrong sha256.
 - Deviations: the check also prints one `ok` line per condition; it calls `tools/psx_boot.sh` directly. The verification reused the chunk 1 toolchain install and the step 1.2 emulator install (both created from empty directories). No `guideline` decisions.
+
+### Step 2.2
+
+Done: `psx-hello/system.cnf` (`BOOT=cdrom:\PSXHELLO.EXE;1`), `psx-hello/iso.xml` (trimmed SDK template), `psn00bsdk_add_cd_image` in `psx-hello/CMakeLists.txt`, `make psx-hello-cd` (`psx-hello/build/psx-hello.bin/.cue`, `PSX_HELLO_CUE`), `--iso <cue>` in `tools/psx_hello_check.sh` (a `cue` condition replaces `magic`), `make psx-hello-cd-check`; all outside `make test-all`.
+
+- Image: 2 490 768-byte `.bin` (1059 × 2352, `MODE2/2352`). The `.bin` changes on every build (mkpsxiso stamps the time): never hash it. The `.exe` stays `b79ccaeb…`.
+- `make psx-hello-cd-check`: exit 0 in ~32 s, five conditions hold. CD captures 320×240×16 `b4934260…` ×2, equal to the `.exe` capture, and stable across builds. Empty boot `d5b36d08…`. The TTY shows `SYSTEM.CNF` read, `PSXHELLO.EXE` booted, then the known line.
+- Deviation from the step's wording: no license data on the disc, per step 1.1's decision (PSn00bSDK ships none, OpenBIOS does not check it).
+- Deviation from the PRD: a `.cue` naming a missing `.bin` does not fail the boot; the emulator drops to the OpenBIOS shell (deterministic 640×478 capture `aff8b611…`). Only `cue` and `tty-line` catch it, which is enough for exit 1.
+- Verification reused the step 2.1 SDK install and the step 1.2 emulator install. No `guideline` decisions.
