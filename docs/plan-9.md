@@ -91,3 +91,13 @@ Done: `psx-hello/system.cnf` (`BOOT=cdrom:\PSXHELLO.EXE;1`), `psx-hello/iso.xml`
 - Deviation from the step's wording: no license data on the disc, per step 1.1's decision (PSn00bSDK ships none, OpenBIOS does not check it).
 - Deviation from the PRD: a `.cue` naming a missing `.bin` does not fail the boot; the emulator drops to the OpenBIOS shell (deterministic 640×478 capture `aff8b611…`). Only `cue` and `tty-line` catch it, which is enough for exit 1.
 - Verification reused the step 2.1 SDK install and the step 1.2 emulator install. No `guideline` decisions.
+
+### Step 2.3
+
+Done: `make psx-hello-e2e` and `make psx-hello-e2e-baseline` (both depend on `psx-hello-cd-check`, i.e. a fresh image plus step 2.2's proof, and on a `psx-hello-frames-guard` refusing `PSX_FRAMES` ≠ 600), `tools/psx_reference_check.sh <reference> <capture>`, and the committed reference `psx-hello/psx-hello-cd.vram.sha256`; all outside `make test-all`.
+
+- Reference `b4934260…` (320×240×16 CD capture, header included), written by the baseline target after the five conditions held; equals the step 2.1/2.2 captures.
+- `make psx-hello-e2e`: exit 0 in ~32 s. On an altered copy of the reference (`PSX_HELLO_REFERENCE=tmp/…`): exit non-zero, naming expected and actual hashes and the baseline target. The committed file was never hand-edited.
+- Hand-tested: missing/malformed reference, missing/empty capture, wrong argument count; a failing proof stops make before any comparison; `PSX_FRAMES=10` fails in 0.4 s with no boot.
+- `make test` and `make e2e` pass, no `tests/e2e/*.sha256` changed.
+- Deviation: the frame guard is a separate prerequisite target (a recipe line ran after the proof had already failed). Verification reused the existing installs. No `guideline` decisions.
