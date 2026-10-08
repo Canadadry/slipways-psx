@@ -125,8 +125,11 @@
 # make raylib        -> compiles and LINKS the interactive binary, never runs
 #                       it (needs make raylib-vendor-setup first)
 # make psx-hello     -> PSX test project (needs psn00bsdk-toolchain-setup)
+# make psx-net-check -> probes every host of PSX_SOURCES (default
+#                       tools/psx_sources.txt) without downloading; fails,
+#                       naming each unreachable host, outside the suite
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-net-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1059,6 +1062,11 @@ psx-hello:
 
 psx-hello-clean:
 	rm -rf psx-hello/build
+
+PSX_SOURCES ?= tools/psx_sources.txt
+
+psx-net-check:
+	sh tools/psx_net_check.sh $(PSX_SOURCES)
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.

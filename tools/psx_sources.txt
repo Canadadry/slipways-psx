@@ -1,0 +1,12 @@
+# <component> <kind> <url> <pin>
+# kind git: pin is a commit; file: pin is a sha256; apt: pin is the series;
+# host: a host reached only through a redirect, pin is "-".
+emulator git https://github.com/grumpycoders/pcsx-redux 9eb544100311010c68af9049f57bf1f718961774
+emulator-headless-fix git https://github.com/grumpycoders/pcsx-redux 307177ba56cdc5938f2a6f2a954753992ad13287
+ubuntu-archive apt http://archive.ubuntu.com/ubuntu noble
+ubuntu-security apt http://security.ubuntu.com/ubuntu noble
+psn00bsdk file https://github.com/Lameguy64/PSn00bSDK/releases/download/v0.24/PSn00bSDK-0.24-Linux.zip 5ada7c9478d795b22bde96ee23d6869290c14a740bcde3d57c01c342a26ded35
+ps1-tests file https://github.com/JaCzekanski/ps1-tests/releases/download/build-158/tests.zip 5de0e82854c1a511697a7ade381c2d778ec4b2fff4a7d7ac79e8098c35eb859b
+test-cd-bin file https://psx.arthus.net/homebrew/BuzzyBee_v1.1_image/buzzy.bin d5d7a62937c0e4a7cfe22b5eb73d2fbc869927b8744dfe1f7301f839f7acc32d
+test-cd-cue file https://psx.arthus.net/homebrew/BuzzyBee_v1.1_image/buzzy.cue fe9e76a64d87e423fd18eb1b1e2458b54c498d8d78ad533e98a067d7168f7e07
+github-release-assets host https://release-assets.githubusercontent.com/ -
