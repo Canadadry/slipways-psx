@@ -42,3 +42,21 @@ In this sandbox: `psx-hello` compiled, packed into a `.bin/.cue`, and booted in 
 None.
 
 ## 6. Step notes
+
+### Step 1.1
+
+Done: `tools/psx_sources.txt` (single list of URLs and pins) and `make psx-net-check` (`tools/psx_net_check.sh`), outside `make test-all`. Run on 2026-10-08: exit 0, all 9 lines reachable; failure path checked by hand (one `unreachable` line per bad host, every line still probed, exit 1).
+
+| Component | Source | Pin |
+|---|---|---|
+| Emulator | PCSX-Redux, git clone of `grumpycoders/pcsx-redux` (35 submodules, all on github.com) | `9eb5441` (last before SDL3, absent from noble) + upstream fix `307177b` applied on top: without it `-cli` segfaults on a disc boot (`src/gpu/soft/gpu.cc:87`) |
+| Build deps | Ubuntu noble apt (capstone, freetype, glfw3, ffmpeg libs, curl, libuv, zlib) | noble series only (-updates/-security drop old versions) |
+| BIOS | OpenBIOS from the same tree, built with noble's `gcc-mipsel-linux-gnu` 12.2.0; no Sony BIOS | same commit |
+| Toolchain, PSn00bSDK, mkpsxiso | `PSn00bSDK-0.24-Linux.zip` release: prebuilt `mipsel-none-elf` GCC 12.3.0, binutils, `elf2x`, mkpsxiso 2.03; no GCC compiled | sha256 `5ada7c94…` |
+| CD license data | none: PSn00bSDK ships none, OpenBIOS does not check it | — |
+| Test PS-EXE | ps1-tests `build-158` `gte/test-all/test-all.exe`; TTY text `Auto test all GTE valid opcodes/registers` | zip sha256 `5de0e828…` |
+| Test CD | BuzzyBee v1.1 `buzzy.bin/.cue` from `psx.arthus.net` (no license data) | sha256 in the sources list |
+
+Hosts: `github.com`, `release-assets.githubusercontent.com`, `psx.arthus.net`, `archive.ubuntu.com`, `security.ubuntu.com`.
+
+Deviations: the network was never opened by the human. GitHub git clones and release downloads (via `release-assets.githubusercontent.com`) work through the session proxy; GitHub web/API pages and `distrib.app.pcsx-redux.consoledev.net` (PCSX-Redux prebuilts) do not, so the emulator is built from source (~8.5 min on 4 cores in the PRD's trial). "Prebuilt" holds for GCC. Rejected: DuckStation (many hosts, no headless pad scripting), Mednafen and MAME (need a Sony BIOS), PCSX-Reloaded (needs a display). The PRD's trial already saw headless TTY output, identical CD captures and a different no-disc capture; scripted pad input (Lua `setOverride`) is untried. No `guideline` decisions.
