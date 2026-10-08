@@ -890,15 +890,24 @@ static void centre_world_point(int *x, int *y) {
     *y = p8_fixed_flr_int(at.y) + P8_SCREEN_HEIGHT / 2;
 }
 
+/* Points out at storage, JUMP_CANDIDATES_CAP entries the caller owns; empty when no TAG_NODE bucket exists. */
+static void live_candidates(entity_t **storage, entity_list_t *out) {
+    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
+    if (nodes == NULL) {
+        *out = (entity_list_t){.items = storage, .count = 0, .capacity = JUMP_CANDIDATES_CAP};
+        return;
+    }
+    (void)pad_jump_candidates(nodes, storage, JUMP_CANDIDATES_CAP, out);
+}
+
 /* A game stays unseeded until its first candidate: the first colony then, else the nearest; later, the nearest. */
 static void seed_hovered(pad_nav_t *nav) {
-    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
-    if (hovered_object(nav) != NULL || nodes == NULL) {
+    if (hovered_object(nav) != NULL) {
         return;
     }
     entity_t *storage[JUMP_CANDIDATES_CAP];
     entity_list_t candidates;
-    (void)pad_jump_candidates(nodes, storage, JUMP_CANDIDATES_CAP, &candidates);
+    live_candidates(storage, &candidates);
     int x, y;
     centre_world_point(&x, &y);
     entity_t *hovered = nav->jump.seeded ? pad_jump_nearest(x, y, &candidates) : pad_jump_seed(&candidates, x, y);
@@ -921,8 +930,20 @@ static void edge_scroll(const entity_t *hovered) {
     }
 }
 
-/* × and ○ do nothing here. On a click's press and release frames the camera and the marker wait. */
-static void jump_step(pad_nav_t *nav, int pressed, int release, const entity_t **shown) {
+/* hovered stays when the cone is empty. */
+static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
+    entity_t *storage[JUMP_CANDIDATES_CAP];
+    entity_list_t candidates;
+    live_candidates(storage, &candidates);
+    entity_t *target = pad_target_pick(hovered, direction, &candidates);
+    if (target != NULL) {
+        nav->jump.hovered = entity_id_link(target);
+    }
+}
+
+/* × and ○ do nothing here. On a click's press and release frames no jump runs and the camera and the marker wait;
+ * the hold-repeat count keeps running through them. */
+static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, const entity_t **shown) {
     reset_free_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
@@ -930,12 +951,17 @@ static void jump_step(pad_nav_t *nav, int pressed, int release, const entity_t *
         enter_plain_free_mode(nav);
         return;
     }
+    int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
     entity_t *hovered = hovered_object(nav);
     int clicking = release || nav->release_pending;
     if (hovered == NULL) {
         nav->cursor_x = P8_SCREEN_WIDTH / 2;
         nav->cursor_y = P8_SCREEN_HEIGHT / 2;
         return;
+    }
+    if (direction != 0 && !clicking) {
+        jump_from(nav, hovered, direction);
+        hovered = hovered_object(nav);
     }
     if (!clicking) {
         edge_scroll(hovered);
@@ -944,8 +970,9 @@ static void jump_step(pad_nav_t *nav, int pressed, int release, const entity_t *
     screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
 }
 
-static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
-                     p8_input_frame_t *played, const entity_t **shown) {
+/* Returns whether jump mode ran this frame. */
+static int map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
+                    p8_input_frame_t *played, const entity_t **shown) {
     if (pad_nav_placing(nav) != NULL) {
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
@@ -961,10 +988,12 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
             *shown = pad_nav_selection(nav);
         }
     } else if (pad_nav_jump_mode(nav)) {
-        jump_step(nav, pressed, release, shown);
+        jump_step(nav, pad_buttons, pressed, release, shown);
+        return 1;
     } else {
         reset_free_mode(nav);
     }
+    return 0;
 }
 
 /* Returns whether the tab changed; *cancelled says what held thing a shoulder cancelled. */
@@ -1096,6 +1125,7 @@ void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
         release = 0;
     }
     if (!tab_changed && pause_step(nav, pressed, release, played)) {
+        pad_jump_repeat_clear(&nav->jump);
         reset_free_mode(nav);
         nav->focus = ENTITY_ID_NONE;
         finish_step(nav, release, NULL, played);
@@ -1111,6 +1141,7 @@ void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
         cancel_drag(nav);
     }
     cancelled_t cancelled = CANCELLED_NOTHING;
+    int jump_ran = 0;
     if (!tab_changed) {
         tab_changed = switch_tab(nav, pressed, release, foreign_was_open, &cancelled, played);
     }
@@ -1137,10 +1168,13 @@ void pad_nav_step(pad_nav_t *nav, int pad_buttons, p8_input_frame_t *played) {
             played->mouse_buttons = P8_MOUSE_LEFT;
         }
     } else if (nav->tab == PAD_NAV_TAB_MAP) {
-        map_step(nav, pad_buttons, pressed, direction, release, circle_returns, played, &shown);
+        jump_ran = map_step(nav, pad_buttons, pressed, direction, release, circle_returns, played, &shown);
     } else {
         reset_free_mode(nav);
         tab_step(nav, pad_buttons, pressed, direction, release, played);
+    }
+    if (!jump_ran) {
+        pad_jump_repeat_clear(&nav->jump);
     }
     finish_step(nav, release, shown, played);
 }

@@ -19,6 +19,7 @@
 #include "game/menu.h"
 #include "game/message_box.h"
 #include "game/pad_panel.h"
+#include "game/pad_target.h"
 #include "game/planet.h"
 #include "game/planet_family_trade.h"
 #include "game/score_panel.h"
@@ -4722,6 +4723,171 @@ static void test_taking_a_structure_from_jump_mode_enters_plain_free_mode_where_
     assert_moved(from, 0, 0);
 }
 
+static void make_every_planet_known(void) {
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    for (int i = 0; i < planets->count; i++) {
+        make_known((planet_t *)planets->items[i]);
+    }
+}
+
+/* The live set jump mode searches: the TAG_NODE bucket filtered by pad_target_is_candidate. */
+static entity_t *expected_jump(const entity_t *origin, int direction) {
+    static entity_t *storage[128];
+    entity_list_t candidates;
+    (void)pad_jump_candidates(entities_by_tag(TAG_NODE), storage, 128, &candidates);
+    return pad_target_pick(origin, direction, &candidates);
+}
+
+/* Lets the edge scroll finish, so a still camera afterwards means the frame moved nothing. */
+static entity_t *hover_settled(input_step_t *step) {
+    hold(step, 0, 40);
+    entity_t *hovered = pad_nav_hovered(&step->pad_nav);
+    assert(hovered != NULL);
+    return hovered;
+}
+
+static void test_a_d_pad_press_jumps_to_the_picked_target(void) {
+    static const int directions[] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *origin = hover_settled(&step);
+    int jumps = 0;
+    for (int d = 0; d < 4; d++) {
+        entity_t *expected = expected_jump(origin, directions[d]);
+        jumps += expected != NULL;
+        if (in_forked_copy()) {
+            run_frame(&step, directions[d]);
+            assert_hovering(&step, expected != NULL ? expected : origin);
+            end_forked_copy();
+        }
+    }
+    assert(jumps >= 2);
+}
+
+static entity_t *hover_the_leftmost(input_step_t *step) {
+    entity_t *hovered = hover_settled(step);
+    for (int i = 0; i < 64 && expected_jump(hovered, P8_PAD_LEFT) != NULL; i++) {
+        tap(step, P8_PAD_LEFT);
+        assert(pad_nav_hovered(&step->pad_nav) != hovered);
+        hovered = pad_nav_hovered(&step->pad_nav);
+    }
+    assert(expected_jump(hovered, P8_PAD_LEFT) == NULL);
+    return hover_settled(step);
+}
+
+static void test_holding_a_direction_repeats_the_jump_after_18_then_every_8_frames(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *hovered = hover_the_leftmost(&step);
+    for (int frame = 0; frame <= 30; frame++) {
+        entity_t *expected = frame == 0 || frame == 18 || frame == 26 ? expected_jump(hovered, P8_PAD_RIGHT) : hovered;
+        assert(expected != NULL);
+        run_frame(&step, P8_PAD_RIGHT);
+        assert_hovering(&step, expected);
+        assert((expected != hovered) == (frame == 0 || frame == 18 || frame == 26));
+        hovered = expected;
+    }
+}
+
+static void test_a_d_pad_press_with_an_empty_cone_changes_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *hovered = hover_the_leftmost(&step);
+    vec_t from = camera_at();
+    for (int i = 0; i < 10; i++) {
+        run_frame(&step, i % 2 == 0 ? P8_PAD_LEFT : 0);
+        assert_hovering(&step, hovered);
+    }
+    assert_moved(from, 0, 0);
+}
+
+static void test_a_hold_through_pause_repeats_no_jump_until_pressed_again(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *hovered = hover_the_leftmost(&step);
+    run_frame(&step, P8_PAD_RIGHT);
+    entity_t *landed = pad_nav_hovered(&step.pad_nav);
+    assert(landed != hovered);
+    hold(&step, P8_PAD_RIGHT, 9);
+    run_frame(&step, P8_PAD_RIGHT | P8_PAD_START);
+    hold(&step, P8_PAD_RIGHT, 3);
+    assert(pause_menu_shown());
+    run_frame(&step, P8_PAD_RIGHT | P8_PAD_START);
+    for (int i = 0; i < 40; i++) {
+        run_frame(&step, P8_PAD_RIGHT);
+        assert(!pause_menu_shown() && pad_nav_hovered(&step.pad_nav) == landed);
+    }
+    run_frame(&step, 0);
+    run_frame(&step, P8_PAD_RIGHT);
+    assert(pad_nav_hovered(&step.pad_nav) == expected_jump(landed, P8_PAD_RIGHT));
+}
+
+static void idle_scrolling_at_most_8_px_a_frame(input_step_t *step, int frames) {
+    for (int i = 0; i < frames; i++) {
+        vec_t from = camera_at();
+        run_frame(step, 0);
+        vec_t moved = vec_sub(camera_at(), from);
+        assert(absolute_int(p8_fixed_flr_int(moved.x)) <= PAD_JUMP_SCROLL_SPEED);
+        assert(absolute_int(p8_fixed_flr_int(moved.y)) <= PAD_JUMP_SCROLL_SPEED);
+    }
+}
+
+static void test_a_jump_scrolls_only_to_bring_the_target_just_inside(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *hovered = hover_the_leftmost(&step);
+    int inside_jumps = 0, outside_jumps = 0;
+    for (int i = 0; i < 64 && expected_jump(hovered, P8_PAD_RIGHT) != NULL; i++) {
+        entity_t *target = expected_jump(hovered, P8_PAD_RIGHT);
+        int x, y;
+        rest_screen_point(target, &x, &y);
+        int want_x = edge_of(x, PAD_JUMP_SCROLL_MARGIN, P8_SCREEN_WIDTH - 1 - PAD_JUMP_SCROLL_MARGIN);
+        int want_y = edge_of(y, PAD_JUMP_SCROLL_MARGIN, P8_SCREEN_HEIGHT - 1 - PAD_JUMP_SCROLL_MARGIN_BOTTOM);
+        vec_t from = camera_at();
+        run_frame(&step, P8_PAD_RIGHT);
+        assert_hovering(&step, target);
+        idle_scrolling_at_most_8_px_a_frame(&step, 40);
+        if (pad_jump_inside(x, y)) {
+            assert_moved(from, 0, 0);
+            inside_jumps++;
+        } else {
+            outside_jumps++;
+        }
+        rest_screen_point(target, &x, &y);
+        assert(x == want_x && y == want_y);
+        hovered = target;
+    }
+    assert(inside_jumps > 0 && outside_jumps > 0);
+}
+
+/* No fold or probe in the sequence: reveals are the only game draws after the title. */
+static void test_jumps_repeats_and_edge_scrolls_leave_the_game_stream_unchanged(void) {
+    static const int directions[] = { P8_PAD_RIGHT, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_UP };
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    run_frame(&step, 0);
+    uint32_t game = p8_fixed_rnd_state();
+    int frames = 0, jumps = 0, scrolls = 0;
+    for (int d = 0; d < 4; d++) {
+        for (int i = 0; i < 46; i++, frames++) {
+            int pad = i < 40 ? directions[d] : i % 2 == 0 ? directions[(d + 1) % 4] : 0;
+            entity_t *before = pad_nav_hovered(&step.pad_nav);
+            vec_t from = camera_at();
+            run_frame(&step, pad);
+            jumps += pad_nav_hovered(&step.pad_nav) != before;
+            scrolls += camera_at().x != from.x || camera_at().y != from.y;
+        }
+    }
+    assert(frames >= 120 && jumps >= 8 && scrolls > 0);
+    assert(p8_fixed_rnd_state() == game && "jump mode draws no game number");
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -4787,6 +4953,12 @@ int main(void) {
     in_fresh_child(test_pad_nav_hovered_is_null_outside_jump_mode);
     in_fresh_child(test_a_tab_visit_comes_back_to_jump_mode_on_the_hovered_object);
     in_fresh_child(test_taking_a_structure_from_jump_mode_enters_plain_free_mode_where_the_camera_is);
+    in_fresh_child(test_a_d_pad_press_jumps_to_the_picked_target);
+    in_fresh_child(test_a_d_pad_press_with_an_empty_cone_changes_nothing);
+    in_fresh_child(test_holding_a_direction_repeats_the_jump_after_18_then_every_8_frames);
+    in_fresh_child(test_a_hold_through_pause_repeats_no_jump_until_pressed_again);
+    in_fresh_child(test_a_jump_scrolls_only_to_bring_the_target_just_inside);
+    in_fresh_child(test_jumps_repeats_and_edge_scrolls_leave_the_game_stream_unchanged);
     in_fresh_child(test_the_ui_pad_selection_is_the_planet_only_in_network_mode_without_a_box);
     in_fresh_child(test_square_in_network_mode_enters_free_mode_on_the_planet);
     in_fresh_child(test_square_in_free_mode_forgets_the_starting_planet_then_changes_nothing);
