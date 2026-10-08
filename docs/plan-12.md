@@ -217,3 +217,10 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - The unknown-button fixture and keymap test used `select` as their unknown name. They now use `l2`.
 - `test_select_changes_nothing_yet` (`tests/test_pad_nav.c`) shows the bit is ignored. Every e2e and end-state reference is unchanged. `make raylib` links.
 - Re-authoring cost: none.
+
+### Step 4
+- `src/game/pad_target.{c,h}`: `pad_target_pick(origin, direction, candidates)` and `pad_target_is_candidate(e)`, with `PAD_TARGET_PERPENDICULAR_WEIGHT` 2. The caller builds the candidate list; the pick does not filter it, so step 6 can drop the slipway start.
+- Positions are `map_pos`, never `pos`: `pos` bobs (step 2b) and would make a jump depend on the frame of the press. Presses must still aim at `pos`, which hit tests read.
+- Added beyond the plan: at equal score, the smaller |perpendicular| wins, then the earlier entry in the list.
+- `tests/test_pad_target.c`: 9 hand-built layouts, 2 ms. A verifier's mutation run found that weight 3 survived. One layout was tightened, and weights 0, 1, 3 and 4 are now caught.
+- No caller yet. E2e and end-state unchanged. Re-authoring cost: none.
