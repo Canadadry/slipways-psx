@@ -189,6 +189,311 @@ static void test_holds_repeat_in_slipway_mode_and_nowhere_else(void) {
     }
 }
 
+BUMP_ZONE_STORAGE(unused_cells, 64);
+static bump_zone_t unused_zone;
+static pad_metrics_t metrics;
+static pad_metrics_view_t current;
+
+static void start(pad_metrics_mode_t mode) {
+    bump_zone_init(&unused_zone, "unused", unused_cells, 64);
+    pad_metrics_init_judging(&metrics, &unused_zone);
+    current = still_view();
+    current.mode = mode;
+    pad_metrics_begin(&metrics, &current);
+}
+
+/* One frame with buttons down; the camera moves by one pixel in it when moved. */
+static void run(int buttons, int moved) {
+    if (moved) current.camera_x++;
+    pad_metrics_step(&metrics, buttons, 0, &current);
+}
+
+static void run_idle(int frames) {
+    for (int i = 0; i < frames; i++) run(0, 0);
+}
+
+static int count(pad_metrics_kind_t kind, pad_metrics_mode_t mode, int button_bit, pad_metrics_verdict_t verdict) {
+    int b = 0;
+    while (!(button_bit & (1 << b))) b++;
+    return pad_metrics_verdict_count(&metrics, kind, mode, b, verdict);
+}
+
+static void test_a_press_that_moves_nothing_is_dead(void) {
+    start(PAD_METRICS_MODE_AIM);
+    run(P8_PAD_TRIANGLE, 0);
+    run_idle(5);
+    pad_metrics_finish(&metrics);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 0);
+}
+
+/* Pressed at f0, released at f3: the window runs from f0 to f5. */
+static void test_the_window_runs_to_two_frames_after_the_release(void) {
+    for (int moved_at = 0; moved_at <= 6; moved_at++) {
+        start(PAD_METRICS_MODE_AIM);
+        for (int f = 0; f < 10; f++) run(f < 3 ? P8_PAD_TRIANGLE : 0, f == moved_at);
+        pad_metrics_finish(&metrics);
+        pad_metrics_verdict_t expected = moved_at <= 5 ? PAD_METRICS_LIVE : PAD_METRICS_DEAD_OTHER;
+        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, expected) == 1);
+    }
+}
+
+static void test_a_window_reaching_the_end_of_the_file_is_judged_on_the_frames_seen(void) {
+    start(PAD_METRICS_MODE_AIM);
+    run(P8_PAD_TRIANGLE, 0);
+    run(P8_PAD_TRIANGLE, 0);
+    pad_metrics_finish(&metrics);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_DEAD_OTHER) == 1);
+
+    start(PAD_METRICS_MODE_AIM);
+    run(P8_PAD_TRIANGLE, 0);
+    run(P8_PAD_TRIANGLE, 1);
+    pad_metrics_finish(&metrics);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 1);
+}
+
+/* Held from f0 to f29, released at f30: repeats at f18 and f26. */
+static void hold_left(int moved_at) {
+    start(PAD_METRICS_MODE_JUMP);
+    for (int f = 0; f < 40; f++) run(f < 30 ? P8_PAD_LEFT : 0, f == moved_at);
+    pad_metrics_finish(&metrics);
+}
+
+static void test_a_press_window_is_cut_before_its_first_repeat(void) {
+    hold_left(17);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
+    hold_left(18);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 1);
+}
+
+static void test_a_repeat_window_runs_to_the_next_repeat_or_the_release(void) {
+    hold_left(25);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 1);
+    hold_left(32);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
+    hold_left(33);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 0);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 2);
+}
+
+static void test_a_chord_is_counted_apart_and_never_judged(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    run(P8_PAD_CROSS | P8_PAD_CIRCLE, 0);
+    run_idle(5);
+    pad_metrics_finish(&metrics);
+    assert(pad_metrics_chord_count(&metrics, PAD_METRICS_MODE_JUMP, 4) == 1);
+    assert(pad_metrics_chord_count(&metrics, PAD_METRICS_MODE_JUMP, 5) == 1);
+    for (int v = 0; v < PAD_METRICS_VERDICT_COUNT; v++) {
+        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_CROSS, (pad_metrics_verdict_t)v) == 0);
+        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_CIRCLE, (pad_metrics_verdict_t)v) == 0);
+    }
+}
+
+/* A dead ○ tapped in mode on a snapshot changed by set. */
+static pad_metrics_verdict_t dead_circle_group(pad_metrics_mode_t mode, void (*set)(pad_metrics_view_t *view)) {
+    start(mode);
+    set(&current);
+    pad_metrics_begin(&metrics, &current);
+    run(P8_PAD_CIRCLE, 0);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    if (count(PAD_METRICS_PRESS, mode, P8_PAD_CIRCLE, PAD_METRICS_DEAD_REQUIRED) == 1) return PAD_METRICS_DEAD_REQUIRED;
+    assert(count(PAD_METRICS_PRESS, mode, P8_PAD_CIRCLE, PAD_METRICS_DEAD_OTHER) == 1);
+    return PAD_METRICS_DEAD_OTHER;
+}
+
+static void nothing_recorded(pad_metrics_view_t *view) {
+    view->last_acted = ENTITY_ID_NONE;
+}
+
+static void last_is_hovered(pad_metrics_view_t *view) {
+    view->last_acted = view->hovered;
+}
+
+static void last_elsewhere(pad_metrics_view_t *view) {
+    view->last_acted = (entity_id_t){11, 1};
+}
+
+static void message_box_shown(pad_metrics_view_t *view) {
+    view->message_box = 1;
+}
+
+static void test_a_dead_circle_at_the_root_is_required(void) {
+    assert(dead_circle_group(PAD_METRICS_MODE_JUMP, nothing_recorded) == PAD_METRICS_DEAD_REQUIRED);
+    assert(dead_circle_group(PAD_METRICS_MODE_JUMP, last_is_hovered) == PAD_METRICS_DEAD_REQUIRED);
+    assert(pad_metrics_section4(&metrics).ok);
+}
+
+static void test_any_other_dead_circle_is_in_the_other_group(void) {
+    assert(dead_circle_group(PAD_METRICS_MODE_JUMP, last_elsewhere) == PAD_METRICS_DEAD_OTHER);
+    assert(dead_circle_group(PAD_METRICS_MODE_JUMP, message_box_shown) == PAD_METRICS_DEAD_OTHER);
+    assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_recorded) == PAD_METRICS_DEAD_OTHER);
+    assert(!pad_metrics_section4(&metrics).ok);
+    assert(pad_metrics_section4(&metrics).circle_dead_other == 1);
+}
+
+static void test_a_dead_direction_into_an_empty_cone_is_required_in_jump_and_slipway_mode(void) {
+    pad_metrics_mode_t modes[] = {PAD_METRICS_MODE_JUMP, PAD_METRICS_MODE_SLIPWAY};
+    for (int i = 0; i < 2; i++) {
+        start(modes[i]);
+        current.cone_empty = P8_PAD_UP;
+        pad_metrics_begin(&metrics, &current);
+        run(P8_PAD_UP, 0);
+        run_idle(4);
+        run(P8_PAD_DOWN, 0);
+        run_idle(4);
+        pad_metrics_finish(&metrics);
+        assert(count(PAD_METRICS_PRESS, modes[i], P8_PAD_UP, PAD_METRICS_DEAD_REQUIRED) == 1);
+        assert(count(PAD_METRICS_PRESS, modes[i], P8_PAD_DOWN, PAD_METRICS_DEAD_OTHER) == 1);
+    }
+}
+
+static void test_a_diagonals_second_direction_is_never_required(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    current.cone_empty = P8_PAD_UP | P8_PAD_RIGHT;
+    pad_metrics_begin(&metrics, &current);
+    run(P8_PAD_UP | P8_PAD_RIGHT, 0);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_UP, PAD_METRICS_DEAD_REQUIRED) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_RIGHT, PAD_METRICS_DEAD_OTHER) == 1);
+}
+
+static void test_a_dead_repeat_into_an_empty_cone_is_required(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    current.cone_empty = P8_PAD_LEFT;
+    pad_metrics_begin(&metrics, &current);
+    for (int f = 0; f < 20; f++) run(P8_PAD_LEFT, f == 1);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_REQUIRED) == 1);
+}
+
+static void test_the_group_facts_move_neither_change_test(void) {
+    pad_metrics_view_t a = still_view(), b = still_view();
+    b.last_acted = (entity_id_t){4, 2};
+    b.cone_empty = P8_PAD_UP | P8_PAD_LEFT;
+    assert(!pad_metrics_navigation_changed(&a, &b));
+    assert(!pad_metrics_view_changed(&a, &b));
+}
+
+static char report[1 << 16];
+
+/* The report of the run, in report; asserts the line is there. */
+static void write_report(void) {
+    FILE *out = tmpfile();
+    assert(out != NULL);
+    pad_metrics_write_report(&metrics, out);
+    rewind(out);
+    size_t n = fread(report, 1, sizeof report - 1, out);
+    report[n] = '\0';
+    fclose(out);
+}
+
+static int report_has(const char *line) {
+    return strstr(report, line) != NULL;
+}
+
+static void test_shares_print_two_decimals_and_the_aim_test_is_exact(void) {
+    start(PAD_METRICS_MODE_AIM);
+    for (int f = 0; f < 1487; f++) {
+        if (f == 1486) current.mode = PAD_METRICS_MODE_JUMP;
+        run(0, 0);
+    }
+    run_idle(5955 - 1487);
+    pad_metrics_finish(&metrics);
+    assert(pad_metrics_aim_ok(&metrics));
+    write_report();
+    assert(report_has("section4 aim share 24.97% (1487 of 5955 frames) under 25% ok\n"));
+    assert(report_has("aim share all frames 24.97% (1487 of 5955 frames)\n"));
+    assert(report_has("total aim share 25.0% (1487 of 5955 frames)\n"));
+    assert(report_has("section4 verdict ok\n"));
+
+    start(PAD_METRICS_MODE_AIM);
+    for (int f = 0; f < 1489; f++) {
+        if (f == 1488) current.mode = PAD_METRICS_MODE_JUMP;
+        run(0, 0);
+    }
+    run_idle(5956 - 1489);
+    pad_metrics_finish(&metrics);
+    assert(!pad_metrics_aim_ok(&metrics));
+}
+
+static void test_title_and_pause_are_outside_the_aim_denominator(void) {
+    start(PAD_METRICS_MODE_TITLE);
+    run_idle(9);
+    current.mode = PAD_METRICS_MODE_PAUSE;
+    run(0, 0);
+    run_idle(9);
+    current.mode = PAD_METRICS_MODE_AIM;
+    run(0, 0);
+    run_idle(4);
+    current.mode = PAD_METRICS_MODE_JUMP;
+    run(0, 0);
+    run_idle(17);
+    pad_metrics_finish(&metrics);
+    write_report();
+    assert(report_has("in-game frames 22 (without title and pause)\n"));
+    assert(report_has("in-game frames with pause 32\n"));
+    assert(report_has("section4 aim share 22.73% (5 of 22 frames) under 25% ok\n"));
+    assert(report_has("aim share in-game with pause 15.63% (5 of 32 frames)\n"));
+    assert(report_has("mode title 23.81% (10 of 42 frames)\n"));
+}
+
+static void test_the_verdict_fails_on_a_required_dead_dpad_press_in_jump_mode(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    current.cone_empty = P8_PAD_DOWN;
+    pad_metrics_begin(&metrics, &current);
+    run(P8_PAD_DOWN, 0);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    write_report();
+    assert(report_has("dead f0 press down jump required\n"));
+    assert(report_has("section4 dead d-pad presses in jump mode 1 fail (lenient, other group only: 0)\n"));
+    assert(report_has("section4 verdict fail\n"));
+}
+
+static void test_the_verdict_passes_with_required_circles_and_dead_repeats_only(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    run(P8_PAD_CIRCLE, 0);
+    run_idle(4);
+    for (int f = 0; f < 20; f++) run(P8_PAD_LEFT, f == 1);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    write_report();
+    assert(report_has("dead f0 press circle jump required\n"));
+    assert(report_has("repeat f23 left jump dead-other\n"));
+    assert(report_has("presses jump circle 1 chords 0 live 0 dead-required 1 dead-other 0\n"));
+    assert(report_has("repeats jump left 1 live 0 dead-required 0 dead-other 1\n"));
+    assert(report_has("section4 dead hold repeats required 0 other 1 (not deciding)\n"));
+    assert(report_has("total required no-ops 1\n"));
+    assert(report_has("section4 verdict ok\n"));
+}
+
+static void test_the_lenient_count_leaves_out_the_required_group(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    current.cone_empty = P8_PAD_UP;
+    pad_metrics_begin(&metrics, &current);
+    run(P8_PAD_UP | P8_PAD_RIGHT, 0);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    pad_metrics_section4_t section4 = pad_metrics_section4(&metrics);
+    assert(section4.jump_dpad_dead_strict == 2 && section4.jump_dpad_dead_lenient == 1 && !section4.ok);
+}
+
+static void test_cheat_activations_fail_the_verdict(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    pad_metrics_step(&metrics, 0, 1, &current);
+    pad_metrics_finish(&metrics);
+    write_report();
+    assert(report_has("section4 cheat activations 1 fail\n"));
+    assert(report_has("section4 verdict fail\n"));
+}
+
 int main(void) {
     test_no_economy_is_the_title_whatever_else_is_set();
     test_a_game_with_nothing_open_is_jump();
@@ -201,6 +506,24 @@ int main(void) {
     test_a_held_direction_repeats_on_the_frames_pad_jump_does();
     test_a_fresh_press_restarts_the_count();
     test_holds_repeat_in_slipway_mode_and_nowhere_else();
+    test_a_press_that_moves_nothing_is_dead();
+    test_the_window_runs_to_two_frames_after_the_release();
+    test_a_window_reaching_the_end_of_the_file_is_judged_on_the_frames_seen();
+    test_a_press_window_is_cut_before_its_first_repeat();
+    test_a_repeat_window_runs_to_the_next_repeat_or_the_release();
+    test_a_chord_is_counted_apart_and_never_judged();
+    test_a_dead_circle_at_the_root_is_required();
+    test_any_other_dead_circle_is_in_the_other_group();
+    test_a_dead_direction_into_an_empty_cone_is_required_in_jump_and_slipway_mode();
+    test_a_diagonals_second_direction_is_never_required();
+    test_a_dead_repeat_into_an_empty_cone_is_required();
+    test_the_group_facts_move_neither_change_test();
+    test_shares_print_two_decimals_and_the_aim_test_is_exact();
+    test_title_and_pause_are_outside_the_aim_denominator();
+    test_the_verdict_fails_on_a_required_dead_dpad_press_in_jump_mode();
+    test_the_verdict_passes_with_required_circles_and_dead_repeats_only();
+    test_the_lenient_count_leaves_out_the_required_group();
+    test_cheat_activations_fail_the_verdict();
     printf("test_pad_metrics: ok\n");
     return 0;
 }
