@@ -3968,6 +3968,116 @@ static void test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing(vo
     assert(pad_nav_last_acted(&step.pad_nav) == &colony->header);
 }
 
+/* a is the last object × acted on (a slipway started and cancelled), b is hovered, the year box is up. */
+static entity_t *year_box_with_the_last_object_elsewhere(input_step_t *step, planet_t **a, planet_t **b) {
+    planet_t *c;
+    start_game_in_jump_mode(step);
+    settled_row(step, a, b, &c);
+    hover_object(step, &(*a)->header);
+    start_slipway(step, &(*a)->header);
+    tap(step, P8_PAD_CIRCLE);
+    tap(step, P8_PAD_RIGHT);
+    hold(step, 0, 40);
+    assert_hovering(step, &(*b)->header);
+    assert(pad_nav_last_acted(&step->pad_nav) == &(*a)->header);
+    score_panel_new_year(p8_fixed_from_int(3421));
+    entity_t *year_box = &shown_message_box()->header;
+    run_frame(step, 0);
+    return year_box;
+}
+
+/* ○ closes the year box; on that frame and the next the buttons are only the held ones. */
+static void circle_closes_the_year_box(input_step_t *step, entity_t *year_box, int held_buttons) {
+    assert(shown_message_box() == (message_box_t *)year_box);
+    run_frame(step, P8_PAD_CIRCLE);
+    assert(input_step_played_frame(step)->mouse_buttons == held_buttons);
+    assert(shown_message_box() == NULL && year_box->is_dead);
+    run_frame(step, 0);
+    assert(input_step_played_frame(step)->mouse_buttons == held_buttons);
+}
+
+static void test_circle_closes_the_year_box_over_jump_mode_and_moves_nothing(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere(&step, &a, &b);
+    vec_t from = camera_at();
+    world_count_t before = world_count();
+    circle_closes_the_year_box(&step, year_box, 0);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    assert_hovering(&step, &b->header);
+    assert_moved(from, 0, 0);
+    assert_world_unchanged(before);
+    assert(pad_nav_last_acted(&step.pad_nav) == &a->header);
+}
+
+/* The year box's companion of test_circle_in_aim_mode_closes_a_box_before_leaving. */
+static void test_circle_in_aim_mode_closes_the_year_box_before_leaving(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere(&step, &a, &b);
+    tap(&step, P8_PAD_SQUARE);
+    assert(pad_nav_aim_mode(&step.pad_nav));
+    circle_closes_the_year_box(&step, year_box, 0);
+    assert(pad_nav_aim_mode(&step.pad_nav));
+    assert_cursor_at_centre(&step);
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_jump_mode(&step.pad_nav));
+}
+
+static void test_circle_closes_the_year_box_over_a_slipway_then_cancels_it(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere(&step, &a, &b);
+    start_slipway(&step, &b->header);
+    world_count_t before = world_count();
+    circle_closes_the_year_box(&step, year_box, P8_MOUSE_LEFT);
+    assert_slipway_mode(&step, &b->header, NULL);
+    run_frame(&step, P8_PAD_CIRCLE);
+    run_frame(&step, 0);
+    assert_hovering(&step, &b->header);
+    assert(ui_left_held(main_ui()) == NULL);
+    assert_world_unchanged(before);
+}
+
+static void test_circle_closes_the_year_box_over_a_carried_structure_and_keeps_it(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere(&step, &a, &b);
+    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    entity_t *structure = take_structure(&step);
+    circle_closes_the_year_box(&step, year_box, P8_MOUSE_LEFT);
+    assert_carrying(&step, structure);
+    assert(!structure->is_dead);
+}
+
+/* One box per ○: the planet menu first, the year box next. */
+static void test_circle_closes_a_planet_menu_then_the_year_box(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere(&step, &a, &b);
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    assert(pad_nav_panel_open() && main_ui()->ephemerals.count > 0);
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    assert(!pad_nav_panel_open() && shown_message_box() == (message_box_t *)year_box);
+    run_frame(&step, 0);
+    assert_hovering(&step, &b->header);
+    circle_closes_the_year_box(&step, year_box, 0);
+    assert_hovering(&step, &b->header);
+}
+
+/* On another tab ○ returns to the map and the year box stays. */
+static void test_circle_on_end_turn_returns_to_the_map_under_the_year_box(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere(&step, &a, &b);
+    go_to_tab(&step, PAD_NAV_TAB_END_TURN);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    assert(shown_message_box() == (message_box_t *)year_box && !year_box->is_dead);
+}
+
 static planet_t *hovered_colony_near_centre(input_step_t *step) {
     make_every_planet_known();
     planet_t *colony = planet_closest_to_centre();
@@ -4855,6 +4965,12 @@ int main(void) {
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);
     in_fresh_child(test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing);
+    in_fresh_child(test_circle_closes_the_year_box_over_jump_mode_and_moves_nothing);
+    in_fresh_child(test_circle_in_aim_mode_closes_the_year_box_before_leaving);
+    in_fresh_child(test_circle_closes_the_year_box_over_a_slipway_then_cancels_it);
+    in_fresh_child(test_circle_closes_the_year_box_over_a_carried_structure_and_keeps_it);
+    in_fresh_child(test_circle_closes_a_planet_menu_then_the_year_box);
+    in_fresh_child(test_circle_on_end_turn_returns_to_the_map_under_the_year_box);
     in_fresh_child(test_cross_on_a_hovered_colony_holds_its_slipway_and_the_d_pad_aims_past_it);
     in_fresh_child(test_no_direction_aims_at_the_start);
     in_fresh_child(test_a_refused_start_holds_nothing);

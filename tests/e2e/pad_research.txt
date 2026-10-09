@@ -124,7 +124,9 @@ inputs of the old file but f29 (plan 12 step 7).
   mode is left). f343: Up onto p47, f346: Left onto p78. f349: triangle; f353: Down; f355: X on
   "nanotech", $117 -> $107; the year passes on its own on the way (3402
   at f355).
-- f361: X on p78, f363: Down onto s2, f366: X: `slipway p78 s2`,
+- f361: X on p78, f363: Down onto s2, f364: circle closes the year
+  box, the slipway still held (plan 12 step 8: circle closes a box
+  before it backs out), f366: X: `slipway p78 s2`,
   dropped on the slipgate, $102. The tech crosses s2 to the hub, and the
   offer finds the amount at 0 on s2's next slipway
   (`slipgate_offer_trade`'s `continue`). Income -2 -> 7. f367: s2

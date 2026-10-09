@@ -7,6 +7,7 @@
 #include "game/background.h"
 #include "game/main_economy.h"
 #include "game/menu.h"
+#include "game/message_box.h"
 #include "game/pad_jump.h"
 #include "game/pad_panel.h"
 #include "game/pad_target.h"
@@ -1112,6 +1113,11 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     int circle_returns = (pressed & P8_PAD_CIRCLE) && !pad_panel_box_open();
     if (pressed & P8_PAD_CIRCLE) {
         circle_closes_the_box();
+        if (circle_returns && nav->tab == PAD_NAV_TAB_MAP && shown_message_box() != NULL) {
+            message_box_close_shown();
+            circle_returns = 0;
+            pressed &= ~P8_PAD_CIRCLE;
+        }
     }
     if (pad_nav_panel_open()) {
         (void)cancel_slipway(nav);

@@ -86,8 +86,10 @@ network travel only used to get somewhere is replaced by jumps.
 - f279, f281: Left, Down onto p54. f284: X on p54, f286: Right onto
   p31, f289: X: `slipway p54 p31`, $181. f292: O: jump mode on p31.
 - f294: Left onto p1. f297: triangle, f301: Down, f303: X on "colony":
-  $174. f309: Down onto p54. f312: X on p54, f314: Up onto p1, f317:
-  X: `slipway p54 p1`, $164. f320: O: jump mode on p1.
+  $174; the year box is up from f304. f309: Down onto p54. f312: X on
+  p54, f314: Up onto p1, f315: O closes the year box, the slipway still
+  held (plan 12 step 8: O closes a box before it backs out), f317: X:
+  `slipway p54 p1`, $164. f320: O: jump mode on p1.
 - f322: Right onto p37. f325: triangle, f329: Down, f331: X on
   "colony" (needs ore): $156. f337, f339: Left, Down onto p54. f342: X
   on p54, f344, f346: Up, Right onto p37, f349: X: `slipway p54 p37`,
@@ -116,7 +118,8 @@ network travel only used to get somewhere is replaced by jumps.
   on s2, f487: Up onto p31, f490: X: `slipway s2 p31`, $105: p31 feeds
   s2 people. f493: O: jump mode on p31. f495: Down onto s2. f498: X on
   s2, f500: Left onto p54, f503: X: `slipway s2 p54`; the year passes on
-  its own on the way ($119, year 3409). f506: O: jump mode on p54.
+  its own on the way ($119, year 3409), its box up from f504. f504: O
+  closes it, the slipway still held. f506: O: jump mode on p54.
 - f510-518: R1 R1, X on `end turn` (f514): year 3410, the "year 3410"
   box; L1 L1, the map.
 - f521: square: aim mode. f523-540: Down+Left 4, Left 14: camera
@@ -135,7 +138,7 @@ network travel only used to get somewhere is replaced by jumps.
 income 17; camera 101 242; p54 colonized m, p31 colonized e, p1
 colonized x, p37 colonized o, s1 and s2 colonized structure; slipways
 p54 p31, p54 p1, p54 p37, s1 p54, s2 p31, s2 p54; planets 90, colonies
-6, transit dots live at the end. Peak: transit_dots 37 (25 before the
+6, transit dots live at the end. Peak: transit_dots 29 (25 before the
 cross route: the slipways now age differently before the year).
 
 Replaces trade_rich_mine (a mine linked to three people suppliers and

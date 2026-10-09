@@ -73,9 +73,10 @@ frame up to f227 is unchanged, byte for byte.
 
 - f278-292: R1 (`end turn` -> `tech`), Down x5, X: "infraspace"
   (research 59 -> 28).
-  f293: O leaves aim mode for jump mode on p47, the only target; the
-  edge scroll takes the camera 190 132 -> 190 177 by f299. f295-304:
-  idle. f305-311: the cheat, four X + O chords: $200, research 99 at
+  f293: O closes the year box (up since f274's year; plan 12 step 8: O
+  closes a box before it backs out), aim mode kept. f295: O leaves aim
+  mode for jump mode on p47, the only target; the edge scroll takes the
+  camera 190 132 -> 190 177 by f301. f296-304: idle. f305-311: the cheat, four X + O chords: $200, research 99 at
   f311. (Before plan 12 step 7, f293's O went back to network mode on
   the last planet p47, the camera centred on it (190 205), and f295's O
   left it for jump mode: that return is gone with its mechanic.)
@@ -92,7 +93,8 @@ The slipways are built the cross way (plan 12 step 6), each in its
 direction; before each structure is taken, the camera is panned back to
 the one the old file took it from (rule 8). Up to the old f383, the
 inputs are the step 6 file's, 2 frames later from f159, but for f17,
-f159-160, f202, f226, f295 and f369-382 (plan 12 step 7).
+f159-160, f202, f226, f295 and f369-382 (plan 12 step 7), and f295
+again (plan 12 step 8).
 
 - f386: idle (it was O, leaving network mode, before plan 12 step 7).
   f388: X on s1, f390: Down onto p47 (the
@@ -131,7 +133,7 @@ income 6, techs + infraspace, autoassemblers, skill implants, void
 synthesis, ascension; camera 216 157; s2, s3 colonized synthesizer, s4
 colonized ascension, structure s1 infragate links 1; slipways s1 p47
 infragate, s3 p47 normal, p47 s2 normal; planets 92, colonies 4. Peaks:
-particles 4 (synthesizer_second_link's 3), zone frame 13872.
+particles 4 (synthesizer_second_link's 3), zone frame 13840.
 
 Replaces tech_infraspace_infragate (an infragate and its slipway from a
 mine, then an ordinary slipway that ignores it), synthesizer_second_link
