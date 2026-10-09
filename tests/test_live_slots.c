@@ -880,7 +880,7 @@ static void pad_tech_costs_releases_trails_on_reload(void) {
 #define GRABS "tests/fixtures/grabs_refused.json"
 
 /* GRABS: f0-68 of pad_probe (probe at f26, fold f41-57, its wormhole dead
- * at f84), Down 10 so the centre lies 12 px from p47; then 7-frame grabs (R1,
+ * at f84), Down 10 so the centre lies 12 px from p47; then 7-frame grabs (L1,
  * X takes the basic structure at f+2, X at f+4 refuses it near p47, three
  * frames of waiting): twenty refused (f80-219), one carried Up+Left 10 and
  * placed at f235 (f220-237), Down+Right 10, one refused near p47 again

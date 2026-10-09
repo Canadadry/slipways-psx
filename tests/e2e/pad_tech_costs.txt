@@ -122,7 +122,7 @@ network travel only used to get somewhere is replaced by jumps.
   f234's circle returned to p31 in network mode, the camera centred on
   it (143 216): that return is gone with the starting planet, so the
   route jumps from p54 to p31 and the pan before the lab is Down
-  only.) f356-359: R1, X: a lab carried, the
+  only.) f356-359: L1, X: a lab carried, the
   camera unmoved. f361-381: the old file's pan (Down+Right 10, Down 6,
   Down 1), X: the lab s1 built at (191, 325), $126.
 - f384: square: aim mode left for jump mode on s1, the target nearest
@@ -130,7 +130,7 @@ network travel only used to get somewhere is replaced by jumps.
   step 7). f388: X on s1, f390: Up onto p54, f393: X: `slipway s1
   p54`, $123. f396: O: jump mode on p54.
 - f398: square: aim mode. f400-424: Up+Left 10, Up 10, Up 3:
-  camera 101 242 again. f426-429: R1, X: a second lab carried.
+  camera 101 242 again. f426-429: L1, X: a second lab carried.
   f432-452: the old file's pan (Up+Right 4, Right 14), X: s2 built at
   (207, 298), $108.
 - f454: square: aim mode left for jump mode on s2. f456: idle (it was O,

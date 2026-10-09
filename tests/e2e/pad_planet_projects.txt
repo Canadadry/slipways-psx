@@ -95,7 +95,7 @@ separate pad_infragate, pad_synthesizer and pad_ascension files).
   left it for jump mode: that return is gone with its mechanic.)
 - f267-301: "autoassemblers", "skill implants" (era 4 opens), "void
   synthesis" (row 2): research 20.
-- f302-325: R1, Left x2, X: the infragate s1 carried from camera 190
+- f302-325: L1, Left x2, X: the infragate s1 carried from camera 190
   177; Up+Right 2, Up 11, idle f323, X (f324): s1 built at (272,
   221), $200 -> $175, on the spot p25 left: the same world point as
   before step 7, reached with 14 fewer Up frames from the higher camera
@@ -113,10 +113,10 @@ the one the old file took it from (rule 8).
   p47 infragate`, $175 -> $168. f339: O: jump mode on p47.
 - f342: square: aim mode. f344-362: Down+Left 2, Down 17: camera
   190 205, where the old file's network mode centred on p47 before each
-  synthesizer was taken. f364-368: R1, Left, X: synthesizer s2 carried,
+  synthesizer was taken. f364-368: L1, Left, X: synthesizer s2 carried,
   the camera unmoved. f371-386: Up+Left 8, Up 7, X: built at (262,
   245), $128.
-- f388-402: Down+Right 8, Down 7: camera 190 205 again. f404-406: R1, X:
+- f388-402: Down+Right 8, Down 7: camera 190 205 again. f404-406: L1, X:
   a second synthesizer. f409-425: Up+Right 13, Up 3, X: s3 at (286,
   243), $88.
 - f427: square: aim mode left for jump mode on s3, under the centre.
@@ -131,7 +131,7 @@ the one the old file took it from (rule 8).
   182 182, where the old file took the ascension gate from jump mode.
 - f468-474: the cheat, four X + O chords: $200, research 99 at f474.
   f476-492: "ascension" (row 4): research 49.
-- f493-521: R1, Left, X: the ascension gate s4 carried from camera 182
+- f493-521: L1, Left, X: the ascension gate s4 carried from camera 182
   182; Up+Right 17, Right, Up+Right, Right 3, X (f521): built at (296,
   217), $140, month 11. Up and left of s2, 16 px from p6, the spot
   would be refused.

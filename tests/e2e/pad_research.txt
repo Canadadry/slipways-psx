@@ -86,7 +86,7 @@ is the one of the shorter file, byte for byte, but f28 (plan 12 step 7).
   first three reveal rolls of this game.
 - f177-205: pan onto p23; f195: square: jump mode on p23 (plan 12 step
   7: triangle does nothing in aim mode); f197: triangle on the hovered
-  p23, p23 as "algae" (food), $197 -> $189. f207-243: R1, Left
+  p23, p23 as "algae" (food), $197 -> $189. f207-243: L1, Left
   x3, X: the trading hub s1 built at (300, 262), $169.
   f245: square: aim mode left for jump mode on s1, under the centre.
   (Before plan 12 step 7, the hub was taken from network mode on p23,
@@ -104,7 +104,7 @@ inputs of the old file but f29 (plan 12 step 7).
   f257: circle: jump mode on p23.
 - f259: square: aim mode, camera 220 202. f261-262: Up 2: camera
   220 200, the camera the old file's X took the slipgate from (its
-  network mode centred on s1 there). f263-268: R1, Right, X: the
+  network mode centred on s1 there). f263-268: L1, Right, X: the
   slipgate carried, the camera unmoved. f270-302: Down+Left 15, Left
   12, Down 1, X: the slipgate s2 built at (256, 281), $154.
 - f304: square: aim mode left for jump mode on s2, under the

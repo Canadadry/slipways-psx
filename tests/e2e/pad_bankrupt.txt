@@ -21,7 +21,7 @@ initial_save. No wormhole lives there, so the record is written. The
 cheat typed before the cut would be lost, so it is typed after the
 resume.
 
-A lab is the `build` tab's basic structure ($15, 2 months, upkeep the
+A lab is the build bar's basic structure ($15, 2 months, upkeep the
 square of the colony count). Readings come from `make state` of the
 file cut after the frame and from the capture.
 
@@ -32,7 +32,7 @@ file cut after the frame and from the capture.
   research 99 at f21. The title's X is a lone X, which leaves the cheat
   matcher at 0. The pad ignores X and O from a chord until both are up,
   so the chords place no probe.
-- f24-44: the fifth lab s5 (304, 269), R1, X, Up+Right 13, Right 1, X:
+- f24-44: the fifth lab s5 (304, 269), L1, X, Up+Right 13, Right 1, X:
   $185, month 11, income -25, one toast.
 - f45-74: Select held 30 frames in aim mode; Up+Left 13 and Up 1 held
   with it on f45-58 pan the camera to 208 191, where the centre (288,
@@ -41,7 +41,7 @@ file cut after the frame and from the capture.
 - f76, f78, ..., f86: six fresh Select presses, one every other frame,
   each inside the 15 frames after the year before: one year each, year
   3408 and $10 at f86, toasts 36.
-- f88: R1: `build`, inside the chain window. f89: X takes s6, carried on
+- f88: L1: the build bar, inside the chain window. f89: X takes s6, carried on
   the map from f90 at the centre. f91: X drops it there: "-no money-"
   in colour 8 above the centre (f91-94), s6 gone, $10 kept.
 - f92: Select, still inside the window (the 6th frame after f86): year

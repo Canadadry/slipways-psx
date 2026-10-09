@@ -16,7 +16,7 @@ after the frame and from the capture.
 
 - f69: p25 (type f), f73: p47 (type r), f79: p71 (empty, vanishing)
   known; $97, month 2.
-- f76, f78: R1, X: a lab (s1) taken from the `build` tab. f80-94: Up,
+- f76, f78: L1, X: a lab (s1) taken from the build bar. f80-94: Up,
   then Up 13: s1 carried onto p25 (screen 78.01, 60.19, camera 202
   169), its colour-2 hatched disk drawn at f95.
 - f96: X: refused, s1 gone at f97, $97 kept, planets 91 -> 90.
@@ -24,7 +24,7 @@ after the frame and from the capture.
   centre. p71 draws on fewer frames as it ages (planet_display's
   vanishing test): from f116 on f116-118, f121, f124, f133 and
   f135-136.
-- f134, f136: R1, X: lab s2 carried at the centre over p71.
+- f134, f136: L1, X: lab s2 carried at the centre over p71.
 - f141: p71 is dead (more than 60 ticks): planets 91 -> 90.
 - f142: X: s2 built at world (310, 237), p71's spot: $97 -> $82, month
   2 -> 4, income -1; a "-15$" label rises from it.
