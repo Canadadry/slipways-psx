@@ -119,6 +119,7 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - The tuning values (score weight 2, repeat 18/8 frames, margin 20 px, 8 px per frame scroll, Select tap 10 / hold 30 / chain window 15 frames) are first guesses, kept as written for the whole plan. Tuning them comes after the human's game, as a mapping change under the re-authoring guardrails of section 2.
 - "Colonies needing attention" depends on what the game tracks (step 9 decides, with a fallback).
 - Should the D-pad reach every object? The cone rule can strand one, rarely (step 13 note). A fallback pick, for example the nearest object in the half-plane when no cone candidate wins any origin, would change the rule of section 3; decided with the tuning values after the human's game.
+- After a resume, a HUD button covering a structure built during the game wins the hover, while before the save the structure did (resume registers saved nodes before the HUD; step 13 note). To fix with fix-bug after the plan, likely by making hover prefer the higher layer.
 
 ## 6. Step notes
 
