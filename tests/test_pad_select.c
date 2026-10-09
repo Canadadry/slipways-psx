@@ -157,6 +157,18 @@ static void test_each_chained_year_reopens_the_window(void) {
     }
 }
 
+static void test_a_year_just_ended_lasts_until_the_next_step(void) {
+    pad_select_t s;
+    pad_select_init(&s);
+    assert(!pad_select_year_just_ended(&s));
+    assert(hold(&s, PAD_SELECT_HOLD_FRAMES, NULL) == 1);
+    assert(!pad_select_year_just_ended(&s));
+    pad_select_year_ended(&s);
+    assert(pad_select_year_just_ended(&s));
+    assert(pad_select_step(&s, 0, 0) == PAD_SELECT_NONE);
+    assert(!pad_select_year_just_ended(&s));
+}
+
 static void test_without_a_reported_year_no_window_opens(void) {
     pad_select_t s;
     pad_select_init(&s);
@@ -334,6 +346,7 @@ int main(void) {
     test_a_press_on_the_16th_frame_after_a_year_starts_a_normal_press();
     test_a_chain_press_held_40_frames_ends_one_year();
     test_each_chained_year_reopens_the_window();
+    test_a_year_just_ended_lasts_until_the_next_step();
     test_without_a_reported_year_no_window_opens();
     test_the_chain_window_counts_down_on_frames_not_allowed();
     start_game();

@@ -5,6 +5,7 @@
 #include "engine/entity_id_type.h"
 #include "game/pad_back.h"
 #include "game/pad_jump.h"
+#include "game/pad_select.h"
 #include "game/pad_slipway.h"
 #include "p8/input.h"
 
@@ -52,6 +53,7 @@ typedef struct {
     pad_jump_t jump;
     pad_slipway_t slipway;
     pad_back_t back;
+    pad_select_t select;
 } pad_nav_t;
 
 void pad_nav_init(pad_nav_t *nav);
@@ -84,6 +86,12 @@ entity_t *pad_nav_slipway_start(const pad_nav_t *nav);
  * whatever the map mode; NULL with no game, when nothing was recorded, or once it is no longer a
  * pad_target_is_candidate. */
 entity_t *pad_nav_last_acted(const pad_nav_t *nav);
+
+/* The frames the current Select press has been down; 0 when Select is up, and from a blocked frame until its release. */
+int pad_nav_select_held(const pad_nav_t *nav);
+
+/* 1 while a fresh Select press would end one more year on its press frame. */
+int pad_nav_year_chain_open(const pad_nav_t *nav);
 
 /* The aimed target while the map mode is slipway; NULL while aimed at the start, in any other mode, or once the
  * target is no longer a pad_target_is_candidate. */

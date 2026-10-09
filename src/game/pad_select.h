@@ -30,6 +30,9 @@ pad_select_event_t pad_select_step(pad_select_t *s, int down, int allowed);
 /* Opens the chain window: called only when the year press went out, never on a refused one. */
 void pad_select_year_ended(pad_select_t *s);
 
+/* 1 from pad_select_year_ended until the next step: that step is the year press's release frame. */
+int pad_select_year_just_ended(const pad_select_t *s);
+
 /* Reads only; 0 for NULL. 1 for a settled pad_target_is_candidate with a need its panel lists under "needs:". */
 int pad_select_needs_attention(const entity_t *e);
 

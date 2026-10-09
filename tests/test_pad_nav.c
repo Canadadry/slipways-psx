@@ -20,6 +20,7 @@
 #include "game/menu.h"
 #include "game/message_box.h"
 #include "game/pad_panel.h"
+#include "game/pad_select.h"
 #include "game/pad_target.h"
 #include "game/planet.h"
 #include "game/planet_family_trade.h"
@@ -485,87 +486,6 @@ static void test_aim_mode_bound_brings_every_planet_under_the_centre(void) {
     for (int i = 0; i < planets->count; i++) {
         vec_t p = entity_pos(planets->items[i]);
         assert(p.x >= reach_low.x && p.x <= reach_high.x && p.y >= reach_low.y && p.y <= reach_high.y);
-    }
-}
-
-enum { SELECT_RUN_FRAMES = 120 };
-
-typedef struct {
-    int mouse_x;
-    int mouse_y;
-    int mouse_buttons;
-    vec_t camera;
-    pad_nav_t nav;
-    cheat_t cheat;
-    int live;
-    int panel_open;
-} select_snapshot_t;
-
-static int select_run_base(int frame) {
-    if (frame >= 5 && frame < 15) {
-        return P8_PAD_RIGHT;
-    }
-    if (frame == 20) {
-        return P8_PAD_CROSS;
-    }
-    if (frame == 70 || frame == 80) {
-        return frame == 70 ? P8_PAD_START : P8_PAD_DOWN;
-    }
-    return frame == 90 ? P8_PAD_CIRCLE : 0;
-}
-
-/* Variant 0 never presses Select, 1 adds it to every frame, 2 taps it once and holds it for 40 frames. */
-static int select_run_mask(int frame, int variant) {
-    int select = variant == 1 || (variant == 2 && (frame == 2 || (frame >= 25 && frame < 65)));
-    return select_run_base(frame) | (select ? P8_PAD_SELECT : 0);
-}
-
-static void select_run(int variant, select_snapshot_t snapshots[SELECT_RUN_FRAMES]) {
-    input_step_t step;
-    start_game(&step);
-    for (int i = 0; i < SELECT_RUN_FRAMES; i++) {
-        run_frame(&step, select_run_mask(i, variant));
-        const p8_input_frame_t *played = input_step_played_frame(&step);
-        select_snapshot_t *shot = &snapshots[i];
-        memset(shot, 0, sizeof *shot);
-        shot->mouse_x = played->mouse_x;
-        shot->mouse_y = played->mouse_y;
-        shot->mouse_buttons = played->mouse_buttons;
-        shot->camera = camera_at();
-        shot->nav = step.pad_nav;
-        shot->nav.previous_pad &= ~P8_PAD_SELECT;
-        shot->cheat = step.cheat;
-        shot->live = live_entities()->count;
-        shot->panel_open = pad_nav_panel_open();
-    }
-}
-
-static void test_select_changes_nothing_yet(void) {
-    static select_snapshot_t plain[SELECT_RUN_FRAMES];
-    static select_snapshot_t pressed[SELECT_RUN_FRAMES];
-    const char *path = "tmp/test_pad_nav_select_plain.bin";
-    if (in_forked_copy()) {
-        select_run(0, plain);
-        FILE *file = fopen(path, "wb");
-        assert(file != NULL);
-        assert(fwrite(plain, sizeof plain, 1, file) == 1);
-        assert(fclose(file) == 0);
-        end_forked_copy();
-    }
-    FILE *file = fopen(path, "rb");
-    assert(file != NULL);
-    assert(fread(plain, sizeof plain, 1, file) == 1);
-    fclose(file);
-    remove(path);
-    assert(plain[15].camera.x != plain[0].camera.x && plain[75].panel_open && !plain[95].panel_open);
-    for (int variant = 1; variant <= 2; variant++) {
-        if (in_forked_copy()) {
-            select_run(variant, pressed);
-            for (int i = 0; i < SELECT_RUN_FRAMES; i++) {
-                assert(memcmp(&pressed[i], &plain[i], sizeof pressed[i]) == 0);
-            }
-            end_forked_copy();
-        }
     }
 }
 
@@ -5023,6 +4943,405 @@ static void test_a_dead_hovered_object_reseeds_on_the_object_nearest_the_centre(
     assert_cursor_at_centre(&step);
 }
 
+static int node_index(const entity_t *e) {
+    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
+    for (int i = 0; i < nodes->count; i++) {
+        if (nodes->items[i] == e) {
+            return i;
+        }
+    }
+    assert(0 && "node_index: the entity is a node");
+    return -1;
+}
+
+static void satisfy_every_need(planet_t *planet) {
+    for (int i = 0; i < planet->needs.count; i++) {
+        need_t *need = planet->needs.items[i];
+        need->has_satisfied = 1;
+        need->satisfied = p8_fixed_from_int(1);
+    }
+    assert(!pad_select_needs_attention(&planet->header));
+}
+
+static int attention_count(void) {
+    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
+    int count = 0;
+    for (int i = 0; i < nodes->count; i++) {
+        count += pad_select_needs_attention(nodes->items[i]);
+    }
+    return count;
+}
+
+/* settled_row's three colonies in registration order, the middle one with every need met: the only two needing
+ * attention are *first and *last. */
+static void attention_row(input_step_t *step, planet_t **first, planet_t **middle, planet_t **last) {
+    planet_t *row[3];
+    settled_row(step, &row[0], &row[1], &row[2]);
+    for (int i = 1; i < 3; i++) {
+        for (int j = i; j > 0 && node_index(&row[j]->header) < node_index(&row[j - 1]->header); j--) {
+            planet_t *swap = row[j];
+            row[j] = row[j - 1];
+            row[j - 1] = swap;
+        }
+    }
+    *first = row[0];
+    *middle = row[1];
+    *last = row[2];
+    satisfy_every_need(*middle);
+    assert(pad_select_needs_attention(&(*first)->header) && pad_select_needs_attention(&(*last)->header));
+    assert(attention_count() == 2);
+}
+
+/* A Select tap: its press, then its release frame, where the tap acts. */
+static void select_tap(input_step_t *step) {
+    run_frame(step, P8_PAD_SELECT);
+    assert(input_step_played_frame(step)->mouse_buttons == 0);
+    run_frame(step, 0);
+}
+
+static void assert_select_tap_lands_on(input_step_t *step, const entity_t *target) {
+    vec_t from = camera_at();
+    select_tap(step);
+    vec_t moved = vec_sub(camera_at(), from);
+    assert(absolute_int(p8_fixed_flr_int(moved.x)) <= 8 && absolute_int(p8_fixed_flr_int(moved.y)) <= 8);
+    assert_hovering(step, target);
+}
+
+static void test_select_taps_cycle_the_colonies_needing_attention_in_order(void) {
+    input_step_t step;
+    planet_t *first, *middle, *last;
+    start_game_in_jump_mode(&step);
+    attention_row(&step, &first, &middle, &last);
+    hover_object(&step, &first->header);
+    entity_t *last_acted = pad_nav_last_acted(&step.pad_nav);
+    uint32_t game = p8_fixed_rnd_state();
+    assert_select_tap_lands_on(&step, &last->header);
+    assert_select_tap_lands_on(&step, &first->header);
+    hover_object(&step, &middle->header);
+    assert_select_tap_lands_on(&step, &last->header);
+    assert(pad_nav_last_acted(&step.pad_nav) == last_acted);
+    assert(p8_fixed_rnd_state() == game && "a Select tap draws no game number");
+}
+
+/* The tap's own frame scrolls, as a D-pad jump's does, then each frame at most 8 px per axis until the colony is inside. */
+static void test_a_select_tap_to_a_colony_outside_edge_scrolls_at_8_px_a_frame(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    planet_t *near = planet_closest_to_centre();
+    planet_t *far = planet_farthest_outside();
+    assert(near != far);
+    settle_planet(&step, near);
+    settle_planet(&step, far);
+    assert(attention_count() == 2);
+    hover_object(&step, &near->header);
+    int x, y;
+    rest_screen_point(&far->header, &x, &y);
+    assert(!pad_jump_inside(x, y));
+    int frames = 0;
+    vec_t from = camera_at();
+    run_frame(&step, P8_PAD_SELECT);
+    run_frame(&step, 0);
+    assert(pad_nav_hovered(&step.pad_nav) == &far->header);
+    for (;;) {
+        vec_t moved = vec_sub(camera_at(), from);
+        int dx = absolute_int(p8_fixed_flr_int(moved.x)), dy = absolute_int(p8_fixed_flr_int(moved.y));
+        assert(dx <= 8 && dy <= 8);
+        assert((frames > 0 || dx + dy > 0) && "the tap's release frame scrolls");
+        rest_screen_point(&far->header, &x, &y);
+        if (pad_jump_inside(x, y)) {
+            break;
+        }
+        assert(++frames < 200);
+        from = camera_at();
+        run_frame(&step, 0);
+    }
+    assert_hovering(&step, &far->header);
+}
+
+/* Select held for frames, each of which must press nothing. */
+static void hold_select_pressing_nothing(input_step_t *step, int frames) {
+    for (int i = 0; i < frames; i++) {
+        run_frame(step, P8_PAD_SELECT);
+        assert(input_step_played_frame(step)->mouse_buttons == 0);
+    }
+}
+
+static void test_a_select_hold_under_30_frames_ends_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *hovered = hover_settled(&step);
+    year_facts_t before = year_facts();
+    hold_select_pressing_nothing(&step, PAD_SELECT_HOLD_FRAMES - 1);
+    assert(pad_nav_select_held(&step.pad_nav) == PAD_SELECT_HOLD_FRAMES - 1);
+    hold(&step, 0, 2);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    assert_years_ended(before, 0);
+    assert_hovering(&step, hovered);
+    assert(pad_nav_select_held(&step.pad_nav) == 0 && !pad_nav_year_chain_open(&step.pad_nav));
+}
+
+/* Holds Select up to its 30th frame, which presses the year-skip button, then one more frame, its release. */
+static void hold_select_to_the_year(input_step_t *step) {
+    int x, y;
+    year_skip_point(&x, &y);
+    hold_select_pressing_nothing(step, PAD_SELECT_HOLD_FRAMES - 1);
+    run_frame(step, P8_PAD_SELECT);
+    assert_played(step, x, y, P8_MOUSE_LEFT);
+    assert(pad_nav_year_chain_open(&step->pad_nav));
+    run_frame(step, P8_PAD_SELECT);
+    assert(input_step_played_frame(step)->mouse_buttons == 0);
+}
+
+static void test_a_select_hold_of_30_frames_presses_the_year_skip_button_once(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *hovered = hover_settled(&step);
+    vec_t from = camera_at();
+    year_facts_t before = year_facts();
+    entity_t *last_acted = pad_nav_last_acted(&step.pad_nav);
+    hold_select_to_the_year(&step);
+    assert_cursor_on(&step, hovered);
+    assert(pad_nav_hovered(&step.pad_nav) == hovered);
+    assert_years_ended(before, 1);
+    hold(&step, 0, 1);
+    assert_hovering(&step, hovered);
+    assert_moved(from, 0, 0);
+    assert(pad_nav_last_acted(&step.pad_nav) == last_acted);
+}
+
+static void test_a_select_hold_of_90_frames_ends_one_year(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    year_facts_t before = year_facts();
+    hold_select_to_the_year(&step);
+    hold_select_pressing_nothing(&step, 90 - PAD_SELECT_HOLD_FRAMES - 1);
+    run_frame(&step, 0);
+    assert_years_ended(before, 1);
+}
+
+static void test_fresh_select_presses_after_a_year_chain_more_years(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    year_facts_t before = year_facts();
+    uint32_t game = p8_fixed_rnd_state();
+    int x, y;
+    year_skip_point(&x, &y);
+    hold_select_to_the_year(&step);
+    run_frame(&step, 0);
+    for (int year = 2; year <= 7; year++) {
+        run_frame(&step, P8_PAD_SELECT);
+        assert_played(&step, x, y, P8_MOUSE_LEFT);
+        run_frame(&step, 0);
+        assert_years_ended(before, year);
+    }
+    assert(pad_nav_year_chain_open(&step.pad_nav));
+    hold(&step, 0, PAD_SELECT_CHAIN_FRAMES - 1);
+    assert(!pad_nav_year_chain_open(&step.pad_nav));
+    hold_select_pressing_nothing(&step, 1);
+    assert(pad_nav_select_held(&step.pad_nav) == 1);
+    run_frame(&step, 0);
+    assert_years_ended(before, 7);
+    assert(p8_fixed_rnd_state() == game && "a year end draws no game number");
+}
+
+static void test_a_select_hold_ends_the_year_under_the_year_box(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    score_panel_new_year(p8_fixed_from_int(3421));
+    assert(shown_message_box() != NULL);
+    run_frame(&step, 0);
+    year_facts_t before = year_facts();
+    hold_select_to_the_year(&step);
+    assert_years_ended(before, 1);
+}
+
+static void test_select_in_aim_mode_ends_the_year_and_taps_back_to_jump_mode(void) {
+    input_step_t step;
+    start_game(&step);
+    year_facts_t before = year_facts();
+    hold_select_to_the_year(&step);
+    assert_cursor_at_centre(&step);
+    assert(pad_nav_aim_mode(&step.pad_nav));
+    assert_years_ended(before, 1);
+    planet_t *colony = planet_closest_to_centre();
+    make_known(colony);
+    settle_planet(&step, colony);
+    settle(&step);
+    assert(pad_select_needs_attention(&colony->header) && attention_count() == 1);
+    assert(pad_nav_aim_mode(&step.pad_nav));
+    select_tap(&step);
+    assert_hovering(&step, &colony->header);
+}
+
+static void test_a_select_tap_with_nothing_needing_attention_changes_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    entity_t *hovered = hover_settled(&step);
+    assert(attention_count() == 0);
+    vec_t from = camera_at();
+    select_tap(&step);
+    assert_hovering(&step, hovered);
+    assert_moved(from, 0, 0);
+    leave_jump_mode(&step);
+    select_tap(&step);
+    assert(pad_nav_aim_mode(&step.pad_nav));
+    assert_cursor_at_centre(&step);
+}
+
+/* A 40-frame Select hold, then a tap, with held kept down: each frame plays mouse_buttons, and no year ends. */
+static void assert_select_inert(input_step_t *step, int held, int mouse_buttons) {
+    p8_fixed_t year = main_economy_typed()->year;
+    for (int i = 0; i < 40; i++) {
+        run_frame(step, held | P8_PAD_SELECT);
+        assert(input_step_played_frame(step)->mouse_buttons == mouse_buttons);
+    }
+    run_frame(step, held);
+    run_frame(step, held | P8_PAD_SELECT);
+    assert(input_step_played_frame(step)->mouse_buttons == mouse_buttons);
+    run_frame(step, held);
+    assert(input_step_played_frame(step)->mouse_buttons == mouse_buttons);
+    assert(main_economy_typed()->year == year && !pad_nav_year_chain_open(&step->pad_nav));
+}
+
+static void test_select_does_nothing_while_something_is_held_or_open(void) {
+    static const pad_nav_tab_t tabs[] = { PAD_NAV_TAB_BUILD, PAD_NAV_TAB_END_TURN, PAD_NAV_TAB_TECH,
+                                          PAD_NAV_TAB_SCORE };
+    input_step_t step;
+    planet_t *first, *middle, *last;
+    start_game_in_jump_mode(&step);
+    attention_row(&step, &first, &middle, &last);
+    hover_object(&step, &first->header);
+    if (in_forked_copy()) {
+        start_slipway(&step, &first->header);
+        assert_select_inert(&step, 0, P8_MOUSE_LEFT);
+        assert_slipway_mode(&step, &first->header, NULL);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        go_to_tab(&step, PAD_NAV_TAB_BUILD);
+        entity_t *structure = take_structure(&step);
+        assert_select_inert(&step, 0, P8_MOUSE_LEFT);
+        assert_carrying(&step, structure);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        leave_jump_mode(&step);
+        pan_to_empty_space(&step);
+        tap(&step, P8_PAD_CROSS);
+        settle(&step);
+        run_frame(&step, P8_PAD_CROSS);
+        assert_select_inert(&step, P8_PAD_CROSS, P8_MOUSE_LEFT);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_TRIANGLE);
+        settle(&step);
+        assert(pad_nav_panel_open() && main_ui()->ephemerals.count > 0);
+        assert_select_inert(&step, 0, 0);
+        assert(pad_nav_panel_open());
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_START);
+        settle(&step);
+        assert(pause_menu_shown());
+        assert_select_inert(&step, 0, 0);
+        assert(pause_menu_shown());
+        end_forked_copy();
+    }
+    for (int i = 0; i < (int)(sizeof tabs / sizeof tabs[0]); i++) {
+        if (in_forked_copy()) {
+            go_to_tab(&step, tabs[i]);
+            settle(&step);
+            assert_select_inert(&step, 0, 0);
+            assert(pad_nav_tab(&step.pad_nav) == tabs[i]);
+            end_forked_copy();
+        }
+    }
+}
+
+/* × picking a pause row presses the left button with no release frame after it, and pause closes on that press: the
+ * next frame's Select press sees the left button down. */
+static void test_a_refused_year_press_presses_nothing_and_is_not_retried(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    hover_settled(&step);
+    year_facts_t before = year_facts();
+    hold_select_to_the_year(&step);
+    run_frame(&step, 0);
+    open_pause(&step);
+    tap(&step, P8_PAD_UP);
+    run_frame(&step, P8_PAD_CROSS);
+    assert(!pause_menu_shown() && pad_nav_year_chain_open(&step.pad_nav));
+    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_CROSS);
+        run_frame(&step, P8_PAD_CROSS | P8_PAD_SELECT);
+        assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+        run_frame(&step, 0);
+        assert_years_ended(before, 2);
+        end_forked_copy();
+    }
+    run_frame(&step, P8_PAD_CROSS | P8_PAD_SELECT);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    hold_select_pressing_nothing(&step, 60);
+    hold(&step, 0, 2);
+    assert_years_ended(before, 1);
+    assert(!pad_nav_year_chain_open(&step.pad_nav));
+}
+
+static void test_a_new_game_restarts_the_select_count(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    hold_select_pressing_nothing(&step, PAD_SELECT_HOLD_FRAMES - 1);
+    cart_start_game(NULL);
+    year_facts_t before = year_facts();
+    hold_select_pressing_nothing(&step, PAD_SELECT_HOLD_FRAMES - 1);
+    assert_years_ended(before, 0);
+    run_frame(&step, P8_PAD_SELECT);
+    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+    run_frame(&step, 0);
+    assert_years_ended(before, 1);
+}
+
+static void test_select_is_no_part_of_the_cheat_chord(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(&step, colony);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &colony->header);
+    world_count_t before = world_count();
+    p8_fixed_t year = main_economy_typed()->year;
+    hold_select_pressing_nothing(&step, 10);
+    int fired = cheats_fired;
+    for (int i = 0; i < 2 * CHEAT_CHORDS; i++) {
+        run_frame(&step, P8_PAD_SELECT | (i % 2 == 0 ? CHORD : 0));
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
+    hold_select_pressing_nothing(&step, PAD_SELECT_HOLD_FRAMES - 1 - 10 - 2 * CHEAT_CHORDS);
+    run_frame(&step, 0);
+    assert(cheats_fired == fired + 1);
+    before.credits = main_economy_typed()->credits;
+    assert_world_unchanged(before);
+    assert(main_economy_typed()->year == year);
+    assert_hovering(&step, &colony->header);
+    static const int ordinary[] = { P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE,
+                                    P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE };
+    fired = cheats_fired;
+    for (int i = 0; i < (int)(sizeof ordinary / sizeof ordinary[0]); i++) {
+        tap(&step, ordinary[i] | P8_PAD_SELECT);
+        tap(&step, P8_PAD_SELECT);
+    }
+    assert(cheats_fired == fired);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -5048,7 +5367,6 @@ int main(void) {
     in_fresh_child(test_aim_mode_bound_brings_every_planet_under_the_centre);
     in_fresh_child(test_aim_mode_triangle_on_empty_space_does_nothing);
     in_fresh_child(test_aim_mode_triangle_over_a_known_planet_or_a_colony_does_nothing);
-    in_fresh_child(test_select_changes_nothing_yet);
     in_fresh_child(test_aim_mode_first_cross_places_the_probe);
     in_fresh_child(test_aim_mode_short_cross_hold_abandons_the_fold);
     in_fresh_child(test_aim_mode_cross_on_a_planet_presses_nothing);
@@ -5219,6 +5537,19 @@ int main(void) {
     in_fresh_child(test_circle_with_the_last_object_gone_or_in_a_new_game_does_nothing);
     in_fresh_child(test_ordinary_cross_triangle_and_circle_play_never_types_the_cheat);
     in_fresh_child(test_pause_a_tab_and_a_slipway_keep_the_last_object);
+    in_fresh_child(test_select_taps_cycle_the_colonies_needing_attention_in_order);
+    in_fresh_child(test_a_select_tap_to_a_colony_outside_edge_scrolls_at_8_px_a_frame);
+    in_fresh_child(test_a_select_hold_under_30_frames_ends_nothing);
+    in_fresh_child(test_a_select_hold_of_30_frames_presses_the_year_skip_button_once);
+    in_fresh_child(test_a_select_hold_of_90_frames_ends_one_year);
+    in_fresh_child(test_fresh_select_presses_after_a_year_chain_more_years);
+    in_fresh_child(test_a_select_hold_ends_the_year_under_the_year_box);
+    in_fresh_child(test_select_in_aim_mode_ends_the_year_and_taps_back_to_jump_mode);
+    in_fresh_child(test_a_select_tap_with_nothing_needing_attention_changes_nothing);
+    in_fresh_child(test_select_does_nothing_while_something_is_held_or_open);
+    in_fresh_child(test_a_refused_year_press_presses_nothing_and_is_not_retried);
+    in_fresh_child(test_a_new_game_restarts_the_select_count);
+    in_fresh_child(test_select_is_no_part_of_the_cheat_chord);
     printf("test_pad_nav: ok\n");
     return 0;
 }

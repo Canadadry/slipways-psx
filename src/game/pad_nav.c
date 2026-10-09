@@ -10,6 +10,7 @@
 #include "game/message_box.h"
 #include "game/pad_jump.h"
 #include "game/pad_panel.h"
+#include "game/pad_select.h"
 #include "game/pad_target.h"
 #include "game/planet.h"
 #include "game/scroll.h"
@@ -31,6 +32,14 @@ pad_nav_tab_t pad_nav_tab(const pad_nav_t *nav) {
 
 entity_t *pad_nav_last_acted(const pad_nav_t *nav) {
     return main_economy_typed() != NULL ? pad_back_target(&nav->back, NULL) : NULL;
+}
+
+int pad_nav_select_held(const pad_nav_t *nav) {
+    return nav->select.held_frames;
+}
+
+int pad_nav_year_chain_open(const pad_nav_t *nav) {
+    return nav->select.chain_frames > 0;
 }
 
 int pad_nav_aim_mode(const pad_nav_t *nav) {
@@ -223,6 +232,7 @@ static void reset_map_mode(pad_nav_t *nav) {
     nav->placement = PAD_NAV_PLACEMENT_NONE;
     nav->suspended_carry = ENTITY_ID_NONE;
     pad_slipway_init(&nav->slipway);
+    pad_select_init(&nav->select);
 }
 
 static int opens_a_panel(pad_nav_tab_t tab) {
@@ -366,6 +376,8 @@ static void centre_world_point(int *x, int *y) {
     *y = p8_fixed_flr_int(at.y) + P8_SCREEN_HEIGHT / 2;
 }
 
+static void edge_scroll(const entity_t *hovered);
+
 static entity_list_t live_candidates(void) {
     return pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
 }
@@ -401,13 +413,34 @@ static int cancel_slipway(pad_nav_t *nav) {
     return held;
 }
 
+/* Returns whether the tap jumped: to the object needing attention after current, as a D-pad jump that landed there. */
+static int select_tap(pad_nav_t *nav, const entity_t *current, const entity_t **shown) {
+    entity_list_t candidates = live_candidates();
+    entity_t *next = pad_select_next(&candidates, current);
+    int jumps = next != NULL && next != current;
+    if (jumps) {
+        back_to_jump_mode(nav, next);
+        nav->jump.seeded = 1;
+        pad_jump_repeat_clear(&nav->jump);
+        edge_scroll(next);
+        *shown = next;
+        screen_point(next, &nav->cursor_x, &nav->cursor_y);
+    }
+    return jumps;
+}
+
 /* On a click's release frame × starts nothing: its press would be forced up. △ does nothing here. */
-static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
-                          p8_input_frame_t *played) {
+static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release, int still,
+                          int select_tapped, p8_input_frame_t *played, const entity_t **shown) {
     nav->focus = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
-    aim_pan(nav, pad_buttons);
+    if (!still) {
+        aim_pan(nav, pad_buttons);
+    }
+    if (select_tapped && !nav->cross_engaged && select_tap(nav, NULL, shown)) {
+        return;
+    }
     if ((pressed & P8_PAD_SQUARE) && !nav->cross_engaged) {
         leave_aim_mode(nav);
         return;
@@ -808,7 +841,7 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
 /* On a click's press and release frames no jump runs, ○'s included, and the camera and the marker wait; the
  * hold-repeat count keeps running through them. ○ jumps to the last object × acted on and wins over the D-pad. */
 static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int circle_returns,
-                      p8_input_frame_t *played, const entity_t **shown) {
+                      int select_tapped, p8_input_frame_t *played, const entity_t **shown) {
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
@@ -843,6 +876,9 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     }
     if (!clicking && (pressed & P8_PAD_CROSS) && cross_starts_slipway(nav, hovered, played)) {
         pad_back_record(&nav->back, hovered);
+        return;
+    }
+    if (!clicking && select_tapped && select_tap(nav, hovered, shown)) {
         return;
     }
     if (direction != 0 && !clicking) {
@@ -937,7 +973,8 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
 
 /* *jump_ran says whether jump mode ran this frame. */
 static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
-                     p8_input_frame_t *played, const entity_t **shown, int *jump_ran) {
+                     pad_select_event_t select, int year_release, p8_input_frame_t *played, const entity_t **shown,
+                     int *jump_ran) {
     if (pad_nav_placing(nav) != NULL) {
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
@@ -950,7 +987,8 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
             panel_step(nav, pad_buttons, pressed, direction, played);
         }
     } else if (pad_nav_aim_mode(nav)) {
-        aim_mode_step(nav, pad_buttons, pressed, circle_returns, release, played);
+        aim_mode_step(nav, pad_buttons, pressed, circle_returns, release, year_release, select == PAD_SELECT_TAP, played,
+                      shown);
     } else if (pad_nav_selection(nav) != NULL) {
         reset_aim_mode(nav);
         network_step(nav, pad_nav_selection(nav), pressed, release, circle_returns, played);
@@ -964,7 +1002,7 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
     } else {
         assert(pad_nav_jump_mode(nav) &&
                "map_step: after placement, panels, aim, network and slipway mode, drop_stale_map_mode leaves jump mode");
-        jump_step(nav, pad_buttons, pressed, release, circle_returns, played, shown);
+        jump_step(nav, pad_buttons, pressed, release, circle_returns, select == PAD_SELECT_TAP, played, shown);
         *jump_ran = 1;
     }
 }
@@ -1080,6 +1118,26 @@ static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_i
     }
 }
 
+/* A shown message box blocks nothing: the year box stays up through the next year. */
+static int select_allowed(const pad_nav_t *nav, int tab_changing, int release) {
+    return main_economy_typed() != NULL && nav->tab == PAD_NAV_TAB_MAP && !tab_changing && !pause_menu_shown() &&
+           !pad_nav_panel_open() && (nav->map_mode == PAD_NAV_MAP_JUMP || nav->map_mode == PAD_NAV_MAP_AIM) &&
+           nav->placement == PAD_NAV_PLACEMENT_NONE && !nav->cross_engaged && !release && !nav->release_pending;
+}
+
+/* Returns whether the year press went out: the HUD year-skip button's, as × on end turn makes it. A refused press is
+ * never retried. */
+static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {
+    entity_t *button = tab_button(PAD_NAV_TAB_END_TURN);
+    if (button == NULL || nav->left_was_down) {
+        return 0;
+    }
+    pad_panel_focus_point(button, &nav->cursor_x, &nav->cursor_y);
+    click(nav, played);
+    pad_select_year_ended(&nav->select);
+    return 1;
+}
+
 /* × and ○ going down on the same frame are a cheat chord: no mode sees either until both are up again. */
 static int without_chord(pad_nav_t *nav, int raw_buttons) {
     const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
@@ -1109,7 +1167,9 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     if (resume_placement(nav)) {
         release = 0;
     }
+    int select_down = (pad_buttons & P8_PAD_SELECT) != 0;
     if (!tab_changed && pause_step(nav, pressed, release, played)) {
+        (void)pad_select_step(&nav->select, select_down, 0);
         pad_jump_repeat_clear(&nav->jump);
         reset_aim_mode(nav);
         nav->focus = ENTITY_ID_NONE;
@@ -1147,6 +1207,9 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         set_tab(nav, PAD_NAV_TAB_MAP);
         tab_changed = 1;
     }
+    int year_release = pad_select_year_just_ended(&nav->select);
+    pad_select_event_t select =
+        pad_select_step(&nav->select, select_down, select_allowed(nav, tab_changed || landed, release));
     /* The frame that changes the tab runs no map or tab step, so one press never acts twice. */
     if (tab_changed || landed) {
         reset_aim_mode(nav);
@@ -1157,8 +1220,12 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         } else if (pad_nav_placing(nav) != NULL) {
             played->mouse_buttons = P8_MOUSE_LEFT;
         }
+    } else if (select == PAD_SELECT_YEAR && select_ends_year(nav, played)) {
+        reset_aim_mode(nav);
+        nav->focus = ENTITY_ID_NONE;
     } else if (nav->tab == PAD_NAV_TAB_MAP) {
-        map_step(nav, pad_buttons, pressed, direction, release, circle_returns, played, &shown, &jump_ran);
+        map_step(nav, pad_buttons, pressed, direction, release, circle_returns, select, year_release, played, &shown,
+                 &jump_ran);
     } else {
         reset_aim_mode(nav);
         tab_step(nav, pad_buttons, pressed, direction, release, played);
