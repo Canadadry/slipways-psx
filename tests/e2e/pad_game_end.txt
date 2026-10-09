@@ -9,8 +9,8 @@ planet is known), so X does nothing on the map.
 f0-12 are pad_end_turn's frames verbatim (Down f10, X f12 on
 "reasonable"), so the galaxy is pad_end_turn's. Until plan 12 step 9
 this file shared f0-20 and ended its years with X on `end turn`; the
-tab ring's R1 R1 and X taps went with it (pad_end_turn keeps one ring
-year). HUD buttons are read at one fill pixel each: tech (1, 1), score
+tab ring's R1 R1 and X taps went with it (plan 12 step 12 removed the
+ring, and pad_end_turn's last ring year with it). HUD buttons are read at one fill pixel each: tech (1, 1), score
 (64, 1), year skip (152, 1). "again?" is read at (70, 98), the title
 rows at x=108 (forgiving y57, reasonable y68, challenging y79, tough
 y90). Readings come from the framebuffer dump of the file cut after

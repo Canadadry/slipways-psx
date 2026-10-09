@@ -3,7 +3,7 @@ goes back to the title, then "challenging" starts a new game, where X on
 "toggle music" and on "toggle sfx" each close the pause menu. 76 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
-leaves it for plain free mode, the camera unmoved, as games started
+leaves it for plain aim mode, the camera unmoved, as games started
 before it; f39: the same after the new game of f38. Every frame is the
 one this file had without them.
 
@@ -12,10 +12,10 @@ from the capture's framebuffer at each frame, and the state from `make
 state` of the file cut after that frame. The hovered pause row is the
 one filled with colour 12 (read at x=40); title rows are read at x=108
 as in pad_title.txt (forgiving y57, reasonable y68, challenging y79,
-tough y90). In free mode the colour-7 crosshair marks the centre (x78-82
+tough y90). In aim mode the colour-7 crosshair marks the centre (x78-82
 on y=60, y58-62 on x=80, the centre pixel undrawn).
 
-- f0-12: as pad_probe. f13-15: free mode, the crosshair at the centre.
+- f0-12: as pad_probe. f13-15: aim mode, the crosshair at the centre.
 - f16: Start. The cursor point jumps onto the HUD's pause button, the
   crosshair still drawn at the centre on this frame only, the button
   filled in colour 12 (hovered, read at (0, 111):
@@ -35,7 +35,7 @@ on y=60, y58-62 on x=80, the centre pixel undrawn).
 - f34: Down: reasonable 12 (f34-35). f36: Down: challenging 12, the
   others 13 (f36-37).
 - f38: X on "challenging": the title rows are gone from f38, a new game.
-  f39-47: idle in free mode, the crosshair at the centre.
+  f39-47: idle in aim mode, the crosshair at the centre.
 
 `make state` at f47: clock year 3401 month 1, credits 100, research 0,
 income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
@@ -55,7 +55,7 @@ at x=7 (its fill), the crosshair at (78, 60) and (80, 58).
 - f60: Start again, "restart" focused. f66: Up: "toggle music". f68: Up:
   "toggle sfx" colour 12 (y78-86, f68-69).
 - f70: X on "toggle sfx": the menu is gone on f70, the crosshair from
-  f71. f71-75: idle in free mode.
+  f71. f71-75: idle in aim mode.
 
 `make state` at f75: the same lines as at f47 (year 3401 month 1,
 credits 100, research 0, camera world 176 196, 90 planets, 0 colonies,

@@ -1,8 +1,8 @@
 Twenty years ended with Select on the map, a hold and 19 chained
 presses, up to the "5 years remain" box, pad input passing through it,
 then the pause menu over it: the rows navigated, X on "how to play?",
-closed with O and with Start. Then the `score` tab, reached the forward
-way round the tabs, whose box replaces the year box, closed with O, and
+closed with O and with Start. Then the score panel, reached by R1 R1
+(tech, then score), whose box replaces the year box, closed with O, and
 the score box running out. 223 frames.
 Listed in tools/e2e_long_exceptions.txt.
 
@@ -12,7 +12,7 @@ leaves it for aim mode, the camera unmoved.
 f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each as in
 pad_end_turn.txt: tech (1, 1), score (64, 1), year skip (152, 1); colour
-12 is the lit tab, 13 the others. The pause button is read at (0, 111)
+12 is a lit button, 13 the others. The pause button is read at (0, 111)
 (colour 12 when hovered), the hovered pause row at x=40 (colour 12). In
 aim mode the colour-7 crosshair marks the centre (x78-82 on y=60,
 y58-62 on x=80, the centre pixel undrawn). The year box is read as its
@@ -42,10 +42,10 @@ same pixel for pixel, and before it only the year-skip button (lit on
   the map's grid drawn 3 px left on f101. The box is not in the way.
 - f96: L1: the bar (f96-97, HUD buttons hidden by the tooltip, the
   colour-2 line still drawn below it, x7-61 on f96). f98: L1 closes the
-  bar: `map`,
+  bar: back on the map,
   the crosshair back at the centre, the HUD buttons 13. `make state` at
   f95, f97 and f99: message_box 1, modal_backdrop 0, camera 182 196:
-  the box blocks no tab switch and no pan.
+  the box blocks no shoulder and no pan.
 - f102: Start: the pause button colour 12 (f102 only), the click's press,
   the crosshair still at the centre; f103 its release, the menu box
   slides up, "restart" the colour-12 row (y100-108 from f106), no
@@ -82,7 +82,7 @@ press of the pause closes (X on a row, O, Start) reached the map.
 
 Until plan 12 step 10, f146 was L1 from `map` to `score`, one tab back
 round the ring; that situation went with the mechanic (L1 now toggles
-the build bar). The score tab is reached by R1, 9 frames later.
+the build bar). The score panel is reached by R1, 9 frames later.
 
 - f145-149: idle on the map, the crosshair at the centre, nothing lit.
   Until plan 12 step 11, f146 and f148 were R1 R1 round the ring
@@ -98,7 +98,7 @@ the build bar). The score tab is reached by R1, 9 frames later.
   replaced it (`make state` at f156: message_box 2, the year box dead on
   its way out; message_box 1 from f157). Its rows slide in from the
   left (x0-69 on y29-37 at f157, x0-116 at f164).
-- f163: O: `map`, the score button 13 from f163, the crosshair from
+- f163: O: back on the map, the score button 13 from f163, the crosshair from
   f164, modal_backdrop 0 from f165. The box is no longer kept open: its
   rows ease out to both edges, the last at f218 (x135-159 on y29-37).
   From f219 the box draws nothing (f219 equals f221 pixel for pixel) and

@@ -16,7 +16,7 @@ later than pad_probe's: the title draws one game-stream number per
 frame, so the galaxy is the one of a game started at f24, chosen for
 its reveal rolls (the fold below reveals a mineral, a forgeworld and an
 ocean planet, as the trade needs). HUD buttons are read at one fill pixel each: tech (1, 1),
-score (64, 1), year skip (152, 1); colour 12 is the lit tab, 13 the
+score (64, 1), year skip (152, 1); colour 12 is a lit button, 13 the
 others. In aim mode the colour-7 crosshair marks the centre (x78-82 on
 y=60, y58-62 on x=80, the centre pixel undrawn), as on f25-47 and
 f59-71. Readings come from the capture's framebuffer at each frame, and
@@ -49,7 +49,7 @@ the economy from `make state` of the file cut after that frame.
 - f58: X on it: "space folding" invented, research 99 -> 95. The panel
   is gone on f58's capture, the tech button still colour 12 on that
   frame.
-- f59: back on `map`: nothing lit, the crosshair at the centre.
+- f59: back on the map: nothing lit, the crosshair at the centre.
   f59-71: idle, aim mode.
 
 `make state` at f71: clock year 3401 month 1, credits 200, research 95,

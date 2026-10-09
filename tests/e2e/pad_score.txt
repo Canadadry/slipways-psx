@@ -4,17 +4,17 @@ with O, then with L1, which opens the build bar; O on `tech` goes back
 to the map, and a last R1 cycle closes from score. 96 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
-leaves it for plain free mode, the camera unmoved, as games started
+leaves it for plain aim mode, the camera unmoved, as games started
 before it.
 
 f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each: tech (1, 1),
-score (64, 1), year skip (152, 1); colour 12 is the lit tab, 13 the
+score (64, 1), year skip (152, 1); colour 12 is a lit button, 13 the
 others, and colour 1 at all three while a structure icon's tooltip
 covers the HUD. "Backdrop" is the live modal_backdrop count of `make
 state` on the file cut after that frame: the score panel during play is
 that backdrop plus a message box. The tech panel is its header row
-(y11-20, colour 5) in the capture. In free mode the colour-7 crosshair
+(y11-20, colour 5) in the capture. In aim mode the colour-7 crosshair
 marks the centre (x78-82 on y=60, y58-62 on x=80, the centre pixel
 undrawn).
 
@@ -27,11 +27,12 @@ Until plan 12 step 11, tech was reached by R1 R1 R1 round the ring
 (`build` at f16, f41 and f62, `end turn` at f18, f43 and f64). Those
 ring passes went with the mechanic: R1 from the map now opens tech, and
 f16-19, f41-44 and f62-65 are idle frames on the map. "R1 on the bar:
-`end turn`" lives on in pad_end_turn.
+`end turn`" lived on in pad_end_turn until plan 12 step 12, which
+removed the ring: R1 on the bar now opens tech.
 
-- f0-12: as pad_probe. After f12: free mode, nothing lit, the
+- f0-12: as pad_probe. After f12: aim mode, nothing lit, the
   crosshair at the centre on f13-15.
-- f16-19: idle, free mode, nothing lit, the crosshair at the centre.
+- f16-19: idle, aim mode, nothing lit, the crosshair at the centre.
 - f20: R1 from the map: `tech` (the tech button colour 12, the tech
   panel drawn from f21).
 - f25: R1 on `tech`: `score`, in one frame: the tech panel gone, the
@@ -40,10 +41,10 @@ f16-19, f41-44 and f62-65 are idle frames on the map. "R1 on the bar:
 - f31: Down, f33: X: nothing. Backdrop 1, the score button colour 12
   and the cursor on it on every frame f31-36: no item to focus, X
   presses nothing (the backdrop would have hidden the panel).
-- f37: O: `map`. Nothing lit from f37, the crosshair back at the
-  centre from f38 (f38-40); the O's click on the backdrop hides the
+- f37: O: back on the map. Nothing lit from f37, the crosshair back at
+  the centre from f38 (f38-40); the O's click on the backdrop hides the
   panel (its press on f37, release on f38), backdrop 0 from f39.
-- f41-44: idle, free mode, nothing lit, the crosshair at the centre.
+- f41-44: idle, aim mode, nothing lit, the crosshair at the centre.
 - f45: R1 from the map: `tech`. The tech button is colour 12 from f45, the cursor on
   it; the tech panel is drawn from f46, the cursor on its header,
   backdrop 0.
@@ -56,13 +57,13 @@ f16-19, f41-44 and f62-65 are idle frames on the map. "R1 on the bar:
   lands on the backdrop, not on the basic structure's icon under the
   cursor: no structure is taken (structures 0, credits 100). f57-59:
   the bar open, the icon's tooltip over the HUD.
-- f60: L1: the bar closes, back in free mode: nothing lit, the
+- f60: L1: the bar closes, back in aim mode: nothing lit, the
   crosshair at the centre (f60-61).
-- f62-65: idle, free mode, nothing lit, the crosshair at the centre.
+- f62-65: idle, aim mode, nothing lit, the crosshair at the centre.
 - f66: R1 from the map: `tech`, the tech button colour 12 from f66, the
   tech panel drawn from f67.
-- f71: O on `tech`: `map` in one press. From f71 no tech panel, nothing
-  lit, the crosshair at the centre. f72-76: idle, free mode.
+- f71: O on `tech`: back on the map in one press. From f71 no tech panel, nothing
+  lit, the crosshair at the centre. f72-76: idle, aim mode.
 - f77: R1 from the map: `tech`, the tech button colour 12 on f77-81, no
   crosshair, the tech panel drawn from f78, backdrop 0.
 - f82: R1 on `tech`: `score`, in one frame: the tech panel gone, the
@@ -70,7 +71,7 @@ f16-19, f41-44 and f62-65 are idle frames on the map. "R1 on the bar:
 - f88: R1 on `score`: closed. Nothing lit from f88; R1's click on the
   backdrop hides the panel (its press on f88, release on f89), the
   crosshair back at the centre from f89, backdrop 0 from f90: back in
-  free mode, the mode the cycle left. f89-95: idle, free mode, camera
+  aim mode, the mode the cycle left. f89-95: idle, aim mode, camera
   world 176 196.
 
 Colour 12 by frame: tech f20-24, f45-49, f66-70 and f77-81; score
