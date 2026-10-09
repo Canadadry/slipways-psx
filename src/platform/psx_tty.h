@@ -2,6 +2,7 @@
 #define PLATFORM_PSX_TTY_H
 
 #include "devtools/state_format.h"
+#include "devtools/vram_digest.h"
 
 void psx_tty_write(const char *text);
 
@@ -12,5 +13,9 @@ void psx_tty_printf(const char *format, ...) __attribute__((format(printf, 1, 2)
 /* Writes each state line behind "psx-state: ", the prefix
    tools/psx_state_compare.sh extracts. */
 state_sink_t psx_tty_state_sink(void);
+
+/* Writes each digest line behind "psx-digest: ", the prefix
+   tools/psx_digest_compare.sh extracts. */
+vram_digest_sink_t psx_tty_digest_sink(void);
 
 #endif

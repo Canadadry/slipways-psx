@@ -2,6 +2,8 @@
  * tmp/embed_replay's generated source; every output goes to TTY:
  *   psx-replay: asserts on|off
  *   psx-replay: format <format_self_test line>
+ *   the devtools/vram_digest lines behind "psx-digest: ": "sprite-sheet" once
+ *   loaded, "screen" after cart_draw on the sampled frames, "map" at the end
  *   psx-replay: frame <n>                       every 256 frames
  *   psx-replay: done <name> <frames> vsyncs <n>
  *   the "psx-state: " block of devtools/state_format
@@ -11,12 +13,14 @@
 #include "devtools/embedded_replay.h"
 #include "devtools/format_self_test.h"
 #include "devtools/state_format.h"
+#include "devtools/vram_digest.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "game/input_step.h"
 #include "game/save_storage.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
+#include "p8/sprite_sheet.h"
 #include "p8/vram.h"
 #include "platform/psx_exit.h"
 #include "platform/psx_tty.h"
@@ -60,6 +64,9 @@ int main(void) {
     p8_vram_init(&memory);
     static p8_graphics_t graphics;
     p8_gfx_init(&graphics);
+    p8_sprite_sheet_load(&memory);
+    vram_digest_sink_t digest = psx_tty_digest_sink();
+    vram_digest_write_sprite_sheet(&digest, &memory);
 
     seed_storage();
     /* The core never writes the frames: p8_input_t only lacks the const. */
@@ -83,6 +90,9 @@ int main(void) {
         input_step_run(&step, &input.frames[input.current_frame]);
         cart_update60();
         cart_draw();
+        if (vram_digest_samples_frame(g_frame, input.frame_count)) {
+            vram_digest_write_screen(&digest, &memory, g_frame);
+        }
         if (g_frame < input.frame_count - 1) {
             p8_input_step(&input);
         }
@@ -92,6 +102,7 @@ int main(void) {
     }
     int vsyncs = VSync(-1) - start_vsync;
     psx_exit_set_hook(NULL);
+    vram_digest_write_map(&digest, &memory);
 
     psx_tty_printf("psx-replay: done %s %d vsyncs %d\n", embedded_replay_name, input.frame_count, vsyncs);
     state_sink_t sink = psx_tty_state_sink();

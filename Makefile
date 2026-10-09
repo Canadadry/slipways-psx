@@ -146,20 +146,24 @@
 #                       boots them; fails pointing at
 #                       psn00bsdk-toolchain-setup when the SDK is missing,
 #                       outside the suite
-# make psx-replay-check -> runs psx-build, writes the PC state of PSX_EVENTS
-#                       with tmp/replay, boots the replay PS-EXE until it
-#                       exits (ceiling PSX_REPLAY_CEILING vsyncs, timeout
+# make psx-replay-check -> runs psx-build, writes the PC state and VRAM
+#                       digests of PSX_EVENTS with tmp/replay (STATE=,
+#                       DIGEST=), boots the replay PS-EXE until it exits
+#                       (ceiling PSX_REPLAY_CEILING vsyncs, timeout
 #                       PSX_REPLAY_TIMEOUT s, both set for pad_slipway), then
 #                       compares its game lines with the PC's through
-#                       tools/psx_state_compare.sh (outputs and
+#                       tools/psx_state_compare.sh and its digest lines through
+#                       tools/psx_digest_compare.sh (outputs and
 #                       measurements.txt, with the ELF size, in
 #                       tmp/psx/replay, ~45 s); never
 #                       runs a setup, outside the suite
 # make psx-check     -> the plan-10 check: runs psx-build, writes the PC state
-#                       of PSX_EVENTS with tmp/replay, boots the replay PS-EXE
-#                       and the pad probe until they exit, then prints one line
-#                       per condition (magic, asserts-on, format against
+#                       and VRAM digests of PSX_EVENTS in one tmp/replay run
+#                       (STATE=, DIGEST=), boots the replay PS-EXE and the pad
+#                       probe until they exit, then prints one line per
+#                       condition (magic, asserts-on, format against
 #                       tmp/format_self_test, replay-done, state-game-lines,
+#                       sprite-sheet, screen, map, no-json through PSX_NM,
 #                       pad-script) through tools/psx_check.sh; fails if any
 #                       fails; measurements.txt (MIPS zone/budget/cap, vsyncs,
 #                       size of the ELF) in tmp/psx/game-check/run, ~50 s;
@@ -1246,8 +1250,8 @@ psx-hello:
 	cmake --build psx-hello/build
 
 # The game's PSX build: the core (CORE_SRCS, which holds the memory save
-# storage), the shared state formatter, the PSX platform and the recording's
-# generated source.
+# storage), the shared state and VRAM digest formatters, the PSX platform and
+# the recording's generated source.
 PSX_EVENTS ?= $(or $(EVENTS),tests/e2e/pad_slipway.json)
 PSX_REPLAY_NAME = $(basename $(notdir $(PSX_EVENTS)))
 PSX_BUILD_DIR := $(TMP_DIR)/psx/build
@@ -1255,9 +1259,10 @@ PSX_EMBEDDED_REPLAY := $(PSX_BUILD_DIR)/embedded/psx_replay.c
 PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform/fatal_psx.c src/platform/assert_psx.c \
 	src/platform/format_psx.c src/p8/format.c
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) \
-	src/devtools/state_format.c src/devtools/format_self_test.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
+	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
 PSX_SIZE = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-size
+PSX_NM = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-nm
 psx_cmake_list = $(subst $(space),;,$(strip $(abspath $(1))))
 space := $(empty) $(empty)
 
@@ -1300,16 +1305,17 @@ psx-boot:
 		$(PSX_FRAMES) $(PSX_OUT)
 
 PSX_REPLAY_OUT := $(TMP_DIR)/psx/replay
-PSX_REPLAY_CEILING ?= 3906
+PSX_REPLAY_CEILING ?= 3918
 PSX_REPLAY_TIMEOUT ?= 66
 
 psx-replay-check: psx-build $(TMP_DIR)/replay
 	@mkdir -p $(PSX_REPLAY_OUT)
-	STATE=$(PSX_REPLAY_OUT)/pc_state.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_REPLAY_OUT)/pc.dump.txt > $(PSX_REPLAY_OUT)/pc.log 2>&1
+	STATE=$(PSX_REPLAY_OUT)/pc_state.txt DIGEST=$(PSX_REPLAY_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_REPLAY_OUT)/pc.dump.txt > $(PSX_REPLAY_OUT)/pc.log 2>&1
 	PSX_BOOT_TIMEOUT=$(PSX_REPLAY_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--exe $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_REPLAY_CEILING) $(PSX_REPLAY_OUT)/run
 	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_REPLAY_OUT)/pc.log) \
 		&& sh tools/psx_state_compare.sh $(PSX_REPLAY_OUT)/run.tty.txt $(PSX_REPLAY_OUT)/pc_state.txt $(PSX_REPLAY_OUT) $$frames
+	sh tools/psx_digest_compare.sh $(PSX_REPLAY_OUT)/run.tty.txt $(PSX_REPLAY_OUT)/pc_digest.txt $(PSX_REPLAY_OUT)
 	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf >> $(PSX_REPLAY_OUT)/measurements.txt
 
 PSX_FULL_GAME_EVENTS := worst-case/full_game.json
@@ -1336,11 +1342,11 @@ PSX_CHECK_OUT := $(TMP_DIR)/psx/game-check
 
 psx-check: psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_test
 	@mkdir -p $(PSX_CHECK_OUT)
-	STATE=$(PSX_CHECK_OUT)/pc_state.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CHECK_OUT)/pc.dump.txt > $(PSX_CHECK_OUT)/pc.log 2>&1
+	STATE=$(PSX_CHECK_OUT)/pc_state.txt DIGEST=$(PSX_CHECK_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CHECK_OUT)/pc.dump.txt > $(PSX_CHECK_OUT)/pc.log 2>&1
 	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_CHECK_OUT)/pc.log) \
 		&& sh tools/psx_check.sh $(PSX_EMULATOR_DIR) $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_BUILD_DIR)/psx-pad-probe.exe \
-			$(PSX_CHECK_OUT)/pc_state.txt "$$frames" "$$(./$(TMP_DIR)/format_self_test)" $(PSX_PAD_SCRIPT) \
-			$(PSX_REPLAY_CEILING) $(PSX_REPLAY_TIMEOUT) $(PSX_PAD_CEILING) $(PSX_PAD_TIMEOUT) $(PSX_SIZE) $(PSX_CHECK_OUT)/run
+			$(PSX_CHECK_OUT)/pc_state.txt $(PSX_CHECK_OUT)/pc_digest.txt "$$frames" "$$(./$(TMP_DIR)/format_self_test)" $(PSX_PAD_SCRIPT) \
+			$(PSX_REPLAY_CEILING) $(PSX_REPLAY_TIMEOUT) $(PSX_PAD_CEILING) $(PSX_PAD_TIMEOUT) $(PSX_SIZE) $(PSX_NM) $(PSX_CHECK_OUT)/run
 
 PSX_KNOWN_LINE ?= Auto test all GTE valid opcodes/registers
 

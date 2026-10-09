@@ -1,9 +1,9 @@
 # PSX game build: the core replayed on MIPS
 
 The game's C core builds, unchanged, as a PS-EXE that replays an e2e recording
-inside the headless emulator and prints its `make state` text over TTY.
-`make psx-check` proves it plays the same game as the PC, and that scripted pad
-input reaches a PS-EXE. Toolchain, emulator, setups and the plain boot mode are
+inside the headless emulator and prints its `make state` text and VRAM digests
+over TTY. `make psx-check` proves it plays the same game and draws the same
+pictures as the PC, and that scripted pad input reaches a PS-EXE. Toolchain, emulator, setups and the plain boot mode are
 in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
 `tools/psx_*.sh` script hold the per-option detail.
 
@@ -17,8 +17,10 @@ in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
 - `psx-pad-probe.{elf,exe}`: the pad probe.
 
 `psx/CMakeLists.txt` is a PSn00bSDK project. The Makefile hands it the source
-lists, nothing is globbed: `CORE_SRCS` (which holds the memory save storage),
-the shared state formatter (`src/devtools/state_format.c`), the format self-test,
+lists, nothing is globbed: `CORE_SRCS` (which holds the memory save storage
+and the embedded sprite sheet, `src/p8/sprite_sheet.c`), the shared state
+formatter (`src/devtools/state_format.c`), the shared VRAM digest
+(`src/devtools/vram_digest.c`), the format self-test,
 the PSX platform files of `src/platform/` (`psx_exit`, `psx_tty`, `fatal_psx`,
 `assert_psx`, `format_psx`, `psx_pad`), `src/p8/format.c` and the generated
 replay source. A file added to `CORE_SRCS` is in the PSX build at once.
@@ -27,6 +29,17 @@ It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
 in, as in the PC `-O0` binary. `snprintf`/`vsnprintf` are wrapped onto
 `src/p8/format.c`, and `_assert_abort` onto the PSX assert handler. A missing
 SDK fails naming `make psn00bsdk-toolchain-setup`.
+
+## Embedded assets
+
+No asset is read from a file, on PC or PSX. The sprite sheet is
+`src/p8/sprite_sheet_packed.h`, 8,192 bytes at 4 bits per pixel (the PSX GPU's
+4-bit texture layout), regenerated from `pico8/gfx.json` by `make sprite-sheet`;
+`p8_sprite_sheet_load` unpacks it into `p8_vram_t.sprite_sheet`. The map has no
+data: `background.c` builds it at runtime with `p8_mset`. The font is the
+`static const` glyph tables of `src/p8/gfx.c`. No JSON loader
+(`src/p8/assets.c`, `src/devtools/input_json.c`) is in `CORE_SRCS`, and
+`psx-check`'s `no-json` checks the ELF for it.
 
 ## Embedded replay
 
@@ -39,12 +52,18 @@ recording, an unreadable or empty file, and writes nothing then. One PS-EXE per
 recording: only the generated source changes.
 
 `src/cmd/psx_replay.c` runs the PC replay loop (input step, `cart_update60`,
-`cart_draw`, input advance) into the in-RAM framebuffer, never shown, without
-the sprite sheet. `cart_draw` stays: drawing spends random draws. Its TTY:
+`cart_draw`, input advance) into the in-RAM framebuffer, never shown, after
+loading the embedded sprite sheet. `cart_draw` stays: drawing spends random
+draws. Its TTY:
 
 - `psx-replay: asserts on|off`
 - `psx-replay: format <self-test string>` (`src/devtools/format_self_test.c`;
   `tmp/format_self_test` prints the PC's)
+- the VRAM digest lines of `src/devtools/vram_digest.h`, each behind
+  `psx-digest: `, at the points where the PC replay writes them with
+  `DIGEST=<file>`: `sprite-sheet <fnv1a>` once loaded, `screen <frame> <fnv1a>`
+  after `cart_draw` on every 32nd frame from 0 and on the last, `map <fnv1a>`
+  after the loop
 - `psx-replay: frame <n>` every 256 frames
 - `psx-replay: done <name> <frames> vsyncs <n>`
 - the state, each line behind `psx-state: `
@@ -84,14 +103,14 @@ does not feed `pad_buttons` yet: the game itself is not driven by the pad.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the six conditions below, on `pad_slipway.json` | ~50 s |
-| `make psx-replay-check` | the replay proof alone, on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
+| `make psx-check` | the ten conditions below, on `pad_slipway.json` | ~50 s |
+| `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
 | `make psx-full-game-check` | the replay proof on `worst-case/full_game.json` (outputs in `tmp/psx/full-game`) | minutes |
 
 `make psx-check` is the plan-10 check target: a later step adds its own
-condition to it. It builds both PS-EXEs, writes the PC reference with
-`STATE=` and the current `tmp/replay`, boots the replay and the probe until they
+condition to it. It builds both PS-EXEs, writes the PC references with
+`STATE=` and `DIGEST=` in one run of the current `tmp/replay`, boots the replay and the probe until they
 exit, then checks every condition before concluding, one line each
 (`tools/psx_check.sh`, outputs in `tmp/psx/game-check`):
 
@@ -103,6 +122,14 @@ exit, then checks every condition before concluding, one line each
 - `state-game-lines`: every state line but `zone`, `budget` and `cap` equals
   the PC's, in order (`tools/psx_state_compare.sh`); a mismatch names the
   first differing line from both sides;
+- `sprite-sheet`, `screen`, `map`: its digest lines of that kind equal the
+  PC's, in order (`tools/psx_digest_compare.sh`); a missing or extra line
+  fails, a mismatch names the first differing line from both sides. Equal
+  screens prove the sprites, the generated map and the font draw the same on
+  MIPS;
+- `no-json`: the toolchain's `nm` (`PSX_NM`) finds no definition of
+  `p8_load_gfx_json`, `p8_input_load`, `p8_input_save`, `p8_input_append` or
+  `p8_input_free` in the replay ELF;
 - `pad-script`: the probe's ordered pad states equal the script's
   (`tools/psx_pad_compare.sh`).
 
@@ -123,11 +150,13 @@ None of these targets is in `make test-all`, and none runs a setup.
 ## Still to do
 
 - `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
-  (text 402028, data 2868, bss 977224) and the PC replay runs its 4,778
+  (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778
   frames, but the emulator aborts after about 9 minutes (exit 134,
   `An unknown exception occured`, `terminate called without an active
   exception` in `run.log`), before the ceiling or the timeout. A rerun with
   the emulator's stdout unbuffered (`stdbuf -o0`; `psx_boot.sh` leaves it
   block-buffered, so an abort loses the TTY) reached `psx-replay: frame 4608`
   with no `p8_fatal` line, then aborted the same way before the `done` line.
-  The cause, in the guest or in the emulator, is not found yet.
+  The cause, in the guest or in the emulator, is not found yet. The digest
+  lines that reach the TTY before the abort equal the PC's: the sprite sheet
+  and every screen up to frame 2432.

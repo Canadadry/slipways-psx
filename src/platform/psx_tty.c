@@ -31,3 +31,14 @@ state_sink_t psx_tty_state_sink(void) {
     state_sink_t sink = { write_state_line, NULL };
     return sink;
 }
+
+static void write_digest_line(void *context, const char *line) {
+    (void)context;
+    psx_tty_write("psx-digest: ");
+    psx_tty_write(line);
+}
+
+vram_digest_sink_t psx_tty_digest_sink(void) {
+    vram_digest_sink_t sink = { write_digest_line, NULL };
+    return sink;
+}

@@ -1,30 +1,33 @@
 #!/bin/sh
-# usage: psx_check.sh <install-dir> <replay-exe> <pad-exe> <pc-state> <pc-frames> <pc-format-line>
-#                     <pad-script> <replay-ceiling> <replay-timeout> <pad-ceiling> <pad-timeout> <size-tool> <out-dir>
+# usage: psx_check.sh <install-dir> <replay-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames> <pc-format-line>
+#                     <pad-script> <replay-ceiling> <replay-timeout> <pad-ceiling> <pad-timeout> <size-tool> <nm-tool>
+#                     <out-dir>
 # Boots the replay PS-EXE and the pad probe until they exit, then checks the
-# six conditions of make psx-check. Every condition is checked before
+# ten conditions of make psx-check. Every condition is checked before
 # concluding, one line per condition, exit 1 if any failed. Writes
 # <out-dir>/measurements.txt: the MIPS zone/budget/cap lines, the vsync count
 # and the size of the replay ELF (the .exe path with .elf).
 
 set -u
 
-usage="usage: psx_check.sh <install-dir> <replay-exe> <pad-exe> <pc-state> <pc-frames> <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <pad-ceiling> <pad-timeout> <size-tool> <out-dir>"
-[ $# -eq 13 ] || { echo "psx-check: $usage" >&2; exit 1; }
+usage="usage: psx_check.sh <install-dir> <replay-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames> <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <out-dir>"
+[ $# -eq 15 ] || { echo "psx-check: $usage" >&2; exit 1; }
 install_dir=$1
 replay_exe=$2
 pad_exe=$3
 pc_state=$4
-pc_frames=$5
-pc_format=$6
-pad_script=$7
-replay_ceiling=$8
-replay_timeout=$9
+pc_digest=$5
+pc_frames=$6
+pc_format=$7
+pad_script=$8
+replay_ceiling=$9
 shift 9
-pad_ceiling=$1
-pad_timeout=$2
-size_tool=$3
-out_dir=$4
+replay_timeout=$1
+pad_ceiling=$2
+pad_timeout=$3
+size_tool=$4
+nm_tool=$5
+out_dir=$6
 script_dir=$(cd "$(dirname "$0")" && pwd)
 
 rm -rf "$out_dir"
@@ -98,6 +101,34 @@ else
     report state-game-lines "$(printf '%s\n' "$compare" | grep -v 'no done line\|^psx-state-compare: done after\|the PSX replay stopped')"
 fi
 
+digest_compare=$(sh "$script_dir/psx_digest_compare.sh" "$tty" "$pc_digest" "$out_dir" 2>&1)
+for kind in sprite-sheet screen map; do
+    if printf '%s\n' "$digest_compare" | grep -q "^psx-digest-compare: $kind: ok\$"; then
+        pass "$kind"
+    else
+        reason=$(printf '%s\n' "$digest_compare" | awk -v prefix="psx-digest-compare: $kind: " '
+            index($0, prefix) == 1 { found = 1; print substr($0, length(prefix) + 1); next }
+            /^psx-digest-compare: / { found = 0; next }
+            found')
+        report "$kind" "${reason:-$digest_compare}"
+    fi
+done
+
+replay_elf=${replay_exe%.exe}.elf
+if ! symbols=$("$nm_tool" "$replay_elf" 2>&1); then
+    report no-json "$nm_tool failed on $replay_elf: $symbols"
+else
+    json_symbols=$(printf '%s\n' "$symbols" | awk '
+        BEGIN { split("p8_load_gfx_json p8_input_load p8_input_save p8_input_append p8_input_free", names, " ")
+                for (i in names) json[names[i]] = 1 }
+        NF == 3 && $2 != "U" && ($3 in json) { print $3 }')
+    if [ -z "$json_symbols" ]; then
+        pass no-json
+    else
+        report no-json "the replay ELF defines: $(echo $json_symbols)"
+    fi
+fi
+
 if [ "$pad_status" -ne 0 ]; then
     report pad-script "$pad_boot"
 elif pad=$(sh "$script_dir/psx_pad_compare.sh" "$pad_script" "$out_dir/pad.tty.txt" 2>&1); then
@@ -108,4 +139,4 @@ fi
 
 echo "psx-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-check: all six conditions hold"
+echo "psx-check: all ten conditions hold"
