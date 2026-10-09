@@ -8,7 +8,7 @@ project(
 	slipways-psx
 	LANGUAGES    C
 	VERSION      0.1.0
-	DESCRIPTION  "Slipways PSX port -- the game, core replays and pad probe"
+	DESCRIPTION  "Slipways PSX port -- the game and its CD image, core replays and pad probe"
 	HOMEPAGE_URL "https://github.com/canadadry/slipways-love"
 )
 
@@ -35,3 +35,5 @@ foreach(_target psx-replay psx-gpu-replay psx-pad-probe psx-game)
 	target_compile_options(${_target} PRIVATE -std=c99 -Wall -Wextra -Werror -UNDEBUG)
 	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort -Wl,--wrap=snprintf -Wl,--wrap=vsnprintf)
 endforeach()
+
+psn00bsdk_add_cd_image(psx-game-iso slipways iso.xml DEPENDS psx-game system.cnf)

@@ -149,11 +149,19 @@
 #                       tmp/embed_replay), psx-replay drawing in RAM and
 #                       psx-gpu-replay through the GPU backend, the pad
 #                       probe, and psx-game (the game read from the pad),
-#                       against
-#                       PSN00BSDK_DIR, then prints their ELF sizes; never
-#                       boots them; fails pointing at
+#                       and the game's CD image (PSX_GAME_BIN, PSX_GAME_CUE:
+#                       slipways.bin/.cue from psx/iso.xml and
+#                       psx/system.cnf, booting SLIPWAYS.EXE, a copy of
+#                       psx-game.exe), against
+#                       PSN00BSDK_DIR, then prints their ELF sizes and the
+#                       image paths; never boots them; fails naming a missing
+#                       image file, or pointing at
 #                       psn00bsdk-toolchain-setup when the SDK is missing,
 #                       outside the suite
+# make psx-game-cd   -> runs psx-build, then fails unless PSX_GAME_BIN and
+#                       PSX_GAME_CUE exist and prints them; the .bin is never
+#                       hashed (mkpsxiso stamps the build time in it), outside
+#                       the suite
 # make psx-replay-check -> runs psx-build, writes the PC state and VRAM
 #                       digests of PSX_EVENTS with tmp/replay (STATE=,
 #                       DIGEST=), boots the replay PS-EXE until it exits
@@ -179,6 +187,15 @@
 #                       tmp/replay with STATE=), game-title-left (difficulty
 #                       PSX_GAME_DIFFICULTY, default reasonable); outputs in
 #                       tmp/psx/game, ~10 s; never runs a setup, outside the
+#                       suite
+# make psx-game-cd-check -> runs psx-game-cd, boots PSX_GAME_CUE until it
+#                       exits with PSX_GAME_SCRIPT as psx-game-check does
+#                       (ceiling PSX_GAME_CD_CEILING vsyncs, timeout
+#                       PSX_GAME_CD_TIMEOUT s), then the five game-*
+#                       conditions of tools/psx_game_check.sh and the cue and
+#                       cd-exe conditions of tools/psx_cd_check.sh (SLIPWAYS.EXE
+#                       extracted by PSX_DUMPSXISO equals psx-game.exe); outputs
+#                       in tmp/psx/game-cd, never runs a setup, outside the
 #                       suite
 # make psx-check     -> the plan-10 check: runs psx-build, writes the PC state
 #                       and VRAM digests of PSX_EVENTS in one tmp/replay run
@@ -293,7 +310,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1429,6 +1446,10 @@ PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) src/devtools/state_
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
 PSX_GAME_SRCS := src/cmd/psx_game.c $(CORE_SRCS) src/devtools/state_format.c $(PSX_GPU_BACKEND_SRCS) \
 	src/platform/psx_pad.c src/platform/psx_pad_map.c $(PSX_PLATFORM_SRCS)
+PSX_GAME_CUE ?= $(PSX_BUILD_DIR)/slipways.cue
+PSX_GAME_BIN := $(PSX_BUILD_DIR)/slipways.bin
+PSX_GAME_DISC_EXE := SLIPWAYS.EXE
+PSX_DUMPSXISO = $(PSN00BSDK_DIR)/bin/dumpsxiso
 PSX_SIZE = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-size
 PSX_NM = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-nm
 psx_cmake_list = $(subst $(space),;,$(strip $(abspath $(1))))
@@ -1448,6 +1469,12 @@ psx-build: $(TMP_DIR)/embed_replay
 	+cmake --build $(PSX_BUILD_DIR)
 	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-gpu-replay.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf \
 		$(PSX_BUILD_DIR)/psx-game.elf
+	@for f in $(PSX_GAME_BIN) $(PSX_GAME_CUE); do \
+		[ -f "$$f" ] || { echo "psx-build: CD image $$f missing" >&2; exit 1; }; echo "psx-build: CD image $$f"; done
+
+psx-game-cd: psx-build
+	@[ -f $(PSX_GAME_BIN) ] && [ -f $(PSX_GAME_CUE) ] || { echo "psx-game-cd: $(PSX_GAME_BIN) or $(PSX_GAME_CUE) missing" >&2; exit 1; }
+	@echo "psx-game-cd: $(PSX_GAME_BIN) $(PSX_GAME_CUE)"
 
 PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
 
@@ -1523,6 +1550,22 @@ psx-game-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_lo
 		status=$$?; echo "$$boot"; \
 		sh tools/psx_game_check.sh $(PSX_GAME_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
 			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_OUT)
+
+PSX_GAME_CD_OUT := $(TMP_DIR)/psx/game-cd
+PSX_GAME_CD_CEILING ?= 1140
+PSX_GAME_CD_TIMEOUT ?= 20
+
+# The boot's failure is game-done's, not make's: every condition is still printed.
+psx-game-cd-check: psx-tools-test psx-game-cd $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_log
+	@mkdir -p $(PSX_GAME_CD_OUT)
+	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_CD_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
+		--pad-script $(PSX_GAME_SCRIPT) --iso $(PSX_GAME_CUE) $(PSX_GAME_CD_CEILING) $(PSX_GAME_CD_OUT)/run 2>&1); \
+		status=$$?; echo "$$boot"; failed=0; \
+		sh tools/psx_game_check.sh $(PSX_GAME_CD_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
+			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_CD_OUT) || failed=1; \
+		sh tools/psx_cd_check.sh $(PSX_GAME_CUE) $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_DISC_EXE) $(PSX_DUMPSXISO) \
+			$(PSX_GAME_CD_OUT)/cd || failed=1; \
+		exit $$failed
 
 PSX_CHECK_OUT := $(TMP_DIR)/psx/game-check
 PSX_GPU_CEILING ?= 1655
