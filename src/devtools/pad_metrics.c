@@ -155,6 +155,7 @@ int pad_metrics_hold_step(pad_metrics_hold_t *hold, pad_metrics_mode_t mode, int
 }
 
 int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, int direction) {
+    /* Resets the caller's scratch zone: pad_author shares it, so nothing it holds there survives this call. */
     bump_zone_reset(metrics->scratch);
     allocator_t zone = allocator_from_bump_zone(metrics->scratch);
     entity_list_t candidates = pad_jump_candidates(&zone, entities_by_tag(TAG_NODE));
@@ -165,7 +166,6 @@ static int is_moving_mode(pad_metrics_mode_t mode) {
     return mode == PAD_METRICS_MODE_JUMP || mode == PAD_METRICS_MODE_SLIPWAY;
 }
 
-/* The direction bits with no candidate from from; all four when from is NULL. */
 static int empty_cones(const entity_t *from, const entity_list_t *candidates) {
     int empty = 0;
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
@@ -252,7 +252,7 @@ static void list_event(pad_metrics_t *metrics, const pad_metrics_pending_t *even
     row->verdict = verdict;
 }
 
-/* Judges pending[index] and removes it. */
+/* Moves the last pending event into index: callers that settle inside a loop must walk it backward. */
 static void settle(pad_metrics_t *metrics, int index) {
     pad_metrics_pending_t event = metrics->pending[index];
     metrics->pending[index] = metrics->pending[--metrics->pending_count];
@@ -272,12 +272,9 @@ static void judge_frame(pad_metrics_t *metrics, int buttons, int pressed, int re
         pad_metrics_pending_t *event = &metrics->pending[i];
         if (event->end < 0 && !(buttons & (1 << event->button))) event->end = t + PAD_METRICS_RELEASE_FRAMES;
     }
-    /* A repeat closes the open window of its direction on the frame before it. */
     for (int i = metrics->pending_count - 1; i >= 0; i--) {
         if (metrics->pending[i].end < 0 && (repeats & (1 << metrics->pending[i].button))) settle(metrics, i);
     }
-    /* G-6: a press released before this frame lends no window to another button's press; one on its release
-     * frame is a roll and keeps it. */
     for (int i = metrics->pending_count - 1; i >= 0; i--) {
         const pad_metrics_pending_t *event = &metrics->pending[i];
         int released_before = event->end >= 0 && event->end - PAD_METRICS_RELEASE_FRAMES < t;
@@ -426,7 +423,6 @@ pad_metrics_section4_t pad_metrics_section4(const pad_metrics_t *metrics) {
     return s;
 }
 
-/* Two decimals, rounded half up, by integer arithmetic. */
 static void write_share(FILE *out, int part, int whole) {
     long basis_points = whole > 0 ? (10000L * part + whole / 2) / whole : 0;
     fprintf(out, "%ld.%02ld%% (%d of %d frames)", basis_points / 100, basis_points % 100, part, whole);
