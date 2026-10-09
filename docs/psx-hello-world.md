@@ -141,10 +141,8 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 - No target drives the pad, so the mouse mapping (Cross, D-pad, Circle) is not
   checked by anything.
-- Scripted pad input works headless and deterministically:
-  `PCSX.SIO0.slots[1].pads[1].setOverride(…)` and `clearOverride` called from
-  the `GPU::Vsync` listener. It was a trial; nothing is committed. Plans 10
-  and 11 pick it up.
+- Scripted pad input is proven on the game's pad probe (`make psx-pad-check`,
+  `tools/psx_pad_play.lua`), not on psx-hello.
 
 Playing `psx-hello` in a windowed emulator is a human's job; agents never open
 a window.

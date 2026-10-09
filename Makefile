@@ -147,6 +147,14 @@
 #                       tools/psx_state_compare.sh (outputs and
 #                       measurements.txt in tmp/psx/replay, ~45 s); never
 #                       runs a setup, outside the suite
+# make psx-pad-check -> runs psx-build, boots the pad probe until it exits
+#                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
+#                       (default psx/pad_probe_script.txt) from the probe's
+#                       handshake (ceiling PSX_PAD_CEILING vsyncs, timeout
+#                       PSX_PAD_TIMEOUT s), then compares the probe's pad
+#                       states with the script's through
+#                       tools/psx_pad_compare.sh (outputs in tmp/psx/pad,
+#                       ~5 s); never runs a setup, outside the suite
 # make psx-hello     -> builds psx-hello/build/psx-hello.exe against
 #                       PSN00BSDK_DIR, reconfigured from scratch each time;
 #                       fails pointing at psn00bsdk-toolchain-setup when the
@@ -201,7 +209,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psn00bsdk-toolchain-setup psx-build psx-replay-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-build psx-replay-check psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -457,6 +465,9 @@ $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frame
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_state_compare: $(call objs,tests/test_psx_state_compare.c) tools/psx_state_compare.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_pad_compare: $(call objs,tests/test_psx_pad_compare.c) tools/psx_pad_compare.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
@@ -811,6 +822,7 @@ UNIT_TESTS := \
     test_frames_tool \
     test_frames_check \
     test_psx_state_compare \
+    test_psx_pad_compare \
     test_format_self_test \
     test_format \
     test_e2e_limits \
@@ -1249,6 +1261,16 @@ psx-replay-check: psx-build $(TMP_DIR)/replay
 		--exe $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_REPLAY_CEILING) $(PSX_REPLAY_OUT)/run
 	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_REPLAY_OUT)/pc.log) \
 		&& sh tools/psx_state_compare.sh $(PSX_REPLAY_OUT)/run.tty.txt $(PSX_REPLAY_OUT)/pc_state.txt $(PSX_REPLAY_OUT) $$frames
+
+PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
+PSX_PAD_OUT := $(TMP_DIR)/psx/pad
+PSX_PAD_CEILING ?= 306
+PSX_PAD_TIMEOUT ?= 6
+
+psx-pad-check: psx-build
+	PSX_BOOT_TIMEOUT=$(PSX_PAD_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
+		--pad-script $(PSX_PAD_SCRIPT) --exe $(PSX_BUILD_DIR)/psx-pad-probe.exe $(PSX_PAD_CEILING) $(PSX_PAD_OUT)/run
+	sh tools/psx_pad_compare.sh $(PSX_PAD_SCRIPT) $(PSX_PAD_OUT)/run.tty.txt
 
 PSX_KNOWN_LINE ?= Auto test all GTE valid opcodes/registers
 

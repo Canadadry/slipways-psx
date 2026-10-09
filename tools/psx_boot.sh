@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: psx_boot.sh <install-dir> [--until-exit] [--exe <file> | --iso <cue>] <frames> <out-prefix>
+# usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>
 # Boots the input (or nothing) headless for <frames> vsyncs and writes
 # <out-prefix>.vram (capture), <out-prefix>.tty.txt (stdout) and
 # <out-prefix>.log (stderr). Exit 1 naming the input when the emulator exits
@@ -9,6 +9,8 @@
 # code is the result (0 passes, anything else fails naming it), and <frames>
 # is a vsync ceiling; reaching it or the timeout fails naming the input and
 # the last "psx-replay:" or "psx-pad:" line of the TTY.
+# --pad-script plays that pad script on port 1 (tools/psx_pad_play.lua,
+# format in tools/psx_pad_compare.sh); a bad script fails naming its line.
 
 set -eu
 
@@ -26,7 +28,7 @@ absolute() {
     esac
 }
 
-[ $# -ge 3 ] || fail "usage: psx_boot.sh <install-dir> [--until-exit] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
+[ $# -ge 3 ] || fail "usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
 install_dir=$(absolute "$1")
 shift
 
@@ -34,11 +36,17 @@ input_flag=
 input=
 label="nothing"
 until_exit=
+pad_script=
 while [ $# -gt 2 ]; do
     case $1 in
         --until-exit)
             until_exit=1
             shift
+            ;;
+        --pad-script)
+            [ -f "$2" ] || fail "missing pad script: $2"
+            pad_script=$(absolute "$2")
+            shift 2
             ;;
         --exe | --iso)
             [ -z "$input_flag" ] || fail "--exe and --iso are mutually exclusive"
@@ -51,7 +59,8 @@ while [ $# -gt 2 ]; do
         *) fail "unknown argument: $1" ;;
     esac
 done
-[ $# -eq 2 ] || fail "usage: psx_boot.sh <install-dir> [--until-exit] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
+[ $# -eq 2 ] || fail "usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
+[ -z "$pad_script" ] || [ -n "$until_exit" ] || fail "--pad-script needs --until-exit"
 frames=$1
 prefix=$(absolute "$2")
 case $frames in
@@ -86,6 +95,7 @@ status=0
     HOME=$work XDG_CONFIG_HOME=$work/.config \
     PSX_CAPTURE_FRAMES=$frames PSX_CAPTURE_FILE=$prefix.vram \
     PSX_CEILING_FRAMES=$frames PSX_RESULT_FILE=$prefix.result \
+    PSX_PAD_SCRIPT=$pad_script PSX_PAD_PLAYER=$script_dir/psx_pad_play.lua \
         timeout "${PSX_BOOT_TIMEOUT:-120}" "$install_dir/pcsx-redux" \
         "$@" -dofile "$script_dir/$lua" \
         > "$prefix.tty.txt" 2> "$prefix.log"
@@ -102,6 +112,7 @@ if [ -n "$until_exit" ]; then
     case $result in
         ceiling*) fail "$label: reached the ceiling of $frames vsyncs before exiting; $last (see $prefix.log)" ;;
         exit*) ;;
+        error*) fail "$label: ${result#error }" ;;
         *) fail "$label: emulator exited with $status without a result; $last (see $prefix.log)" ;;
     esac
     [ "$status" -eq 0 ] || fail "$label: program exited with code $status; $last (see $prefix.log)"
