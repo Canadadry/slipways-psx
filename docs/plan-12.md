@@ -431,3 +431,33 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - A merge of the `test_e2e_limits` cases that weakened them was reverted.
 - **Size:** `pad_nav.c` 1170 → 1245 lines; `pad_nav_t` 25 → 26 fields (`select`); `test_pad_nav.c` 189 → 202 tests.
 - **Re-authoring:** about 65 minutes. Coverage: the same 69 unhit lines. Cheat: Select is no part of the chord (unit-tested). Every count is unchanged.
+
+### Step 10
+- **Commits:**
+  - `1c52311`: refactor. `pad_build_t` holds the bar's focus (`pad_build.{c,h}`, 5 tests).
+  - `f6e50d7`: L1 toggles the bar.
+  - Chunk 3: the takes on L1, and `pad_build` re-authored.
+- **L1:** on the bar it closes to the map. Anywhere else (the map in any mode, end turn, tech, score) it unwinds and opens the bar.
+- **R1** keeps the forward ring until step 12. L1 and R1 together do nothing; L1 waits as the shoulders do, and a held L1 toggles once.
+- **Placement is unchanged** (`guideline` D-4): "aim crosshair" means the free centre point and the pan, so no glyph is drawn while carrying.
+- **"Bar open" is still `tab == BUILD`** (D-3), read through `pad_nav_build_bar_open`. While the ring exists, R1 and L1 must reach one state. Step 12 moves it into `pad_build_t`.
+- **Replays:**
+  - `pad_score` 61 → 77. It reaches score with R1, shows L1 on score opening the bar, and keeps ○ on tech in its own frames (D-5 amended).
+  - `pad_message_box` 214 → 223.
+  - `title_pick_*` fixtures 40 → 49.
+  - `pad_build` 63 → 84, with the six bar situations.
+  - 14 replay takes and 25 fixture takes moved R1 → L1, every one frame-identical; none reverted.
+  - About 23 minutes of re-authoring.
+- **Dropped with the ring:** L1 from the map to score; L1 on score handing over to tech.
+- **Facts that differed from the PRD:**
+  - Its take list (17) counted 6 R1 R1 R1 tech chains as takes and missed `pad_planet_projects` f302 and f493 and `pad_research` f207. There are 14 real takes.
+  - The `title_pick_*` fixtures and the live-slots takes (`grabs_refused` 23, `slipways_refused` 2) were not in it.
+- **Tests:** `test_pad_nav.c` 202 → 216.
+  - `test_l1_on_score_hands_over_to_tech_on_the_third_frame` deleted, with L1 one tab back.
+  - The landing-after-shoulder-cancel guard is untested until step 11 (R1 → tech).
+- **Size:** `pad_nav.c` 1245 → 1219 lines; `pad_nav_t` 26 fields.
+- **Checks:**
+  - Cheat unchanged (unit-tested).
+  - Coverage: the same 69 unhit lines.
+  - `full-game`, `save-worst-case` and `save-fuzz` are clean.
+  - `make test` is not slower, compared like for like with 80f7289.
