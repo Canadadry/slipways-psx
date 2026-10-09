@@ -701,10 +701,11 @@ static int move_down_rows(pad_author_t *author, const script_t *script, int rows
     return 1;
 }
 
+/* By id: a collapse replaces the planet with a new protostar entity. */
 static int is_settled(pad_author_t *author, const void *context) {
     (void)author;
-    const entity_t *planet = context;
-    return planet->state == ENTITY_STATE_SETTLED;
+    const entity_t *planet = object_named(context);
+    return planet != NULL && planet->state == ENTITY_STATE_SETTLED;
 }
 
 static int move_to_item(pad_author_t *author, const script_t *script, item_match_t match, const char *name,
@@ -726,7 +727,7 @@ static int run_colonise(pad_author_t *author, const script_t *script, const char
     int moved = project != NULL ? move_to_item(author, script, is_project_button, project, "colonise")
                                 : move_down_rows(author, script, row);
     if (!moved || !tap(author, script, P8_PAD_CROSS)) return 0;
-    if (!wait_until(author, script, is_settled, planet, 5, "colonise: the planet settled")) return 0;
+    if (!wait_until(author, script, is_settled, id, 5, "colonise: the planet settled")) return 0;
     return wait_until(author, script, panel_closed_on_map, NULL, 10, "colonise: the menu closed");
 }
 
