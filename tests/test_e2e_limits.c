@@ -1,6 +1,6 @@
 /* tools/e2e_limits.sh, the guard of new e2e files (companion files, 180
- * frames, 600 for a listed exception, the pad header, no mouse field), on
- * built events files. */
+ * frames, 600 for a listed exception, the pad header, no mouse field, the
+ * .txt's "N frames."), on built events files. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -34,8 +34,8 @@ static const char *read_log(void) {
 }
 
 /* A complete e2e: <name>.json opening with `header`, then `frames` copies
- * of `frame` except frame 1, which is `odd` when not NULL; <name>.txt and
- * <name>.json.sha256. */
+ * of `frame` except frame 1, which is `odd` when not NULL; <name>.txt
+ * stating that count, and <name>.json.sha256. */
 static void write_e2e_with(const char *name, const char *header, int frames, const char *frame, const char *odd) {
     char path[256];
     snprintf(path, sizeof path, DIR "/%s.json", name);
@@ -50,7 +50,9 @@ static void write_e2e_with(const char *name, const char *header, int frames, con
     fputs("  ]\n}\n", file);
     fclose(file);
     snprintf(path, sizeof path, DIR "/%s.txt", name);
-    write_file(path, "what the replay does\n");
+    char txt[256];
+    snprintf(txt, sizeof txt, "What the replay does. %d frames.\n", frames);
+    write_file(path, txt);
     snprintf(path, sizeof path, DIR "/%s.json.sha256", name);
     write_file(path, "0000\n");
 }
@@ -160,6 +162,49 @@ static void test_e2e_without_the_pad_header_fails_and_is_named(void) {
     assert(strstr(read_log(), DIR "/mouse_header.json") != NULL);
 }
 
+static void write_txt(const char *name, const char *text) {
+    char path[256];
+    snprintf(path, sizeof path, DIR "/%s.txt", name);
+    write_file(path, text);
+}
+
+static void test_txt_stating_the_right_count_passes_even_split_across_lines(void) {
+    reset();
+    write_e2e("split", 12, NULL);
+    write_txt("split", "A probe, then a\nfold. 12\nframes.\n\nA second paragraph: 99 frames.\n");
+    assert(run(DIR "/split.json") == 0);
+}
+
+static void test_txt_stating_a_wrong_count_fails_and_is_named(void) {
+    reset();
+    write_e2e("before", 10, NULL);
+    write_e2e("wrong", 12, NULL);
+    write_txt("wrong", "A probe. 11 frames.\n");
+    write_e2e("after", 14, NULL);
+    assert(run(DIR "/before.json " DIR "/wrong.json " DIR "/after.json") != 0);
+    assert(strstr(read_log(), "e2e: " DIR "/wrong.json: .txt says 11 frames, the file has 12\n") != NULL);
+    assert(strstr(read_log(), DIR "/before.json:") == NULL && strstr(read_log(), DIR "/after.json:") == NULL);
+}
+
+static void test_txt_without_the_statement_in_its_first_paragraph_fails(void) {
+    reset();
+    write_e2e("none", 12, NULL);
+    write_txt("none", "A probe, 12 frames (listed somewhere).\n\nThen 12 frames.\n");
+    assert(run(DIR "/none.json") != 0);
+    assert(strstr(read_log(), "e2e: " DIR "/none.json: .txt states no \"N frames.\"") != NULL);
+    write_txt("none", "");
+    assert(run(DIR "/none.json") != 0);
+    assert(strstr(read_log(), "e2e: " DIR "/none.json: .txt states no \"N frames.\"") != NULL);
+}
+
+static void test_txt_with_two_statements_in_its_first_paragraph_fails(void) {
+    reset();
+    write_e2e("twice", 12, NULL);
+    write_txt("twice", "A probe. 12 frames.\nOr 12 frames.\n");
+    assert(run(DIR "/twice.json") != 0);
+    assert(strstr(read_log(), DIR "/twice.json") != NULL);
+}
+
 int main(void) {
     test_no_e2e_passes();
     test_e2e_of_180_frames_passes();
@@ -171,6 +216,10 @@ int main(void) {
     test_missing_exceptions_list_fails();
     test_e2e_with_a_mouse_field_fails_and_is_named();
     test_e2e_without_the_pad_header_fails_and_is_named();
+    test_txt_stating_the_right_count_passes_even_split_across_lines();
+    test_txt_stating_a_wrong_count_fails_and_is_named();
+    test_txt_without_the_statement_in_its_first_paragraph_fails();
+    test_txt_with_two_statements_in_its_first_paragraph_fails();
     assert(system("rm -rf " DIR) == 0);
     printf("test_e2e_limits: all tests passed\n");
     return 0;

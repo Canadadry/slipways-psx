@@ -1,8 +1,8 @@
 Six years, "nanomaterials" on the `tech` tab, an earth-like planet's
 menu at x0.85; then the cheat, "space folding" and "xenofoods", the same
 menu with improved recipes at x1.5. Then a mine linked to three people
-suppliers, a colony needing ore and two labs, rich at the year. 566
-frames.
+suppliers, a colony needing ore and two labs, rich at the year.
+566 frames.
 
 Jump mode is the map's root, where every game starts: square on f17
 enters aim mode, the camera unmoved. The menus open from jump mode

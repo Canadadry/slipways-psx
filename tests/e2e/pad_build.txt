@@ -1,6 +1,6 @@
 A processor picked on the `build` tab with Left, carried away from p47
-and built with X, then a basic structure taken and cancelled with O. 63
-frames.
+and built with X, then a basic structure taken and cancelled with O.
+63 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 leaves it for plain free mode, the camera unmoved, as games started

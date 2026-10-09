@@ -2,8 +2,8 @@ Twenty years ended on `end turn` up to the "5 years remain" box, pad
 input passing through it, then the pause menu over it: the rows
 navigated, X on "how to play?", closed with O and with Start. Then the
 `score` tab, whose box replaces the year box, closed with O, and the
-score box running out. 190 frames (listed in
-tools/e2e_long_exceptions.txt).
+score box running out. 190 frames. Listed in
+tools/e2e_long_exceptions.txt.
 
 Jump mode is the map's root, where every game starts: square on f13
 leaves it for plain free mode, the camera unmoved, as games started
