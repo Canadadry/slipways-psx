@@ -290,7 +290,7 @@ Step 14's tool will define dead presses exactly ("presses that change no nav sta
   - The generator refuses the inputs section 4 forbids (D-1's refusals). Every D-pad press in jump mode comes from `jump`, which taps only into non-empty cones and checks that the hovered object changed.
   - Every ○ comes from a controller that checks its effect. A deliberate root ○ with nothing to go back to is allowed only through `back --required`, which records it as a required no-op.
   - Chords are refused, so the cheat count is 0 by construction. `make end-state` confirms it.
-- **Aim budget:** aim mode is entered only by `probe`, `fold` and `build`, after a jump to the nearest candidate. The generator counts aim-mode frames (`pad_nav_aim_mode`) and fails a run whose share exceeds 20%, leaving margin under section 4's 25%.
+- **Aim budget:** aim mode is entered only by `probe`, `fold` and `build`, after a jump to the nearest candidate. The generator counts aim-mode frames (`pad_nav_aim_mode`) and fails a run whose share is 25% or more, section 4's line (guideline ruling during chunk 3: the cheat-free full_game cannot reach 20%). Padding counts only clock-free commands checked for an effect, each on a new object or panel.
 - **Recorded for step 14:**
   - The generator writes a per-frame mode log to `tmp/`: frame, mode (jump, aim, slipway, menu, placement, bar, tech, score, pause, title), buttons, and for each press edge whether the controller saw an effect.
   - The step note copies each game's totals: frames per mode, aim share, presses per mode and button, hold repeats (expected 0), cheat count, and required no-ops.

@@ -103,7 +103,7 @@
 #                       cross + circle chord, a jump-mode D-pad press into an
 #                       empty cone, a circle that changes nothing unless
 #                       `back --required`), a failed command check, more than
-#                       7200 frames, or more than 20% of the frames in aim
+#                       7200 frames, or 25% or more of the frames in aim
 #                       mode; the per-frame mode log and the totals go to
 #                       tmp/pad-author/<game>.modes.txt, outside the suite
 # make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same

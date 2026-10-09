@@ -1130,6 +1130,37 @@ static int hovered_moved(pad_author_t *author, const void *context) {
     return hovered != NULL && hovered != context;
 }
 
+static int run_menu(pad_author_t *author, const script_t *script, const char *id) {
+    if (!require_map(author, script, "menu")) return 0;
+    if (current_mode(author) == PAD_AUTHOR_MODE_AIM && !leave_aim(author, script)) return 0;
+    if (!run_jump(author, script, id) || !tap(author, script, P8_PAD_TRIANGLE)) return 0;
+    if (!wait_until(author, script, has_focus, NULL, 20, "menu: a row focused") ||
+        !wait_panel_settled(author, script, "menu")) {
+        return 0;
+    }
+    if (pad_nav_neighbor(pad_nav_focus(nav_of(author)), P8_PAD_DOWN) != NULL && !move_down_rows(author, script, 1)) return 0;
+    return tap(author, script, P8_PAD_CIRCLE) &&
+           wait_until(author, script, panel_closed_on_map, NULL, 6, "menu: closed by circle");
+}
+
+static int run_bar(pad_author_t *author, const script_t *script) {
+    if (!require_map(author, script, "bar") || !tap(author, script, P8_PAD_L1)) return 0;
+    pad_nav_t *nav = nav_of(author);
+    if (pad_nav_build_icon(nav) == NULL) return fail(author, script, "bar: not open");
+    for (int i = 0; i < STRUCTURE_KIND_COUNT; i++) {
+        entity_t *focused = pad_nav_build_icon(nav);
+        int x = icon_x(focused), left = 0;
+        const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
+        for (int k = 0; k < count_of(bucket); k++) {
+            left |= structure_icon_is_revealed(bucket->items[k]) && icon_x(bucket->items[k]) < x;
+        }
+        if (!left) break;
+        if (!tap(author, script, P8_PAD_LEFT)) return 0;
+        if (pad_nav_build_icon(nav) == focused) return fail(author, script, "bar: Left did not move");
+    }
+    return tap(author, script, P8_PAD_CIRCLE) && wait_until(author, script, on_the_map, NULL, 4, "bar: closed by circle");
+}
+
 static int run_attention(pad_author_t *author, const script_t *script) {
     if (!require_map(author, script, "attention")) return 0;
     const entity_t *before = pad_nav_hovered(nav_of(author));
@@ -1231,6 +1262,8 @@ static int run_goal(pad_author_t *author, const script_t *script) {
     if (strcmp(command, "score") == 0) return expect_tokens(author, script, 1, 1) && run_score(author, script);
     if (strcmp(command, "year") == 0) return expect_tokens(author, script, 1, 1) && run_year(author, script);
     if (strcmp(command, "until-game-end") == 0) return expect_tokens(author, script, 1, 1) && run_until_game_end(author, script);
+    if (strcmp(command, "menu") == 0) return expect_tokens(author, script, 2, 2) && run_menu(author, script, tokens[1]);
+    if (strcmp(command, "bar") == 0) return expect_tokens(author, script, 1, 1) && run_bar(author, script);
     if (strcmp(command, "attention") == 0) return expect_tokens(author, script, 1, 1) && run_attention(author, script);
     if (strcmp(command, "back") == 0) {
         if (!expect_tokens(author, script, 1, 2)) return 0;

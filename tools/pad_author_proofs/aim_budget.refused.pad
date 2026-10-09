@@ -1,4 +1,4 @@
-# expect: over the 20% budget
+# expect: frames in aim mode, 25% or more
 title 12 reasonable
 tap square
 idle 20

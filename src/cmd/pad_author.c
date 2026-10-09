@@ -10,7 +10,7 @@
  *
  * Writes the per-frame mode log and the run's totals to
  * tmp/pad-author/<name>.modes.txt, the totals also to stdout. A whole run
- * (no --stop-at) fails when more than 20% of its frames are in aim mode,
+ * (no --stop-at) fails when 25% or more of its frames are in aim mode,
  * unless --no-aim-budget.
  *
  * --try <file>: after the run, each line of <file> (commands separated by `;`)
@@ -273,8 +273,8 @@ int main(int argc, char **argv) {
     pad_author_write_totals(&author, stdout, "pad_author: ");
     if (!played) return 1;
     int aim_frames = author.mode_frames[PAD_AUTHOR_MODE_AIM];
-    if (aim_budget && stop_label == NULL && 5 * aim_frames > author.frame_count) {
-        fprintf(stderr, "pad_author: %d of %d frames in aim mode, over the 20%% budget\n", aim_frames, author.frame_count);
+    if (aim_budget && stop_label == NULL && 4 * aim_frames >= author.frame_count) {
+        fprintf(stderr, "pad_author: %d of %d frames in aim mode, 25%% or more\n", aim_frames, author.frame_count);
         return 1;
     }
 
