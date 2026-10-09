@@ -9,7 +9,6 @@ typedef enum { PAD_SLIPWAY_NONE, PAD_SLIPWAY_PRESSED, PAD_SLIPWAY_HELD, PAD_SLIP
 
 typedef enum { PAD_SLIPWAY_REFUSED, PAD_SLIPWAY_BUILT } pad_slipway_outcome_t;
 
-/* target is ENTITY_ID_NONE while the aim is on the start. */
 typedef struct {
     entity_id_t start;
     entity_id_t target;
@@ -19,22 +18,14 @@ typedef struct {
 
 void pad_slipway_init(pad_slipway_t *slipway);
 
-/* 1 for a live planet-family entity in state SETTLED that takes a slipway; 0 otherwise, NULL included. */
 int pad_slipway_can_start(const entity_t *e);
 
-/* The entries of candidates other than start, in order, in a list grown in zone, which owns its storage: with
- * frame_zone() it lives until the frame ends and the caller frees nothing. */
 entity_list_t pad_slipway_candidates(const allocator_t *zone, const entity_list_t *candidates, const entity_t *start);
 
-/* The slipway on start's slipways list whose other end is target, or NULL. start is planet-family. */
 entity_t *pad_slipway_between(const entity_t *start, const entity_t *target);
-/* PAD_SLIPWAY_BUILT when a slipway joins start and target now and linked_before is 0; PAD_SLIPWAY_REFUSED otherwise,
- * a NULL target included. */
 pad_slipway_outcome_t pad_slipway_outcome(const entity_t *start, const entity_t *target, int linked_before);
 
-/* From HELD with a target: RELEASED, with linked_before kept for pad_slipway_outcome. */
 void pad_slipway_release(pad_slipway_t *slipway, int linked_before);
-/* From RELEASED: PRESSED with no target, the start moved to the target when outcome is PAD_SLIPWAY_BUILT. */
 void pad_slipway_rebase(pad_slipway_t *slipway, pad_slipway_outcome_t outcome);
 
 #endif

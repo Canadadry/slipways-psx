@@ -20,7 +20,6 @@ typedef struct {
     p8_fixed_t perpendicular;
 } offset_t;
 
-/* Screen axes: x grows right, y grows down, so Up is decreasing y. */
 static offset_t offset_in(int direction, vec_t from, vec_t to) {
     p8_fixed_t dx = p8_fixed_sub(to.x, from.x);
     p8_fixed_t dy = p8_fixed_sub(to.y, from.y);

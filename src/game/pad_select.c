@@ -48,7 +48,6 @@ int pad_select_year_just_ended(const pad_select_t *s) {
     return s->chain_frames == PAD_SELECT_CHAIN_FRAMES;
 }
 
-/* Must follow planet_inspection_panel_filter_step: a need is unmet when its satisfied count is unset or exactly 0. */
 static int need_is_unmet(const need_t *need) {
     return need == NULL || !need->has_satisfied || need->satisfied == 0;
 }
