@@ -746,6 +746,30 @@ static void test_leaving_gives_back_its_particles(void) {
     assert(particles_of(&e->emitter) == NULL && e->layout_row_slot == NULL);
 }
 
+/* A second structure dropped on the very point of a settled one is
+ * refused: no spend, the dragged one killed. */
+static void test_drop_on_a_settled_structure_point_is_refused(void) {
+    void *settled;
+    void *second;
+    vec_t mouse_world;
+    p8_fixed_t before;
+
+    start_game();
+    mouse_world = vec_add(*pos_ref(&main_camera_typed()->header), vec_xy(28, 104));
+    set_credits(200);
+    settled = build_ascension();
+    class_of(settled)->drag(settled, mouse_pos(mouse_world, vec_xy(64, 64)));
+    assert(targeting_confirm(settled) == 1);
+    assert(as_ascension(settled)->header.state == ENTITY_STATE_SETTLED);
+
+    second = build_ascension();
+    class_of(second)->drag(second, mouse_pos(mouse_world, vec_xy(64, 64)));
+    before = credits();
+    assert(targeting_confirm(second) == 0);
+    assert(as_ascension(second)->header.is_dead);
+    assert(credits() == before);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -761,6 +785,7 @@ int main(void) {
     in_fresh_child(test_heirs);
     in_fresh_child(test_ascension_is_a_struct);
     in_fresh_child(test_leaving_gives_back_its_particles);
+    in_fresh_child(test_drop_on_a_settled_structure_point_is_refused);
 
     printf("test_ascension: all tests passed\n");
     return 0;

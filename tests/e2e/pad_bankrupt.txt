@@ -33,7 +33,8 @@ file cut after the frame and from the capture.
   matcher at 0. The pad ignores X and O from a chord until both are up,
   so the chords place no probe.
 - f24-44: the fifth lab s5 (304, 269), L1, X, Up+Right 13, Right 1, X:
-  $185, month 11, income -25, one toast.
+  $185, month 11, income -25, one toast. On f26 s5 is taken on s4's
+  point (286, 285): hatched, refused, until the pan moves it.
 - f45-74: Select held 30 frames in aim mode; Up+Left 13 and Up 1 held
   with it on f45-58 pan the camera to 208 191, where the centre (288,
   251) is free. f74, its 30th frame: the cursor on the year-skip button

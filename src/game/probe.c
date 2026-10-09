@@ -187,7 +187,7 @@ void targeting_track(entity_t *self, mouse_pos_t mouse) {
     entity_set_map_pos(self, p_vec);
 
     candidate = NULL;
-    distance = entity_geom_nearest(p_vec, entities_by_tag(TAG_NODE), &candidate);
+    distance = entity_geom_nearest_except(p_vec, entities_by_tag(TAG_NODE), self, &candidate);
 
     target = NULL;
 
