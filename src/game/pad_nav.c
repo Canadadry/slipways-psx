@@ -8,6 +8,7 @@
 #include "game/main_economy.h"
 #include "game/menu.h"
 #include "game/message_box.h"
+#include "game/pad_build.h"
 #include "game/pad_jump.h"
 #include "game/pad_panel.h"
 #include "game/pad_select.h"
@@ -15,12 +16,10 @@
 #include "game/planet.h"
 #include "game/scroll.h"
 #include "game/slipway.h"
-#include "game/structure_icon.h"
 #include "game/ui.h"
 #include "p8/vram.h"
 
 #include <assert.h>
-#include <limits.h>
 
 int pad_nav_panel_open(void) {
     return pad_panel_open();
@@ -139,8 +138,7 @@ entity_t *pad_nav_next_slipway(const entity_t *planet, const entity_t *current, 
 }
 
 entity_t *pad_nav_build_icon(const pad_nav_t *nav) {
-    entity_t *icon = entity_get(nav->build_icon);
-    return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD && structure_icon_is_revealed(icon) ? icon : NULL;
+    return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD ? pad_build_icon(&nav->build) : NULL;
 }
 
 static entity_t *placing_structure(entity_t *e) {
@@ -247,7 +245,7 @@ static void set_tab(pad_nav_t *nav, pad_nav_tab_t tab) {
 
 void pad_nav_init(pad_nav_t *nav) {
     nav->focus = ENTITY_ID_NONE;
-    nav->build_icon = ENTITY_ID_NONE;
+    pad_build_init(&nav->build);
     set_tab(nav, PAD_NAV_TAB_MAP);
     pad_jump_init(&nav->jump);
     pad_back_init(&nav->back);
@@ -615,57 +613,21 @@ static entity_t *tab_button(pad_nav_tab_t tab) {
     return hud_button[tab] != 0 ? (entity_t *)galaxy_menu_find_button(hud_button[tab]) : NULL;
 }
 
-/* NULL when no revealed icon lies on that side of x: step -1 looks left, 1 right. */
-static entity_t *icon_beside(int x, int step) {
-    entity_t *nearest = NULL;
-    int nearest_x = 0;
-    const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
-    for (int i = 0; i < bucket->count; i++) {
-        entity_t *e = bucket->items[i];
-        int at_x, at_y;
-        if (!structure_icon_is_revealed(e)) {
-            continue;
-        }
-        pad_panel_focus_point(e, &at_x, &at_y);
-        if ((step < 0 ? at_x < x : at_x > x) && (nearest == NULL || (step < 0 ? at_x > nearest_x : at_x < nearest_x))) {
-            nearest = e;
-            nearest_x = at_x;
-        }
-    }
-    return nearest;
-}
-
-/* NULL when no icon is revealed; otherwise a stale focus has moved to the rightmost icon, the basic structure. */
-static entity_t *repaired_build_icon(pad_nav_t *nav) {
-    entity_t *icon = entity_get(nav->build_icon);
-    if (!structure_icon_is_revealed(icon)) {
-        icon = icon_beside(INT_MAX, -1);
-        nav->build_icon = entity_id_link(icon);
-    }
-    return icon;
-}
-
 /* × presses the icon as the mouse does: the ui's dispatch, after this step, hands its structure over. */
 static void build_step(pad_nav_t *nav, int pressed, int direction, int release, p8_input_frame_t *played) {
-    entity_t *icon = repaired_build_icon(nav);
+    entity_t *icon = pad_build_focus(&nav->build);
     if (icon != NULL && (pressed & P8_PAD_CROSS) && !release) {
         played->mouse_buttons = P8_MOUSE_LEFT;
         nav->placement = PAD_NAV_PLACEMENT_PRESSED;
     }
-    if (icon == NULL || (direction != P8_PAD_LEFT && direction != P8_PAD_RIGHT)) {
-        return;
-    }
-    int x, y;
-    pad_panel_focus_point(icon, &x, &y);
-    entity_t *next = icon_beside(x, direction == P8_PAD_LEFT ? -1 : 1);
-    if (next != NULL) {
-        nav->build_icon = entity_id_link(next);
+    if (direction == P8_PAD_LEFT || direction == P8_PAD_RIGHT) {
+        pad_build_pick(&nav->build, direction == P8_PAD_LEFT ? -1 : 1);
     }
 }
 
 static void tab_cursor(pad_nav_t *nav) {
     entity_t *button = tab_button(nav->tab);
-    entity_t *icon = nav->tab == PAD_NAV_TAB_BUILD ? repaired_build_icon(nav) : NULL;
+    entity_t *icon = nav->tab == PAD_NAV_TAB_BUILD ? pad_build_focus(&nav->build) : NULL;
     if (nav->tab == PAD_NAV_TAB_MAP) {
         entity_t *selection = pad_nav_selection(nav) != NULL ? pad_nav_selection(nav) : pad_nav_hovered(nav);
         if (selection != NULL) {
@@ -730,8 +692,8 @@ static int begin_placement(pad_nav_t *nav) {
 
 /* Outside the ui's panel box, where the structure's drag aims at the throwaway target and its drop is refused. */
 static void cancel_point(pad_nav_t *nav) {
-    entity_t *icon = entity_get(nav->build_icon);
-    if (structure_icon_is_revealed(icon)) {
+    entity_t *icon = pad_build_icon(&nav->build);
+    if (icon != NULL) {
         pad_panel_focus_point(icon, &nav->cursor_x, &nav->cursor_y);
     } else {
         nav->cursor_x = PARKED_X;

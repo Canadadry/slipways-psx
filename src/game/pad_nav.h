@@ -4,6 +4,7 @@
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
 #include "game/pad_back.h"
+#include "game/pad_build.h"
 #include "game/pad_jump.h"
 #include "game/pad_select.h"
 #include "game/pad_slipway.h"
@@ -30,7 +31,7 @@ typedef enum {
 typedef struct {
     entity_id_t focus;
     pad_nav_tab_t tab;
-    entity_id_t build_icon;
+    pad_build_t build;
     pad_nav_placement_t placement;
     entity_id_t suspended_carry;
     int landing_due;

@@ -247,6 +247,7 @@ ENGINE_SRCS := \
     src/game/pad_target.c \
     src/game/pad_back.c \
     src/game/pad_select.c \
+    src/game/pad_build.c \
     src/game/cart.c \
     src/engine/collect.c \
     src/game/data_init.c \
@@ -339,6 +340,7 @@ CART_ONLY_SRCS := \
     src/game/pad_target.c \
     src/game/pad_back.c \
     src/game/pad_select.c \
+    src/game/pad_build.c \
     src/game/galaxy.c \
     src/game/help.c \
     src/game/menu.c \
@@ -666,6 +668,9 @@ $(TMP_DIR)/test_pad_back: $(call objs,tests/test_pad_back.c tests/heap_allocator
 $(TMP_DIR)/test_pad_select: $(call objs,tests/test_pad_select.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -844,7 +849,8 @@ UNIT_TESTS := \
     test_pad_jump \
     test_pad_slipway \
     test_pad_back \
-    test_pad_select
+    test_pad_select \
+    test_pad_build
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
