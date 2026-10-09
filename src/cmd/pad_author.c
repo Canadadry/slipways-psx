@@ -70,7 +70,7 @@ static int write_state(const char *path) {
         return 0;
     }
     state_write(out);
-    fprintf(out, "cheat activations %d\n", author.cheat_activations);
+    fprintf(out, "cheat activations %d\n", pad_metrics_cheat_activations(&author.metrics));
     return fclose(out) == 0;
 }
 
@@ -174,7 +174,7 @@ static int run_trials(const char *try_path, const char *name) {
             write_economy(path);
             if (ok) {
                 printf("try %d ok %d science/year %d aim %d\n", k, author.frame_count, science_per_year(),
-                       author.mode_frames[PAD_AUTHOR_MODE_AIM]);
+                       pad_metrics_mode_frames(&author.metrics, PAD_METRICS_MODE_AIM));
             } else {
                 printf("try %d failed %s\n", k, author.error);
             }
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
         events_path = failed_events;
         state_path = own_state;
     }
-    pad_author_write_totals(&author, author.mode_log, "total ");
+    pad_metrics_write_totals(&author.metrics, author.mode_log, "total ");
     fclose(author.mode_log);
     author.mode_log = NULL;
     if (author.frame_count == 0) {
@@ -269,10 +269,10 @@ int main(int argc, char **argv) {
     }
     if (!write_state(state_path)) return 1;
     printf("pad_author: %s -> %s, %d frame(s), cheat activations %d\n", script_path, events_path, author.frame_count,
-           author.cheat_activations);
-    pad_author_write_totals(&author, stdout, "pad_author: ");
+           pad_metrics_cheat_activations(&author.metrics));
+    pad_metrics_write_totals(&author.metrics, stdout, "pad_author: ");
     if (!played) return 1;
-    int aim_frames = author.mode_frames[PAD_AUTHOR_MODE_AIM];
+    int aim_frames = pad_metrics_mode_frames(&author.metrics, PAD_METRICS_MODE_AIM);
     if (aim_budget && stop_label == NULL && 4 * aim_frames >= author.frame_count) {
         fprintf(stderr, "pad_author: %d of %d frames in aim mode, 25%% or more\n", aim_frames, author.frame_count);
         return 1;

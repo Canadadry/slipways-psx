@@ -1,5 +1,8 @@
 #include "devtools/pad_author.h"
 
+#include "devtools/pad_metrics.h"
+
+#include "engine/allocator.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_id.h"
 #include "engine/entity_list.h"
@@ -63,14 +66,6 @@ typedef struct {
     const script_line_t *current;
 } script_t;
 
-static const char *const BUTTON_NAMES[PAD_AUTHOR_BUTTON_COUNT] = {
-    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select",
-};
-
-static const char *const MODE_NAMES[PAD_AUTHOR_MODE_COUNT] = {
-    "title", "pause", "placement", "bar", "tech", "score", "menu", "jump", "aim", "slipway",
-};
-
 typedef struct {
     const char *name;
     const kind_record_t *record;
@@ -97,34 +92,14 @@ static p8_input_t boot_input;
 
 /* Candidate lists built between frames: never in frame_zone(), whose peak make state reports, or the self-check
  * would see a bigger frame zone than the replay. */
-static unsigned char scratch[1 << 16];
-static size_t scratch_used;
+#define SCRATCH_BYTES (1 << 16)
+BUMP_ZONE_STORAGE(scratch_cells, SCRATCH_BYTES);
+static bump_zone_t scratch;
+static allocator_t scratch_zone;
 
-static unsigned char *scratch_alloc(const allocator_t *zone, size_t n) {
-    (void)zone;
-    n = (n + 15) & ~(size_t)15;
-    assert(scratch_used + n <= sizeof scratch && "pad_author: scratch zone full");
-    unsigned char *p = scratch + scratch_used;
-    scratch_used += n;
-    return p;
-}
-
-static unsigned char *scratch_grow(const allocator_t *zone, unsigned char *p, size_t old_n, size_t new_n) {
-    unsigned char *grown = scratch_alloc(zone, new_n);
-    if (p != NULL) memcpy(grown, p, old_n);
-    return grown;
-}
-
-static void scratch_release(const allocator_t *zone, unsigned char *p) {
-    (void)zone;
-    (void)p;
-}
-
-static const allocator_t scratch_zone = {scratch_alloc, scratch_grow, scratch_release, NULL, NULL};
-
-/* Valid until the next call. */
+/* Valid until the next call, or the next emit. */
 static entity_list_t live_candidates(void) {
-    scratch_used = 0;
+    bump_zone_reset(&scratch);
     return pad_jump_candidates(&scratch_zone, entities_by_tag(TAG_NODE));
 }
 
@@ -144,23 +119,8 @@ static pad_nav_t *nav_of(pad_author_t *author) {
     return &author->step.pad_nav;
 }
 
-static pad_author_mode_t current_mode(pad_author_t *author) {
-    const pad_nav_t *nav = nav_of(author);
-    if (main_economy_typed() == NULL) return PAD_AUTHOR_MODE_TITLE;
-    if (pause_menu_shown()) return PAD_AUTHOR_MODE_PAUSE;
-    if (pad_nav_placing(nav) != NULL) return PAD_AUTHOR_MODE_PLACEMENT;
-    if (pad_nav_build_bar_open(nav)) return PAD_AUTHOR_MODE_BAR;
-    if (pad_nav_tech_open(nav)) return PAD_AUTHOR_MODE_TECH;
-    if (pad_nav_score_open(nav)) return PAD_AUTHOR_MODE_SCORE;
-    if (pad_nav_panel_open()) return PAD_AUTHOR_MODE_MENU;
-    if (pad_nav_aim_mode(nav)) return PAD_AUTHOR_MODE_AIM;
-    if (pad_nav_slipway_start(nav) != NULL) return PAD_AUTHOR_MODE_SLIPWAY;
-    return PAD_AUTHOR_MODE_JUMP;
-}
-
-const char *pad_author_mode_name(pad_author_mode_t mode) {
-    assert(mode >= 0 && mode < PAD_AUTHOR_MODE_COUNT);
-    return MODE_NAMES[mode];
+static pad_metrics_mode_t current_mode(pad_author_t *author) {
+    return pad_metrics_mode(&author->step);
 }
 
 static int camera_point(int *x, int *y) {
@@ -191,54 +151,12 @@ static int invented_count(void) {
     return economy != NULL ? economy->invented.count : 0;
 }
 
-static entity_id_t id_or_none(const entity_t *e) {
-    return e != NULL ? entity_id_of(e) : ENTITY_ID_NONE;
-}
-
-static pad_author_view_t view_now(pad_author_t *author) {
-    const pad_nav_t *nav = nav_of(author);
-    pad_author_view_t view;
-    memset(&view, 0, sizeof view);
-    view.mode = current_mode(author);
-    view.hovered = id_or_none(pad_nav_hovered(nav));
-    view.slipway_start = id_or_none(pad_nav_slipway_start(nav));
-    view.slipway_target = id_or_none(pad_nav_slipway_target(nav));
-    view.build_icon = id_or_none(pad_nav_build_icon(nav));
-    view.placing = id_or_none(pad_nav_placing(nav));
-    view.focus = id_or_none(pad_nav_focus(nav));
-    camera_point(&view.camera_x, &view.camera_y);
-    view.panel_open = pad_nav_panel_open();
-    view.box_open = main_economy_typed() != NULL && pad_panel_box_open();
-    view.message_box = shown_message_box() != NULL;
-    const economy_t *economy = main_economy_typed();
-    if (economy != NULL) {
-        view.credits = economy->credits;
-        view.year = economy->year;
-        view.year_ticks = economy->year_ticks;
-    }
-    view.nodes = count_of(entities_by_tag(TAG_NODE));
-    view.probes = count_of(entities_by_tag(TAG_PROBE));
-    view.techs = invented_count();
-    return view;
-}
-
-static int navigation_changed(const pad_author_view_t *a, const pad_author_view_t *b) {
-    return a->mode != b->mode || !entity_id_equal(a->hovered, b->hovered) ||
-           !entity_id_equal(a->slipway_start, b->slipway_start) ||
-           !entity_id_equal(a->slipway_target, b->slipway_target) || !entity_id_equal(a->build_icon, b->build_icon) ||
-           !entity_id_equal(a->placing, b->placing) || !entity_id_equal(a->focus, b->focus) ||
-           a->camera_x != b->camera_x || a->camera_y != b->camera_y || a->panel_open != b->panel_open ||
-           a->box_open != b->box_open || a->message_box != b->message_box;
-}
-
-static int view_changed(const pad_author_view_t *a, const pad_author_view_t *b) {
-    return navigation_changed(a, b) || a->credits != b->credits || a->year != b->year ||
-           a->year_ticks != b->year_ticks || a->nodes != b->nodes || a->probes != b->probes || a->techs != b->techs;
-}
-
 void pad_author_init(pad_author_t *author) {
     memset(author, 0, sizeof *author);
     input_step_init(&author->step);
+    bump_zone_init(&scratch, "pad_author scratch", scratch_cells, SCRATCH_BYTES);
+    scratch_zone = allocator_from_bump_zone(&scratch);
+    pad_metrics_init(&author->metrics, &scratch);
     memset(&boot_frame, 0, sizeof boot_frame);
     boot_input.frames = &boot_frame;
     boot_input.frame_count = 1;
@@ -250,38 +168,26 @@ void pad_author_init(pad_author_t *author) {
 static const char *button_name(int buttons) {
     int b = 0;
     while (!(buttons & (1 << b))) b++;
-    assert(b < PAD_AUTHOR_BUTTON_COUNT);
-    return BUTTON_NAMES[b];
+    assert(b < PAD_METRICS_BUTTON_COUNT);
+    return pad_metrics_button_name(b);
 }
 
 static void write_buttons(FILE *out, int buttons) {
     const char *separator = "";
     fputc('[', out);
-    for (int b = 0; b < PAD_AUTHOR_BUTTON_COUNT; b++) {
+    for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
         if (buttons & (1 << b)) {
-            fprintf(out, "%s%s", separator, BUTTON_NAMES[b]);
+            fprintf(out, "%s%s", separator, pad_metrics_button_name(b));
             separator = "+";
         }
     }
     fputc(']', out);
 }
 
-static void count_hold_repeats(pad_author_t *author, pad_author_mode_t mode, int buttons) {
-    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        int held = (buttons & pad_jump_direction(i)) != 0;
-        author->direction_held[i] = held ? author->direction_held[i] + 1 : 0;
-        int past = author->direction_held[i] - PAD_JUMP_REPEAT_DELAY;
-        if ((mode == PAD_AUTHOR_MODE_JUMP || mode == PAD_AUTHOR_MODE_SLIPWAY) && past > 0 &&
-            (past - 1) % PAD_JUMP_REPEAT_PERIOD == 0) {
-            author->hold_repeats++;
-        }
-    }
-}
-
 /* Returns 0 once the pending ○ check failed. */
-static int settle_circle(pad_author_t *author, const script_t *script, const pad_author_view_t *now, int final) {
+static int settle_circle(pad_author_t *author, const script_t *script, const pad_metrics_view_t *now, int final) {
     if (author->circle_pending == 0) return 1;
-    if (navigation_changed(&author->circle_before, now)) {
+    if (pad_metrics_navigation_changed(&author->circle_before, now)) {
         author->circle_pending = 0;
         return 1;
     }
@@ -289,7 +195,7 @@ static int settle_circle(pad_author_t *author, const script_t *script, const pad
     if (author->circle_pending > 0 && !final) return 1;
     author->circle_pending = 0;
     if (author->circle_required) {
-        author->required_noops++;
+        pad_metrics_count_required_noop(&author->metrics);
         return 1;
     }
     return fail(author, script, "dead circle: it changed no mode, object, camera, box or panel (mark it `back --required`)");
@@ -301,19 +207,17 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
         return fail(author, script, "over the frame budget of %d", PAD_AUTHOR_FRAME_BUDGET);
     }
     const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
-    int pressed = buttons & ~author->previous_buttons;
+    int pressed = pad_metrics_pressed(&author->metrics, buttons);
     if ((pressed & face) == face) return fail(author, script, "chord: cross and circle pressed on the same frame");
-    pad_author_mode_t mode = current_mode(author);
+    pad_metrics_mode_t mode = current_mode(author);
     int direction = pad_jump_first_direction(pressed);
-    if (mode == PAD_AUTHOR_MODE_JUMP && direction != 0) {
-        entity_t *hovered = pad_nav_hovered(nav_of(author));
-        entity_list_t candidates = live_candidates();
-        if (hovered == NULL || pad_target_pick(hovered, direction, &candidates) == NULL) {
-            return fail(author, script, "empty cone: no candidate %s of the hovered object in jump mode",
-                        button_name(direction));
-        }
+    if (mode == PAD_METRICS_MODE_JUMP && direction != 0 &&
+        pad_metrics_cone_empty(&author->metrics, pad_nav_hovered(nav_of(author)), direction)) {
+        return fail(author, script, "empty cone: no candidate %s of the hovered object in jump mode",
+                    button_name(direction));
     }
-    pad_author_view_t before = view_now(author);
+    pad_metrics_observe(&author->metrics, &author->step);
+    pad_metrics_view_t before = *pad_metrics_view(&author->metrics);
     if (pressed & P8_PAD_CIRCLE) {
         if (!settle_circle(author, script, &before, 1)) return 0;
         author->circle_before = before;
@@ -325,29 +229,24 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
     p8_input_frame_t *frame = &author->frames[author->frame_count];
     memset(frame, 0, sizeof *frame);
     frame->pad_buttons = buttons;
-    author->cheat_activations += input_step_run(&author->step, frame);
+    int cheat = input_step_run(&author->step, frame);
     cart_update60();
     cart_draw();
 
-    pad_author_view_t after = view_now(author);
-    author->mode_frames[mode]++;
-    for (int b = 0; b < PAD_AUTHOR_BUTTON_COUNT; b++) {
-        if (pressed & (1 << b)) author->presses[mode][b]++;
-    }
-    count_hold_repeats(author, mode, buttons);
+    pad_metrics_record(&author->metrics, &author->step, buttons, cheat);
+    const pad_metrics_view_t *after = pad_metrics_view(&author->metrics);
     if (author->mode_log != NULL) {
-        fprintf(author->mode_log, "f%d %s ", author->frame_count, MODE_NAMES[mode]);
+        fprintf(author->mode_log, "f%d %s ", author->frame_count, pad_metrics_mode_name(mode));
         write_buttons(author->mode_log, buttons);
         if (pressed != 0) {
             fputs(" pressed ", author->mode_log);
             write_buttons(author->mode_log, pressed);
-            fprintf(author->mode_log, " effect %d", view_changed(&before, &after));
+            fprintf(author->mode_log, " effect %d", pad_metrics_view_changed(&before, after));
         }
         fputc('\n', author->mode_log);
     }
-    author->previous_buttons = buttons;
     author->frame_count++;
-    return settle_circle(author, script, &after, 0);
+    return settle_circle(author, script, after, 0);
 }
 
 static int emit_repeated(pad_author_t *author, const script_t *script, int buttons, int count) {
@@ -380,8 +279,9 @@ static int parse_buttons(const char *text) {
     while (*p != '\0') {
         size_t length = strcspn(p, "+");
         int bit = -1;
-        for (int b = 0; b < PAD_AUTHOR_BUTTON_COUNT; b++) {
-            if (strlen(BUTTON_NAMES[b]) == length && strncmp(BUTTON_NAMES[b], p, length) == 0) bit = b;
+        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+            const char *name = pad_metrics_button_name(b);
+            if (strlen(name) == length && strncmp(name, p, length) == 0) bit = b;
         }
         if (bit < 0) return 0;
         mask |= 1 << bit;
@@ -454,18 +354,19 @@ static const char *name_of(const entity_t *e) {
 }
 
 static int is_mode(pad_author_t *author, const void *context) {
-    return current_mode(author) == *(const pad_author_mode_t *)context;
+    return current_mode(author) == *(const pad_metrics_mode_t *)context;
 }
 
 static int on_the_map(pad_author_t *author, const void *context) {
     (void)context;
-    pad_author_mode_t mode = current_mode(author);
-    return mode == PAD_AUTHOR_MODE_JUMP || mode == PAD_AUTHOR_MODE_AIM;
+    pad_metrics_mode_t mode = current_mode(author);
+    return mode == PAD_METRICS_MODE_JUMP || mode == PAD_METRICS_MODE_AIM;
 }
 
 static int require_map(pad_author_t *author, const script_t *script, const char *command) {
     if (on_the_map(author, NULL)) return 1;
-    return fail(author, script, "%s: needs jump or aim mode, not %s", command, MODE_NAMES[current_mode(author)]);
+    return fail(author, script, "%s: needs jump or aim mode, not %s", command,
+                pad_metrics_mode_name(current_mode(author)));
 }
 
 static void rest_screen_point(const entity_t *e, int *x, int *y) {
@@ -539,7 +440,7 @@ static int is_candidate_named(pad_author_t *author, const void *context) {
 static int run_jump(pad_author_t *author, const script_t *script, const char *id) {
     if (!wait_until(author, script, is_candidate_named, id, REVEAL_FRAMES_MAX, "jump: the target a candidate")) return 0;
     entity_t *target = object_named(id);
-    pad_author_mode_t jump = PAD_AUTHOR_MODE_JUMP;
+    pad_metrics_mode_t jump = PAD_METRICS_MODE_JUMP;
     if (!wait_until(author, script, is_mode, &jump, 2, "jump: jump mode")) return 0;
     pad_nav_t *nav = nav_of(author);
     if (pad_nav_hovered(nav) == NULL && !emit(author, script, 0)) return 0;
@@ -677,7 +578,7 @@ static void best_jumps_before_aim(pad_author_t *author, int x, int y, entity_t *
 }
 
 static int enter_aim(pad_author_t *author, const script_t *script, int x, int y, int has_point) {
-    if (current_mode(author) == PAD_AUTHOR_MODE_AIM) return 1;
+    if (current_mode(author) == PAD_METRICS_MODE_AIM) return 1;
     if (!require_map(author, script, "aim")) return 0;
     entity_t *jumps[2] = {NULL, NULL};
     if (has_point) best_jumps_before_aim(author, x, y, &jumps[0], &jumps[1]);
@@ -688,13 +589,13 @@ static int enter_aim(pad_author_t *author, const script_t *script, int x, int y,
     }
     /* No release frame of its own: the pan's first frame lets □ go. */
     if (!emit(author, script, P8_PAD_SQUARE)) return 0;
-    if (current_mode(author) != PAD_AUTHOR_MODE_AIM) return fail(author, script, "square: no aim mode");
+    if (current_mode(author) != PAD_METRICS_MODE_AIM) return fail(author, script, "square: no aim mode");
     return 1;
 }
 
 static int leave_aim(pad_author_t *author, const script_t *script) {
     if (!tap(author, script, P8_PAD_SQUARE)) return 0;
-    if (current_mode(author) != PAD_AUTHOR_MODE_JUMP) return fail(author, script, "square: no jump mode after aim mode");
+    if (current_mode(author) != PAD_METRICS_MODE_JUMP) return fail(author, script, "square: no jump mode after aim mode");
     return 1;
 }
 
@@ -720,7 +621,7 @@ static int run_fold(pad_author_t *author, const script_t *script, int x, int y, 
         return 0;
     }
     if (main_economy_typed()->credits >= credits) return fail(author, script, "fold: not confirmed, nothing charged");
-    return current_mode(author) == PAD_AUTHOR_MODE_AIM ? leave_aim(author, script) : 1;
+    return current_mode(author) == PAD_METRICS_MODE_AIM ? leave_aim(author, script) : 1;
 }
 
 static int has_focus(pad_author_t *author, const void *context) {
@@ -800,7 +701,7 @@ static int is_project_button(const entity_t *e, const char *project);
 /* project NULL picks the row-th row below the header. */
 static int run_colonise(pad_author_t *author, const script_t *script, const char *id, int row, const char *project) {
     if (!require_map(author, script, "colonise")) return 0;
-    if (current_mode(author) == PAD_AUTHOR_MODE_AIM && !leave_aim(author, script)) return 0;
+    if (current_mode(author) == PAD_METRICS_MODE_AIM && !leave_aim(author, script)) return 0;
     if (!run_jump(author, script, id)) return 0;
     entity_t *planet = object_named(id);
     if (planet->state != ENTITY_STATE_KNOWN) return fail(author, script, "colonise: %s is not a known planet", id);
@@ -835,7 +736,7 @@ typedef struct {
 static int slipway_rebased(pad_author_t *author, const void *context) {
     const slipway_pair_t *pair = context;
     return slipway_from_to(pair->from, pair->to) != NULL &&
-           (pad_nav_slipway_start(nav_of(author)) == pair->to || current_mode(author) == PAD_AUTHOR_MODE_JUMP);
+           (pad_nav_slipway_start(nav_of(author)) == pair->to || current_mode(author) == PAD_METRICS_MODE_JUMP);
 }
 
 static int aim_slipway_at(pad_author_t *author, const script_t *script, entity_t *start, entity_t *target) {
@@ -862,7 +763,7 @@ static int aim_slipway_at(pad_author_t *author, const script_t *script, entity_t
 
 static int run_slipway(pad_author_t *author, const script_t *script, char *const *ids, int count) {
     if (!require_map(author, script, "slipway")) return 0;
-    if (current_mode(author) == PAD_AUTHOR_MODE_AIM && !leave_aim(author, script)) return 0;
+    if (current_mode(author) == PAD_METRICS_MODE_AIM && !leave_aim(author, script)) return 0;
     if (!run_jump(author, script, ids[0])) return 0;
     entity_t *start = object_named(ids[0]);
     if (!pad_slipway_can_start(start)) return fail(author, script, "slipway: %s takes no slipway", ids[0]);
@@ -881,10 +782,10 @@ static int run_slipway(pad_author_t *author, const script_t *script, char *const
         start = target;
     }
     /* ○ closes a shown message box (a year's) before it drops the slipway. */
-    for (int i = 0; i < 3 && current_mode(author) == PAD_AUTHOR_MODE_SLIPWAY; i++) {
+    for (int i = 0; i < 3 && current_mode(author) == PAD_METRICS_MODE_SLIPWAY; i++) {
         if (!tap(author, script, P8_PAD_CIRCLE)) return 0;
     }
-    pad_author_mode_t jump = PAD_AUTHOR_MODE_JUMP;
+    pad_metrics_mode_t jump = PAD_METRICS_MODE_JUMP;
     return wait_until(author, script, is_mode, &jump, 4, "slipway: back in jump mode");
 }
 
@@ -944,7 +845,7 @@ static int run_build(pad_author_t *author, const script_t *script, const char *k
     const structure_kind_t *kind = structure_kind_named(kind_name);
     if (kind == NULL) return fail(author, script, "build: unknown kind '%s'", kind_name);
     if (!require_map(author, script, "build")) return 0;
-    if (current_mode(author) == PAD_AUTHOR_MODE_JUMP) {
+    if (current_mode(author) == PAD_METRICS_MODE_JUMP) {
         entity_t *nearest = nearest_candidate(x, y);
         if (nearest != NULL && nearest != pad_nav_hovered(nav_of(author)) && !run_jump(author, script, name_of(nearest))) {
             return 0;
@@ -968,7 +869,7 @@ static int run_build(pad_author_t *author, const script_t *script, const char *k
     placed_t placed = {x, y, kind};
     if (!emit(author, script, P8_PAD_CROSS)) return 0;
     if (!wait_until(author, script, is_placed, &placed, 6, "build: the structure built on the point")) return 0;
-    if (current_mode(author) == PAD_AUTHOR_MODE_AIM) return leave_aim(author, script);
+    if (current_mode(author) == PAD_METRICS_MODE_AIM) return leave_aim(author, script);
     return 1;
 }
 
@@ -1066,7 +967,7 @@ static int run_research(pad_author_t *author, const script_t *script, const char
     for (int i = 0; i < 4 && !on_the_map(author, NULL); i++) {
         if (!emit(author, script, 0)) return 0;
     }
-    if (current_mode(author) == PAD_AUTHOR_MODE_TECH && !tap(author, script, P8_PAD_CIRCLE)) return 0;
+    if (current_mode(author) == PAD_METRICS_MODE_TECH && !tap(author, script, P8_PAD_CIRCLE)) return 0;
     return wait_until(author, script, on_the_map, NULL, 4, "research: back on the map");
 }
 
@@ -1113,7 +1014,7 @@ static int run_year(pad_author_t *author, const script_t *script) {
 
 static int final_score_up(pad_author_t *author, const void *context) {
     (void)context;
-    return main_economy_typed() != NULL && current_mode(author) == PAD_AUTHOR_MODE_MENU && !pad_panel_box_open() &&
+    return main_economy_typed() != NULL && current_mode(author) == PAD_METRICS_MODE_MENU && !pad_panel_box_open() &&
            pad_nav_first_item() != NULL;
 }
 
@@ -1132,7 +1033,7 @@ static int hovered_moved(pad_author_t *author, const void *context) {
 
 static int run_menu(pad_author_t *author, const script_t *script, const char *id) {
     if (!require_map(author, script, "menu")) return 0;
-    if (current_mode(author) == PAD_AUTHOR_MODE_AIM && !leave_aim(author, script)) return 0;
+    if (current_mode(author) == PAD_METRICS_MODE_AIM && !leave_aim(author, script)) return 0;
     if (!run_jump(author, script, id) || !tap(author, script, P8_PAD_TRIANGLE)) return 0;
     if (!wait_until(author, script, has_focus, NULL, 20, "menu: a row focused") ||
         !wait_panel_settled(author, script, "menu")) {
@@ -1413,7 +1314,7 @@ static int run_file(pad_author_t *author, const char *path, const char *until_la
         ok = run_line(author, &script, depth);
     }
     if (ok && depth == 0) {
-        pad_author_view_t now = view_now(author);
+        pad_metrics_view_t now = pad_metrics_view_read(&author->step);
         ok = settle_circle(author, &script, &now, 1);
     }
     free(script.lines);
@@ -1449,27 +1350,6 @@ int pad_author_run_line(pad_author_t *author, const char *commands) {
         if (!tokenize(author, &script, &line)) return 0;
         if (line.token_count > 0 && !run_line(author, &script, 0)) return 0;
     }
-    pad_author_view_t now = view_now(author);
+    pad_metrics_view_t now = pad_metrics_view_read(&author->step);
     return settle_circle(author, &script, &now, 1);
-}
-
-void pad_author_write_totals(const pad_author_t *author, FILE *out, const char *prefix) {
-    int frames = author->frame_count;
-    int aim = author->mode_frames[PAD_AUTHOR_MODE_AIM];
-    int per_mille = frames > 0 ? (1000 * aim + frames / 2) / frames : 0;
-    fprintf(out, "%sframes %d\n", prefix, frames);
-    for (int m = 0; m < PAD_AUTHOR_MODE_COUNT; m++) {
-        if (author->mode_frames[m] > 0) fprintf(out, "%smode %s frames %d\n", prefix, MODE_NAMES[m], author->mode_frames[m]);
-    }
-    fprintf(out, "%saim share %d.%d%% (%d of %d frames)\n", prefix, per_mille / 10, per_mille % 10, aim, frames);
-    for (int m = 0; m < PAD_AUTHOR_MODE_COUNT; m++) {
-        for (int b = 0; b < PAD_AUTHOR_BUTTON_COUNT; b++) {
-            if (author->presses[m][b] > 0) {
-                fprintf(out, "%spresses %s %s %d\n", prefix, MODE_NAMES[m], BUTTON_NAMES[b], author->presses[m][b]);
-            }
-        }
-    }
-    fprintf(out, "%shold repeats %d\n", prefix, author->hold_repeats);
-    fprintf(out, "%srequired no-ops %d\n", prefix, author->required_noops);
-    fprintf(out, "%scheat activations %d\n", prefix, author->cheat_activations);
 }
