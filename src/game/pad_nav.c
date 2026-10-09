@@ -9,6 +9,7 @@
 #include "game/menu.h"
 #include "game/message_box.h"
 #include "game/pad_build.h"
+#include "game/pad_cycle.h"
 #include "game/pad_jump.h"
 #include "game/pad_panel.h"
 #include "game/pad_select.h"
@@ -25,8 +26,15 @@ int pad_nav_panel_open(void) {
     return pad_panel_open();
 }
 
-pad_nav_tab_t pad_nav_tab(const pad_nav_t *nav) {
-    return main_economy_typed() != NULL ? nav->tab : PAD_NAV_TAB_MAP;
+/* Whether a game runs or not: the bar is closed and no cycle panel is open. */
+static int on_the_map(const pad_nav_t *nav) {
+    assert(!(pad_build_is_open(&nav->build) && pad_cycle_panel(&nav->cycle) != PAD_CYCLE_CLOSED) &&
+           "pad_nav: the build bar and a cycle panel are never open together");
+    return !pad_build_is_open(&nav->build) && pad_cycle_panel(&nav->cycle) == PAD_CYCLE_CLOSED;
+}
+
+static int cycle_open(const pad_nav_t *nav) {
+    return pad_cycle_panel(&nav->cycle) != PAD_CYCLE_CLOSED;
 }
 
 entity_t *pad_nav_last_acted(const pad_nav_t *nav) {
@@ -42,7 +50,7 @@ int pad_nav_year_chain_open(const pad_nav_t *nav) {
 }
 
 int pad_nav_aim_mode(const pad_nav_t *nav) {
-    return main_economy_typed() != NULL && nav->tab == PAD_NAV_TAB_MAP && !pad_nav_panel_open() &&
+    return main_economy_typed() != NULL && on_the_map(nav) && !pad_nav_panel_open() &&
            nav->map_mode == PAD_NAV_MAP_AIM;
 }
 
@@ -52,7 +60,7 @@ static entity_t *live(entity_t *e) {
 }
 
 int pad_nav_jump_mode(const pad_nav_t *nav) {
-    return main_economy_typed() != NULL && nav->tab == PAD_NAV_TAB_MAP && !pad_nav_panel_open() &&
+    return main_economy_typed() != NULL && on_the_map(nav) && !pad_nav_panel_open() &&
            nav->map_mode == PAD_NAV_MAP_JUMP;
 }
 
@@ -75,19 +83,19 @@ entity_t *pad_nav_slipway_target(const pad_nav_t *nav) {
 }
 
 int pad_nav_build_bar_open(const pad_nav_t *nav) {
-    return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD;
+    return main_economy_typed() != NULL && pad_build_is_open(&nav->build);
 }
 
 int pad_nav_tech_open(const pad_nav_t *nav) {
-    return pad_nav_tab(nav) == PAD_NAV_TAB_TECH;
+    return main_economy_typed() != NULL && pad_cycle_panel(&nav->cycle) == PAD_CYCLE_TECH;
 }
 
 int pad_nav_score_open(const pad_nav_t *nav) {
-    return pad_nav_tab(nav) == PAD_NAV_TAB_SCORE;
+    return main_economy_typed() != NULL && pad_cycle_panel(&nav->cycle) == PAD_CYCLE_SCORE;
 }
 
 entity_t *pad_nav_build_icon(const pad_nav_t *nav) {
-    return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD ? pad_build_icon(&nav->build) : NULL;
+    return pad_nav_build_bar_open(nav) ? pad_build_icon(&nav->build) : NULL;
 }
 
 static entity_t *placing_structure(entity_t *e) {
@@ -176,20 +184,15 @@ static void reset_map_mode(pad_nav_t *nav) {
     pad_select_init(&nav->select);
 }
 
-static int opens_a_panel(pad_nav_tab_t tab) {
-    return tab == PAD_NAV_TAB_TECH || tab == PAD_NAV_TAB_SCORE;
-}
-
-static void set_tab(pad_nav_t *nav, pad_nav_tab_t tab) {
-    nav->tab = tab;
-    nav->landing_due = opens_a_panel(tab);
-    nav->cross_armed = 0;
+static void close_panels(pad_nav_t *nav) {
+    pad_build_close(&nav->build);
+    pad_cycle_set(&nav->cycle, PAD_CYCLE_CLOSED);
 }
 
 void pad_nav_init(pad_nav_t *nav) {
     nav->focus = ENTITY_ID_NONE;
     pad_build_init(&nav->build);
-    set_tab(nav, PAD_NAV_TAB_MAP);
+    pad_cycle_init(&nav->cycle);
     pad_jump_init(&nav->jump);
     pad_back_init(&nav->back);
     reset_map_mode(nav);
@@ -211,12 +214,12 @@ entity_t *pad_nav_focus(const pad_nav_t *nav) {
 }
 
 static int planet_menu_open(const pad_nav_t *nav) {
-    return nav->tab == PAD_NAV_TAB_MAP && pad_panel_box_open() && !pause_menu_shown();
+    return on_the_map(nav) && pad_panel_box_open() && !pause_menu_shown();
 }
 
-/* A planet menu or the final score panel on the map, or the tech or score tab's panel: none opens on ×. */
+/* A planet menu or the final score panel on the map, or the open cycle panel's panel: none opens on ×. */
 static int armed_panel_open(const pad_nav_t *nav) {
-    return (nav->tab == PAD_NAV_TAB_MAP || opens_a_panel(nav->tab)) && pad_nav_panel_open() && !pause_menu_shown();
+    return (on_the_map(nav) || cycle_open(nav)) && pad_nav_panel_open() && !pause_menu_shown();
 }
 
 /* A × held into pause or into a panel, or held from the click that opened a planet menu, presses no row until
@@ -413,10 +416,10 @@ static void show_marker(pad_nav_t *nav, const entity_t *shown) {
 
 /* The score panel during play is its backdrop alone; the final score panel has items, the pause menu is a box. */
 static int own_panel_up(const pad_nav_t *nav) {
-    if (nav->tab == PAD_NAV_TAB_TECH) {
+    if (pad_cycle_panel(&nav->cycle) == PAD_CYCLE_TECH) {
         return pad_panel_box_open() && !pause_menu_shown();
     }
-    if (nav->tab == PAD_NAV_TAB_SCORE) {
+    if (pad_cycle_panel(&nav->cycle) == PAD_CYCLE_SCORE) {
         return pad_nav_panel_open() && !pad_panel_box_open() && pad_panel_first_item() == NULL;
     }
     return 0;
@@ -426,23 +429,23 @@ static int foreign_panel_open(const pad_nav_t *nav) {
     return pad_nav_panel_open() && !own_panel_up(nav);
 }
 
-/* A slipway released on this frame is judged on the next: tabs and pause wait for it. */
+/* A slipway released on this frame is judged on the next: the shoulders and pause wait for it. */
 static int map_action_due(const pad_nav_t *nav) {
     return nav->map_mode == PAD_NAV_MAP_SLIPWAY && nav->slipway.phase == PAD_SLIPWAY_RELEASED;
 }
 
-static int tabs_can_switch(const pad_nav_t *nav, int release) {
-    if ((foreign_panel_open(nav) && !planet_menu_open(nav)) || release || nav->landing_due) {
+static int shoulders_can_switch(const pad_nav_t *nav, int release) {
+    if ((foreign_panel_open(nav) && !planet_menu_open(nav)) || release || pad_cycle_landing_due(&nav->cycle)) {
         return 0;
     }
-    return nav->tab != PAD_NAV_TAB_MAP || !map_action_due(nav);
+    return !on_the_map(nav) || !map_action_due(nav);
 }
 
 typedef enum { CANCELLED_NOTHING, CANCELLED_STRUCTURE, CANCELLED_SLIPWAY } cancelled_t;
 
 /* A cancelled structure needs the frame's cursor on cancel_point, button up; a cancelled slipway is already dropped. */
 static cancelled_t unwind_sub_modes(pad_nav_t *nav) {
-    if (nav->tab != PAD_NAV_TAB_MAP) {
+    if (!on_the_map(nav)) {
         return CANCELLED_NOTHING;
     }
     if (planet_menu_open(nav)) {
@@ -456,42 +459,45 @@ static cancelled_t unwind_sub_modes(pad_nav_t *nav) {
 
 /* The score backdrop hit-tests everywhere above the HUD, so a press anywhere reaches it and its on_click hides the panel.
  * L1 on score clicks with the cursor already on the bar's icon: the backdrop takes that press, never the icon. */
-static void leave_tab(pad_nav_t *nav, p8_input_frame_t *played) {
+static void leave_panel(pad_nav_t *nav, p8_input_frame_t *played) {
     if (!own_panel_up(nav)) {
         return;
     }
-    if (nav->tab == PAD_NAV_TAB_TECH) {
+    if (pad_cycle_panel(&nav->cycle) == PAD_CYCLE_TECH) {
         ui_clear_ephemerals(main_ui());
     } else {
         click(nav, played);
     }
 }
 
-/* PAD_NAV_TAB_COUNT for none: R1 alone moves round the ring, L1 alone toggles the bar, both together do nothing. */
-static pad_nav_tab_t shoulder_target(pad_nav_tab_t tab, int pressed) {
-    int r1 = (pressed & P8_PAD_R1) != 0, l1 = (pressed & P8_PAD_L1) != 0;
-    if (r1 == l1) {
-        return PAD_NAV_TAB_COUNT;
-    }
-    if (r1) {
-        return tab == PAD_NAV_TAB_MAP ? PAD_NAV_TAB_TECH : (pad_nav_tab_t)((tab + 1) % PAD_NAV_TAB_COUNT);
-    }
-    return tab == PAD_NAV_TAB_BUILD ? PAD_NAV_TAB_MAP : PAD_NAV_TAB_BUILD;
+/* One shoulder alone: both together do nothing. */
+static int one_shoulder(int pressed) {
+    return ((pressed & P8_PAD_R1) != 0) != ((pressed & P8_PAD_L1) != 0);
 }
 
-static void shoulder_switch(pad_nav_t *nav, pad_nav_tab_t target, p8_input_frame_t *played) {
-    leave_tab(nav, played);
-    set_tab(nav, target);
+/* R1 closes the bar and moves the cycle on: the bar's cycle is closed, so it opens tech. L1 toggles the bar. */
+static void shoulder_switch(pad_nav_t *nav, int pressed, p8_input_frame_t *played) {
+    leave_panel(nav, played);
+    if (pressed & P8_PAD_R1) {
+        pad_build_close(&nav->build);
+        pad_cycle_set(&nav->cycle, pad_cycle_next(pad_cycle_panel(&nav->cycle)));
+    } else if (pad_build_is_open(&nav->build)) {
+        pad_build_close(&nav->build);
+    } else {
+        pad_cycle_set(&nav->cycle, PAD_CYCLE_CLOSED);
+        pad_build_open(&nav->build);
+    }
 }
 
 /* Above and left of the screen: no left_press there that × could reach. */
 enum { PARKED_X = -16, PARKED_Y = -16 };
 
-/* NULL on map and build, or once that button is gone. */
-static entity_t *tab_button(pad_nav_tab_t tab) {
-    static const int hud_button[PAD_NAV_TAB_COUNT] = { [PAD_NAV_TAB_END_TURN] = 1, [PAD_NAV_TAB_TECH] = 2,
-                                                        [PAD_NAV_TAB_SCORE] = 3 };
-    return hud_button[tab] != 0 ? (entity_t *)galaxy_menu_find_button(hud_button[tab]) : NULL;
+enum { YEAR_SKIP_BUTTON = 1, PAUSE_BUTTON = 4 };
+
+/* NULL with the cycle closed, or once that button is gone. */
+static entity_t *cycle_button(const pad_nav_t *nav) {
+    int index = pad_cycle_hud_button(pad_cycle_panel(&nav->cycle));
+    return index != 0 ? (entity_t *)galaxy_menu_find_button(index) : NULL;
 }
 
 /* × presses the icon as the mouse does: the ui's dispatch, after this step, hands its structure over. */
@@ -506,10 +512,10 @@ static void build_step(pad_nav_t *nav, int pressed, int direction, int release, 
     }
 }
 
-static void tab_cursor(pad_nav_t *nav) {
-    entity_t *button = tab_button(nav->tab);
-    entity_t *icon = nav->tab == PAD_NAV_TAB_BUILD ? pad_build_focus(&nav->build) : NULL;
-    if (nav->tab == PAD_NAV_TAB_MAP) {
+static void place_cursor(pad_nav_t *nav) {
+    entity_t *button = cycle_button(nav);
+    entity_t *icon = pad_build_is_open(&nav->build) ? pad_build_focus(&nav->build) : NULL;
+    if (on_the_map(nav)) {
         entity_t *hovered = pad_nav_hovered(nav);
         if (hovered != NULL) {
             screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
@@ -527,25 +533,17 @@ static void tab_cursor(pad_nav_t *nav) {
     }
 }
 
-/* × acts only once pressed on this tab: a × held on arrival ends no year. */
-static void tab_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, p8_input_frame_t *played) {
-    if (!(pad_buttons & P8_PAD_CROSS)) {
-        nav->cross_armed = 0;
-    } else if (pressed & P8_PAD_CROSS) {
-        nav->cross_armed = 1;
-    }
+static void bar_or_cycle_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release,
+                              p8_input_frame_t *played) {
     if (pad_nav_panel_open()) {
         panel_step(nav, pad_buttons, pressed, direction, played);
         return;
     }
     nav->focus = ENTITY_ID_NONE;
-    if (nav->tab == PAD_NAV_TAB_BUILD) {
+    if (pad_build_is_open(&nav->build)) {
         build_step(nav, pressed, direction, release, played);
     }
-    tab_cursor(nav);
-    if (nav->tab == PAD_NAV_TAB_END_TURN && nav->cross_armed && tab_button(nav->tab) != NULL) {
-        played->mouse_buttons = P8_MOUSE_LEFT;
-    }
+    place_cursor(nav);
 }
 
 /* Returns whether placement began: the press handed a structure over, so the map takes it from this frame. */
@@ -560,7 +558,7 @@ static int begin_placement(pad_nav_t *nav) {
         nav->placement = PAD_NAV_PLACEMENT_NONE;
         return 0;
     }
-    set_tab(nav, PAD_NAV_TAB_MAP);
+    close_panels(nav);
     nav->placement = PAD_NAV_PLACEMENT_CARRYING;
     if (nav->map_mode == PAD_NAV_MAP_JUMP) {
         enter_aim_mode(nav);
@@ -824,7 +822,7 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
         reset_aim_mode(nav);
-        /* On the map tab only jump mode's click opens an ephemeral box: a later one that is no planet menu must keep △
+        /* On the map only jump mode's click opens an ephemeral box: a later one that is no planet menu must keep △
          * from closing it here. */
         if ((pressed & P8_PAD_TRIANGLE) && !release && !nav->release_pending && planet_menu_open(nav)) {
             ui_clear_ephemerals(main_ui());
@@ -845,36 +843,35 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
     }
 }
 
-/* Returns whether the tab changed; *cancelled says what held thing a shoulder cancelled. */
-static int switch_tab(pad_nav_t *nav, int pressed, int release, int foreign_was_open, cancelled_t *cancelled,
-                      p8_input_frame_t *played) {
+/* Returns whether the bar or the cycle changed; *cancelled says what held thing a shoulder cancelled. */
+static int switch_panels(pad_nav_t *nav, int pressed, int release, int foreign_was_open, cancelled_t *cancelled,
+                         p8_input_frame_t *played) {
     *cancelled = CANCELLED_NOTHING;
     if (main_economy_typed() == NULL) {
-        set_tab(nav, PAD_NAV_TAB_MAP);
+        close_panels(nav);
         return 0;
     }
-    pad_nav_tab_t target = shoulder_target(nav->tab, pressed);
-    if (target != PAD_NAV_TAB_COUNT && tabs_can_switch(nav, release)) {
+    if (one_shoulder(pressed) && shoulders_can_switch(nav, release)) {
         *cancelled = unwind_sub_modes(nav);
-        shoulder_switch(nav, target, played);
+        shoulder_switch(nav, pressed, played);
         return 1;
     }
-    if (nav->tab != PAD_NAV_TAB_MAP && (pressed & P8_PAD_CIRCLE) && !foreign_was_open && !release) {
-        leave_tab(nav, played);
-        set_tab(nav, PAD_NAV_TAB_MAP);
+    if (!on_the_map(nav) && (pressed & P8_PAD_CIRCLE) && !foreign_was_open && !release) {
+        leave_panel(nav, played);
+        close_panels(nav);
         return 1;
     }
     return 0;
 }
 
 /* NULL when Start cannot open pause: no game, a panel up, a click half done, a slipway's release acting next
- * frame, a fold held, or a tab whose own panel is due. */
+ * frame, a fold held, or a cycle panel whose own panel is due. */
 static entity_t *pause_button_free(const pad_nav_t *nav, int release) {
     if (main_economy_typed() == NULL || pad_nav_panel_open() || release || map_action_due(nav) ||
-        nav->cross_engaged || opens_a_panel(nav->tab)) {
+        nav->cross_engaged || cycle_open(nav)) {
         return NULL;
     }
-    return (entity_t *)galaxy_menu_find_button(4);
+    return (entity_t *)galaxy_menu_find_button(PAUSE_BUTTON);
 }
 
 /* While the ui holds the structure, a row press would drag it onto the row and its release would drop it there. */
@@ -938,11 +935,12 @@ static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t
     return 1;
 }
 
+/* The open cycle panel's HUD button; NULL with no game or the cycle closed: nothing is lit for the bar. */
+static entity_t *lit_button(const pad_nav_t *nav) {
+    return main_economy_typed() != NULL ? cycle_button(nav) : NULL;
+}
+
 static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_input_frame_t *played) {
-    /* The × that picks a row is still held once pause closes: on end turn it must end no year. */
-    if (pause_menu_shown()) {
-        nav->cross_armed = 0;
-    }
     if (release) {
         played->mouse_buttons = 0;
     }
@@ -951,22 +949,22 @@ static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_i
     played->mouse_y = nav->cursor_y;
     show_marker(nav, shown);
     if (main_ui() != NULL) {
-        ui_set_pad_tab(main_ui(), tab_button(pad_nav_tab(nav)));
+        ui_set_pad_tab(main_ui(), lit_button(nav));
         ui_set_pad_crosshair(main_ui(), pad_nav_aim_mode(nav) && pad_nav_placing(nav) == NULL);
     }
 }
 
 /* A shown message box blocks nothing: the year box stays up through the next year. */
-static int select_allowed(const pad_nav_t *nav, int tab_changing, int release) {
-    return main_economy_typed() != NULL && nav->tab == PAD_NAV_TAB_MAP && !tab_changing && !pause_menu_shown() &&
+static int select_allowed(const pad_nav_t *nav, int panels_changing, int release) {
+    return main_economy_typed() != NULL && on_the_map(nav) && !panels_changing && !pause_menu_shown() &&
            !pad_nav_panel_open() && (nav->map_mode == PAD_NAV_MAP_JUMP || nav->map_mode == PAD_NAV_MAP_AIM) &&
            nav->placement == PAD_NAV_PLACEMENT_NONE && !nav->cross_engaged && !release && !nav->release_pending;
 }
 
-/* Returns whether the year press went out: the HUD year-skip button's, as × on end turn makes it. A refused press is
+/* Returns whether the year press went out: the HUD year-skip button's, as the mouse makes it. A refused press is
  * never retried. */
 static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {
-    entity_t *button = tab_button(PAD_NAV_TAB_END_TURN);
+    entity_t *button = (entity_t *)galaxy_menu_find_button(YEAR_SKIP_BUTTON);
     if (button == NULL || nav->left_was_down) {
         return 0;
     }
@@ -1003,12 +1001,12 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         nav->menu_cross_armed = 0;
     }
     start_new_game(nav);
-    int tab_changed = begin_placement(nav);
+    int panels_changed = begin_placement(nav);
     if (resume_placement(nav)) {
         release = 0;
     }
     int select_down = (pad_buttons & P8_PAD_SELECT) != 0;
-    if (!tab_changed && pause_step(nav, pressed, release, played)) {
+    if (!panels_changed && pause_step(nav, pressed, release, played)) {
         (void)pad_select_step(&nav->select, select_down, 0);
         pad_jump_repeat_clear(&nav->jump);
         reset_aim_mode(nav);
@@ -1021,7 +1019,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     int circle_returns = (pressed & P8_PAD_CIRCLE) && !pad_panel_box_open();
     if (pressed & P8_PAD_CIRCLE) {
         circle_closes_the_box();
-        if (circle_returns && nav->tab == PAD_NAV_TAB_MAP && shown_message_box() != NULL) {
+        if (circle_returns && on_the_map(nav) && shown_message_box() != NULL) {
             message_box_close_shown();
             circle_returns = 0;
             pressed &= ~P8_PAD_CIRCLE;
@@ -1032,29 +1030,31 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     }
     cancelled_t cancelled = CANCELLED_NOTHING;
     int jump_ran = 0;
-    if (!tab_changed) {
-        tab_changed = switch_tab(nav, pressed, release, foreign_was_open, &cancelled, played);
+    if (!panels_changed) {
+        panels_changed = switch_panels(nav, pressed, release, foreign_was_open, &cancelled, played);
     }
     /* A leaving click and a landing click never share a frame: the landing waits for the release. */
     int clicks_due = release || nav->release_pending || cancelled;
-    int landed = nav->landing_due && !clicks_due;
+    int landed = pad_cycle_landing_due(&nav->cycle) && !clicks_due;
     if (landed) {
-        nav->landing_due = 0;
-        if (tab_button(nav->tab) != NULL) {
+        pad_cycle_landed(&nav->cycle);
+        if (cycle_button(nav) != NULL) {
             click(nav, played);
         }
-    } else if (!tab_changed && opens_a_panel(nav->tab) && !nav->landing_due && !clicks_due && !own_panel_up(nav)) {
-        set_tab(nav, PAD_NAV_TAB_MAP);
-        tab_changed = 1;
+    } else if (!panels_changed && cycle_open(nav) && !pad_cycle_landing_due(&nav->cycle) && !clicks_due &&
+               !own_panel_up(nav)) {
+        close_panels(nav);
+        panels_changed = 1;
     }
     int year_release = pad_select_year_just_ended(&nav->select);
     pad_select_event_t select =
-        pad_select_step(&nav->select, select_down, select_allowed(nav, tab_changed || landed, release));
-    /* The frame that changes the tab runs no map or tab step, so one press never acts twice. */
-    if (tab_changed || landed) {
+        pad_select_step(&nav->select, select_down, select_allowed(nav, panels_changed || landed, release));
+    /* The frame that opens or closes the bar or a cycle panel runs no map, bar or panel step, so one press never acts
+     * twice. */
+    if (panels_changed || landed) {
         reset_aim_mode(nav);
         nav->focus = ENTITY_ID_NONE;
-        tab_cursor(nav);
+        place_cursor(nav);
         if (cancelled == CANCELLED_STRUCTURE) {
             cancel_point(nav);
         } else if (pad_nav_placing(nav) != NULL) {
@@ -1063,12 +1063,12 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     } else if (select == PAD_SELECT_YEAR && select_ends_year(nav, played)) {
         reset_aim_mode(nav);
         nav->focus = ENTITY_ID_NONE;
-    } else if (nav->tab == PAD_NAV_TAB_MAP) {
+    } else if (on_the_map(nav)) {
         map_step(nav, pad_buttons, pressed, direction, release, circle_returns, select, year_release, played, &shown,
                  &jump_ran);
     } else {
         reset_aim_mode(nav);
-        tab_step(nav, pad_buttons, pressed, direction, release, played);
+        bar_or_cycle_step(nav, pad_buttons, pressed, direction, release, played);
     }
     if (!jump_ran) {
         pad_jump_repeat_clear(&nav->jump);

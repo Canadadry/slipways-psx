@@ -8,7 +8,19 @@
 #include <limits.h>
 
 void pad_build_init(pad_build_t *b) {
-    *b = (pad_build_t){.icon = ENTITY_ID_NONE};
+    *b = (pad_build_t){.open = 0, .icon = ENTITY_ID_NONE};
+}
+
+void pad_build_open(pad_build_t *b) {
+    b->open = 1;
+}
+
+void pad_build_close(pad_build_t *b) {
+    b->open = 0;
+}
+
+int pad_build_is_open(const pad_build_t *b) {
+    return b->open;
 }
 
 entity_t *pad_build_icon(const pad_build_t *b) {

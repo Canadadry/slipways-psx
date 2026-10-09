@@ -5,21 +5,13 @@
 #include "engine/entity_id_type.h"
 #include "game/pad_back.h"
 #include "game/pad_build.h"
+#include "game/pad_cycle.h"
 #include "game/pad_jump.h"
 #include "game/pad_select.h"
 #include "game/pad_slipway.h"
 #include "p8/input.h"
 
 typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_AIM, PAD_NAV_MAP_SLIPWAY } pad_nav_map_mode_t;
-
-typedef enum {
-    PAD_NAV_TAB_MAP,
-    PAD_NAV_TAB_BUILD,
-    PAD_NAV_TAB_END_TURN,
-    PAD_NAV_TAB_TECH,
-    PAD_NAV_TAB_SCORE,
-    PAD_NAV_TAB_COUNT
-} pad_nav_tab_t;
 
 typedef enum {
     PAD_NAV_PLACEMENT_NONE,
@@ -30,12 +22,10 @@ typedef enum {
 
 typedef struct {
     entity_id_t focus;
-    pad_nav_tab_t tab;
     pad_build_t build;
+    pad_cycle_t cycle;
     pad_nav_placement_t placement;
     entity_id_t suspended_carry;
-    int landing_due;
-    int cross_armed;
     int pause_due;
     int pause_cross_armed;
     int menu_cross_armed;
@@ -65,13 +55,10 @@ entity_t *pad_nav_focus(const pad_nav_t *nav);
 
 int pad_nav_panel_open(void);
 
-/* PAD_NAV_TAB_MAP whenever no game is running. */
-pad_nav_tab_t pad_nav_tab(const pad_nav_t *nav);
-
-/* A game is running on the map tab, no panel is open and the map mode is aim: the cursor is the screen centre and the D-pad pans the camera. */
+/* A game is running on the map (the bar closed, no cycle panel open), no panel is open and the map mode is aim: the cursor is the screen centre and the D-pad pans the camera. */
 int pad_nav_aim_mode(const pad_nav_t *nav);
 
-/* A game is running on the map tab, no panel is open and the map mode is jump: the cursor sits on the hovered object. */
+/* A game is running on the map (the bar closed, no cycle panel open), no panel is open and the map mode is jump: the cursor sits on the hovered object. */
 int pad_nav_jump_mode(const pad_nav_t *nav);
 
 /* The hovered object while the map mode is jump, panel open or not; NULL in any other mode, when nothing is hovered,
@@ -99,13 +86,13 @@ entity_t *pad_nav_slipway_target(const pad_nav_t *nav);
 /* 1 while a game runs and the build bar is open; 0 with no game. */
 int pad_nav_build_bar_open(const pad_nav_t *nav);
 
-/* 1 while a game runs, from the frame the tech tab is entered, whether its landing is due or its panel drawn; 0 with no game. */
+/* 1 while a game runs, from the frame R1 opens the tech panel, whether its landing is due or its panel drawn; 0 with no game. */
 int pad_nav_tech_open(const pad_nav_t *nav);
 
-/* 1 while a game runs, from the frame the score tab is entered, whether its landing is due or its panel drawn; 0 with no game. */
+/* 1 while a game runs, from the frame R1 opens the score panel, whether its landing is due or its panel drawn; 0 with no game. */
 int pad_nav_score_open(const pad_nav_t *nav);
 
-/* The focused structure icon on the build tab; NULL on every other tab or once it is no longer a revealed icon. */
+/* The focused structure icon while the bar is open; NULL while it is closed or once it is no longer a revealed icon. */
 entity_t *pad_nav_build_icon(const pad_nav_t *nav);
 
 /* The structure the ui holds in its placing state while placement carries it; NULL otherwise. */

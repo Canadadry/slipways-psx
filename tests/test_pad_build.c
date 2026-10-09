@@ -175,15 +175,39 @@ static void test_a_focus_from_an_old_game_is_stale_in_a_new_one(void) {
     assert(pad_build_icon(&b) == basic);
 }
 
+static void test_init_closes_the_bar(void) {
+    pad_build_t b;
+    pad_build_init(&b);
+    assert(!pad_build_is_open(&b));
+}
+
+static void test_open_and_close_keep_the_focus(void) {
+    start_game();
+    pad_build_t b;
+    pad_build_init(&b);
+    pad_build_open(&b);
+    assert(pad_build_is_open(&b));
+    pad_build_focus(&b);
+    pad_build_pick(&b, -1);
+    entity_t *picked = pad_build_icon(&b);
+    assert(picked != NULL && picked != basic_structure_icon());
+    pad_build_close(&b);
+    assert(!pad_build_is_open(&b) && pad_build_icon(&b) == picked);
+    pad_build_open(&b);
+    assert(pad_build_is_open(&b) && pad_build_icon(&b) == picked);
+}
+
 int main(void) {
     load_cart();
     start_title();
     test_init_focuses_nothing();
+    test_init_closes_the_bar();
     test_focus_is_null_with_no_revealed_icon();
     test_focus_moves_a_missing_focus_to_the_basic_structure();
     test_pick_with_nothing_focused_moves_nothing();
     test_pick_walks_every_revealed_icon_in_decreasing_x_and_stops_at_both_ends();
     test_a_focus_from_an_old_game_is_stale_in_a_new_one();
+    test_open_and_close_keep_the_focus();
     printf("test_pad_build: ok\n");
     return 0;
 }
