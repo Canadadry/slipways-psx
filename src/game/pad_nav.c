@@ -283,12 +283,12 @@ static int planet_menu_open(const pad_nav_t *nav) {
     return nav->tab == PAD_NAV_TAB_MAP && pad_panel_box_open() && !pause_menu_shown();
 }
 
-/* Any panel on the map, a planet menu or the final score panel, which no × opens. */
-static int map_panel_open(const pad_nav_t *nav) {
-    return nav->tab == PAD_NAV_TAB_MAP && pad_nav_panel_open() && !pause_menu_shown();
+/* A planet menu or the final score panel on the map, or the tech or score tab's panel: none opens on ×. */
+static int armed_panel_open(const pad_nav_t *nav) {
+    return (nav->tab == PAD_NAV_TAB_MAP || opens_a_panel(nav->tab)) && pad_nav_panel_open() && !pause_menu_shown();
 }
 
-/* A × held into pause or into a map panel, or held from the click that opened a planet menu, presses no row until
+/* A × held into pause or into a panel, or held from the click that opened a planet menu, presses no row until
  * pressed again: pad_panel_step holds the left button while × is held. */
 static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, p8_input_frame_t *played) {
     if (pause_menu_shown()) {
@@ -296,7 +296,7 @@ static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, int directi
         if (!nav->pause_cross_armed) {
             pad_buttons &= ~P8_PAD_CROSS;
         }
-    } else if (map_panel_open(nav)) {
+    } else if (armed_panel_open(nav)) {
         nav->menu_cross_armed |= (pressed & P8_PAD_CROSS) != 0;
         if (!nav->menu_cross_armed) {
             pad_buttons &= ~P8_PAD_CROSS;
@@ -1148,7 +1148,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     if (!pause_menu_shown()) {
         nav->pause_cross_armed = 0;
     }
-    if (!map_panel_open(nav)) {
+    if (!armed_panel_open(nav)) {
         nav->menu_cross_armed = 0;
     }
     start_new_game(nav);

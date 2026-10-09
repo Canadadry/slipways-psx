@@ -2210,7 +2210,7 @@ static void test_r1_does_nothing_with_no_game_or_on_the_final_score_panel(void) 
 }
 
 /* TODO step 12: the held × is not disarmed on tech; it presses the header, which closes the box. Pinned as found. */
-static void test_cross_held_through_r1_invents_nothing_and_closes_tech_on_its_header(void) {
+static void test_cross_held_through_r1_presses_nothing_on_tech_until_pressed_again(void) {
     input_step_t step;
     start_game(&step);
     main_economy_typed()->research_points = p8_fixed_from_int(5);
@@ -2221,19 +2221,30 @@ static void test_cross_held_through_r1_invents_nothing_and_closes_tech_on_its_he
     assert(main_ui()->ephemerals.count > 0 && input_step_played_frame(&step)->mouse_buttons == 0);
     entity_t *header = pad_nav_focus(&step.pad_nav);
     assert(header == pad_nav_first_item() && ((const button_t *)header)->on_click == NULL);
-    run_frame(&step, P8_PAD_CROSS);
-    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT && main_ui()->ephemerals.count == 0);
     for (int i = 0; i < 10; i++) {
         run_frame(&step, P8_PAD_CROSS);
         assert(input_step_played_frame(&step)->mouse_buttons == 0);
     }
-    assert(invented_count() == 0 && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    assert(main_ui()->ephemerals.count > 0 && pad_nav_tech_open(&step.pad_nav) && invented_count() == 0);
     run_frame(&step, 0);
-    tap(&step, P8_PAD_R1);
     tap(&step, P8_PAD_DOWN);
     (void)focus_affordable_row(&step);
     run_frame(&step, P8_PAD_CROSS);
     assert(invented_count() == 1);
+}
+
+static void test_cross_held_through_r1_r1_presses_nothing_on_score(void) {
+    input_step_t step;
+    start_game(&step);
+    run_frame(&step, P8_PAD_CROSS | P8_PAD_R1);
+    hold(&step, P8_PAD_CROSS, 3);
+    run_frame(&step, P8_PAD_CROSS | P8_PAD_R1);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_SCORE && score_panel_shown());
+    for (int i = 0; i < 10; i++) {
+        run_frame(&step, P8_PAD_CROSS);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_SCORE && score_panel_shown());
 }
 
 static void r1_round(input_step_t *step) {
@@ -5995,7 +6006,8 @@ int main(void) {
     in_fresh_child(test_tech_and_score_read_open_from_the_tab_change_frame_and_closed_without_a_game);
     in_fresh_child(test_circle_on_tech_and_on_score_returns_to_jump_mode_on_the_hovered_object);
     in_fresh_child(test_r1_does_nothing_with_no_game_or_on_the_final_score_panel);
-    in_fresh_child(test_cross_held_through_r1_invents_nothing_and_closes_tech_on_its_header);
+    in_fresh_child(test_cross_held_through_r1_presses_nothing_on_tech_until_pressed_again);
+    in_fresh_child(test_cross_held_through_r1_r1_presses_nothing_on_score);
     in_fresh_child(test_r1_cycles_circle_exits_inventions_and_bar_visits_never_type_the_cheat);
     in_fresh_child(test_r1_cycles_leave_the_game_stream_unchanged);
     in_fresh_child(test_a_tab_whose_button_is_gone_returns_to_the_map);
