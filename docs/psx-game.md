@@ -159,4 +159,4 @@ None of these targets is in `make test-all`, and none runs a setup.
   with no `p8_fatal` line, then aborted the same way before the `done` line.
   The cause, in the guest or in the emulator, is not found yet. The digest
   lines that reach the TTY before the abort equal the PC's: the sprite sheet
-  and every screen up to frame 2432.
+  and every screen up to frame 2464.
