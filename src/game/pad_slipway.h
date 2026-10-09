@@ -22,10 +22,9 @@ void pad_slipway_init(pad_slipway_t *slipway);
 /* 1 for a live planet-family entity in state SETTLED that takes a slipway; 0 otherwise, NULL included. */
 int pad_slipway_can_start(const entity_t *e);
 
-/* Points out at the caller's storage, which it owns, holding the entries of candidates other than start, in order;
- * returns their count. Allocates nothing. */
-int pad_slipway_candidates(const entity_list_t *candidates, const entity_t *start, entity_t **storage, int capacity,
-                           entity_list_t *out);
+/* The entries of candidates other than start, in order, in a list grown in zone, which owns its storage: with
+ * frame_zone() it lives until the frame ends and the caller frees nothing. */
+entity_list_t pad_slipway_candidates(const allocator_t *zone, const entity_list_t *candidates, const entity_t *start);
 
 /* The slipway on start's slipways list whose other end is target, or NULL. start is planet-family. */
 entity_t *pad_slipway_between(const entity_t *start, const entity_t *target);

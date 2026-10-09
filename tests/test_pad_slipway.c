@@ -1,6 +1,7 @@
 #include "game/pad_slipway.h"
 
 #include "engine/entity_id.h"
+#include "engine/frame_zone.h"
 #include "engine/entity_id_list.h"
 #include "game/planet.h"
 #include "game/planet_family.h"
@@ -75,19 +76,17 @@ static void test_candidates_drop_the_start_and_keep_the_order(void) {
     entity_init_header(&c, planet_class());
     entity_t *items[] = {&a, &start, &b, &c};
     entity_list_t candidates = {.items = items, .count = 4, .capacity = 4};
-    entity_t *storage[4];
-    entity_list_t out;
-    assert(pad_slipway_candidates(&candidates, &start, storage, 4, &out) == 3);
-    assert(out.items == storage && out.count == 3);
-    assert(storage[0] == &a && storage[1] == &b && storage[2] == &c);
+    entity_list_t out = pad_slipway_candidates(frame_zone(), &candidates, &start);
+    assert(out.count == 3 && out.zone == frame_zone());
+    assert(out.items[0] == &a && out.items[1] == &b && out.items[2] == &c);
 
     entity_t elsewhere;
     entity_init_header(&elsewhere, planet_class());
-    assert(pad_slipway_candidates(&candidates, &elsewhere, storage, 4, &out) == 4);
-    assert(out.items == storage && storage[0] == &a && storage[1] == &start && storage[3] == &c);
+    out = pad_slipway_candidates(frame_zone(), &candidates, &elsewhere);
+    assert(out.count == 4 && out.items[0] == &a && out.items[1] == &start && out.items[3] == &c);
 
     candidates.count = 0;
-    assert(pad_slipway_candidates(&candidates, &start, storage, 4, &out) == 0 && out.count == 0);
+    assert(pad_slipway_candidates(frame_zone(), &candidates, &start).count == 0);
 }
 
 static void test_between_finds_the_joining_slipway_from_either_end(void) {

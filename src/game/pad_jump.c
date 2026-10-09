@@ -107,15 +107,11 @@ entity_t *pad_jump_seed(const entity_list_t *candidates, int centre_x, int centr
     return pad_jump_nearest(centre_x, centre_y, candidates);
 }
 
-int pad_jump_candidates(const entity_list_t *nodes, entity_t **storage, int capacity, entity_list_t *out) {
-    int count = 0;
-    for (int i = 0; i < nodes->count; i++) {
-        entity_t *e = nodes->items[i];
-        if (pad_target_is_candidate(e)) {
-            assert(count < capacity && "pad_jump_candidates: the storage holds every candidate; raise the caller's cap");
-            storage[count++] = e;
-        }
-    }
-    *out = (entity_list_t){.items = storage, .count = count, .capacity = capacity};
-    return count;
+static int is_candidate(entity_t *e, void *ctx) {
+    (void)ctx;
+    return pad_target_is_candidate(e);
+}
+
+entity_list_t pad_jump_candidates(const allocator_t *zone, const entity_list_t *nodes) {
+    return entity_list_filter(zone, nodes, is_candidate, NULL);
 }

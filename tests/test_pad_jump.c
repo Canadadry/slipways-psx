@@ -1,5 +1,6 @@
 #include "game/pad_jump.h"
 
+#include "engine/frame_zone.h"
 #include "game/planet.h"
 
 #include "p8/fixed.h"
@@ -228,11 +229,15 @@ static void test_candidates_keep_known_and_settled_in_order(void) {
     place_in_state(&vanishing, planet_class(), ENTITY_STATE_VANISHING, 6, 0);
     entity_t *all[] = {&unknown, &colony, &probe, &known, &dead, &structure, &vanishing};
     layout_t layout;
-    entity_t *storage[4];
-    entity_list_t out;
-    assert(pad_jump_candidates(gather(&layout, all, 7), storage, 4, &out) == 3);
-    assert(out.items == storage && out.count == 3);
-    assert(storage[0] == &colony && storage[1] == &known && storage[2] == &structure);
+    entity_list_t out = pad_jump_candidates(frame_zone(), gather(&layout, all, 7));
+    assert(out.count == 3 && out.zone == frame_zone());
+    assert(out.items[0] == &colony && out.items[1] == &known && out.items[2] == &structure);
+}
+
+static void test_candidates_of_nothing_are_empty(void) {
+    layout_t layout;
+    assert(pad_jump_candidates(frame_zone(), gather(&layout, NULL, 0)).count == 0);
+    assert(pad_jump_candidates(frame_zone(), NULL).count == 0);
 }
 
 int main(void) {
@@ -241,6 +246,7 @@ int main(void) {
     test_seed_without_colony_takes_the_nearest();
     test_seed_of_nothing_is_null();
     test_candidates_keep_known_and_settled_in_order();
+    test_candidates_of_nothing_are_empty();
     test_world_point_floors_map_pos_and_ignores_pos();
     test_nearest_of_several();
     test_nearest_tie_goes_to_the_earlier();

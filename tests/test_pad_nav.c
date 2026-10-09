@@ -5,6 +5,7 @@
 #include "engine/dispatch_context.h"
 #include "engine/entity_id.h"
 #include "engine/entity_registry.h"
+#include "engine/frame_zone.h"
 #include "engine/geom.h"
 #include "engine/pointer_list.h"
 #include "game/cart.h"
@@ -3125,10 +3126,11 @@ static void test_taking_a_structure_from_jump_mode_enters_plain_aim_mode_where_t
 
 /* The live set jump mode searches: the TAG_NODE bucket filtered by pad_target_is_candidate. */
 static entity_t *expected_jump(const entity_t *origin, int direction) {
-    static entity_t *storage[128];
-    entity_list_t candidates;
-    (void)pad_jump_candidates(entities_by_tag(TAG_NODE), storage, 128, &candidates);
-    return pad_target_pick(origin, direction, &candidates);
+    frame_zone_mark_t mark = frame_zone_mark();
+    entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
+    entity_t *picked = pad_target_pick(origin, direction, &candidates);
+    frame_zone_rewind(mark);
+    return picked;
 }
 
 /* Lets the edge scroll finish, so a still camera afterwards means the frame moved nothing. */
@@ -3483,12 +3485,12 @@ static void test_probing_and_leaving_aim_mode_never_types_the_cheat(void) {
 
 /* The slipway mode's targets: the jump candidates minus the start. */
 static entity_t *slipway_pick(const entity_t *start, const entity_t *origin, int direction) {
-    static entity_t *storage[128];
-    static entity_t *others[128];
-    entity_list_t candidates, targets;
-    (void)pad_jump_candidates(entities_by_tag(TAG_NODE), storage, 128, &candidates);
-    (void)pad_slipway_candidates(&candidates, start, others, 128, &targets);
-    return pad_target_pick(origin, direction, &targets);
+    frame_zone_mark_t mark = frame_zone_mark();
+    entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
+    entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
+    entity_t *picked = pad_target_pick(origin, direction, &targets);
+    frame_zone_rewind(mark);
+    return picked;
 }
 
 enum { JUMP_PATH_CAP = 128 };

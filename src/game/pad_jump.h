@@ -41,8 +41,8 @@ entity_t *pad_jump_nearest(int x, int y, const entity_list_t *candidates);
 /* The first colony in list order (class planet_class(), state SETTLED), else the candidate nearest the world pixel
  * (centre_x, centre_y), else NULL. Returns a pointer into candidates. */
 entity_t *pad_jump_seed(const entity_list_t *candidates, int centre_x, int centre_y);
-/* Points out at the caller's storage, which it owns, holding the entries of nodes that pass pad_target_is_candidate, in
- * order; returns their count. Allocates nothing. */
-int pad_jump_candidates(const entity_list_t *nodes, entity_t **storage, int capacity, entity_list_t *out);
+/* The entries of nodes that pass pad_target_is_candidate, in order, in a list grown in zone, which owns its storage:
+ * with frame_zone() it lives until the frame ends and the caller frees nothing. Empty for a NULL nodes. */
+entity_list_t pad_jump_candidates(const allocator_t *zone, const entity_list_t *nodes);
 
 #endif

@@ -2,6 +2,7 @@
 
 #include "engine/entity_id.h"
 #include "engine/entity_registry.h"
+#include "engine/frame_zone.h"
 #include "engine/geom.h"
 #include "game/background.h"
 #include "game/main_economy.h"
@@ -341,9 +342,6 @@ static void drop_held_slipway(void) {
     }
 }
 
-/* Above the TAG_NODE reservation in cart.c. */
-enum { JUMP_CANDIDATES_CAP = 128 };
-
 static void centre_world_point(int *x, int *y) {
     const camera_t *camera = main_camera_typed();
     vec_t at = camera != NULL ? camera_pos_before_shake(camera) : vec_make(0, 0);
@@ -351,14 +349,8 @@ static void centre_world_point(int *x, int *y) {
     *y = p8_fixed_flr_int(at.y) + P8_SCREEN_HEIGHT / 2;
 }
 
-/* Points out at storage, JUMP_CANDIDATES_CAP entries the caller owns; empty when no TAG_NODE bucket exists. */
-static void live_candidates(entity_t **storage, entity_list_t *out) {
-    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
-    if (nodes == NULL) {
-        *out = (entity_list_t){.items = storage, .count = 0, .capacity = JUMP_CANDIDATES_CAP};
-        return;
-    }
-    (void)pad_jump_candidates(nodes, storage, JUMP_CANDIDATES_CAP, out);
+static entity_list_t live_candidates(void) {
+    return pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
 }
 
 /* Jump mode hovering e, or nothing when e is no candidate: the jump mode reseed then runs. */
@@ -371,9 +363,7 @@ static void back_to_jump_mode(pad_nav_t *nav, const entity_t *e) {
 /* Jump mode on the target nearest the centre, or on nothing when the game has none: seeded, so jump mode never
  * reseeds on the first colony afterwards. */
 static void leave_aim_mode(pad_nav_t *nav) {
-    entity_t *storage[JUMP_CANDIDATES_CAP];
-    entity_list_t candidates;
-    live_candidates(storage, &candidates);
+    entity_list_t candidates = live_candidates();
     int x, y;
     centre_world_point(&x, &y);
     entity_t *nearest = pad_jump_nearest(x, y, &candidates);
@@ -722,9 +712,7 @@ static void seed_hovered(pad_nav_t *nav) {
     if (hovered_object(nav) != NULL) {
         return;
     }
-    entity_t *storage[JUMP_CANDIDATES_CAP];
-    entity_list_t candidates;
-    live_candidates(storage, &candidates);
+    entity_list_t candidates = live_candidates();
     int x, y;
     centre_world_point(&x, &y);
     entity_t *hovered = nav->jump.seeded ? pad_jump_nearest(x, y, &candidates) : pad_jump_seed(&candidates, x, y);
@@ -794,9 +782,7 @@ static int cross_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_inpu
 
 /* hovered stays when the cone is empty. */
 static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
-    entity_t *storage[JUMP_CANDIDATES_CAP];
-    entity_list_t candidates;
-    live_candidates(storage, &candidates);
+    entity_list_t candidates = live_candidates();
     entity_t *target = pad_target_pick(hovered, direction, &candidates);
     if (target != NULL) {
         nav->jump.hovered = entity_id_link(target);
@@ -900,11 +886,8 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
         return;
     }
     if (direction != 0 && !(pressed & P8_PAD_CROSS)) {
-        entity_t *storage[JUMP_CANDIDATES_CAP];
-        entity_t *others[JUMP_CANDIDATES_CAP];
-        entity_list_t candidates, targets;
-        live_candidates(storage, &candidates);
-        (void)pad_slipway_candidates(&candidates, start, others, JUMP_CANDIDATES_CAP, &targets);
+        entity_list_t candidates = live_candidates();
+        entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
         entity_t *picked = pad_target_pick(target != NULL ? target : start, direction, &targets);
         if (picked != NULL) {
             target = picked;

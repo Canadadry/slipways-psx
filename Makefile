@@ -136,7 +136,8 @@
 #                       ratchet, updated by hand), in make test
 # make pointer-guard -> counts the data pointers and entity_list_t
 #                       declarations in the struct fields and file-scope
-#                       variables of src/game/ and entity_class.h; fails on
+#                       variables of src/game/ and entity_class.h, and the
+#                       local entity_t *name[...] arrays; fails on
 #                       any difference, higher or lower, from
 #                       tools/pointer_guard_exceptions.txt (a ratchet,
 #                       updated by hand), in make test

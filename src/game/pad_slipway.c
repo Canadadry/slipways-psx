@@ -17,18 +17,12 @@ int pad_slipway_can_start(const entity_t *e) {
     return !(e->class->tags & TAG(TAG_SLIPGATE)) || slipgate_takes_slipway((const planet_t *)e);
 }
 
-int pad_slipway_candidates(const entity_list_t *candidates, const entity_t *start, entity_t **storage, int capacity,
-                           entity_list_t *out) {
-    int count = 0;
-    for (int i = 0; i < candidates->count; i++) {
-        entity_t *e = candidates->items[i];
-        if (e != start) {
-            assert(count < capacity && "pad_slipway_candidates: the storage holds every candidate; raise the caller's cap");
-            storage[count++] = e;
-        }
-    }
-    *out = (entity_list_t){.items = storage, .count = count, .capacity = capacity};
-    return count;
+static int is_not_start(entity_t *e, void *start) {
+    return e != start;
+}
+
+entity_list_t pad_slipway_candidates(const allocator_t *zone, const entity_list_t *candidates, const entity_t *start) {
+    return entity_list_filter(zone, candidates, is_not_start, (void *)start);
 }
 
 entity_t *pad_slipway_between(const entity_t *start, const entity_t *target) {
