@@ -4470,6 +4470,232 @@ static void test_building_and_backing_out_never_types_the_cheat(void) {
     assert(main_economy_typed()->credits != p8_fixed_from_int(200));
 }
 
+/* a is the last object × acted on (a slipway started from it and cancelled), b hovered beside it. */
+static void acted_on_a_then_on_b(input_step_t *step, planet_t **a, planet_t **b) {
+    planet_t *c;
+    start_game_in_jump_mode(step);
+    settled_row(step, a, b, &c);
+    hover_object(step, &(*a)->header);
+    start_slipway(step, &(*a)->header);
+    tap(step, P8_PAD_CIRCLE);
+    tap(step, P8_PAD_RIGHT);
+    hold(step, 0, 40);
+    assert_hovering(step, &(*b)->header);
+    assert(pad_nav_last_acted(&step->pad_nav) == &(*a)->header);
+}
+
+/* ○ at the root: the hovered object becomes target on this frame, with no button. */
+static void circle_jumps_back_to(input_step_t *step, const entity_t *target) {
+    run_frame(step, P8_PAD_CIRCLE);
+    assert(input_step_played_frame(step)->mouse_buttons == 0);
+    assert(pad_nav_jump_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == target);
+    hold(step, 0, 40);
+    assert_hovering(step, target);
+}
+
+static void test_circle_cancels_a_slipway_onto_its_start_and_the_next_does_nothing(void) {
+    input_step_t step;
+    planet_t *a, *b, *c;
+    start_game_in_jump_mode(&step);
+    settled_row(&step, &a, &b, &c);
+    hover_object(&step, &a->header);
+    world_count_t before = world_count();
+    start_slipway(&step, &a->header);
+    tap(&step, P8_PAD_RIGHT);
+    assert_slipway_mode(&step, &a->header, &b->header);
+    tap(&step, P8_PAD_CIRCLE);
+    assert_hovering(&step, &a->header);
+    vec_t from = camera_at();
+    tap(&step, P8_PAD_CIRCLE);
+    assert_hovering(&step, &a->header);
+    assert_moved(from, 0, 0);
+    assert_world_unchanged(before);
+}
+
+/* Each ○ does one rung: cancel the structure, leave aim mode, then jump back to a. */
+static void test_circle_cancels_a_structure_then_leaves_aim_mode_then_jumps_back(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    acted_on_a_then_on_b(&step, &a, &b);
+    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    entity_t *structure = take_structure(&step);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(structure->is_dead && pad_nav_placing(&step.pad_nav) == NULL && pad_nav_aim_mode(&step.pad_nav));
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_jump_mode(&step.pad_nav));
+    entity_t *nearest = pad_nav_hovered(&step.pad_nav);
+    assert(nearest != NULL);
+    if (nearest != &a->header) {
+        circle_jumps_back_to(&step, &a->header);
+    }
+}
+
+static void test_circle_at_the_root_jumps_back_and_edge_scrolls_at_8_px_a_frame(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    make_every_planet_known();
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(&step, colony);
+    hover_object(&step, &colony->header);
+    start_slipway(&step, &colony->header);
+    tap(&step, P8_PAD_CIRCLE);
+    planet_t *far = planet_farthest_outside();
+    assert(far != NULL && far != colony);
+    hover_object(&step, &far->header);
+    int x, y;
+    rest_screen_point(&colony->header, &x, &y);
+    assert(!pad_jump_inside(x, y) && "the colony is out of the inner rectangle once the far planet is hovered");
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    assert(pad_nav_hovered(&step.pad_nav) == &colony->header);
+    for (int i = 0; i < 60 && !pad_jump_inside(x, y); i++) {
+        vec_t from = camera_at();
+        run_frame(&step, 0);
+        vec_t moved = vec_sub(camera_at(), from);
+        assert(absolute_int(p8_fixed_flr_int(moved.x)) <= PAD_JUMP_SCROLL_SPEED);
+        assert(absolute_int(p8_fixed_flr_int(moved.y)) <= PAD_JUMP_SCROLL_SPEED);
+        rest_screen_point(&colony->header, &x, &y);
+    }
+    assert(pad_jump_inside(x, y));
+    run_frame(&step, 0);
+    assert_hovering(&step, &colony->header);
+    assert(ui_pad_selection(main_ui()) == &colony->header);
+}
+
+/* A resumed game starts with nothing to go back to. */
+static void test_circle_after_a_resume_does_nothing(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    acted_on_a_then_on_b(&step, &a, &b);
+    economy_new_year(main_economy_typed());
+    run_frame(&step, 0);
+    open_pause(&step);
+    tap(&step, P8_PAD_CROSS);
+    settle(&step);
+    assert(main_economy_typed() == NULL && title_button("resume") != NULL);
+    tap(&step, P8_PAD_UP);
+    tap(&step, P8_PAD_CROSS);
+    settle(&step);
+    assert(main_economy_typed() != NULL && pad_nav_last_acted(&step.pad_nav) == NULL);
+    entity_t *hovered = pad_nav_hovered(&step.pad_nav);
+    vec_t from = camera_at();
+    world_count_t before = world_count();
+    for (int i = 0; i < 4; i++) {
+        run_frame(&step, i % 2 == 0 ? P8_PAD_CIRCLE : 0);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert(pad_nav_hovered(&step.pad_nav) == hovered);
+    }
+    assert_moved(from, 0, 0);
+    assert_world_unchanged(before);
+}
+
+static void test_circle_with_the_last_object_gone_or_in_a_new_game_does_nothing(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    acted_on_a_then_on_b(&step, &a, &b);
+    if (in_forked_copy()) {
+        a->header.is_dead = 1;
+        run_frame(&step, 0);
+        assert(pad_nav_last_acted(&step.pad_nav) == NULL);
+        vec_t from = camera_at();
+        tap(&step, P8_PAD_CIRCLE);
+        assert_hovering(&step, &b->header);
+        assert_moved(from, 0, 0);
+        end_forked_copy();
+    }
+    restart_into_a_new_game(&step);
+    settle(&step);
+    assert(pad_nav_last_acted(&step.pad_nav) == NULL);
+    entity_t *hovered = pad_nav_hovered(&step.pad_nav);
+    vec_t from = camera_at();
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == hovered);
+    assert_moved(from, 0, 0);
+}
+
+/* Ordinary ×, △ and ○ presses with D-pad moves between them: no cheat and no game number drawn. */
+static void test_ordinary_cross_triangle_and_circle_play_never_types_the_cheat(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *colony = most_isolated_planet();
+    planet_t *known = NULL;
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    for (int i = 0; known == NULL; i++) {
+        if (planets->items[i] != &colony->header) {
+            known = (planet_t *)planets->items[i];
+        }
+    }
+    place_near(known, colony, 10, 0);
+    settle_planet(&step, colony);
+    make_known(known);
+    hover_object(&step, &known->header);
+    cheats_fired = 0;
+    uint32_t game = p8_fixed_rnd_state();
+    world_count_t before = world_count();
+    tap(&step, P8_PAD_CROSS);
+    assert(pad_nav_panel_open());
+    tap(&step, P8_PAD_CIRCLE);
+    assert(!pad_nav_panel_open());
+    tap(&step, P8_PAD_CROSS);
+    assert(pad_nav_panel_open());
+    tap(&step, P8_PAD_TRIANGLE);
+    assert(!pad_nav_panel_open());
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    assert(pad_nav_panel_open());
+    tap(&step, P8_PAD_TRIANGLE);
+    assert(!pad_nav_panel_open());
+    tap(&step, P8_PAD_LEFT);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &colony->header);
+    start_slipway(&step, &colony->header);
+    tap(&step, P8_PAD_CIRCLE);
+    tap(&step, P8_PAD_CIRCLE);
+    tap(&step, P8_PAD_CIRCLE);
+    assert_hovering(&step, &colony->header);
+    tap(&step, P8_PAD_RIGHT);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &known->header);
+    circle_jumps_back_to(&step, &colony->header);
+    assert(cheats_fired == 0);
+    assert(p8_fixed_rnd_state() == game && "jumps, menus and toggles draw no game number");
+    assert_world_unchanged(before);
+}
+
+/* Pause, a tab visit and slipway mode leave the last object to ○. */
+static void test_pause_a_tab_and_a_slipway_keep_the_last_object(void) {
+    input_step_t step;
+    planet_t *a, *b, *c;
+    acted_on_a_then_on_b(&step, &a, &b);
+    open_pause(&step);
+    close_pause(&step, P8_PAD_START);
+    circle_jumps_back_to(&step, &a->header);
+    tap(&step, P8_PAD_RIGHT);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &b->header);
+    go_to_tab(&step, PAD_NAV_TAB_END_TURN);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    settle(&step);
+    if (pad_nav_aim_mode(&step.pad_nav)) {
+        tap(&step, P8_PAD_SQUARE);
+    }
+    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) != &a->header);
+    circle_jumps_back_to(&step, &a->header);
+    start_slipway(&step, &a->header);
+    tap(&step, P8_PAD_RIGHT);
+    cross_on_target(&step);
+    assert_slipway_mode(&step, &b->header, NULL);
+    tap(&step, P8_PAD_CIRCLE);
+    assert_hovering(&step, &b->header);
+    c = (planet_t *)expected_jump(&b->header, P8_PAD_RIGHT);
+    assert(c != NULL);
+    tap(&step, P8_PAD_RIGHT);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &c->header);
+    circle_jumps_back_to(&step, &b->header);
+}
+
 static void test_building_refusing_and_cancelling_leave_the_game_stream_unchanged(void) {
     input_step_t step;
     planet_t *a, *b, *c;
@@ -4986,6 +5212,13 @@ int main(void) {
     in_fresh_child(test_chords_in_slipway_mode_neither_build_nor_cancel);
     in_fresh_child(test_building_and_backing_out_never_types_the_cheat);
     in_fresh_child(test_building_refusing_and_cancelling_leave_the_game_stream_unchanged);
+    in_fresh_child(test_circle_cancels_a_slipway_onto_its_start_and_the_next_does_nothing);
+    in_fresh_child(test_circle_cancels_a_structure_then_leaves_aim_mode_then_jumps_back);
+    in_fresh_child(test_circle_at_the_root_jumps_back_and_edge_scrolls_at_8_px_a_frame);
+    in_fresh_child(test_circle_after_a_resume_does_nothing);
+    in_fresh_child(test_circle_with_the_last_object_gone_or_in_a_new_game_does_nothing);
+    in_fresh_child(test_ordinary_cross_triangle_and_circle_play_never_types_the_cheat);
+    in_fresh_child(test_pause_a_tab_and_a_slipway_keep_the_last_object);
     printf("test_pad_nav: ok\n");
     return 0;
 }

@@ -107,7 +107,9 @@ inputs of the old file but f29 (plan 12 step 7).
   slipgate carried, the camera unmoved. f270-302: Down+Left 15, Left
   12, Down 1, X: the slipgate s2 built at (256, 281), $154.
 - f304: square: aim mode left for jump mode on s2, under the
-  centre. f306: circle, inert in jump mode. f308: X on s2.
+  centre. f306: idle (a circle, inert in jump mode until plan 12 step 8,
+  where circle at the root jumps back to the last object X acted on).
+  f308: X on s2.
 - The crossed planet: f310, f312: Up, Up: the aim on p47 (known, the
   colour-8 label), then on p23, 57 px from s2, whose line passes 6 px
   from p47: slipway_obstruction makes p47 the target, the line is colour

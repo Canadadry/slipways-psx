@@ -805,10 +805,10 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
     }
 }
 
-/* ○ does nothing here. On a click's press and release frames no jump runs and the camera and the marker wait;
- * the hold-repeat count keeps running through them. */
-static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, p8_input_frame_t *played,
-                      const entity_t **shown) {
+/* On a click's press and release frames no jump runs, ○'s included, and the camera and the marker wait; the
+ * hold-repeat count keeps running through them. ○ jumps to the last object × acted on and wins over the D-pad. */
+static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int circle_returns,
+                      p8_input_frame_t *played, const entity_t **shown) {
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
@@ -819,6 +819,14 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
     entity_t *hovered = hovered_object(nav);
     int clicking = release || nav->release_pending;
+    entity_t *back = circle_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
+    if (back != NULL) {
+        nav->jump.hovered = entity_id_link(back);
+        edge_scroll(back);
+        *shown = back;
+        screen_point(back, &nav->cursor_x, &nav->cursor_y);
+        return;
+    }
     if (hovered == NULL) {
         nav->cursor_x = P8_SCREEN_WIDTH / 2;
         nav->cursor_y = P8_SCREEN_HEIGHT / 2;
@@ -956,7 +964,7 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
     } else {
         assert(pad_nav_jump_mode(nav) &&
                "map_step: after placement, panels, aim, network and slipway mode, drop_stale_map_mode leaves jump mode");
-        jump_step(nav, pad_buttons, pressed, release, played, shown);
+        jump_step(nav, pad_buttons, pressed, release, circle_returns, played, shown);
         *jump_ran = 1;
     }
 }

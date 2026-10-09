@@ -307,7 +307,7 @@
     { "pad": [] },
     { "pad": ["square"] },
     { "pad": [] },
-    { "pad": ["circle"] },
+    { "pad": [] },
     { "pad": [] },
     { "pad": ["cross"] },
     { "pad": [] },
