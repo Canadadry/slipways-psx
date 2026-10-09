@@ -1,0 +1,102 @@
+#include "devtools/draw_filter.h"
+
+#include "p8/draw_cost.h"
+
+#include <assert.h>
+#include <string.h>
+
+static const p8_draw_backend_t *wrapped;
+static unsigned mask = DRAW_FILTER_ALL;
+static int counts[DRAW_FILTER_FAMILY_COUNT];
+static p8_draw_cost_window_t window;
+
+static int passes(draw_filter_family_t family) {
+    return (mask & DRAW_FILTER_BIT(family)) != 0;
+}
+
+static int patterned(const p8_graphics_t *gfx) {
+    return (gfx->fillp_pattern & 0xFFFFu) != 0;
+}
+
+/* Returns whether the call reaches the wrapped backend. */
+static int note(draw_filter_family_t family, p8_draw_cost_t cost) {
+    if (cost.bytes > 0) counts[family]++;
+    return passes(family);
+}
+
+static int note_fill(draw_filter_family_t shape, const p8_graphics_t *gfx, p8_draw_cost_t cost) {
+    int shape_passes = note(shape, cost);
+    if (!patterned(gfx)) return shape_passes;
+    int pattern_passes = note(DRAW_FILTER_PATTERN, cost);
+    return shape_passes && pattern_passes;
+}
+
+static void filter_cls(p8_vram_t *mem) {
+    counts[DRAW_FILTER_CLS]++;
+    wrapped->cls(mem);
+}
+
+static void filter_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
+    if (note(DRAW_FILTER_PSET, p8_draw_cost_pset(gfx, x, y))) wrapped->pset(gfx, mem, x, y, col);
+}
+
+static void filter_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    if (note(DRAW_FILTER_LINE, p8_draw_cost_line(gfx, x1, y1, x2, y2))) wrapped->line(gfx, mem, x1, y1, x2, y2, col);
+}
+
+static void filter_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    if (note(DRAW_FILTER_RECT, p8_draw_cost_rect(gfx, x1, y1, x2, y2))) wrapped->rect(gfx, mem, x1, y1, x2, y2, col);
+}
+
+static void filter_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    p8_draw_cost_t cost = p8_draw_cost_rectfill(&window, gfx, x1, y1, x2, y2, col);
+    if (note_fill(DRAW_FILTER_RECTFILL, gfx, cost)) wrapped->rectfill(gfx, mem, x1, y1, x2, y2, col);
+}
+
+static void filter_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
+    if (note(DRAW_FILTER_CIRC, p8_draw_cost_circ(gfx, cx, cy, r))) wrapped->circ(gfx, mem, cx, cy, r, col);
+}
+
+static void filter_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
+    p8_draw_cost_t cost = p8_draw_cost_circfill(&window, gfx, cx, cy, r, col);
+    if (note_fill(DRAW_FILTER_CIRCFILL, gfx, cost)) wrapped->circfill(gfx, mem, cx, cy, r, col);
+}
+
+static void filter_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
+    if (note(DRAW_FILTER_SPR, p8_draw_cost_spr(&window, gfx, n, x, y, w, h))) wrapped->spr(gfx, mem, n, x, y, w, h);
+}
+
+static void filter_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    if (note(DRAW_FILTER_PRINT, p8_draw_cost_print(&window, gfx, str, x, y))) wrapped->print(gfx, mem, str, x, y, col);
+}
+
+static const p8_draw_backend_t FILTER = {
+    filter_cls, filter_pset, filter_line, filter_rect, filter_rectfill,
+    filter_circ, filter_circfill, filter_spr, filter_print,
+};
+
+const p8_draw_backend_t *draw_filter_install(void) {
+    const p8_draw_backend_t *active = p8_draw_backend_get();
+    assert(active != &FILTER && "the filter would wrap itself");
+    wrapped = active;
+    mask = DRAW_FILTER_ALL;
+    draw_filter_frame_end();
+    p8_draw_backend_set(&FILTER);
+    return wrapped;
+}
+
+void draw_filter_set_mask(unsigned new_mask) {
+    assert((new_mask & DRAW_FILTER_BIT(DRAW_FILTER_CLS)) && "every mask holds cls");
+    assert((new_mask & ~DRAW_FILTER_ALL) == 0);
+    mask = new_mask;
+}
+
+void draw_filter_frame_end(void) {
+    memset(counts, 0, sizeof counts);
+    p8_draw_cost_frame_begin(&window);
+}
+
+int draw_filter_count(draw_filter_family_t family) {
+    assert(family >= 0 && family < DRAW_FILTER_FAMILY_COUNT);
+    return counts[family];
+}

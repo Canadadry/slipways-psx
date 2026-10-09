@@ -5,7 +5,9 @@ inside the headless emulator and prints its `make state` text and VRAM digests
 over TTY, and as a second PS-EXE that replays it through the GPU drawing
 backend. `make psx-check` proves they play the same game as the PC, that the
 software one draws the same pictures, that the GPU one receives the same draw
-calls and fits in RAM, and that scripted pad input reaches a PS-EXE. Toolchain, emulator, setups and the plain boot mode are
+calls and fits in RAM, that its frame captures are deterministic and within
+their recorded divergence from the PC, and that scripted pad input reaches a
+PS-EXE. Toolchain, emulator, setups and the plain boot mode are
 in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
 `tools/psx_*.sh` script hold the per-option detail.
 
@@ -27,8 +29,9 @@ formatter (`src/devtools/state_format.c`), the shared VRAM digest
 the PSX platform files of `src/platform/` (`psx_exit`, `psx_tty`, `fatal_psx`,
 `assert_psx`, `format_psx`, `psx_pad`), `src/p8/format.c` and the generated
 replay source. The GPU replay swaps the VRAM digest for the GPU backend
-(`src/platform/psx_gpu.c`) and the VRAM layout
-(`src/platform/psx_vram_layout.c`). A file added to `CORE_SRCS` is in the PSX
+(`src/platform/psx_gpu.c`), the VRAM layout
+(`src/platform/psx_vram_layout.c`) and the draw family filter
+(`src/devtools/draw_filter.c`). A file added to `CORE_SRCS` is in the PSX
 build at once.
 
 It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
@@ -134,8 +137,11 @@ checks they fit.
 `psx_replay.c`, plus `psx-replay: backend gpu` after the format line, without
 `psx-digest:` lines (the RAM screen is not drawn). It still loads the RAM
 sprite sheet, so the game sees the same memory. It installs the GPU backend
-wrapped by the draw meter; each frame ends with the meter's frame end, then
-`psx_gpu_frame_end` with the metered bytes, then `psx_gpu_frame_begin`.
+wrapped by the draw family filter, itself wrapped by the draw meter (so the
+meter sees every call); each frame ends with the meter's and the filter's
+frame ends, then `psx_gpu_frame_end` with the metered bytes, then
+`psx_gpu_frame_begin`. It is driven by a capture script (below): without one
+it waits forever before its first frame.
 
 The GPU backend skeleton (`src/platform/psx_gpu.c`, PSn00bSDK, no floating
 point, no `malloc`):
@@ -171,9 +177,10 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 
 ## Until-exit boot mode
 
-`tools/psx_boot.sh <install-dir> --until-exit [--pad-script <file>] --exe <exe> <ceiling> <out-prefix>`
+`tools/psx_boot.sh <install-dir> --until-exit [--pad-script <file>] [--capture-script <file>] --exe <exe> <ceiling> <out-prefix>`
 adds `-testmode`, so the program's write to the PCSX exit register quits the
-emulator with its code. No capture is written. `<ceiling>` is a vsync ceiling:
+emulator with its code. No capture is written, except the frame-locked ones of
+`--capture-script` (below). `<ceiling>` is a vsync ceiling:
 reaching it, or `PSX_BOOT_TIMEOUT` seconds, fails naming the input and the last
 `psx-replay:` or `psx-pad:` line. Code 0 passes, any other fails naming it.
 Without `--until-exit`, `psx_boot.sh` behaves as `docs/psx-hello-world.md`
@@ -196,21 +203,68 @@ below it and the probe exits.
 `psx/pad_probe_script.txt` is the script of `make psx-check`. The pad driver
 does not feed `pad_buttons` yet: the game itself is not driven by the pad.
 
+## GPU family captures
+
+Each GPU draw family is checked by a capture of one frame of the check replay,
+drawn with a family mask, against the PC software frame of the same frame and
+mask.
+
+- **Family filter** (`src/devtools/draw_filter.c`, PC and PSX): a backend
+  wrapper that drops the calls outside its mask and counts, per family, the
+  calls the cost model costs above 0. The mask bits, in order: `cls pset line
+  rect rectfill circ circfill spr print pattern`; `cls` is always set, and a
+  patterned `rectfill`/`circfill` needs its shape bit and `pattern`. The mask
+  applies only on a captured frame, "all" otherwise.
+- **Capture list** `psx/gpu_captures.txt`: `replay <name>`, then
+  `<label> <frame> <mask>` a capture (parser `src/devtools/capture_list.c`).
+  With `CAPTURE_LIST=` and `CAPTURE_DIR=`, `tmp/replay` refuses a bad list
+  naming its line, and writes `pc_frames.bin` (the listed frames, screencast
+  format), `counts.txt` (`<frame> <family> <calls>`) and `capture_script.txt`
+  (`<frame> <mask hex>`).
+- **Frame-locked capture**: the GPU replay and `tools/psx_capture_frames.lua`
+  hand over on three scratchpad words below the pad script's
+  (`src/platform/psx_capture_protocol.h`; `test_psx_capture_protocol` checks
+  the Lua's constants equal the header's). The Lua hands the next frame and
+  mask; at that frame the program draws with the mask, ends the frame,
+  `psx_gpu_frame_show_last()` settles the GPU and shows it, prints
+  `psx-replay: capture <frame> <mask>` and waits; one vsync later the Lua
+  writes `<out-prefix>.f<frame>.vram` (`psx-vram 320 240 16` and the
+  `takeScreenShot()` bytes) and releases it.
+- **Comparator** (`src/devtools/capture_compare.c`, host tool
+  `tmp/psx_capture_compare`, run by `tools/psx_capture_report.sh`): checks the
+  header and size, that each 2x2 block is uniform (`nonuniform`), maps each
+  pixel back to a PICO-8 colour by exact RGB555 equality
+  (`src/platform/psx_colour.c`, `offpalette` otherwise), and writes one report
+  line `<label> f<frame> mask <names> calls <n> differ <n> (<p>‰) near1 <n>
+  near2 <n> far <n> bbox <x0>,<y0>-<x1>,<y1> offpalette <n> nonuniform <n>`,
+  a text diff map `<label>-f<frame>.diff.txt` (`.` equal, the PSX colour's hex
+  digit or `?` where not) and an image `<label>-f<frame>.ppm` (PC, PSX and
+  diff side by side). `near1`/`near2` count the differing pixels whose PSX
+  colour is in the PC frame within 1 or 2 pixels, `far` the others.
+- **Ceilings and references**: until a human accepts a family, its captures'
+  `differ` may not exceed their line in `psx/gpu_capture_ceilings.txt`,
+  written only by `make psx-gpu-capture-ceilings LABEL=<label>` from the last
+  `make psx-check` run. `make psx-gpu-capture-accept LABEL=<label>` writes the
+  sha256 of a label's captures into `psx/gpu_capture_references.txt`; a capture
+  with a reference must match it byte for byte. Only a human runs it.
+
 ## Checks
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the fourteen conditions below, on `pad_slipway.json` | ~60 s |
+| `make psx-check` | the twenty-one conditions below, on `pad_slipway.json` | ~75 s |
+| `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~13 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
 | `make psx-full-game-check` | the replay proof on `worst-case/full_game.json` (outputs in `tmp/psx/full-game`) | minutes |
 
 `make psx-check` is the plan-10 check target: a later step adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
-`STATE=` and `DIGEST=` in one run of the current `tmp/replay`, boots the
-replay, the GPU replay and the probe until they exit, then checks every
-condition before concluding, one line each (`tools/psx_check.sh`, outputs in
-`tmp/psx/game-check`):
+`STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
+`tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
+script) and the probe until they exit, then checks every condition before
+concluding, one line each (`tools/psx_check.sh`, outputs in
+`tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
 - `magic`: the three `.exe` start with `PS-X EXE`;
 - `asserts-on`: the replay printed `asserts on`;
@@ -233,6 +287,21 @@ condition before concluding, one line each (`tools/psx_check.sh`, outputs in
   toolchain's `size`, `PSX_SIZE`; the zones and both primitive buffers
   included) + `PSX_STACK_RESERVE` (64 KiB) <= 2,097,152; the line prints the
   bytes left;
+- `gpu-capture-list`: the list's replay is the PS-EXE's, the PC run wrote
+  its frames to the capture script, and each label but `all` has an
+  on-screen call of its family at its frame on PC;
+- `gpu-captures`: every listed frame has a well-formed `gpu.f<frame>.vram`,
+  and the TTY's capture lines are exactly the list's frames, in order;
+- `gpu-capture-deterministic`: the second boot's captures are
+  byte-identical, else the first differing frame is named;
+- `gpu-capture-clean`: zero `nonuniform` and `offpalette` in every report;
+- `gpu-capture-report`: a report line, diff map and image per capture;
+- `gpu-capture-ceilings`: every capture without a matching reference has a
+  ceiling and its `differ` is not above it (`below ceiling: ...` is printed
+  when lower); a ceiling for an unlisted capture fails;
+- `gpu-capture-references`: a capture with a reference matches it; one
+  without prints `pending human acceptance: <label> f<frame>`; a reference
+  for an unlisted capture fails;
 - `no-json`: the toolchain's `nm` (`PSX_NM`) finds no definition of
   `p8_load_gfx_json`, `p8_input_load`, `p8_input_save`, `p8_input_append` or
   `p8_input_free` in either replay ELF;
@@ -243,7 +312,8 @@ condition before concluding, one line each (`tools/psx_check.sh`, outputs in
 `psx-replay-check` and `psx-full-game-check`) holds the MIPS `zone`, `budget`
 and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
-and `size`, each behind `gpu `. The MIPS figures
+and `size`, each behind `gpu `, then the capture report lines behind
+`gpu capture `. The MIPS figures
 are lower than the PC's (4-byte pointers): a measurement, not a limit check.
 
 Ceilings and timeouts are the first measured run plus half again:
@@ -258,12 +328,18 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Step 4 of plan 10: the GPU families, one at a time, each checked by a VRAM
-  capture against the PC framebuffer of the same frame: `pset`, `line`,
-  `rect`, `rectfill` and `circfill` (with their fill patterns and the pattern
-  slots), `circ`, `spr` and `map` (with the draw-palette CLUT cache), `print`
-  (with the font texture and its 16 CLUTs). Whether the x2 upscale samples
-  exactly 2x2 a texel is checked by the first capture.
+- Step 4 of plan 10: the GPU families, one at a time, each with its capture
+  line in `psx/gpu_captures.txt`: `pset`, `line`, `rect`, `rectfill` and
+  `circfill` (with their fill patterns and the pattern slots), `circ`, `spr`
+  and `map` (with the draw-palette CLUT cache), `print` (with the font texture
+  and its 16 CLUTs), then the `all` captures. Whether the x2 upscale samples
+  exactly 2x2 a texel on real colours is checked by the `rectfill` capture.
+
+- Pending human acceptance (review the report line and
+  `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` after `make
+  psx-check`, then accept with `make psx-gpu-capture-accept LABEL=<label>`):
+  - `cls` f1: `cls f1 mask cls calls 1 differ 0 (0.0‰) near1 0 near2 0 far 0
+    bbox - offpalette 0 nonuniform 0`, ceiling 0.
 
 - `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
   (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778

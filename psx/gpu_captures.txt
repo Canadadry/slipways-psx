@@ -1,0 +1,4 @@
+# The GPU family captures of make psx-check: "<label> <frame> <mask>", frames
+# of tests/e2e/pad_slipway.txt (format in src/devtools/capture_list.h).
+replay pad_slipway
+cls 1 cls

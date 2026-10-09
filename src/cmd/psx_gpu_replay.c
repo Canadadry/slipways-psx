@@ -1,8 +1,13 @@
 /* src/cmd/psx_replay.c's loop and TTY protocol, drawn through the GPU backend wrapped by the draw
- * meter instead of into the RAM framebuffer: the same lines minus the "psx-digest: " ones, plus
+ * filter and the meter instead of into the RAM framebuffer: the same lines minus the "psx-digest: "
+ * ones, plus
  *   psx-replay: backend gpu
- * after the format line. */
+ * after the format line, and
+ *   psx-replay: capture <frame> <mask hex>
+ * at each frame the capture script (platform/psx_capture_protocol.h) asks for. Without a capture
+ * script driving the handshake it waits forever before the first frame. */
 
+#include "devtools/draw_filter.h"
 #include "devtools/embedded_replay.h"
 #include "devtools/format_self_test.h"
 #include "devtools/state_format.h"
@@ -16,16 +21,46 @@
 #include "p8/input.h"
 #include "p8/sprite_sheet.h"
 #include "p8/vram.h"
+#include "platform/psx_capture_protocol.h"
 #include "platform/psx_exit.h"
 #include "platform/psx_gpu.h"
 #include "platform/psx_tty.h"
 
 #include <assert.h>
 #include <psxgpu.h>
+#include <stdint.h>
 
 enum { PROGRESS_PERIOD = 256 };
 
 static int g_frame;
+
+#define CAPTURE_WORD(offset) ((volatile uint32_t *)(PSX_CAPTURE_SCRATCHPAD + (offset)))
+
+typedef struct {
+    uint32_t frame;
+    unsigned mask;
+} capture_request_t;
+
+static capture_request_t capture_wait_next(void) {
+    while (*CAPTURE_WORD(PSX_CAPTURE_STATE_OFFSET) != PSX_CAPTURE_NEXT_READY) {
+    }
+    capture_request_t request = { *CAPTURE_WORD(PSX_CAPTURE_FRAME_OFFSET), *CAPTURE_WORD(PSX_CAPTURE_MASK_OFFSET) };
+    return request;
+}
+
+static capture_request_t capture_start(void) {
+    *CAPTURE_WORD(PSX_CAPTURE_STATE_OFFSET) = PSX_CAPTURE_PROGRAM_READY;
+    return capture_wait_next();
+}
+
+/* The frame was just ended with psx_gpu_frame_end. */
+static capture_request_t capture_frame(int frame, unsigned mask) {
+    psx_gpu_frame_show_last();
+    psx_tty_printf("psx-replay: capture %d %04x\n", frame, mask);
+    *CAPTURE_WORD(PSX_CAPTURE_FRAME_OFFSET) = (uint32_t)frame;
+    *CAPTURE_WORD(PSX_CAPTURE_STATE_OFFSET) = PSX_CAPTURE_FRAME_SHOWN;
+    return capture_wait_next();
+}
 
 static void write_stopped_state(int code) {
     if (code != PSX_EXIT_FATAL) return;
@@ -76,20 +111,26 @@ int main(void) {
 
     psx_exit_set_hook(write_stopped_state);
     p8_draw_backend_set(psx_gpu_backend());
+    draw_filter_install();
     p8_draw_meter_install();
     psx_gpu_frame_begin(0);
     cart_load();
     cart_init();
 
+    capture_request_t capture = capture_start();
     int start_vsync = VSync(-1);
     input_step_t step;
     input_step_init(&step);
     for (g_frame = 0; g_frame < input.frame_count; g_frame++) {
         input_step_run(&step, &input.frames[input.current_frame]);
         cart_update60();
+        int captured = capture.frame == (uint32_t)g_frame;
+        draw_filter_set_mask(captured ? capture.mask : DRAW_FILTER_ALL);
         cart_draw();
         p8_draw_meter_frame_end();
+        draw_filter_frame_end();
         psx_gpu_frame_end(p8_draw_meter_last_frame().bytes);
+        if (captured) capture = capture_frame(g_frame, capture.mask);
         psx_gpu_frame_begin(g_frame + 1);
         if (g_frame < input.frame_count - 1) {
             p8_input_step(&input);

@@ -18,4 +18,8 @@ void psx_gpu_frame_begin(int frame);
  * VSync wait. p8_fatal when the frame sent more bytes than metered_bytes. */
 void psx_gpu_frame_end(unsigned long metered_bytes);
 
+/* After psx_gpu_frame_end: waits for the frame it submitted and shows it at once. The next
+ * psx_gpu_frame_end shows that same frame again, then moves on as usual. */
+void psx_gpu_frame_show_last(void);
+
 #endif

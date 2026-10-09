@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>
+# usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>] [--capture-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>
 # Boots the input (or nothing) headless for <frames> vsyncs and writes
 # <out-prefix>.vram (capture), <out-prefix>.tty.txt (stdout) and
 # <out-prefix>.log (stderr). Exit 1 naming the input when the emulator exits
@@ -11,6 +11,9 @@
 # the last "psx-replay:" or "psx-pad:" line of the TTY.
 # --pad-script plays that pad script on port 1 (tools/psx_pad_play.lua,
 # format in tools/psx_pad_compare.sh); a bad script fails naming its line.
+# --capture-script drives the GPU replay's frame-locked captures
+# (tools/psx_capture_frames.lua, "<frame> <mask hex>" lines) and writes
+# <out-prefix>.f<frame>.vram for each; a bad script fails naming its line.
 
 set -eu
 
@@ -28,7 +31,8 @@ absolute() {
     esac
 }
 
-[ $# -ge 3 ] || fail "usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
+usage="usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>] [--capture-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
+[ $# -ge 3 ] || fail "$usage"
 install_dir=$(absolute "$1")
 shift
 
@@ -37,6 +41,7 @@ input=
 label="nothing"
 until_exit=
 pad_script=
+capture_script=
 while [ $# -gt 2 ]; do
     case $1 in
         --until-exit)
@@ -46,6 +51,11 @@ while [ $# -gt 2 ]; do
         --pad-script)
             [ -f "$2" ] || fail "missing pad script: $2"
             pad_script=$(absolute "$2")
+            shift 2
+            ;;
+        --capture-script)
+            [ -f "$2" ] || fail "missing capture script: $2"
+            capture_script=$(absolute "$2")
             shift 2
             ;;
         --exe | --iso)
@@ -59,8 +69,9 @@ while [ $# -gt 2 ]; do
         *) fail "unknown argument: $1" ;;
     esac
 done
-[ $# -eq 2 ] || fail "usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
+[ $# -eq 2 ] || fail "$usage"
 [ -z "$pad_script" ] || [ -n "$until_exit" ] || fail "--pad-script needs --until-exit"
+[ -z "$capture_script" ] || [ -n "$until_exit" ] || fail "--capture-script needs --until-exit"
 frames=$1
 prefix=$(absolute "$2")
 case $frames in
@@ -73,7 +84,7 @@ esac
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$(dirname "$prefix")"
-rm -f "$prefix.vram" "$prefix.tty.txt" "$prefix.log" "$prefix.result"
+rm -f "$prefix.vram" "$prefix.tty.txt" "$prefix.log" "$prefix.result" "$prefix".f*.vram
 
 # Config, memory cards and caches land in the working directory or HOME:
 # a fresh one per boot keeps two boots of the same input byte-identical.
@@ -96,6 +107,8 @@ status=0
     PSX_CAPTURE_FRAMES=$frames PSX_CAPTURE_FILE=$prefix.vram \
     PSX_CEILING_FRAMES=$frames PSX_RESULT_FILE=$prefix.result \
     PSX_PAD_SCRIPT=$pad_script PSX_PAD_PLAYER=$script_dir/psx_pad_play.lua \
+    PSX_CAPTURE_SCRIPT=$capture_script PSX_CAPTURE_PLAYER=$script_dir/psx_capture_frames.lua \
+    PSX_CAPTURE_PREFIX=$prefix \
         timeout "${PSX_BOOT_TIMEOUT:-120}" "$install_dir/pcsx-redux" \
         "$@" -dofile "$script_dir/$lua" \
         > "$prefix.tty.txt" 2> "$prefix.log"

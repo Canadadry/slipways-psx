@@ -190,3 +190,8 @@ void psx_gpu_frame_end(unsigned long metered_bytes) {
     DrawOTag(buffers[current]);
     current ^= 1;
 }
+
+void psx_gpu_frame_show_last(void) {
+    DrawSync(0);
+    PutDispEnv(&displays[current ^ 1]);
+}

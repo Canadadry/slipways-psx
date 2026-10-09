@@ -13,6 +13,12 @@
  * "screen" after cart_draw on each sampled frame, "map" after the last frame;
  * nothing is hashed when unset.
  *
+ * CAPTURE_LIST=<list> with CAPTURE_DIR=<dir>: parses the capture list (devtools/capture_list.h)
+ * against this recording, installs the draw filter under the meter, draws each listed frame with its
+ * mask, and writes <dir>/pc_frames.bin (those frames, screencast format, list order),
+ * <dir>/counts.txt ("<frame> <family> <calls>", ten lines a capture) and <dir>/capture_script.txt
+ * ("<frame> <mask hex>" a capture); exits 1 naming the line on a bad list. Nothing when unset.
+ *
  * SAVE_HEX=<file>: the stored record as one line of lowercase hex (the
  * initial_save format), then "save: " lines on stdout; exits 1 when the
  * record does not decode, or when there is none (the file is then removed). */
@@ -23,6 +29,8 @@
 #include "p8/draw_meter.h"
 #include "p8/input.h"
 #include "game/input_step.h"
+#include "devtools/capture_list.h"
+#include "devtools/draw_filter.h"
 #include "devtools/dump.h"
 #include "devtools/replay_source.h"
 #include "devtools/screencast.h"
@@ -39,6 +47,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "row", "ephemerals"};
 static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particle", "particles", "particles_help_screen", "burst", "transit_dots"};
@@ -114,6 +123,108 @@ static int write_save_hex(const char *path) {
     return 0;
 }
 
+typedef struct {
+    capture_list_t list;
+    int next;
+    screencast_writer_t frames;
+    FILE *counts;
+} captures_t;
+
+/* Returns the length read, or -1. */
+static long read_text(const char *path, char *text, size_t cap) {
+    FILE *file = fopen(path, "rb");
+    if (file == NULL) return -1;
+    size_t length = fread(text, 1, cap - 1, file);
+    int whole = feof(file);
+    fclose(file);
+    if (!whole) return -1;
+    text[length] = '\0';
+    return (long)length;
+}
+
+static void recording_name(const char *path, char name[CAPTURE_LIST_REPLAY_CAP]) {
+    const char *base = strrchr(path, '/');
+    base = base != NULL ? base + 1 : path;
+    const char *dot = strrchr(base, '.');
+    size_t length = dot != NULL && strcmp(dot, ".json") == 0 ? (size_t)(dot - base) : strlen(base);
+    snprintf(name, CAPTURE_LIST_REPLAY_CAP, "%.*s", (int)length, base);
+}
+
+static FILE *open_in(const char *dir, const char *file_name, const char *mode) {
+    char path[1024];
+    snprintf(path, sizeof path, "%s/%s", dir, file_name);
+    FILE *file = fopen(path, mode);
+    if (file == NULL) fprintf(stderr, "replay: cannot open '%s'\n", path);
+    return file;
+}
+
+/* Returns 0 after naming the failure; installs the draw filter on success. */
+static int captures_open(captures_t *captures, const char *list_path, const char *dir, const char *replay_path,
+                         int frame_count) {
+    static char text[1 << 14];
+    if (dir == NULL) {
+        fprintf(stderr, "replay: CAPTURE_LIST needs CAPTURE_DIR\n");
+        return 0;
+    }
+    if (read_text(list_path, text, sizeof text) < 0) {
+        fprintf(stderr, "replay: cannot read the capture list '%s'\n", list_path);
+        return 0;
+    }
+    char name[CAPTURE_LIST_REPLAY_CAP];
+    recording_name(replay_path, name);
+    char error[CAPTURE_LIST_ERROR_CAP];
+    if (!capture_list_parse(text, name, frame_count, &captures->list, error)) {
+        fprintf(stderr, "replay: %s: %s\n", list_path, error);
+        return 0;
+    }
+    FILE *script = open_in(dir, "capture_script.txt", "w");
+    if (script == NULL) return 0;
+    for (int c = 0; c < captures->list.count; c++) {
+        char line[CAPTURE_LIST_SCRIPT_LINE_CAP];
+        capture_list_script_line(&captures->list.entries[c], line);
+        fputs(line, script);
+    }
+    if (fclose(script) != 0) return 0;
+    captures->counts = open_in(dir, "counts.txt", "w");
+    if (captures->counts == NULL) return 0;
+    char frames_path[1024];
+    snprintf(frames_path, sizeof frames_path, "%s/pc_frames.bin", dir);
+    if (!screencast_writer_open(&captures->frames, frames_path)) {
+        fprintf(stderr, "replay: cannot open '%s'\n", frames_path);
+        return 0;
+    }
+    captures->next = 0;
+    draw_filter_install();
+    return 1;
+}
+
+static const capture_list_entry_t *captures_at(const captures_t *captures, int frame) {
+    if (captures->next >= captures->list.count) return NULL;
+    const capture_list_entry_t *entry = &captures->list.entries[captures->next];
+    return entry->frame == frame ? entry : NULL;
+}
+
+/* Returns 0 on a write failure. */
+static int captures_frame_drawn(captures_t *captures, int frame, const p8_vram_t *mem) {
+    const capture_list_entry_t *entry = captures_at(captures, frame);
+    int ok = 1;
+    if (entry != NULL) {
+        ok = screencast_write_frame(&captures->frames, mem);
+        for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+            fprintf(captures->counts, "%d %s %d\n", frame, capture_list_family_name((draw_filter_family_t)family),
+                    draw_filter_count((draw_filter_family_t)family));
+        }
+        captures->next++;
+    }
+    draw_filter_frame_end();
+    return ok;
+}
+
+static int captures_close(captures_t *captures) {
+    int counts_ok = fclose(captures->counts) == 0;
+    return screencast_writer_close(&captures->frames) && counts_ok;
+}
+
 int main(int argc, char **argv) {
     if (argc < 2 || argv[1][0] == '-') {
         fprintf(stderr, "usage: replay <events.json> [<capture.bin> [<dump.txt>]]\n");
@@ -153,6 +264,13 @@ int main(int argc, char **argv) {
     dispatch_context_set_mem(&memory);
     dispatch_context_set_input(input);
 
+    const char *capture_list_path = getenv("CAPTURE_LIST");
+    static captures_t captures;
+    if (capture_list_path != NULL
+        && !captures_open(&captures, capture_list_path, getenv("CAPTURE_DIR"), replay_path, input->frame_count)) {
+        return 1;
+    }
+
     const char *state_path = getenv("STATE");
     if (state_path != NULL) p8_draw_meter_install();
 
@@ -175,8 +293,16 @@ int main(int argc, char **argv) {
     for (i = 0; i < frame_count; i++) {
         input_step_run(&step, &input->frames[input->current_frame]);
         cart_update60();
+        if (capture_list_path != NULL) {
+            const capture_list_entry_t *entry = captures_at(&captures, i);
+            draw_filter_set_mask(entry != NULL ? entry->mask : DRAW_FILTER_ALL);
+        }
         cart_draw();
         if (state_path != NULL) p8_draw_meter_frame_end();
+        if (capture_list_path != NULL && !captures_frame_drawn(&captures, i, &memory)) {
+            fprintf(stderr, "replay: cannot write the capture outputs of frame %d\n", i);
+            return 1;
+        }
         if (digest_path != NULL && vram_digest_samples_frame(i, frame_count)) {
             vram_digest_write_screen(&digest, &memory, i);
         }
@@ -196,6 +322,11 @@ int main(int argc, char **argv) {
     if (capture_path && !screencast_writer_close(&capture)) {
         fprintf(stderr, "replay: cannot close the capture file '%s'\n",
                 capture_path);
+        return 1;
+    }
+
+    if (capture_list_path != NULL && !captures_close(&captures)) {
+        fprintf(stderr, "replay: cannot close the capture outputs in '%s'\n", getenv("CAPTURE_DIR"));
         return 1;
     }
 

@@ -1,18 +1,23 @@
 #!/bin/sh
 # usage: psx_check.sh <install-dir> <replay-exe> <gpu-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames>
 #                     <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout>
-#                     <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <out-dir>
-# Boots the replay PS-EXE, the GPU replay PS-EXE and the pad probe until they
-# exit, then checks the fourteen conditions of make psx-check. Every condition
-# is checked before concluding, one line per condition, exit 1 if any failed.
+#                     <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <capture-list>
+#                     <pc-capture-dir> <compare-tool> <ceilings> <references> <out-dir>
+# Boots the replay PS-EXE, the GPU replay PS-EXE (twice, both driven by
+# <pc-capture-dir>/capture_script.txt) and the pad probe until they exit, then
+# checks the twenty-one conditions of make psx-check, the seven GPU capture
+# ones through tools/psx_capture_check.sh. Every condition is checked before
+# concluding, one line per condition, exit 1 if any failed; each also goes to
+# <out-dir>/conditions.txt as "<condition> ok|failed".
 # Writes <out-dir>/measurements.txt: the MIPS zone/budget/cap lines, the vsync
 # count and the size of the replay ELF (the .exe path with .elf), then the GPU
-# replay's vsyncs, meter lines, RAM room and ELF size, each line behind "gpu ".
+# replay's vsyncs, meter lines, RAM room and ELF size, each line behind "gpu ",
+# then the capture report lines behind "gpu capture ".
 
 set -u
 
-usage="usage: psx_check.sh <install-dir> <replay-exe> <gpu-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames> <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <out-dir>"
-[ $# -eq 19 ] || { echo "psx-check: $usage" >&2; exit 1; }
+usage="usage: psx_check.sh <install-dir> <replay-exe> <gpu-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames> <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <capture-list> <pc-capture-dir> <compare-tool> <ceilings> <references> <out-dir>"
+[ $# -eq 24 ] || { echo "psx-check: $usage" >&2; exit 1; }
 install_dir=$1
 replay_exe=$2
 gpu_exe=$3
@@ -33,7 +38,12 @@ size_tool=$7
 nm_tool=$8
 stack_reserve=$9
 shift 9
-out_dir=$1
+capture_list=$1
+pc_capture_dir=$2
+compare_tool=$3
+ceilings=$4
+references=$5
+out_dir=$6
 script_dir=$(cd "$(dirname "$0")" && pwd)
 
 rm -rf "$out_dir"
@@ -42,9 +52,14 @@ mkdir -p "$out_dir"
 replay_boot=$(PSX_BOOT_TIMEOUT=$replay_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --exe "$replay_exe" "$replay_ceiling" "$out_dir/replay" 2>&1)
 replay_status=$?
+capture_script=$pc_capture_dir/capture_script.txt
 gpu_boot=$(PSX_BOOT_TIMEOUT=$gpu_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
-    --exe "$gpu_exe" "$gpu_ceiling" "$out_dir/gpu" 2>&1)
+    --capture-script "$capture_script" --exe "$gpu_exe" "$gpu_ceiling" "$out_dir/gpu" 2>&1)
 gpu_status=$?
+# Only for gpu-capture-deterministic: one boot cannot prove two boots agree.
+PSX_BOOT_TIMEOUT=$gpu_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
+    --capture-script "$capture_script" --exe "$gpu_exe" "$gpu_ceiling" "$out_dir/gpu-repeat/gpu" \
+    > "$out_dir/gpu-repeat.boot.txt" 2>&1
 pad_boot=$(PSX_BOOT_TIMEOUT=$pad_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --pad-script "$pad_script" --exe "$pad_exe" "$pad_ceiling" "$out_dir/pad" 2>&1)
 pad_status=$?
@@ -56,9 +71,11 @@ replay_lines=$(tr -d '\r' < "$tty" | grep '^psx-replay: ')
 failed=0
 pass() {
     echo "psx-check: $1: ok${2:+, $2}"
+    echo "$1 ok" >> "$out_dir/conditions.txt"
 }
 report() {
     echo "psx-check: $1: $2" >&2
+    echo "$1 failed" >> "$out_dir/conditions.txt"
     failed=1
 }
 
@@ -168,6 +185,11 @@ else
     fi
 fi
 
+sh "$script_dir/psx_capture_report.sh" "$compare_tool" "$capture_list" "$pc_capture_dir" "$out_dir/gpu" \
+    "$out_dir/gpu-captures"
+sh "$script_dir/psx_capture_check.sh" "$capture_list" "$pc_capture_dir" "$gpu_tty" "$out_dir/gpu" \
+    "$out_dir/gpu-repeat/gpu" "$out_dir/gpu-captures" "$ceilings" "$references" "$out_dir/conditions.txt" || failed=1
+
 {
     gpu_done=$(tr -d '\r' < "$gpu_tty" | grep '^psx-replay: done ' | tail -n 1)
     set -- $gpu_done
@@ -175,6 +197,7 @@ fi
     printf '%s\n' "$gpu_meter" | grep . | sed 's/^/gpu /'
     [ -n "$room_line" ] && echo "gpu ram-room $room_line"
     printf '%s\n' "${gpu_size:-}" | sed 's/^/gpu /'
+    sed 's/^/gpu capture /' "$out_dir/gpu-captures/report.txt"
 } >> "$out_dir/measurements.txt"
 
 for elf in "${replay_exe%.exe}.elf" "$gpu_elf"; do
@@ -204,4 +227,4 @@ fi
 
 echo "psx-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-check: all fourteen conditions hold"
+echo "psx-check: all twenty-one conditions hold"
