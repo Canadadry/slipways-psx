@@ -190,20 +190,22 @@
 #                       lines, RAM room, size and capture reports behind "gpu
 #                       ") and conditions.txt in tmp/psx/game-check/run, the
 #                       capture reports, diff maps and images in its
-#                       gpu-captures/, ~75 s; never runs a setup, outside the
+#                       gpu-captures/, ~90 s; never runs a setup, outside the
 #                       suite
 # make psx-gpu-capture-ceilings LABEL=<label> -> writes the differ counts of
 #                       that label's captures from the last psx-check run into
 #                       psx/gpu_capture_ceilings.txt, other labels untouched;
 #                       refused unless every other condition passed
-# make psx-gpu-capture-accept LABEL=<label> -> the human's command, never run
-#                       by an agent or a skill: after a green psx-check, writes
-#                       the sha256 of that label's captures into
-#                       psx/gpu_capture_references.txt, other labels untouched
+# make psx-gpu-capture-accept LABEL=<label> -> the human's one command to
+#                       accept a reviewed label, never run by an agent or a
+#                       skill: after a green psx-check, writes the sha256 of
+#                       that label's captures (every frame of a label such as
+#                       all or pattern) into psx/gpu_capture_references.txt,
+#                       other labels untouched
 # make psx-gpu-capture-report -> one PC run and one GPU capture boot of
 #                       psx/gpu_captures.txt, then the comparator, without the
 #                       other conditions (outputs in tmp/psx/gpu-capture,
-#                       ~13 s); outside the suite
+#                       ~20 s); outside the suite
 # make psx-full-game-check -> psx-replay-check on PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json), built in and written to
 #                       tmp/psx/full-game, ceiling PSX_FULL_GAME_CEILING
@@ -1457,8 +1459,8 @@ psx-pad-check: psx-build
 	sh tools/psx_pad_compare.sh $(PSX_PAD_SCRIPT) $(PSX_PAD_OUT)/run.tty.txt
 
 PSX_CHECK_OUT := $(TMP_DIR)/psx/game-check
-PSX_GPU_CEILING ?= 1419
-PSX_GPU_TIMEOUT ?= 25
+PSX_GPU_CEILING ?= 1655
+PSX_GPU_TIMEOUT ?= 29
 PSX_STACK_RESERVE ?= 65536
 PSX_CAPTURE_LIST := psx/gpu_captures.txt
 PSX_CAPTURE_CEILINGS := psx/gpu_capture_ceilings.txt

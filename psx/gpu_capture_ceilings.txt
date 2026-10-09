@@ -1,6 +1,8 @@
 cls 1 0
 rectfill 11 0
+all 100 0
 pset 131 0
+all 188 0
 pattern 190 0
 line 194 2
 circfill 217 0
@@ -8,4 +10,5 @@ spr 234 0
 pattern 257 0
 print 299 0
 rect 322 0
+all 391 0
 circ 394 0

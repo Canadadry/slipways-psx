@@ -265,6 +265,14 @@ mask.
   applies only on a captured frame, "all" otherwise.
 - **Capture list** `psx/gpu_captures.txt`: `replay <name>`, then
   `<label> <frame> <mask>` a capture (parser `src/devtools/capture_list.c`).
+  A family label's mask holds `cls` and that family (the `pattern` label adds
+  `rectfill` and `circfill`, the `circfill` label `line`, since its colour-0
+  discs only show where they cut a slipway), so its report does not move
+  when another family changes. Three `all` captures (f100, f188, f391) draw
+  every family together, for the interactions: sprites over the grid, text
+  over fills, draw order. No captured frame is one the `DIGEST=` screen
+  lines sample (every 32nd and the last): the PC draws a captured frame
+  filtered.
   With `CAPTURE_LIST=` and `CAPTURE_DIR=`, `tmp/replay` refuses a bad list
   naming its line, and writes `pc_frames.bin` (the listed frames, screencast
   format), `counts.txt` (`<frame> <family> <calls>`) and `capture_script.txt`
@@ -295,16 +303,24 @@ mask.
 - **Ceilings and references**: until a human accepts a family, its captures'
   `differ` may not exceed their line in `psx/gpu_capture_ceilings.txt`,
   written only by `make psx-gpu-capture-ceilings LABEL=<label>` from the last
-  `make psx-check` run. `make psx-gpu-capture-accept LABEL=<label>` writes the
-  sha256 of a label's captures into `psx/gpu_capture_references.txt`; a capture
-  with a reference must match it byte for byte. Only a human runs it.
+  `make psx-check` run whose other conditions all passed, for that label's
+  lines only. A count below its ceiling prints `below ceiling`, so the
+  ceiling can be lowered with the same target; raising one is a regression
+  to explain in its commit.
+- **Acceptance**: `make psx-gpu-capture-accept LABEL=<label>` is the human's
+  one command. After a green `make psx-check` and a review of the label's
+  report lines and images, it writes the sha256 of every capture of that
+  label (all of them for `pattern` and `all`) into
+  `psx/gpu_capture_references.txt`, other labels untouched; from then on a
+  capture with a reference must match it byte for byte, and its ceiling line
+  is ignored. No agent and no skill runs it.
 
 ## Checks
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the twenty-one conditions below, on `pad_slipway.json` | ~75 s |
-| `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~13 s |
+| `make psx-check` | the twenty-one conditions below, on `pad_slipway.json` | ~90 s |
+| `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
 | `make psx-full-game-check` | the replay proof on `worst-case/full_game.json` (outputs in `tmp/psx/full-game`) | minutes |
@@ -379,11 +395,12 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Step 4 of plan 10: the `all` captures in `psx/gpu_captures.txt`.
-
-- Pending human acceptance (review the report line and
-  `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` after `make
-  psx-check`, then accept with `make psx-gpu-capture-accept LABEL=<label>`):
+- Pending human acceptance, one label at a time: run `make psx-check`,
+  review each capture's report line and
+  `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` (PC | PSX |
+  diff), then accept the label with the one command
+  `make psx-gpu-capture-accept LABEL=<label>` and commit
+  `psx/gpu_capture_references.txt`:
   - `cls` f1: `cls f1 mask cls calls 1 differ 0 (0.0‰) near1 0 near2 0 far 0
     bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `rectfill` f11: `rectfill f11 mask cls,rectfill calls 8 differ 0 (0.0‰)
@@ -419,6 +436,14 @@ None of these targets is in `make test-all`, and none runs a setup.
   - `circ` f394: `circ f394 mask cls,circ calls 2 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
     colour-7 radius-9 pad circle round p61 and a colour-2 planet ring.
+  - `all` f100, f188, f391 (accepted together): `all f100 mask all calls
+    387 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
+    nonuniform 0`, `all f188 mask all calls 458 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, `all f391 mask all
+    calls 381 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
+    nonuniform 0`, ceilings 0: every family at once, free mode on p14
+    (f100), p61's menu sliding open over the map (f188), two colour-2
+    slipways along one path and the forbidden sign (f391).
 
 - `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
   (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778
