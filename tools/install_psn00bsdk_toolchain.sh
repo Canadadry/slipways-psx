@@ -1,62 +1,68 @@
+#!/bin/sh
+# usage: install_psn00bsdk_toolchain.sh <install-dir> <sources>
+# Installs the pinned PSn00bSDK release of <sources> into <install-dir>.
+# Exit 0 at once when <install-dir> holds a stamp for the same sha256;
+# exit 1, deleting nothing, when it is non-empty without that stamp.
 
-set -e
+set -eu
 
-BINUTILS_VERSION=2.40
-GCC_VERSION=12.2.0
-PREFIX="${1:-/usr/local/mipsel-none-elf}"
-BUILD_TIMEOUT=2700
+install_dir=$1
+sources=$2
+STAMP=psn00bsdk.stamp
+GCC_VERSION=12.3.0
 
-sudo apt-get update
-sudo apt-get install -y build-essential make wget
+fail() {
+    echo "psn00bsdk-toolchain-setup: $*" >&2
+    exit 1
+}
 
-work_dir="$(mktemp -d)"
-cd "$work_dir"
+[ -f "$sources" ] || fail "missing sources list: $sources"
 
-wget "https://ftpmirror.gnu.org/gnu/binutils/binutils-${BINUTILS_VERSION}.tar.xz"
-wget "https://ftpmirror.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
-tar xf "binutils-${BINUTILS_VERSION}.tar.xz"
-tar xf "gcc-${GCC_VERSION}.tar.xz"
-rm -f ./*.tar.xz
+line=$(awk '$1 == "psn00bsdk" && $2 == "file" { print $3, $4; exit }' "$sources")
+[ -n "$line" ] || fail "psn00bsdk: no file line in $sources"
+url=${line% *}
+sha256=${line#* }
 
-( cd "gcc-${GCC_VERSION}" && ./contrib/download_prerequisites )
+# The stamp holds the sha256 so that a new pin never trusts an old install.
+if [ -f "$install_dir/$STAMP" ] && [ "$(cat "$install_dir/$STAMP")" = "$sha256" ]; then
+    echo "psn00bsdk-toolchain-setup: already installed in $install_dir"
+    exit 0
+fi
+if [ -d "$install_dir" ] && [ -n "$(ls -A "$install_dir")" ]; then
+    fail "$install_dir is not empty and holds no stamp for this pin; remove it and re-run"
+fi
 
-mkdir binutils-build
-cd binutils-build
-../"binutils-${BINUTILS_VERSION}"/configure \
-	--prefix="$PREFIX" --target=mipsel-none-elf \
-	--disable-docs --disable-nls --disable-werror --with-float=soft
-timeout "$BUILD_TIMEOUT" make -j "$(nproc)"
-sudo make install-strip
-cd ..
+if [ -n "${PSN00BSDK_SKIP_APT:-}" ]; then
+    echo "psn00bsdk-toolchain-setup: PSN00BSDK_SKIP_APT set, skipping apt"
+else
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cmake make unzip curl
+fi
 
-mkdir gcc-build
-cd gcc-build
-../"gcc-${GCC_VERSION}"/configure \
-	--prefix="$PREFIX" --target=mipsel-none-elf \
-	--disable-docs --disable-nls --disable-werror --disable-libada \
-	--disable-libssp --disable-libquadmath --disable-threads \
-	--disable-libgomp --disable-libstdcxx-pch --disable-hosted-libstdcxx \
-	--enable-languages=c,c++ --without-isl --without-headers \
-	--with-float=soft --with-gnu-as --with-gnu-ld
-timeout "$BUILD_TIMEOUT" make -j "$(nproc)"
-sudo make install-strip
-cd ..
+mkdir -p tmp "$install_dir"
+install_dir=$(cd "$install_dir" && pwd)
+download_dir=$(mktemp -d "$PWD/tmp/psn00bsdk-download.XXXXXX")
+unpack_dir=$(mktemp -d "$(dirname "$install_dir")/.psn00bsdk-unpack.XXXXXX")
+trap 'rm -rf "$download_dir" "$unpack_dir"' EXIT
 
-echo "Toolchain installed under ${PREFIX}/bin -- add it to PATH:"
-echo "  export PATH=\$PATH:${PREFIX}/bin"
+archive=$download_dir/psn00bsdk.zip
+curl -fsSL --retry 2 -o "$archive" "$url" || fail "psn00bsdk: download failed: $url"
+actual=$(sha256sum "$archive" | cut -d ' ' -f 1)
+[ "$actual" = "$sha256" ] || fail "psn00bsdk: sha256 $actual, expected $sha256"
 
-sudo apt-get install -y ninja-build cmake
+unzip -q "$archive" -d "$unpack_dir"
+[ "$(ls -A "$unpack_dir" | wc -l)" -eq 1 ] || fail "psn00bsdk: archive does not hold exactly one top-level directory"
+top=$unpack_dir/$(ls -A "$unpack_dir")
+[ -d "$top" ] || fail "psn00bsdk: archive's top-level entry is not a directory"
+rmdir "$install_dir"
+mv "$top" "$install_dir"
 
-git clone https://github.com/Lameguy64/PSn00bSDK.git
-cd PSn00bSDK
-git submodule update --init --recursive
-cmake --preset default .
-timeout "$BUILD_TIMEOUT" cmake --build ./build
-sudo cmake --install ./build
-cd ..
+gcc_version=$("$install_dir/bin/mipsel-none-elf-gcc" -dumpversion) \
+    || fail "installed mipsel-none-elf-gcc does not run"
+[ "$gcc_version" = "$GCC_VERSION" ] || fail "mipsel-none-elf-gcc is $gcc_version, expected $GCC_VERSION"
+for tool in elf2x mkpsxiso; do
+    [ -x "$install_dir/bin/$tool" ] || fail "$tool missing from $install_dir/bin"
+done
 
-rm -rf "$work_dir"
-
-echo "PSn00bSDK installed. Build psx-hello with:"
-echo "  cmake -S psx-hello -B psx-hello/build"
-echo "  cmake --build psx-hello/build"
+echo "$sha256" > "$install_dir/$STAMP"
+echo "psn00bsdk-toolchain-setup: installed in $install_dir"

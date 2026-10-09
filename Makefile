@@ -124,9 +124,68 @@
 #                       outside the suite
 # make raylib        -> compiles and LINKS the interactive binary, never runs
 #                       it (needs make raylib-vendor-setup first)
-# make psx-hello     -> PSX test project (needs psn00bsdk-toolchain-setup)
+# make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
+#                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
+#                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
+#                       (default third_party/psn00bsdk); apt via sudo unless
+#                       PSN00BSDK_SKIP_APT is set; exits 0 at once on a
+#                       complete install, fails on a non-empty directory
+#                       without its stamp, outside the suite
+# make psx-hello     -> builds psx-hello/build/psx-hello.exe against
+#                       PSN00BSDK_DIR, reconfigured from scratch each time;
+#                       fails pointing at psn00bsdk-toolchain-setup when the
+#                       SDK is missing, outside the suite
+# make psx-hello-cd  -> builds psx-hello, then its CD image
+#                       psx-hello/build/psx-hello.bin and PSX_HELLO_CUE
+#                       (default psx-hello/build/psx-hello.cue), outside the
+#                       suite
+# make psx-net-check -> probes every host of PSX_SOURCES (default
+#                       tools/psx_sources.txt) without downloading; fails,
+#                       naming each unreachable host, outside the suite
+# make psx-emulator-setup -> runs psx-net-check, then builds the pinned
+#                       PCSX-Redux and its OpenBIOS from PSX_SOURCES into
+#                       PSX_EMULATOR_DIR (default third_party/pcsx-redux),
+#                       ~10 min; apt via sudo unless PSX_EMULATOR_SKIP_APT is
+#                       set; exits 0 at once on a complete install, fails on
+#                       a non-empty directory without its stamp, outside the
+#                       suite
+# make psx-boot [PSX_EXE=<exe> | PSX_ISO=<cue>] -> boots that input (or
+#                       nothing) headless in PSX_EMULATOR_DIR for PSX_FRAMES
+#                       vsyncs (default 600), writes PSX_OUT.vram (capture:
+#                       "psx-vram <w> <h> <depth>" line, then raw bytes),
+#                       PSX_OUT.tty.txt and PSX_OUT.log (default PSX_OUT
+#                       tmp/psx/boot); fails naming the input after
+#                       PSX_BOOT_TIMEOUT s (default 120), outside the suite
+# make psx-emulator-check -> fetches the test media of PSX_SOURCES into
+#                       tmp/psx/media (sha256-checked), boots the test .exe
+#                       twice, the test .cue twice and nothing once in
+#                       PSX_EMULATOR_DIR (outputs in tmp/psx/check, ~1 min);
+#                       fails, one line per failed condition, unless both
+#                       pairs of captures match, PSX_KNOWN_LINE is in the exe
+#                       TTY and the .cue capture differs from the empty one;
+#                       never runs the setup, outside the suite
+# make psx-hello-check -> builds psx-hello, boots it twice and nothing once in
+#                       PSX_EMULATOR_DIR (outputs in tmp/psx/hello-check,
+#                       ~35 s); fails, one line per failed condition, unless
+#                       the .exe has the PS-EXE magic, its captures match,
+#                       differ from the empty one and are not one color, and
+#                       PSX_HELLO_TTY_LINE is in its TTY; never runs a setup,
+#                       outside the suite
+# make psx-hello-cd-check -> builds psx-hello-cd, then the same check on
+#                       PSX_HELLO_CUE (outputs in tmp/psx/hello-cd-check,
+#                       ~35 s), with a cue condition (the .cue names a .bin
+#                       of whole 2352-byte sectors) in place of the magic;
+#                       never runs a setup, outside the suite
+# make psx-hello-e2e -> runs psx-hello-cd-check, then compares the sha256 of
+#                       its first capture with PSX_HELLO_REFERENCE (default
+#                       psx-hello/psx-hello-cd.vram.sha256); fails on a failed
+#                       proof, a mismatch, a missing reference or a PSX_FRAMES
+#                       other than 600; never runs a setup, ~35 s, outside
+#                       the suite
+# make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
+#                       never run by any other target
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1051,14 +1110,73 @@ sin-table: $(TMP_DIR)/gen_quarter_wave
 
 .PHONY: sin-table
 
-psn00bsdk-toolchain-setup:
-	sh tools/install_psn00bsdk_toolchain.sh
+PSX_SOURCES ?= tools/psx_sources.txt
+PSN00BSDK_DIR ?= third_party/psn00bsdk
+
+psn00bsdk-toolchain-setup: psx-net-check
+	sh tools/install_psn00bsdk_toolchain.sh $(PSN00BSDK_DIR) $(PSX_SOURCES)
 
 psx-hello:
-	cmake -S psx-hello -B psx-hello/build && cmake --build psx-hello/build
+	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-hello: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
+	cmake --fresh -S psx-hello -B psx-hello/build \
+		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake
+	cmake --build psx-hello/build
+
+PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
+
+psx-hello-cd: psx-hello
+	cmake --build psx-hello/build --target psx-hello-iso
+	@[ -f psx-hello/build/psx-hello.bin ] && [ -f $(PSX_HELLO_CUE) ] || { echo "psx-hello-cd: psx-hello/build/psx-hello.bin or $(PSX_HELLO_CUE) missing" >&2; exit 1; }
 
 psx-hello-clean:
 	rm -rf psx-hello/build
+
+psx-net-check:
+	sh tools/psx_net_check.sh $(PSX_SOURCES)
+
+PSX_EMULATOR_DIR ?= third_party/pcsx-redux
+
+psx-emulator-setup: psx-net-check
+	sh tools/install_psx_emulator.sh $(PSX_EMULATOR_DIR) $(PSX_SOURCES)
+
+PSX_FRAMES ?= 600
+PSX_OUT ?= $(TMP_DIR)/psx/boot
+PSX_BOOT_TIMEOUT ?= 120
+
+psx-boot:
+	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) \
+		$(if $(PSX_EXE),--exe $(PSX_EXE)) $(if $(PSX_ISO),--iso $(PSX_ISO)) \
+		$(PSX_FRAMES) $(PSX_OUT)
+
+PSX_KNOWN_LINE ?= Auto test all GTE valid opcodes/registers
+
+psx-emulator-check:
+	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_emulator_check.sh $(PSX_EMULATOR_DIR) \
+		$(PSX_SOURCES) $(TMP_DIR)/psx/media $(TMP_DIR)/psx/check '$(PSX_KNOWN_LINE)' $(PSX_FRAMES)
+
+PSX_HELLO_TTY_LINE ?= psx-hello: main loop started
+
+psx-hello-check: psx-hello
+	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
+		--exe psx-hello/build/psx-hello.exe '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-check
+
+psx-hello-cd-check: psx-hello-cd
+	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
+		--iso $(PSX_HELLO_CUE) '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-cd-check
+
+PSX_HELLO_REFERENCE ?= psx-hello/psx-hello-cd.vram.sha256
+PSX_HELLO_REFERENCE_FRAMES := 600
+PSX_HELLO_CD_CAPTURE := $(TMP_DIR)/psx/hello-cd-check/run1.vram
+# A prerequisite, not a recipe line: under -j it fails while the image builds, so the boots never start.
+psx-hello-frames-guard:
+	@[ "$(PSX_FRAMES)" = "$(PSX_HELLO_REFERENCE_FRAMES)" ] || { echo "psx-hello-e2e: PSX_FRAMES is $(PSX_FRAMES), the reference was taken at $(PSX_HELLO_REFERENCE_FRAMES)" >&2; exit 1; }
+
+psx-hello-e2e: psx-hello-frames-guard psx-hello-cd-check
+	@sh tools/psx_reference_check.sh $(PSX_HELLO_REFERENCE) $(PSX_HELLO_CD_CAPTURE)
+
+psx-hello-e2e-baseline: psx-hello-frames-guard psx-hello-cd-check
+	@h=$$($(SHA256_CMD) $(PSX_HELLO_CD_CAPTURE)) && echo "$${h%% *}" > $(PSX_HELLO_REFERENCE) \
+		&& echo "psx-hello-e2e: reference set in $(PSX_HELLO_REFERENCE) ($${h%% *})"
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.

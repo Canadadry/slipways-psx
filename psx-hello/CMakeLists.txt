@@ -13,5 +13,6 @@ project(
 
 file(GLOB _sources *.c)
 psn00bsdk_add_executable(psx-hello GPREL ${_sources})
+psn00bsdk_add_cd_image(psx-hello-iso psx-hello iso.xml DEPENDS psx-hello system.cnf)
 
 install(FILES ${PROJECT_BINARY_DIR}/psx-hello.exe TYPE BIN)
