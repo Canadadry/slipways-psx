@@ -3353,6 +3353,21 @@ static void test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_co
     assert_hovering(&step, &planet->header);
 }
 
+static void test_down_while_the_planet_menu_slides_in_moves_one_row(void) {
+    entity_t *rows[ITEMS_CAP];
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *planet = known_planet_closest_to_centre();
+    hold(&step, 0, 2);
+    assert_hovering(&step, &planet->header);
+    run_frame(&step, P8_PAD_TRIANGLE);
+    run_frame(&step, 0);
+    assert(box_entries(rows) >= 3);
+    assert(pad_nav_focus(&step.pad_nav) == rows[0]);
+    run_frame(&step, P8_PAD_DOWN);
+    assert(pad_nav_focus(&step.pad_nav) == rows[1]);
+}
+
 /* △ then a release frame; returns the hovered object after both. */
 static entity_t *triangle_click(input_step_t *step, int with_press, int with_release) {
     run_frame(step, P8_PAD_TRIANGLE | with_press);
@@ -5932,6 +5947,7 @@ int main(void) {
     in_fresh_child(test_a_jump_scrolls_only_to_bring_the_target_just_inside);
     in_fresh_child(test_jumps_repeats_and_edge_scrolls_leave_the_game_stream_unchanged);
     in_fresh_child(test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_comes_back);
+    in_fresh_child(test_down_while_the_planet_menu_slides_in_moves_one_row);
     in_fresh_child(test_triangle_on_a_hovered_colony_opens_its_panel_and_no_jump_shares_the_click);
     in_fresh_child(test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing);
     in_fresh_child(test_cross_on_a_hovered_known_planet_opens_its_menu_and_records_it);
