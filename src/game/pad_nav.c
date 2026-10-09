@@ -382,7 +382,7 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
 
 /* The title and a new game rebuild the id table above every old generation, so the old game's economy id resolves
  * to NULL: no title frame is needed in between. */
-static void start_new_game(pad_nav_t *nav) {
+static void reset_on_new_game(pad_nav_t *nav) {
     entity_t *economy = main_economy_typed() != NULL ? &main_economy_typed()->header : NULL;
     if (economy == NULL || entity_get(nav->jump.game) == economy) {
         return;
@@ -814,10 +814,10 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
     *shown = aimed;
 }
 
-/* *jump_ran says whether jump mode ran this frame. */
+/* *repeat_kept says whether the hold-repeat count survives this frame: jump or slipway mode ran. */
 static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
                      pad_select_event_t select, int year_release, p8_input_frame_t *played, const entity_t **shown,
-                     int *jump_ran) {
+                     int *repeat_kept) {
     if (pad_nav_placing(nav) != NULL) {
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
@@ -834,12 +834,12 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
                       shown);
     } else if (nav->map_mode == PAD_NAV_MAP_SLIPWAY) {
         slipway_step(nav, pad_buttons, pressed, circle_returns, release, played, shown);
-        *jump_ran = 1;
+        *repeat_kept = 1;
     } else {
         assert(pad_nav_jump_mode(nav) &&
                "map_step: after placement, panels, aim and slipway mode, only jump mode is left");
         jump_step(nav, pad_buttons, pressed, release, circle_returns, select == PAD_SELECT_TAP, played, shown);
-        *jump_ran = 1;
+        *repeat_kept = 1;
     }
 }
 
@@ -1000,7 +1000,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     if (!armed_panel_open(nav)) {
         nav->menu_cross_armed = 0;
     }
-    start_new_game(nav);
+    reset_on_new_game(nav);
     int panels_changed = begin_placement(nav);
     if (resume_placement(nav)) {
         release = 0;
@@ -1029,7 +1029,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         (void)cancel_slipway(nav);
     }
     cancelled_t cancelled = CANCELLED_NOTHING;
-    int jump_ran = 0;
+    int repeat_kept = 0;
     if (!panels_changed) {
         panels_changed = switch_panels(nav, pressed, release, foreign_was_open, &cancelled, played);
     }
@@ -1065,12 +1065,12 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         nav->focus = ENTITY_ID_NONE;
     } else if (on_the_map(nav)) {
         map_step(nav, pad_buttons, pressed, direction, release, circle_returns, select, year_release, played, &shown,
-                 &jump_ran);
+                 &repeat_kept);
     } else {
         reset_aim_mode(nav);
         bar_or_cycle_step(nav, pad_buttons, pressed, direction, release, played);
     }
-    if (!jump_ran) {
+    if (!repeat_kept) {
         pad_jump_repeat_clear(&nav->jump);
     }
     finish_step(nav, release, shown, played);
