@@ -66,10 +66,14 @@ src/platform/psx_sprite.c | spr as a clipped GPU sprite, PSX build and its host 
 src/platform/psx_sprite.h | spr as a clipped GPU sprite, header of platform/psx_sprite.c
 src/platform/psx_text.c | print as clipped GPU glyph sprites, PSX build and its host test
 src/platform/psx_text.h | print as clipped GPU glyph sprites, header of platform/psx_text.c
-src/platform/psx_gpu_textures.c | CLUTs and the font texture built for the PSX GPU backend, PSX build and its host test
-src/platform/psx_gpu_textures.h | CLUTs and the font texture built for the PSX GPU backend, header of platform/psx_gpu_textures.c
+src/platform/psx_gpu_textures.c | CLUTs, the font texture and the pattern tiles built for the PSX GPU backend, PSX build and its host test
+src/platform/psx_gpu_textures.h | CLUTs, the font texture and the pattern tiles built for the PSX GPU backend, header of platform/psx_gpu_textures.c
 src/platform/psx_clut_cache.c | per-frame spr CLUT cache of the PSX GPU backend, PSX build and its host test
 src/platform/psx_clut_cache.h | per-frame spr CLUT cache of the PSX GPU backend, header of platform/psx_clut_cache.c
+src/platform/psx_pattern_cache.c | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, PSX build and its host test
+src/platform/psx_pattern_cache.h | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, header of platform/psx_pattern_cache.c
+src/platform/psx_pattern.c | patterned rectfill and circfill as GPU sprites under a texture window, PSX build and its host test
+src/platform/psx_pattern.h | patterned rectfill and circfill as GPU sprites under a texture window, header of platform/psx_pattern.c
 src/devtools/draw_filter.c | family filter of the GPU captures, shared by the PC replay and the PSX GPU replay
 src/devtools/draw_filter.h | family filter of the GPU captures, header of devtools/draw_filter.c
 src/devtools/capture_list.c | GPU capture list parser, host tool

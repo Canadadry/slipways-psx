@@ -4,9 +4,11 @@ replay pad_slipway
 cls 1 cls
 rectfill 11 cls,rectfill
 pset 131 cls,pset
+pattern 190 cls,rectfill,circfill,pattern
 line 194 cls,line
 circfill 217 cls,line,circfill
 spr 234 cls,spr
+pattern 257 cls,rectfill,circfill,pattern
 print 299 cls,print
 rect 322 cls,rect
 circ 394 cls,circ

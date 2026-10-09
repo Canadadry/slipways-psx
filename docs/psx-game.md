@@ -101,8 +101,7 @@ the previous one; NULL, the default, is the software backend
 PC game, the e2e and every test.
 
 **`fillp`, `palt` and the draw palette on the GPU: per-texture CLUT and
-pattern textures, no software fallback** (decided; step 4 implements it,
-`spr` and `print` done).
+pattern textures, no software fallback** (decided; implemented in step 4).
 
 - `spr` reads its texture through a CLUT built from `mem->draw_palette` at
   the call: entry `c` is 0x0000 (transparent) when bit 0x80 is set, else the
@@ -116,7 +115,9 @@ pattern textures, no software fallback** (decided; step 4 implements it,
   indexed by world coordinates, before the camera (U/V origin = world
   coordinate mod 8), as the software `fillp_color` does. A slot is keyed by
   pattern, colour byte and transparent flag. A span without pattern is a
-  `TILE`.
+  `TILE`. The window change is one `DR_TWIN`, not the `DR_TPAGE` +
+  `DR_TWIN` pair the cost model meters: every textured call reads the one
+  page `psx_gpu_frame_begin` sets.
 - Rejected: rasterising those calls in RAM would need the framebuffer
   uploaded every frame, the copy the GPU path replaces.
 
@@ -194,8 +195,18 @@ point, no `malloc`):
   (texel 1 lit), and the 16 font CLUTs (entry 1 the colour, every other
   entry transparent), built by `psx_gpu_textures_font` and
   `psx_gpu_textures_font_clut` (host-tested by `test_psx_gpu_textures`);
-  the CLUT is the font line of `col & 0x0F`; a patterned `rectfill` or
-  `circfill` draws nothing yet;
+  the CLUT is the font line of `col & 0x0F`; a patterned `rectfill` box or
+  `circfill` span is a raw-textured `SPRT` whose (u, v) is its top-left
+  pixel's world coordinates mod 8, under a texture window repeating its
+  pattern slot's 8x8 tile (`src/platform/psx_pattern.c`, host-tested pixel
+  for pixel by `test_psx_pattern`), a `DR_TWIN` sent only when the window
+  changes (a pattern slot, or none for `spr` and `print`); a frame's
+  pattern tiles and CLUTs are cached by `p8_draw_cost_pattern_key`
+  (`src/platform/psx_pattern_cache.c`, built by `psx_gpu_textures_pattern`
+  and `psx_gpu_textures_pattern_clut`, one cache per primitive buffer) and
+  uploaded with the spr CLUTs to the pattern slots and pattern CLUT lines;
+  more than `GPU_PATTERN_SLOTS` in a frame is a `p8_fatal` naming the
+  frame;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -368,9 +379,7 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Step 4 of plan 10: the GPU families, one at a time, each with its capture
-  line in `psx/gpu_captures.txt`: the fill patterns of `rectfill` and
-  `circfill` (with the pattern slots), then the `all` captures.
+- Step 4 of plan 10: the `all` captures in `psx/gpu_captures.txt`.
 
 - Pending human acceptance (review the report line and
   `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` after `make
@@ -381,6 +390,14 @@ None of these targets is in `make test-all`, and none runs a setup.
     near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `pset` f131: `pset f131 mask cls,pset calls 65 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
+  - `pattern` f190: `pattern f190 mask cls,rectfill,circfill,pattern calls 9
+    differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform
+    0`, ceiling 0: the 0xA5A5 background grid and the 0x0F0F menu bar,
+    5,452 lit pixels in 6 colours.
+  - `pattern` f257: `pattern f257 mask cls,rectfill,circfill,pattern calls 9
+    differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform
+    0`, ceiling 0: the transparent 0xAAAA disc on p12 over the grid, 2,032
+    lit pixels in 5 colours. Both `pattern` captures are accepted together.
   - `line` f194: `line f194 mask cls,line calls 8 differ 2 (0.1‰) near1 2
     near2 0 far 0 bbox 72,119-73,119 offpalette 0 nonuniform 0`, ceiling 2:
     two bottom-row pixels the PC lights stay black on the PSX, where the

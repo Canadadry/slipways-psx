@@ -7,6 +7,8 @@ enum {
     PSX_GPU_TEXTURES_CLUT_ENTRIES = 16,
     PSX_GPU_TEXTURES_FONT_SIZE = 128,
     PSX_GPU_TEXTURES_FONT_UNITS = PSX_GPU_TEXTURES_FONT_SIZE * PSX_GPU_TEXTURES_FONT_SIZE / 4,
+    PSX_GPU_TEXTURES_PATTERN_SIZE = 8,
+    PSX_GPU_TEXTURES_PATTERN_UNITS = PSX_GPU_TEXTURES_PATTERN_SIZE * PSX_GPU_TEXTURES_PATTERN_SIZE / 4,
 };
 
 typedef struct {
@@ -27,5 +29,13 @@ psx_gpu_textures_texel_t psx_gpu_textures_font_cell(char character);
 
 /* print's CLUT for colour (0..15): entry 1 is psx_colour_rgb555(colour), every other entry 0x0000. */
 void psx_gpu_textures_font_clut(int colour, uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]);
+
+/* A fillp pattern's tile, PSX_GPU_TEXTURES_PATTERN_SIZE texels square, laid out as the font: texel
+ * (u, v) is 1 when the pattern's bit for world (u, v) is set, else 0. */
+void psx_gpu_textures_pattern(unsigned int pattern, uint16_t tile[PSX_GPU_TEXTURES_PATTERN_UNITS]);
+
+/* A patterned fill's CLUT: entry 0 is colour col & 0x0F, entry 1 is (col >> 4) & 0x0F, or 0x0000
+ * when transparent; every other entry 0x0000. */
+void psx_gpu_textures_pattern_clut(int col, int transparent, uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]);
 
 #endif

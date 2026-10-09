@@ -44,3 +44,21 @@ void psx_gpu_textures_font_clut(int colour, uint16_t clut[PSX_GPU_TEXTURES_CLUT_
     memset(clut, 0, PSX_GPU_TEXTURES_CLUT_ENTRIES * sizeof clut[0]);
     clut[1] = psx_colour_rgb555(colour);
 }
+
+void psx_gpu_textures_pattern(unsigned int pattern, uint16_t tile[PSX_GPU_TEXTURES_PATTERN_UNITS]) {
+    memset(tile, 0, PSX_GPU_TEXTURES_PATTERN_UNITS * sizeof tile[0]);
+    for (int v = 0; v < PSX_GPU_TEXTURES_PATTERN_SIZE; v++) {
+        for (int u = 0; u < PSX_GPU_TEXTURES_PATTERN_SIZE; u++) {
+            int bit = 15 - (v % 4 * 4 + u % 4);
+            if ((pattern >> bit) & 1) {
+                tile[v * (PSX_GPU_TEXTURES_PATTERN_SIZE / 4) + u / 4] |= (uint16_t)(1u << (4 * (u % 4)));
+            }
+        }
+    }
+}
+
+void psx_gpu_textures_pattern_clut(int col, int transparent, uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]) {
+    memset(clut, 0, PSX_GPU_TEXTURES_CLUT_ENTRIES * sizeof clut[0]);
+    clut[0] = psx_colour_rgb555(col & 0x0F);
+    clut[1] = transparent ? 0x0000 : psx_colour_rgb555((col >> 4) & 0x0F);
+}

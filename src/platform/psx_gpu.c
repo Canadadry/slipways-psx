@@ -7,6 +7,8 @@
 #include "p8/sprite_sheet.h"
 #include "platform/psx_clut_cache.h"
 #include "platform/psx_gpu_textures.h"
+#include "platform/psx_pattern.h"
+#include "platform/psx_pattern_cache.h"
 #include "platform/psx_sprite.h"
 #include "platform/psx_text.h"
 #include "platform/psx_tiles.h"
@@ -44,8 +46,13 @@ static size_t used;
 static uint32_t *previous;
 static int frame_number;
 static DISPENV displays[2];
-/* One per primitive buffer: frame N fills its cache while frame N-1's LoadImage may still read the other. */
+/* One of each per primitive buffer: frame N fills its caches while frame N-1's LoadImage may still read the others. */
 static psx_clut_cache_t clut_caches[2];
+static psx_pattern_cache_t pattern_caches[2];
+/* The pattern slot the frame's last DR_TWIN repeats, NO_WINDOW for none. */
+static int window_slot;
+
+enum { NO_WINDOW = -1 };
 
 static void *packet(size_t bytes) {
     if (used + bytes > GPU_FRAME_BUFFER_BYTES) {
@@ -75,6 +82,24 @@ static void add_no_texture_window(void) {
     static const RECT none = { 0, 0, 0, 0 };
     DR_TWIN *window = packet(sizeof *window);
     setTexWindow(window, &none);
+    window_slot = NO_WINDOW;
+}
+
+/* Only a DR_TWIN, where the cost model meters a DR_TPAGE too: every textured call reads the one
+ * page frame_begin sets. */
+static void use_texture_window(int slot) {
+    if (slot == window_slot) {
+        return;
+    }
+    if (slot == NO_WINDOW) {
+        add_no_texture_window();
+        return;
+    }
+    psx_pattern_window_t fields = psx_pattern_window(slot);
+    RECT rect = { (int16_t)fields.offset_x, (int16_t)fields.offset_y, (int16_t)fields.mask_x, (int16_t)fields.mask_y };
+    DR_TWIN *window = packet(sizeof *window);
+    setTexWindow(window, &rect);
+    window_slot = slot;
 }
 
 static void upload_sprite_sheet(void) {
@@ -89,10 +114,14 @@ static void upload_sprite_sheet(void) {
     }
 }
 
-static void load_and_wait(psx_vram_rect_t region, const void *pixels) {
+static void queue_load(psx_vram_rect_t region, const uint16_t *pixels) {
     RECT rect = { (int16_t)region.x, (int16_t)region.y, (int16_t)region.w, (int16_t)region.h };
     assert(((uintptr_t)pixels & 3) == 0 && "LoadImage's DMA reads whole words");
     LoadImage(&rect, (const uint32_t *)pixels);
+}
+
+static void load_and_wait(psx_vram_rect_t region, const uint16_t *pixels) {
+    queue_load(region, pixels);
     DrawSync(0);
 }
 
@@ -192,13 +221,53 @@ static void gpu_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, i
     }
 }
 
+static int patterned(const p8_graphics_t *gfx) {
+    return (gfx->fillp_pattern & 0xFFFFu) != 0;
+}
+
+static void add_sprt(int x, int y, int u, int v, int w, int h, psx_vram_rect_t clut) {
+    SPRT *primitive = packet(sizeof *primitive);
+    setSprt(primitive);
+    setShadeTex(primitive, 1);
+    setRGB0(primitive, 128, 128, 128);
+    setXY0(primitive, x, y);
+    setUV0(primitive, u, v);
+    setWH(primitive, w, h);
+    primitive->clut = getClut(clut.x, clut.y);
+}
+
+static int pattern_slot(const p8_graphics_t *gfx, int col) {
+    int slot = psx_pattern_cache_slot(&pattern_caches[current], gfx, col);
+    if (slot < 0) {
+        static char message[128];
+        snprintf(message, sizeof message, "psx_gpu: frame %d needs more than %d fill patterns", frame_number,
+                 GPU_PATTERN_SLOTS);
+        p8_fatal(message);
+    }
+    return slot;
+}
+
+/* Called only with spans to draw, so that the window and the slots change only where the cost
+ * model counts a call on screen. */
+static void add_patterned_spans(const p8_graphics_t *gfx, const psx_tile_t *spans, int count, int col) {
+    int slot = pattern_slot(gfx, col);
+    use_texture_window(slot);
+    psx_vram_rect_t clut = psx_vram_layout_pattern_clut(slot);
+    for (int s = 0; s < count; s++) {
+        psx_sprite_t sprite = psx_pattern_sprite(gfx, spans[s]);
+        add_sprt(sprite.x, sprite.y, sprite.u, sprite.v, sprite.w, sprite.h, clut);
+    }
+}
+
 static void gpu_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     (void)mem;
-    if ((gfx->fillp_pattern & 0xFFFFu) != 0) {
-        return; /* TODO step 4: a pattern-slot SPRT. */
-    }
     psx_tile_t tile;
-    if (psx_tiles_rectfill(gfx, x1, y1, x2, y2, &tile)) {
+    if (!psx_tiles_rectfill(gfx, x1, y1, x2, y2, &tile)) {
+        return;
+    }
+    if (patterned(gfx)) {
+        add_patterned_spans(gfx, &tile, 1, col);
+    } else {
         add_tile(tile, col);
     }
 }
@@ -211,11 +280,12 @@ static void gpu_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, i
 
 static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
     (void)mem;
-    if ((gfx->fillp_pattern & 0xFFFFu) != 0) {
-        return; /* TODO step 4: pattern-slot SPRT spans. */
-    }
     psx_tile_t spans[PSX_TILES_CIRCFILL_MAX];
     int count = psx_tiles_circfill(gfx, cx, cy, r, spans);
+    if (count > 0 && patterned(gfx)) {
+        add_patterned_spans(gfx, spans, count, col);
+        return;
+    }
     for (int s = 0; s < count; s++) {
         add_tile(spans[s], col);
     }
@@ -223,14 +293,9 @@ static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int c
 
 static void add_textured_sprite(psx_sprite_t sprite, psx_vram_rect_t texture, psx_vram_rect_t clut) {
     psx_vram_rect_t page = psx_vram_layout_texture_page();
-    SPRT *primitive = packet(sizeof *primitive);
-    setSprt(primitive);
-    setShadeTex(primitive, 1);
-    setRGB0(primitive, 128, 128, 128);
-    setXY0(primitive, sprite.x, sprite.y);
-    setUV0(primitive, (texture.x - page.x) * 4 + sprite.u, texture.y - page.y + sprite.v);
-    setWH(primitive, sprite.w, sprite.h);
-    primitive->clut = getClut(clut.x, clut.y);
+    use_texture_window(NO_WINDOW);
+    add_sprt(sprite.x, sprite.y, (texture.x - page.x) * 4 + sprite.u, texture.y - page.y + sprite.v, sprite.w, sprite.h,
+             clut);
 }
 
 static int clut_slot(const unsigned char draw_palette[PSX_GPU_TEXTURES_CLUT_ENTRIES]) {
@@ -277,6 +342,7 @@ void psx_gpu_frame_begin(int frame) {
     used = 0;
     previous = NULL;
     psx_clut_cache_reset(&clut_caches[current]);
+    psx_pattern_cache_reset(&pattern_caches[current]);
     add_draw_target(psx_vram_layout_region(PSX_VRAM_DRAW_AREA));
     psx_vram_rect_t page = psx_vram_layout_texture_page();
     DR_TPAGE *tpage = packet(sizeof *tpage);
@@ -299,13 +365,13 @@ static void add_upscale(void) {
 
 /* Queued behind the previous frame's DrawSync and ahead of this frame's DrawOTag, so no slot
  * changes while a frame reads it. */
-static void upload_cluts(const psx_clut_cache_t *cache) {
-    for (int slot = 0; slot < psx_clut_cache_count(cache); slot++) {
-        psx_vram_rect_t line = psx_vram_layout_palette_clut(slot);
-        RECT rect = { (int16_t)line.x, (int16_t)line.y, (int16_t)line.w, (int16_t)line.h };
-        const uint16_t *clut = psx_clut_cache_clut(cache, slot);
-        assert(((uintptr_t)clut & 3) == 0 && "LoadImage's DMA reads whole words");
-        LoadImage(&rect, (const uint32_t *)clut);
+static void upload_slots(const psx_clut_cache_t *cluts, const psx_pattern_cache_t *patterns) {
+    for (int slot = 0; slot < psx_clut_cache_count(cluts); slot++) {
+        queue_load(psx_vram_layout_palette_clut(slot), psx_clut_cache_clut(cluts, slot));
+    }
+    for (int slot = 0; slot < psx_pattern_cache_count(patterns); slot++) {
+        queue_load(psx_vram_layout_pattern_slot(slot), psx_pattern_cache_tile(patterns, slot));
+        queue_load(psx_vram_layout_pattern_clut(slot), psx_pattern_cache_clut(patterns, slot));
     }
 }
 
@@ -324,7 +390,7 @@ void psx_gpu_frame_end(unsigned long metered_bytes) {
         p8_fatal(message);
     }
     DrawSync(0);
-    upload_cluts(&clut_caches[current]);
+    upload_slots(&clut_caches[current], &pattern_caches[current]);
     PutDispEnv(&displays[current ^ 1]);
     DrawOTag(buffers[current]);
     current ^= 1;

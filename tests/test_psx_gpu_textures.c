@@ -1,6 +1,7 @@
 #include "platform/psx_gpu_textures.h"
 
 #include "p8/gfx.h"
+#include "p8/vram.h"
 #include "platform/psx_colour.h"
 
 #include <assert.h>
@@ -85,12 +86,73 @@ static void test_a_font_clut_lights_texel_one_in_its_colour(void) {
     assert(black[1] == 0x8000 && "black text is drawn, not skipped");
 }
 
+static int pattern_texel(const uint16_t tile[PSX_GPU_TEXTURES_PATTERN_UNITS], int u, int v) {
+    int unit = tile[v * (PSX_GPU_TEXTURES_PATTERN_SIZE / 4) + u / 4];
+    return (unit >> (4 * (u % 4))) & 0x0F;
+}
+
+/* fillp's high-nibble colour marks a set bit: the software's own reading of the pattern. */
+static int software_bit_set(unsigned int pattern, int world_x, int world_y) {
+    static p8_vram_t software;
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    p8_fillp(&gfx, pattern);
+    p8_camera(&gfx, world_x, world_y);
+    p8_vram_init(&software);
+    p8_rectfill(&gfx, &software, world_x, world_y, world_x, world_y, 0x21);
+    assert(software.screen[0][0] == 1 || software.screen[0][0] == 2);
+    return software.screen[0][0] == 2;
+}
+
+static void test_a_pattern_tile_holds_the_software_bit_at_each_world_phase(void) {
+    const unsigned int patterns[] = { 0xA5A5, 0x0F0F, 0xAAAA, 0x8001 };
+    for (unsigned p = 0; p < sizeof patterns / sizeof patterns[0]; p++) {
+        uint16_t tile[PSX_GPU_TEXTURES_PATTERN_UNITS];
+        memset(tile, 0xFF, sizeof tile);
+        psx_gpu_textures_pattern(patterns[p], tile);
+        for (int v = 0; v < PSX_GPU_TEXTURES_PATTERN_SIZE; v++) {
+            for (int u = 0; u < PSX_GPU_TEXTURES_PATTERN_SIZE; u++) {
+                int expected = software_bit_set(patterns[p], u, v);
+                assert(pattern_texel(tile, u, v) == expected);
+                assert(software_bit_set(patterns[p], u - 40, v + 16) == expected && "world phase repeats every 8");
+            }
+        }
+    }
+}
+
+static void test_a_pattern_clut_maps_clear_bits_to_the_low_nibble_and_set_ones_to_the_high(void) {
+    uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES];
+    memset(clut, 0xFF, sizeof clut);
+    psx_gpu_textures_pattern_clut(0x5C, 0, clut);
+    assert(clut[0] == psx_colour_rgb555(12));
+    assert(clut[1] == psx_colour_rgb555(5));
+    for (int i = 2; i < PSX_GPU_TEXTURES_CLUT_ENTRIES; i++) {
+        assert(clut[i] == 0x0000);
+    }
+    psx_gpu_textures_pattern_clut(0x10, 0, clut);
+    assert(clut[0] == 0x8000 && "black is drawn, not skipped");
+    psx_gpu_textures_pattern_clut(0x07, 0, clut);
+    assert(clut[1] == 0x8000);
+}
+
+static void test_a_transparent_pattern_clut_skips_set_bits(void) {
+    uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES];
+    psx_gpu_textures_pattern_clut(0x5C, 1, clut);
+    assert(clut[0] == psx_colour_rgb555(12));
+    assert(clut[1] == 0x0000);
+    psx_gpu_textures_pattern_clut(0xF0, 1, clut);
+    assert(clut[0] == 0x8000);
+}
+
 int main(void) {
     test_a_transparent_entry_is_zero_and_black_stays_opaque();
     test_each_entry_follows_its_draw_palette_byte();
     test_each_character_cell_holds_its_glyph_and_nothing_else_is_lit();
     test_a_cell_is_found_by_its_character_code_signed_or_not();
     test_a_font_clut_lights_texel_one_in_its_colour();
+    test_a_pattern_tile_holds_the_software_bit_at_each_world_phase();
+    test_a_pattern_clut_maps_clear_bits_to_the_low_nibble_and_set_ones_to_the_high();
+    test_a_transparent_pattern_clut_skips_set_bits();
     printf("test_psx_gpu_textures: ok\n");
     return 0;
 }
