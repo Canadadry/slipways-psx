@@ -246,8 +246,8 @@ static void test_cross_held_across_the_click_leaves_nothing_held(void) {
         assert(input_step_played_frame(&step)->mouse_buttons == (i == 0 ? P8_MOUSE_LEFT : 0));
     }
     assert(strcmp(economy_score_difficulty()->name, "forgiving") == 0);
-    assert(pad_nav_jump_mode(&step.pad_nav));
-    run_frame(&step, P8_PAD_CROSS | P8_PAD_SQUARE);
+    assert(pad_nav_aim_mode(&step.pad_nav));
+    run_frame(&step, P8_PAD_CROSS);
     for (int i = 0; i < SETTLE_FRAMES; i++) {
         run_frame(&step, P8_PAD_CROSS);
         assert(input_step_played_frame(&step)->mouse_buttons == 0);
@@ -265,7 +265,8 @@ static void test_aim_mode_holds_the_cursor_at_the_centre(void) {
     assert(!pad_nav_aim_mode(&step.pad_nav));
     run_frame(&step, P8_PAD_CROSS);
     assert(!pad_nav_panel_open());
-    leave_jump_mode(&step);
+    tap(&step, 0);
+    assert(pad_nav_aim_mode(&step.pad_nav));
     for (int i = 0; i < 24; i++) {
         int pad = (i * 0x2a5) & 2047 & ~(P8_PAD_L1 | P8_PAD_R1 | P8_PAD_START);
         run_frame(&step, pad);
@@ -354,17 +355,31 @@ static void settle(input_step_t *step) {
     }
 }
 
-static void start_game_in_jump_mode(input_step_t *step) {
+/* The title and the game's creation, no frame run: the layout built before the first frame is what the game
+ * appears with. */
+static void begin_game(input_step_t *step) {
     start_title(step);
     cart_start_game((button_t *)title_button("forgiving"));
-    settle(step);
-    assert(main_economy_typed() != NULL && !pad_nav_panel_open());
-    assert(pad_nav_jump_mode(&step->pad_nav));
 }
 
 static void start_game(input_step_t *step) {
-    start_game_in_jump_mode(step);
-    leave_jump_mode(step);
+    begin_game(step);
+    settle(step);
+    assert(main_economy_typed() != NULL && !pad_nav_panel_open());
+    assert(pad_nav_aim_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == NULL);
+}
+
+/* □ from aim mode once an object is known: jump mode on the object nearest the centre. */
+static void enter_jump_mode(input_step_t *step) {
+    assert(pad_nav_aim_mode(&step->pad_nav));
+    const camera_t *camera = main_camera_typed();
+    vec_t at = camera_pos_before_shake(camera);
+    entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
+    entity_t *nearest = pad_jump_nearest(p8_fixed_flr_int(at.x) + P8_SCREEN_WIDTH / 2,
+                                         p8_fixed_flr_int(at.y) + P8_SCREEN_HEIGHT / 2, &candidates);
+    assert(nearest != NULL);
+    tap(step, P8_PAD_SQUARE);
+    assert(pad_nav_jump_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == nearest);
 }
 
 /* Returns 1 in a child that copies the current world, 0 in the parent once that child ended cleanly;
@@ -799,11 +814,49 @@ static void end_game(input_step_t *step) {
     settle(step);
 }
 
+/* NULL when no planet-family entity is live. */
+static planet_t *planet_closest_to_centre(void) {
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    vec_t centre = centre_world();
+    planet_t *chosen = NULL;
+    int best = 0;
+    for (int i = 0; i < planets->count; i++) {
+        vec_t gap = vec_sub(entity_pos(planets->items[i]), centre);
+        int distance = absolute_int(p8_fixed_flr_int(gap.x)) + absolute_int(p8_fixed_flr_int(gap.y));
+        if (chosen == NULL || distance < best) {
+            chosen = (planet_t *)planets->items[i];
+            best = distance;
+        }
+    }
+    return chosen;
+}
+
+/* Rolls the planet's type until it lands known, as a fold reveals it. */
+static planet_t *known_planet_closest_to_centre(void) {
+    planet_t *planet = planet_closest_to_centre();
+    assert(planet != NULL);
+    for (int i = 0; i < 64 && planet->header.state != ENTITY_STATE_KNOWN; i++) {
+        planet_roll_type(planet);
+    }
+    assert(planet->header.state == ENTITY_STATE_KNOWN);
+    return planet;
+}
+
+/* Jump mode with nothing hovered: the only known planet dies, as a vanishing one does. */
+static void jump_mode_with_nothing_known(input_step_t *step) {
+    start_game(step);
+    planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(step);
+    planet->header.is_dead = 1;
+    run_frame(step, 0);
+    assert(pad_nav_jump_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == NULL);
+}
+
 /* The final score panel opens on the map by itself: a × held into it, from jump mode with nothing hovered, presses
  * nothing until pressed again, even after a title × armed an earlier box. */
 static void test_cross_held_into_the_final_score_panel_on_the_map_presses_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    jump_mode_with_nothing_known(&step);
     assert(pad_nav_hovered(&step.pad_nav) == NULL);
     hold(&step, P8_PAD_CROSS, 2);
     assert(input_step_played_frame(&step)->mouse_buttons == 0);
@@ -897,23 +950,6 @@ static void test_planet_menu_is_reachable(void) {
     assert_reachable_and_hovered(&step, entries, count);
 }
 
-/* NULL when no planet-family entity is live. */
-static planet_t *planet_closest_to_centre(void) {
-    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
-    vec_t centre = centre_world();
-    planet_t *chosen = NULL;
-    int best = 0;
-    for (int i = 0; i < planets->count; i++) {
-        vec_t gap = vec_sub(entity_pos(planets->items[i]), centre);
-        int distance = absolute_int(p8_fixed_flr_int(gap.x)) + absolute_int(p8_fixed_flr_int(gap.y));
-        if (chosen == NULL || distance < best) {
-            chosen = (planet_t *)planets->items[i];
-            best = distance;
-        }
-    }
-    return chosen;
-}
-
 /* Keeps held_buttons down across the frame it runs. */
 static void pan_planet_under_centre(input_step_t *step, const planet_t *planet, int held_buttons) {
     vec_t gap = vec_sub(entity_pos(&planet->header), centre_world());
@@ -921,17 +957,6 @@ static void pan_planet_under_centre(input_step_t *step, const planet_t *planet, 
     run_frame(step, held_buttons);
     gap = vec_sub(entity_pos(&planet->header), centre_world());
     assert(absolute_int(p8_fixed_flr_int(gap.x)) <= 1 && absolute_int(p8_fixed_flr_int(gap.y)) <= 1);
-}
-
-/* Rolls the planet's type until it lands known, as a fold reveals it. */
-static planet_t *known_planet_closest_to_centre(void) {
-    planet_t *planet = planet_closest_to_centre();
-    assert(planet != NULL);
-    for (int i = 0; i < 64 && planet->header.state != ENTITY_STATE_KNOWN; i++) {
-        planet_roll_type(planet);
-    }
-    assert(planet->header.state == ENTITY_STATE_KNOWN);
-    return planet;
 }
 
 static planet_t *known_planet_under_centre(input_step_t *step) {
@@ -1706,8 +1731,9 @@ static void test_a_panel_opened_while_carrying_releases_at_the_icon(void) {
 
 static void test_circle_cancels_a_structure_taken_from_jump_mode_then_leaves_aim_mode(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     open_build_bar(&step);
     entity_t *structure = take_structure(&step);
@@ -1855,7 +1881,7 @@ static void test_a_new_game_starts_on_the_map(void) {
     cart_start_game((button_t *)title_button("forgiving"));
     run_frame(&step, 0);
     assert(main_economy_typed() != NULL);
-    assert(on_the_map(&step.pad_nav) && pad_nav_jump_mode(&step.pad_nav));
+    assert(on_the_map(&step.pad_nav) && pad_nav_aim_mode(&step.pad_nav));
     assert_cursor_at_centre(&step);
 }
 
@@ -2418,7 +2444,7 @@ static void test_cross_on_restart_gives_the_title_then_a_new_game_on_the_map(voi
     tap(&step, P8_PAD_CROSS);
     settle(&step);
     assert(main_economy_typed() != NULL && !pad_nav_panel_open());
-    assert(on_the_map(&step.pad_nav) && pad_nav_jump_mode(&step.pad_nav));
+    assert(on_the_map(&step.pad_nav) && pad_nav_aim_mode(&step.pad_nav));
 }
 
 static void test_the_d_pad_on_pause_moves_among_its_rows_and_no_camera(void) {
@@ -2661,7 +2687,7 @@ static void test_restart_under_pause_drops_the_suspended_structure(void) {
     assert_focused_and_hovered(&step, "forgiving");
     tap(&step, P8_PAD_CROSS);
     settle(&step);
-    assert(main_economy_typed() != NULL && pad_nav_jump_mode(&step.pad_nav));
+    assert(main_economy_typed() != NULL && pad_nav_aim_mode(&step.pad_nav));
     assert(pad_nav_placing(&step.pad_nav) == NULL && ui_left_held(main_ui()) == NULL);
     tap(&step, P8_PAD_R1);
     assert(pad_nav_tech_open(&step.pad_nav));
@@ -2737,27 +2763,28 @@ static void test_a_carried_structure_draws_no_crosshair(void) {
     assert_no_crosshair_drawn();
 }
 
-static void assert_jump_mode_rests_at_the_centre(input_step_t *step) {
-    assert(pad_nav_jump_mode(&step->pad_nav) && !pad_nav_aim_mode(&step->pad_nav));
+static void assert_aim_mode_rests_at_the_centre(input_step_t *step) {
+    assert(pad_nav_aim_mode(&step->pad_nav) && !pad_nav_jump_mode(&step->pad_nav));
     assert(pad_nav_hovered(&step->pad_nav) == NULL);
     assert_played(step, P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2, 0);
-    assert(ui_pad_selection(main_ui()) == NULL);
 }
 
-static void test_a_new_game_starts_in_jump_mode_with_nothing_hovered(void) {
-    static const int presses[] = { 0, P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT, P8_PAD_TRIANGLE };
+static void test_a_new_game_starts_in_aim_mode(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
-    assert_jump_mode_rests_at_the_centre(&step);
-    world_count_t before = world_count();
+    start_title(&step);
+    cart_start_game((button_t *)title_button("forgiving"));
+    settle(&step);
+    assert_aim_mode_rests_at_the_centre(&step);
+    cart_draw();
+    assert(crosshair_pixels_lit() == 4 * CROSSHAIR_ARM);
     vec_t from = camera_at();
-    for (int i = 0; i < 30; i++) {
-        run_frame(&step, presses[i % 6]);
-        assert_jump_mode_rests_at_the_centre(&step);
-    }
-    assert_moved(from, 0, 0);
-    assert_world_unchanged(before);
-    assert_no_crosshair_drawn();
+    hold(&step, P8_PAD_RIGHT, 4);
+    assert(camera_at().x > from.x);
+    run_frame(&step, 0);
+    assert_aim_mode_rests_at_the_centre(&step);
+    pan_to_empty_space(&step);
+    tap(&step, P8_PAD_CROSS);
+    assert(tagged_count(TAG_PROBE) == 1 && pad_nav_aim_mode(&step.pad_nav));
 }
 
 static void restart_into_a_new_game(input_step_t *step) {
@@ -2770,12 +2797,90 @@ static void restart_into_a_new_game(input_step_t *step) {
     assert(main_economy_typed() != NULL && !pad_nav_panel_open());
 }
 
-static void test_a_new_game_after_aim_mode_starts_in_jump_mode(void) {
+static void test_a_new_game_after_a_jump_mode_game_starts_in_aim_mode(void) {
     input_step_t step;
     start_game(&step);
-    hold(&step, P8_PAD_RIGHT, 5);
+    (void)known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     restart_into_a_new_game(&step);
-    assert_jump_mode_rests_at_the_centre(&step);
+    assert_aim_mode_rests_at_the_centre(&step);
+}
+
+static void test_square_and_circle_do_nothing_in_aim_mode_until_an_object_is_known(void) {
+    input_step_t step;
+    start_game(&step);
+    vec_t from = camera_at();
+    world_count_t before = world_count();
+    for (int i = 0; i < 8; i++) {
+        run_frame(&step, i % 4 == 0 ? P8_PAD_SQUARE : i % 4 == 2 ? P8_PAD_CIRCLE : 0);
+        assert_aim_mode_rests_at_the_centre(&step);
+        assert(ui_pad_selection(main_ui()) == NULL);
+    }
+    assert_moved(from, 0, 0);
+    assert_world_unchanged(before);
+    cart_draw();
+    assert(crosshair_pixels_lit() == 4 * CROSSHAIR_ARM);
+    static const int leaving[] = { P8_PAD_SQUARE, P8_PAD_CIRCLE };
+    for (int i = 0; i < 2; i++) {
+        if (in_forked_copy()) {
+            planet_t *planet = known_planet_closest_to_centre();
+            run_frame(&step, 0);
+            assert(pad_nav_aim_mode(&step.pad_nav));
+            run_frame(&step, leaving[i]);
+            assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == &planet->header);
+            end_forked_copy();
+        }
+    }
+}
+
+static void test_a_folds_reveal_leaves_the_player_in_aim_mode(void) {
+    input_step_t step;
+    start_game(&step);
+    pan_to_empty_space(&step);
+    tap(&step, P8_PAD_CROSS);
+    settle(&step);
+    hold(&step, P8_PAD_RIGHT, 10);
+    hold(&step, P8_PAD_CROSS, 60);
+    int frames = 0;
+    for (; frames < 120 && !pad_jump_any_candidate(entities_by_tag(TAG_NODE)); frames++) {
+        run_frame(&step, 0);
+        assert(pad_nav_aim_mode(&step.pad_nav));
+    }
+    assert(frames < 120 && "the fold reveals an object");
+    hold(&step, 0, 30);
+    assert_aim_mode_rests_at_the_centre(&step);
+}
+
+static void test_circle_in_aim_mode_with_nothing_known_closes_the_year_box(void) {
+    input_step_t step;
+    start_game(&step);
+    score_panel_new_year(p8_fixed_from_int(3421));
+    assert(shown_message_box() != NULL);
+    run_frame(&step, 0);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(shown_message_box() == NULL);
+    assert_aim_mode_rests_at_the_centre(&step);
+}
+
+static void test_the_accessors_answer_for_the_game_that_appeared_before_its_first_step(void) {
+    input_step_t step;
+    start_game(&step);
+    (void)known_planet_closest_to_centre();
+    enter_jump_mode(&step);
+    cart_init();
+    for (int i = 0; i < SETTLE_FRAMES; i++) {
+        cart_update60();
+    }
+    cart_start_game((button_t *)title_button("forgiving"));
+    assert(pad_nav_aim_mode(&step.pad_nav) && !pad_nav_jump_mode(&step.pad_nav));
+    assert(pad_nav_hovered(&step.pad_nav) == NULL && pad_nav_slipway_start(&step.pad_nav) == NULL);
+    run_frame(&step, 0);
+    assert_aim_mode_rests_at_the_centre(&step);
+
+    begin_game(&step);
+    (void)known_planet_closest_to_centre();
+    assert(pad_nav_jump_mode(&step.pad_nav) && !pad_nav_aim_mode(&step.pad_nav));
+    assert(pad_nav_hovered(&step.pad_nav) == NULL);
 }
 
 static void assert_hovering(const input_step_t *step, const entity_t *e) {
@@ -2796,7 +2901,7 @@ static void rest_screen_point(const entity_t *e, int *x, int *y) {
 
 static void test_jump_mode_seeds_on_the_first_object_that_appears(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    jump_mode_with_nothing_known(&step);
     hold(&step, 0, 5);
     planet_t *planet = known_planet_closest_to_centre();
     int x, y;
@@ -2841,10 +2946,11 @@ static int edge_of(int value, int low, int high) {
 
 static void test_the_edge_scroll_brings_the_hovered_object_just_inside_at_8_px_a_frame(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = planet_farthest_outside();
     assert(planet != NULL);
     make_known(planet);
+    enter_jump_mode(&step);
     int x, y;
     rest_screen_point(&planet->header, &x, &y);
     int want_x = edge_of(x, PAD_JUMP_SCROLL_MARGIN, P8_SCREEN_WIDTH - 1 - PAD_JUMP_SCROLL_MARGIN);
@@ -2870,7 +2976,7 @@ static void test_the_edge_scroll_brings_the_hovered_object_just_inside_at_8_px_a
 /* The colony is made before any frame sees the known planet, so the seed chooses between both. */
 static void test_jump_mode_seeds_on_the_colony_over_a_nearer_known_planet(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    begin_game(&step);
     planet_t *colony = planet_farthest_outside();
     assert(colony != NULL);
     make_known(colony);
@@ -2886,8 +2992,9 @@ static void test_jump_mode_seeds_on_the_colony_over_a_nearer_known_planet(void) 
 
 static void test_the_edge_scroll_reads_the_rest_point_not_the_bob(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     run_frame(&step, 0);
     assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
     vec_t rest = entity_pos(&planet->header);
@@ -2902,8 +3009,9 @@ static void test_the_edge_scroll_reads_the_rest_point_not_the_bob(void) {
 
 static void test_square_in_jump_mode_enters_aim_mode_where_the_camera_is(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
     vec_t from = camera_at();
@@ -2972,27 +3080,29 @@ static void test_square_in_aim_mode_over_a_colony_hovers_it_and_presses_nothing(
     assert_world_unchanged(before);
 }
 
-static void assert_leaving_aim_mode_with_no_target_hovers_nothing(int button) {
+static void assert_leaving_aim_mode_waits_for_a_target(int button) {
     input_step_t step;
     start_game(&step);
     run_frame(&step, 0);
     run_frame(&step, button);
     for (int i = 0; i < 3; i++) {
-        assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == NULL);
-        assert_played(&step, P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2, 0);
+        assert_aim_mode_rests_at_the_centre(&step);
         run_frame(&step, 0);
     }
     planet_t *planet = known_planet_closest_to_centre();
     run_frame(&step, 0);
+    assert_aim_mode_rests_at_the_centre(&step);
+    run_frame(&step, button);
+    run_frame(&step, 0);
     assert_hovering(&step, &planet->header);
 }
 
-static void test_square_in_aim_mode_with_no_target_hovers_nothing_until_one_appears(void) {
-    assert_leaving_aim_mode_with_no_target_hovers_nothing(P8_PAD_SQUARE);
+static void test_square_in_aim_mode_with_no_target_does_nothing_until_one_appears(void) {
+    assert_leaving_aim_mode_waits_for_a_target(P8_PAD_SQUARE);
 }
 
-static void test_circle_in_aim_mode_with_no_target_hovers_nothing_until_one_appears(void) {
-    assert_leaving_aim_mode_with_no_target_hovers_nothing(P8_PAD_CIRCLE);
+static void test_circle_in_aim_mode_with_no_target_does_nothing_until_one_appears(void) {
+    assert_leaving_aim_mode_waits_for_a_target(P8_PAD_CIRCLE);
 }
 
 /* No aim-mode input opens a box ○ closes: the planet menu is opened by the left press a click would reach, so the pad
@@ -3042,8 +3152,9 @@ static void test_aim_pans_and_toggles_leave_the_game_stream_unchanged(void) {
     static const int presses[] = { P8_PAD_SQUARE, P8_PAD_RIGHT, P8_PAD_SQUARE, P8_PAD_DOWN,
                                    P8_PAD_SQUARE, P8_PAD_LEFT,  P8_PAD_CIRCLE, P8_PAD_UP };
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     run_frame(&step, 0);
     uint32_t game = p8_fixed_rnd_state();
     int aim_frames = 0, jump_frames = 0;
@@ -3062,6 +3173,7 @@ static void test_crosshair_is_drawn_in_aim_mode_only(void) {
     static const int buttons[2] = { P8_PAD_SQUARE, P8_PAD_CIRCLE };
     input_step_t step;
     start_game(&step);
+    (void)known_planet_closest_to_centre();
     for (int b = 0; b < 2; b++) {
         run_frame(&step, 0);
         cart_draw();
@@ -3079,7 +3191,7 @@ static void test_crosshair_is_drawn_in_aim_mode_only(void) {
 static void test_circle_with_nothing_acted_on_and_cross_on_nothing_change_nothing(void) {
     static const int presses[] = { P8_PAD_CROSS, 0, P8_PAD_CIRCLE, 0, P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE };
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    jump_mode_with_nothing_known(&step);
     run_frame(&step, 0);
     assert(pad_nav_hovered(&step.pad_nav) == NULL);
     world_count_t before = world_count();
@@ -3105,8 +3217,9 @@ static void test_circle_with_nothing_acted_on_and_cross_on_nothing_change_nothin
 
 static void test_pad_nav_hovered_is_null_outside_jump_mode(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     run_frame(&step, 0);
     assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
     tap(&step, P8_PAD_SQUARE);
@@ -3115,8 +3228,9 @@ static void test_pad_nav_hovered_is_null_outside_jump_mode(void) {
 
 static void test_r1_cycles_tech_score_closed_from_jump_mode_back_on_the_hovered_object(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     vec_t from = camera_at();
     run_frame(&step, P8_PAD_R1);
@@ -3141,8 +3255,9 @@ static void test_r1_cycles_tech_score_closed_from_jump_mode_back_on_the_hovered_
 
 static void test_circle_on_tech_and_on_score_returns_to_jump_mode_on_the_hovered_object(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     vec_t from = camera_at();
     tap(&step, P8_PAD_R1);
@@ -3165,7 +3280,7 @@ static void test_circle_on_tech_and_on_score_returns_to_jump_mode_on_the_hovered
 
 static void test_taking_a_structure_from_jump_mode_enters_plain_aim_mode_where_the_camera_is(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    jump_mode_with_nothing_known(&step);
     vec_t from = camera_at();
     open_build_bar(&step);
     (void)take_structure(&step);
@@ -3184,6 +3299,9 @@ static entity_t *expected_jump(const entity_t *origin, int direction) {
 
 /* Lets the edge scroll finish, so a still camera afterwards means the frame moved nothing. */
 static entity_t *hover_settled(input_step_t *step) {
+    if (pad_nav_aim_mode(&step->pad_nav)) {
+        enter_jump_mode(step);
+    }
     hold(step, 0, 40);
     entity_t *hovered = pad_nav_hovered(&step->pad_nav);
     assert(hovered != NULL);
@@ -3193,8 +3311,9 @@ static entity_t *hover_settled(input_step_t *step) {
 static void test_a_d_pad_press_jumps_to_the_picked_target(void) {
     static const int directions[] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *origin = hover_settled(&step);
     int jumps = 0;
     for (int d = 0; d < 4; d++) {
@@ -3222,8 +3341,9 @@ static entity_t *hover_the_leftmost(input_step_t *step) {
 
 static void test_holding_a_direction_repeats_the_jump_after_18_then_every_8_frames(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *hovered = hover_the_leftmost(&step);
     for (int frame = 0; frame <= 30; frame++) {
         entity_t *expected = frame == 0 || frame == 18 || frame == 26 ? expected_jump(hovered, P8_PAD_RIGHT) : hovered;
@@ -3237,8 +3357,9 @@ static void test_holding_a_direction_repeats_the_jump_after_18_then_every_8_fram
 
 static void test_a_d_pad_press_with_an_empty_cone_changes_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *hovered = hover_the_leftmost(&step);
     vec_t from = camera_at();
     for (int i = 0; i < 10; i++) {
@@ -3250,8 +3371,9 @@ static void test_a_d_pad_press_with_an_empty_cone_changes_nothing(void) {
 
 static void test_a_hold_through_pause_repeats_no_jump_until_pressed_again(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *hovered = hover_the_leftmost(&step);
     run_frame(&step, P8_PAD_RIGHT);
     entity_t *landed = pad_nav_hovered(&step.pad_nav);
@@ -3282,8 +3404,9 @@ static void idle_scrolling_at_most_8_px_a_frame(input_step_t *step, int frames) 
 
 static void test_a_jump_scrolls_only_to_bring_the_target_just_inside(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *hovered = hover_the_leftmost(&step);
     int inside_jumps = 0, outside_jumps = 0;
     for (int i = 0; i < 64 && expected_jump(hovered, P8_PAD_RIGHT) != NULL; i++) {
@@ -3313,8 +3436,9 @@ static void test_a_jump_scrolls_only_to_bring_the_target_just_inside(void) {
 static void test_jumps_repeats_and_edge_scrolls_leave_the_game_stream_unchanged(void) {
     static const int directions[] = { P8_PAD_RIGHT, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_UP };
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     run_frame(&step, 0);
     uint32_t game = p8_fixed_rnd_state();
     int frames = 0, jumps = 0, scrolls = 0;
@@ -3335,8 +3459,9 @@ static void test_jumps_repeats_and_edge_scrolls_leave_the_game_stream_unchanged(
 static void test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_comes_back(void) {
     entity_t *rows[ITEMS_CAP];
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     assert_hovering(&step, &planet->header);
     run_frame(&step, P8_PAD_TRIANGLE);
@@ -3356,8 +3481,9 @@ static void test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_co
 static void test_down_while_the_planet_menu_slides_in_moves_one_row(void) {
     entity_t *rows[ITEMS_CAP];
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     assert_hovering(&step, &planet->header);
     run_frame(&step, P8_PAD_TRIANGLE);
@@ -3381,8 +3507,9 @@ static entity_t *triangle_click(input_step_t *step, int with_press, int with_rel
 /* A direction pressed with △, or on its release frame, jumps nowhere: the cursor stays on the clicked colony. */
 static void test_triangle_on_a_hovered_colony_opens_its_panel_and_no_jump_shares_the_click(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     planet_t *colony = planet_closest_to_centre();
     settle_planet(&step, colony);
     hold(&step, 0, 40);
@@ -3406,10 +3533,11 @@ static void test_triangle_on_a_hovered_colony_opens_its_panel_and_no_jump_shares
 
 static void test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = planet_farthest_outside();
     assert(planet != NULL);
     make_known(planet);
+    enter_jump_mode(&step);
     run_frame(&step, 0);
     assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
     int x, y;
@@ -3426,17 +3554,19 @@ static void test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing
 }
 
 static planet_t *jump_on_known_planet(input_step_t *step) {
-    start_game_in_jump_mode(step);
+    start_game(step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(step);
     hold(step, 0, 40);
     assert_hovering(step, &planet->header);
     return planet;
 }
 
 static planet_t *jump_on_colony(input_step_t *step) {
-    start_game_in_jump_mode(step);
+    start_game(step);
     planet_t *colony = planet_closest_to_centre();
     settle_planet(step, colony);
+    enter_jump_mode(step);
     hold(step, 0, 40);
     assert_hovering(step, &colony->header);
     return colony;
@@ -3473,8 +3603,9 @@ static void test_cross_held_into_pause_presses_no_row_until_pressed_again(void) 
 static void test_cross_on_a_hovered_known_planet_opens_its_menu_and_records_it(void) {
     entity_t *rows[ITEMS_CAP];
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     assert_hovering(&step, &planet->header);
     assert(pad_nav_last_acted(&step.pad_nav) == NULL);
@@ -3537,10 +3668,10 @@ static void assert_cross_opens_nothing(input_step_t *step, const planet_t *plane
 
 static void test_cross_on_a_known_planet_scrolling_in_or_under_the_hud_presses_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     if (in_forked_copy()) {
         planet_t *planet = known_planet_closest_to_centre();
-        hold(&step, 0, 2);
+        enter_jump_mode(&step);
         cover_with_icon(live_of_class(structure_icon_class()), planet);
         assert_cross_opens_nothing(&step, planet);
         end_forked_copy();
@@ -3548,8 +3679,7 @@ static void test_cross_on_a_known_planet_scrolling_in_or_under_the_hud_presses_n
     planet_t *planet = planet_farthest_outside();
     assert(planet != NULL);
     make_known(planet);
-    run_frame(&step, 0);
-    assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
+    enter_jump_mode(&step);
     int x, y;
     rest_screen_point(&planet->header, &x, &y);
     assert(!pad_jump_inside(x, y));
@@ -3624,7 +3754,7 @@ static void test_triangle_on_the_release_frame_closes_nothing_and_closes_a_menu_
 /* △ means only the hovered object's menu: it never closes the year box. */
 static void test_triangle_under_the_year_box_closes_only_a_planet_menu(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    jump_mode_with_nothing_known(&step);
     score_panel_new_year(p8_fixed_from_int(3421));
     entity_t *year_box = &shown_message_box()->header;
     run_frame(&step, 0);
@@ -3662,8 +3792,9 @@ static int type_chords(input_step_t *step) {
 
 static void test_four_chords_on_a_hovered_colony_cheat_and_change_nothing_else(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     planet_t *colony = planet_closest_to_centre();
     settle_planet(&step, colony);
     hold(&step, 0, 40);
@@ -3686,8 +3817,9 @@ static void test_four_chords_on_a_hovered_colony_cheat_and_change_nothing_else(v
 /* The chord's × would click the focused row and its ○ would close the menu. */
 static void test_a_chord_on_a_planet_menu_presses_no_row_and_closes_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *planet = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     tap(&step, P8_PAD_TRIANGLE);
     settle(&step);
@@ -3706,8 +3838,9 @@ static void test_a_chord_on_a_planet_menu_presses_no_row_and_closes_nothing(void
 /* × held after the chord's ○ goes up, and ○ pressed again under it, still press nothing until both are up. */
 static void test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hold(&step, 0, 2);
     tap(&step, P8_PAD_TRIANGLE);
     settle(&step);
@@ -3729,9 +3862,10 @@ static void test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up(void
  * in jump mode starts a slipway and ○ down in slipway mode cancels it. */
 static void test_the_pad_hides_cross_and_circle_exactly_from_the_chords_cheat_step_counts(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *colony = planet_closest_to_centre();
     settle_planet(&step, colony);
+    enter_jump_mode(&step);
     hold(&step, 0, 40);
     assert_hovering(&step, &colony->header);
     int held = 0;
@@ -3812,6 +3946,7 @@ static void test_probing_and_leaving_aim_mode_never_types_the_cheat(void) {
     input_step_t step;
     start_game(&step);
     pan_to_empty_space(&step);
+    (void)known_planet_closest_to_centre();
     cheats_fired = 0;
     for (int round = 0; round < 2; round++) {
         tap(&step, P8_PAD_CROSS);
@@ -3889,6 +4024,9 @@ static void tap_path(input_step_t *step, const entity_t *start, const entity_t *
 }
 
 static void hover_object(input_step_t *step, const entity_t *e) {
+    if (pad_nav_aim_mode(&step->pad_nav)) {
+        enter_jump_mode(step);
+    }
     run_frame(step, 0);
     entity_t *hovered = pad_nav_hovered(&step->pad_nav);
     assert(hovered != NULL);
@@ -3967,7 +4105,7 @@ static void settled_row(input_step_t *step, planet_t **a, planet_t **b, planet_t
 static void test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways(void) {
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     world_count_t before = world_count();
@@ -3994,7 +4132,7 @@ static void test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways(void
 static void test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start(void) {
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     start_slipway(&step, &a->header);
@@ -4019,7 +4157,7 @@ static void test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_
 /* The chords' × would open the known planet's menu. */
 static void test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *colony = most_isolated_planet();
     planet_t *known = NULL;
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
@@ -4053,7 +4191,7 @@ static void test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing(vo
 /* a is the last object × acted on (a slipway started and cancelled), b is hovered, the year box is up. */
 static entity_t *year_box_with_the_last_object_elsewhere(input_step_t *step, planet_t **a, planet_t **b) {
     planet_t *c;
-    start_game_in_jump_mode(step);
+    start_game(step);
     settled_row(step, a, b, &c);
     hover_object(step, &(*a)->header);
     start_slipway(step, &(*a)->header);
@@ -4170,6 +4308,7 @@ static planet_t *hovered_colony_near_centre(input_step_t *step) {
     make_every_planet_known();
     planet_t *colony = planet_closest_to_centre();
     settle_planet(step, colony);
+    enter_jump_mode(step);
     hold(step, 0, 40);
     assert_hovering(step, &colony->header);
     return colony;
@@ -4184,7 +4323,7 @@ static void assert_camera_step_at_most_8(vec_t from) {
 static void test_cross_on_a_hovered_colony_holds_its_slipway_and_the_d_pad_aims_past_it(void) {
     static const int directions[] = { P8_PAD_RIGHT, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_UP };
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *colony = hovered_colony_near_centre(&step);
     start_slipway(&step, &colony->header);
     int aimed_away = 0;
@@ -4229,7 +4368,7 @@ static void test_cross_on_a_hovered_colony_holds_its_slipway_and_the_d_pad_aims_
 static void test_no_direction_aims_at_the_start(void) {
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     start_slipway(&step, &a->header);
@@ -4261,7 +4400,7 @@ static void assert_cross_starts_nothing(input_step_t *step, const entity_t *hove
 
 static void test_a_refused_start_holds_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     if (in_forked_copy()) {
         planet_t *gate = gate_hovered_full(&step);
         assert_cross_starts_nothing(&step, &gate->header);
@@ -4275,6 +4414,7 @@ static void test_a_refused_start_holds_nothing(void) {
     }
     planet_t *far = planet_farthest_outside();
     settle_planet(&step, far);
+    enter_jump_mode(&step);
     int x, y;
     rest_screen_point(&far->header, &x, &y);
     assert(pad_nav_hovered(&step.pad_nav) == &far->header && !pad_jump_inside(x, y));
@@ -4283,7 +4423,7 @@ static void test_a_refused_start_holds_nothing(void) {
 
 static void test_cross_with_nothing_hovered_presses_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    jump_mode_with_nothing_known(&step);
     assert(pad_nav_hovered(&step.pad_nav) == NULL);
     assert_cross_starts_nothing(&step, NULL);
 }
@@ -4308,10 +4448,11 @@ static void assert_target_refused(input_step_t *step, const entity_t *start, con
 static void test_a_refused_target_aims_again_from_the_same_start(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     if (in_forked_copy()) {
         find_pair(near_pair, &start, &target);
         make_known(target);
+    enter_jump_mode(&step);
         slipway_from(&step, start);
         assert_target_refused(&step, &start->header, &target->header);
         end_forked_copy();
@@ -4344,7 +4485,7 @@ static void test_a_refused_target_aims_again_from_the_same_start(void) {
 static void test_circle_cancels_the_slipway_back_on_its_start(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     find_pair(near_pair, &start, &target);
     settle_planet(&step, target);
     slipway_from(&step, start);
@@ -4368,7 +4509,7 @@ static void test_circle_cancels_the_slipway_back_on_its_start(void) {
 static void test_an_off_screen_start_still_builds(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     find_pair(off_screen_pair, &start, &target);
     settle_planet(&step, target);
     slipway_from(&step, start);
@@ -4392,7 +4533,7 @@ static void test_start_and_shoulders_wait_on_the_frame_after_a_slipway_release(v
     static const int buttons[2] = { P8_PAD_START, P8_PAD_R1 };
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     start_slipway(&step, &a->header);
@@ -4417,7 +4558,7 @@ static void test_start_and_shoulders_wait_on_the_frame_after_a_slipway_release(v
 static void test_no_re_press_while_the_hud_covers_the_new_start(void) {
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     start_slipway(&step, &a->header);
@@ -4441,9 +4582,10 @@ static void test_no_re_press_while_the_hud_covers_the_new_start(void) {
 static void test_pause_a_tab_change_and_a_box_cancel_the_slipway(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     find_pair(near_pair, &start, &target);
     make_known(target);
+    enter_jump_mode(&step);
     slipway_from(&step, start);
     aim_at(&step, &target->header);
     world_count_t before = world_count();
@@ -4484,7 +4626,7 @@ static void test_pause_a_tab_change_and_a_box_cancel_the_slipway(void) {
 static void test_a_start_that_dies_drops_the_slipway(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     find_pair(near_pair, &start, &target);
     settle_planet(&step, target);
     slipway_from(&step, start);
@@ -4501,9 +4643,10 @@ static void test_a_start_that_dies_drops_the_slipway(void) {
 static void test_triangle_and_square_do_nothing_in_slipway_mode(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     find_pair(near_pair, &start, &target);
     make_known(target);
+    enter_jump_mode(&step);
     slipway_from(&step, start);
     aim_at(&step, &target->header);
     world_count_t before = world_count();
@@ -4521,7 +4664,7 @@ static void test_triangle_and_square_do_nothing_in_slipway_mode(void) {
 static void test_chords_in_slipway_mode_neither_build_nor_cancel(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     find_pair(near_pair, &start, &target);
     settle_planet(&step, target);
     slipway_from(&step, start);
@@ -4538,7 +4681,7 @@ static void test_chords_in_slipway_mode_neither_build_nor_cancel(void) {
 static void test_building_and_backing_out_never_types_the_cheat(void) {
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     world_count_t before = world_count();
@@ -4562,7 +4705,7 @@ static void test_building_and_backing_out_never_types_the_cheat(void) {
 /* a is the last object × acted on (a slipway started from it and cancelled), b hovered beside it. */
 static void acted_on_a_then_on_b(input_step_t *step, planet_t **a, planet_t **b) {
     planet_t *c;
-    start_game_in_jump_mode(step);
+    start_game(step);
     settled_row(step, a, b, &c);
     hover_object(step, &(*a)->header);
     start_slipway(step, &(*a)->header);
@@ -4585,7 +4728,7 @@ static void circle_jumps_back_to(input_step_t *step, const entity_t *target) {
 static void test_circle_cancels_a_slipway_onto_its_start_and_the_next_does_nothing(void) {
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     world_count_t before = world_count();
@@ -4621,8 +4764,9 @@ static void test_circle_cancels_a_structure_then_leaves_aim_mode_then_jumps_back
 
 static void test_circle_at_the_root_jumps_back_and_edge_scrolls_at_8_px_a_frame(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     planet_t *colony = planet_closest_to_centre();
     settle_planet(&step, colony);
     hover_object(&step, &colony->header);
@@ -4652,6 +4796,38 @@ static void test_circle_at_the_root_jumps_back_and_edge_scrolls_at_8_px_a_frame(
 }
 
 /* A resumed game starts with nothing to go back to. */
+static void resume_from_the_title(input_step_t *step) {
+    tap(step, P8_PAD_UP);
+    assert_focused_and_hovered(step, "resume");
+    tap(step, P8_PAD_CROSS);
+    settle(step);
+    assert(main_economy_typed() != NULL);
+}
+
+static void test_a_resume_with_a_colony_starts_in_jump_mode_on_a_colony(void) {
+    input_step_t step;
+    planet_t *a, *b;
+    acted_on_a_then_on_b(&step, &a, &b);
+    economy_new_year(main_economy_typed());
+    run_frame(&step, 0);
+    open_pause(&step);
+    tap(&step, P8_PAD_CROSS);
+    settle(&step);
+    resume_from_the_title(&step);
+    entity_t *hovered = pad_nav_hovered(&step.pad_nav);
+    assert(pad_nav_jump_mode(&step.pad_nav) && hovered != NULL);
+    assert(hovered->class == planet_class() && hovered->state == ENTITY_STATE_SETTLED);
+}
+
+static void test_a_resume_with_nothing_known_starts_in_aim_mode(void) {
+    input_step_t step;
+    start_title_with_a_save(&step);
+    resume_from_the_title(&step);
+    assert(entities_by_tag(TAG_NODE)->count == g_saved.node_count);
+    assert(!pad_jump_any_candidate(entities_by_tag(TAG_NODE)));
+    assert_aim_mode_rests_at_the_centre(&step);
+}
+
 static void test_circle_after_a_resume_does_nothing(void) {
     input_step_t step;
     planet_t *a, *b;
@@ -4695,17 +4871,16 @@ static void test_circle_with_the_last_object_gone_or_in_a_new_game_does_nothing(
     restart_into_a_new_game(&step);
     settle(&step);
     assert(pad_nav_last_acted(&step.pad_nav) == NULL);
-    entity_t *hovered = pad_nav_hovered(&step.pad_nav);
     vec_t from = camera_at();
     tap(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == hovered);
+    assert_aim_mode_rests_at_the_centre(&step);
     assert_moved(from, 0, 0);
 }
 
 /* Ordinary ×, △ and ○ presses with D-pad moves between them: no cheat and no game number drawn. */
 static void test_ordinary_cross_triangle_and_circle_play_never_types_the_cheat(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *colony = most_isolated_planet();
     planet_t *known = NULL;
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
@@ -4788,7 +4963,7 @@ static void test_pause_a_tab_and_a_slipway_keep_the_last_object(void) {
 static void test_building_refusing_and_cancelling_leave_the_game_stream_unchanged(void) {
     input_step_t step;
     planet_t *a, *b, *c;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     settled_row(&step, &a, &b, &c);
     hover_object(&step, &a->header);
     uint32_t game = p8_fixed_rnd_state();
@@ -5090,13 +5265,14 @@ static void test_the_hovered_object_blinks_a_circle(void) {
  * nearest the centre, not the first colony; with every candidate dead, nothing is hovered. */
 static void test_a_dead_hovered_object_reseeds_on_the_object_nearest_the_centre(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     planet_t *colony = planet_farthest_outside();
     make_known(colony);
     (void)planet_left_press(colony);
     assert(click_colonise_row());
     ui_clear_ephemerals(main_ui());
     planet_t *near = known_planet_closest_to_centre();
+    enter_jump_mode(&step);
     hover_object(&step, &near->header);
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     planet_t *second = NULL;
@@ -5192,7 +5368,7 @@ static void assert_select_tap_lands_on(input_step_t *step, const entity_t *targe
 static void test_select_taps_cycle_the_colonies_needing_attention_in_order(void) {
     input_step_t step;
     planet_t *first, *middle, *last;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     attention_row(&step, &first, &middle, &last);
     hover_object(&step, &first->header);
     entity_t *last_acted = pad_nav_last_acted(&step.pad_nav);
@@ -5208,8 +5384,9 @@ static void test_select_taps_cycle_the_colonies_needing_attention_in_order(void)
 /* The tap's own frame scrolls, as a D-pad jump's does, then each frame at most 8 px per axis until the colony is inside. */
 static void test_a_select_tap_to_a_colony_outside_edge_scrolls_at_8_px_a_frame(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     planet_t *near = planet_closest_to_centre();
     planet_t *far = planet_farthest_outside();
     assert(near != far);
@@ -5241,11 +5418,11 @@ static void test_a_select_tap_to_a_colony_outside_edge_scrolls_at_8_px_a_frame(v
     assert_hovering(&step, &far->header);
 }
 
-
 static void test_a_select_hold_under_30_frames_ends_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *hovered = hover_settled(&step);
     year_facts_t before = year_facts();
     hold_select_pressing_nothing(&step, PAD_SELECT_HOLD_FRAMES - 1);
@@ -5259,8 +5436,9 @@ static void test_a_select_hold_under_30_frames_ends_nothing(void) {
 
 static void test_a_select_hold_of_30_frames_presses_the_year_skip_button_once(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *hovered = hover_settled(&step);
     vec_t from = camera_at();
     year_facts_t before = year_facts();
@@ -5277,7 +5455,7 @@ static void test_a_select_hold_of_30_frames_presses_the_year_skip_button_once(vo
 
 static void test_a_select_hold_of_90_frames_ends_one_year(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     year_facts_t before = year_facts();
     hold_select_to_the_year(&step);
     hold_select_pressing_nothing(&step, 90 - PAD_SELECT_HOLD_FRAMES - 1);
@@ -5287,7 +5465,7 @@ static void test_a_select_hold_of_90_frames_ends_one_year(void) {
 
 static void test_fresh_select_presses_after_a_year_chain_more_years(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     year_facts_t before = year_facts();
     uint32_t game = p8_fixed_rnd_state();
     int x, y;
@@ -5312,7 +5490,7 @@ static void test_fresh_select_presses_after_a_year_chain_more_years(void) {
 
 static void test_a_select_hold_ends_the_year_under_the_year_box(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     score_panel_new_year(p8_fixed_from_int(3421));
     assert(shown_message_box() != NULL);
     run_frame(&step, 0);
@@ -5341,8 +5519,9 @@ static void test_select_in_aim_mode_ends_the_year_and_taps_back_to_jump_mode(voi
 
 static void test_a_select_tap_with_nothing_needing_attention_changes_nothing(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     entity_t *hovered = hover_settled(&step);
     assert(attention_count() == 0);
     vec_t from = camera_at();
@@ -5374,7 +5553,7 @@ static void test_select_does_nothing_while_something_is_held_or_open(void) {
     static const off_map_t places[] = { THE_BAR, THE_TECH_PANEL, THE_SCORE_PANEL };
     input_step_t step;
     planet_t *first, *middle, *last;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     attention_row(&step, &first, &middle, &last);
     hover_object(&step, &first->header);
     if (in_forked_copy()) {
@@ -5430,8 +5609,9 @@ static void test_select_does_nothing_while_something_is_held_or_open(void) {
  * next frame's Select press sees the left button down. */
 static void test_a_refused_year_press_presses_nothing_and_is_not_retried(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     hover_settled(&step);
     year_facts_t before = year_facts();
     hold_select_to_the_year(&step);
@@ -5459,7 +5639,7 @@ static void test_a_refused_year_press_presses_nothing_and_is_not_retried(void) {
 
 static void test_a_new_game_restarts_the_select_count(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     hold_select_pressing_nothing(&step, PAD_SELECT_HOLD_FRAMES - 1);
     cart_start_game(NULL);
     year_facts_t before = year_facts();
@@ -5473,8 +5653,9 @@ static void test_a_new_game_restarts_the_select_count(void) {
 
 static void test_select_is_no_part_of_the_cheat_chord(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     make_every_planet_known();
+    enter_jump_mode(&step);
     planet_t *colony = planet_closest_to_centre();
     settle_planet(&step, colony);
     hold(&step, 0, 40);
@@ -5551,7 +5732,7 @@ static void test_l1_twice_in_aim_mode_comes_back_to_aim_mode_with_the_pan_slow_a
 
 static void test_the_bar_takes_and_aim_mode_places_or_cancels(void) {
     input_step_t step;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     hold(&step, 0, 2);
     open_build_bar(&step);
     entity_t *structure = take_structure(&step);
@@ -5708,9 +5889,10 @@ static void test_l1_closes_a_planet_menu_and_opens_the_bar(void) {
 static void test_l1_cancels_a_held_slipway_and_opens_the_bar(void) {
     input_step_t step;
     planet_t *start, *target;
-    start_game_in_jump_mode(&step);
+    start_game(&step);
     find_pair(near_pair, &start, &target);
     make_known(target);
+    enter_jump_mode(&step);
     slipway_from(&step, start);
     aim_at(&step, &target->header);
     world_count_t before = world_count();
@@ -5918,8 +6100,12 @@ int main(void) {
     in_fresh_child(test_circle_on_the_title_does_nothing);
     in_fresh_child(test_circle_closes_the_pause_menu);
     in_fresh_child(test_triangle_while_cross_holds_a_fold_does_nothing);
-    in_fresh_child(test_a_new_game_starts_in_jump_mode_with_nothing_hovered);
-    in_fresh_child(test_a_new_game_after_aim_mode_starts_in_jump_mode);
+    in_fresh_child(test_a_new_game_starts_in_aim_mode);
+    in_fresh_child(test_a_new_game_after_a_jump_mode_game_starts_in_aim_mode);
+    in_fresh_child(test_square_and_circle_do_nothing_in_aim_mode_until_an_object_is_known);
+    in_fresh_child(test_a_folds_reveal_leaves_the_player_in_aim_mode);
+    in_fresh_child(test_circle_in_aim_mode_with_nothing_known_closes_the_year_box);
+    in_fresh_child(test_the_accessors_answer_for_the_game_that_appeared_before_its_first_step);
     in_fresh_child(test_jump_mode_seeds_on_the_first_object_that_appears);
     in_fresh_child(test_the_edge_scroll_brings_the_hovered_object_just_inside_at_8_px_a_frame);
     in_fresh_child(test_jump_mode_seeds_on_the_colony_over_a_nearer_known_planet);
@@ -5928,8 +6114,8 @@ int main(void) {
     in_fresh_child(test_square_in_aim_mode_goes_back_to_jump_mode_on_the_nearest_target);
     in_fresh_child(test_circle_in_aim_mode_goes_back_to_jump_mode_on_the_nearest_target);
     in_fresh_child(test_square_in_aim_mode_over_a_colony_hovers_it_and_presses_nothing);
-    in_fresh_child(test_square_in_aim_mode_with_no_target_hovers_nothing_until_one_appears);
-    in_fresh_child(test_circle_in_aim_mode_with_no_target_hovers_nothing_until_one_appears);
+    in_fresh_child(test_square_in_aim_mode_with_no_target_does_nothing_until_one_appears);
+    in_fresh_child(test_circle_in_aim_mode_with_no_target_does_nothing_until_one_appears);
     in_fresh_child(test_circle_in_aim_mode_closes_a_box_before_leaving);
     in_fresh_child(test_square_and_circle_wait_while_cross_holds_a_fold);
     in_fresh_child(test_aim_pans_and_toggles_leave_the_game_stream_unchanged);
@@ -6067,6 +6253,8 @@ int main(void) {
     in_fresh_child(test_circle_cancels_a_structure_then_leaves_aim_mode_then_jumps_back);
     in_fresh_child(test_circle_at_the_root_jumps_back_and_edge_scrolls_at_8_px_a_frame);
     in_fresh_child(test_circle_after_a_resume_does_nothing);
+    in_fresh_child(test_a_resume_with_a_colony_starts_in_jump_mode_on_a_colony);
+    in_fresh_child(test_a_resume_with_nothing_known_starts_in_aim_mode);
     in_fresh_child(test_circle_with_the_last_object_gone_or_in_a_new_game_does_nothing);
     in_fresh_child(test_ordinary_cross_triangle_and_circle_play_never_types_the_cheat);
     in_fresh_child(test_pause_a_tab_and_a_slipway_keep_the_last_object);

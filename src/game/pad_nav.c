@@ -48,9 +48,22 @@ int pad_nav_year_chain_open(const pad_nav_t *nav) {
     return nav->select.chain_frames > 0;
 }
 
+static int game_unseen(const pad_nav_t *nav) {
+    const economy_t *economy = main_economy_typed();
+    return economy != NULL && entity_get(nav->game) != &economy->header;
+}
+
+/* Between the update that creates a game and the first step that sees it, the mode reset_on_new_game will give. */
+static pad_nav_map_mode_t map_mode_now(const pad_nav_t *nav) {
+    if (!game_unseen(nav)) {
+        return nav->map_mode;
+    }
+    return pad_jump_any_candidate(entities_by_tag(TAG_NODE)) ? PAD_NAV_MAP_JUMP : PAD_NAV_MAP_AIM;
+}
+
 int pad_nav_aim_mode(const pad_nav_t *nav) {
     return main_economy_typed() != NULL && on_the_map(nav) && !pad_nav_panel_open() &&
-           nav->map_mode == PAD_NAV_MAP_AIM;
+           map_mode_now(nav) == PAD_NAV_MAP_AIM;
 }
 
 static entity_t *live(entity_t *e) {
@@ -59,19 +72,19 @@ static entity_t *live(entity_t *e) {
 
 int pad_nav_jump_mode(const pad_nav_t *nav) {
     return main_economy_typed() != NULL && on_the_map(nav) && !pad_nav_panel_open() &&
-           nav->map_mode == PAD_NAV_MAP_JUMP;
+           map_mode_now(nav) == PAD_NAV_MAP_JUMP;
 }
 
 entity_t *pad_nav_hovered(const pad_nav_t *nav) {
-    return nav->map_mode == PAD_NAV_MAP_JUMP ? pad_jump_hovered(&nav->jump) : NULL;
+    return nav->map_mode == PAD_NAV_MAP_JUMP && !game_unseen(nav) ? pad_jump_hovered(&nav->jump) : NULL;
 }
 
 entity_t *pad_nav_slipway_start(const pad_nav_t *nav) {
-    return nav->map_mode == PAD_NAV_MAP_SLIPWAY ? live(entity_get(nav->slipway.start)) : NULL;
+    return map_mode_now(nav) == PAD_NAV_MAP_SLIPWAY ? live(entity_get(nav->slipway.start)) : NULL;
 }
 
 entity_t *pad_nav_slipway_target(const pad_nav_t *nav) {
-    entity_t *target = nav->map_mode == PAD_NAV_MAP_SLIPWAY ? entity_get(nav->slipway.target) : NULL;
+    entity_t *target = map_mode_now(nav) == PAD_NAV_MAP_SLIPWAY ? entity_get(nav->slipway.target) : NULL;
     return pad_target_is_candidate(target) ? target : NULL;
 }
 
@@ -290,6 +303,9 @@ static void back_to_jump_mode(pad_nav_t *nav, const entity_t *e) {
 
 /* Seeded, not pad_jump_hover: jump mode must never reseed on the first colony afterwards. */
 static void leave_aim_mode(pad_nav_t *nav) {
+    if (!pad_jump_any_candidate(entities_by_tag(TAG_NODE))) {
+        return;
+    }
     entity_list_t candidates = live_candidates();
     int x, y;
     centre_world_point(&x, &y);
@@ -353,14 +369,17 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
 }
 
 static void reset_on_new_game(pad_nav_t *nav) {
-    entity_t *economy = main_economy_typed() != NULL ? &main_economy_typed()->header : NULL;
-    if (economy == NULL || entity_get(nav->game) == economy) {
+    if (!game_unseen(nav)) {
         return;
     }
+    pad_nav_map_mode_t start = map_mode_now(nav);
     pad_jump_init(&nav->jump);
     pad_back_init(&nav->back);
-    nav->game = entity_id_link(economy);
+    nav->game = entity_id_link(&main_economy_typed()->header);
     reset_map_mode(nav);
+    if (start == PAD_NAV_MAP_AIM) {
+        enter_aim_mode(nav);
+    }
 }
 
 /* Never pause, which only pause_step closes: cleared on a release frame, the resumed carry would press the map. */

@@ -3,9 +3,9 @@ panel in one frame, and R1 on score closes it. The score panel closes
 with O, then with L1, which opens the build bar; O on `tech` goes back
 to the map, and a last R1 cycle closes from score. 96 frames.
 
-Jump mode is the map's root, where every game starts: square on f13
-leaves it for plain aim mode, the camera unmoved, as games started
-before it.
+A new game knows no object, so it starts in plain aim mode (plan 12
+step 17): f13 is idle (it was square out of jump mode until then).
+Every capture frame is unchanged.
 
 f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each: tech (1, 1),

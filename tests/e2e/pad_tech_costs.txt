@@ -23,7 +23,8 @@ which prints `save: clock year 3407 month 1`, `save: resources credits
 100`, `save: count nodes 90`; the hex is the header's initial_save. The
 cheat comes after the cut (cheat activations 1).
 
-Jump mode is the map's root, where every game starts. The menus open
+The resumed record knows no object, so the game starts in aim mode,
+as a new game does (plan 12 step 17). The menus open
 from jump mode (plan 12 step 7: triangle does nothing in aim mode): f97
 and f225 square leave aim mode for jump mode on the planet under the
 centre, and the cheat is typed in jump mode, where its chords' X and O
@@ -39,10 +40,12 @@ file cut after the frame and from the capture.
 
 - f10: Up onto "resume", f12: X: the record's game, year 3407, research
   6. The title's X is a lone X, which leaves the cheat matcher at 0.
-- f13-16: idle. f17: R1 from the map: `tech` (until plan 12 step 11,
-  R1 R1 R1 round the ring at f13, f15, f17). f21-25: Down x3, f27: X:
-  "nanomaterials" (cost 6), research 0, back on the map. f29: square:
-  aim mode (it was f17's square before the cut).
+- f13-16: idle in aim mode, the crosshair at the centre (no object is
+  known). f17: R1 from the map: `tech` (until plan 12 step 11, R1 R1 R1
+  round the ring at f13, f15, f17). f21-25: Down x3, f27: X:
+  "nanomaterials" (cost 6), research 0, back on the map in aim mode,
+  the crosshair back on f28. f29: idle (it was square into aim mode
+  until plan 12 step 17, and f17's square before the cut).
 - f31-36: Up 6, f38: X: the starting probe at (256, 250). f41-58:
   Down+Left 10, Down 8: centre world (246, 276). f60-79: X held 20: a
   fold, $97, month 2 at f80. p31 turns known at f88 (type e,

@@ -4,8 +4,8 @@ protostar's energy to a nanotech forgeworld, a trading hub fed tech and
 food, the protostar panned off screen, a year ended by a Select hold,
 then Select taps cycling the colonies that need attention. 500 frames.
 
-Jump mode is the map's root, where every game starts: square on f25
-enters aim mode, the camera unmoved. Square on f259 and f436 enters aim
+A new game knows no object, so it starts in aim mode (plan 12 step 17):
+f25 is idle. Square on f259 and f436 enters aim
 mode again from jump mode. f245 and f304 leave aim mode for jump mode on
 s1 and s2, the targets nearest the centre. The f340 collapse replaces
 the hovered p47, so jump mode reseeds onto the target nearest the
@@ -24,9 +24,10 @@ the economy from `make state` of the file cut after that frame.
 
 - f0-24: the title. Its X is a lone X press, which leaves the cheat
   matcher at 0.
-- f28: O in aim mode: back to jump mode, nothing hovered (no object is
-  known yet), the crosshair gone on f28 alone. f29: square: aim mode
-  again, nothing else changed on the map.
+- f25-29: idle, aim mode, the crosshair at the centre. (Until plan 12
+  step 17, f25 was square from jump mode with nothing hovered, f28 O
+  back to jump mode with nothing hovered and f29 square back to aim
+  mode: that mechanic is gone; pad_probe f16-17 show the new one.)
 - f30-36: X four times, one tap every two frames, at the start centre.
   Each X makes a probe on its press (entities 107 -> 108 at f30) that
   lands 14 px from p78 and is refused: a colour-2 hatched disk round

@@ -1,7 +1,6 @@
 # Escape hatches only: regenerates tests/e2e/pad_end_turn.json byte for byte.
 title 12 reasonable
-tap square
-idle 2
+idle 3
 hold select 30
 idle 15
 tap select

@@ -2,9 +2,12 @@
 the "final score" panel, X on "again?", the title. X held into the panel
 and into the title presses nothing. 112 frames.
 
-Jump mode is the map's root, where every game starts. This file stays
-in it: no square on f13, unlike pad_end_turn, and nothing is hovered (no
-planet is known), so X does nothing on the map.
+A new game knows no object, so it starts in aim mode (plan 12 step 17),
+and this file stays in it until the final score panel: the colour-7
+crosshair is drawn at the centre f13-92. X does nothing on the map:
+f90's X press falls on the release frame of f89's year-skip click, so
+it engages nothing (the played mouse button is up on f90), and held
+from then on it is no press edge.
 
 f0-12 are pad_end_turn's frames verbatim (Down f10, X f12 on
 "reasonable"), so the galaxy is pad_end_turn's. Until plan 12 step 9
@@ -16,7 +19,7 @@ rows at x=108 (forgiving y57, reasonable y68, challenging y79, tough
 y90). Readings come from the framebuffer dump of the file cut after
 each frame, the clock from `make state` of the same cut.
 
-- f0-12: as pad_end_turn. After f12: year 3401, research 0, jump mode.
+- f0-12: as pad_end_turn. After f12: year 3401, research 0, aim mode.
 - f14-43: Select held 30 frames: on f43, its 30th frame, the cursor on
   the year-skip button (154 5), pressed, colour 12 on f43 only (13 on
   f42 and f44): year 3402, research 1. f44: the release.
@@ -25,7 +28,7 @@ each frame, the clock from `make state` of the same cut.
   3403 after f45, 3425 after f89, 3426 after f91, research 25, $100.
   The year boxes from 3421 on block none of them.
 - f90-102: X held 13 frames, from the frame before the 25th press: on
-  the map it presses nothing (jump mode, nothing hovered). f92: the
+  the map it presses nothing (aim mode, see above). f92: the
   final score panel opens (modal_backdrop 1), the curtain covers the
   HUD (the year skip colour 1 on f92, 0 by f100); "again?" is colour
   13 on f92. From f93 "again?" is focused and drawn hovered, colour 12

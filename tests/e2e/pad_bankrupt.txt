@@ -27,7 +27,8 @@ file cut after the frame and from the capture.
 
 - f10: Up onto "resume", f12: X: the record's game, year 3401 month 9,
   $40, income -16, camera 206 225, s1 (254, 248), s2 (246, 270), s3
-  (262, 288), s4 (286, 285). f13: square: aim mode.
+  (262, 288), s4 (286, 285). The record knows objects, so the game
+  starts in jump mode (plan 12 step 17); f13: square: aim mode.
 - f15-21: the cheat, four X + O chords one every 2 frames: $200,
   research 99 at f21. The title's X is a lone X, which leaves the cheat
   matcher at 0. The pad ignores X and O from a chord until both are up,

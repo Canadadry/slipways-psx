@@ -28,7 +28,9 @@ cheats come after the cut (cheat activations 3).
   square: aim mode, p25 under the centre (camera 200 169). The title's
   X is a lone X, which leaves the cheat matcher at 0.
 
-Jump mode is the map's root, where every game starts. The menus open
+The resumed record knows objects, so the game starts in jump mode, the
+map's root once an object is known (plan 12 step 17), and f13's square
+enters aim mode from it. The menus open
 from jump mode (plan 12 step 7: triangle does nothing in aim mode):
 square on f86 and f129 leaves aim mode for jump mode on the planet under
 the centre; f102: square again once the f101 harvest killed the

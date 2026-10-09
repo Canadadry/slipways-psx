@@ -6,8 +6,9 @@ closed with O and with Start. Then the score panel, reached by R1 R1
 the score box running out. 223 frames.
 Listed in tools/e2e_long_exceptions.txt.
 
-Jump mode is the map's root, where every game starts: square on f13
-leaves it for aim mode, the camera unmoved.
+A new game knows no object, so it starts in aim mode (plan 12 step
+17): f13 is idle (it was square out of jump mode until then). Every
+capture frame is unchanged.
 
 f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each as in

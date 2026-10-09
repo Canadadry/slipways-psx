@@ -9,9 +9,10 @@ on that last object doing nothing, a slipway aimed under the top HUD, a
 fold held on its middle from aim mode and abandoned, a year with the
 slipway, ended by a Select hold. 445 frames.
 
-Jump mode is the map's root, where every game starts: square on f13
-enters aim mode, the camera unmoved. pad_probe's f16-17 (O back to jump
-mode with nothing hovered, square back to aim mode) are shared.
+A new game knows no object, so it starts in aim mode (plan 12 step 17):
+f13 is idle. pad_probe's f16-17 (square and O doing nothing in aim mode
+while nothing is known) are shared; with f293's circle at the root they
+are the three no-ops `make pad-metrics-check` counts as required.
 
 f0-68 are pad_probe's frames verbatim (title, starting probe, fold, p25
 and p47 turning known at f63 and f65), so the galaxy and pad_probe.txt's
@@ -153,7 +154,8 @@ f369 (step 8).
   p47 pressed again.
 - f291: circle: the slipway dropped with no target, jump mode on p47.
   f293: circle at the root on p47, the last object: nothing happens
-  (plan 12 step 8), no button, the camera unmoved.
+  (plan 12 step 8), no button, the camera unmoved: a required no-op,
+  like f16-17.
 - The aim under the top HUD (plan 12 step 7): f295: square: aim mode.
   f297-322: Down 26, f324-341: Right 18: camera 210 251. f343: square:
   jump mode on p47, the target nearest the centre, the edge scroll

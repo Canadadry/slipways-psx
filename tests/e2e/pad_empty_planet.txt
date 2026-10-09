@@ -1,10 +1,10 @@
 A lab refused on a planet, an empty planet fading out, a lab placed on
 its spot. 148 frames.
 
-Jump mode is the map's root, where every game starts: square on f13
-enters aim mode, the camera unmoved. pad_probe's f16-17 (O back to jump
-mode with nothing hovered, square back to aim mode) are shared: every
-capture frame but f16 is the one this file had before plan 12 step 7.
+A new game knows no object, so it starts in aim mode (plan 12 step 17):
+f13 is idle. pad_probe's f16-17 (square and O doing nothing in aim mode
+while nothing is known) are shared: every capture frame but f16 is the
+one this file had before plan 12 step 17.
 
 Pad input declared ("input": "pad"). pad_probe's frames up to f28, then
 its fold moved 14 px further right: Up+Right 4, Right 14 (f29-46),

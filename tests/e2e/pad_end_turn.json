@@ -14,7 +14,7 @@
     { "pad": ["down"] },
     { "pad": [] },
     { "pad": ["cross"] },
-    { "pad": ["square"] },
+    { "pad": [] },
     { "pad": [] },
     { "pad": [] },
     { "pad": ["select"] },

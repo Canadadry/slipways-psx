@@ -5,9 +5,9 @@ mode on the colony under the centre. It is the regression guard for
 the line the pad once failed to draw while aiming (a blind
 press-release gesture). 318 frames.
 
-Jump mode is the map's root, where every game starts: square on f13
-enters aim mode, the camera unmoved. pad_probe's f16-17 (O back to jump
-mode with nothing hovered, square back to aim mode) are shared.
+A new game knows no object, so it starts in aim mode (plan 12 step 17):
+f13 is idle. pad_probe's f16-17 (square and O doing nothing in aim mode
+while nothing is known) are shared.
 
 f0-98 are pad_colonise's frames verbatim (f0-68 being pad_probe's), so
 the galaxy and pad_probe.txt's planet list apply, and p47 (type r) is

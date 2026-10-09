@@ -4,8 +4,8 @@
 title 12 reasonable
 probe 170 250
 fold 168 238
-colonise p33 strip
 score
+colonise p33 strip
 menu p78
 colonise p78 nanotech
 score
@@ -248,6 +248,6 @@ score
 bar
 research ascension
 build ascension 101 235
+menu s10 55
 label pause-branch
-menu s10
 until-game-end

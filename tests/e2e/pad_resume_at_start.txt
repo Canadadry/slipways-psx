@@ -2,7 +2,8 @@ A launch with a save on disk: the header's initial_save is seeded into
 the storage before the first frame, the title shows "resume" from f0,
 Up and X on it resume pad_research's end game. 48 frames.
 
-Jump mode is the map's root, where every game starts: square on f13
+The resumed record knows objects, so the game starts in jump mode, the
+map's root once an object is known (plan 12 step 17): square on f13
 enters aim mode, the camera unmoved. The fixture was re-cut in plan 12
 step 7 from pad_research's new last record (its crossed-planet aim and
 the moves after it), and again in step 9, where pad_research's year

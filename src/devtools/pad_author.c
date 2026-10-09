@@ -48,8 +48,6 @@
 #define YEARS_TO_END_MAX 200
 #define REVEAL_FRAMES_MAX 30
 #define MENU_DWELL_MAX 60
-/* A refused probe exists from its press until it vanishes, about 7 frames later. */
-#define PROBE_REFUSAL_FRAMES 10
 
 typedef struct {
     char text[LINE_MAX_CHARS];
@@ -422,9 +420,12 @@ static int is_candidate_named(pad_author_t *author, const void *context) {
     return pad_target_is_candidate(object_named(context));
 }
 
+static int leave_aim(pad_author_t *author, const script_t *script);
+
 static int run_jump(pad_author_t *author, const script_t *script, const char *id) {
     if (!wait_until(author, script, is_candidate_named, id, REVEAL_FRAMES_MAX, "jump: the target a candidate")) return 0;
     entity_t *target = object_named(id);
+    if (current_mode(author) == PAD_METRICS_MODE_AIM && !leave_aim(author, script)) return 0;
     pad_metrics_mode_t jump = PAD_METRICS_MODE_JUMP;
     if (!wait_until(author, script, is_mode, &jump, 2, "jump: jump mode")) return 0;
     pad_nav_t *nav = nav_of(author);
@@ -571,21 +572,44 @@ static int enter_aim(pad_author_t *author, const script_t *script, int x, int y,
     return 1;
 }
 
+static int any_candidate(void) {
+    return pad_jump_any_candidate(entities_by_tag(TAG_NODE));
+}
+
+static int has_candidate(pad_author_t *author, const void *context) {
+    (void)author;
+    (void)context;
+    return any_candidate();
+}
+
 static int leave_aim(pad_author_t *author, const script_t *script) {
+    if (!wait_until(author, script, has_candidate, NULL, REVEAL_FRAMES_MAX, "square: a known object to jump back to")) {
+        return 0;
+    }
     if (!tap(author, script, P8_PAD_SQUARE)) return 0;
     if (current_mode(author) != PAD_METRICS_MODE_JUMP) return fail(author, script, "square: no jump mode after aim mode");
     return 1;
 }
 
+/* With nothing known, □ in aim mode is a dead press: stay in aim mode. */
+static int leave_aim_if_able(pad_author_t *author, const script_t *script) {
+    return current_mode(author) == PAD_METRICS_MODE_AIM && any_candidate() ? leave_aim(author, script) : 1;
+}
+
+/* A refused probe is marked dead on its release frame but stays tagged until it vanishes. */
+static int live_probes(void) {
+    const entity_list_t *probes = entities_by_tag(TAG_PROBE);
+    int live = 0;
+    for (int i = 0; i < count_of(probes); i++) live += !probes->items[i]->is_dead;
+    return live;
+}
+
 static int run_probe(pad_author_t *author, const script_t *script, int x, int y) {
     if (!enter_aim(author, script, x, y, 1) || !pan_to(author, script, x, y)) return 0;
-    int probes = count_of(entities_by_tag(TAG_PROBE));
-    if (!tap(author, script, P8_PAD_CROSS) || !leave_aim(author, script) ||
-        !emit_repeated(author, script, 0, PROBE_REFUSAL_FRAMES)) {
-        return 0;
-    }
-    if (count_of(entities_by_tag(TAG_PROBE)) <= probes) return fail(author, script, "probe: refused at %d %d", x, y);
-    return 1;
+    int probes = live_probes();
+    if (!tap(author, script, P8_PAD_CROSS)) return 0;
+    if (live_probes() != probes + 1) return fail(author, script, "probe: refused at %d %d", x, y);
+    return leave_aim_if_able(author, script);
 }
 
 static int run_fold(pad_author_t *author, const script_t *script, int x, int y, int has_point) {
@@ -593,12 +617,12 @@ static int run_fold(pad_author_t *author, const script_t *script, int x, int y, 
     if (has_point && !pan_to(author, script, x, y)) return 0;
     if (count_of(entities_by_tag(TAG_PROBE)) == 0) return fail(author, script, "fold: no probe yet");
     p8_fixed_t credits = main_economy_typed()->credits;
-    if (!emit_repeated(author, script, P8_PAD_CROSS, FOLD_HOLD_FRAMES) || !emit(author, script, P8_PAD_CIRCLE) ||
-        !emit(author, script, 0)) {
+    if (!emit_repeated(author, script, P8_PAD_CROSS, FOLD_HOLD_FRAMES) ||
+        !emit(author, script, any_candidate() ? P8_PAD_CIRCLE : 0) || !emit(author, script, 0)) {
         return 0;
     }
     if (main_economy_typed()->credits >= credits) return fail(author, script, "fold: not confirmed, nothing charged");
-    return current_mode(author) == PAD_METRICS_MODE_AIM ? leave_aim(author, script) : 1;
+    return leave_aim_if_able(author, script);
 }
 
 static int has_focus(pad_author_t *author, const void *context) {
@@ -840,8 +864,7 @@ static int run_build(pad_author_t *author, const script_t *script, const char *k
     placed_t placed = {x, y, kind};
     if (!emit(author, script, P8_PAD_CROSS)) return 0;
     if (!wait_until(author, script, is_placed, &placed, 6, "build: the structure built on the point")) return 0;
-    if (current_mode(author) == PAD_METRICS_MODE_AIM) return leave_aim(author, script);
-    return 1;
+    return leave_aim_if_able(author, script);
 }
 
 static int is_tech_button(const entity_t *e, const char *tech) {

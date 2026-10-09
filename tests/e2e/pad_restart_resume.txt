@@ -3,11 +3,12 @@ wait until the save holds the fold, Start, X on "restart", Up and X on
 the title's "resume" row. The resumed game is the game before the
 restart. 155 frames.
 
-Jump mode is the map's root, where every game starts: square on f13
-enters aim mode, the camera unmoved; f133: the same in the game resumed
-at f132. pad_probe's f16-17 (O back to jump mode with nothing hovered,
-square back to aim mode) are shared: every capture frame but f16 is the
-one this file had before plan 12 step 7.
+A new game knows no object, so it starts in aim mode (plan 12 step 17):
+f13 is idle. The game resumed at f132 knows p25 and p47, so it starts in
+jump mode, and f133's square enters aim mode, the camera unmoved.
+pad_probe's f16-17 (square and O doing nothing in aim mode while nothing
+is known) are shared: every capture frame but f16 is the one this file
+had before plan 12 step 17.
 
 f0-76 are pad_probe's 77 frames verbatim: the first 77 frames of this
 capture equal pad_probe's capture byte for byte (`cmp -n 739200`, both
