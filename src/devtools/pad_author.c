@@ -19,6 +19,7 @@
 #include "game/planet.h"
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
+#include "game/research.h"
 #include "game/scroll.h"
 #include "game/slipway.h"
 #include "game/structure_icon.h"
@@ -84,6 +85,8 @@ static const structure_kind_t STRUCTURE_KINDS[] = {
     {"synthesizer", &synthesizer_kind_record, synthesizer_class},
 };
 #define STRUCTURE_KIND_COUNT ((int)(sizeof STRUCTURE_KINDS / sizeof STRUCTURE_KINDS[0]))
+
+typedef int (*item_match_t)(const entity_t *e, const char *name);
 
 /* A stop-at label outlives the script line it came from. */
 static char stop_label_copy[LINE_MAX_CHARS];
@@ -704,7 +707,12 @@ static int is_settled(pad_author_t *author, const void *context) {
     return planet->state == ENTITY_STATE_SETTLED;
 }
 
-static int run_colonise(pad_author_t *author, const script_t *script, const char *id, int row) {
+static int move_to_item(pad_author_t *author, const script_t *script, item_match_t match, const char *name,
+                        const char *command);
+static int is_project_button(const entity_t *e, const char *project);
+
+/* project NULL picks the row-th row below the header. */
+static int run_colonise(pad_author_t *author, const script_t *script, const char *id, int row, const char *project) {
     if (!require_map(author, script, "colonise")) return 0;
     if (current_mode(author) == PAD_AUTHOR_MODE_AIM && !leave_aim(author, script)) return 0;
     if (!run_jump(author, script, id)) return 0;
@@ -715,7 +723,9 @@ static int run_colonise(pad_author_t *author, const script_t *script, const char
         !wait_panel_settled(author, script, "colonise")) {
         return 0;
     }
-    if (!move_down_rows(author, script, row) || !tap(author, script, P8_PAD_CROSS)) return 0;
+    int moved = project != NULL ? move_to_item(author, script, is_project_button, project, "colonise")
+                                : move_down_rows(author, script, row);
+    if (!moved || !tap(author, script, P8_PAD_CROSS)) return 0;
     if (!wait_until(author, script, is_settled, planet, 5, "colonise: the planet settled")) return 0;
     return wait_until(author, script, panel_closed_on_map, NULL, 10, "colonise: the menu closed");
 }
@@ -784,7 +794,10 @@ static int run_slipway(pad_author_t *author, const script_t *script, char *const
         if (!emit(author, script, 0) || !emit(author, script, 0)) return 0;
         start = target;
     }
-    if (current_mode(author) == PAD_AUTHOR_MODE_SLIPWAY && !tap(author, script, P8_PAD_CIRCLE)) return 0;
+    /* ○ closes a shown message box (a year's) before it drops the slipway. */
+    for (int i = 0; i < 3 && current_mode(author) == PAD_AUTHOR_MODE_SLIPWAY; i++) {
+        if (!tap(author, script, P8_PAD_CIRCLE)) return 0;
+    }
     pad_author_mode_t jump = PAD_AUTHOR_MODE_JUMP;
     return wait_until(author, script, is_mode, &jump, 4, "slipway: back in jump mode");
 }
@@ -893,8 +906,8 @@ static int tech_panel_up(pad_author_t *author, const void *context) {
     return pad_nav_tech_open(nav_of(author)) && pad_nav_panel_open() && pad_nav_focus(nav_of(author)) != NULL;
 }
 
-/* Breadth-first over the panel's items from the focus. Returns the tap count, -1 when no item is the tech. */
-static int item_path(const entity_t *from, const char *tech, int *directions) {
+/* Breadth-first over the panel's items from the focus. Returns the tap count, -1 when no item matches. */
+static int item_path(const entity_t *from, item_match_t match, const char *name, int *directions) {
     enum { ITEMS_MAX = 64 };
     const entity_t *items[ITEMS_MAX];
     int previous[ITEMS_MAX], via[ITEMS_MAX];
@@ -902,7 +915,7 @@ static int item_path(const entity_t *from, const char *tech, int *directions) {
     items[0] = from;
     previous[0] = -1;
     for (int head = 0; head < count && found < 0; head++) {
-        if (is_tech_button(items[head], tech)) {
+        if (match(items[head], name)) {
             found = head;
             break;
         }
@@ -926,6 +939,26 @@ static int item_path(const entity_t *from, const char *tech, int *directions) {
     return length;
 }
 
+static int move_to_item(pad_author_t *author, const script_t *script, item_match_t match, const char *name,
+                        const char *command) {
+    pad_nav_t *nav = nav_of(author);
+    int directions[PATH_STEPS_MAX];
+    int length = item_path(pad_nav_focus(nav), match, name, directions);
+    if (length < 0) return fail(author, script, "%s: no row '%s' it can press", command, name);
+    for (int i = 0; i < length; i++) {
+        entity_t *expected = pad_nav_neighbor(pad_nav_focus(nav), directions[i]);
+        if (!tap(author, script, directions[i])) return 0;
+        if (pad_nav_focus(nav) != expected) return fail(author, script, "%s: a tap missed its row", command);
+    }
+    return 1;
+}
+
+static int is_project_button(const entity_t *e, const char *project) {
+    if (e == NULL || e->class != button_class()) return 0;
+    const research_project_t *chosen = research_project_get(((const button_t *)e)->project);
+    return chosen != NULL && chosen->name != NULL && strcmp(chosen->name, project) == 0;
+}
+
 static void join_words(char *out, size_t size, char *const *words, int count) {
     out[0] = '\0';
     for (int i = 0; i < count; i++) {
@@ -942,16 +975,7 @@ static int run_research(pad_author_t *author, const script_t *script, const char
         !wait_panel_settled(author, script, "research")) {
         return 0;
     }
-    pad_nav_t *nav = nav_of(author);
-    int directions[PATH_STEPS_MAX];
-    int length = item_path(pad_nav_focus(nav), tech, directions);
-    if (length < 0) return fail(author, script, "research: no affordable '%s' row", tech);
-    for (int i = 0; i < length; i++) {
-        entity_t *expected = pad_nav_neighbor(pad_nav_focus(nav), directions[i]);
-        if (!tap(author, script, directions[i])) return 0;
-        if (pad_nav_focus(nav) != expected) return fail(author, script, "research: a tap missed its row");
-    }
-    if (!tap(author, script, P8_PAD_CROSS)) return 0;
+    if (!move_to_item(author, script, is_tech_button, tech, "research") || !tap(author, script, P8_PAD_CROSS)) return 0;
     if (!wait_until(author, script, techs_reached, &wanted, 4, "research: invented")) return 0;
     for (int i = 0; i < 4 && !on_the_map(author, NULL); i++) {
         if (!emit(author, script, 0)) return 0;
@@ -1100,8 +1124,9 @@ static int run_goal(pad_author_t *author, const script_t *script) {
     if (strcmp(command, "colonise") == 0) {
         if (!expect_tokens(author, script, 2, 3)) return 0;
         int row = count == 3 ? parse_count(tokens[2]) : 1;
-        if (row < 1) return fail(author, script, "colonise: bad project row '%s'", tokens[2]);
-        return run_colonise(author, script, tokens[1], row);
+        const char *project = count == 3 && row < 0 ? tokens[2] : NULL;
+        if (row == 0) return fail(author, script, "colonise: row 0 is the header");
+        return run_colonise(author, script, tokens[1], row, project);
     }
     if (strcmp(command, "slipway") == 0) {
         if (count < 3) return fail(author, script, "slipway: needs a start and at least one target");
@@ -1188,6 +1213,19 @@ static int run_line(pad_author_t *author, const script_t *script, int depth) {
     return run_goal(author, script);
 }
 
+static int tokenize(pad_author_t *author, const script_t *script, script_line_t *line) {
+    line->token_count = 0;
+    for (char *token = strtok(line->text, " \t"); token != NULL; token = strtok(NULL, " \t")) {
+        if (line->token_count == TOKENS_MAX) {
+            snprintf(author->error, sizeof author->error, "%s:%d: more than %d words", script->path, line->number,
+                     TOKENS_MAX);
+            return 0;
+        }
+        line->tokens[line->token_count++] = token;
+    }
+    return 1;
+}
+
 /* Returns 0 when the file cannot be read or holds an overlong line; the
  * caller frees script->lines. */
 static int load_lines(pad_author_t *author, script_t *script) {
@@ -1220,16 +1258,7 @@ static int load_lines(pad_author_t *author, script_t *script) {
     fclose(in);
     /* Tokens point into each line's text: split only once realloc is done. */
     for (int i = 0; i < script->line_count; i++) {
-        script_line_t *line = &script->lines[i];
-        line->token_count = 0;
-        for (char *token = strtok(line->text, " \t"); token != NULL; token = strtok(NULL, " \t")) {
-            if (line->token_count == TOKENS_MAX) {
-                snprintf(author->error, sizeof author->error, "%s:%d: more than %d words", script->path,
-                         line->number, TOKENS_MAX);
-                return 0;
-            }
-            line->tokens[line->token_count++] = token;
-        }
+        if (!tokenize(author, script, &script->lines[i])) return 0;
     }
     return 1;
 }
@@ -1284,6 +1313,25 @@ int pad_author_run(pad_author_t *author, const char *script_path, const char *st
         return 0;
     }
     return 1;
+}
+
+int pad_author_run_line(pad_author_t *author, const char *commands) {
+    assert(author != NULL && commands != NULL);
+    script_line_t line;
+    script_t script = {.path = "try", .lines = &line, .line_count = 1, .current = &line};
+    const char *at = commands;
+    line.number = 0;
+    while (*at != '\0') {
+        size_t length = strcspn(at, ";");
+        snprintf(line.text, sizeof line.text, "%.*s", (int)length, at);
+        line.text[strcspn(line.text, "#\r\n")] = '\0';
+        line.number++;
+        at += length + (at[length] == ';');
+        if (!tokenize(author, &script, &line)) return 0;
+        if (line.token_count > 0 && !run_line(author, &script, 0)) return 0;
+    }
+    pad_author_view_t now = view_now(author);
+    return settle_circle(author, &script, &now, 1);
 }
 
 void pad_author_write_totals(const pad_author_t *author, FILE *out, const char *prefix) {

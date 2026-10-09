@@ -79,6 +79,9 @@ void pad_author_init(pad_author_t *author);
  * author->error set to "<script>:<line>: frame <n>: <reason>". */
 int pad_author_run(pad_author_t *author, const char *script_path, const char *stop_label);
 
+/* Runs `;`-separated commands after the script, as one more script line each. Returns 1 or 0 as pad_author_run. */
+int pad_author_run_line(pad_author_t *author, const char *commands);
+
 const char *pad_author_mode_name(pad_author_mode_t mode);
 
 /* The run's totals for step 14: frames and presses per mode and button, aim share, hold repeats, required no-ops. */

@@ -1,4 +1,5 @@
 /* usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>] [--no-aim-budget]
+ *        [--try <file>]
  *
  * Plays the script headless and writes the pad frames it pressed to
  * <events.json>, or, when a command fails, to tmp/pad-author/<name>.failed.json
@@ -10,7 +11,12 @@
  * Writes the per-frame mode log and the run's totals to
  * tmp/pad-author/<name>.modes.txt, the totals also to stdout. A whole run
  * (no --stop-at) fails when more than 20% of its frames are in aim mode,
- * unless --no-aim-budget. */
+ * unless --no-aim-budget.
+ *
+ * --try <file>: after the run, each line of <file> (commands separated by `;`)
+ * runs in its own fork from the run's last frame, writes its state to
+ * tmp/pad-author/<name>.try<k>.txt and prints `try <k> ok <frames> science/year <n>` or
+ * `try <k> failed <error>`; nothing it does reaches <events.json>. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -18,6 +24,12 @@
 #include "devtools/state.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
+#include "game/main_economy.h"
+#include "game/map_tables.h"
+#include "game/planet.h"
+#include "game/research.h"
+#include "engine/entity_registry.h"
+#include "game/economy_formulas.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -40,7 +52,7 @@ static pad_author_t author;
 
 static void usage(void) {
     fprintf(stderr, "usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>] "
-                    "[--no-aim-budget]\n");
+                    "[--no-aim-budget] [--try <file>]\n");
 }
 
 static void base_name(char *out, size_t size, const char *path) {
@@ -95,6 +107,87 @@ static int same_file(const char *left, const char *right) {
     return same;
 }
 
+/* The labs' yearly science, as economy_new_year adds it; 0 with no game. */
+static int science_per_year(void) {
+    economy_t *economy = main_economy_typed();
+    int k;
+    p8_fixed_t science = 0;
+    if (economy == NULL || !(economy->has & ECONOMY_HAS_PRODUCTION) || !resource_code_lookup("k", &k)) return 0;
+    resource_map_get(&economy->production, p8_fixed_from_int(k), &science);
+    return p8_fixed_flr_int(science);
+}
+
+static const char *resource_letter(p8_fixed_t number) {
+    for (int i = 0; i < RESOURCE_CODE_COUNT; i++) {
+        if (p8_fixed_from_int(resource_codes[i].resource) == number) return resource_codes[i].key;
+    }
+    return "-";
+}
+
+/* For planning: one line per settled planet or structure, its project, tier, production and needs met. */
+static void write_economy(const char *path) {
+    FILE *out = fopen(path, "w");
+    if (out == NULL) return;
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    for (int i = 0; planets != NULL && i < planets->count; i++) {
+        const planet_t *p = (const planet_t *)planets->items[i];
+        if (p->header.state != ENTITY_STATE_SETTLED) continue;
+        const research_project_t *project = research_project_get(p->project);
+        const production_t *made = planet_production_read(p);
+        fprintf(out, "eco %s project %s tier %d makes %s %d out %d in %d needs", planet_id_or_null(p) ? planet_id_or_null(p) : "-",
+                project != NULL && project->name != NULL && project->name[0] ? project->name : "-",
+                p->has_development_tier ? p8_fixed_flr_int(p->development_tier) : -1,
+                made->has_resource ? resource_letter(made->resource) : "-", p8_fixed_flr_int(made->amount),
+                (p->has & PLANET_HAS_OUTGOING_ROUTES) ? trade_route_list_count(&p->outgoing_routes) : 0,
+                (p->has & PLANET_HAS_INCOMING_ROUTES) ? trade_route_list_count(&p->incoming_routes) : 0);
+        for (int n = 0; (p->has & PLANET_HAS_NEEDS) && n < p->needs.count; n++) {
+            const need_t *want = p->needs.items[n];
+            if (want == NULL) continue;
+            resource_t r = need_resource(want);
+            fprintf(out, " %s:%d", r.kind == RESOURCE_FIXED ? resource_letter(r.number) : "?",
+                    want->has_satisfied ? p8_fixed_flr_int(want->satisfied) : -1);
+        }
+        fputc('\n', out);
+    }
+    fclose(out);
+}
+
+/* Each trial forks from the run's last frame, so trials never see each other. */
+static int run_trials(const char *try_path, const char *name) {
+    FILE *in = fopen(try_path, "r");
+    if (in == NULL) {
+        fprintf(stderr, "pad_author: cannot read '%s'\n", try_path);
+        return 0;
+    }
+    char line[1024];
+    for (int k = 0; fgets(line, sizeof line, in) != NULL; k++) {
+        line[strcspn(line, "\r\n")] = '\0';
+        fflush(NULL);
+        pid_t child = fork();
+        assert(child >= 0);
+        if (child == 0) {
+            int ok = pad_author_run_line(&author, line);
+            char path[PATH_CHARS];
+            snprintf(path, sizeof path, "%s/%s.try%d.txt", WORK_DIR, name, k);
+            write_state(path);
+            snprintf(path, sizeof path, "%s/%s.try%d.eco.txt", WORK_DIR, name, k);
+            write_economy(path);
+            if (ok) {
+                printf("try %d ok %d science/year %d\n", k, author.frame_count, science_per_year());
+            } else {
+                printf("try %d failed %s\n", k, author.error);
+            }
+            fflush(NULL);
+            _exit(0);
+        }
+        int status = 0;
+        waitpid(child, &status, 0);
+        if (!WIFEXITED(status)) printf("try %d failed: the fork stopped\n", k);
+    }
+    fclose(in);
+    return 1;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3 || argv[1][0] == '-' || argv[2][0] == '-') {
         usage();
@@ -105,9 +198,12 @@ int main(int argc, char **argv) {
     const char *stop_label = NULL;
     const char *replay_binary = "tmp/replay";
     int aim_budget = 1;
+    const char *try_path = NULL;
     for (int a = 3; a < argc; a++) {
         if (strcmp(argv[a], "--stop-at") == 0 && a + 1 < argc) {
             stop_label = argv[++a];
+        } else if (strcmp(argv[a], "--try") == 0 && a + 1 < argc) {
+            try_path = argv[++a];
         } else if (strcmp(argv[a], "--no-aim-budget") == 0) {
             aim_budget = 0;
         } else if (strcmp(argv[a], "--replay") == 0 && a + 1 < argc) {
@@ -185,6 +281,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "pad_author: replaying '%s' with %s failed\n", events_path, replay_binary);
         return 1;
     }
+    if (try_path != NULL && !run_trials(try_path, name)) return 1;
     if (!same_file(state_path, replay_state)) {
         fprintf(stderr, "pad_author: generator bug: %s and the replay's %s differ\n", state_path, replay_state);
         return 1;
