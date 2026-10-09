@@ -3443,6 +3443,69 @@ static void test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up(void
     assert(!pad_nav_panel_open());
 }
 
+/* The pad hides × and ○ from each chord cheat_step counts until both are up, and nowhere else: unless hidden, × down
+ * in jump mode starts a slipway and ○ down in slipway mode cancels it. */
+static void test_the_pad_hides_cross_and_circle_exactly_from_the_chords_cheat_step_counts(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(&step, colony);
+    hold(&step, 0, 40);
+    assert_hovering(&step, &colony->header);
+    int held = 0;
+    static const int directions[] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
+    for (int i = 0; i < 4 && held == 0; i++) {
+        if (expected_jump(&colony->header, directions[i]) == NULL) {
+            held = directions[i];
+        }
+    }
+    assert(held != 0 && "the colony needs one direction with an empty cone, so a held D-pad keeps it hovered");
+    const int x = P8_PAD_CROSS, o = P8_PAD_CIRCLE, d = held;
+    const int frames[] = {
+        CHORD, 0, 0, CHORD, 0, CHORD, x, 0, CHORD, 0,
+        x, o, 0,
+        o, o | x, 0, o, 0,
+        x, 0, CHORD, x, x | o, 0, o, 0,
+        d, d | CHORD, d, d | x, d, d | o, 0,
+    };
+    const int count = (int)(sizeof frames / sizeof frames[0]);
+    cheat_t cheat;
+    cheat_init(&cheat);
+    int previous = 0, hidden = 0, chords = 0, fired = cheats_fired, own_fired = 0;
+    for (int i = 0; i < count; i++) {
+        int raw = frames[i];
+        int chords_before = cheat.chords;
+        int fires = cheat_step(&cheat, raw);
+        own_fired += fires;
+        int counted = fires || cheat.chords > chords_before;
+        chords += counted;
+        if (counted) {
+            hidden = 1;
+        } else if (!(raw & CHORD)) {
+            hidden = 0;
+        }
+        int cross_down = (raw & ~previous & x) != 0, circle_down = (raw & ~previous & o) != 0;
+        int was_slipway = pad_nav_slipway_start(&step.pad_nav) != NULL;
+        assert(was_slipway || pad_nav_hovered(&step.pad_nav) == &colony->header);
+        run_frame(&step, raw);
+        int is_slipway = pad_nav_slipway_start(&step.pad_nav) != NULL;
+        if (cross_down && !was_slipway) {
+            assert(is_slipway == !hidden);
+        } else if (circle_down && was_slipway) {
+            assert(is_slipway == hidden);
+        } else {
+            assert(is_slipway == was_slipway);
+        }
+        if (is_slipway) {
+            assert(pad_nav_slipway_start(&step.pad_nav) == &colony->header);
+        } else {
+            assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == &colony->header);
+        }
+        previous = raw;
+    }
+    assert(chords == 6 && own_fired == 1 && cheats_fired - fired == 1);
+}
+
 /* The chord's ○ would leave aim mode and its × would place a probe. */
 static void test_four_chords_in_aim_mode_cheat_and_change_nothing_else(void) {
     input_step_t step;
@@ -4538,6 +4601,7 @@ int main(void) {
     in_fresh_child(test_four_chords_on_a_hovered_colony_cheat_and_change_nothing_else);
     in_fresh_child(test_a_chord_on_a_planet_menu_presses_no_row_and_closes_nothing);
     in_fresh_child(test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up);
+    in_fresh_child(test_the_pad_hides_cross_and_circle_exactly_from_the_chords_cheat_step_counts);
     in_fresh_child(test_four_chords_in_aim_mode_cheat_and_change_nothing_else);
     in_fresh_child(test_probing_and_leaving_aim_mode_never_types_the_cheat);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
