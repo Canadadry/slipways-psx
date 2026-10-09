@@ -314,3 +314,38 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - `test_live_slots` on `pad_tech_costs`: f512, f544, f559 and f564. The slipway arena is taken at the f503 re-press, and the rebuild grows nothing.
   - `test_circle_on_a_tab_returns_to_the_map` was retyped for the chord.
   - `test_state` is unchanged.
+
+### Step 7
+- **Commits:** `0d452f7` renames free mode to aim mode (`PAD_NAV_MAP_AIM`, `pad_nav_aim_mode`). `44a4329`: □ or ○ leaves aim mode for jump mode. `906af3d`: the drag is removed. `24cec17`: △ is inert in aim mode.
+- **Aim mode now:**
+  - The pan and × probe/fold work as before.
+  - □ or ○ goes back to jump mode, hovering the target nearest the centre, with the camera unmoved. Both wait while × holds a fold.
+  - ○ closes a ui ephemeral box first. The year box is not one: with it open, ○ leaves aim mode and the box stays (for step 8).
+  - △ does nothing in aim mode. That is a PRD decision: section 2 defines △ on the hovered object.
+- **Deleted:** the □ select, the drag, the starting and last planet, `triangle_on_centre`, and the ○ return to the last planet. Network mode can no longer be entered.
+  - Left for step 12: `network_step`, `travel_to`, `click_planet`, `is_clickable_planet`, `centre_camera_on`, `drop_stale_map_mode`, `map_step`'s network branch, `pad_nav_selection`, `pad_nav_selected_slipway`, `pad_nav_next_slipway` with its two pure tests, the selection fields and `PAD_NAV_MAP_NETWORK`.
+- **Re-authored:**
+  - Chunk 2: 8 replays. Chunk 3: 5, plus `pad_colonise` again and the 4 `test_live_slots` fixtures. Chunk 4: 5. `pad_resume_at_start` was re-cut twice.
+  - Frame counts: `pad_colonise` 315 → 411, `pad_slipway` 362 → 318, `pad_planet_projects` 583 → 585, `pad_research` 458 → 468, `pad_tech_costs` 565 → 566. The others are unchanged.
+  - About 62 minutes of re-authoring, about 1 h 50 min for the whole step.
+  - No `.end-state` was re-baselined, there is no exceptions file, and every cheat count is unchanged.
+- **Situations dropped, all with their mechanic:**
+  - Every ○ back to the starting or last planet, and every □ select into network mode.
+  - Every situation of the old drag (lines and costs to empty space, the snap, a drop on empty space, a fold under a drag, △ during a drag).
+  - Network travel, Left/Right turns and the selected slipway drawn in colour 12.
+  - Every □ select became □ into jump mode on that colony. Every menu is kept, opened from jump mode, with re-pans standing in for network mode's camera centring (rule 8).
+- **Situations moved:**
+  - The crossed planet: now in slipway mode, `pad_research` f308–316 (s2 aimed at p23 passes p47).
+  - A slipway aimed at a target under the top HUD: `pad_colonise` f337–372. It is the only e2e reach of `slipway.c:46, 92, 126–135`. Line 92 needs a transit-dot draw below 0.08, reached with 24 idle frames before the Up.
+- **Coverage:** `make coverage-compare` shows 69 unhit lines.
+  - Network-mode code in `pad_nav.c` that is now unreachable (76–123, 286–287, 297–301, 304–312, 420–425, 430–454, 472, 935–936). The plan replaces it and step 12 deletes it.
+  - `save_state.c:888`: skipping a point-ended slipway in a save, reached only by the old drag over empty space.
+  - `slipway_display.c:128`: network mode's selected-slipway colour.
+- **Pins re-derived:**
+  - `test_state` on `pad_tech_costs`: camera `127 234` → `101 242`, and its screen pins.
+  - `test_rng_sync`: the quiet window is now {288, 410}.
+  - `test_live_slots`: the SLIPWAYS fixture was re-authored the slipway-mode way (583 → 625 frames, pins moved). One assertion changed from "held over empty space" to "held aimed at p47", since the end over empty space no longer exists. The `pad_tech_costs` and `pad_planet_projects` pins shifted.
+- **Tests:** `tests/test_pad_nav.c` went from 207 to 165 tests. Deleted: the drag, □ select, ○ return and network-mode tests. New: the PRD's 12 cases, the wait after a slipway release, the re-press refused under the HUD, the hovered circle's blink, and the reseed after a hovered object dies.
+- **Cheat:** unchanged. Chords do nothing else in aim mode, and probing then leaving aim mode cannot type it (both unit-tested).
+- **Long checks:** `make full-game`, `save-worst-case` (largest record 3995 B), `save-fuzz`, `sanitize-net` and `rng-sync-probe` are clean.
+- **Process gap found:** the `test_live_slots` fixtures broke in chunk 2 and went unseen until chunk 3, because `make test` does not run that test. Verifiers now run `make unit-run-test_live_slots` every chunk.
