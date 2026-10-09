@@ -152,3 +152,15 @@ static int is_candidate(entity_t *e, void *ctx) {
 entity_list_t pad_jump_candidates(const allocator_t *zone, const entity_list_t *nodes) {
     return entity_list_filter(zone, nodes, is_candidate, NULL);
 }
+
+int pad_jump_any_candidate(const entity_list_t *nodes) {
+    if (nodes == NULL) {
+        return 0;
+    }
+    for (int i = 0; i < nodes->count; i++) {
+        if (pad_target_is_candidate(nodes->items[i])) {
+            return 1;
+        }
+    }
+    return 0;
+}

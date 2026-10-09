@@ -308,6 +308,29 @@ static void test_candidates_of_nothing_are_empty(void) {
     assert(pad_jump_candidates(frame_zone(), NULL).count == 0);
 }
 
+static void test_any_candidate_needs_a_live_known_or_settled_object(void) {
+    layout_t layout;
+    assert(!pad_jump_any_candidate(NULL));
+    assert(!pad_jump_any_candidate(gather(&layout, NULL, 0)));
+
+    entity_t unknown, dead;
+    place_in_state(&unknown, planet_class(), ENTITY_STATE_UNKNOWN, 0, 0);
+    place_in_state(&dead, planet_class(), ENTITY_STATE_KNOWN, 1, 0);
+    dead.is_dead = 1;
+    entity_t *nothing_known[] = {&unknown, &dead};
+    assert(!pad_jump_any_candidate(gather(&layout, nothing_known, 2)));
+
+    entity_t known;
+    place_in_state(&known, planet_class(), ENTITY_STATE_KNOWN, 2, 0);
+    entity_t *one_known[] = {&unknown, &dead, &known};
+    assert(pad_jump_any_candidate(gather(&layout, one_known, 3)));
+
+    entity_t structure;
+    place_in_state(&structure, &structure_class, ENTITY_STATE_SETTLED, 3, 0);
+    entity_t *one_structure[] = {&unknown, &structure};
+    assert(pad_jump_any_candidate(gather(&layout, one_structure, 2)));
+}
+
 int main(void) {
     entity_id_table_init(&heap_allocator);
     test_init_hovers_nothing_unseeded_without_repeat();
@@ -319,6 +342,7 @@ int main(void) {
     test_reseed_takes_the_first_colony_once_then_the_nearest();
     test_candidates_keep_known_and_settled_in_order();
     test_candidates_of_nothing_are_empty();
+    test_any_candidate_needs_a_live_known_or_settled_object();
     test_world_point_floors_map_pos_and_ignores_pos();
     test_nearest_of_several();
     test_nearest_tie_goes_to_the_earlier();

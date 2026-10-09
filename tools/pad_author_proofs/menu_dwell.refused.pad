@@ -1,0 +1,5 @@
+# expect: menu: dwell at most 60 frames
+title 12 reasonable
+probe 256 250
+fold 268 244
+menu p25 61

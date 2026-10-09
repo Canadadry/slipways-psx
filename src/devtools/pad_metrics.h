@@ -62,6 +62,7 @@ typedef struct {
     int techs;
     entity_id_t last_acted;
     int cone_empty;
+    int no_candidate;
 } pad_metrics_view_t;
 
 typedef enum { PAD_METRICS_PRESS, PAD_METRICS_REPEAT, PAD_METRICS_KIND_COUNT } pad_metrics_kind_t;

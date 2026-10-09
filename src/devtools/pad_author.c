@@ -47,6 +47,7 @@
 #define PATH_STEPS_MAX 64
 #define YEARS_TO_END_MAX 200
 #define REVEAL_FRAMES_MAX 30
+#define MENU_DWELL_MAX 60
 /* A refused probe exists from its press until it vanishes, about 7 frames later. */
 #define PROBE_REFUSAL_FRAMES 10
 
@@ -1000,7 +1001,7 @@ static int hovered_moved(pad_author_t *author, const void *context) {
     return hovered != NULL && hovered != context;
 }
 
-static int run_menu(pad_author_t *author, const script_t *script, const char *id) {
+static int run_menu(pad_author_t *author, const script_t *script, const char *id, int dwell) {
     if (!require_map(author, script, "menu")) return 0;
     if (current_mode(author) == PAD_METRICS_MODE_AIM && !leave_aim(author, script)) return 0;
     if (!run_jump(author, script, id) || !tap(author, script, P8_PAD_TRIANGLE)) return 0;
@@ -1009,6 +1010,7 @@ static int run_menu(pad_author_t *author, const script_t *script, const char *id
         return 0;
     }
     if (pad_nav_neighbor(pad_nav_focus(nav_of(author)), P8_PAD_DOWN) != NULL && !move_down_rows(author, script, 1)) return 0;
+    if (dwell > 0 && !emit_repeated(author, script, 0, dwell)) return 0;
     return tap(author, script, P8_PAD_CIRCLE) &&
            wait_until(author, script, panel_closed_on_map, NULL, 6, "menu: closed by circle");
 }
@@ -1131,7 +1133,13 @@ static int run_goal(pad_author_t *author, const script_t *script) {
     if (strcmp(command, "score") == 0) return expect_tokens(author, script, 1, 1) && run_score(author, script);
     if (strcmp(command, "year") == 0) return expect_tokens(author, script, 1, 1) && run_year(author, script);
     if (strcmp(command, "until-game-end") == 0) return expect_tokens(author, script, 1, 1) && run_until_game_end(author, script);
-    if (strcmp(command, "menu") == 0) return expect_tokens(author, script, 2, 2) && run_menu(author, script, tokens[1]);
+    if (strcmp(command, "menu") == 0) {
+        if (!expect_tokens(author, script, 2, 3)) return 0;
+        int dwell = count == 3 ? parse_count(tokens[2]) : 0;
+        if (dwell < 0) return fail(author, script, "menu: bad dwell '%s'", tokens[2]);
+        if (dwell > MENU_DWELL_MAX) return fail(author, script, "menu: dwell at most %d frames", MENU_DWELL_MAX);
+        return run_menu(author, script, tokens[1], dwell);
+    }
     if (strcmp(command, "bar") == 0) return expect_tokens(author, script, 1, 1) && run_bar(author, script);
     if (strcmp(command, "attention") == 0) return expect_tokens(author, script, 1, 1) && run_attention(author, script);
     if (strcmp(command, "back") == 0) {

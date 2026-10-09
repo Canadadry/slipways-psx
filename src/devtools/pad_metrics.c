@@ -179,6 +179,7 @@ static void read_group_facts(const pad_metrics_t *metrics, const input_step_t *s
     const pad_nav_t *nav = &step->pad_nav;
     view->last_acted = id_or_none(pad_nav_last_acted(nav));
     view->cone_empty = 0;
+    view->no_candidate = view->mode == PAD_METRICS_MODE_AIM && !pad_jump_any_candidate(entities_by_tag(TAG_NODE));
     if (!is_moving_mode(view->mode)) return;
     bump_zone_reset(metrics->scratch);
     allocator_t zone = allocator_from_bump_zone(metrics->scratch);
@@ -219,9 +220,14 @@ static int bit_count(int bits) {
 }
 
 static int is_required(const pad_metrics_view_t *before, int button_bit, int first_direction) {
+    int aim_with_nothing_to_jump_to = before->mode == PAD_METRICS_MODE_AIM && before->no_candidate;
+    if (button_bit == P8_PAD_SQUARE) {
+        return aim_with_nothing_to_jump_to;
+    }
     if (button_bit == P8_PAD_CIRCLE) {
-        return before->mode == PAD_METRICS_MODE_JUMP && !before->message_box && !before->box_open &&
-               (entity_id_is_none(before->last_acted) || entity_id_equal(before->last_acted, before->hovered));
+        int at_root = before->mode == PAD_METRICS_MODE_JUMP &&
+                      (entity_id_is_none(before->last_acted) || entity_id_equal(before->last_acted, before->hovered));
+        return (at_root || aim_with_nothing_to_jump_to) && !before->message_box && !before->box_open;
     }
     return is_moving_mode(before->mode) && button_bit == first_direction && (before->cone_empty & button_bit);
 }

@@ -292,17 +292,22 @@ static void test_a_chord_is_counted_apart_and_never_judged(void) {
     }
 }
 
-/* A dead ○ tapped in mode on a snapshot changed by set. */
-static pad_metrics_verdict_t dead_circle_group(pad_metrics_mode_t mode, void (*set)(pad_metrics_view_t *view)) {
+/* A dead tap of button_bit in mode on a snapshot changed by set. */
+static pad_metrics_verdict_t dead_press_group(pad_metrics_mode_t mode, int button_bit,
+                                              void (*set)(pad_metrics_view_t *view)) {
     start(mode);
     set(&current);
     pad_metrics_begin(&metrics, &current);
-    run(P8_PAD_CIRCLE, 0);
+    run(button_bit, 0);
     run_idle(4);
     pad_metrics_finish(&metrics);
-    if (count(PAD_METRICS_PRESS, mode, P8_PAD_CIRCLE, PAD_METRICS_DEAD_REQUIRED) == 1) return PAD_METRICS_DEAD_REQUIRED;
-    assert(count(PAD_METRICS_PRESS, mode, P8_PAD_CIRCLE, PAD_METRICS_DEAD_OTHER) == 1);
+    if (count(PAD_METRICS_PRESS, mode, button_bit, PAD_METRICS_DEAD_REQUIRED) == 1) return PAD_METRICS_DEAD_REQUIRED;
+    assert(count(PAD_METRICS_PRESS, mode, button_bit, PAD_METRICS_DEAD_OTHER) == 1);
     return PAD_METRICS_DEAD_OTHER;
+}
+
+static pad_metrics_verdict_t dead_circle_group(pad_metrics_mode_t mode, void (*set)(pad_metrics_view_t *view)) {
+    return dead_press_group(mode, P8_PAD_CIRCLE, set);
 }
 
 static void nothing_recorded(pad_metrics_view_t *view) {
@@ -333,6 +338,39 @@ static void test_any_other_dead_circle_is_in_the_other_group(void) {
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_recorded) == PAD_METRICS_DEAD_OTHER);
     assert(!pad_metrics_section4(&metrics).ok);
     assert(pad_metrics_section4(&metrics).circle_dead_other == 1);
+}
+
+static void nothing_to_jump_to(pad_metrics_view_t *view) {
+    view->no_candidate = 1;
+}
+
+static void something_to_jump_to(pad_metrics_view_t *view) {
+    view->no_candidate = 0;
+}
+
+static void test_a_dead_square_in_aim_mode_with_nothing_to_jump_to_is_required(void) {
+    assert(dead_press_group(PAD_METRICS_MODE_AIM, P8_PAD_SQUARE, nothing_to_jump_to) == PAD_METRICS_DEAD_REQUIRED);
+    assert(dead_press_group(PAD_METRICS_MODE_AIM, P8_PAD_SQUARE, something_to_jump_to) == PAD_METRICS_DEAD_OTHER);
+    assert(dead_press_group(PAD_METRICS_MODE_JUMP, P8_PAD_SQUARE, nothing_to_jump_to) == PAD_METRICS_DEAD_OTHER);
+}
+
+static void nothing_to_jump_to_with_a_message_box(pad_metrics_view_t *view) {
+    view->no_candidate = 1;
+    view->message_box = 1;
+}
+
+static void nothing_to_jump_to_with_a_box(pad_metrics_view_t *view) {
+    view->no_candidate = 1;
+    view->box_open = 1;
+}
+
+static void test_a_dead_circle_in_aim_mode_with_nothing_to_jump_to_is_required(void) {
+    assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to) == PAD_METRICS_DEAD_REQUIRED);
+    assert(pad_metrics_section4(&metrics).circle_dead_other == 0);
+    assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to_with_a_message_box) == PAD_METRICS_DEAD_OTHER);
+    assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to_with_a_box) == PAD_METRICS_DEAD_OTHER);
+    assert(dead_circle_group(PAD_METRICS_MODE_AIM, something_to_jump_to) == PAD_METRICS_DEAD_OTHER);
+    assert(!pad_metrics_section4(&metrics).ok);
 }
 
 static void test_a_dead_direction_into_an_empty_cone_is_required_in_jump_and_slipway_mode(void) {
@@ -377,6 +415,7 @@ static void test_the_group_facts_move_neither_change_test(void) {
     pad_metrics_view_t a = still_view(), b = still_view();
     b.last_acted = (entity_id_t){4, 2};
     b.cone_empty = P8_PAD_UP | P8_PAD_LEFT;
+    b.no_candidate = 1;
     assert(!pad_metrics_navigation_changed(&a, &b));
     assert(!pad_metrics_view_changed(&a, &b));
 }
@@ -474,6 +513,25 @@ static void test_the_verdict_passes_with_required_circles_and_dead_repeats_only(
     assert(report_has("section4 verdict ok\n"));
 }
 
+static void test_the_verdict_passes_with_a_required_circle_in_aim_mode(void) {
+    start(PAD_METRICS_MODE_AIM);
+    current.no_candidate = 1;
+    pad_metrics_begin(&metrics, &current);
+    run(P8_PAD_CIRCLE, 0);
+    run(P8_PAD_SQUARE, 0);
+    run_idle(4);
+    current.mode = PAD_METRICS_MODE_JUMP;
+    current.no_candidate = 0;
+    run(0, 0);
+    run_idle(30);
+    pad_metrics_finish(&metrics);
+    write_report();
+    assert(report_has("dead f0 press circle aim required\n"));
+    assert(report_has("dead f1 press square aim required\n"));
+    assert(report_has("total required no-ops 1\n"));
+    assert(report_has("section4 verdict ok\n"));
+}
+
 static void test_the_lenient_count_leaves_out_the_required_group(void) {
     start(PAD_METRICS_MODE_JUMP);
     current.cone_empty = P8_PAD_UP;
@@ -550,6 +608,8 @@ int main(void) {
     test_a_chord_is_counted_apart_and_never_judged();
     test_a_dead_circle_at_the_root_is_required();
     test_any_other_dead_circle_is_in_the_other_group();
+    test_a_dead_square_in_aim_mode_with_nothing_to_jump_to_is_required();
+    test_a_dead_circle_in_aim_mode_with_nothing_to_jump_to_is_required();
     test_a_dead_direction_into_an_empty_cone_is_required_in_jump_and_slipway_mode();
     test_a_diagonals_second_direction_is_never_required();
     test_a_dead_repeat_into_an_empty_cone_is_required();
@@ -558,6 +618,7 @@ int main(void) {
     test_title_and_pause_are_outside_the_aim_denominator();
     test_the_verdict_fails_on_a_required_dead_dpad_press_in_jump_mode();
     test_the_verdict_passes_with_required_circles_and_dead_repeats_only();
+    test_the_verdict_passes_with_a_required_circle_in_aim_mode();
     test_the_lenient_count_leaves_out_the_required_group();
     test_cheat_activations_fail_the_verdict();
     test_a_later_separate_press_cuts_a_released_press_window();

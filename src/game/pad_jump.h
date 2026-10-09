@@ -40,5 +40,6 @@ void pad_jump_world_point(const entity_t *e, int *x, int *y);
 entity_t *pad_jump_nearest(int x, int y, const entity_list_t *candidates);
 entity_t *pad_jump_seed(const entity_list_t *candidates, int centre_x, int centre_y);
 entity_list_t pad_jump_candidates(const allocator_t *zone, const entity_list_t *nodes);
+int pad_jump_any_candidate(const entity_list_t *nodes);
 
 #endif
