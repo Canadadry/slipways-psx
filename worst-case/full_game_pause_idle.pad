@@ -1,0 +1,5 @@
+# worst-case/full_game_pause_idle: full_game up to its pause-branch label, then Start and the
+# pause menu left open 300 frames (plan 12 step 13).
+include full_game.pad pause-branch
+pause
+idle 300

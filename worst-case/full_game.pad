@@ -248,5 +248,6 @@ score
 bar
 research ascension
 build ascension 101 235
+label pause-branch
 menu s10
 until-game-end
