@@ -1427,19 +1427,13 @@ static void in_fresh_child(void (*test)(void)) {
 static const pad_nav_tab_t forward_cycle[5] = { PAD_NAV_TAB_BUILD, PAD_NAV_TAB_END_TURN, PAD_NAV_TAB_TECH,
                                                   PAD_NAV_TAB_SCORE, PAD_NAV_TAB_MAP };
 
-static void test_r1_and_l1_cycle_the_tabs(void) {
+static void test_r1_cycles_the_five_tabs_forward(void) {
     input_step_t step;
     start_game(&step);
     assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
     for (int i = 0; i < 5; i++) {
         tap(&step, P8_PAD_R1);
         assert(pad_nav_tab(&step.pad_nav) == forward_cycle[i]);
-    }
-    /* score to tech clicks the tech button on its third frame and releases it on the fourth: L1 waits until then. */
-    for (int i = 3; i >= -1; i--) {
-        tap(&step, P8_PAD_L1);
-        tap(&step, 0);
-        assert(pad_nav_tab(&step.pad_nav) == (i >= 0 ? forward_cycle[i] : PAD_NAV_TAB_MAP));
     }
 }
 
@@ -1451,6 +1445,12 @@ static void test_a_held_shoulder_moves_one_tab_and_both_together_move_none(void)
     run_frame(&step, 0);
     tap(&step, P8_PAD_L1 | P8_PAD_R1);
     assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_BUILD);
+}
+
+static void open_build_bar(input_step_t *step) {
+    assert(!pad_nav_build_bar_open(&step->pad_nav));
+    tap(step, P8_PAD_L1);
+    assert(pad_nav_build_bar_open(&step->pad_nav));
 }
 
 static void go_to_tab(input_step_t *step, pad_nav_tab_t tab) {
@@ -1513,7 +1513,7 @@ static void test_build_focuses_the_basic_structure_icon_from_the_tab_change_fram
 static void test_build_left_and_right_move_between_the_icons_without_wrapping(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     tap(&step, P8_PAD_LEFT);
     assert_build_focus(&step, processor_icon());
     tap(&step, P8_PAD_LEFT);
@@ -1544,7 +1544,7 @@ static void test_build_left_reaches_every_revealed_icon_in_decreasing_x(void) {
         hidden += bucket->items[i]->class == structure_icon_class() && !structure_icon_is_revealed(bucket->items[i]);
     }
     assert(revealed == 4 && hidden == 3);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     int rest_x = p8_fixed_flr_int(structure_icon_rest_cursor()->x);
     for (int i = 0; i < revealed; i++) {
         assert_build_focus(&step, revealed_icon_at(rest_x - 10 * i));
@@ -1553,20 +1553,21 @@ static void test_build_left_reaches_every_revealed_icon_in_decreasing_x(void) {
     assert_build_focus(&step, revealed_icon_at(rest_x - 10 * (revealed - 1)));
 }
 
-static void test_build_remembers_its_icon_until_a_new_game(void) {
+static void test_the_bar_remembers_its_icon_across_a_close_until_a_new_game(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     tap(&step, P8_PAD_LEFT);
     tap(&step, P8_PAD_L1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && pad_nav_build_icon(&step.pad_nav) == NULL);
-    run_frame(&step, P8_PAD_R1);
+    assert(!pad_nav_build_bar_open(&step.pad_nav) && pad_nav_build_icon(&step.pad_nav) == NULL);
+    run_frame(&step, P8_PAD_L1);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
     assert_build_focus(&step, processor_icon());
     cart_init();
     settle(&step);
     cart_start_game((button_t *)title_button("forgiving"));
     settle(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     assert_build_focus(&step, basic_structure_icon());
 }
 
@@ -1576,7 +1577,7 @@ static void test_build_up_down_square_and_triangle_press_nothing(void) {
     start_game(&step);
     vec_t from = camera_at();
     int live = live_entities()->count;
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     for (int b = 0; b < 4; b++) {
         hold(&step, buttons[b], 3);
         assert_build_focus(&step, basic_structure_icon());
@@ -1650,7 +1651,7 @@ static void assert_placement_over(const input_step_t *step) {
 static void test_cross_takes_the_structure_and_a_second_cross_places_it(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     pan_clear_of_every_node(&step, structure);
     world_count_t before = world_count();
@@ -1669,7 +1670,7 @@ static void test_cross_takes_the_structure_and_a_second_cross_places_it(void) {
 static void test_the_cross_that_takes_the_structure_drops_nothing_while_held(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     run_frame(&step, P8_PAD_CROSS);
     entity_t *structure = ui_left_held(main_ui());
     assert(structure != NULL);
@@ -1683,7 +1684,7 @@ static void test_the_cross_that_takes_the_structure_drops_nothing_while_held(voi
 static void test_a_refused_drop_kills_the_structure_and_charges_nothing(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     assert(targeting_of(structure)->target.kind != TARGETING_TARGET_NONE);
     world_count_t before = world_count();
@@ -1697,7 +1698,7 @@ static void test_a_refused_drop_kills_the_structure_and_charges_nothing(void) {
 static void test_circle_cancels_the_structure_and_charges_nothing(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     int x, y;
     pad_panel_focus_point(basic_structure_icon(), &x, &y);
     entity_t *structure = take_structure(&step);
@@ -1718,7 +1719,7 @@ static void test_circle_cancels_the_structure_and_charges_nothing(void) {
 static void test_a_panel_opened_while_carrying_releases_at_the_icon(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     int x, y;
     pad_panel_focus_point(basic_structure_icon(), &x, &y);
     (void)take_structure(&step);
@@ -1733,7 +1734,7 @@ static void test_circle_cancels_a_structure_taken_from_jump_mode_then_leaves_aim
     start_game_in_jump_mode(&step);
     planet_t *planet = known_planet_closest_to_centre();
     hold(&step, 0, 2);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     assert(pad_nav_placing(&step.pad_nav) == structure);
     world_count_t before = world_count();
@@ -1750,7 +1751,7 @@ static void test_triangle_and_square_wait_while_carrying(void) {
     input_step_t step;
     start_game(&step);
     planet_t *planet = known_planet_under_centre(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     for (int b = 0; b < 2; b++) {
         run_frame(&step, buttons[b]);
@@ -1766,7 +1767,7 @@ static void test_triangle_and_square_wait_while_carrying(void) {
 static void test_shoulders_cancel_the_carried_structure_then_switch(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     int x, y;
     pad_panel_focus_point(basic_structure_icon(), &x, &y);
     entity_t *structure = take_structure(&step);
@@ -1805,7 +1806,7 @@ static void test_cross_held_on_arrival_on_build_takes_nothing(void) {
 static void test_a_press_that_hands_over_no_structure_stays_on_build(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     p8_input_frame_t raw = { 0, 0, 0, P8_PAD_CROSS };
     input_step_run(&step, &raw);
     assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
@@ -2104,7 +2105,8 @@ static entity_t *backdrop(void) {
 
 static void open_score_from_the_map(input_step_t *step) {
     assert(!score_panel_shown() && backdrop() == NULL);
-    run_frame(step, P8_PAD_L1);
+    go_to_tab(step, PAD_NAV_TAB_TECH);
+    run_frame(step, P8_PAD_R1);
     assert(pad_nav_tab(&step->pad_nav) == PAD_NAV_TAB_SCORE);
     assert_clicked(step, 3);
     assert(score_panel_shown() && backdrop() != NULL);
@@ -2127,21 +2129,6 @@ static void test_landing_on_score_shows_its_panel_and_cross_presses_nothing(void
     assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && !score_panel_shown());
     run_frame(&step, 0);
     assert(backdrop() == NULL && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && pad_nav_aim_mode(&step.pad_nav));
-}
-
-static void test_l1_on_score_hands_over_to_tech_on_the_third_frame(void) {
-    input_step_t step;
-    start_game(&step);
-    open_score_from_the_map(&step);
-    run_frame(&step, P8_PAD_L1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_TECH && !score_panel_shown());
-    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
-    run_frame(&step, 0);
-    assert(backdrop() == NULL && main_ui()->ephemerals.count == 0);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0);
-    run_frame(&step, 0);
-    assert_clicked(&step, 2);
-    assert(main_ui()->ephemerals.count > 0 && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_TECH);
 }
 
 static void test_r1_on_tech_closes_the_box_and_shows_score_on_the_same_frame(void) {
@@ -2300,7 +2287,7 @@ static void test_pause_from_end_turn_and_build_keeps_the_tab_and_its_cursor(void
         assert_years_ended(before, 0);
         end_forked_copy();
     }
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     tap(&step, P8_PAD_LEFT);
     entity_t *icon = processor_icon();
     assert(pad_nav_build_icon(&step.pad_nav) == icon);
@@ -2526,7 +2513,7 @@ static void close_pause_into_the_carry(input_step_t *step, const entity_t *struc
 static void test_start_while_carrying_suspends_the_structure_under_pause(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     pan_clear_of_every_node(&step, structure);
     vec_t at = entity_pos(structure);
@@ -2551,7 +2538,7 @@ static void test_closing_pause_resumes_the_carry_where_it_was(void) {
     static const int buttons[3] = { P8_PAD_START, P8_PAD_CIRCLE, P8_PAD_CROSS };
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     pan_clear_of_every_node(&step, structure);
     for (int b = 0; b < 3; b++) {
@@ -2592,7 +2579,7 @@ static void test_closing_pause_resumes_the_carry_where_it_was(void) {
 static void test_restart_under_pause_drops_the_suspended_structure(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     suspend_into_pause(&step, structure);
     tap(&step, P8_PAD_CROSS);
@@ -2611,7 +2598,7 @@ static void test_restart_under_pause_drops_the_suspended_structure(void) {
 static void test_circle_on_the_release_frame_of_the_pause_click_is_dropped(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     world_count_t before = world_count();
     run_frame(&step, P8_PAD_START);
@@ -2626,24 +2613,24 @@ static void test_circle_on_the_release_frame_of_the_pause_click_is_dropped(void)
     close_pause_into_the_carry(&step, structure);
 }
 
-/* On the map, L1 to score clicks the score button on its own frame; a cancel's release takes that frame first. */
-static void test_the_landing_after_a_shoulder_cancel_waits_for_its_release(void) {
+static void test_l1_while_carrying_cancels_at_the_icon_then_opens_the_bar_pressing_nothing(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     int x, y;
     pad_panel_focus_point(basic_structure_icon(), &x, &y);
     entity_t *structure = take_structure(&step);
+    world_count_t before = world_count();
+    int live = live_entities()->count;
     run_frame(&step, P8_PAD_L1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_SCORE);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
     assert_played(&step, x, y, 0);
-    assert(!score_panel_shown());
     run_frame(&step, 0);
-    assert(structure->is_dead);
-    assert_clicked(&step, 3);
-    assert(score_panel_shown() && backdrop() != NULL);
-    run_frame(&step, 0);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0 && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_SCORE);
+    assert(structure->is_dead && pad_nav_placing(&step.pad_nav) == NULL && ui_left_held(main_ui()) == NULL);
+    assert_world_unchanged(before);
+    assert(live_entities()->count == live - 1);
+    assert_played(&step, x, y, 0);
+    assert(pad_nav_build_bar_open(&step.pad_nav) && pad_nav_build_icon(&step.pad_nav) == basic_structure_icon());
 }
 
 static void test_pad_aim_mode_draws_a_crosshair_at_the_centre(void) {
@@ -2670,7 +2657,7 @@ static void test_pad_pause_draws_no_crosshair(void) {
 static void test_a_carried_structure_draws_no_crosshair(void) {
     input_step_t step;
     start_game(&step);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     pan_clear_of_every_node(&step, structure);
     assert(pad_nav_aim_mode(&step.pad_nav));
@@ -3070,7 +3057,7 @@ static void test_taking_a_structure_from_jump_mode_enters_plain_aim_mode_where_t
     input_step_t step;
     start_game_in_jump_mode(&step);
     vec_t from = camera_at();
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     (void)take_structure(&step);
     assert(pad_nav_aim_mode(&step.pad_nav));
     assert_moved(from, 0, 0);
@@ -3986,7 +3973,7 @@ static void test_circle_closes_the_year_box_over_a_carried_structure_and_keeps_i
     input_step_t step;
     planet_t *a, *b;
     entity_t *year_box = year_box_with_the_last_object_elsewhere(&step, &a, &b);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     circle_closes_the_year_box(&step, year_box, P8_MOUSE_LEFT);
     assert_carrying(&step, structure);
@@ -4460,7 +4447,7 @@ static void test_circle_cancels_a_structure_then_leaves_aim_mode_then_jumps_back
     input_step_t step;
     planet_t *a, *b;
     acted_on_a_then_on_b(&step, &a, &b);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
+    open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     tap(&step, P8_PAD_CIRCLE);
     assert(structure->is_dead && pad_nav_placing(&step.pad_nav) == NULL && pad_nav_aim_mode(&step.pad_nav));
@@ -5245,7 +5232,7 @@ static void test_select_does_nothing_while_something_is_held_or_open(void) {
         end_forked_copy();
     }
     if (in_forked_copy()) {
-        go_to_tab(&step, PAD_NAV_TAB_BUILD);
+        open_build_bar(&step);
         entity_t *structure = take_structure(&step);
         assert_select_inert(&step, 0, P8_MOUSE_LEFT);
         assert_carrying(&step, structure);
@@ -5365,6 +5352,304 @@ static void test_select_is_no_part_of_the_cheat_chord(void) {
     assert(cheats_fired == fired);
 }
 
+static void test_l1_opens_the_bar_from_jump_mode_and_l1_closes_it_on_the_same_hovered_object(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    vec_t from = camera_at();
+    run_frame(&step, P8_PAD_L1);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    assert_build_focus(&step, basic_structure_icon());
+    run_frame(&step, 0);
+    assert_build_focus(&step, basic_structure_icon());
+    tap(&step, P8_PAD_L1);
+    assert(!pad_nav_build_bar_open(&step.pad_nav) && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+    assert_moved(from, 0, 0);
+}
+
+static void test_circle_closes_the_bar_on_the_same_hovered_object(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    vec_t from = camera_at();
+    open_build_bar(&step);
+    assert_build_focus(&step, basic_structure_icon());
+    tap(&step, P8_PAD_CIRCLE);
+    assert(!pad_nav_build_bar_open(&step.pad_nav));
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+    assert_moved(from, 0, 0);
+}
+
+static void test_l1_twice_in_aim_mode_comes_back_to_aim_mode_with_the_pan_slow_again(void) {
+    input_step_t step;
+    start_game(&step);
+    hold(&step, P8_PAD_RIGHT, 20);
+    run_frame(&step, 0);
+    vec_t from = camera_at();
+    open_build_bar(&step);
+    tap(&step, P8_PAD_L1);
+    assert(!pad_nav_build_bar_open(&step.pad_nav));
+    assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
+    assert_moved(from, 0, 0);
+    assert_cursor_at_centre(&step);
+    run_frame(&step, P8_PAD_RIGHT);
+    assert_moved(from, 1, 0);
+}
+
+static void test_the_bar_takes_and_aim_mode_places_or_cancels(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    hold(&step, 0, 2);
+    open_build_bar(&step);
+    entity_t *structure = take_structure(&step);
+    assert(pad_nav_aim_mode(&step.pad_nav) && !pad_nav_build_bar_open(&step.pad_nav));
+    assert_no_crosshair_drawn();
+    pan_clear_of_every_node(&step, structure);
+    world_count_t before = world_count();
+    p8_fixed_t cost = targeting_of(structure)->cost;
+    run_frame(&step, P8_PAD_CROSS);
+    run_frame(&step, 0);
+    assert(!structure->is_dead && structure->state == ENTITY_STATE_SETTLED);
+    assert(world_count().credits == p8_fixed_sub(before.credits, cost));
+    assert_placement_over(&step);
+    open_build_bar(&step);
+    structure = take_structure(&step);
+    before = world_count();
+    tap(&step, P8_PAD_CIRCLE);
+    assert(structure->is_dead);
+    assert_world_unchanged(before);
+    assert_placement_over(&step);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_jump_mode(&step.pad_nav) && !pad_nav_build_bar_open(&step.pad_nav));
+}
+
+/* Score's leaving click lands on its backdrop, which takes presses anywhere above the HUD: never on the icon. */
+static void test_l1_on_end_turn_tech_and_score_opens_the_bar_and_hands_over_nothing(void) {
+    static const pad_nav_tab_t tabs[3] = { PAD_NAV_TAB_END_TURN, PAD_NAV_TAB_TECH, PAD_NAV_TAB_SCORE };
+    input_step_t step;
+    start_game(&step);
+    for (int t = 0; t < 3; t++) {
+        if (in_forked_copy()) {
+            go_to_tab(&step, tabs[t]);
+            hold(&step, 0, 3);
+            assert(tabs[t] != PAD_NAV_TAB_TECH || main_ui()->ephemerals.count > 0);
+            assert(tabs[t] != PAD_NAV_TAB_SCORE || score_panel_shown());
+            world_count_t before = world_count();
+            run_frame(&step, P8_PAD_L1);
+            assert(pad_nav_build_bar_open(&step.pad_nav));
+            assert(input_step_played_frame(&step)->mouse_buttons == (tabs[t] == PAD_NAV_TAB_SCORE ? P8_MOUSE_LEFT : 0));
+            for (int i = 0; i < 3; i++) {
+                run_frame(&step, 0);
+                assert(ui_left_held(main_ui()) == NULL && pad_nav_placing(&step.pad_nav) == NULL);
+            }
+            assert(main_ui()->ephemerals.count == 0 && !score_panel_shown() && backdrop() == NULL);
+            assert_world_unchanged(before);
+            assert(pad_nav_build_bar_open(&step.pad_nav));
+            assert_build_focus(&step, basic_structure_icon());
+            end_forked_copy();
+        }
+    }
+}
+
+static void test_r1_on_the_bar_goes_to_end_turn_both_shoulders_do_nothing_and_a_held_l1_toggles_once(void) {
+    input_step_t step;
+    start_game(&step);
+    tap(&step, P8_PAD_L1 | P8_PAD_R1);
+    assert(!pad_nav_build_bar_open(&step.pad_nav) && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    open_build_bar(&step);
+    tap(&step, P8_PAD_L1 | P8_PAD_R1);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    hold(&step, P8_PAD_L1, 10);
+    assert(!pad_nav_build_bar_open(&step.pad_nav) && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    run_frame(&step, 0);
+    hold(&step, P8_PAD_L1, 10);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    run_frame(&step, 0);
+    tap(&step, P8_PAD_R1);
+    assert(!pad_nav_build_bar_open(&step.pad_nav) && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_END_TURN);
+}
+
+static void test_l1_closes_a_planet_menu_and_opens_the_bar(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    tap(&step, P8_PAD_TRIANGLE);
+    assert(main_ui()->ephemerals.count > 0);
+    run_frame(&step, P8_PAD_L1);
+    assert(main_ui()->ephemerals.count == 0 && pad_nav_build_bar_open(&step.pad_nav));
+    run_frame(&step, 0);
+    assert(main_ui()->ephemerals.count == 0);
+    tap(&step, P8_PAD_L1);
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+}
+
+static void test_l1_cancels_a_held_slipway_and_opens_the_bar(void) {
+    input_step_t step;
+    planet_t *start, *target;
+    start_game_in_jump_mode(&step);
+    find_pair(near_pair, &start, &target);
+    make_known(target);
+    slipway_from(&step, start);
+    aim_at(&step, &target->header);
+    world_count_t before = world_count();
+    tap(&step, P8_PAD_L1);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    assert(ui_left_held(main_ui()) == NULL && slipways_left_placing() == 0);
+    assert_world_unchanged(before);
+    tap(&step, P8_PAD_L1);
+    run_frame(&step, 0);
+    assert_hovering(&step, &start->header);
+    assert_world_unchanged(before);
+}
+
+static void test_l1_keeps_the_year_box(void) {
+    input_step_t step;
+    start_game(&step);
+    score_panel_new_year(p8_fixed_from_int(3421));
+    entity_t *year_box = &shown_message_box()->header;
+    run_frame(&step, 0);
+    open_build_bar(&step);
+    assert(entity_list_has(live_entities(), year_box) && shown_message_box() != NULL);
+    tap(&step, P8_PAD_L1);
+    assert(!pad_nav_build_bar_open(&step.pad_nav) && pad_nav_aim_mode(&step.pad_nav));
+    assert(entity_list_has(live_entities(), year_box) && shown_message_box() != NULL);
+}
+
+static void assert_l1_waits(input_step_t *step) {
+    run_frame(step, P8_PAD_L1);
+    assert(!pad_nav_build_bar_open(&step->pad_nav) && pad_nav_tab(&step->pad_nav) == PAD_NAV_TAB_MAP);
+}
+
+static void test_l1_waits_as_the_shoulders_do(void) {
+    input_step_t step;
+    if (in_forked_copy()) {
+        start_title(&step);
+        tap(&step, P8_PAD_L1);
+        assert(!pad_nav_build_bar_open(&step.pad_nav));
+        assert_focused_and_hovered(&step, "forgiving");
+        end_forked_copy();
+    }
+    (void)jump_on_colony(&step);
+    if (in_forked_copy()) {
+        open_pause(&step);
+        assert_l1_waits(&step);
+        run_frame(&step, 0);
+        assert(pause_menu_shown() && !pad_nav_build_bar_open(&step.pad_nav));
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_TRIANGLE);
+        assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+        assert_l1_waits(&step);
+        end_forked_copy();
+    }
+    planet_t *a, *b, *c;
+    settled_row(&step, &a, &b, &c);
+    hover_object(&step, &a->header);
+    start_slipway(&step, &a->header);
+    tap(&step, P8_PAD_RIGHT);
+    world_count_t before = world_count();
+    run_frame(&step, P8_PAD_CROSS);
+    assert_l1_waits(&step);
+    run_frame(&step, 0);
+    assert(!pad_nav_build_bar_open(&step.pad_nav));
+    assert(slipway_between(&a->header, &b->header) != NULL && world_count().slipways == before.slipways + 1);
+}
+
+static void test_cross_held_through_l1_takes_nothing_until_pressed_again(void) {
+    input_step_t step;
+    start_game(&step);
+    int live = live_entities()->count;
+    run_frame(&step, P8_PAD_CROSS | P8_PAD_L1);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    for (int i = 0; i < 10; i++) {
+        run_frame(&step, P8_PAD_CROSS);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
+    assert(live_entities()->count == live && ui_left_held(main_ui()) == NULL);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    run_frame(&step, 0);
+    (void)take_structure(&step);
+}
+
+static void test_four_chords_on_the_bar_cheat_once_and_change_nothing_else(void) {
+    input_step_t step;
+    start_game(&step);
+    open_build_bar(&step);
+    tap(&step, P8_PAD_LEFT);
+    int live = live_entities()->count;
+    assert(type_chords(&step) == 1);
+    assert(main_economy_typed()->credits == p8_fixed_from_int(200));
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    assert_build_focus(&step, processor_icon());
+    assert(live_entities()->count == live && ui_left_held(main_ui()) == NULL && pad_nav_placing(&step.pad_nav) == NULL);
+}
+
+/* Take ×, place ×, close the bar ○, leave aim mode ○, twice: the cheat's × × ○ ○ × × ○ ○ as lone presses. */
+static void test_bar_and_placement_play_never_types_the_cheat(void) {
+    input_step_t step;
+    start_game(&step);
+    cheats_fired = 0;
+    for (int round = 0; round < 2; round++) {
+        open_build_bar(&step);
+        tap(&step, P8_PAD_LEFT);
+        tap(&step, P8_PAD_RIGHT);
+        entity_t *structure = take_structure(&step);
+        pan_clear_of_every_node(&step, structure);
+        tap(&step, P8_PAD_CROSS);
+        assert(structure->state == ENTITY_STATE_SETTLED);
+        open_build_bar(&step);
+        tap(&step, P8_PAD_CIRCLE);
+        assert(!pad_nav_build_bar_open(&step.pad_nav) && pad_nav_aim_mode(&step.pad_nav));
+        tap(&step, P8_PAD_CIRCLE);
+        assert(pad_nav_jump_mode(&step.pad_nav));
+    }
+    open_build_bar(&step);
+    tap(&step, P8_PAD_L1);
+    open_build_bar(&step);
+    (void)take_structure(&step);
+    tap(&step, P8_PAD_DOWN);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_placing(&step.pad_nav) == NULL);
+    tap(&step, P8_PAD_R1);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    assert(cheats_fired == 0 && main_economy_typed()->credits != p8_fixed_from_int(200));
+}
+
+static void test_select_on_the_bar_ends_no_year_and_presses_nothing(void) {
+    input_step_t step;
+    start_game(&step);
+    open_build_bar(&step);
+    assert_select_inert(&step, 0, 0);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    assert_build_focus(&step, basic_structure_icon());
+}
+
+static void test_the_bar_leaves_the_game_stream_unchanged(void) {
+    input_step_t step;
+    start_game(&step);
+    uint32_t game = p8_fixed_rnd_state();
+    open_build_bar(&step);
+    tap(&step, P8_PAD_L1);
+    open_build_bar(&step);
+    tap(&step, P8_PAD_CIRCLE);
+    open_build_bar(&step);
+    entity_t *structure = take_structure(&step);
+    pan_clear_of_every_node(&step, structure);
+    tap(&step, P8_PAD_CROSS);
+    assert(structure->state == ENTITY_STATE_SETTLED);
+    open_build_bar(&step);
+    (void)take_structure(&step);
+    tap(&step, P8_PAD_CIRCLE);
+    open_build_bar(&step);
+    (void)take_structure(&step);
+    tap(&step, P8_PAD_L1);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    assert(p8_fixed_rnd_state() == game);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -5457,12 +5742,12 @@ int main(void) {
     in_fresh_child(test_slipways_turn_clockwise_from_straight_up);
     in_fresh_child(test_straight_up_splits_the_two_halves);
     in_fresh_child(test_cross_on_the_triangle_release_frame_is_ignored);
-    in_fresh_child(test_r1_and_l1_cycle_the_tabs);
+    in_fresh_child(test_r1_cycles_the_five_tabs_forward);
     in_fresh_child(test_a_held_shoulder_moves_one_tab_and_both_together_move_none);
     in_fresh_child(test_build_focuses_the_basic_structure_icon_from_the_tab_change_frame);
     in_fresh_child(test_build_left_and_right_move_between_the_icons_without_wrapping);
     in_fresh_child(test_build_left_reaches_every_revealed_icon_in_decreasing_x);
-    in_fresh_child(test_build_remembers_its_icon_until_a_new_game);
+    in_fresh_child(test_the_bar_remembers_its_icon_across_a_close_until_a_new_game);
     in_fresh_child(test_build_up_down_square_and_triangle_press_nothing);
     in_fresh_child(test_circle_on_a_tab_returns_to_the_map);
     in_fresh_child(test_cross_takes_the_structure_and_a_second_cross_places_it);
@@ -5513,13 +5798,12 @@ int main(void) {
     in_fresh_child(test_cross_on_the_tech_header_closes_the_box_and_returns_to_the_map);
     in_fresh_child(test_circle_on_tech_closes_the_box_and_returns_to_the_map_in_one_press);
     in_fresh_child(test_landing_on_score_shows_its_panel_and_cross_presses_nothing);
-    in_fresh_child(test_l1_on_score_hands_over_to_tech_on_the_third_frame);
     in_fresh_child(test_r1_on_tech_closes_the_box_and_shows_score_on_the_same_frame);
     in_fresh_child(test_r1_on_score_hides_it_and_returns_to_the_map);
     in_fresh_child(test_a_tab_whose_button_is_gone_returns_to_the_map);
     in_fresh_child(test_triangle_on_the_release_frame_of_leaving_score_does_nothing);
     in_fresh_child(test_circle_leaving_score_is_back_in_aim_mode_before_the_next_frame);
-    in_fresh_child(test_the_landing_after_a_shoulder_cancel_waits_for_its_release);
+    in_fresh_child(test_l1_while_carrying_cancels_at_the_icon_then_opens_the_bar_pressing_nothing);
     in_fresh_child(test_pad_pause_draws_no_crosshair);
     in_fresh_child(test_a_carried_structure_draws_no_crosshair);
     in_fresh_child(test_a_planet_menu_draws_no_crosshair);
@@ -5574,6 +5858,21 @@ int main(void) {
     in_fresh_child(test_a_refused_year_press_presses_nothing_and_is_not_retried);
     in_fresh_child(test_a_new_game_restarts_the_select_count);
     in_fresh_child(test_select_is_no_part_of_the_cheat_chord);
+    in_fresh_child(test_l1_opens_the_bar_from_jump_mode_and_l1_closes_it_on_the_same_hovered_object);
+    in_fresh_child(test_circle_closes_the_bar_on_the_same_hovered_object);
+    in_fresh_child(test_l1_twice_in_aim_mode_comes_back_to_aim_mode_with_the_pan_slow_again);
+    in_fresh_child(test_the_bar_takes_and_aim_mode_places_or_cancels);
+    in_fresh_child(test_l1_on_end_turn_tech_and_score_opens_the_bar_and_hands_over_nothing);
+    in_fresh_child(test_r1_on_the_bar_goes_to_end_turn_both_shoulders_do_nothing_and_a_held_l1_toggles_once);
+    in_fresh_child(test_l1_closes_a_planet_menu_and_opens_the_bar);
+    in_fresh_child(test_l1_cancels_a_held_slipway_and_opens_the_bar);
+    in_fresh_child(test_l1_keeps_the_year_box);
+    in_fresh_child(test_l1_waits_as_the_shoulders_do);
+    in_fresh_child(test_cross_held_through_l1_takes_nothing_until_pressed_again);
+    in_fresh_child(test_four_chords_on_the_bar_cheat_once_and_change_nothing_else);
+    in_fresh_child(test_bar_and_placement_play_never_types_the_cheat);
+    in_fresh_child(test_select_on_the_bar_ends_no_year_and_presses_nothing);
+    in_fresh_child(test_the_bar_leaves_the_game_stream_unchanged);
     printf("test_pad_nav: ok\n");
     return 0;
 }

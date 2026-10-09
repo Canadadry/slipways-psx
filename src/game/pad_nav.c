@@ -137,6 +137,10 @@ entity_t *pad_nav_next_slipway(const entity_t *planet, const entity_t *current, 
     return entity_get(sorted[0].slipway);
 }
 
+int pad_nav_build_bar_open(const pad_nav_t *nav) {
+    return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD;
+}
+
 entity_t *pad_nav_build_icon(const pad_nav_t *nav) {
     return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD ? pad_build_icon(&nav->build) : NULL;
 }
@@ -581,7 +585,8 @@ static cancelled_t unwind_sub_modes(pad_nav_t *nav) {
     return cancel_slipway(nav) ? CANCELLED_SLIPWAY : CANCELLED_NOTHING;
 }
 
-/* The score backdrop hit-tests everywhere above the HUD, so a press anywhere reaches it and its on_click hides the panel. */
+/* The score backdrop hit-tests everywhere above the HUD, so a press anywhere reaches it and its on_click hides the panel.
+ * L1 on score clicks with the cursor already on the bar's icon: the backdrop takes that press, never the icon. */
 static void leave_tab(pad_nav_t *nav, p8_input_frame_t *played) {
     if (!own_panel_up(nav)) {
         return;
@@ -593,14 +598,21 @@ static void leave_tab(pad_nav_t *nav, p8_input_frame_t *played) {
     }
 }
 
-/* R1 moves forward, L1 back, both together nowhere: 0. */
-static int shoulder_step(int pressed) {
-    return ((pressed & P8_PAD_R1) != 0) - ((pressed & P8_PAD_L1) != 0);
+/* PAD_NAV_TAB_COUNT for none: R1 alone moves round the ring, L1 alone toggles the bar, both together do nothing. */
+static pad_nav_tab_t shoulder_target(pad_nav_tab_t tab, int pressed) {
+    int r1 = (pressed & P8_PAD_R1) != 0, l1 = (pressed & P8_PAD_L1) != 0;
+    if (r1 == l1) {
+        return PAD_NAV_TAB_COUNT;
+    }
+    if (r1) {
+        return (pad_nav_tab_t)((tab + 1) % PAD_NAV_TAB_COUNT);
+    }
+    return tab == PAD_NAV_TAB_BUILD ? PAD_NAV_TAB_MAP : PAD_NAV_TAB_BUILD;
 }
 
-static void shoulder_switch(pad_nav_t *nav, int step, p8_input_frame_t *played) {
+static void shoulder_switch(pad_nav_t *nav, pad_nav_tab_t target, p8_input_frame_t *played) {
     leave_tab(nav, played);
-    set_tab(nav, (pad_nav_tab_t)((nav->tab + step + PAD_NAV_TAB_COUNT) % PAD_NAV_TAB_COUNT));
+    set_tab(nav, target);
 }
 
 /* Above and left of the screen: no left_press there that × could reach. */
@@ -982,10 +994,10 @@ static int switch_tab(pad_nav_t *nav, int pressed, int release, int foreign_was_
         set_tab(nav, PAD_NAV_TAB_MAP);
         return 0;
     }
-    int step = shoulder_step(pressed);
-    if (step != 0 && tabs_can_switch(nav, release)) {
+    pad_nav_tab_t target = shoulder_target(nav->tab, pressed);
+    if (target != PAD_NAV_TAB_COUNT && tabs_can_switch(nav, release)) {
         *cancelled = unwind_sub_modes(nav);
-        shoulder_switch(nav, step, played);
+        shoulder_switch(nav, target, played);
         return 1;
     }
     if (nav->tab != PAD_NAV_TAB_MAP && (pressed & P8_PAD_CIRCLE) && !foreign_was_open && !release) {

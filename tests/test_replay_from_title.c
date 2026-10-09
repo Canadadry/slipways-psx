@@ -4,7 +4,8 @@
  *
  * The two fixtures differ only by the Down press at frame 10, which moves
  * the title focus from forgiving to reasonable before X picks the row at
- * frame 12; L1 at frame 16 then opens the score panel, whose score row
+ * frame 12; R1 at frames 16, 18, 20 and 25 then opens the score panel
+ * the forward way round the tabs, whose score row
  * shows the name of the chosen difficulty button (economy_score_difficulty,
  * read by score_panel_display.c). */
 

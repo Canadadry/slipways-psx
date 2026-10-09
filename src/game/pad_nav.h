@@ -98,6 +98,9 @@ int pad_nav_year_chain_open(const pad_nav_t *nav);
  * target is no longer a pad_target_is_candidate. */
 entity_t *pad_nav_slipway_target(const pad_nav_t *nav);
 
+/* 1 while a game runs and the build bar is open; 0 with no game. */
+int pad_nav_build_bar_open(const pad_nav_t *nav);
+
 /* The focused structure icon on the build tab; NULL on every other tab or once it is no longer a revealed icon. */
 entity_t *pad_nav_build_icon(const pad_nav_t *nav);
 
