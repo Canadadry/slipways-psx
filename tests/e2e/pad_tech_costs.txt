@@ -39,7 +39,8 @@ file cut after the frame and from the capture.
 
 - f10: Up onto "resume", f12: X: the record's game, year 3407, research
   6. The title's X is a lone X, which leaves the cheat matcher at 0.
-- f13, f15, f17: R1 R1 R1, `tech`. f21-25: Down x3, f27: X:
+- f13-16: idle. f17: R1 from the map: `tech` (until plan 12 step 11,
+  R1 R1 R1 round the ring at f13, f15, f17). f21-25: Down x3, f27: X:
   "nanomaterials" (cost 6), research 0, back on the map. f29: square:
   aim mode (it was f17's square before the cut).
 - f31-36: Up 6, f38: X: the starting probe at (256, 250). f41-58:
@@ -60,8 +61,11 @@ file cut after the frame and from the capture.
   from f108, and nothing charged ($97, month 2 up to f114).
   f109-115: the cheat, four X + O chords one every two frames; f115:
   $200, research 99.
-- f117-127: R1 x3, Down, X: "space folding" (research 95). f131-141:
-  the same: the first row is now "xenofoods" (era 2): research 85.
+- f117-127: f117-120 idle, f121: R1 from the map: `tech`, Down, X:
+  "space folding" (research 95). f131-141: the same, R1 at f135: the
+  first row is now "xenofoods" (era 2): research 85. Until plan 12 step
+  11, f117, f119 and f131, f133 were the ring's R1 R1 (`build`, `end
+  turn`).
 - f143: idle (it was square into aim mode before plan 12 step 7).
   f145: triangle on the hovered p31: from f146 row 2's recipe icons change
   (from x97, y83-89) and its tag reads 6 (5 x 1.5 x 0.85); row 1 is

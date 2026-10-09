@@ -82,14 +82,14 @@ press of the pause closes (X on a row, O, Start) reached the map.
 
 Until plan 12 step 10, f146 was L1 from `map` to `score`, one tab back
 round the ring; that situation went with the mechanic (L1 now toggles
-the build bar). The score tab is reached the forward way, 9 frames later.
+the build bar). The score tab is reached by R1, 9 frames later.
 
-- f145: idle. f146: R1: `build` (f146-147: the tooltip over the HUD
-  buttons, colour 1 at all three, the crosshair gone). f148: R1: `end
-  turn` (the year skip colour 12, f148-149). f150: R1: `tech` (the tech
-  button colour 12, f150-154, the tech panel drawn from f152 over the
-  year box). The year box stays drawn through the three tabs: its
-  colour-1 band (0, 38-39) on every frame f146-155, `make state` at
+- f145-149: idle on the map, the crosshair at the centre, nothing lit.
+  Until plan 12 step 11, f146 and f148 were R1 R1 round the ring
+  (`build`, then `end turn`); those ring passes went with the mechanic.
+  f150: R1 from the map: `tech` (the tech button colour 12, f150-154,
+  the tech panel drawn from f152 over the year box). The year box stays
+  drawn under R1: its colour-1 band (0, 38-39) on every frame f146-155, `make state` at
   f146, f147, f149, f151 and f154: message_box 1, modal_backdrop 0.
 - f155: R1 on `tech`: `score`, the score button colour 12 (64, 1)
   f155-162, the tech panel gone. modal_backdrop 1 from f155, the year

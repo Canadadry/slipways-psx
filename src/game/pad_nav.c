@@ -613,7 +613,7 @@ static pad_nav_tab_t shoulder_target(pad_nav_tab_t tab, int pressed) {
         return PAD_NAV_TAB_COUNT;
     }
     if (r1) {
-        return (pad_nav_tab_t)((tab + 1) % PAD_NAV_TAB_COUNT);
+        return tab == PAD_NAV_TAB_MAP ? PAD_NAV_TAB_TECH : (pad_nav_tab_t)((tab + 1) % PAD_NAV_TAB_COUNT);
     }
     return tab == PAD_NAV_TAB_BUILD ? PAD_NAV_TAB_MAP : PAD_NAV_TAB_BUILD;
 }

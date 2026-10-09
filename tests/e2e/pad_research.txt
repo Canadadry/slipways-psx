@@ -35,13 +35,12 @@ the economy from `make state` of the file cut after that frame.
 - f38-44: the cheat, four X + O chords one every two frames. The pad
   ignores X and O from a chord until both are up, so the chords place
   no probe. The cheat fires at f44: $100 -> $200, research 0 -> 99.
-- f48: R1 (`build`, f48-49: nothing lit, no crosshair, the cursor on
-  the basic structure's icon, its tooltip shown over the
-  top of the screen, hiding the HUD buttons, its cost in colour 8
-  above the icon), f50: R1 (`end turn`, the year skip in
-  colour 12, f50-51).
-- f52: R1: `tech`. The tech button is colour 12 from f52 (the year skip
-  back to 13), the cursor on it. The landing clicks the button: the
+- f48-51: idle on the map, nothing lit, the crosshair at the centre.
+  Until plan 12 step 11, f48 and f50 were R1 R1 round the ring (`build`
+  with its tooltip, then `end turn` with the year skip lit); those ring
+  passes went with the mechanic.
+- f52: R1 from the map: `tech`. The tech button is colour 12 from f52,
+  the cursor on it. The landing clicks the button: the
   tech panel is drawn from f53 (its header y11-20 in colour 5), the
   cursor on the header row.
 - f56: Down: the first technology row, "space folding" (keyboard_
@@ -79,7 +78,9 @@ is the one of the shorter file, byte for byte, but f28 (plan 12 step 7).
 
 - f72-82: Down+Left 8, Down 3; f84: X: the starting probe at (248,
   268), 23 px from the nearest planet. f86-139: "geneseeds",
-  "slipgates", "trade league", "starbirth" (research 37).
+  "slipgates", "trade league", "starbirth" (research 37), each by R1
+  from the map at f90, f101, f114 and f129 (f86-89, f97-100, f110-113
+  and f125-128 idle, where the ring's R1 R1 were until plan 12 step 11).
 - f140-156: Up+Right 12, Up 2 (two taps), Right 1: camera 183 191,
   centre world (263, 251). f159-174: X held 16: a fold, $197 at f175.
   p47 turns type m and p78 type f at f179, p23 type o at f184: the
@@ -142,8 +143,7 @@ inputs of the old file but f29 (plan 12 step 7).
   30th frame, the cursor on the year-skip button (154 5), pressed: year
   3403, $99 -> $122, the "year 3403" box. f413: the release, the
   cursor back on s2 (80 68). Transit dots on the slipways. Until plan
-  12 step 9 this year was R1 R1, X on `end turn`, L1 L1 (the tab ring);
-  The R1 presses to `tech` from f48 on still cycle the ring.
+  12 step 9 this year was R1 R1, X on `end turn`, L1 L1 (the tab ring).
 - f423, f425: Up, Left onto p78. f428: triangle: its panel, "content",
   "wants more:", "receives:", "exports: 1/3". f434: O closes the panel
   (the year box stays: the panel is closed first).

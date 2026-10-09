@@ -1,6 +1,7 @@
-The score panel opened the forward way round the tab cycle twice and
-closed with O, then with L1, which opens the build bar; the tech -> score
-hand-over in one frame, and O on `tech` back to the map. 77 frames.
+R1 from the map opens the tech panel, R1 on tech hands over to the score
+panel in one frame, and R1 on score closes it. The score panel closes
+with O, then with L1, which opens the build bar; O on `tech` goes back
+to the map, and a last R1 cycle closes from score. 96 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 leaves it for plain free mode, the camera unmoved, as games started
@@ -22,11 +23,17 @@ from `map` to `score`, and f47 L1 from `score` to `tech`, handing over
 on the third frame. Both situations went with that mechanic; L1 now
 toggles the build bar.
 
+Until plan 12 step 11, tech was reached by R1 R1 R1 round the ring
+(`build` at f16, f41 and f62, `end turn` at f18, f43 and f64). Those
+ring passes went with the mechanic: R1 from the map now opens tech, and
+f16-19, f41-44 and f62-65 are idle frames on the map. "R1 on the bar:
+`end turn`" lives on in pad_end_turn.
+
 - f0-12: as pad_probe. After f12: free mode, nothing lit, the
   crosshair at the centre on f13-15.
-- f16: R1: `build` (f16-17: the tooltip over the HUD, no crosshair),
-  f18: R1: `end turn` (the year skip colour 12, f18-19), f20: R1:
-  `tech` (the tech button colour 12, the tech panel drawn from f21).
+- f16-19: idle, free mode, nothing lit, the crosshair at the centre.
+- f20: R1 from the map: `tech` (the tech button colour 12, the tech
+  panel drawn from f21).
 - f25: R1 on `tech`: `score`, in one frame: the tech panel gone, the
   score button colour 12 from f25 to f36, the cursor on it, backdrop 1
   from f25, the score rows sliding in from the left.
@@ -36,10 +43,8 @@ toggles the build bar.
 - f37: O: `map`. Nothing lit from f37, the crosshair back at the
   centre from f38 (f38-40); the O's click on the backdrop hides the
   panel (its press on f37, release on f38), backdrop 0 from f39.
-- f41: R1 (`build`, f41-42: the tooltip over the HUD, no crosshair, the
-  cursor on the basic structure's icon), f43: R1 (`end turn`, the year
-  skip colour 12, f43-44).
-- f45: R1: `tech`. The tech button is colour 12 from f45, the cursor on
+- f41-44: idle, free mode, nothing lit, the crosshair at the centre.
+- f45: R1 from the map: `tech`. The tech button is colour 12 from f45, the cursor on
   it; the tech panel is drawn from f46, the cursor on its header,
   backdrop 0.
 - f50: R1 on `tech`: `score`, in one frame. On f50's capture the tech
@@ -53,24 +58,34 @@ toggles the build bar.
   the bar open, the icon's tooltip over the HUD.
 - f60: L1: the bar closes, back in free mode: nothing lit, the
   crosshair at the centre (f60-61).
-- f62: R1 (`build`, f62-63), f64: R1 (`end turn`, the year skip colour
-  12, f64-65), f66: R1: `tech`, the tech button colour 12 from f66, the
+- f62-65: idle, free mode, nothing lit, the crosshair at the centre.
+- f66: R1 from the map: `tech`, the tech button colour 12 from f66, the
   tech panel drawn from f67.
 - f71: O on `tech`: `map` in one press. From f71 no tech panel, nothing
   lit, the crosshair at the centre. f72-76: idle, free mode.
+- f77: R1 from the map: `tech`, the tech button colour 12 on f77-81, no
+  crosshair, the tech panel drawn from f78, backdrop 0.
+- f82: R1 on `tech`: `score`, in one frame: the tech panel gone, the
+  score button colour 12 on f82-87, backdrop 1 from f82.
+- f88: R1 on `score`: closed. Nothing lit from f88; R1's click on the
+  backdrop hides the panel (its press on f88, release on f89), the
+  crosshair back at the centre from f89, backdrop 0 from f90: back in
+  free mode, the mode the cycle left. f89-95: idle, free mode, camera
+  world 176 196.
 
-Colour 12 by frame: year skip f18-19, f43-44 and f64-65; tech f20-24,
-f45-49 and f66-70; score f25-36 and f50-55; nothing elsewhere after
+Colour 12 by frame: tech f20-24, f45-49, f66-70 and f77-81; score
+f25-36, f50-55 and f82-87; the year skip never; nothing elsewhere after
 f12.
 
-`make state` at f76: clock year 3401 month 1, credits 100, research 0,
+`make state` at f95: clock year 3401 month 1, credits 100, research 0,
 income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
 structures 0, techs 0; every planet unknown. The same lines as
 pad_title's at f29: looking at the score and the tech panel, and the
 bar, changes nothing.
 
 The X and O edges never type the cheat (four X + O chords): the title's
-X, the X at f33 and the O taps are lone presses, none a chord.
+X, the X at f33 and the O taps are lone presses, none a chord, and R1
+is no part of a chord.
 
 Covers no keyboard_* scenario: no keyboard replay opens the score
 panel during play (keyboard_game_end's final score panel is step
@@ -80,4 +95,5 @@ Cost: cold `make e2e` (tmp/frames removed), 8 interleaved runs each,
 median about 1165 ms without the three replays of step 3.1 (range
 1017-1187) and 1207 ms with them (range 1105-1337), overlapping; a
 warm `make e2e` stays about 0.5 s. They added 186 frames (65 + 60 + 61);
-plan 12 step 10 brought this file from 61 to 77 frames.
+plan 12 step 10 brought this file from 61 to 77 frames, and step 11 to
+96.

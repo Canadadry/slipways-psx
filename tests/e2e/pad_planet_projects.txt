@@ -40,7 +40,9 @@ from the capture.
 - f14-22: X five times on p25 (X taps on a planet open nothing in aim
   mode). f24-30: the cheat, four X + O chords one every two frames:
   $200, research 99 at f30.
-- f32-84: four times R1 R1 R1, Down xN, X: "space folding" (row 1,
+- f32-84: four times R1 from the map (f36, f47, f58, f73; the frames
+  before each, f32-35, f43-46, f54-57 and f69-72, idle where the ring's
+  R1 R1 were until plan 12 step 11), Down xN, X: "space folding" (row 1,
   research 95), "geneseeds" (row 1, 90, era 2 opens), "geoharvesting"
   (row 3, 76), "replication" (row 4, 58).
 - f86: square: jump mode on p25. f88-101: triangle on the hovered p25,
@@ -84,8 +86,9 @@ Structures, f228-502 (remove-mouse-mode PRD, chunk 6; appended
 here to share the cheat, the research and the colony instead of
 separate pad_infragate, pad_synthesizer and pad_ascension files).
 
-- f228-246: R1 R1 R1 (`build`, `end turn`, `tech`), Down x5, X:
-  "infraspace" (research 59 -> 28).
+- f228-246: f228-231 idle (until plan 12 step 11, R1 R1 round the
+  ring: `build`, `end turn`), f232: R1 from the map: `tech`, under the
+  year box, which stays up; Down x5, X: "infraspace" (research 59 -> 28).
   f247: O closes the year box (up since f226's year; plan 12 step 8: O
   closes a box before it backs out), aim mode kept. f249: O leaves aim
   mode for jump mode on p47, the only target; the edge scroll takes the
@@ -94,7 +97,9 @@ separate pad_infragate, pad_synthesizer and pad_ascension files).
   the last planet p47, the camera centred on it (190 205), and f249's O
   left it for jump mode: that return is gone with its mechanic.)
 - f267-301: "autoassemblers", "skill implants" (era 4 opens), "void
-  synthesis" (row 2): research 20.
+  synthesis" (row 2): research 20, each by R1 from the map at f271,
+  f282 and f293 (f267-270, f278-281 and f289-292 idle, the ring's R1 R1
+  until plan 12 step 11).
 - f302-325: L1, Left x2, X: the infragate s1 carried from camera 190
   177; Up+Right 2, Up 11, idle f323, X (f324): s1 built at (272,
   221), $200 -> $175, on the spot p25 left: the same world point as
@@ -130,7 +135,8 @@ the one the old file took it from (rule 8).
 - f448: square: aim mode. f450-466: Up+Left 1, Left 16: camera
   182 182, where the old file took the ascension gate from jump mode.
 - f468-474: the cheat, four X + O chords: $200, research 99 at f474.
-  f476-492: "ascension" (row 4): research 49.
+  f476-492: "ascension" (row 4): research 49, by R1 from the map at
+  f480 (f476-479 idle, the ring's R1 R1 until plan 12 step 11).
 - f493-521: L1, Left, X: the ascension gate s4 carried from camera 182
   182; Up+Right 17, Right, Up+Right, Right 3, X (f521): built at (296,
   217), $140, month 11. Up and left of s2, 16 px from p6, the spot
