@@ -496,6 +496,9 @@ $(TMP_DIR)/test_psx_state_compare: $(call objs,tests/test_psx_state_compare.c) t
 $(TMP_DIR)/test_psx_pad_compare: $(call objs,tests/test_psx_pad_compare.c) tools/psx_pad_compare.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_digest_compare: $(call objs,tests/test_psx_digest_compare.c) tools/psx_digest_compare.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -856,6 +859,7 @@ UNIT_TESTS := \
     test_frames_check \
     test_psx_state_compare \
     test_psx_pad_compare \
+    test_psx_digest_compare \
     test_format_self_test \
     test_format \
     test_vram_digest \
