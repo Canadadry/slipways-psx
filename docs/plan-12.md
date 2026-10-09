@@ -483,3 +483,31 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - `full-game`, `save-worst-case` and `save-fuzz` are clean.
   - `make test` and `make e2e` are not slower, measured like for like.
 - **Seen, not investigated:** a test that starts a second game in the same process (`start_title` twice) died on `zone ui button full`. Other tests restart with `cart_init` and pass, so it looks like the test harness. It was worked around with a forked copy.
+
+### Step 12
+- **Commits:**
+  - `a699715`: network mode deleted, including the ui's `pad_slipway` and slipway_display's colour-12 branch (R-8).
+  - `8bc52b0`: the tab ring and the end-turn tab replaced by the bar and the panel cycle.
+  - `8cbc893`: HUD highlight tests.
+  - `a581a28`: e2e notes.
+  - Refactors: `56a8b5e` (`reset_on_new_game`, `repeat_kept`), `ab69356` (`pad_jump` owns hovered/seeded; `game` moved to `pad_nav_t`, since a new game resets every mode), `a10df68` (`press_slipway_start`), and one direction order in `pad_jump`.
+- **New state:**
+  - `pad_cycle_t` holds the tech/score panel (closed → tech → score → closed) and whether its opening click is due.
+  - `pad_build_t` holds the bar's open flag. An assert keeps the bar and a cycle panel apart.
+- **R1** from the map or the bar opens tech, landing on the R1 frame as from the map (R-1). A year ends only by the Select hold.
+- **HUD highlight:** the open cycle panel's button. Nothing is lit on the map, the bar, under pause or on the final score panel (R-6); the HUD has no build button.
+- **`pad_end_turn`:** 139 → 154 frames; its first year is now a Select hold. It is the only replay re-authored, in about 3 minutes, and its end state is unchanged. Dropped with the ring: L1 R1 to end turn, the year skip lit as a tab, × held on end turn, the ○ back.
+- **Tests deleted, with their mechanic:**
+  - Network travel's slipway turns: `test_slipways_turn_clockwise_from_straight_up`, `test_straight_up_splits_the_two_halves`.
+  - The end-turn tab: `test_end_turn_focuses_and_hovers_the_year_skip_button`, `test_cross_on_end_turn_ends_one_year_per_press`, `test_cross_held_on_arrival_ends_no_year`, `test_the_cross_that_closes_pause_on_end_turn_ends_no_year`, and the end-turn half of the pause test.
+  - Every other test that reached end turn was rewritten onto the map, the bar or tech (R-3).
+- **Size:** `pad_nav.c` 1227 → 1061 lines; `pad_nav_t` 26 → 23 fields; `test_pad_nav` 223 tests.
+- **Coverage:** 4 unhit lines.
+  - `save_state.c:888` (R-4).
+  - Three histogram diff pairings of deleted lines: `pad_nav.c` baseline 596, 855 and 863. With `--diff-algorithm=patience`, only 596 remains. The real counterparts of 855 and 863 are hit.
+- **Checks:**
+  - Cheat unchanged.
+  - `make test` and `make e2e` are not slower, measured like for like.
+  - `full-game`, `save-worst-case` and `save-fuzz` are clean.
+- **For step 13:** no `worst-case/` script presses R1 on the bar. Their old end-turn visits (R1 R1 round the ring) now reach tech and score, so map them to Select holds.
+- **For step 14:** the modes are jump, aim, slipway, menus, placement, the bar and the cycle panels.
