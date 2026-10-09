@@ -7,7 +7,7 @@
 #include "game/pad_slipway.h"
 #include "p8/input.h"
 
-typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_FREE, PAD_NAV_MAP_NETWORK, PAD_NAV_MAP_SLIPWAY } pad_nav_map_mode_t;
+typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_AIM, PAD_NAV_MAP_NETWORK, PAD_NAV_MAP_SLIPWAY } pad_nav_map_mode_t;
 
 typedef enum {
     PAD_NAV_TAB_MAP,
@@ -84,8 +84,8 @@ int pad_nav_panel_open(void);
 /* PAD_NAV_TAB_MAP whenever no game is running. */
 pad_nav_tab_t pad_nav_tab(const pad_nav_t *nav);
 
-/* A game is running on the map tab, no panel is open and the map mode is free: the cursor is the screen centre and the D-pad pans the camera. */
-int pad_nav_free_mode(const pad_nav_t *nav);
+/* A game is running on the map tab, no panel is open and the map mode is aim: the cursor is the screen centre and the D-pad pans the camera. */
+int pad_nav_aim_mode(const pad_nav_t *nav);
 
 /* A game is running on the map tab, no panel is open and the map mode is jump: the cursor sits on the hovered object. */
 int pad_nav_jump_mode(const pad_nav_t *nav);
@@ -107,11 +107,11 @@ entity_t *pad_nav_build_icon(const pad_nav_t *nav);
 /* The structure the ui holds in its placing state while placement carries it; NULL otherwise. */
 entity_t *pad_nav_placing(const pad_nav_t *nav);
 
-/* The selected planet in network mode, panel open or not; NULL in free mode or once that planet is gone or dead. */
+/* The selected planet in network mode, panel open or not; NULL in aim mode or once that planet is gone or dead. */
 entity_t *pad_nav_selection(const pad_nav_t *nav);
 
-/* The planet □ left network mode from, in free mode, panel open or not; NULL in network mode, at game start, after a
- * second □ (plain free mode), or once that planet is gone or dead. */
+/* The planet □ left network mode from, in aim mode, panel open or not; NULL in network mode, at game start, after a
+ * second □ (plain aim mode), or once that planet is gone or dead. */
 entity_t *pad_nav_starting_planet(const pad_nav_t *nav);
 
 /* NULL outside network mode or when the selected planet has no slipway; never a slipway the planet does not hold. */

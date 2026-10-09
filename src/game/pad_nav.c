@@ -28,9 +28,9 @@ pad_nav_tab_t pad_nav_tab(const pad_nav_t *nav) {
     return main_economy_typed() != NULL ? nav->tab : PAD_NAV_TAB_MAP;
 }
 
-int pad_nav_free_mode(const pad_nav_t *nav) {
+int pad_nav_aim_mode(const pad_nav_t *nav) {
     return main_economy_typed() != NULL && nav->tab == PAD_NAV_TAB_MAP && !pad_nav_panel_open() &&
-           nav->map_mode == PAD_NAV_MAP_FREE;
+           nav->map_mode == PAD_NAV_MAP_AIM;
 }
 
 /* NULL once the entity is gone or dead. */
@@ -66,7 +66,7 @@ entity_t *pad_nav_selection(const pad_nav_t *nav) {
 }
 
 entity_t *pad_nav_starting_planet(const pad_nav_t *nav) {
-    return nav->map_mode == PAD_NAV_MAP_FREE ? live(entity_get(nav->starting_planet)) : NULL;
+    return nav->map_mode == PAD_NAV_MAP_AIM ? live(entity_get(nav->starting_planet)) : NULL;
 }
 
 enum { SLIPWAYS_CAP = 32 };
@@ -178,7 +178,7 @@ enum { HELD_FRAMES_CAP = 41 };
 
 static const int pan_directions[4] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
 
-static void reset_free_mode(pad_nav_t *nav) {
+static void reset_aim_mode(pad_nav_t *nav) {
     for (int i = 0; i < 4; i++) {
         nav->held_frames[i] = 0;
     }
@@ -195,7 +195,7 @@ static int pan_speed(int held_frames) {
     return held_frames <= 40 ? 2 : 4;
 }
 
-static void free_mode_pan(pad_nav_t *nav, int pad_buttons) {
+static void aim_pan(pad_nav_t *nav, int pad_buttons) {
     int speed[4];
     for (int i = 0; i < 4; i++) {
         if (!(pad_buttons & pan_directions[i])) {
@@ -265,7 +265,7 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->left_was_down = 0;
     nav->cursor_x = 0;
     nav->cursor_y = 0;
-    reset_free_mode(nav);
+    reset_aim_mode(nav);
 }
 
 entity_t *pad_nav_focus(const pad_nav_t *nav) {
@@ -350,7 +350,7 @@ static void return_to_starting_planet(pad_nav_t *nav) {
     }
 }
 
-/* Plain free mode only: at game start, or once the last planet is dead, ○ does nothing. */
+/* Plain aim mode only: at game start, or once the last planet is dead, ○ does nothing. */
 static void return_to_last_planet(pad_nav_t *nav) {
     entity_t *last = live(entity_get(nav->last_planet));
     if (last != NULL) {
@@ -358,20 +358,20 @@ static void return_to_last_planet(pad_nav_t *nav) {
     }
 }
 
-static void enter_free_mode(pad_nav_t *nav, const entity_t *selected) {
+static void enter_aim_mode_from(pad_nav_t *nav, const entity_t *selected) {
     centre_camera_on(selected);
     nav->starting_planet = entity_id_link(selected);
     nav->starting_slipway = nav->selected_slipway;
     nav->selected_slipway = ENTITY_ID_NONE;
-    nav->map_mode = PAD_NAV_MAP_FREE;
+    nav->map_mode = PAD_NAV_MAP_AIM;
     nav->selection = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
 }
 
 /* Moves no camera: a snap here would shift every later point action of a replay off its reference world point. */
-static void enter_plain_free_mode(pad_nav_t *nav) {
-    nav->map_mode = PAD_NAV_MAP_FREE;
+static void enter_aim_mode(pad_nav_t *nav) {
+    nav->map_mode = PAD_NAV_MAP_AIM;
     nav->selection = ENTITY_ID_NONE;
     nav->selected_slipway = ENTITY_ID_NONE;
     nav->starting_planet = ENTITY_ID_NONE;
@@ -452,7 +452,7 @@ static int cancel_slipway(pad_nav_t *nav) {
     return held;
 }
 
-/* Plain free mode: no starting planet, so no drag starts again; ○ goes back to the planet it came from. */
+/* Plain aim mode: no starting planet, so no drag starts again; ○ goes back to the planet it came from. */
 static void leave_starting_planet(pad_nav_t *nav) {
     cancel_drag(nav);
     nav->last_planet = nav->starting_planet;
@@ -490,7 +490,7 @@ static int is_settled_planet(const entity_t *e) {
 }
 
 /* Returns whether □ landed network mode on the settled planet under the centre, the drag dropped first. Never on the
- * starting planet: right after □ the centre is still on it, and □ there leaves for plain free mode. */
+ * starting planet: right after □ the centre is still on it, and □ there leaves for plain aim mode. */
 static int square_selects_under_centre(pad_nav_t *nav) {
     entity_t *planet = entity_under(nav->cursor_x, nav->cursor_y, is_settled_planet);
     if (planet == NULL || planet == pad_nav_starting_planet(nav)) {
@@ -502,7 +502,7 @@ static int square_selects_under_centre(pad_nav_t *nav) {
 }
 
 /* Returns whether △ clicked a planet under the centre, which lands network mode on it while its panel is up; once
- * the panel is gone, free mode comes back from the same starting planet. */
+ * the panel is gone, aim mode comes back from the same starting planet. */
 static int triangle_on_centre(pad_nav_t *nav, p8_input_frame_t *played) {
     entity_t *planet = entity_under(nav->cursor_x, nav->cursor_y, is_clickable_planet);
     if (planet == NULL) {
@@ -571,12 +571,12 @@ static void drag_step(pad_nav_t *nav, int pressed, int circle_returns, int relea
 
 /* On a click's release frame × and △ start nothing: their press would be forced up, and △ would still select. A
  * settled starting planet keeps a slipway dragged out of it whenever nothing else holds the left button. */
-static void free_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
+static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
                            p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
-    free_mode_pan(nav, pad_buttons);
+    aim_pan(nav, pad_buttons);
     if (drag_due_step(nav, played)) {
         return;
     }
@@ -613,10 +613,10 @@ static void free_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int cir
 }
 
 /* The camera stays on the planet △ opened, so the drag resumes aimed at it. */
-static void resume_free_mode(pad_nav_t *nav, entity_t *start, p8_input_frame_t *played) {
+static void resume_aim_mode(pad_nav_t *nav, entity_t *start, p8_input_frame_t *played) {
     nav->resume_start = ENTITY_ID_NONE;
     nav->starting_planet = entity_id_link(start);
-    nav->map_mode = PAD_NAV_MAP_FREE;
+    nav->map_mode = PAD_NAV_MAP_AIM;
     nav->selection = ENTITY_ID_NONE;
     nav->selected_slipway = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
@@ -640,7 +640,7 @@ static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, 
     if (resumed == NULL) {
         nav->resume_start = ENTITY_ID_NONE;
     } else if (!releasing && !nav->release_pending) {
-        resume_free_mode(nav, resumed, played);
+        resume_aim_mode(nav, resumed, played);
         return;
     }
     if (circle_returns && !releasing) {
@@ -655,7 +655,7 @@ static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, 
     if ((pressed & P8_PAD_TRIANGLE) && !releasing && is_clickable_planet(selected)) {
         click_planet(nav, selected, played);
     } else if (pressed & P8_PAD_SQUARE) {
-        enter_free_mode(nav, selected);
+        enter_aim_mode_from(nav, selected);
         int pressed_start = !releasing && begin_drag(nav, played);
         assert((pressed_start || releasing || selected->state != ENTITY_STATE_SETTLED || !takes_slipway(selected)) &&
                "network_step: centred, the settled planet lies clear of the HUD, so the press reaches it");
@@ -900,9 +900,9 @@ static int begin_placement(pad_nav_t *nav) {
     set_tab(nav, PAD_NAV_TAB_MAP);
     nav->placement = PAD_NAV_PLACEMENT_CARRYING;
     if (pad_nav_selection(nav) != NULL) {
-        enter_free_mode(nav, pad_nav_selection(nav));
+        enter_aim_mode_from(nav, pad_nav_selection(nav));
     } else if (nav->map_mode == PAD_NAV_MAP_JUMP) {
-        enter_plain_free_mode(nav);
+        enter_aim_mode(nav);
     }
     return 1;
 }
@@ -931,7 +931,7 @@ static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_inpu
     }
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
-    free_mode_pan(nav, pad_buttons);
+    aim_pan(nav, pad_buttons);
     if (pressed & P8_PAD_CROSS) {
         return;
     }
@@ -1048,11 +1048,11 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
  * the hold-repeat count keeps running through them. */
 static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, p8_input_frame_t *played,
                       const entity_t **shown) {
-    reset_free_mode(nav);
+    reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
     if (pressed & P8_PAD_SQUARE) {
-        enter_plain_free_mode(nav);
+        enter_aim_mode(nav);
         return;
     }
     int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
@@ -1101,7 +1101,7 @@ static int press_start_again(pad_nav_t *nav, const entity_t *start, p8_input_fra
  * target, where the ui's drop builds or refuses. The press, release and re-press frames show no marker. */
 static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
                          p8_input_frame_t *played, const entity_t **shown) {
-    reset_free_mode(nav);
+    reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     entity_t *start = pad_nav_slipway_start(nav);
     if (start == NULL || !planet_is_family(start)) {
@@ -1165,12 +1165,12 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
     if (pad_nav_placing(nav) != NULL) {
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
-        reset_free_mode(nav);
+        reset_aim_mode(nav);
         panel_step(nav, pad_buttons, pressed, direction, played);
-    } else if (pad_nav_free_mode(nav)) {
-        free_mode_step(nav, pad_buttons, pressed, circle_returns, release, played);
+    } else if (pad_nav_aim_mode(nav)) {
+        aim_mode_step(nav, pad_buttons, pressed, circle_returns, release, played);
     } else if (pad_nav_selection(nav) != NULL) {
-        reset_free_mode(nav);
+        reset_aim_mode(nav);
         network_step(nav, pad_nav_selection(nav), pressed, release, circle_returns, played);
         /* A click opens its box only in this frame's dispatch, the settled planet's on the release: neither frame shows the selection. */
         if (!release && !nav->release_pending) {
@@ -1295,7 +1295,7 @@ static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_i
     show_selection(nav, shown);
     if (main_ui() != NULL) {
         ui_set_pad_tab(main_ui(), tab_button(pad_nav_tab(nav)));
-        ui_set_pad_crosshair(main_ui(), pad_nav_free_mode(nav) && pad_nav_placing(nav) == NULL);
+        ui_set_pad_crosshair(main_ui(), pad_nav_aim_mode(nav) && pad_nav_placing(nav) == NULL);
     }
 }
 
@@ -1330,13 +1330,13 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     }
     if (!tab_changed && pause_step(nav, pressed, release, played)) {
         pad_jump_repeat_clear(&nav->jump);
-        reset_free_mode(nav);
+        reset_aim_mode(nav);
         nav->focus = ENTITY_ID_NONE;
         finish_step(nav, release, NULL, played);
         return;
     }
     int foreign_was_open = foreign_panel_open(nav);
-    /* ○ that closes a box this frame must not also reach free mode's return. */
+    /* ○ that closes a box this frame must not also reach aim mode's return. */
     int circle_returns = (pressed & P8_PAD_CIRCLE) && !pad_panel_box_open();
     if (pressed & P8_PAD_CIRCLE) {
         circle_closes_the_box();
@@ -1364,7 +1364,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     }
     /* The frame that changes the tab runs no map or tab step, so one press never acts twice. */
     if (tab_changed || landed) {
-        reset_free_mode(nav);
+        reset_aim_mode(nav);
         nav->focus = ENTITY_ID_NONE;
         tab_cursor(nav);
         if (cancelled == CANCELLED_STRUCTURE) {
@@ -1375,7 +1375,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     } else if (nav->tab == PAD_NAV_TAB_MAP) {
         map_step(nav, pad_buttons, pressed, direction, release, circle_returns, played, &shown, &jump_ran);
     } else {
-        reset_free_mode(nav);
+        reset_aim_mode(nav);
         tab_step(nav, pad_buttons, pressed, direction, release, played);
     }
     if (!jump_ran) {
