@@ -78,6 +78,7 @@ void pad_jump_repeat_clear(pad_jump_t *jump) {
 static const int inner_left = PAD_JUMP_SCROLL_MARGIN;
 static const int inner_right = P8_SCREEN_WIDTH - 1 - PAD_JUMP_SCROLL_MARGIN;
 static const int inner_top = PAD_JUMP_SCROLL_MARGIN;
+/* PAD_JUMP_SCROLL_MARGIN_BOTTOM is the margin plus the bottom HUD row, which starts at P8_SCREEN_HEIGHT - 11. */
 static const int inner_bottom = P8_SCREEN_HEIGHT - 1 - PAD_JUMP_SCROLL_MARGIN_BOTTOM;
 
 int pad_jump_inside(int x, int y) {

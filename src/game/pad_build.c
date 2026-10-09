@@ -28,7 +28,6 @@ entity_t *pad_build_icon(const pad_build_t *b) {
     return structure_icon_is_revealed(icon) ? icon : NULL;
 }
 
-/* NULL when no revealed icon lies on that side of x: step -1 looks left, 1 right. */
 static entity_t *icon_beside(int x, int step) {
     entity_t *nearest = NULL;
     int nearest_x = 0;
