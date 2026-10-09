@@ -1,5 +1,6 @@
 #include "platform/psx_tiles.h"
 
+#include "p8/draw_cost.h"
 #include "p8/gfx.h"
 #include "p8/vram.h"
 
@@ -65,6 +66,70 @@ static int pset_tile_matches_software(const p8_graphics_t *gfx, int x, int y) {
     paint(&tile, count);
     assert_painted_is_the_software_screen();
     return count;
+}
+
+static int software_lit_any(void) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (software.screen[y][x] != 0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+static int endpoint_lit_where_on_screen(int x, int y) {
+    if (x < 0 || x >= P8_SCREEN_WIDTH || y < 0 || y >= P8_SCREEN_HEIGHT) {
+        return 1;
+    }
+    return software.screen[y][x] != 0;
+}
+
+/* The GPU's stepping between the endpoints is the accepted divergence: only the endpoints, the
+ * lines sent and their metering are checked. */
+static int line_is_sent_as_the_software_shows_it(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2) {
+    p8_vram_init(&software);
+    p8_line(gfx, &software, x1, y1, x2, y2, 7);
+    psx_line_t line;
+    int count = psx_tiles_line(gfx, x1, y1, x2, y2, &line);
+    assert(count == 0 || count == 1);
+    assert((count == 1 || !software_lit_any()) && "a line the software shows must be sent");
+    if (count == 1) {
+        assert(line.x1 == x1 - gfx->camera_x && line.y1 == y1 - gfx->camera_y);
+        assert(line.x2 == x2 - gfx->camera_x && line.y2 == y2 - gfx->camera_y);
+        assert(endpoint_lit_where_on_screen(line.x1, line.y1) && endpoint_lit_where_on_screen(line.x2, line.y2));
+        assert(p8_draw_cost_line(gfx, x1, y1, x2, y2).bytes > 0 && "a line sent must be metered");
+    }
+    return count;
+}
+
+static void test_a_line_is_one_segment_between_its_endpoints_after_the_camera(void) {
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    assert(line_is_sent_as_the_software_shows_it(&gfx, 10, 20, 90, 70) == 1);
+    assert(line_is_sent_as_the_software_shows_it(&gfx, 90, 70, 10, 20) == 1);
+    assert(line_is_sent_as_the_software_shows_it(&gfx, 5, 5, 5, 5) == 1);
+    assert(line_is_sent_as_the_software_shows_it(&gfx, -50, 60, 300, 60) == 1 && "endpoints are not clipped");
+    p8_camera(&gfx, 200, -100);
+    assert(line_is_sent_as_the_software_shows_it(&gfx, 210, -90, 250, 10) == 1);
+    assert(line_is_sent_as_the_software_shows_it(&gfx, 100, -90, 150, 10) == 0);
+    assert(line_is_sent_as_the_software_shows_it(&gfx, 210, -200, 250, -101) == 0);
+}
+
+static void test_random_lines_are_sent_when_the_software_shows_them(void) {
+    unsigned seed = 777;
+    p8_graphics_t gfx;
+    for (int i = 0; i < 200; i++) {
+        int values[6];
+        for (int v = 0; v < 6; v++) {
+            seed = seed * 1103515245u + 12345u;
+            values[v] = (int)((seed >> 8) % 400) - 120;
+        }
+        p8_gfx_init(&gfx);
+        p8_camera(&gfx, values[4] / 2, values[5] / 2);
+        line_is_sent_as_the_software_shows_it(&gfx, values[0], values[1], values[2], values[3]);
+    }
 }
 
 static void test_a_pset_is_one_pixel_after_the_camera(void) {
@@ -142,6 +207,8 @@ int main(void) {
     test_a_rect_is_clipped_to_the_screen_after_the_camera();
     test_a_rectfill_is_one_clipped_tile();
     test_random_boxes_draw_as_the_software_does();
+    test_a_line_is_one_segment_between_its_endpoints_after_the_camera();
+    test_random_lines_are_sent_when_the_software_shows_them();
     printf("test_psx_tiles: ok\n");
     return 0;
 }

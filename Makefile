@@ -488,7 +488,7 @@ $(TMP_DIR)/test_draw_meter: $(call objs,tests/test_draw_meter.c src/p8/draw_mete
 $(TMP_DIR)/test_psx_vram_layout: $(call objs,tests/test_psx_vram_layout.c src/platform/psx_vram_layout.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_psx_tiles: $(call objs,tests/test_psx_tiles.c src/platform/psx_tiles.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+$(TMP_DIR)/test_psx_tiles: $(call objs,tests/test_psx_tiles.c src/platform/psx_tiles.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_draw_filter: $(call objs,tests/test_draw_filter.c src/devtools/draw_filter.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)

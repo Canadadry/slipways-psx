@@ -11,10 +11,22 @@ typedef struct {
     int h;
 } psx_tile_t;
 
+/* A GPU LINE_F2 in draw-area coordinates; endpoints may lie off screen. */
+typedef struct {
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+} psx_line_t;
+
 enum { PSX_TILES_RECT_MAX = 4 };
 
 /* pset's pixel after the camera, as a 1x1 tile. Returns 0 (tile untouched) when off screen, else 1. */
 int psx_tiles_pset(const p8_graphics_t *gfx, int x, int y, psx_tile_t *tile);
+
+/* line's endpoints after the camera, not clipped: the GPU clips to the draw area. Returns 0 (line
+ * untouched) when the line's box misses the screen, as p8_draw_cost_line does, else 1. */
+int psx_tiles_line(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, psx_line_t *line);
 
 /* rect's edges after the camera, clipped to the screen and never overlapping. Returns how many
  * tiles were written (0 when no edge shows). */

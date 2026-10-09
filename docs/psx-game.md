@@ -164,8 +164,11 @@ point, no `malloc`):
   `rectfill` one `TILE`, after the camera and clipped to the screen
   (`src/platform/psx_tiles.c`, host-tested against the software backend by
   `test_psx_tiles`), coloured with the 8-bit components of
-  `P8_PALETTE_RGB[col & 0x0F]`; a patterned `rectfill` and the five other
-  entries draw nothing yet;
+  `P8_PALETTE_RGB[col & 0x0F]`; `line` is one `LINE_F2` between its
+  endpoints after the camera, unclipped (the GPU clips to the draw area),
+  sent when its box meets the screen, so its stepping is the GPU's, not
+  PICO-8's (the plan's accepted divergence, measured by its capture); a
+  patterned `rectfill` and the four other entries draw nothing yet;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -339,7 +342,7 @@ None of these targets is in `make test-all`, and none runs a setup.
 ## Still to do
 
 - Step 4 of plan 10: the GPU families, one at a time, each with its capture
-  line in `psx/gpu_captures.txt`: `line`, `circ` and `circfill`, `spr`
+  line in `psx/gpu_captures.txt`: `circ` and `circfill`, `spr`
   and `map` (with the draw-palette CLUT cache), `print` (with the font texture
   and its 16 CLUTs), the fill patterns of `rectfill` and `circfill` (with the
   pattern slots), then the `all` captures.
@@ -353,6 +356,10 @@ None of these targets is in `make test-all`, and none runs a setup.
     near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `pset` f131: `pset f131 mask cls,pset calls 65 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
+  - `line` f194: `line f194 mask cls,line calls 8 differ 2 (0.1‰) near1 2
+    near2 0 far 0 bbox 72,119-73,119 offpalette 0 nonuniform 0`, ceiling 2:
+    two bottom-row pixels the PC lights stay black on the PSX, where the
+    dragged slipway enters from below the screen (GPU stepping).
   - `rect` f322: `rect f322 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
 
