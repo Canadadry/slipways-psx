@@ -763,17 +763,17 @@ static size_t game_without_registries(void) {
     return game_zone_used() - registries_bytes();
 }
 
-/* f22-69: 24 year jumps after the f21 one, so as many
+/* f44-91: 24 chained year jumps after the f43 hold's, so as many
  * economy_tiers_rebuild_incoming_routes calls, which must not grow the
  * generation: each incoming_routes list is emptied in place. */
 static void pad_game_end_rebuild_does_not_grow_game(void) {
     start_e2e("pad_game_end");
-    play_until(21);
-    const size_t f21 = game_without_registries();
-    play_until(69);
-    const size_t f69 = game_without_registries();
-    printf("  pad_game_end f21/f69: game - registries = %lu/%lu\n", (unsigned long)f21, (unsigned long)f69);
-    assert(f21 == f69 && "an incoming routes rebuild grows the generation");
+    play_until(43);
+    const size_t f43 = game_without_registries();
+    play_until(91);
+    const size_t f91 = game_without_registries();
+    printf("  pad_game_end f43/f91: game - registries = %lu/%lu\n", (unsigned long)f43, (unsigned long)f91);
+    assert(f43 == f91 && "an incoming routes rebuild grows the generation");
 }
 
 /* f514-565: the f514 year jump over six placed slipways, so
@@ -1289,33 +1289,33 @@ static void pad_pause_restart_reveals_on_new_game_states(void) {
     printf("  pad_pause_restart f39: %d planets revealed, %d through the type picker\n", revealed, from_type_picker);
 }
 
-/* f115-121: the year's message box kept open by its keep_open callback, with
+/* f139-145: the year's message box kept open by its keep_open callback, with
  * no button. */
 static void pad_message_box_idle_does_not_grow(void) {
-    const int frames[] = {115, 121};
+    const int frames[] = {139, 145};
     reading_t r[2];
     replay_e2e("pad_message_box", frames, 2, r);
     assert(same_counts(&r[0], &r[1]) && r[0].particle == r[1].particle && "a slot kind takes a slot per tick");
     assert(r[0].game_zone == r[1].game_zone && "the game zone takes bytes every tick");
 }
 
-/* f116-117: the year's message box kept open, with no action. The boxes
+/* f140-141: the year's message box kept open, with no action. The boxes
  * remade every tick are rewritten in place: they keep their address. */
 static void pad_message_box_rewrites_boxes_in_place(void) {
     start_e2e("pad_message_box");
-    play_until(116);
+    play_until(140);
     const camera_t *mo = main_camera_typed();
     const mouse_t *je = main_mouse_typed();
     const ui_t *ok = main_ui();
     assert(mo != NULL && je != NULL && ok != NULL);
     const void *before[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     size_t used_before = game_zone_used();
-    play_until(117);
+    play_until(141);
     assert(main_camera_typed() == mo && main_mouse_typed() == je && main_ui() == ok);
     const void *after[3] = {&mo->header.map_pos, &mo->header.pos, &je->header.pos};
     int stables = 0;
     for (int i = 0; i < 3; i++) stables += before[i] == after[i];
-    printf("  pad_message_box f116-117: %d / 3 per-tick boxes at the same address\n", stables);
+    printf("  pad_message_box f140-141: %d / 3 per-tick boxes at the same address\n", stables);
     fflush(stdout);
     assert(stables == 3 && "the camera's pos_before_shake and pos and the mouse's pos must be rewritten in place");
     assert(game_zone_used() == used_before && "the game zone takes bytes every tick");

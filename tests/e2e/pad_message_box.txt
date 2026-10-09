@@ -1,73 +1,76 @@
-Twenty years ended on `end turn` up to the "5 years remain" box, pad
-input passing through it, then the pause menu over it: the rows
-navigated, X on "how to play?", closed with O and with Start. Then the
-`score` tab, whose box replaces the year box, closed with O, and the
-score box running out. 190 frames. Listed in
-tools/e2e_long_exceptions.txt.
+Twenty years ended with Select on the map, a hold and 19 chained
+presses, up to the "5 years remain" box, pad input passing through it,
+then the pause menu over it: the rows navigated, X on "how to play?",
+closed with O and with Start. Then the `score` tab, whose box replaces
+the year box, closed with O, and the score box running out. 214 frames.
+Listed in tools/e2e_long_exceptions.txt.
 
 Jump mode is the map's root, where every game starts: square on f13
-leaves it for plain free mode, the camera unmoved, as games started
-before it. Every frame is the one this file had without it.
+leaves it for aim mode, the camera unmoved.
 
 f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each as in
 pad_end_turn.txt: tech (1, 1), score (64, 1), year skip (152, 1); colour
 12 is the lit tab, 13 the others. The pause button is read at (0, 111)
 (colour 12 when hovered), the hovered pause row at x=40 (colour 12). In
-free mode the colour-7 crosshair marks the centre (x78-82 on y=60,
+aim mode the colour-7 crosshair marks the centre (x78-82 on y=60,
 y58-62 on x=80, the centre pixel undrawn). The year box is read as its
 colour-1 band (y38-39, drawn from the left edge), its colour-6 line
 "year 3421" (y36-40) and its colour-2 line "5 years remain" (y44-48).
 Readings come from the capture's framebuffer at each frame, and the
 state from `make state` of the file cut after that frame.
 
-- f0-12: as pad_probe. f13-15: free mode, the crosshair at the centre.
-- f16: R1: `build` (f16-17: the tooltip hides the three HUD buttons,
-  colour 1 at their fill pixels, as pad_end_turn's f16-17). f18: R1:
-  `end turn`, the year skip colour 12 from f18 to f61.
-- f20-58: X tapped 20 times (pressed on even frames, released on odd
-  ones): one year per tap, year 3402 at f21, 3420 at f57, 3421 at f58,
-  research 20, $100 (income 0). Each year's box shows its band from the
-  left edge; "5 years remain" is drawn from f60, the 3421 box's colour-2
-  line entering from the left edge (x0-2 on f60).
-- f62: O: `map`. From f62 the three HUD buttons are 13 and the
-  crosshair is at the centre. The box keeps entering: "year 3421" from
-  the right edge (x155-159 on f62), "5 years remain" x0-14.
-- f64-69: Right held 6 frames: camera world 176 196 -> 182 196 (f69),
-  the map's grid drawn 3 px left on f77. The box is not in the way.
-- f72: R1: `build` (f72-73, HUD buttons hidden by the tooltip, the
-  colour-2 line still drawn below it, x7-61 on f72). f74: L1: `map`,
+Until plan 12 step 9 the twenty years were X taps on `end turn` (R1 R1
+at f16 and f18, O back to the map at f62). From the first year on, the
+frames are those of that file 24 frames later: from f86 they are the
+same pixel for pixel, and before it only the year-skip button (lit on
+`end turn` then) and the crosshair (absent on a tab then) differ.
+
+- f0-12: as pad_probe. f13-14: aim mode, the crosshair at the centre.
+- f15-44: Select held 30 frames: on f44, its 30th frame, the cursor on
+  the year-skip button (154 5), pressed: year 3402, research 1. f45:
+  the release, the cursor back at the centre.
+- f46, f48, ..., f82: 19 fresh Select presses, one every other frame,
+  each inside the 15 frames after the year before, one year each: year
+  3420 at f80, 3421 at f82, research 20, $100 (income 0). Each year's
+  box shows its band from the left edge; "5 years remain" is drawn from
+  f84, the 3421 box's colour-2 line entering from the left edge (x0-2 on
+  f84). The box keeps entering: "year 3421" from the right edge (x155-159
+  on f86), "5 years remain" x0-14.
+- f88-93: Right held 6 frames: camera world 176 196 -> 182 196 (f93),
+  the map's grid drawn 3 px left on f101. The box is not in the way.
+- f96: R1: `build` (f96-97, HUD buttons hidden by the tooltip, the
+  colour-2 line still drawn below it, x7-61 on f96). f98: L1: `map`,
   the crosshair back at the centre, the HUD buttons 13. `make state` at
-  f71, f73 and f75: message_box 1, modal_backdrop 0, camera 182 196:
+  f95, f97 and f99: message_box 1, modal_backdrop 0, camera 182 196:
   the box blocks no tab switch and no pan.
-- f78: Start: the pause button colour 12 (f78 only), the click's press,
-  the crosshair still at the centre; f79 its release, the menu box
-  slides up, "restart" the colour-12 row (y100-108 from f82), no
+- f102: Start: the pause button colour 12 (f102 only), the click's press,
+  the crosshair still at the centre; f103 its release, the menu box
+  slides up, "restart" the colour-12 row (y100-108 from f106), no
   crosshair under the menu. The year box is still
   drawn and keeps easing in under the menu: "5 years remain" x26-80 on
-  f78, x49-103 on f93; "year 3421" x89-123 on f78, x66-100 on f93. The
+  f102, x49-103 on f117; "year 3421" x89-123 on f102, x66-100 on f117. The
   two never overlap (the box above y49, the menu from y66).
-- f84: Up: "toggle music" (y89-97). f86: Up: "toggle sfx" (y78-86).
-  f88: Up: "how to play?" (y67-75). f90: Down: "toggle sfx". f92: Up:
+- f108: Up: "toggle music" (y89-97). f110: Up: "toggle sfx" (y78-86).
+  f112: Up: "how to play?" (y67-75). f114: Down: "toggle sfx". f116: Up:
   "how to play?" again.
-- f94: X on "how to play?": the menu is gone on f94, nothing else
-  opens: no pause row, no new box. From f95 the crosshair is at the
+- f118: X on "how to play?": the menu is gone on f118, nothing else
+  opens: no pause row, no new box. From f119 the crosshair is at the
   centre.
-  `make state` at f95 and f97: modal_backdrop 0, message_box 1 (the
+  `make state` at f119 and f121: modal_backdrop 0, message_box 1 (the
   year box only), year 3421, camera 182 196.
-- f98: Start: the pause button colour 12 (f98), the menu from f99,
-  "restart" focused. f104: O: the menu gone on f104, the crosshair at
-  the centre from f105.
-- f108: Start: pause again (f109-113). f114: Start: the menu gone on
-  f114, the crosshair at the centre from f115. f115-120: idle in free
+- f122: Start: the pause button colour 12 (f122), the menu from f123,
+  "restart" focused. f128: O: the menu gone on f128, the crosshair at
+  the centre from f129.
+- f132: Start: pause again (f133-137). f138: Start: the menu gone on
+  f138, the crosshair at the centre from f139. f139-144: idle in aim
   mode.
-- The year box stays drawn up to f122: settled from f109, "year 3421"
+- The year box stays drawn up to f146: settled from f133, "year 3421"
   x62-96, "5 years remain" x52-106; message_box 1 in every `make
-  state` taken from f61 to f121 (f61-63, f69-75, f77-79, f93-95,
-  f97, f99, f103-105, f109, f113-115, f120-121).
+  state` taken from f85 to f145 (f85-87, f93-99, f101-103, f117-119,
+  f121, f123, f127-129, f133, f137-139, f144-145).
 
-`make state` at f120 (the end of the 121-frame version of this file,
-whose capture is the first 121 frames of this one, byte for byte):
+`make state` at f144:
 clock year 3421 month 1, credits 100, research 20,
 income 0, camera world 182 196, planets 90, colonies 0, slipways 0,
 structures 0, techs 0; every planet unknown. That is pad_end_turn's
@@ -75,20 +78,20 @@ end state with twenty years skipped instead of two and the 6 px pan:
 neither the year box nor the three pauses changed anything, and no
 press of the pause closes (X on a row, O, Start) reached the map.
 
-- f121: idle. f122: L1 from `map`: `score`, the score button colour 12
-  (64, 1) f122-129, the crosshair gone. modal_backdrop 1 from f122.
-- f123: the year box's colour-1 band (0, 38-39) is gone: the score
-  panel's box replaced it (`make state` at f123: message_box 2, the year
-  box dead on its way out; message_box 1 from f124). Its rows slide in
-  from the left (x0-69 on y29-37 at f124, x0-116 at f131).
-- f130: O: `map`, the score button 13 from f130, the crosshair from
-  f131, modal_backdrop 0 from f132. The box is no longer kept open: its
-  rows ease out to both edges, the last at f185 (x0-25 on y47-55,
-  x135-159 on y29-37). From f186 the box draws nothing (f186 equals f188
+- f145: idle. f146: L1 from `map`: `score`, the score button colour 12
+  (64, 1) f146-153, the crosshair gone. modal_backdrop 1 from f146.
+- f147: the year box's colour-1 band (0, 38-39) is gone: the score
+  panel's box replaced it (`make state` at f147: message_box 2, the year
+  box dead on its way out; message_box 1 from f148). Its rows slide in
+  from the left (x0-69 on y29-37 at f148, x0-116 at f155).
+- f154: O: `map`, the score button 13 from f154, the crosshair from
+  f155, modal_backdrop 0 from f156. The box is no longer kept open: its
+  rows ease out to both edges, the last at f209 (x0-25 on y47-55,
+  x135-159 on y29-37). From f210 the box draws nothing (f210 equals f212
   pixel for pixel) and marks itself dead: message_box 0 in every `make
-  state` from f187 to f189.
+  state` from f211 to f213.
 
-`make state` at f189: clock year 3421 month 1, credits 100, research 20,
+`make state` at f213: clock year 3421 month 1, credits 100, research 20,
 income 0, camera world 182 196, planets 90, colonies 0, slipways 0,
 structures 0, techs 0; button 4, modal_backdrop 0 (peak 1), message_box
 0 (peak 2). The score panel looked at changes nothing but the boxes.
@@ -101,9 +104,9 @@ the pad, `make coverage` hits the closing box's end in
 message_box_draw_overlay (src/game/message_box.c), which only that file
 reached.
 
-The X and O edges never type the cheat (four X + O chords): 21 X
-presses, O, X, O, O, none a chord; $100 and research 20 at f189 show it
-never fired.
+The X and O edges never type the cheat (four X + O chords): the title's
+X, X on a pause row and two O presses, none a chord, and Select is no
+part of a chord; $100 and research 20 at f213 show it never fired.
 
 Covers no keyboard_* scenario. Its year skip is the one pad_game_end
 (step 3.4) uses to cover keyboard_game_end.
