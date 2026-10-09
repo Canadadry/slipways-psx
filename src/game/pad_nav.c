@@ -10,7 +10,6 @@
 #include "game/pad_panel.h"
 #include "game/pad_target.h"
 #include "game/planet.h"
-#include "game/planet_family_trade.h"
 #include "game/scroll.h"
 #include "game/slipway.h"
 #include "game/structure_icon.h"
@@ -63,10 +62,6 @@ entity_t *pad_nav_slipway_target(const pad_nav_t *nav) {
 
 entity_t *pad_nav_selection(const pad_nav_t *nav) {
     return nav->map_mode == PAD_NAV_MAP_NETWORK ? live(entity_get(nav->selection)) : NULL;
-}
-
-entity_t *pad_nav_starting_planet(const pad_nav_t *nav) {
-    return nav->map_mode == PAD_NAV_MAP_AIM ? live(entity_get(nav->starting_planet)) : NULL;
 }
 
 enum { SLIPWAYS_CAP = 32 };
@@ -211,17 +206,6 @@ static void aim_pan(pad_nav_t *nav, int pad_buttons) {
     }
 }
 
-static void clear_drag(pad_nav_t *nav) {
-    nav->drag.phase = PAD_NAV_DRAG_NONE;
-    nav->drag.target = ENTITY_ID_NONE;
-    nav->drag.linked_before = 0;
-}
-
-/* A drag phase that acts on the next frame: tabs and pause wait for it. */
-static int drag_due(const pad_nav_t *nav) {
-    return nav->drag.phase != PAD_NAV_DRAG_NONE && nav->drag.phase != PAD_NAV_DRAG_HELD;
-}
-
 /* Keeps the jump state's game and seeded flag: a reset within a game reseeds from the centre, never on the first colony. */
 static void reset_map_mode(pad_nav_t *nav) {
     nav->map_mode = PAD_NAV_MAP_JUMP;
@@ -230,14 +214,8 @@ static void reset_map_mode(pad_nav_t *nav) {
     nav->selection = ENTITY_ID_NONE;
     nav->selection_frames = 0;
     nav->selected_slipway = ENTITY_ID_NONE;
-    nav->starting_planet = ENTITY_ID_NONE;
-    nav->starting_slipway = ENTITY_ID_NONE;
-    nav->last_planet = ENTITY_ID_NONE;
-    nav->last_slipway = ENTITY_ID_NONE;
-    nav->resume_start = ENTITY_ID_NONE;
     nav->placement = PAD_NAV_PLACEMENT_NONE;
     nav->suspended_carry = ENTITY_ID_NONE;
-    clear_drag(nav);
     pad_slipway_init(&nav->slipway);
 }
 
@@ -334,82 +312,19 @@ static void centre_camera_on(const entity_t *e) {
                p8_fixed_flr_int(at.y) - p8_fixed_flr_int(from.y) - P8_SCREEN_HEIGHT / 2);
 }
 
-static void land_on(pad_nav_t *nav, const entity_t *planet, const entity_t *slipway) {
-    centre_camera_on(planet);
-    nav->map_mode = PAD_NAV_MAP_NETWORK;
-    nav->selection = entity_id_link(planet);
-    nav->selected_slipway = entity_id_link(slipway);
-    nav->starting_planet = ENTITY_ID_NONE;
-    nav->starting_slipway = ENTITY_ID_NONE;
-}
-
-static void return_to_starting_planet(pad_nav_t *nav) {
-    entity_t *start = pad_nav_starting_planet(nav);
-    if (start != NULL) {
-        land_on(nav, start, live(entity_get(nav->starting_slipway)));
-    }
-}
-
-static void enter_aim_mode_from(pad_nav_t *nav, const entity_t *selected) {
-    centre_camera_on(selected);
-    nav->starting_planet = entity_id_link(selected);
-    nav->starting_slipway = nav->selected_slipway;
-    nav->selected_slipway = ENTITY_ID_NONE;
-    nav->map_mode = PAD_NAV_MAP_AIM;
-    nav->selection = ENTITY_ID_NONE;
-    nav->cursor_x = P8_SCREEN_WIDTH / 2;
-    nav->cursor_y = P8_SCREEN_HEIGHT / 2;
-}
-
 /* Moves no camera: a snap here would shift every later point action of a replay off its reference world point. */
 static void enter_aim_mode(pad_nav_t *nav) {
     nav->map_mode = PAD_NAV_MAP_AIM;
     nav->selection = ENTITY_ID_NONE;
     nav->selected_slipway = ENTITY_ID_NONE;
-    nav->starting_planet = ENTITY_ID_NONE;
-    nav->starting_slipway = ENTITY_ID_NONE;
-    nav->last_planet = ENTITY_ID_NONE;
-    nav->last_slipway = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     pad_jump_repeat_clear(&nav->jump);
 }
 
-/* NULL when no slipway joins the two planets. */
-static entity_t *slipway_between(const entity_t *start, const entity_t *target) {
-    assert(planet_is_family(start) && "slipway_between: only a planet holds a slipways list");
-    entity_id_list_iter_t it = entity_id_list_all(&((const planet_t *)start)->slipways);
-    entity_t *slipway;
-    while (entity_id_list_iter_next(&it, &slipway)) {
-        assert(!slipway->is_dead &&
-               "slipway_between: a slipway dies only when its drop is refused, before it joins a planet's list");
-        if (slipway_other_end((const slipway_t *)slipway, start) == target) {
-            return slipway;
-        }
-    }
-    return NULL;
-}
-
 /* The ui presses the highest layer first: a HUD item over the planet would take the press. */
 static int pressed_before(const entity_t *planet, int x, int y) {
     return pad_panel_entity_under(x, y, p8_fixed_flr_int(planet->layer), pad_panel_is_candidate) != NULL;
-}
-
-/* NULL unless the ui holds the slipway the drag pressed out: from the frame after its press until its release. */
-static entity_t *dragged_slipway(const pad_nav_t *nav) {
-    entity_t *held = nav->drag.phase == PAD_NAV_DRAG_HELD && main_ui() != NULL ? live(ui_left_held(main_ui())) : NULL;
-    return held != NULL && held->class == slipway_class() ? held : NULL;
-}
-
-/* The ui's own drop with no target: slipway_drop refuses it, kills it and charges nothing. A mouse release would not
- * do: over the starting planet it opens its panel, under a box the ui ignores it. */
-static void cancel_drag(pad_nav_t *nav) {
-    entity_t *held = dragged_slipway(nav);
-    if (held != NULL) {
-        held->class->drop(held, NULL);
-        ui_set_left_held(main_ui(), NULL);
-    }
-    clear_drag(nav);
 }
 
 /* NULL unless the ui holds a live slipway. */
@@ -479,147 +394,27 @@ static int cancel_slipway(pad_nav_t *nav) {
     return held;
 }
 
-/* Plain aim mode: no starting planet, so no drag starts again. */
-static void leave_starting_planet(pad_nav_t *nav) {
-    cancel_drag(nav);
-    nav->last_planet = nav->starting_planet;
-    nav->last_slipway = nav->starting_slipway;
-    nav->starting_planet = ENTITY_ID_NONE;
-    nav->starting_slipway = ENTITY_ID_NONE;
-}
-
-/* A refused press falls through to the background, which makes a probe or a wormhole. */
-static int takes_slipway(const entity_t *start) {
-    return !(start->class->tags & TAG(TAG_SLIPGATE)) || slipgate_takes_slipway((const planet_t *)start);
-}
-
-/* Returns whether the press went out: on the settled starting planet, whose left press hands the ui a slipway, as a
- * mouse press there. The press needs the left button up on the frame before. */
-static int begin_drag(pad_nav_t *nav, p8_input_frame_t *played) {
-    entity_t *start = pad_nav_starting_planet(nav);
-    if (start == NULL || start->state != ENTITY_STATE_SETTLED || nav->left_was_down || !takes_slipway(start)) {
-        return 0;
-    }
-    int x, y;
-    screen_point(start, &x, &y);
-    if (pressed_before(start, x, y)) {
-        return 0;
-    }
-    nav->cursor_x = x;
-    nav->cursor_y = y;
-    played->mouse_buttons = P8_MOUSE_LEFT;
-    nav->drag.phase = PAD_NAV_DRAG_HELD;
-    return 1;
-}
-
-static int is_settled_planet(const entity_t *e) {
-    return planet_is_family(e) && e->state == ENTITY_STATE_SETTLED;
-}
-
-/* Returns whether □ landed network mode on the settled planet under the centre, the drag dropped first. Never on the
- * starting planet: right after □ the centre is still on it, and □ there leaves for plain aim mode. */
-static int square_selects_under_centre(pad_nav_t *nav) {
-    entity_t *planet = entity_under(nav->cursor_x, nav->cursor_y, is_settled_planet);
-    if (planet == NULL || planet == pad_nav_starting_planet(nav)) {
-        return 0;
-    }
-    cancel_drag(nav);
-    land_on(nav, planet, NULL);
-    return 1;
-}
-
-/* Returns whether △ clicked a planet under the centre, which lands network mode on it while its panel is up; once
- * the panel is gone, aim mode comes back from the same starting planet. */
+/* Returns whether △ clicked a planet under the centre, which lands network mode on it. */
 static int triangle_on_centre(pad_nav_t *nav, p8_input_frame_t *played) {
     entity_t *planet = entity_under(nav->cursor_x, nav->cursor_y, is_clickable_planet);
     if (planet == NULL) {
         return 0;
     }
-    nav->resume_start = nav->starting_planet;
-    nav->starting_planet = ENTITY_ID_NONE;
     click_planet(nav, planet, played);
     return 1;
 }
 
-/* Returns whether the frame went to what the drag's release left due: the landing, the probe's press or △'s click. */
-static int drag_due_step(pad_nav_t *nav, p8_input_frame_t *played) {
-    pad_nav_drag_t drag = nav->drag;
-    if (!drag_due(nav)) {
-        return 0;
-    }
-    clear_drag(nav);
-    if (drag.phase == PAD_NAV_DRAG_PROBE_DUE) {
-        nav->cross_engaged = 1;
-        played->mouse_buttons = P8_MOUSE_LEFT;
-        return 1;
-    }
-    if (drag.phase == PAD_NAV_DRAG_TRIANGLE_DUE) {
-        return triangle_on_centre(nav, played);
-    }
-    entity_t *start = pad_nav_starting_planet(nav);
-    entity_t *target = live(entity_get(drag.target));
-    entity_t *made = start != NULL && target != NULL && !drag.linked_before ? slipway_between(start, target) : NULL;
-    if (made == NULL) {
-        return 0;
-    }
-    land_on(nav, target, made);
-    return 1;
-}
-
-/* The left button held at the centre is the mouse's drag; × lets it go there, so the ui's own drop decides. △ needs
- * the button up for a frame before its click. */
-static void drag_step(pad_nav_t *nav, int pressed, int circle_returns, int release, p8_input_frame_t *played) {
-    entity_t *start = pad_nav_starting_planet(nav);
-    if (start == NULL || circle_returns) {
-        cancel_drag(nav);
-        return_to_starting_planet(nav);
-        return;
-    }
-    if ((pressed & P8_PAD_TRIANGLE) && !release) {
-        cancel_drag(nav);
-        nav->drag.phase = PAD_NAV_DRAG_TRIANGLE_DUE;
-        return;
-    }
-    if ((pressed & P8_PAD_CROSS) && !release) {
-        entity_t *target = entity_under(nav->cursor_x, nav->cursor_y, planet_is_family);
-        if (target == NULL && entity_under(nav->cursor_x, nav->cursor_y, presses_off_background) == NULL) {
-            nav->drag.phase = PAD_NAV_DRAG_PROBE_DUE;
-            return;
-        }
-        if (target != NULL && target != start) {
-            nav->drag.phase = PAD_NAV_DRAG_DROPPED;
-            nav->drag.target = entity_id_link(target);
-            nav->drag.linked_before = slipway_between(start, target) != NULL;
-            return;
-        }
-    }
-    played->mouse_buttons = P8_MOUSE_LEFT;
-}
-
-/* On a click's release frame × and △ start nothing: their press would be forced up, and △ would still select. A
- * settled starting planet keeps a slipway dragged out of it whenever nothing else holds the left button. */
+/* On a click's release frame × and △ start nothing: their press would be forced up, and △ would still select. */
 static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
-                           p8_input_frame_t *played) {
+                          p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     aim_pan(nav, pad_buttons);
-    if (drag_due_step(nav, played)) {
-        return;
-    }
     if ((pressed & P8_PAD_SQUARE) && !nav->cross_engaged) {
-        if (pad_nav_starting_planet(nav) == NULL) {
-            leave_aim_mode(nav);
-        } else if (!square_selects_under_centre(nav)) {
-            leave_starting_planet(nav);
-        }
+        leave_aim_mode(nav);
         return;
     }
-    if (dragged_slipway(nav) != NULL) {
-        drag_step(nav, pressed, circle_returns, release, played);
-        return;
-    }
-    clear_drag(nav);
     if (!(pad_buttons & P8_PAD_CROSS)) {
         nav->cross_engaged = 0;
     } else if ((pressed & P8_PAD_CROSS) && !release) {
@@ -629,25 +424,9 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
         played->mouse_buttons = P8_MOUSE_LEFT;
     } else if ((pressed & P8_PAD_TRIANGLE) && !release && triangle_on_centre(nav, played)) {
         return;
-    } else if (circle_returns && pad_nav_starting_planet(nav) != NULL) {
-        return_to_starting_planet(nav);
     } else if (circle_returns) {
         leave_aim_mode(nav);
-    } else if (!release) {
-        (void)begin_drag(nav, played);
     }
-}
-
-/* The camera stays on the planet △ opened, so the drag resumes aimed at it. */
-static void resume_aim_mode(pad_nav_t *nav, entity_t *start, p8_input_frame_t *played) {
-    nav->resume_start = ENTITY_ID_NONE;
-    nav->starting_planet = entity_id_link(start);
-    nav->map_mode = PAD_NAV_MAP_AIM;
-    nav->selection = ENTITY_ID_NONE;
-    nav->selected_slipway = ENTITY_ID_NONE;
-    nav->cursor_x = P8_SCREEN_WIDTH / 2;
-    nav->cursor_y = P8_SCREEN_HEIGHT / 2;
-    (void)begin_drag(nav, played);
 }
 
 static void travel_to(pad_nav_t *nav, const entity_t *planet) {
@@ -662,13 +441,6 @@ static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, 
                          p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
     int turn = pressed_direction(pressed & (P8_PAD_LEFT | P8_PAD_RIGHT));
-    entity_t *resumed = live(entity_get(nav->resume_start));
-    if (resumed == NULL) {
-        nav->resume_start = ENTITY_ID_NONE;
-    } else if (!releasing && !nav->release_pending) {
-        resume_aim_mode(nav, resumed, played);
-        return;
-    }
     if (circle_returns && !releasing) {
         reset_map_mode(nav);
         nav->jump.hovered = entity_id_link(selected);
@@ -681,11 +453,8 @@ static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, 
     if ((pressed & P8_PAD_TRIANGLE) && !releasing && is_clickable_planet(selected)) {
         click_planet(nav, selected, played);
     } else if (pressed & P8_PAD_SQUARE) {
-        enter_aim_mode_from(nav, selected);
-        int pressed_start = !releasing && begin_drag(nav, played);
-        assert((pressed_start || releasing || selected->state != ENTITY_STATE_SETTLED || !takes_slipway(selected)) &&
-               "network_step: centred, the settled planet lies clear of the HUD, so the press reaches it");
-        (void)pressed_start;
+        centre_camera_on(selected);
+        enter_aim_mode(nav);
     } else if (slipway == NULL || releasing) {
         return;
     } else if (pressed & P8_PAD_CROSS) {
@@ -756,9 +525,9 @@ static int planet_menu_open(const pad_nav_t *nav) {
     return nav->tab == PAD_NAV_TAB_MAP && pad_panel_box_open() && !pause_menu_shown();
 }
 
-/* A slipway released on this frame is judged on the next: tabs and pause wait for it, as for a drag's release. */
+/* A slipway released on this frame is judged on the next: tabs and pause wait for it. */
 static int map_action_due(const pad_nav_t *nav) {
-    return drag_due(nav) || (nav->map_mode == PAD_NAV_MAP_SLIPWAY && nav->slipway.phase == PAD_SLIPWAY_RELEASED);
+    return nav->map_mode == PAD_NAV_MAP_SLIPWAY && nav->slipway.phase == PAD_SLIPWAY_RELEASED;
 }
 
 static int tabs_can_switch(const pad_nav_t *nav, int release) {
@@ -778,15 +547,10 @@ static cancelled_t unwind_sub_modes(pad_nav_t *nav) {
     if (planet_menu_open(nav)) {
         ui_clear_ephemerals(main_ui());
     }
-    cancelled_t cancelled = pad_nav_placing(nav) != NULL  ? CANCELLED_STRUCTURE
-                            : dragged_slipway(nav) != NULL ? CANCELLED_SLIPWAY
-                                                           : CANCELLED_NOTHING;
-    cancel_drag(nav);
-    if (cancel_slipway(nav) && cancelled == CANCELLED_NOTHING) {
-        cancelled = CANCELLED_SLIPWAY;
+    if (pad_nav_placing(nav) != NULL) {
+        return CANCELLED_STRUCTURE;
     }
-    return_to_starting_planet(nav);
-    return cancelled;
+    return cancel_slipway(nav) ? CANCELLED_SLIPWAY : CANCELLED_NOTHING;
 }
 
 /* The score backdrop hit-tests everywhere above the HUD, so a press anywhere reaches it and its on_click hides the panel. */
@@ -926,7 +690,8 @@ static int begin_placement(pad_nav_t *nav) {
     set_tab(nav, PAD_NAV_TAB_MAP);
     nav->placement = PAD_NAV_PLACEMENT_CARRYING;
     if (pad_nav_selection(nav) != NULL) {
-        enter_aim_mode_from(nav, pad_nav_selection(nav));
+        centre_camera_on(pad_nav_selection(nav));
+        enter_aim_mode(nav);
     } else if (nav->map_mode == PAD_NAV_MAP_JUMP) {
         enter_aim_mode(nav);
     }
@@ -1187,7 +952,7 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
         *jump_ran = 1;
     } else {
         assert(pad_nav_jump_mode(nav) &&
-               "map_step: drop_stale_map_mode leaves jump and slipway mode as the only other map modes");
+               "map_step: after placement, panels, aim, network and slipway mode, drop_stale_map_mode leaves jump mode");
         jump_step(nav, pad_buttons, pressed, release, played, shown);
         *jump_ran = 1;
     }
@@ -1215,8 +980,8 @@ static int switch_tab(pad_nav_t *nav, int pressed, int release, int foreign_was_
     return 0;
 }
 
-/* NULL when Start cannot open pause: no game, a panel up, a click half done, a drag's release acting next frame, a
- * fold held, or a tab whose own panel is due. */
+/* NULL when Start cannot open pause: no game, a panel up, a click half done, a slipway's release acting next
+ * frame, a fold held, or a tab whose own panel is due. */
 static entity_t *pause_button_free(const pad_nav_t *nav, int release) {
     if (main_economy_typed() == NULL || pad_nav_panel_open() || release || map_action_due(nav) ||
         nav->cross_engaged || opens_a_panel(nav->tab)) {
@@ -1276,7 +1041,6 @@ static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t
     if (carried != NULL) {
         suspend_placement(nav, carried);
     } else {
-        cancel_drag(nav);
         (void)cancel_slipway(nav);
     }
     if (nav->left_was_down && !due) {
@@ -1348,7 +1112,6 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         circle_closes_the_box();
     }
     if (pad_nav_panel_open()) {
-        cancel_drag(nav);
         (void)cancel_slipway(nav);
     }
     cancelled_t cancelled = CANCELLED_NOTHING;

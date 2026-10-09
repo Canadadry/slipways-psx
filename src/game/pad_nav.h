@@ -19,25 +19,11 @@ typedef enum {
 } pad_nav_tab_t;
 
 typedef enum {
-    PAD_NAV_DRAG_NONE,
-    PAD_NAV_DRAG_HELD,
-    PAD_NAV_DRAG_DROPPED,
-    PAD_NAV_DRAG_PROBE_DUE,
-    PAD_NAV_DRAG_TRIANGLE_DUE
-} pad_nav_drag_phase_t;
-
-typedef enum {
     PAD_NAV_PLACEMENT_NONE,
     PAD_NAV_PLACEMENT_PRESSED,
     PAD_NAV_PLACEMENT_CARRYING,
     PAD_NAV_PLACEMENT_SUSPENDED
 } pad_nav_placement_t;
-
-typedef struct {
-    pad_nav_drag_phase_t phase;
-    entity_id_t target;
-    int linked_before;
-} pad_nav_drag_t;
 
 typedef struct {
     entity_id_t focus;
@@ -52,12 +38,6 @@ typedef struct {
     pad_nav_map_mode_t map_mode;
     entity_id_t selection;
     entity_id_t selected_slipway;
-    entity_id_t starting_planet;
-    entity_id_t starting_slipway;
-    entity_id_t last_planet;
-    entity_id_t last_slipway;
-    entity_id_t resume_start;
-    pad_nav_drag_t drag;
     int selection_frames;
     int release_pending;
     int previous_pad;
@@ -109,10 +89,6 @@ entity_t *pad_nav_placing(const pad_nav_t *nav);
 
 /* The selected planet in network mode, panel open or not; NULL in aim mode or once that planet is gone or dead. */
 entity_t *pad_nav_selection(const pad_nav_t *nav);
-
-/* The planet □ left network mode from, in aim mode, panel open or not; NULL in network mode, at game start, after a
- * second □ (plain aim mode), or once that planet is gone or dead. */
-entity_t *pad_nav_starting_planet(const pad_nav_t *nav);
 
 /* NULL outside network mode or when the selected planet has no slipway; never a slipway the planet does not hold. */
 entity_t *pad_nav_selected_slipway(const pad_nav_t *nav);

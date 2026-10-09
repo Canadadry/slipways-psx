@@ -980,15 +980,16 @@ static void refused_grab_crosses_new_game(void) {
 #define SLIPWAYS "tests/fixtures/slipways_refused.json"
 
 /* SLIPWAYS: f0-98 of pad_colonise (probe, fold, p47 colonised, but as
- * "dismantle" so that no trade route joins it to p25), then its
- * f175-213 (p25 colonised, network mode on p25); then 16-frame cycles:
- * square starts the drag from p25, Down 10 holds it over empty space, square
- * drops it there, refused, circle goes back to p25. Twenty refusals
- * (f140-459), one drag placed from p25 to p47 (f460-502, X at f500), one
- * refusal held from p47 beyond p25 (f503-558, square at f555); 'restart' at
- * f564 and a new game (X at f572); one icon grab (f576-582). A refusal is
- * dropped on the 13th frame of its cycle and freed by the flush of the
- * 14th. */
+ * "dismantle" so that no trade route joins it to p25); square, aim mode on
+ * p47, panned onto p25, colonised (f128-133), circle to jump mode on p25;
+ * the basic structure s1 placed 40 px beyond p25 on the line from p47
+ * (f138-169); circle, Down: jump mode on p25. Then 16-frame cycles from
+ * f182: X starts the slipway from p25, Down aims it at p47, circle cancels
+ * it, refused. Twenty refusals (f182-501), one built from p25 to p47
+ * (f502-542, X at f542), one refusal from p47 aimed past p25 at s1, p25
+ * crossed (f543-597, circle at f597); 'restart' at f606 and a new game (X
+ * at f614); one icon grab (f618-624). A refusal is dropped on the 13th
+ * frame of its cycle and freed by the flush of the 14th. */
 static const slipway_t *held_slipway(void) {
     const entity_t *held = ui_left_held(main_ui());
     assert(held != NULL && held->class == slipway_class() && "a slipway is held");
@@ -997,20 +998,20 @@ static const slipway_t *held_slipway(void) {
 
 static void held_slipway_does_not_grow_game(void) {
     start_e2e(SLIPWAYS);
-    play_until(141);
+    play_until(183);
     const slipway_t *held = held_slipway();
-    const size_t f141 = game_zone_used();
-    play_until(151);
-    assert(held_slipway() == held && slipway_end(held) == &held->point.header && "f151: held over empty space");
-    printf("  held slipway f141/f151: game = %lu/%lu\n", (unsigned long)f141, (unsigned long)game_zone_used());
-    assert(game_zone_used() == f141 && "a held slipway allocates every frame");
+    const size_t f183 = game_zone_used();
+    play_until(193);
+    assert(held_slipway() == held && slipway_end(held) == &planet_with_id("p47")->header && "f193: held aimed at p47");
+    printf("  held slipway f183/f193: game = %lu/%lu\n", (unsigned long)f183, (unsigned long)game_zone_used());
+    assert(game_zone_used() == f183 && "a held slipway allocates every frame");
 }
 
 static void refused_slipways_do_not_grow_game(void) {
     start_e2e(SLIPWAYS);
-    play_until(155);
+    play_until(197);
     const size_t first_refusal = game_without_registries();
-    play_until(459);
+    play_until(501);
     const size_t twenty = game_without_registries();
     printf("  refused slipways 1/20: game - registries = %lu/%lu\n", (unsigned long)first_refusal, (unsigned long)twenty);
     assert(first_refusal == twenty && "a refused slipway leaves its arena in the generation");
@@ -1027,52 +1028,52 @@ static size_t slipways_of_p25_and_p47_bytes(void) {
  * outside the arena. */
 static void placed_slipway_does_not_fit_dead_wormhole_arena(void) {
     start_e2e(SLIPWAYS);
-    play_until(459);
+    play_until(501);
     const size_t before = game_without_registries();
     const size_t slipways_before = slipways_of_p25_and_p47_bytes();
-    play_until(558);
+    play_until(600);
     const size_t after = game_without_registries();
     const size_t oe = slipways_of_p25_and_p47_bytes() - slipways_before;
-    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1 && "f500: one placed slipway");
+    assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1 && "f542: one placed slipway");
     printf("  slipway placed then refused: game - registries = %lu -> %lu (slipways %lu)\n", (unsigned long)before,
            (unsigned long)after, (unsigned long)oe);
     assert(after == before + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) + oe &&
            "one new slipway arena past the f41 wormhole's, too small, and the slipways lists of the placement");
 }
 
-/* f554: the slipway held from p47 beyond p25 sets the targeted_by of p25,
- * on its way, which is pushed off screen: its draw no longer clears
- * targeted_by. Refused at f555, the slipway is freed by the f556 flush. */
+/* f596: the slipway aimed from p47 at s1 sets the targeted_by of p25, on
+ * its way, which is pushed off screen: its draw no longer clears
+ * targeted_by. Refused at f597, the slipway is freed by the f598 flush. */
 static void offscreen_planet_forgets_refused_slipway(void) {
     static vec_t far;
     start_e2e(SLIPWAYS);
-    play_until(553);
+    play_until(595);
     play_input(g_input);
     cart_update60();
     const slipway_t *held = held_slipway();
     planet_t *p = planet_targeted_by(&held->header);
-    assert(p != NULL && "f554: the held slipway sets a planet's targeted_by");
+    assert(p != NULL && "f596: the held slipway sets a planet's targeted_by");
     far = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(500), 0));
     entity_set_pos(&p->header, far);
     assert(!entity_geom_is_on_screen(&p->header) && "the planet is off screen");
     cart_draw();
     if (g_frame < g_input->frame_count - 1) p8_input_step(g_input);
     g_frame++;
-    play_until(555);
+    play_until(597);
     assert(entity_get(p->targeted_by) == &held->header && "off screen, the draw leaves targeted_by set");
-    play_until(556);
-    printf("  refused slipway: targeted_by of %s cleared by the f556 flush\n", planet_id_or_null(p));
+    play_until(598);
+    printf("  refused slipway: targeted_by of %s cleared by the f598 flush\n", planet_id_or_null(p));
     assert(entity_get(p->targeted_by) == NULL && "an off-screen planet's targeted_by points at a refused, released slipway");
 }
 
 static void refused_slipway_crosses_new_game(void) {
     start_e2e(SLIPWAYS);
-    play_until(558);
+    play_until(600);
     assert(entities_by_tag(TAG_SLIPWAY) != NULL && entities_by_tag(TAG_SLIPWAY)->count == 1);
-    play_until(578);
+    play_until(620);
     assert(entities_by_tag(TAG_SLIPWAY) == NULL || entities_by_tag(TAG_SLIPWAY)->count == 0);
-    assert(ui_left_held(main_ui()) != NULL && "f578: a grab in the new game");
-    play_until(582);
+    assert(ui_left_held(main_ui()) != NULL && "f620: a grab in the new game");
+    play_until(624);
 }
 
 #define WORMHOLES "tests/fixtures/wormholes.json"

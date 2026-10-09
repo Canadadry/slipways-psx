@@ -44,8 +44,10 @@ state` of the file cut after the frame and from the capture.
   r -> f (the header still reads "remnant").
 - f215-220: triangle, Down, X on "nanotech": p47 colonised, $192,
   month 9, income -1.
-- f222, f224: square twice, plain aim mode. f226-266: Up 41: camera
-  190 131, p47 at screen (80.24, 134.75), visible 0.
+- f222: square: aim mode, the camera centred on p47. f224: idle (its
+  square dropped the old drag into plain free mode before plan 12 step
+  7). f226-266: Up 41: camera 190 131, p47 at screen (80.24, 134.75),
+  visible 0.
 - f268-272: R1 R1, X on `end turn`: year 3402, $192 -> $191. p47 pays
   its -1 off screen, so planet_new_year returns before its toast.
 
@@ -65,7 +67,7 @@ mechanize "mrsoijx".
 Structures, f275-561 (remove-mouse-mode PRD, chunk 6; appended here to
 share the cheat, the research and the colony instead of separate
 pad_infragate, pad_synthesizer and pad_ascension files). Every capture
-frame up to f274 is unchanged, byte for byte.
+frame up to f225 is unchanged, byte for byte.
 
 - f276-290: R1 (`end turn` -> `tech`), Down x5, X: "infraspace"
   (research 59 -> 28).
@@ -87,7 +89,7 @@ frame up to f274 is unchanged, byte for byte.
 The slipways are built the cross way (plan 12 step 6), each in its
 direction; before each structure is taken, the camera is panned back to
 the one the old file took it from (rule 8). f0-383 are the step 6 file's
-inputs but f17, f293 and f367-380 (plan 12 step 7).
+inputs but f17, f224, f293 and f367-380 (plan 12 step 7).
 
 - f384: idle (it was O, leaving network mode, before plan 12 step 7).
   f386: X on s1, f388: Down onto p47 (the

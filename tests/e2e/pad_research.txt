@@ -1,15 +1,12 @@
 The cheat typed as four X + O chords on the map, R1 to `tech`, "space
 folding" invented, back on the map. Then trade: a slipgate relaying a
 protostar's energy to a nanotech forgeworld, a trading hub fed tech and
-food, the protostar panned off screen. 458 frames.
+food, the protostar panned off screen. 468 frames.
 
 Jump mode is the map's root, where every game starts: square on f25
-enters aim mode, the camera unmoved. Square on f259 and f404 enters aim
-mode again from jump mode. f245 selects s1 into network mode (the hub is
-taken at f207 from network mode on p23, so aim mode has p23 as its
-starting planet), and f247's circle leaves network mode for jump mode on
-s1. f304 leaves plain aim mode for jump mode on s2, the target nearest
-the centre. The f330 collapse replaces
+enters aim mode, the camera unmoved. Square on f259 and f414 enters aim
+mode again from jump mode. f245 and f304 leave aim mode for jump mode on
+s1 and s2, the targets nearest the centre. The f340 collapse replaces
 the hovered p47, so jump mode reseeds onto the target nearest the
 centre, s2.
 
@@ -74,7 +71,7 @@ Covers keyboard_research.
 Cost: the three replays of step 3.1 add 186 frames; cold `make e2e`,
 measured before and after them, in pad_score.txt.
 
-Trade, f72-457 (remove-mouse-mode PRD, chunk 7; appended here to share
+Trade, f72-467 (remove-mouse-mode PRD, chunk 7; appended here to share
 the title and the cheat instead of separate pad_slipgate,
 pad_trading_hub and pad_protostar files). Every capture frame up to f71
 is the one of the shorter file, byte for byte, but f28 (plan 12 step 7).
@@ -88,15 +85,18 @@ is the one of the shorter file, byte for byte, but f28 (plan 12 step 7).
   first three reveal rolls of this game.
 - f177-205: p23 as "algae" (food), $197 -> $189. f207-243: R1, Left
   x3, X: the trading hub s1 built at (300, 262), $169.
-  f245: square: network mode on s1, under the centre (aim mode has p23
-  as its starting planet, from f207).
+  f245: square: aim mode left for jump mode on s1, under the centre.
+  (Before plan 12 step 7, the hub was taken from network mode on p23,
+  so aim mode had p23 as its starting planet: this square selected s1
+  into network mode and f247's circle left it for jump mode. The square
+  select is gone with its mechanic; f247 is idle.)
 
 The slipways are built the cross way (plan 12 step 6), each in its
 direction: X on the hovered start, the D-pad onto the target, X. Network
 travel only used to get somewhere is replaced by jumps. f0-245 are the
 inputs of the old file but f29 (plan 12 step 7).
 
-- f247: circle: jump mode on s1. f249: X on s1, f251: Up onto p23,
+- f249: X on s1, f251: Up onto p23,
   f254: X: `slipway s1 p23`, $169 -> $164. f255: the pad presses p23;
   f257: circle: jump mode on p23.
 - f259: square: plain aim mode, camera 220 202. f261-262: Up 2: camera
@@ -105,36 +105,43 @@ inputs of the old file but f29 (plan 12 step 7).
   slipgate carried, the camera unmoved. f270-302: Down+Left 15, Left
   12, Down 1, X: the slipgate s2 built at (256, 281), $154.
 - f304: square: plain aim mode left for jump mode on s2, under the
-  centre. f306: circle, inert in jump mode. f308: X on s2, f310: Right onto s1, f313: X:
-  `slipway s2 s1`, $147, placed first on s2. f314: s1 pressed; f316:
+  centre. f306: circle, inert in jump mode. f308: X on s2.
+- The crossed planet: f310, f312: Up, Up: the aim on p47 (known, the
+  colour-8 label), then on p23, 57 px from s2, whose line passes 6 px
+  from p47: slipway_obstruction makes p47 the target, the line is colour
+  2 and p47 gets the dithered colour-2 disc (112 colour-2 pixels round
+  p47 at f313-315, none at f311). f316: circle: the slipway dropped with
+  no target, nothing built or charged, jump mode on s2 (camera 176 209).
+- f318: X on s2, f320: Right onto s1, f323: X:
+  `slipway s2 s1`, $147, placed first on s2. f324: s1 pressed; f326:
   circle: jump mode on s1.
-- f318: Left onto p47. f322: triangle: its menu; f326, f328: Down
-  twice; f330: X on "collapse": p47 a protostar, burst 1, $147 -> $117.
+- f328: Left onto p47. f332: triangle: its menu; f336, f338: Down
+  twice; f340: X on "collapse": p47 a protostar, burst 1, $147 -> $117.
   The jump mode then hovers s2, the target nearest the centre (it
   hovered p23 before plan 12 step 7, which seeds the jump state when aim
-  mode is left). f333: Up onto p47, f336: Left onto p78. f339: triangle; f343: Down; f345: X on
+  mode is left). f343: Up onto p47, f346: Left onto p78. f349: triangle; f353: Down; f355: X on
   "nanotech", $117 -> $107; the year passes on its own on the way (3402
-  at f345).
-- f351: X on p78, f353: Down onto s2, f356: X: `slipway p78 s2`,
+  at f355).
+- f361: X on p78, f363: Down onto s2, f366: X: `slipway p78 s2`,
   dropped on the slipgate, $102. The tech crosses s2 to the hub, and the
   offer finds the amount at 0 on s2's next slipway
-  (`slipgate_offer_trade`'s `continue`). Income -2 -> 7. f357: s2
-  pressed; f359: circle: jump mode on s2.
-- f361: Up onto p47. f364: X on p47, f366: Down onto s2, f369: X:
+  (`slipgate_offer_trade`'s `continue`). Income -2 -> 7. f367: s2
+  pressed; f369: circle: jump mode on s2.
+- f371: Up onto p47. f374: X on p47, f376: Down onto s2, f379: X:
   `slipway p47 s2`, $99. The energy crosses s2 and replaces p78's ore
   need. Income 23: the hub at level 2 (tech and food). s2 now holds three
-  slipways and takes no fourth: jump mode on s2 from f370.
-- f373-381: R1 R1, X on `end turn`: year 3403, $99 -> $122, the "year
+  slipways and takes no fourth: jump mode on s2 from f380.
+- f383-391: R1 R1, X on `end turn`: year 3403, $99 -> $122, the "year
   3403" box; L1 L1, the map. Transit dots on the slipways.
-- f391, f393: Up, Left onto p78. f396: triangle: its panel, "content",
-  "wants more:", "receives:", "exports: 1/3". f402: O.
-- f404: square: plain aim mode. f406-456: Up+Left 17, Left 20, Left
-  13: camera 96 197, p47 at screen x 174, visible 0: its particles are
+- f401, f403: Up, Left onto p78. f406: triangle: its panel, "content",
+  "wants more:", "receives:", "exports: 1/3". f412: O.
+- f414: square: plain aim mode. f416-466: Up+Left 17, Left 20, Left
+  13: camera 96 185, p47 at screen x 174, visible 0: its particles are
   no longer drawn.
 
-`make state` at f457: year 3403 month 1, credits 122, research 39,
+`make state` at f467: year 3403 month 1, credits 122, research 39,
 income 23, techs + geneseeds, slipgates, trade league, starbirth; camera
-96 197; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
+96 185; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
 colonized trading_hub, structure s2 slipgate links 3; slipways s1 p23,
 s2 s1, p78 s2, p47 s2; planets 91, colonies 4. Peaks: bytes_row 712
 (tech_trade_league_hub's 600), burst 1.

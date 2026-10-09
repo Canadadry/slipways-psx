@@ -4,12 +4,11 @@ Up and X on it resume pad_research's end game. 48 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 enters aim mode, the camera unmoved. The fixture was re-cut in plan 12
-step 7: pad_research's f330 collapse now leaves jump mode on s2, so its
-camera, and the camera its last record holds, are 12 px further down
-(y 209 -> 221).
+step 7 from pad_research's new last record (its crossed-planet aim and
+the moves after it).
 
 The fixture is cut, never typed, from pad_research replayed to its last
-frame (f457), whose last record is the save of its last action (the
+frame (f467), whose last record is the save of its last action (the
 "end turn" to year 3403; no wormhole lives at the end, the record is
 written):
 
@@ -39,7 +38,7 @@ challenging y75-83, tough y86-94), the crosshair at (78, 60) and
 - f10: Up: "resume" colour 12, forgiving back to 13 (f10-11).
 - f12: X on "resume": the title rows are gone on f12, the game is
   resumed during that frame's update; the crosshair is back from f13,
-  on the camera of the record (176 221).
+  on the camera of the record (176 209).
 - f13-47: idle in aim mode on the resumed map.
 
 Check 1 (the fixture decodes):
@@ -53,11 +52,11 @@ Check 2 (the frame-0 replay shows the saved game), `make state` at f47:
 clock year 3403 month 1, difficulty reasonable, credits 122, count
 nodes 92, the four `save:` lines above. Also: research 39, income 23,
 techs space folding, geneseeds, slipgates, trade league, starbirth;
-camera world 176 221; p78 colonized f, p23 colonized o, p47 colonized
+camera world 176 209; p78 colonized f, p23 colonized o, p47 colonized
 protostar, s1 colonized trading_hub, structure s2 slipgate links 3;
 slipways s1 p23, s2 s1, p78 s2, p47 s2; planets 91, colonies 4,
 slipways 4, structures 1, techs 5. The camera is the record's, not
-pad_research's end camera (96 197): the final pan is no action and
+pad_research's end camera (96 185): the final pan is no action and
 writes no save.
 
 Regeneration: when the record format changes, this fixture stops

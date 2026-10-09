@@ -73,10 +73,11 @@ pad_rich_mine file).
 The slipways are built the cross way (plan 12 step 6), each in its
 direction, the colonies through the planet's menu from jump mode, and
 network travel only used to get somewhere is replaced by jumps. f0-260
-are the frames of the old file, byte for byte.
+are the frames of the step 6 file.
 
-- f261: O: network mode on p31, the last planet (camera 143 216).
-  f263: O: jump mode on p31. f266: triangle: its menu; f270: Down;
+- f261: O: network mode on p54 left for jump mode on p54 (camera 101
+  243). f263: Right onto p31, inside the inner rectangle. f266:
+  triangle: its menu; f270: Down;
   f272: X on "hiveworld": p31 colonised, $193 -> $189.
 - f278, f280: Left, Down onto p54. f283: X on p54, f285: Right onto
   p31, f288: X: `slipway p54 p31`, $181. f291: O: jump mode on p31.
@@ -87,9 +88,15 @@ are the frames of the old file, byte for byte.
   "colony" (needs ore): $156. f336, f338: Left, Down onto p54. f341: X
   on p54, f343, f345: Up, Right onto p37, f348: X: `slipway p54 p37`,
   $141. f351: O: jump mode on p37.
-- f353: square: plain aim mode. f355-380: Down+Left 18, Left 8: camera
-  101 242, the camera the old file's network mode centred on p54 before
-  each lab was taken (rule 8). f382-385: R1, X: a lab carried, the
+- f353: square: aim mode, camera 101 216. f355-372: Down 18, f373-380
+  idle: camera 101 242, the camera the old file's network mode centred
+  on p54 before each lab was taken (rule 8).
+  (Before plan 12 step 7, f253's triangle on the centre left aim mode
+  with p31 as its starting planet, the menu's close resumed it, and
+  f261's circle returned to p31 in network mode, the camera centred on
+  it (143 216): that return is gone with the starting planet, so the
+  route jumps from p54 to p31 and the pan before the lab is Down
+  only.) f382-385: R1, X: a lab carried, the
   camera unmoved. f387-407: the old file's pan (Down+Right 10, Down 6,
   Down 1), X: the lab s1 built at (191, 325), $126.
 - f410: square: aim mode left for jump mode on s1, the target nearest
