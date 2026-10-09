@@ -131,6 +131,14 @@
 #                       PSN00BSDK_SKIP_APT is set; exits 0 at once on a
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
+# make psx-build [EVENTS=<events>] -> builds, in tmp/psx/build, the game's
+#                       PS-EXE replaying that recording (default
+#                       tests/e2e/pad_slipway.json, embedded through
+#                       tmp/embed_replay) and the pad probe, against
+#                       PSN00BSDK_DIR, then prints their ELF sizes; never
+#                       boots them; fails pointing at
+#                       psn00bsdk-toolchain-setup when the SDK is missing,
+#                       outside the suite
 # make psx-hello     -> builds psx-hello/build/psx-hello.exe against
 #                       PSN00BSDK_DIR, reconfigured from scratch each time;
 #                       fails pointing at psn00bsdk-toolchain-setup when the
@@ -185,7 +193,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-build psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -692,6 +700,9 @@ $(TMP_DIR)/test_embed_replay: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embed
 $(TMP_DIR)/test_embed_replay_save: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_save)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_format_self_test: $(call objs,tests/test_format_self_test.c src/devtools/format_self_test.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c $(STATE_SRCS) $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -789,6 +800,7 @@ UNIT_TESTS := \
     test_frames_tool \
     test_frames_check \
     test_psx_state_compare \
+    test_format_self_test \
     test_e2e_limits \
     test_state_peaks \
     test_float_guard \
@@ -1160,6 +1172,32 @@ psx-hello:
 	cmake --fresh -S psx-hello -B psx-hello/build \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake
 	cmake --build psx-hello/build
+
+# The game's PSX build: the core (CORE_SRCS, which holds the memory save
+# storage), the shared state formatter, the PSX platform and the recording's
+# generated source.
+PSX_EVENTS ?= $(or $(EVENTS),tests/e2e/pad_slipway.json)
+PSX_REPLAY_NAME = $(basename $(notdir $(PSX_EVENTS)))
+PSX_BUILD_DIR := $(TMP_DIR)/psx/build
+PSX_EMBEDDED_REPLAY := $(call embedded,psx_replay)
+PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform/fatal_psx.c src/platform/assert_psx.c
+PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) \
+	src/devtools/state_format.c src/devtools/format_self_test.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
+PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
+psx_cmake_list = $(subst $(space),;,$(strip $(abspath $(1))))
+space := $(empty) $(empty)
+
+psx-build: $(TMP_DIR)/embed_replay
+	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
+	@mkdir -p $(dir $(PSX_EMBEDDED_REPLAY))
+	./$(TMP_DIR)/embed_replay $(PSX_EVENTS) $(PSX_REPLAY_NAME) $(PSX_EMBEDDED_REPLAY)
+	cmake -S psx -B $(PSX_BUILD_DIR) \
+		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
+		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
+		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))'
+	+cmake --build $(PSX_BUILD_DIR)
+	@$(PSN00BSDK_DIR)/bin/mipsel-none-elf-size $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf
 
 PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
 

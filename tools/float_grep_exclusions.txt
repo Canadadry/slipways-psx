@@ -37,3 +37,15 @@ src/platform/keymap.h | raylib backend, header of platform/keymap.c
 src/platform/keymap_names.h | raylib backend, raylib key and gamepad names
 src/cmd/embed_replay.c | entry point of embed_replay, which writes a recording as C source, host tool
 src/devtools/embedded_replay.h | declarations of the source embed_replay writes, linked by the replay tools
+src/cmd/psx_replay.c | entry point of the PSX replay, PSX only
+src/cmd/psx_pad_probe.c | entry point of the PSX pad probe, PSX only
+src/devtools/format_self_test.c | printf self-test of the PSX replay, compared with the PC's
+src/devtools/format_self_test.h | printf self-test of the PSX replay, header of devtools/format_self_test.c
+src/platform/assert_psx.c | PSX assert handler, PSX only
+src/platform/fatal_psx.c | PSX implementation of p8_fatal (TTY, exit module), provided by the platform
+src/platform/psx_exit.c | PSX exit module, PSX only
+src/platform/psx_exit.h | PSX exit module, header of platform/psx_exit.c
+src/platform/psx_pad.c | PSX raw pad read through the BIOS, PSX only
+src/platform/psx_pad.h | PSX raw pad read, header of platform/psx_pad.c
+src/platform/psx_tty.c | PSX TTY output and state line sink, PSX only
+src/platform/psx_tty.h | PSX TTY output, header of platform/psx_tty.c
