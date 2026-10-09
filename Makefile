@@ -139,6 +139,14 @@
 #                       boots them; fails pointing at
 #                       psn00bsdk-toolchain-setup when the SDK is missing,
 #                       outside the suite
+# make psx-replay-check -> runs psx-build, writes the PC state of PSX_EVENTS
+#                       with tmp/replay, boots the replay PS-EXE until it
+#                       exits (ceiling PSX_REPLAY_CEILING vsyncs, timeout
+#                       PSX_REPLAY_TIMEOUT s, both set for pad_slipway), then
+#                       compares its game lines with the PC's through
+#                       tools/psx_state_compare.sh (outputs and
+#                       measurements.txt in tmp/psx/replay, ~45 s); never
+#                       runs a setup, outside the suite
 # make psx-hello     -> builds psx-hello/build/psx-hello.exe against
 #                       PSN00BSDK_DIR, reconfigured from scratch each time;
 #                       fails pointing at psn00bsdk-toolchain-setup when the
@@ -193,7 +201,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psn00bsdk-toolchain-setup psx-build psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-build psx-replay-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -703,6 +711,9 @@ $(TMP_DIR)/test_embed_replay_save: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call 
 $(TMP_DIR)/test_format_self_test: $(call objs,tests/test_format_self_test.c src/devtools/format_self_test.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_format: $(call objs,tests/test_format.c src/p8/format.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c $(STATE_SRCS) $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -801,6 +812,7 @@ UNIT_TESTS := \
     test_frames_check \
     test_psx_state_compare \
     test_format_self_test \
+    test_format \
     test_e2e_limits \
     test_state_peaks \
     test_float_guard \
@@ -1180,7 +1192,8 @@ PSX_EVENTS ?= $(or $(EVENTS),tests/e2e/pad_slipway.json)
 PSX_REPLAY_NAME = $(basename $(notdir $(PSX_EVENTS)))
 PSX_BUILD_DIR := $(TMP_DIR)/psx/build
 PSX_EMBEDDED_REPLAY := $(call embedded,psx_replay)
-PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform/fatal_psx.c src/platform/assert_psx.c
+PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform/fatal_psx.c src/platform/assert_psx.c \
+	src/platform/format_psx.c src/p8/format.c
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
@@ -1224,6 +1237,18 @@ psx-boot:
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) \
 		$(if $(PSX_EXE),--exe $(PSX_EXE)) $(if $(PSX_ISO),--iso $(PSX_ISO)) \
 		$(PSX_FRAMES) $(PSX_OUT)
+
+PSX_REPLAY_OUT := $(TMP_DIR)/psx/replay
+PSX_REPLAY_CEILING ?= 3906
+PSX_REPLAY_TIMEOUT ?= 66
+
+psx-replay-check: psx-build $(TMP_DIR)/replay
+	@mkdir -p $(PSX_REPLAY_OUT)
+	STATE=$(PSX_REPLAY_OUT)/pc_state.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_REPLAY_OUT)/pc.dump.txt > $(PSX_REPLAY_OUT)/pc.log 2>&1
+	PSX_BOOT_TIMEOUT=$(PSX_REPLAY_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
+		--exe $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_REPLAY_CEILING) $(PSX_REPLAY_OUT)/run
+	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_REPLAY_OUT)/pc.log) \
+		&& sh tools/psx_state_compare.sh $(PSX_REPLAY_OUT)/run.tty.txt $(PSX_REPLAY_OUT)/pc_state.txt $(PSX_REPLAY_OUT) $$frames
 
 PSX_KNOWN_LINE ?= Auto test all GTE valid opcodes/registers
 

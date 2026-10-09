@@ -29,5 +29,5 @@ foreach(_target psx-replay psx-pad-probe)
 	# The SDK's release config defines NDEBUG; -U comes after its -D, so the
 	# core's asserts stay compiled in, as in the PC -O0 binary.
 	target_compile_options(${_target} PRIVATE -std=c99 -Wall -Wextra -Werror -UNDEBUG)
-	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort)
+	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort -Wl,--wrap=snprintf -Wl,--wrap=vsnprintf)
 endforeach()
