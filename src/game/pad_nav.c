@@ -74,69 +74,6 @@ entity_t *pad_nav_slipway_target(const pad_nav_t *nav) {
     return pad_target_is_candidate(target) ? target : NULL;
 }
 
-entity_t *pad_nav_selection(const pad_nav_t *nav) {
-    return nav->map_mode == PAD_NAV_MAP_NETWORK ? live(entity_get(nav->selection)) : NULL;
-}
-
-enum { SLIPWAYS_CAP = 32 };
-
-typedef struct {
-    entity_id_t slipway;
-    int dx;
-    int dy;
-} heading_t;
-
-/* Straight up opens the right half, straight down the left one. */
-static int in_left_half(const heading_t *h) {
-    return h->dx < 0 || (h->dx == 0 && h->dy >= 0);
-}
-
-static int turns_before(const heading_t *a, const heading_t *b) {
-    if (in_left_half(a) != in_left_half(b)) {
-        return in_left_half(b);
-    }
-    return a->dx * b->dy - a->dy * b->dx > 0;
-}
-
-entity_t *pad_nav_next_slipway(const entity_t *planet, const entity_t *current, int step) {
-    assert(step >= -1 && step <= 1 && "pad_nav_next_slipway: step is -1, 0 or 1");
-    assert((planet == NULL || planet_is_family(planet)) && "pad_nav_next_slipway: only a planet holds a slipways list");
-    if (planet == NULL) {
-        return NULL;
-    }
-    heading_t sorted[SLIPWAYS_CAP];
-    int count = 0;
-    vec_t from = entity_pos(planet);
-    entity_id_list_iter_t it = entity_id_list_all(&((const planet_t *)planet)->slipways);
-    entity_t *slipway;
-    while (entity_id_list_iter_next(&it, &slipway)) {
-        assert(!slipway->is_dead &&
-               "pad_nav_next_slipway: a slipway dies only when its drop is refused, before it joins a planet's list");
-        entity_t *other = slipway_other_end((const slipway_t *)slipway, planet);
-        if (other == NULL) {
-            continue;
-        }
-        assert(count < SLIPWAYS_CAP && "pad_nav_next_slipway: more slipways on one planet than SLIPWAYS_CAP");
-        vec_t to = entity_pos(other);
-        heading_t heading = { entity_id_link(slipway), p8_fixed_flr_int(to.x) - p8_fixed_flr_int(from.x),
-                              p8_fixed_flr_int(to.y) - p8_fixed_flr_int(from.y) };
-        int at = count++;
-        for (; at > 0 && turns_before(&heading, &sorted[at - 1]); at--) {
-            sorted[at] = sorted[at - 1];
-        }
-        sorted[at] = heading;
-    }
-    if (count == 0) {
-        return NULL;
-    }
-    for (int i = 0; i < count; i++) {
-        if (entity_get(sorted[i].slipway) == current) {
-            return entity_get(sorted[(i + step + count) % count].slipway);
-        }
-    }
-    return entity_get(sorted[0].slipway);
-}
-
 int pad_nav_build_bar_open(const pad_nav_t *nav) {
     return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD;
 }
@@ -165,10 +102,6 @@ static entity_t *held_structure(void) {
 
 entity_t *pad_nav_placing(const pad_nav_t *nav) {
     return nav->placement == PAD_NAV_PLACEMENT_CARRYING ? held_structure() : NULL;
-}
-
-entity_t *pad_nav_selected_slipway(const pad_nav_t *nav) {
-    return pad_nav_next_slipway(pad_nav_selection(nav), live(entity_get(nav->selected_slipway)), 0);
 }
 
 int pad_nav_is_item(const entity_t *e) {
@@ -236,9 +169,7 @@ static void reset_map_mode(pad_nav_t *nav) {
     nav->map_mode = PAD_NAV_MAP_JUMP;
     nav->jump.hovered = ENTITY_ID_NONE;
     pad_jump_repeat_clear(&nav->jump);
-    nav->selection = ENTITY_ID_NONE;
-    nav->selection_frames = 0;
-    nav->selected_slipway = ENTITY_ID_NONE;
+    nav->marker_frames = 0;
     nav->placement = PAD_NAV_PLACEMENT_NONE;
     nav->suspended_carry = ENTITY_ID_NONE;
     pad_slipway_init(&nav->slipway);
@@ -325,41 +256,15 @@ static int presses_off_background(const entity_t *e) {
     return e->class->left_press != NULL && e->class != background_class();
 }
 
-/* Only these two states stop the dispatch in planet_left_press: any other lets the press reach the background, a probe. */
-static int is_clickable_planet(const entity_t *e) {
-    return planet_is_family(e) && (e->state == ENTITY_STATE_KNOWN || e->state == ENTITY_STATE_SETTLED);
-}
-
 /* A press at the cursor on this frame and a release on the next. */
 static void click(pad_nav_t *nav, p8_input_frame_t *played) {
     played->mouse_buttons = P8_MOUSE_LEFT;
     nav->release_pending = 1;
 }
 
-/* A settled planet opens its panel on the release. */
-static void click_planet(pad_nav_t *nav, const entity_t *planet, p8_input_frame_t *played) {
-    click(nav, played);
-    nav->map_mode = PAD_NAV_MAP_NETWORK;
-    nav->selection = entity_id_link(planet);
-}
-
-/* A planet near the pad bound may stay a few pixels off the centre. */
-static void centre_camera_on(const entity_t *e) {
-    camera_t *camera = main_camera_typed();
-    if (camera == NULL) {
-        return;
-    }
-    vec_t at = entity_pos(e);
-    vec_t from = camera_pos_before_shake(camera);
-    camera_pan(camera, p8_fixed_flr_int(at.x) - p8_fixed_flr_int(from.x) - P8_SCREEN_WIDTH / 2,
-               p8_fixed_flr_int(at.y) - p8_fixed_flr_int(from.y) - P8_SCREEN_HEIGHT / 2);
-}
-
 /* Moves no camera: a snap here would shift every later point action of a replay off its reference world point. */
 static void enter_aim_mode(pad_nav_t *nav) {
     nav->map_mode = PAD_NAV_MAP_AIM;
-    nav->selection = ENTITY_ID_NONE;
-    nav->selected_slipway = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     pad_jump_repeat_clear(&nav->jump);
@@ -472,46 +377,8 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
     }
 }
 
-static void travel_to(pad_nav_t *nav, const entity_t *planet) {
-    centre_camera_on(planet);
-    nav->selection = entity_id_link(planet);
-    nav->selection_frames = 0;
-    screen_point(planet, &nav->cursor_x, &nav->cursor_y);
-}
-
-/* On △'s release frame the cursor must stay on the clicked planet: a move would drop its held slipway elsewhere. */
-static void network_step(pad_nav_t *nav, const entity_t *selected, int pressed, int releasing, int circle_returns,
-                         p8_input_frame_t *played) {
-    nav->focus = ENTITY_ID_NONE;
-    int turn = pressed_direction(pressed & (P8_PAD_LEFT | P8_PAD_RIGHT));
-    if (circle_returns && !releasing) {
-        reset_map_mode(nav);
-        nav->jump.hovered = entity_id_link(selected);
-        screen_point(selected, &nav->cursor_x, &nav->cursor_y);
-        return;
-    }
-    entity_t *slipway = pad_nav_selected_slipway(nav);
-    nav->selected_slipway = entity_id_link(slipway);
-    screen_point(selected, &nav->cursor_x, &nav->cursor_y);
-    if ((pressed & P8_PAD_TRIANGLE) && !releasing && is_clickable_planet(selected)) {
-        click_planet(nav, selected, played);
-    } else if (pressed & P8_PAD_SQUARE) {
-        centre_camera_on(selected);
-        enter_aim_mode(nav);
-    } else if (slipway == NULL || releasing) {
-        return;
-    } else if (pressed & P8_PAD_CROSS) {
-        entity_t *other = slipway_other_end((const slipway_t *)slipway, selected);
-        if (live(other) != NULL) {
-            travel_to(nav, other);
-        }
-    } else if (turn != 0) {
-        nav->selected_slipway = entity_id_link(pad_nav_next_slipway(selected, slipway, turn == P8_PAD_RIGHT ? 1 : -1));
-    }
-}
-
-/* The title and a new game rebuild the id table above every old generation, so the old game's economy id, like an old
- * selection, resolves to NULL: no title frame is needed in between. */
+/* The title and a new game rebuild the id table above every old generation, so the old game's economy id resolves
+ * to NULL: no title frame is needed in between. */
 static void start_new_game(pad_nav_t *nav) {
     entity_t *economy = main_economy_typed() != NULL ? &main_economy_typed()->header : NULL;
     if (economy == NULL || entity_get(nav->jump.game) == economy) {
@@ -523,12 +390,6 @@ static void start_new_game(pad_nav_t *nav) {
     reset_map_mode(nav);
 }
 
-static void drop_stale_map_mode(pad_nav_t *nav) {
-    if (nav->map_mode == PAD_NAV_MAP_NETWORK && pad_nav_selection(nav) == NULL) {
-        reset_map_mode(nav);
-    }
-}
-
 /* The title's difficulty rows are no box, so ○ cannot close them. Pause closes only by pause_step's press: cleared
  * here, on a release frame, the carry's resume would press on the map. */
 static void circle_closes_the_box(void) {
@@ -537,16 +398,16 @@ static void circle_closes_the_box(void) {
     }
 }
 
-static void show_selection(pad_nav_t *nav, const entity_t *shown) {
+static void show_marker(pad_nav_t *nav, const entity_t *shown) {
     ui_t *ui = main_ui();
     if (shown == NULL) {
-        nav->selection_frames = 0;
+        nav->marker_frames = 0;
     }
     if (ui != NULL) {
-        ui_set_pad_selection(ui, shown, shown != NULL ? pad_nav_selected_slipway(nav) : NULL, nav->selection_frames);
+        ui_set_pad_selection(ui, shown, nav->marker_frames);
     }
     if (shown != NULL) {
-        nav->selection_frames = (nav->selection_frames + 1) % UI_PAD_BLINK_PERIOD;
+        nav->marker_frames = (nav->marker_frames + 1) % UI_PAD_BLINK_PERIOD;
     }
 }
 
@@ -649,9 +510,9 @@ static void tab_cursor(pad_nav_t *nav) {
     entity_t *button = tab_button(nav->tab);
     entity_t *icon = nav->tab == PAD_NAV_TAB_BUILD ? pad_build_focus(&nav->build) : NULL;
     if (nav->tab == PAD_NAV_TAB_MAP) {
-        entity_t *selection = pad_nav_selection(nav) != NULL ? pad_nav_selection(nav) : pad_nav_hovered(nav);
-        if (selection != NULL) {
-            screen_point(selection, &nav->cursor_x, &nav->cursor_y);
+        entity_t *hovered = pad_nav_hovered(nav);
+        if (hovered != NULL) {
+            screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
         } else {
             nav->cursor_x = P8_SCREEN_WIDTH / 2;
             nav->cursor_y = P8_SCREEN_HEIGHT / 2;
@@ -701,10 +562,7 @@ static int begin_placement(pad_nav_t *nav) {
     }
     set_tab(nav, PAD_NAV_TAB_MAP);
     nav->placement = PAD_NAV_PLACEMENT_CARRYING;
-    if (pad_nav_selection(nav) != NULL) {
-        centre_camera_on(pad_nav_selection(nav));
-        enter_aim_mode(nav);
-    } else if (nav->map_mode == PAD_NAV_MAP_JUMP) {
+    if (nav->map_mode == PAD_NAV_MAP_JUMP) {
         enter_aim_mode(nav);
     }
     return 1;
@@ -976,19 +834,12 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
     } else if (pad_nav_aim_mode(nav)) {
         aim_mode_step(nav, pad_buttons, pressed, circle_returns, release, year_release, select == PAD_SELECT_TAP, played,
                       shown);
-    } else if (pad_nav_selection(nav) != NULL) {
-        reset_aim_mode(nav);
-        network_step(nav, pad_nav_selection(nav), pressed, release, circle_returns, played);
-        /* A click opens its box only in this frame's dispatch, the settled planet's on the release: neither frame shows the selection. */
-        if (!release && !nav->release_pending) {
-            *shown = pad_nav_selection(nav);
-        }
     } else if (nav->map_mode == PAD_NAV_MAP_SLIPWAY) {
         slipway_step(nav, pad_buttons, pressed, circle_returns, release, played, shown);
         *jump_ran = 1;
     } else {
         assert(pad_nav_jump_mode(nav) &&
-               "map_step: after placement, panels, aim, network and slipway mode, drop_stale_map_mode leaves jump mode");
+               "map_step: after placement, panels, aim and slipway mode, only jump mode is left");
         jump_step(nav, pad_buttons, pressed, release, circle_returns, select == PAD_SELECT_TAP, played, shown);
         *jump_ran = 1;
     }
@@ -1098,7 +949,7 @@ static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_i
     nav->left_was_down = (played->mouse_buttons & P8_MOUSE_LEFT) != 0;
     played->mouse_x = nav->cursor_x;
     played->mouse_y = nav->cursor_y;
-    show_selection(nav, shown);
+    show_marker(nav, shown);
     if (main_ui() != NULL) {
         ui_set_pad_tab(main_ui(), tab_button(pad_nav_tab(nav)));
         ui_set_pad_crosshair(main_ui(), pad_nav_aim_mode(nav) && pad_nav_placing(nav) == NULL);
@@ -1152,7 +1003,6 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         nav->menu_cross_armed = 0;
     }
     start_new_game(nav);
-    drop_stale_map_mode(nav);
     int tab_changed = begin_placement(nav);
     if (resume_placement(nav)) {
         release = 0;

@@ -36,7 +36,6 @@ typedef struct {
     entity_id_t previous_hovered;
     entity_id_t left_held;
     entity_id_t pad_selection;
-    entity_id_t pad_slipway;
     int pad_selection_frames;
     entity_id_t pad_tab;
     int pad_crosshair;
@@ -68,14 +67,13 @@ entity_t *ui_hovered(const ui_t *self);
 entity_t *ui_previous_hovered(const ui_t *self);
 entity_t *ui_left_held(const ui_t *self);
 entity_t *ui_pad_selection(const ui_t *self);
-entity_t *ui_pad_slipway(const ui_t *self);
 entity_t *ui_pad_tab(const ui_t *self);
 
 /* NULL clears; anything else must be of a class a left press can hand over (asserted). */
 void ui_set_left_held(ui_t *self, const entity_t *held);
 
-/* NULL selection or slipway for none. frames_shown counts from the frame the selection was last shown. */
-void ui_set_pad_selection(ui_t *self, const entity_t *selection, const entity_t *slipway, int frames_shown);
+/* NULL selection for none. frames_shown counts from the frame the selection was last shown. */
+void ui_set_pad_selection(ui_t *self, const entity_t *selection, int frames_shown);
 
 /* NULL for none: the active tab's HUD button, drawn as if hovered. */
 void ui_set_pad_tab(ui_t *self, const entity_t *button);

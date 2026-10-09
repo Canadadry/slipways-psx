@@ -10,7 +10,7 @@
 #include "game/pad_slipway.h"
 #include "p8/input.h"
 
-typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_AIM, PAD_NAV_MAP_NETWORK, PAD_NAV_MAP_SLIPWAY } pad_nav_map_mode_t;
+typedef enum { PAD_NAV_MAP_JUMP, PAD_NAV_MAP_AIM, PAD_NAV_MAP_SLIPWAY } pad_nav_map_mode_t;
 
 typedef enum {
     PAD_NAV_TAB_MAP,
@@ -40,9 +40,7 @@ typedef struct {
     int pause_cross_armed;
     int menu_cross_armed;
     pad_nav_map_mode_t map_mode;
-    entity_id_t selection;
-    entity_id_t selected_slipway;
-    int selection_frames;
+    int marker_frames;
     int release_pending;
     int previous_pad;
     int chord_held;
@@ -112,16 +110,6 @@ entity_t *pad_nav_build_icon(const pad_nav_t *nav);
 
 /* The structure the ui holds in its placing state while placement carries it; NULL otherwise. */
 entity_t *pad_nav_placing(const pad_nav_t *nav);
-
-/* The selected planet in network mode, panel open or not; NULL in aim mode or once that planet is gone or dead. */
-entity_t *pad_nav_selection(const pad_nav_t *nav);
-
-/* NULL outside network mode or when the selected planet has no slipway; never a slipway the planet does not hold. */
-entity_t *pad_nav_selected_slipway(const pad_nav_t *nav);
-
-/* The planet's slipways turn clockwise on screen from straight up: step 1 gives the one after current, -1 the one
- * before, 0 current itself. The first from straight up when current is not one of them; NULL when the planet has none. */
-entity_t *pad_nav_next_slipway(const entity_t *planet, const entity_t *current, int step);
 
 /* NULL when no panel is open or the panel has no item. */
 entity_t *pad_nav_first_item(void);

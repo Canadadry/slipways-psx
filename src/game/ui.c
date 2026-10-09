@@ -134,7 +134,6 @@ static ui_t *ui_create(void) {
     self->previous_hovered = ENTITY_ID_NONE;
     self->left_held = ENTITY_ID_NONE;
     self->pad_selection = ENTITY_ID_NONE;
-    self->pad_slipway = ENTITY_ID_NONE;
     self->pad_selection_frames = 0;
     self->pad_tab = ENTITY_ID_NONE;
     self->pad_crosshair = 0;
@@ -187,14 +186,9 @@ entity_t *ui_pad_selection(const ui_t *self) {
     return entity_get(self->pad_selection);
 }
 
-entity_t *ui_pad_slipway(const ui_t *self) {
-    return entity_get(self->pad_slipway);
-}
-
-void ui_set_pad_selection(ui_t *self, const entity_t *selection, const entity_t *slipway, int frames_shown) {
+void ui_set_pad_selection(ui_t *self, const entity_t *selection, int frames_shown) {
     assert(frames_shown >= 0 && "ui_set_pad_selection: frames_shown counts up from 0");
     self->pad_selection = entity_id_link(selection);
-    self->pad_slipway = entity_id_link(slipway);
     self->pad_selection_frames = frames_shown;
 }
 
