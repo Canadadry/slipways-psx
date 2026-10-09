@@ -494,6 +494,42 @@ static void test_cheat_activations_fail_the_verdict(void) {
     assert(report_has("section4 verdict fail\n"));
 }
 
+/* △ pressed at f0, released at f1; then other at f_other, held 1 frame; the camera moves at f_other only. */
+static pad_metrics_verdict_t triangle_then(int f_other, int other) {
+    start(PAD_METRICS_MODE_AIM);
+    for (int f = 0; f < 10; f++) {
+        int buttons = (f == 0 ? P8_PAD_TRIANGLE : 0) | (f == f_other ? other : 0);
+        run(buttons, f == f_other);
+    }
+    pad_metrics_finish(&metrics);
+    return count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 1 ? PAD_METRICS_LIVE
+                                                                                                     : PAD_METRICS_DEAD_OTHER;
+}
+
+static void test_a_later_separate_press_cuts_a_released_press_window(void) {
+    assert(triangle_then(2, P8_PAD_SQUARE) == PAD_METRICS_DEAD_OTHER);
+    assert(triangle_then(3, P8_PAD_SQUARE) == PAD_METRICS_DEAD_OTHER);
+}
+
+static void test_a_press_on_the_release_frame_is_a_roll_and_does_not_cut(void) {
+    assert(triangle_then(1, P8_PAD_SQUARE) == PAD_METRICS_LIVE);
+}
+
+static void test_a_new_press_of_the_same_button_does_not_cut(void) {
+    triangle_then(2, P8_PAD_TRIANGLE);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 2);
+}
+
+static void test_another_press_while_still_held_does_not_cut(void) {
+    start(PAD_METRICS_MODE_AIM);
+    for (int f = 0; f < 10; f++) {
+        int buttons = (f < 4 ? P8_PAD_CROSS : 0) | (f == 2 ? P8_PAD_UP : 0);
+        run(buttons, f == 5);
+    }
+    pad_metrics_finish(&metrics);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_CROSS, PAD_METRICS_LIVE) == 1);
+}
+
 int main(void) {
     test_no_economy_is_the_title_whatever_else_is_set();
     test_a_game_with_nothing_open_is_jump();
@@ -524,6 +560,10 @@ int main(void) {
     test_the_verdict_passes_with_required_circles_and_dead_repeats_only();
     test_the_lenient_count_leaves_out_the_required_group();
     test_cheat_activations_fail_the_verdict();
+    test_a_later_separate_press_cuts_a_released_press_window();
+    test_a_press_on_the_release_frame_is_a_roll_and_does_not_cut();
+    test_a_new_press_of_the_same_button_does_not_cut();
+    test_another_press_while_still_held_does_not_cut();
     printf("test_pad_metrics: ok\n");
     return 0;
 }

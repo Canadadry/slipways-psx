@@ -161,7 +161,7 @@ From the maintainer's point of view, a later tuning change (section 5) needs a c
 
 ### D-4. Dead or live (the Method's rule)
 
-- A press of B at frame f, released at r, is **dead** when `view_changed` is false between the snapshot before f and every snapshot after frames f to r + 2 (clipped at the end of the file). Otherwise it is live. The `+ 2` is a named constant of the module.
+- A press of B at frame f, released at frame r, is **dead** when nothing in the change test (`view_changed` against the snapshot before f) moves from f through r + 2 (clipped at the end of the file). The window ends early, just before the first press edge of any other button that comes after r. A press edge on r itself is a roll and does not cut it. While B is held, the window is not cut, and the existing cut at B's first repeat still applies. A repeat's window is unchanged. Otherwise the press is live. The `+ 2` is a named constant of the module, and the early end is one condition beside it (G-6, `guideline`, during chunk 3: under the bare release + 2 window, `pad_colonise`'s f293 ○ read live from f295's □).
 - For a direction, the press's window is cut before its first repeat, so a later repeat that moves the cursor cannot make a dead press look live.
 - **A repeat** at frame t is judged the same way, its window from t to the next repeat of B (excluded) or r + 2, whichever comes first.
 - Events are settled in frame order as their windows close; an event whose window reaches the end of the file is settled there.

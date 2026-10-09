@@ -11,7 +11,8 @@
 #include <stdio.h>
 
 #define PAD_METRICS_BUTTON_COUNT 12
-/* A press is judged on the snapshots after its frame to this many frames after its release. */
+/* A press is judged on the snapshots after its frame to this many frames after its release, cut before a later
+ * press edge of another button (G-6). */
 #define PAD_METRICS_RELEASE_FRAMES 2
 #define PAD_METRICS_PENDING_MAX 64
 #define PAD_METRICS_LISTED_MAX 8192

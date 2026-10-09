@@ -120,6 +120,18 @@
 #                       the aim budget), and each <name>.refused.pad must fail
 #                       with the error its `# expect:` first line names,
 #                       outside the suite
+# make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
+#                       PAD_METRICS and prints its report (time per mode, dead
+#                       presses by group, hold repeats, section 4 verdict),
+#                       kept in tmp/pad-metrics/<name>.txt; with CHECK=1, fails
+#                       when the verdict reads fail; outside the suite
+# make pad-metrics-worst-case -> the same with CHECK=1 for the four
+#                       re-authored worst-case/ games, printing each section 4
+#                       block, outside the suite
+# make pad-metrics-check -> regenerates tests/e2e/pad_colonise.json from its
+#                       proof script, then fails unless the report's `total `
+#                       lines equal the generator's and its required group is
+#                       exactly f293's circle, outside the suite
 # make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
 #                       as make state does and prints, per line of
 #                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
@@ -716,7 +728,7 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1089,6 +1101,36 @@ pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PRO
 	@$(foreach p,$(PAD_AUTHOR_FRAME_PROOFS),./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; cmp $(call pad_author_proof_json,$(p)) $(call pad_author_proof_e2e,$(p)) || exit 1; echo "pad-author-proof: $(p) regenerates $(call pad_author_proof_e2e,$(p))"; ) true
 	@$(foreach p,$(PAD_AUTHOR_END_STATE_PROOFS),STATE=$(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_e2e,$(p)) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) $(call pad_author_proof_e2e,$(p)).end-state || exit 1; echo "pad-author-proof: $(p) reaches $(call pad_author_proof_e2e,$(p)).end-state"; ) true
 	@$(foreach p,$(PAD_AUTHOR_REFUSAL_PROOFS),! ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) > /dev/null 2> $(TMP_DIR)/pad-author/refusal.txt || { echo "pad-author-proof: $(p) was not refused"; exit 1; }; grep -qF "$$(sed -n '1s/^# expect: //p' $(p))" $(TMP_DIR)/pad-author/refusal.txt || { cat $(TMP_DIR)/pad-author/refusal.txt; echo "pad-author-proof: $(p) refused for another reason"; exit 1; }; echo "pad-author-proof: $(p) refused: $$(sed -n '1s/^# expect: //p' $(p))"; ) true
+
+PAD_METRICS_DIR := $(TMP_DIR)/pad-metrics
+PAD_METRICS_GAMES := $(filter-out worst-case/title_idle.json,$(FULL_GAME_EVENTS))
+pad_metrics_name = $(PAD_METRICS_DIR)/$(basename $(notdir $(1)))
+# $(1) the events, $(2) 1 to fail on a section 4 miss, $(3) the lines to print from the report.
+pad_metrics_run = PAD_METRICS=$(call pad_metrics_name,$(1)).txt ./$(TMP_DIR)/replay $(1) /dev/null $(call pad_metrics_name,$(1)).dump.txt > /dev/null || exit 1; echo "pad-metrics: $(1) -> $(call pad_metrics_name,$(1)).txt"; grep '$(3)' $(call pad_metrics_name,$(1)).txt; $(if $(filter 1,$(2)),grep -qx 'section4 verdict ok' $(call pad_metrics_name,$(1)).txt || { echo "pad-metrics: $(1) misses section 4"; exit 1; };)
+PAD_METRICS_PROOF := tools/pad_author_proofs/pad_colonise.frames.pad
+PAD_METRICS_PROOF_E2E := $(E2E_DIR)/pad_colonise.json
+PAD_METRICS_PROOF_REQUIRED := dead f293 press circle jump required
+
+pad-metrics: $(TMP_DIR)/replay
+	@test -n "$(EVENTS)" || { echo "pad-metrics: EVENTS=<events.json> is required"; exit 2; }
+	@mkdir -p $(PAD_METRICS_DIR)
+	@$(call pad_metrics_run,$(EVENTS),$(CHECK),)
+
+pad-metrics-worst-case: $(TMP_DIR)/replay $(PAD_METRICS_GAMES)
+	@mkdir -p $(PAD_METRICS_DIR)
+	@$(foreach e,$(PAD_METRICS_GAMES),$(call pad_metrics_run,$(e),1,^section4 )) true
+
+pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) $(PAD_METRICS_PROOF_E2E)
+	@mkdir -p $(PAD_METRICS_DIR)
+	@./$(TMP_DIR)/pad_author $(PAD_METRICS_PROOF) $(PAD_METRICS_DIR)/pad_colonise.frames.json --no-aim-budget > /dev/null
+	@cmp $(PAD_METRICS_DIR)/pad_colonise.frames.json $(PAD_METRICS_PROOF_E2E)
+	@$(call pad_metrics_run,$(PAD_METRICS_PROOF_E2E),,^section4 verdict)
+	@grep '^total ' $(TMP_DIR)/pad-author/pad_colonise.modes.txt > $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt
+	@grep '^total ' $(PAD_METRICS_DIR)/pad_colonise.txt | diff $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt - || { echo "pad-metrics-check: the totals differ from the generator's"; exit 1; }
+	@required=$$(grep -E ' (required|dead-required)$$' $(PAD_METRICS_DIR)/pad_colonise.txt); test "$$required" = "$(PAD_METRICS_PROOF_REQUIRED)" || { echo "pad-metrics-check: required group is '$$required', not '$(PAD_METRICS_PROOF_REQUIRED)'"; exit 1; }
+	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f293's circle"
+
+.PHONY: pad-metrics pad-metrics-worst-case pad-metrics-check
 
 WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
 

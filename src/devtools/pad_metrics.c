@@ -276,6 +276,13 @@ static void judge_frame(pad_metrics_t *metrics, int buttons, int pressed, int re
     for (int i = metrics->pending_count - 1; i >= 0; i--) {
         if (metrics->pending[i].end < 0 && (repeats & (1 << metrics->pending[i].button))) settle(metrics, i);
     }
+    /* G-6: a press released before this frame lends no window to another button's press; one on its release
+     * frame is a roll and keeps it. */
+    for (int i = metrics->pending_count - 1; i >= 0; i--) {
+        const pad_metrics_pending_t *event = &metrics->pending[i];
+        int released_before = event->end >= 0 && event->end - PAD_METRICS_RELEASE_FRAMES < t;
+        if (event->kind == PAD_METRICS_PRESS && released_before && (pressed & ~(1 << event->button))) settle(metrics, i);
+    }
     const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
     int chord = (pressed & face) == face;
     if (chord) metrics->chord_frames++;
