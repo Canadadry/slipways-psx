@@ -84,3 +84,8 @@ src/cmd/psx_capture_compare.c | entry point of psx_capture_compare, host tool
 src/platform/psx_colour.c | PICO-8 index to PSX RGB555, host-tested, read by the capture comparator
 src/platform/psx_colour.h | PICO-8 index to PSX RGB555, header of platform/psx_colour.c
 src/platform/psx_capture_protocol.h | scratchpad words of the GPU capture handshake, PSX only
+src/platform/psx_pad_map.c | PSX pad word to pad_buttons, PSX build and its host test and tool
+src/platform/psx_pad_map.h | PSX pad word to pad_buttons, header of platform/psx_pad_map.c
+src/devtools/pad_log.c | PSX game pad log and pad script reader, host tool
+src/devtools/pad_log.h | PSX game pad log and pad script reader, header of devtools/pad_log.c
+src/cmd/psx_pad_log.c | entry point of psx_pad_log, which turns the PSX game's pad log into an events.json, host tool

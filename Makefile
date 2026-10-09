@@ -542,6 +542,12 @@ $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c
 $(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c) keymap.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_pad_map: $(call objs,tests/test_psx_pad_map.c src/platform/psx_pad_map.c src/platform/keymap.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_pad_log: $(call objs,tests/test_pad_log.c src/devtools/pad_log.c src/platform/psx_pad_map.c src/p8/input.c src/devtools/input_json.c) tests/e2e/pad_title.json psx/game_title_script.txt | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -823,6 +829,11 @@ PSX_CAPTURE_COMPARE_SRCS := src/cmd/psx_capture_compare.c src/devtools/capture_c
 $(TMP_DIR)/psx_capture_compare: $(call objs,$(PSX_CAPTURE_COMPARE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+PSX_PAD_LOG_SRCS := src/cmd/psx_pad_log.c src/devtools/pad_log.c src/platform/psx_pad_map.c src/p8/input.c src/devtools/input_json.c
+
+$(TMP_DIR)/psx_pad_log: $(call objs,$(PSX_PAD_LOG_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 EMBED_REPLAY_SRCS := src/cmd/embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c
 
 $(TMP_DIR)/embed_replay: $(call objs,$(EMBED_REPLAY_SRCS)) | $(TMP_DIR)
@@ -954,6 +965,8 @@ UNIT_TESTS := \
     test_draw_layers_camera \
     test_demo \
     test_keymap \
+    test_psx_pad_map \
+    test_pad_log \
     test_replay_source \
     test_embed_replay \
     test_embed_replay_save \
