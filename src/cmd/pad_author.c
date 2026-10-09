@@ -10,8 +10,8 @@
  *
  * Writes the per-frame mode log and the run's totals to
  * tmp/pad-author/<name>.modes.txt, the totals also to stdout. A whole run
- * (no --stop-at) fails when 25% or more of its frames are in aim mode,
- * unless --no-aim-budget.
+ * (no --stop-at) fails when 25% or more of its in-game frames (neither title
+ * nor pause) are in aim mode, unless --no-aim-budget.
  *
  * --try <file>: after the run, each line of <file> (commands separated by `;`)
  * runs in its own fork from the run's last frame, writes its state to
@@ -272,9 +272,10 @@ int main(int argc, char **argv) {
            pad_metrics_cheat_activations(&author.metrics));
     pad_metrics_write_totals(&author.metrics, stdout, "pad_author: ");
     if (!played) return 1;
-    int aim_frames = pad_metrics_mode_frames(&author.metrics, PAD_METRICS_MODE_AIM);
-    if (aim_budget && stop_label == NULL && 4 * aim_frames >= author.frame_count) {
-        fprintf(stderr, "pad_author: %d of %d frames in aim mode, 25%% or more\n", aim_frames, author.frame_count);
+    if (aim_budget && stop_label == NULL && !pad_metrics_aim_ok(&author.metrics)) {
+        fprintf(stderr, "pad_author: %d of %d in-game frames in aim mode, 25%% or more\n",
+                pad_metrics_mode_frames(&author.metrics, PAD_METRICS_MODE_AIM),
+                pad_metrics_in_game_frames(&author.metrics));
         return 1;
     }
 
