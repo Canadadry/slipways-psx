@@ -488,6 +488,9 @@ $(TMP_DIR)/test_draw_meter: $(call objs,tests/test_draw_meter.c src/p8/draw_mete
 $(TMP_DIR)/test_psx_vram_layout: $(call objs,tests/test_psx_vram_layout.c src/platform/psx_vram_layout.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_tiles: $(call objs,tests/test_psx_tiles.c src/platform/psx_tiles.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_draw_filter: $(call objs,tests/test_draw_filter.c src/devtools/draw_filter.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -909,6 +912,7 @@ UNIT_TESTS := \
     test_draw_meter \
     test_psx_vram_layout \
     test_psx_colour \
+    test_psx_tiles \
     test_draw_filter \
     test_capture_list \
     test_capture_compare \
@@ -1346,7 +1350,7 @@ PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) src/devtools/state_format.c src/devtools/format_self_test.c \
-	src/devtools/draw_filter.c src/platform/psx_gpu.c src/platform/psx_vram_layout.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
+	src/devtools/draw_filter.c src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_vram_layout.c src/p8/palette.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
 PSX_SIZE = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-size
 PSX_NM = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-nm

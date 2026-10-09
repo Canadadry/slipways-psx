@@ -1,1 +1,3 @@
 cls 1 0
+rectfill 11 0
+rect 322 0

@@ -151,14 +151,20 @@ point, no `malloc`):
 - each frame: draw area and offset on the 160x120 draw area, the texture
   page, no texture window, then the primitives in call order (no depth sort)
   in a bump allocator over that frame's static buffer of
-  `GPU_FRAME_BUFFER_BYTES`; the frame ends on the x2 upscale quad into the
-  frame's display buffer, waits for the previous frame's `DrawSync`, shows it
-  and submits this one, with no `VSync` wait;
+  `GPU_FRAME_BUFFER_BYTES`; the frame ends on a black `FILL` of the frame's
+  display buffer and the x2 upscale quad into it (the quad skips 0x0000
+  texels, which black `FILL`s and `TILE`s write, so the clear keeps the
+  previous frame from showing through), waits for the previous frame's
+  `DrawSync`, shows it and submits this one, with no `VSync` wait;
 - overflow of the buffer is a `p8_fatal` naming the frame and the bytes
   asked; a frame that sent more bytes than the meter counted is a `p8_fatal`
   naming the frame and both figures;
-- `cls` is a `FILL` of the draw area; the eight other entries draw nothing
-  yet;
+- `cls` is a `FILL` of the draw area; `rect` is up to four `TILE`s (its
+  edges, or one when it has no inside) and a plain `rectfill` one `TILE`,
+  after the camera and clipped to the screen (`src/platform/psx_tiles.c`,
+  host-tested against the software backend by `test_psx_tiles`), coloured
+  with the 8-bit components of `P8_PALETTE_RGB[col & 0x0F]`; a patterned
+  `rectfill` and the six other entries draw nothing yet;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -240,7 +246,10 @@ mask.
   a text diff map `<label>-f<frame>.diff.txt` (`.` equal, the PSX colour's hex
   digit or `?` where not) and an image `<label>-f<frame>.ppm` (PC, PSX and
   diff side by side). `near1`/`near2` count the differing pixels whose PSX
-  colour is in the PC frame within 1 or 2 pixels, `far` the others.
+  colour is in the PC frame within 1 or 2 pixels, `far` the others. The `rect`
+  and `rectfill` captures, on real colours, confirm the channel order (red in
+  bits 0-4) and that the x2 upscale is exact: zero `offpalette`, zero
+  `nonuniform`.
 - **Ceilings and references**: until a human accepts a family, its captures'
   `differ` may not exceed their line in `psx/gpu_capture_ceilings.txt`,
   written only by `make psx-gpu-capture-ceilings LABEL=<label>` from the last
@@ -329,17 +338,20 @@ None of these targets is in `make test-all`, and none runs a setup.
 ## Still to do
 
 - Step 4 of plan 10: the GPU families, one at a time, each with its capture
-  line in `psx/gpu_captures.txt`: `pset`, `line`, `rect`, `rectfill` and
-  `circfill` (with their fill patterns and the pattern slots), `circ`, `spr`
+  line in `psx/gpu_captures.txt`: `pset`, `line`, `circ` and `circfill`, `spr`
   and `map` (with the draw-palette CLUT cache), `print` (with the font texture
-  and its 16 CLUTs), then the `all` captures. Whether the x2 upscale samples
-  exactly 2x2 a texel on real colours is checked by the `rectfill` capture.
+  and its 16 CLUTs), the fill patterns of `rectfill` and `circfill` (with the
+  pattern slots), then the `all` captures.
 
 - Pending human acceptance (review the report line and
   `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` after `make
   psx-check`, then accept with `make psx-gpu-capture-accept LABEL=<label>`):
   - `cls` f1: `cls f1 mask cls calls 1 differ 0 (0.0‰) near1 0 near2 0 far 0
     bbox - offpalette 0 nonuniform 0`, ceiling 0.
+  - `rectfill` f11: `rectfill f11 mask cls,rectfill calls 8 differ 0 (0.0‰)
+    near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
+  - `rect` f322: `rect f322 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
 
 - `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
   (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778

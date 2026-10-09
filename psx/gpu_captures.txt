@@ -2,3 +2,5 @@
 # of tests/e2e/pad_slipway.txt (format in src/devtools/capture_list.h).
 replay pad_slipway
 cls 1 cls
+rectfill 11 cls,rectfill
+rect 322 cls,rect

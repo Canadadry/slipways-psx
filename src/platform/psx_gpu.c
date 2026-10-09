@@ -3,7 +3,9 @@
 #include "p8/draw_cost.h"
 #include "p8/fatal.h"
 #include "p8/gpu_sizes.h"
+#include "p8/palette.h"
 #include "p8/sprite_sheet.h"
+#include "platform/psx_tiles.h"
 #include "platform/psx_vram_layout.h"
 
 #include <psxgpu.h>
@@ -22,8 +24,10 @@ SIZE_CHECK(dr_tpage_size_check, sizeof(DR_TPAGE) == P8_GPU_DR_TPAGE_BYTES);
 SIZE_CHECK(dr_twin_size_check, sizeof(DR_TWIN) == P8_GPU_DR_TWIN_BYTES);
 SIZE_CHECK(dr_env_size_check, sizeof(DR_ENV) == P8_GPU_DR_ENV_BYTES);
 SIZE_CHECK(poly_ft4_size_check, sizeof(POLY_FT4) == P8_GPU_POLY_FT4_BYTES);
-/* The frame overhead the cost model meters as one DR_ENV each side of the frame. */
-SIZE_CHECK(frame_setup_size_check, sizeof(DR_AREA) + sizeof(DR_OFFSET) + sizeof(DR_TWIN) <= P8_GPU_DR_ENV_BYTES);
+/* What frame_begin and frame_end add must fit what p8_draw_cost_frame_begin meters. */
+SIZE_CHECK(frame_overhead_size_check,
+           2 * (sizeof(DR_AREA) + sizeof(DR_OFFSET) + sizeof(DR_TWIN)) + sizeof(DR_TPAGE) + sizeof(FILL) + sizeof(POLY_FT4)
+               <= 2 * P8_GPU_DR_ENV_BYTES + P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES + P8_GPU_POLY_FT4_BYTES);
 SIZE_CHECK(frame_buffer_word_check, GPU_FRAME_BUFFER_BYTES % 4 == 0);
 
 enum { DISPLAY_WIDTH = 320, DISPLAY_HEIGHT = 240, TEXTURE_4_BIT = 0, TEXTURE_15_BIT = 2, SHEET_UPLOAD_LINES = 16 };
@@ -93,14 +97,17 @@ void psx_gpu_init(void) {
     SetDispMask(1);
 }
 
-static void gpu_cls(p8_vram_t *mem) {
-    (void)mem;
-    psx_vram_rect_t area = psx_vram_layout_region(PSX_VRAM_DRAW_AREA);
+static void add_black_fill(psx_vram_rect_t region) {
     FILL *fill = packet(sizeof *fill);
     setFill(fill);
     setRGB0(fill, 0, 0, 0);
-    setXY0(fill, area.x, area.y);
-    setWH(fill, area.w, area.h);
+    setXY0(fill, region.x, region.y);
+    setWH(fill, region.w, region.h);
+}
+
+static void gpu_cls(p8_vram_t *mem) {
+    (void)mem;
+    add_black_fill(psx_vram_layout_region(PSX_VRAM_DRAW_AREA));
 }
 
 /* TODO step 4: TILE_1. */
@@ -113,14 +120,33 @@ static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, i
     (void)gfx, (void)mem, (void)x1, (void)y1, (void)x2, (void)y2, (void)col;
 }
 
-/* TODO step 4: one TILE per edge. */
-static void gpu_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
-    (void)gfx, (void)mem, (void)x1, (void)y1, (void)x2, (void)y2, (void)col;
+static void add_tile(psx_tile_t tile, int col) {
+    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
+    TILE *primitive = packet(sizeof *primitive);
+    setTile(primitive);
+    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
+    setXY0(primitive, tile.x, tile.y);
+    setWH(primitive, tile.w, tile.h);
 }
 
-/* TODO step 4: TILE, or a pattern-slot SPRT under fillp. */
+static void gpu_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    (void)mem;
+    psx_tile_t tiles[PSX_TILES_RECT_MAX];
+    int count = psx_tiles_rect(gfx, x1, y1, x2, y2, tiles);
+    for (int t = 0; t < count; t++) {
+        add_tile(tiles[t], col);
+    }
+}
+
 static void gpu_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
-    (void)gfx, (void)mem, (void)x1, (void)y1, (void)x2, (void)y2, (void)col;
+    (void)mem;
+    if ((gfx->fillp_pattern & 0xFFFFu) != 0) {
+        return; /* TODO step 4: a pattern-slot SPRT. */
+    }
+    psx_tile_t tile;
+    if (psx_tiles_rectfill(gfx, x1, y1, x2, y2, &tile)) {
+        add_tile(tile, col);
+    }
 }
 
 /* TODO step 4: TILE_1 per midpoint pixel. */
@@ -176,8 +202,12 @@ static void add_upscale(void) {
 }
 
 void psx_gpu_frame_end(unsigned long metered_bytes) {
-    add_draw_target(psx_vram_layout_region(current == 0 ? PSX_VRAM_DISPLAY_0 : PSX_VRAM_DISPLAY_1));
+    psx_vram_rect_t display = psx_vram_layout_region(current == 0 ? PSX_VRAM_DISPLAY_0 : PSX_VRAM_DISPLAY_1);
+    add_draw_target(display);
     add_no_texture_window();
+    /* The upscale skips 0x0000 texels as transparent, and a black FILL or TILE writes 0x0000: without
+     * this clear, black pixels would show the display buffer's previous frame. */
+    add_black_fill(display);
     add_upscale();
     if (used > metered_bytes) {
         static char message[128];
