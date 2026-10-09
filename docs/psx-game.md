@@ -159,12 +159,13 @@ point, no `malloc`):
 - overflow of the buffer is a `p8_fatal` naming the frame and the bytes
   asked; a frame that sent more bytes than the meter counted is a `p8_fatal`
   naming the frame and both figures;
-- `cls` is a `FILL` of the draw area; `rect` is up to four `TILE`s (its
-  edges, or one when it has no inside) and a plain `rectfill` one `TILE`,
-  after the camera and clipped to the screen (`src/platform/psx_tiles.c`,
-  host-tested against the software backend by `test_psx_tiles`), coloured
-  with the 8-bit components of `P8_PALETTE_RGB[col & 0x0F]`; a patterned
-  `rectfill` and the six other entries draw nothing yet;
+- `cls` is a `FILL` of the draw area; `pset` is one `TILE_1`, `rect` up to
+  four `TILE`s (its edges, or one when it has no inside) and a plain
+  `rectfill` one `TILE`, after the camera and clipped to the screen
+  (`src/platform/psx_tiles.c`, host-tested against the software backend by
+  `test_psx_tiles`), coloured with the 8-bit components of
+  `P8_PALETTE_RGB[col & 0x0F]`; a patterned `rectfill` and the five other
+  entries draw nothing yet;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -338,7 +339,7 @@ None of these targets is in `make test-all`, and none runs a setup.
 ## Still to do
 
 - Step 4 of plan 10: the GPU families, one at a time, each with its capture
-  line in `psx/gpu_captures.txt`: `pset`, `line`, `circ` and `circfill`, `spr`
+  line in `psx/gpu_captures.txt`: `line`, `circ` and `circfill`, `spr`
   and `map` (with the draw-palette CLUT cache), `print` (with the font texture
   and its 16 CLUTs), the fill patterns of `rectfill` and `circfill` (with the
   pattern slots), then the `all` captures.
@@ -350,6 +351,8 @@ None of these targets is in `make test-all`, and none runs a setup.
     bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `rectfill` f11: `rectfill f11 mask cls,rectfill calls 8 differ 0 (0.0‰)
     near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
+  - `pset` f131: `pset f131 mask cls,pset calls 65 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `rect` f322: `rect f322 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
 

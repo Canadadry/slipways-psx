@@ -110,11 +110,6 @@ static void gpu_cls(p8_vram_t *mem) {
     add_black_fill(psx_vram_layout_region(PSX_VRAM_DRAW_AREA));
 }
 
-/* TODO step 4: TILE_1. */
-static void gpu_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
-    (void)gfx, (void)mem, (void)x, (void)y, (void)col;
-}
-
 /* TODO step 4: LINE_F2. */
 static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     (void)gfx, (void)mem, (void)x1, (void)y1, (void)x2, (void)y2, (void)col;
@@ -127,6 +122,19 @@ static void add_tile(psx_tile_t tile, int col) {
     setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
     setXY0(primitive, tile.x, tile.y);
     setWH(primitive, tile.w, tile.h);
+}
+
+static void gpu_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
+    (void)mem;
+    psx_tile_t pixel;
+    if (!psx_tiles_pset(gfx, x, y, &pixel)) {
+        return;
+    }
+    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
+    TILE_1 *primitive = packet(sizeof *primitive);
+    setTile1(primitive);
+    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
+    setXY0(primitive, pixel.x, pixel.y);
 }
 
 static void gpu_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {

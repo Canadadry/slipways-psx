@@ -42,3 +42,7 @@ int psx_tiles_rectfill(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2,
     return add_clipped(tile, 0, min(x1, x2) - gfx->camera_x, min(y1, y2) - gfx->camera_y, max(x1, x2) - gfx->camera_x,
                        max(y1, y2) - gfx->camera_y);
 }
+
+int psx_tiles_pset(const p8_graphics_t *gfx, int x, int y, psx_tile_t *tile) {
+    return add_clipped(tile, 0, x - gfx->camera_x, y - gfx->camera_y, x - gfx->camera_x, y - gfx->camera_y);
+}
