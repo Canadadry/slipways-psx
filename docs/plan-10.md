@@ -14,6 +14,7 @@ The full game compiled for MIPS, in a `.bin/.cue` that boots in the emulator, sh
 - **The core doesn't move.** Only `src/p8/` and a new PSX `src/platform/` adapt.
 - **Prerequisites.** Plans 7 to 9 done. Plan 7 left 1,980 bytes under the 768 KB of zones; the GPU primitive buffers live in the half it freed. Plan 9 produces a VRAM capture, not just TTY output: step 4 is checked against it.
 - **Invariant for every commit.** `make test-all` passes, the `*.sha256` in `tests/e2e/` don't change, `make test` and `make e2e` don't get slower; `make sanitize-net`, `make full-game` and `make state` (with its 1/8 margin) pass too.
+- **PSX check cost.** Each step note records `make psx-check`'s run time; a step adds boots only where one boot cannot carry its proof.
 
 ## 3. Phases and steps
 
@@ -22,15 +23,15 @@ The full game compiled for MIPS, in a `.bin/.cue` that boots in the emulator, sh
 1. **The core compiles for MIPS.** Gate first: plan 9's check target is green on `psx-hello` and produces a VRAM capture; if not, the run stops, with no workaround. Without rendering, it replays an `events.json` in the emulator, and the remaining libc calls (`fopen`, `snprintf`, `__divdi3`…) are replaced or provided. Done when the state after a real replay (ideally `full_game.json`), printed over TTY in the emulator, matches the PC's (`make state`) on the game lines (clock, planets, slipways, structures). An idle run on the title screen doesn't count: the minimum is a short e2e replay that reaches gameplay with planets and slipways, then `full_game.json`, or `full_game.json` recorded as pending for plan 11 if it can't run yet. The `zone` and `cap` lines are recorded as a first MIPS measurement for plan 11. The emulator is also shown to accept scripted pad input. Plan 9's check target switches from `psx-hello` to the game and checks this proof. Every later step adds its own proof to that target, and is done only when the target is green.
 2. **Assets.** Sprites, map and font embedded without parsing JSON at startup.
 3. **Separate the drawing API from its backend.** The current software renderer stays for PC and the e2e, and the GPU one is added for PSX. The PC e2e don't change.
-4. **GPU primitives,** one family at a time, each checked by a VRAM capture in the emulator (plan 9), compared against the PC software framebuffer of the same frame. Done when each family's capture and comparison are listed in the step note as pending human acceptance; references are frozen in the check target only after that review.
-5. **Controller** wired, then the title screen passed in the emulator through scripted input.
-6. **The game's `.bin/.cue`** produced by a `make` target.
+4. **GPU primitives,** one family at a time, each checked by a VRAM capture in the emulator (plan 9), compared against the PC software framebuffer of the same frame. Done when each family's capture and comparison are listed in the step note as pending human acceptance; references are frozen in the check target only after that review. Until then, `psx-check` guards each family mechanically: two boots give the same capture, and its differing-pixel count is no higher than the one recorded in the step note. All family captures are taken in one boot. A ready-to-run target turns the accepted captures into committed references, so the human's acceptance is one command.
+5. **Controller** wired, then the title screen passed in the emulator through scripted input. Proof independent of emulator timing: the PSX game logs over TTY the `pad_buttons` of each input frame; the check turns that log into an `events.json`, replays it on PC with `STATE=` and compares the game lines with the PSX state (`psx_state_compare.sh`), and checks the title screen was left. This step also decides how the game build ends under check (e.g. the Lua quits on a TTY or scratchpad marker), so the EXE checked is the one shipped.
+6. **The game's `.bin/.cue`** produced by a `make` target. The step-5 EXE goes into the CD image with the `psx-hello-cd` tooling (its `cue` condition, never hashing the `.bin`), and the step-5 proof is repeated on the `.cue`.
 
 ## 4. Done when
 
 - The game's `.bin/.cue` boots in the emulator, shows the title screen and passes it through scripted controller input.
 - The PSX check target is green.
-- The human has reviewed the step 4 divergences family by family, and the accepted captures are frozen as references.
+- The human has reviewed the step 4 divergences family by family, and the accepted captures are frozen as references. plan-pilot cannot achieve this item: it reports it as awaiting the human, not as a failure.
 
 ## 5. Open questions
 
