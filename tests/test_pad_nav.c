@@ -787,6 +787,29 @@ static void end_game(input_step_t *step) {
     settle(step);
 }
 
+/* The final score panel opens on the map by itself: a × held into it, from jump mode with nothing hovered, presses
+ * nothing until pressed again, even after a title × armed an earlier box. */
+static void test_cross_held_into_the_final_score_panel_on_the_map_presses_nothing(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    assert(pad_nav_hovered(&step.pad_nav) == NULL);
+    hold(&step, P8_PAD_CROSS, 2);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    main_economy_typed()->end_status = "final score";
+    main_economy_typed()->has_end_status = 1;
+    entity_t *panel = &main_score_panel()->header;
+    panel->class->states[ENTITY_STATE_NORMAL](panel, p8_fixed_from_int(0));
+    for (int i = 0; i < 40; i++) {
+        run_frame(&step, P8_PAD_CROSS);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
+    assert(main_economy_typed() != NULL && pad_nav_panel_open());
+    hold(&step, 0, 2);
+    tap(&step, P8_PAD_CROSS);
+    settle(&step);
+    assert(main_economy_typed() == NULL);
+}
+
 /* Returns how many layer-15 buttons with a row are live: "again?" and back at the game's end. */
 static int end_buttons(entity_t *buttons[ITEMS_CAP]) {
     const entity_list_t *live = live_entities();
@@ -5378,6 +5401,7 @@ int main(void) {
     in_fresh_child(test_tech_panel_is_reachable);
     in_fresh_child(test_score_panel_during_play_has_no_item);
     in_fresh_child(test_score_panel_at_game_end_is_reachable);
+    in_fresh_child(test_cross_held_into_the_final_score_panel_on_the_map_presses_nothing);
     in_fresh_child(test_score_panel_at_game_end_left_and_right);
     in_fresh_child(test_year_message_box_adds_and_removes_nothing);
     in_fresh_child(test_help_is_the_title_screen);
