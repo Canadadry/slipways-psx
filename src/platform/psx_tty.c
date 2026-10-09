@@ -1,14 +1,19 @@
 #include "platform/psx_tty.h"
 
+#include <psxapi.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 
 /* Character by character through the BIOS putchar: BIOS printf would be a
-   second formatter next to the SDK's vsnprintf. */
+   second formatter next to the SDK's vsnprintf. IRQs stay masked during each
+   call: an IRQ taken on the jump into the BIOS putchar makes PCSX-Redux log
+   that character twice. */
 void psx_tty_write(const char *text) {
     for (; *text != '\0'; text++) {
+        FastEnterCriticalSection();
         putchar(*text);
+        FastExitCriticalSection();
     }
 }
 
