@@ -18,6 +18,7 @@
 #include "game/cart.h"
 #include "game/input_step.h"
 #include "game/save_storage.h"
+#include "p8/draw_meter.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/sprite_sheet.h"
@@ -80,6 +81,7 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     psx_exit_set_hook(write_stopped_state);
+    p8_draw_meter_install();
     cart_load();
     cart_init();
 
@@ -90,6 +92,7 @@ int main(void) {
         input_step_run(&step, &input.frames[input.current_frame]);
         cart_update60();
         cart_draw();
+        p8_draw_meter_frame_end();
         if (vram_digest_samples_frame(g_frame, input.frame_count)) {
             vram_digest_write_screen(&digest, &memory, g_frame);
         }

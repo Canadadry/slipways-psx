@@ -55,3 +55,8 @@ src/platform/psx_tty.h | PSX TTY output, header of platform/psx_tty.c
 src/p8/format.c | snprintf replacement of the PSX build, linked by the PSX platform and its host test
 src/p8/format.h | snprintf replacement of the PSX build, header of p8/format.c
 src/platform/format_psx.c | routes the PSX snprintf and vsnprintf to p8/format.c, PSX only
+src/cmd/psx_gpu_replay.c | entry point of the PSX GPU replay, PSX only
+src/platform/psx_gpu.c | PSX GPU drawing backend, PSX only
+src/platform/psx_gpu.h | PSX GPU drawing backend, header of platform/psx_gpu.c
+src/platform/psx_vram_layout.c | VRAM layout of the PSX GPU backend, PSX build and its host test
+src/platform/psx_vram_layout.h | VRAM layout of the PSX GPU backend, header of platform/psx_vram_layout.c
