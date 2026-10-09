@@ -5,12 +5,15 @@ Up and X on it resume pad_research's end game. 48 frames.
 Jump mode is the map's root, where every game starts: square on f13
 enters aim mode, the camera unmoved. The fixture was re-cut in plan 12
 step 7 from pad_research's new last record (its crossed-planet aim and
-the moves after it).
+the moves after it), and again in step 9, where pad_research's year
+became a Select hold 22 frames longer than the ring's: the record's
+clock, money and nodes are the same, 36 hex digits of its timed state
+differ.
 
 The fixture is cut, never typed, from pad_research replayed to its last
-frame (f467), whose last record is the save of its last action (the
-"end turn" to year 3403; no wormhole lives at the end, the record is
-written):
+frame (f513), whose last record is the save of its last action (the
+year to 3403, ended by a Select hold; no wormhole lives at the end, the
+record is written; the Select taps after it write no record):
 
     make replay EVENTS=tests/e2e/pad_research.json SAVE_HEX=tmp/research.hex
     sed -i "/^  \"input\": \"pad\",\$/a\\  \"initial_save\": \"$(cat tmp/research.hex)\"," tests/e2e/pad_resume_at_start.json
@@ -56,8 +59,8 @@ camera world 176 209; p78 colonized f, p23 colonized o, p47 colonized
 protostar, s1 colonized trading_hub, structure s2 slipgate links 3;
 slipways s1 p23, s2 s1, p78 s2, p47 s2; planets 91, colonies 4,
 slipways 4, structures 1, techs 5. The camera is the record's, not
-pad_research's end camera (96 185): the final pan is no action and
-writes no save.
+pad_research's end camera: the final pan and taps are no action and
+write no save.
 
 Regeneration: when the record format changes, this fixture stops
 decoding, "resume" disappears from the title, Up stays on forgiving and X

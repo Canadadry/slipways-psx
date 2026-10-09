@@ -40,7 +40,7 @@
 #include "game/visual_random.h"
 
 #define RECORDING "tests/e2e/pad_colonise.json"
-#define WINDOW_CAP 128
+#define WINDOW_CAP 160
 
 typedef struct {
     const char *name;
@@ -272,7 +272,7 @@ static int in_fresh_child(const probe_case_t *c) {
 
 int main(void) {
     const probe_case_t burst_case = {"burst", 98, 198, 1};
-    const probe_case_t quiet_case = {"quiet", 292, 416, 0};
+    const probe_case_t quiet_case = {"quiet", 292, 444, 0};
     int failed = 0;
 
     p8_vram_init(&memory);

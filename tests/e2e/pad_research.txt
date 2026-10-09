@@ -1,10 +1,11 @@
 The cheat typed as four X + O chords on the map, R1 to `tech`, "space
 folding" invented, back on the map. Then trade: a slipgate relaying a
 protostar's energy to a nanotech forgeworld, a trading hub fed tech and
-food, the protostar panned off screen. 468 frames.
+food, the protostar panned off screen, a year ended by a Select hold,
+then Select taps cycling the colonies that need attention. 514 frames.
 
 Jump mode is the map's root, where every game starts: square on f25
-enters aim mode, the camera unmoved. Square on f259 and f414 enters aim
+enters aim mode, the camera unmoved. Square on f259 and f436 enters aim
 mode again from jump mode. f245 and f304 leave aim mode for jump mode on
 s1 and s2, the targets nearest the centre. The f340 collapse replaces
 the hovered p47, so jump mode reseeds onto the target nearest the
@@ -71,7 +72,7 @@ Covers keyboard_research.
 Cost: the three replays of step 3.1 add 186 frames; cold `make e2e`,
 measured before and after them, in pad_score.txt.
 
-Trade, f72-467 (remove-mouse-mode PRD, chunk 7; appended here to share
+Trade, f72-489 (remove-mouse-mode PRD, chunk 7; appended here to share
 the title and the cheat instead of separate pad_slipgate,
 pad_trading_hub and pad_protostar files). Every capture frame up to f71
 is the one of the shorter file, byte for byte, but f28 (plan 12 step 7).
@@ -137,17 +138,36 @@ inputs of the old file but f29 (plan 12 step 7).
   `slipway p47 s2`, $99. The energy crosses s2 and replaces p78's ore
   need. Income 23: the hub at level 2 (tech and food). s2 now holds three
   slipways and takes no fourth: jump mode on s2 from f380.
-- f383-391: R1 R1, X on `end turn`: year 3403, $99 -> $122, the "year
-  3403" box; L1 L1, the map. Transit dots on the slipways.
-- f401, f403: Up, Left onto p78. f406: triangle: its panel, "content",
-  "wants more:", "receives:", "exports: 1/3". f412: O.
-- f414: square: aim mode. f416-466: Up+Left 17, Left 20, Left
+- f383-412: Select held 30 frames in jump mode on s2: on f412, its
+  30th frame, the cursor on the year-skip button (154 5), pressed: year
+  3403, $99 -> $122, the "year 3403" box. f413: the release, the
+  cursor back on s2 (80 68). Transit dots on the slipways. Until plan
+  12 step 9 this year was R1 R1, X on `end turn`, L1 L1 (the tab ring);
+  The R1 presses to `tech` from f48 on still cycle the ring.
+- f423, f425: Up, Left onto p78. f428: triangle: its panel, "content",
+  "wants more:", "receives:", "exports: 1/3". f434: O closes the panel
+  (the year box stays: the panel is closed first).
+- f436: square: aim mode. f438-488: Up+Left 17, Left 20, Left
   13: camera 96 185, p47 at screen x 174, visible 0: its particles are
   no longer drawn.
+- f490-505: Select tapped four times (f490, f494, f498, f502, each
+  released on the next frame), each acting on its release frame. The
+  colonies and structures that need attention are those whose panel
+  lists "needs:": p23, s1 and s2 (p78's panel above shows "wants
+  more:", every need met; p47, the protostar, needs nothing). In
+  registration order the settled objects are p23, p78, s1, s2, p47.
+  - f491: from aim mode, jump mode on p23, the first in order; the
+    camera edge-scrolls 8 px a frame (cursor x 176, 168, 160, 152 on
+    f491-494).
+  - f495: s1, p78 skipped.
+  - f499: s2.
+  - f503: p23 again, p47 skipped: the wrap. From f503 the cursor rests
+    on p23 (120 36).
+  No tap presses the mouse, ends a year or writes a record.
 
-`make state` at f467: year 3403 month 1, credits 122, research 39,
+`make state` at f513: year 3403 month 1, credits 122, research 39,
 income 23, techs + geneseeds, slipgates, trade league, starbirth; camera
-96 185; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
+160 193; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
 colonized trading_hub, structure s2 slipgate links 3; slipways s1 p23,
 s2 s1, p78 s2, p47 s2; planets 91, colonies 4. Peaks: bytes_row 712
 (tech_trade_league_hub's 600), burst 1.

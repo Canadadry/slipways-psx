@@ -7,7 +7,7 @@ on empty space, circle at the root jumping back to the last object X
 acted on, a slipway built, the same slipway refused, circle at the root
 on that last object doing nothing, a slipway aimed under the top HUD, a
 fold held on its middle from aim mode and abandoned, a year with the
-slipway. 417 frames.
+slipway, ended by a Select hold. 445 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 enters aim mode, the camera unmoved. pad_probe's f16-17 (O back to jump
@@ -175,10 +175,15 @@ f369 (step 8).
   3 frames: a fold press whose target is the slipway (the slipway colour
   2: 69-72 colour-2 pixels in x30-129, y20-99 against 40 at f405);
   released at f409, under 15 ticks: abandoned, nothing charged.
-- f410-414: R1 R1, X on `end turn`: year 3402, $76 -> $79, income 3
-  (the strip's ore feeds the nanotech colony).
+- f410: square: jump mode on p25, the target nearest the centre (cursor
+  85 42), the camera unmoved.
+- f412-441: Select held 30 frames: on f441, its 30th frame, the cursor
+  on the year-skip button (154 5), pressed: year 3402, $76 -> $79,
+  income 3 (the strip's ore feeds the nanotech colony), the "year 3402"
+  box. f442: the release, the cursor back on p25. Until plan 12 step 9
+  this year was R1 R1 and X on `end turn` (the tab ring).
 
-`make state` at f416: year 3402 month 1, credits 79, research 1, income
+`make state` at f444: year 3402 month 1, credits 79, research 1, income
 3, camera 195 187, `slipway p25 p47 normal`, p25 colonized type f, p47
 colonized type r, planets 90, colonies 2, slipways 1.
 
