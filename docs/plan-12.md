@@ -352,3 +352,39 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - **Cheat:** unchanged. Chords do nothing else in aim mode, and probing then leaving aim mode cannot type it (both unit-tested).
 - **Long checks:** `make full-game`, `save-worst-case` (largest record 3995 B), `save-fuzz`, `sanitize-net` and `rng-sync-probe` are clean.
 - **Process gap found:** the `test_live_slots` fixtures broke in chunk 2 and went unseen until chunk 3, because `make test` does not run that test. Verifiers now run `make unit-run-test_live_slots` every chunk.
+
+### Step 8
+- **Commits:**
+  - `d6c6566`: candidate lists built in the frame zone with `entity_list_filter`. `JUMP_CANDIDATES_CAP` is gone. The pointer guard now counts local `entity_t *name[...]` arrays, and no longer reads `!=` before a brace as an initializer.
+  - `7874f7a`: the `.txt` "N frames." check.
+  - `4e1f51b`: the chord consistency test. `cheat_step` and `without_chord` agree, so nothing was single-sourced.
+  - `48441a2`: `pad_back`.
+  - `ba92daa`: × on a known planet.
+  - `7ba474f`: △ again closes the planet menu.
+  - `3a2f7d7`: ○ closes the year box and message boxes.
+  - `4fcc87e`: ○ root rung.
+  - `94d98c4`: `pad_colonise` coverage.
+- **× on a hovered known planet** sends △'s click, which opens its projects. The × that opened the menu presses no row until released and pressed again (`menu_cross_armed`, twin of `pause_cross_armed`).
+- **Recorded in `pad_back_t`, a struct of its own:** the planet × opened, a slipway's start, and a built slipway's target. Refusals record nothing.
+- **○ order, one rung per ○:**
+  1. Pause, then a ui ephemeral box, then the shown message box (year box included) on the map tab. On other tabs ○ still returns to the map.
+  2. A slipway or a placement.
+  3. Leaving aim mode.
+  4. At the root, a jump to the last object × acted on, with edge scroll. It does nothing when nothing is recorded, when that object is already hovered, or when it is gone.
+- **△ again** closes the planet menu or panel jump mode opened. It never closes the year box. On a hovered object under the year box, △ still opens that object's menu (`guideline`-confirmed reading).
+- **Re-authored** (about 19 min):
+  - Chunk 5: `pad_tech_costs`, whose f128–134 × taps on p31 became idle frames; capture unchanged.
+  - Chunk 7: `pad_planet_projects` f293, `pad_research` f364, and `pad_tech_costs` f315 and f504 gained a ○ that closes the year box first.
+  - Chunk 8: `pad_research` f306, whose root ○ became idle.
+  - Chunk 9: `pad_colonise`, 411 → 417 frames; `pad_slipway` f88 edited.
+  - Hashes re-baselined: `pad_planet_projects`, `pad_research`, `pad_tech_costs`, `pad_colonise`. No `.end-state` changed.
+- **Situations removed with their mechanic:** "× on p31 opens no menu" and "○ inert in jump mode".
+- **New situations, all in `pad_colonise`:** × opens a menu (f88); △ opens then closes a panel (f141, f144); ○ root jump (f268); ○ on the last object does nothing (f293, the designed no-op for step 14). Year-box ○ in the three replays above.
+- **Size:** `pad_nav.c` 1142 → 1170 lines; `pad_nav_t` 23 → 25 fields (`back`, `menu_cross_armed`). `test_pad_nav.c` 165 → 189 tests, none deleted.
+- **Checks:**
+  - Frame-zone peak 13872 → 13840.
+  - Coverage: the same 69 unhit lines as step 7.
+  - `full-game`, `save-worst-case`, `save-fuzz`, `rng-sync-probe` (quiet window f292–416) and `test_live_slots` are clean.
+  - Cheat unchanged: ordinary × △ ○ play cannot type it (unit-tested).
+- **For step 9:** ○ on the map closes a year box first. ○ at the root jumps once × has acted. Frame shifts move visual draws: `slipway.c:92` in `pad_colonise` depends on an 8% transit-dot draw on the HUD-aim frames.
+- **Found by a verifier, not fixed:** `tools/pointer_guard.sh` still skips any block whose header contains a real `=` (`while ((e = f()) != NULL) {`), and the statement after it. Nothing is hidden today (9 such blocks, no arrays). It is a follow-up outside this plan.
