@@ -650,14 +650,19 @@ static int click_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame
     return 1;
 }
 
+/* The cursor on the start's screen point, the left button pressed: the mouse's press that hands the ui a slipway. */
+static void press_slipway_start(pad_nav_t *nav, const entity_t *start, p8_input_frame_t *played) {
+    screen_point(start, &nav->cursor_x, &nav->cursor_y);
+    played->mouse_buttons = P8_MOUSE_LEFT;
+}
+
 /* Returns whether × pressed the hovered object, as the mouse does: its left press hands the ui a slipway, held from
  * the next frame. A refused start presses nothing, and no later frame retries it. */
 static int cross_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
     if (!pad_slipway_can_start(hovered) || !pressable(hovered) || nav->left_was_down) {
         return 0;
     }
-    screen_point(hovered, &nav->cursor_x, &nav->cursor_y);
-    played->mouse_buttons = P8_MOUSE_LEFT;
+    press_slipway_start(nav, hovered, played);
     nav->map_mode = PAD_NAV_MAP_SLIPWAY;
     pad_slipway_init(&nav->slipway);
     nav->slipway.start = entity_id_link(hovered);
@@ -739,9 +744,7 @@ static int press_start_again(pad_nav_t *nav, const entity_t *start, p8_input_fra
     if (pressed_before(start, x, y)) {
         return 0;
     }
-    nav->cursor_x = x;
-    nav->cursor_y = y;
-    played->mouse_buttons = P8_MOUSE_LEFT;
+    press_slipway_start(nav, start, played);
     return 1;
 }
 
