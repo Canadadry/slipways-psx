@@ -257,3 +257,60 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - **Known gaps:**
   - No replay hovers anything yet, so jump mode is covered only by unit tests.
   - No test covers △ refused under a HUD item.
+
+### Step 6
+- **Commits:**
+  - `ce775f0`: `src/game/pad_slipway.{c,h}`, pure helpers: can-start (`slipgate_takes_slipway` for gates), candidates minus the start, between, outcome, release and rebase.
+  - `a4deb2a`: the chord cheat.
+  - `7ec1e81`: × and slipway mode.
+  - `66d81e4`, `00dc472`, `fd74c1a`, `2afddde`, `1c8777f`: replays.
+- **Slipway mode:**
+  - × on a hovered colony or structure that can start a slipway, once it is inside the rectangle and clear of the HUD, presses it and holds the button.
+  - The D-pad jumps between targets, start excluded.
+  - × releases on the target. A built slipway continues from its target, so × D-pad × D-pad × builds the chain of two.
+  - ○, pause, a tab change or a box opening cancel through the ui's null drop.
+  - A refused start presses nothing.
+  - Added beyond the PRD: tabs and pause wait one frame after a slipway release, as they do after a drag's.
+- **Cheat verdict:** ordinary building could type × × ○ ○ × × ○ ○ (build, then ○ twice), so section 2's fallback applied. The cheat is four × + ○ chords: a lone × or ○ resets the count. `pad_nav_step` hides × and ○ from every mode from a chord frame until both are up.
+  - Deliberate route: four chords, one every 2 frames, anywhere, for example in jump mode on a colony. Unit-tested to leave nav, cursor and game unchanged apart from the money and research.
+  - The `worst-case/` games type the old sequence: their cheat count is 0 and `full_game_pause_restart` joins the stale set.
+- **Re-authored:** 8 replays broke.
+  - Chunk 2: `pad_bankrupt`, `pad_research`, `pad_tech_costs`, `pad_planet_projects`.
+  - `pad_colonise`, `pad_slipway` (twice), `pad_research`, `pad_tech_costs`, `pad_planet_projects`.
+  - `pad_resume_at_start` re-cut from `pad_research`'s last record.
+  - About 49 minutes of re-authoring, 80 minutes for the whole step.
+- **Frame counts:**
+
+  | Replay | Before | After |
+  |---|---|---|
+  | `pad_bankrupt` | 180 | 170 |
+  | `pad_research` | 577 | 458 |
+  | `pad_tech_costs` | 571 | 565 |
+  | `pad_planet_projects` | 568 | 583 |
+  | `pad_colonise` | 345 | 315 |
+  | `pad_slipway` | 348 | 362 |
+
+  136 frames fewer in total. Every e2e slipway is now built by the × route, each in its reference direction, and every end state matches `8defcba`.
+- **Situations kept on the old drag until step 7:**
+  - `pad_colonise` f146–155 and f215–260: the crossed planet, a drop on empty space, a fold under a drag.
+  - `pad_slipway`:
+    - f100: □ from network mode into the drag.
+    - f125–142: snap, cost, refusal, crossed planet.
+    - f194–210: drop on empty space, fold under a drag.
+    - f229–236: △ under the centre during a drag, colonising from a resumed drag.
+    - f237–238: the drag pressed from the off-screen p47.
+    - f313–361: □ from network mode into the drag, the duplicate seen from the drag, the drop on it, ○.
+  - Network travel stays in `pad_slipway`.
+  - `pad_tech_costs` ends through network mode on p54, the only reach of `pad_nav_next_slipway`'s insertion lines.
+  - `pad_planet_projects` f172–173 is the only reach of `drop_stale_map_mode`.
+- **Dropped or moved:**
+  - `guideline` decision: the build from an off-screen start is dropped from `pad_slipway`. No × route keeps the reference slipway's direction in that galaxy; `test_an_off_screen_start_still_builds` stands in.
+  - "Too far" moved to the × route (p28 → p25).
+  - Network travel used only to get somewhere (`pad_research`, `pad_tech_costs`) became jumps.
+  - The drag's build landing into network mode became the chain continuation.
+- **Coverage:** `make coverage-compare` reports unhit 2: `src/game/pad_nav.c:538–539`, `drag_due_step`'s `land_on` after an old-drag build. The plan replaces those lines (the × route), and step 7 deletes the drag. Every other baseline line is hit.
+- **Pins re-derived:**
+  - `test_rng_sync`: the quiet window moved from {280, 344} to {288, 314}.
+  - `test_live_slots` on `pad_tech_costs`: f512, f544, f559 and f564. The slipway arena is taken at the f503 re-press, and the rebuild grows nothing.
+  - `test_circle_on_a_tab_returns_to_the_map` was retyped for the chord.
+  - `test_state` is unchanged.
