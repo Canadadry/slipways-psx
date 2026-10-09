@@ -9,7 +9,8 @@
 #                       sha256 of its capture to <name>.json.sha256; also fails
 #                       if an e2e lacks its .txt or its .json.sha256, or runs
 #                       past 180 frames (600 if listed in
-#                       tools/e2e_long_exceptions.txt), or if an e2e does
+#                       tools/e2e_long_exceptions.txt, whose "N frames:"
+#                       must match and exceed 180), or if an e2e does
 #                       not declare "input": "pad" or carries a mouse field
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run

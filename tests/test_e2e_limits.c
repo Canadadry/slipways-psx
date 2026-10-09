@@ -1,6 +1,7 @@
 /* tools/e2e_limits.sh, the guard of new e2e files (companion files, 180
  * frames, 600 for a listed exception, the pad header, no mouse field, the
- * .txt's "N frames."), on built events files. */
+ * .txt's "N frames.", each exception's "N frames:" and its length over 180),
+ * on built events files. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -105,9 +106,10 @@ static void test_frames_are_counted_by_their_pad_key(void) {
 static void test_listed_exception_is_allowed_up_to_600_frames(void) {
     reset();
     write_e2e("long", 600, NULL);
-    write_file(EXCEPTIONS, DIR "/long.json the game takes long to end\n");
+    write_file(EXCEPTIONS, DIR "/long.json 600 frames: the game takes long to end\n");
     assert(run(DIR "/long.json") == 0);
     write_e2e("long", 601, NULL);
+    write_file(EXCEPTIONS, DIR "/long.json 601 frames: the game takes long to end\n");
     assert(run(DIR "/long.json") != 0);
     assert(strstr(read_log(), DIR "/long.json") != NULL);
 }
@@ -205,6 +207,53 @@ static void test_txt_with_two_statements_in_its_first_paragraph_fails(void) {
     assert(strstr(read_log(), DIR "/twice.json") != NULL);
 }
 
+static void test_listed_exception_stating_a_wrong_count_fails_and_is_named(void) {
+    reset();
+    write_e2e("short", 10, NULL);
+    write_e2e("long", 300, NULL);
+    write_file(EXCEPTIONS, DIR "/long.json 299 frames: the game takes long to end\n");
+    assert(run(DIR "/short.json " DIR "/long.json") != 0);
+    assert(strstr(read_log(), "e2e: " DIR "/long.json: " EXCEPTIONS " says 299 frames, the file has 300\n") != NULL);
+    assert(strstr(read_log(), DIR "/short.json:") == NULL);
+}
+
+static void test_listed_exception_stating_no_count_fails(void) {
+    reset();
+    write_e2e("long", 300, NULL);
+    write_file(EXCEPTIONS, DIR "/long.json the game takes long to end\n");
+    assert(run(DIR "/long.json") != 0);
+    assert(strstr(read_log(), "e2e: " DIR "/long.json: " EXCEPTIONS " states no \"N frames:\"\n") != NULL);
+}
+
+static void test_listed_exception_of_180_frames_or_fewer_fails(void) {
+    reset();
+    write_e2e("listed", 180, NULL);
+    write_file(EXCEPTIONS, DIR "/listed.json 180 frames: no longer long\n");
+    assert(run(DIR "/listed.json") != 0);
+    assert(strstr(read_log(), "e2e: " DIR "/listed.json: listed in " EXCEPTIONS " but runs 180 frames, not over 180\n") !=
+           NULL);
+    write_e2e("listed", 181, NULL);
+    write_file(EXCEPTIONS, DIR "/listed.json 181 frames: long again\n");
+    assert(run(DIR "/listed.json") == 0);
+}
+
+static void test_listed_exception_without_its_e2e_fails(void) {
+    reset();
+    write_e2e("given", 10, NULL);
+    write_file(EXCEPTIONS, DIR "/gone.json 300 frames: removed since\n");
+    assert(run(DIR "/given.json") != 0);
+    assert(strstr(read_log(), "e2e: " DIR "/gone.json: listed in " EXCEPTIONS " but not given\n") != NULL);
+}
+
+static void test_listed_exceptions_are_judged_without_any_txt(void) {
+    reset();
+    write_e2e("long", 300, NULL);
+    assert(system("rm " DIR "/long.txt") == 0);
+    write_file(EXCEPTIONS, DIR "/long.json 299 frames: the game takes long to end\n");
+    assert(run(DIR "/long.json") != 0);
+    assert(strstr(read_log(), EXCEPTIONS " says 299 frames, the file has 300") != NULL);
+}
+
 int main(void) {
     test_no_e2e_passes();
     test_e2e_of_180_frames_passes();
@@ -220,6 +269,11 @@ int main(void) {
     test_txt_stating_a_wrong_count_fails_and_is_named();
     test_txt_without_the_statement_in_its_first_paragraph_fails();
     test_txt_with_two_statements_in_its_first_paragraph_fails();
+    test_listed_exception_stating_a_wrong_count_fails_and_is_named();
+    test_listed_exception_stating_no_count_fails();
+    test_listed_exception_of_180_frames_or_fewer_fails();
+    test_listed_exception_without_its_e2e_fails();
+    test_listed_exceptions_are_judged_without_any_txt();
     assert(system("rm -rf " DIR) == 0);
     printf("test_e2e_limits: all tests passed\n");
     return 0;
