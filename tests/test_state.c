@@ -156,7 +156,7 @@ static void save_hex_writes_the_stored_record(void) {
 static void pad_tech_costs_rich_mine(void) {
     remove(SAVE_HEX);
     replay("SAVE_HEX=" SAVE_HEX " " REPLAY_TO("tests/e2e/pad_tech_costs.json", SAVE_OUT));
-    assert(has("difficulty reasonable") && "the title: Down, X on reasonable");
+    assert(has("difficulty reasonable") && "the saved game is reasonable");
     assert(has("count nodes 90") && "90 planets, no structure, no protostar");
     save_hex_writes_the_stored_record();
     assert(has("count planets 90"));

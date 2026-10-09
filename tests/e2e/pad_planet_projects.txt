@@ -1,59 +1,73 @@
 The cheat, "geoharvesting" and "harvest" on a forgeworld with
 its burst to the end; "replication" and "mechanize" on a remnant planet,
 colonised; that colony panned off screen with the D-pad before a year
-passes. Then the structures: "infraspace", an infragate and its slipway;
-"void synthesis", two synthesizers linked to that colony; "ascension",
-the gate placed. 585 frames.
+passes, ended by a Select hold. Then the structures: "infraspace", an
+infragate and its slipway; "void synthesis", two synthesizers linked to
+that colony; "ascension", the gate placed. 524 frames.
 
-Jump mode is the map's root, where every game starts: square on f13
-enters aim mode, the camera unmoved; f175: the same once the f174 harvest
-killed the hovered p25. pad_probe's f16-17 (O back to jump mode with
-nothing hovered, square back to aim mode) are shared. The menus open from
-jump mode (plan 12 step 7: triangle does nothing in aim mode): square on
-f159 and f202 leaves aim mode for jump mode on the planet under the
-centre, 2 frames inserted at f159.
+Resumed from a record: plan 12 step 9 cut this file at f86 of its step 8
+version, the record after pad_probe's frames, the pans onto p25 and
+before the first cheat, so its year's 30-frame Select hold fits. The
+title, the starting probe and the fold moved into the record; pad_probe
+and pad_colonise still play them. Every frame from the old f87 is kept,
+73 frames earlier, up to the year, and the frames after the year's tab
+trip 46 frames earlier, but for 15 idle frames dropped (13 before s1's
+drop, one after each of two squares) to keep the step's e2e frame total.
 
-O in network mode now returns to jump mode, so both cheats moved there,
-where X and O do nothing: 4 frames before the first cheat, 2 before the
-second, and every later frame shifted by them. The second cheat's X
-taps no longer travel s2 -> p47 -> s2 in network mode, so the carry of
-s4 no longer centres the camera on s2: one Up tap re-pans the pixel
-that leaves. Later captures differ from the old ones by the shift
-alone (animation phases, transit dots, particles); the game state does
-not.
+The record is cut, never typed, from this file at 4382824 replayed to
+f86 (no wormhole lives there, so the record is written):
 
-Pad input declared ("input": "pad"). f0-68 are pad_probe's frames, so
-p25 (type f) and p47 (type r) are known. Readings come from `make
-state` of the file cut after the frame and from the capture.
+    make replay EVENTS=<4382824's pad_planet_projects.json cut to f0-86> SAVE_HEX=tmp/projects.hex
 
-- f69-82: Up+Right 11, Up 2 (two taps), idle f83-85: p25 under the
-  centre (camera 200 169). f87-95: X five times on p25 (X taps on a
-  planet open nothing). f97-103: the cheat, four X + O chords one every
-  two frames: $200, research 99 at f103.
-- f105-157: four times R1 R1 R1, Down xN, X: "space folding" (row 1,
+which prints `save: clock year 3401 month 2`, `save: resources credits
+97`, `save: count nodes 90`; the hex is the header's initial_save. Its
+camera is 200 169, p25 (type f) and p47 (type r) known. All three
+cheats come after the cut (cheat activations 3).
+
+- f10: Up onto "resume", f12: X: the record's game, month 2, $97. f13:
+  square: aim mode, p25 under the centre (camera 200 169). The title's
+  X is a lone X, which leaves the cheat matcher at 0.
+
+Jump mode is the map's root, where every game starts. The menus open
+from jump mode (plan 12 step 7: triangle does nothing in aim mode):
+square on f86 and f129 leaves aim mode for jump mode on the planet under
+the centre; f102: square again once the f101 harvest killed the
+hovered p25.
+
+Readings come from `make state` of the file cut after the frame and
+from the capture.
+
+- f14-22: X five times on p25 (X taps on a planet open nothing in aim
+  mode). f24-30: the cheat, four X + O chords one every two frames:
+  $200, research 99 at f30.
+- f32-84: four times R1 R1 R1, Down xN, X: "space folding" (row 1,
   research 95), "geneseeds" (row 1, 90, era 2 opens), "geoharvesting"
   (row 3, 76), "replication" (row 4, 58).
-- f159: square: jump mode on p25. f161-174: triangle on the hovered p25,
+- f86: square: jump mode on p25. f88-101: triangle on the hovered p25,
   Down x5, X on "harvest" (row 5, under
   nanotech, bots, goods and gadgets, mostly below the bottom edge: its
-  colour 12 at y116-117 from f172): $200 -> $220, month 2 -> 4, burst
-  1, particle 59 -> 199. f175: p25 is a ring of yellow particles. The
-  burst lives to f257; at f258 burst 0 and particles 2 -> 1
-  (test_live_slots' readings).
-- f176-200: Down+Left 10, Down 13, Down 1 (two taps), idle f201-203:
-  p47 under the centre (80.24, 59.74). f202: square: jump mode on p47.
-  f204-215: triangle on the hovered p47, Down x4, X
+  colour 12 at y116-117 from f99): $200 -> $220, month 2 -> 4, burst
+  1, particle 59 -> 199. f102: p25 is a ring of yellow particles. The
+  burst lives to f185; at f186 burst 0 and particles 2 -> 1
+  (test_live_slots' readings; one frame later after the harvest than
+  before the plan 12 step 9 cut).
+- f103-127: Down+Left 10, Down 13, Down 1 (two taps), idle f128-130:
+  p47 under the centre (80.24, 59.74). f129: square: jump mode on p47.
+  f131-142: triangle on the hovered p47, Down x4, X
   on "mechanize" (row 4, "20$"): $220 -> $200, month 4 -> 6, p47 type
   r -> f (the header still reads "remnant").
-- f217-222: triangle on p47, still hovered, Down, X on "nanotech": p47 colonised, $192,
+- f144-149: triangle on p47, still hovered, Down, X on "nanotech": p47 colonised, $192,
   month 9, income -1.
-- f224: square: aim mode, the camera unmoved (190 206). f226: idle (its
-  square dropped the old drag before plan 12 step 7). f228-268: Up 41:
+- f151: square: aim mode, the camera unmoved (190 206). f153: idle (its
+  square dropped the old drag before plan 12 step 7). f155-195: Up 41:
   camera 190 132, p47 at screen (80.24, 133.75), visible 0.
-- f270-274: R1 R1, X on `end turn`: year 3402, $192 -> $191. p47 pays
-  its -1 off screen, so planet_new_year returns before its toast.
+- f197-226: Select held 30 frames in aim mode, the camera unmoved: on
+  f226, its 30th frame, the cursor on the year-skip button (154 5),
+  pressed: year 3402, $192 -> $191. p47 pays its -1 off screen, so
+  planet_new_year returns before its toast. Until plan 12 step 9 this
+  year was R1 R1, X on `end turn`.
 
-`make state` at f276: year 3402 month 1, credits 191, research 59,
+`make state` at f227: year 3402 month 1, credits 191, research 59,
 income -1, techs space folding, geneseeds, geoharvesting, replication;
 camera 190 132, p47 colonized type f, planets 89, colonies 1. Peaks:
 burst 1, bytes_burst 528, elements_particles 140, as
@@ -66,69 +80,66 @@ colony at -1 off screen at the year, no toast). Same effects here on
 a forgeworld and a remnant planet: harvest takes "efmorxjisg",
 mechanize "mrsoijx".
 
-Structures, f277-563 (remove-mouse-mode PRD, chunk 6; appended here to
-share the cheat, the research and the colony instead of separate
-pad_infragate, pad_synthesizer and pad_ascension files). Every capture
-frame up to f227 is unchanged, byte for byte.
+Structures, f228-502 (remove-mouse-mode PRD, chunk 6; appended
+here to share the cheat, the research and the colony instead of
+separate pad_infragate, pad_synthesizer and pad_ascension files).
 
-- f278-292: R1 (`end turn` -> `tech`), Down x5, X: "infraspace"
-  (research 59 -> 28).
-  f293: O closes the year box (up since f274's year; plan 12 step 8: O
-  closes a box before it backs out), aim mode kept. f295: O leaves aim
+- f228-246: R1 R1 R1 (`build`, `end turn`, `tech`), Down x5, X:
+  "infraspace" (research 59 -> 28).
+  f247: O closes the year box (up since f226's year; plan 12 step 8: O
+  closes a box before it backs out), aim mode kept. f249: O leaves aim
   mode for jump mode on p47, the only target; the edge scroll takes the
-  camera 190 132 -> 190 177 by f301. f296-304: idle. f305-311: the cheat, four X + O chords: $200, research 99 at
-  f311. (Before plan 12 step 7, f293's O went back to network mode on
-  the last planet p47, the camera centred on it (190 205), and f295's O
+  camera 190 132 -> 190 177 by f255. f250-258: idle. f259-265: the cheat, four X + O chords: $200, research 99 at
+  f265. (Before plan 12 step 7, f247's O went back to network mode on
+  the last planet p47, the camera centred on it (190 205), and f249's O
   left it for jump mode: that return is gone with its mechanic.)
-- f313-347: "autoassemblers", "skill implants" (era 4 opens), "void
+- f267-301: "autoassemblers", "skill implants" (era 4 opens), "void
   synthesis" (row 2): research 20.
-- f348-384: R1, Left x2, X: the infragate s1 carried from camera 190
-  177; Up+Right 2, Up 11, idle f369-382, X (f383): s1 built at (272,
+- f302-325: R1, Left x2, X: the infragate s1 carried from camera 190
+  177; Up+Right 2, Up 11, idle f323, X (f324): s1 built at (272,
   221), $200 -> $175, on the spot p25 left: the same world point as
-  before step 7, reached with 14 fewer Up frames from the higher camera.
-- f385: square: aim mode left for jump mode on s1, the target nearest
+  before step 7, reached with 14 fewer Up frames from the higher camera
+  (the 14 idle frames left in their place became one in plan 12 step 9).
+- f326: square: aim mode left for jump mode on s1, the target nearest
   the centre.
 
 The slipways are built the cross way (plan 12 step 6), each in its
 direction; before each structure is taken, the camera is panned back to
-the one the old file took it from (rule 8). Up to the old f383, the
-inputs are the step 6 file's, 2 frames later from f159, but for f17,
-f159-160, f202, f226, f295 and f369-382 (plan 12 step 7), and f295
-again (plan 12 step 8).
+the one the old file took it from (rule 8).
 
-- f386: idle (it was O, leaving network mode, before plan 12 step 7).
-  f388: X on s1, f390: Down onto p47 (the
-  edge scroll takes the camera 192 161 -> 192 177), f396: X: `slipway s1
-  p47 infragate`, $175 -> $168. f399: O: jump mode on p47.
-- f402: square: aim mode. f404-422: Down+Left 2, Down 17: camera
+- f327: idle (it was O, leaving network mode, before plan 12 step 7).
+  f328: X on s1, f330: Down onto p47 (the
+  edge scroll takes the camera 192 161 -> 192 177), f336: X: `slipway s1
+  p47 infragate`, $175 -> $168. f339: O: jump mode on p47.
+- f342: square: aim mode. f344-362: Down+Left 2, Down 17: camera
   190 205, where the old file's network mode centred on p47 before each
-  synthesizer was taken. f424-428: R1, Left, X: synthesizer s2 carried,
-  the camera unmoved. f431-446: Up+Left 8, Up 7, X: built at (262,
+  synthesizer was taken. f364-368: R1, Left, X: synthesizer s2 carried,
+  the camera unmoved. f371-386: Up+Left 8, Up 7, X: built at (262,
   245), $128.
-- f448-462: Down+Right 8, Down 7: camera 190 205 again. f464-466: R1, X:
-  a second synthesizer. f469-485: Up+Right 13, Up 3, X: s3 at (286,
+- f388-402: Down+Right 8, Down 7: camera 190 205 again. f404-406: R1, X:
+  a second synthesizer. f409-425: Up+Right 13, Up 3, X: s3 at (286,
   243), $88.
-- f487: square: aim mode left for jump mode on s3, under the centre.
-  f489: idle (it was O, leaving network mode). f491: X on
-  s3, f493: Down onto p47, f496: X: `slipway s3 p47 normal`, $85, income
+- f427: square: aim mode left for jump mode on s3, under the centre.
+  f429: idle (it was O, leaving network mode). f430: X on
+  s3, f432: Down onto p47, f435: X: `slipway s3 p47 normal`, $85, income
   -2 -> 6: s3 synthesizes p47's ore need. The aim is checked against
   s1's infraspace slipway, on another plane.
-- f497: the pad presses p47, the new start. f499: Up onto s2, f502: X:
+- f436: the pad presses p47, the new start. f438: Up onto s2, f441: X:
   `slipway p47 s2 normal`, $82, income still 6: s2 skips the need s3
-  already serves. f503: s2 pressed; f505: O: jump mode on s2.
-- f509: square: aim mode. f511-527: Up+Left 1, Left 16: camera
+  already serves. f442: s2 pressed; f444: O: jump mode on s2.
+- f448: square: aim mode. f450-466: Up+Left 1, Left 16: camera
   182 182, where the old file took the ascension gate from jump mode.
-- f529-535: the cheat, four X + O chords: $200, research 99 at f535.
-  f537-553: "ascension" (row 4): research 49.
-- f554-582: R1, Left, X: the ascension gate s4 carried from camera 182
-  182; Up+Right 17, Right, Up+Right, Right 3, X (f582): built at (296,
+- f468-474: the cheat, four X + O chords: $200, research 99 at f474.
+  f476-492: "ascension" (row 4): research 49.
+- f493-521: R1, Left, X: the ascension gate s4 carried from camera 182
+  182; Up+Right 17, Right, Up+Right, Right 3, X (f521): built at (296,
   217), $140, month 11. Up and left of s2, 16 px from p6, the spot
   would be refused.
 
-At f584 the infragate's slipway is two parallel colour-1 lines, 3 px
+At f523 the infragate's slipway is two parallel colour-1 lines, 3 px
 apart, from s1 to p47; the ordinary slipways are single diagonal lines.
 
-`make state` at f584: year 3402 month 11, credits 140, research 49,
+`make state` at f523: year 3402 month 11, credits 140, research 49,
 income 6, techs + infraspace, autoassemblers, skill implants, void
 synthesis, ascension; camera 216 157; s2, s3 colonized synthesizer, s4
 colonized ascension, structure s1 infragate links 1; slipways s1 p47

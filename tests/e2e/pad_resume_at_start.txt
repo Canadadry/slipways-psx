@@ -11,7 +11,7 @@ clock, money and nodes are the same, 36 hex digits of its timed state
 differ.
 
 The fixture is cut, never typed, from pad_research replayed to its last
-frame (f513), whose last record is the save of its last action (the
+frame (f499), whose last record is the save of its last action (the
 year to 3403, ended by a Select hold; no wormhole lives at the end, the
 record is written; the Select taps after it write no record):
 

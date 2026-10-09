@@ -1,6 +1,6 @@
 25 years ended with Select on the map, a hold and 24 chained presses,
 the "final score" panel, X on "again?", the title. X held into the panel
-and into the title presses nothing. 126 frames.
+and into the title presses nothing. 112 frames.
 
 Jump mode is the map's root, where every game starts. This file stays
 in it: no square on f13, unlike pad_end_turn, and nothing is hovered (no
@@ -33,13 +33,14 @@ each frame, the clock from `make state` of the same cut.
   held: X held into a panel on the map presses no row until pressed
   again (plan 12 step 9). After f102: still 3426, research 25, 90
   planets, the game running.
-- f103-117: nothing. The panel slides in.
-- f118-121: X held 4 frames. f118: the fresh press clicks "again?": the
+- f103-105: nothing. The panel slides in; "again?" takes a press
+  before it settles (15 idle frames here until plan 12 step 9).
+- f106-109: X held 4 frames. f106: the fresh press clicks "again?": the
   title (clock "-", 0 planets). The rows slide in, forgiving colour 12
-  (hovered) from f119 while X is still held, the other rows 13 as they
-  arrive. After f121: still the title, no game started: the held X
+  (hovered) from f107 while X is still held, the other rows 13 as they
+  arrive. After f109: still the title, no game started: the held X
   gives the first row no press edge.
-- f122-125: nothing, the title.
+- f110-111: nothing, the title.
 
 `make state` after f91: clock year 3426 month 1, credits 100, research
 25, income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
@@ -47,9 +48,9 @@ structures 0, techs 0; every planet unknown. That is pad_end_turn's
 start with 25 years skipped: year +25, research +25, credits + 25 x
 income (income 0 with no colony). The same lines after f102.
 
-`make state` after f125 (the file's end): clock year - month -, credits
+`make state` after f111 (the file's end): clock year - month -, credits
 -, research -, income -, camera world 176 196, planets 0, colonies 0,
-slipways 0, structures 0, techs 0: the title. Same after f118 and f121.
+slipways 0, structures 0, techs 0: the title. Same after f106 and f109.
 
 Next to keyboard_game_end's end states:
 
@@ -57,8 +58,8 @@ Next to keyboard_game_end's end states:
   skip). pad_game_end f91: 3426, research 25 (a Select hold and 24
   Select presses on the year skip).
 - keyboard_game_end f154: O on "again?", the title (clock "-", 0
-  planets). pad_game_end f118: X on "again?", the title (clock "-", 0
-  planets), still the title at f125.
+  planets). pad_game_end f106: X on "again?", the title (clock "-", 0
+  planets), still the title at f111.
 
 The galaxies differ (keyboard_game_end has its own title click); the
 clock and research effects are equal (+25 years, +25 research), the
@@ -71,7 +72,7 @@ The X and O edges never type the cheat (four X + O chords): 3 lone X
 press edges (the title, the X held into the panel, "again?") and no O,
 none a chord; Select is no part of a chord.
 
-No long-replay exception: 126 frames, within 180.
+No long-replay exception: 112 frames, within 180.
 
 Cost: cold `make e2e` (tmp/frames removed), 13 runs without this file
 (8 of them interleaved) and 8 with it, median about 1310 ms without

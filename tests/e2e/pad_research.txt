@@ -2,7 +2,7 @@ The cheat typed as four X + O chords on the map, R1 to `tech`, "space
 folding" invented, back on the map. Then trade: a slipgate relaying a
 protostar's energy to a nanotech forgeworld, a trading hub fed tech and
 food, the protostar panned off screen, a year ended by a Select hold,
-then Select taps cycling the colonies that need attention. 514 frames.
+then Select taps cycling the colonies that need attention. 500 frames.
 
 Jump mode is the map's root, where every game starts: square on f25
 enters aim mode, the camera unmoved. Square on f259 and f436 enters aim
@@ -150,24 +150,23 @@ inputs of the old file but f29 (plan 12 step 7).
 - f436: square: aim mode. f438-488: Up+Left 17, Left 20, Left
   13: camera 96 185, p47 at screen x 174, visible 0: its particles are
   no longer drawn.
-- f490-505: Select tapped four times (f490, f494, f498, f502, each
+- f490-497: Select tapped four times (f490, f492, f494, f496, each
   released on the next frame), each acting on its release frame. The
   colonies and structures that need attention are those whose panel
   lists "needs:": p23, s1 and s2 (p78's panel above shows "wants
   more:", every need met; p47, the protostar, needs nothing). In
   registration order the settled objects are p23, p78, s1, s2, p47.
   - f491: from aim mode, jump mode on p23, the first in order; the
-    camera edge-scrolls 8 px a frame (cursor x 176, 168, 160, 152 on
-    f491-494).
-  - f495: s1, p78 skipped.
-  - f499: s2.
-  - f503: p23 again, p47 skipped: the wrap. From f503 the cursor rests
-    on p23 (120 36).
+    camera edge-scrolls 8 px a frame (cursor x 176, 168 on f491-492).
+  - f493: s1, p78 skipped.
+  - f495: s2.
+  - f497: p23 again, p47 skipped: the wrap. From f498 the cursor rests
+    on p23 (139 36).
   No tap presses the mouse, ends a year or writes a record.
 
-`make state` at f513: year 3403 month 1, credits 122, research 39,
+`make state` at f499: year 3403 month 1, credits 122, research 39,
 income 23, techs + geneseeds, slipgates, trade league, starbirth; camera
-160 193; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
+141 193; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
 colonized trading_hub, structure s2 slipgate links 3; slipways s1 p23,
 s2 s1, p78 s2, p47 s2; planets 91, colonies 4. Peaks: bytes_row 712
 (tech_trade_league_hub's 600), burst 1.
