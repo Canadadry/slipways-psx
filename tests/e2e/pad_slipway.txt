@@ -6,7 +6,7 @@ with a refused known planet, an already linked planet and too far; square
 selecting the colony under the centre from plain free mode, travel along
 the slipway in network mode with X, and a cancelled drag. It is the
 regression guard for the drag the pad once lacked (a blind press-release
-gesture drew nothing while aiming). 359 frames.
+gesture drew nothing while aiming). 362 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 leaves it for plain free mode, the camera unmoved, as games started
@@ -126,12 +126,16 @@ test_an_off_screen_start_still_builds.
   both colour 2 along the same path (194 colour-2 pixels on the screen
   above the HUD, 195 at the old file's f338); the label is the colour-8
   forbidden sign.
-- f356: circle: the drag is dropped on nothing, network mode back on
-  p28, camera (189, 206) -> (217, 276). f357: the selected slipway is
-  colour 12 (121 colour-12 pixels above the HUD, as at the old f340).
-  f357-358: idle; still one slipway, $64, month 10.
+- f356: X on p47: the drag's drop is refused, p47 already linked (the
+  old drag's own duplicate check, slipway_between), $64 kept. f357: the
+  pad presses p28 again at its off-screen point (108, 130); the drag
+  holds from f358.
+- f359: circle: the drag is dropped on nothing, network mode back on
+  p28, camera (189, 206) -> (217, 276). f360: the selected slipway is
+  colour 12 (123 colour-12 pixels above the HUD). f360-361: idle; still
+  one slipway, $64, month 10.
 
-`make state` at f358 (the file's end): clock year 3401 month 10,
+`make state` at f361 (the file's end): clock year 3401 month 10,
 credits 64, income 0, camera world 217 276, `slipway p47 p28 normal`,
 planets 88, colonies 2, slipways 1, structures 0, techs 0. p47
 colonized type r, p28 colonized type x, p25 known type f; every other
@@ -157,7 +161,7 @@ Covers the second colony and the slipway of keyboard_slipway
 (f94-159). With pad_probe (its probe and fold, f27-69) and pad_colonise
 (its first colony, f77-92), the whole of keyboard_slipway is covered.
 
-Length: 359 frames, listed in tools/e2e_long_exceptions.txt: the
+Length: 362 frames, listed in tools/e2e_long_exceptions.txt: the
 shared prefix alone is 99 frames.
 
 Cost: cold `make e2e` (tmp/frames removed), 5 runs each against the
