@@ -75,7 +75,7 @@ void ui_set_left_held(ui_t *self, const entity_t *held);
 /* NULL selection for none. frames_shown counts from the frame the selection was last shown. */
 void ui_set_pad_selection(ui_t *self, const entity_t *selection, int frames_shown);
 
-/* NULL for none: the active tab's HUD button, drawn as if hovered. */
+/* NULL for none: the open panel's HUD button, drawn as if hovered. */
 void ui_set_pad_tab(ui_t *self, const entity_t *button);
 
 /* Nonzero draws a crosshair at the screen centre. */

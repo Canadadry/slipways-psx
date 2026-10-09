@@ -1925,7 +1925,8 @@ static void test_shoulders_wait_under_the_pause_menu(void) {
     assert(pad_nav_build_bar_open(&step.pad_nav) && !pause_menu_shown());
 }
 
-static void test_the_ui_pad_tab_is_the_tab_hud_button(void) {
+/* Lit from the R1 frame that opens the panel, through its landing, until it closes; the year skip never. */
+static void test_the_ui_pad_tab_is_the_open_cycle_panels_hud_button(void) {
     input_step_t step;
     start_game(&step);
     assert(ui_pad_tab(main_ui()) == NULL);
@@ -1933,11 +1934,14 @@ static void test_the_ui_pad_tab_is_the_tab_hud_button(void) {
     const entity_t *lit[5] = { &galaxy_menu_find_button(2)->header, &galaxy_menu_find_button(3)->header, NULL, NULL,
                                &galaxy_menu_find_button(2)->header };
     for (int i = 0; i < 5; i++) {
-        tap(&step, shoulders[i]);
+        run_frame(&step, shoulders[i]);
+        assert(ui_pad_tab(main_ui()) == lit[i]);
+        run_frame(&step, 0);
         assert(pad_nav_tech_open(&step.pad_nav) == (i == 0 || i == 4));
         assert(pad_nav_score_open(&step.pad_nav) == (i == 1));
         assert(pad_nav_build_bar_open(&step.pad_nav) == (i == 3));
         assert(ui_pad_tab(main_ui()) == lit[i]);
+        assert(ui_pad_tab(main_ui()) != &galaxy_menu_find_button(1)->header);
     }
     tap(&step, P8_PAD_R1);
     tap(&step, P8_PAD_R1);
@@ -1969,7 +1973,7 @@ static void assert_tech_panel_up_and_its_button_not_hovered(void) {
     assert(pad_nav_panel_open() && ui_hovered(main_ui()) != &galaxy_menu_find_button(2)->header);
 }
 
-static void test_the_tech_tab_lights_the_tech_button_under_its_panel(void) {
+static void test_the_tech_panel_lights_the_tech_button_under_it(void) {
     input_step_t step;
     start_game(&step);
     open_tech(&step);
@@ -2533,6 +2537,42 @@ static void suspend_into_pause(input_step_t *step, const entity_t *structure) {
     assert_restart_focused_and_hovered(step);
     assert(ui_left_held(main_ui()) == NULL && pad_nav_placing(&step->pad_nav) == NULL);
     assert(!structure->is_dead && structure->state == ENTITY_STATE_PLACING);
+}
+
+static void test_the_score_panel_lights_the_score_button_from_the_r1_on_tech(void) {
+    input_step_t step;
+    start_game(&step);
+    open_tech(&step);
+    settle(&step);
+    run_frame(&step, P8_PAD_R1);
+    assert(pad_nav_score_open(&step.pad_nav) && ui_pad_tab(main_ui()) == &galaxy_menu_find_button(3)->header);
+    settle(&step);
+    assert(score_panel_shown() && ui_pad_tab(main_ui()) == &galaxy_menu_find_button(3)->header);
+    cart_draw();
+    assert(filled_with(3, HOVER_FILL) && filled_with(2, IDLE_FILL) && filled_with(1, IDLE_FILL));
+}
+
+static void test_nothing_is_lit_on_the_bar_while_carrying_under_pause_or_on_the_final_score_panel(void) {
+    input_step_t step;
+    if (in_forked_copy()) {
+        end_game(&step);
+        assert(pad_nav_panel_open() && ui_pad_tab(main_ui()) == NULL);
+        end_forked_copy();
+    }
+    start_game(&step);
+    open_pause(&step);
+    assert(ui_pad_tab(main_ui()) == NULL);
+    close_pause(&step, P8_PAD_START);
+    open_build_bar(&step);
+    assert(ui_pad_tab(main_ui()) == NULL);
+    open_pause(&step);
+    assert(ui_pad_tab(main_ui()) == NULL);
+    close_pause(&step, P8_PAD_START);
+    entity_t *structure = take_structure(&step);
+    for (int i = 0; i < 3; i++) {
+        run_frame(&step, 0);
+        assert(pad_nav_placing(&step.pad_nav) == structure && ui_pad_tab(main_ui()) == NULL);
+    }
 }
 
 static void close_pause_into_the_carry(input_step_t *step, const entity_t *structure) {
@@ -4895,7 +4935,7 @@ static void test_start_is_ignored_on_the_triangle_release_frame(void) {
     assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
 }
 
-static void test_no_pad_selection_is_shown_behind_a_tab(void) {
+static void test_no_pad_selection_is_shown_behind_the_bar_or_a_cycle_panel(void) {
     input_step_t step;
     planet_t *colony = jump_on_colony(&step);
     assert(ui_pad_selection(main_ui()) == &colony->header);
@@ -5951,9 +5991,11 @@ int main(void) {
     in_fresh_child(test_closing_pause_resumes_the_carry_where_it_was);
     in_fresh_child(test_restart_under_pause_drops_the_suspended_structure);
     in_fresh_child(test_circle_on_the_release_frame_of_the_pause_click_is_dropped);
-    in_fresh_child(test_the_ui_pad_tab_is_the_tab_hud_button);
-    in_fresh_child(test_no_pad_selection_is_shown_behind_a_tab);
-    in_fresh_child(test_the_tech_tab_lights_the_tech_button_under_its_panel);
+    in_fresh_child(test_the_ui_pad_tab_is_the_open_cycle_panels_hud_button);
+    in_fresh_child(test_nothing_is_lit_on_the_bar_while_carrying_under_pause_or_on_the_final_score_panel);
+    in_fresh_child(test_no_pad_selection_is_shown_behind_the_bar_or_a_cycle_panel);
+    in_fresh_child(test_the_tech_panel_lights_the_tech_button_under_it);
+    in_fresh_child(test_the_score_panel_lights_the_score_button_from_the_r1_on_tech);
     in_fresh_child(test_landing_on_tech_opens_its_panel_and_an_invention_returns_to_the_map);
     in_fresh_child(test_cross_on_the_tech_header_closes_the_box_and_returns_to_the_map);
     in_fresh_child(test_circle_on_tech_closes_the_box_and_returns_to_the_map_in_one_press);

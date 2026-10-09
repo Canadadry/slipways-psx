@@ -47,7 +47,9 @@ typedef struct {
 
 void pad_nav_init(pad_nav_t *nav);
 
-/* Writes only the played frame's mouse_x, mouse_y and mouse_buttons, and the main ui's pad selection, pad tab and pad crosshair. */
+/* Writes only the played frame's mouse_x, mouse_y and mouse_buttons, and the main ui's pad selection, pad crosshair and
+ * pad tab: the open cycle panel's HUD button (tech or score), from the R1 frame that opens it until it closes; NULL with
+ * no game or no cycle panel open, the bar included. */
 void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played);
 
 /* NULL when no panel is open, the panel has no item, or the focus is no longer one of its items. */
