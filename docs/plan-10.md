@@ -87,3 +87,11 @@ The full game compiled for MIPS, in a `.bin/.cue` that boots in the emulator, sh
 - Bug fixed: `psx_pad_start` read every button held until the BIOS first polled (zeroed buffers); they are now filled with 0xff.
 - `make psx-game-check` (standalone, ~8 s) and `make psx-check`: 27 conditions (adding `game-done`, `game-pad-log`, `game-pad-states`, `game-state-game-lines`, `game-title-left`, `game-ram-room`), ~96 s, five boots. Game boot 363 vsyncs, ceiling 545, timeout 10 s. Game ELF text 357,128, data 2,856, bss 1,113,612; `game-ram-room` 492,484 bytes left.
 - Deviations: `psx_check.sh` takes 31 arguments (the PC replay tool is passed explicitly); the title script was committed in chunk 1 because `test_pad_log` reads it. The pad probe's boot stays: it covers five buttons the game ignores.
+
+### Step 1.6
+
+- Disc: `psx/iso.xml` and `psx/system.cnf` (`BOOT=cdrom:\SLIPWAYS.EXE;1`, psx-hello's TCB/EVENT/STACK, no license or region data) put `psx-game.exe` on `tmp/psx/build/slipways.{bin,cue}`, built by `make psx-build` (`psn00bsdk_add_cd_image`); `make psx-game-cd` names it. `slipways.bin` 2,881,200 bytes, 1,225 sectors; never hashed.
+- `tools/psx_cue_check.sh` (psx-hello's `cue` condition, moved unchanged) and `tools/psx_cd_check.sh` (`dumpsxiso -x`, the disc EXE equals the built one byte for byte), tested in `psx-tools-test`. dumpsxiso 2.03 prints its ERROR line on stdout.
+- `make psx-game-cd-check` (~15 s) boots the `.cue`; `make psx-check`'s game boot moved from the EXE to the `.cue` (still five boots) and gains `game-cue`, `game-cd-exe`, `game-gpu-cost`: thirty conditions, ~102 s. CD boot 760 vsyncs from power-on (363 from the EXE), ceiling 1,140, timeout 20 s. `psx_check.sh` takes 34 arguments.
+- The `-testmode` exit after a disc boot worked; no fallback needed.
+- Done when: (1) the `.bin/.cue` boots, shows the title (`game-gpu-cost`: the CD game's draw calls equal the PC's) and passes it through scripted pad input (11 states, 102 game lines, `difficulty reasonable`) — done; (2) `make psx-check` green, thirty conditions — done; (3) the human's review of the step-4 captures and their freeze — awaiting the human: 14 captures, one `make psx-gpu-capture-accept LABEL=<label>` per label (cls, rectfill, pset, pattern, line, circfill, spr, print, rect, circ, all).
