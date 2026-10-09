@@ -1,6 +1,7 @@
 #include "devtools/save_check.h"
 
 #include "engine/dispatch_context.h"
+#include "engine/entity_geom.h"
 #include "engine/entity_id.h"
 #include "engine/entity_registry.h"
 #include "game/background.h"
@@ -189,6 +190,68 @@ static void test_a_one_colony_game_resumes_equal_from_the_title(void) {
     save_check_capture(&g_resumed);
     play_compared_frame(&g_resumed);
     assert_equal(&g_saved, &g_resumed);
+}
+
+static planet_t *on_screen_planet(state_t state) {
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    for (int i = 0; i < planets->count; i++) {
+        planet_t *planet = (planet_t *)planets->items[i];
+        if (planet->header.state == state && entity_geom_is_on_screen(&planet->header)) {
+            return planet;
+        }
+    }
+    return NULL;
+}
+
+static void test_a_pad_selection_resumes_equal_from_the_title(void) {
+    planet_t *selected;
+    load_cart_to_title();
+    play_one_colony_game();
+    selected = on_screen_planet(ENTITY_STATE_KNOWN);
+    assert(selected != NULL && "a revealed planet is on screen to select");
+    ui_set_pad_selection(main_ui(), &selected->header, 0);
+    ui_set_pad_tab(main_ui(), &selected->header);
+    save_check_drop_unsaved_state();
+    save_check_capture(&g_saved);
+    play_compared_frame(&g_saved);
+
+    cart_init();
+    play_frame();
+    save_check_resume(&g_saved);
+    save_check_capture(&g_resumed);
+    play_compared_frame(&g_resumed);
+    assert_equal(&g_saved, &g_resumed);
+}
+
+enum { FLICKER_FIRST_STATE_TIME = 40, FLICKER_LAST_STATE_TIME = 55 };
+
+/* Resumes once per frame of the flicker: a single frame's flicker matches by chance half the time. */
+static void test_a_flickering_vanishing_planet_resumes_equal_from_the_title(void) {
+    planet_t *vanishing;
+    vec_t vanishing_pos;
+    load_cart_to_title();
+    play_one_colony_game();
+    vanishing = on_screen_planet(ENTITY_STATE_VANISHING);
+    assert(vanishing != NULL && "a vanishing planet is on screen");
+    vanishing_pos = entity_pos(&vanishing->header);
+    while (vanishing->header.state_time < p8_fixed_from_int(FLICKER_FIRST_STATE_TIME)) {
+        play_frame();
+    }
+    while (vanishing->header.state_time < p8_fixed_from_int(FLICKER_LAST_STATE_TIME)) {
+        assert(entity_geom_is_on_screen(&vanishing->header) && !vanishing->header.is_dead && "the planet flickers on screen");
+        save_check_capture(&g_saved);
+        play_compared_frame(&g_saved);
+
+        cart_init();
+        play_frame();
+        save_check_resume(&g_saved);
+        save_check_capture(&g_resumed);
+        play_compared_frame(&g_resumed);
+        assert_equal(&g_saved, &g_resumed);
+        vanishing = on_screen_planet(ENTITY_STATE_VANISHING);
+        assert(vanishing != NULL && vanishing->header.pos.x == vanishing_pos.x && vanishing->header.pos.y == vanishing_pos.y &&
+               "the resumed game shows the same vanishing planet first");
+    }
 }
 
 /* Fixes the galaxy, whatever the cases before this one drew. */
@@ -928,6 +991,8 @@ static void test_research_resumes_equal_from_the_title(void) {
 int main(void) {
     test_a_just_started_game_resumes_equal_from_the_title();
     test_a_one_colony_game_resumes_equal_from_the_title();
+    test_a_pad_selection_resumes_equal_from_the_title();
+    test_a_flickering_vanishing_planet_resumes_equal_from_the_title();
     test_a_revealed_wormhole_area_resumes_equal_from_the_title();
     test_linked_colonies_resume_equal_from_the_title();
     test_every_structure_kind_resumes_equal_from_the_title();

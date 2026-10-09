@@ -9,13 +9,13 @@ The module has four entry points (`src/game/save_state.h`):
 - `save_state_decode` reads bytes back into a `save_state_t` and returns 1 for a valid record, 0 otherwise, never asserting on the bytes;
 - `save_state_crc32` is the trailer checksum.
 
-`make save-worst-case` replays every `worst-case/` game, and at every frame of a running game with no wormhole captures, encodes, decodes and re-encodes. The largest record today is 3973 bytes (`worst-case/full_game.json`, frame 4162), 4219 bytes under the limit. If the size assert ever fires, the encoding gets more compact; the limit never moves.
+`make save-worst-case` replays every `worst-case/` game, and at every frame of a running game with no wormhole captures, encodes, decodes and re-encodes. The largest record today is 3941 bytes (`worst-case/full_game.json`, frame 2523), 4251 bytes under the limit. If the size assert ever fires, the encoding gets more compact; the limit never moves.
 
 When the record format changes (a version bump, a new field), `tests/e2e/pad_resume_at_start.json`'s `initial_save` stops decoding and its hash changes: re-cut the fixture with the two commands in `tests/e2e/pad_resume_at_start.txt`, rerun its checks and rebaseline that one hash.
 
 `make save-fuzz` resumes every save `full_game.json` writes and compares the resumed game with the original at that frame.
 
-Visual-only effects (particles, the probe and title emitters, harvest bursts, transit dots, the flicker of a vanishing planet) draw from a second random stream, `src/game/visual_random.c`, that the record does not hold. Nothing a save check compares depends on it: particles restart from nothing after a resume.
+Visual-only effects (particles, the probe and title emitters, harvest bursts, transit dots, the flicker of a vanishing planet) draw from a second random stream, `src/game/visual_random.c`, that the record does not hold. Particles restart from nothing after a resume, but a vanishing planet's flicker is on the compared screen: `save_check_capture` keeps the stream's state beside the record and `save_check_resume` restores it, so both runs draw the same flicker.
 
 ## Encoding rules
 

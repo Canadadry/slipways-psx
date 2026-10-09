@@ -55,6 +55,8 @@ static p8_vram_t memory;
 static p8_graphics_t graphics;
 static p8_input_t recording;
 static p8_input_t idle_input;
+/* Off the HUD: a resume registers the nodes before the HUD, so their hover order differs there. */
+static p8_input_frame_t idle_frame = {.mouse_x = P8_SCREEN_WIDTH / 2, .mouse_y = P8_SCREEN_HEIGHT / 2};
 static input_step_t step;
 static save_state_t captured;
 static uint8_t stored[SAVE_STATE_MAX_BYTES];
@@ -135,6 +137,7 @@ static void compare_at_save_frame(fuzz_result_t *result) {
     play_idle_frame();
     memcpy(resumed.bytes, stored, (size_t)result->size);
     resumed.byte_count = result->size;
+    resumed.visual_random_state = original.visual_random_state;
     save_check_resume(&resumed);
     save_check_capture(&resumed);
     if (!play_compared_frame(&resumed) && original_screen) {
@@ -218,6 +221,8 @@ static int fuzz_game(const char *path, int cores) {
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     p8_input_init(&recording);
     p8_input_init(&idle_input);
+    idle_input.frames = &idle_frame;
+    idle_input.frame_count = 1;
     assert(p8_input_load(&recording, path));
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
