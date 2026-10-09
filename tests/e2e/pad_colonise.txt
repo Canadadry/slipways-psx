@@ -1,6 +1,6 @@
 Probe, space fold, then a colony through the planet's menu with triangle
-and X, and network mode on the new colony; then square into aim mode
-centred on it, a fold there, and circle back to jump mode on the
+and X, and jump mode on the new colony; then square into aim mode
+over it, a fold there, and circle back to jump mode on the
 colony. Then the slipway rules: a second colony, a fold abandoned on
 empty space, a slipway built, the same slipway refused, a slipway aimed
 under the top HUD, a fold held on its middle from aim mode and
@@ -19,11 +19,13 @@ frame.
 - f0-68: as pad_probe. After f68: camera (188, 184), $97, month 2, p25
   (type f) and p47 (type r) known.
 - f69-84: Down+Right 2, Down 14, camera (188, 184) -> (190, 206);
-  f85-86 idle. p47 is drawn round screen (80, 60), under the centre
+  f85 idle. p47 is drawn round screen (80, 60), under the centre
   cursor: the colour-7 crosshair (x78-82 on y=60, y58-62 on x=80, the
   centre pixel undrawn) marks it. Pad mode draws no cursor sprite on
   any frame.
-- f88: triangle on p47: its menu opens beside the planet (colour-5
+- f86: square: aim mode left for jump mode on p47, the target nearest
+  the centre (plan 12 step 7: △ does nothing in aim mode).
+- f88: triangle on the hovered p47: its menu opens beside the planet (colour-5
   header box from x=79, y=59), with the colonise row ("strip") below it
   and two more rows below that. Focus starts on the header (row 0, no
   click): the cursor point is inside it. The crosshair is gone from
@@ -35,19 +37,19 @@ frame.
 - f98: X on the colonise row: p47 colonised, $97 -> $92, month 2 -> 5.
   The menu is gone on the same frame and the colony ring (colour 2,
   radius ~6) circles the planet.
-- f99-134: idle, network mode on p47. No crosshair on any of these
+- f99-134: idle, jump mode on p47. No crosshair on any of these
   frames. The colour-7 circle of radius 9 round the planet shows at
   f99-114, is gone at f115-130, and shows again at f131-134.
-- f135: triangle again on the colony; its inspection panel opens on the
+- f135: triangle again on the hovered colony; its inspection panel opens on the
   f136 release (colour-5 panel x79-142, y59-78). The circle is hidden
   while the panel is open; the cursor point is on the planet on
   f135-136, the click's two frames, with nothing drawn there.
 - f139: O closes the panel. f139-145: no crosshair, and the circle
   shows from f139, its blink restarted when the panel closed.
-- f146: square: aim mode, the camera centred on p47, (190, 206) ->
-  (190, 205); nothing is pressed. The crosshair is back.
-- f147-154: Up, camera (190, 205) -> (190, 197), p47 at screen (80.24,
-  68.75). f155: idle. $92, month 5, slipways 0.
+- f146: square: aim mode, the camera unmoved (190, 206); nothing is
+  pressed. The crosshair is back.
+- f147-155: Up 9, camera (190, 206) -> (190, 197), p47 at screen (80.24,
+  68.75), the fold's reference camera. $92, month 5, slipways 0.
   (Before plan 12 step 7, f146's square pressed a slipway out of p47
   that followed the crosshair, its colour-1 line and cost label drawn
   at f154, and f155's square dropped it on nothing: the old drag, gone
@@ -90,16 +92,18 @@ and fold by pad_probe (step 2.1).
 
 Slipway rules, f175-410 (remove-mouse-mode PRD, chunk 5; appended here
 to share the colony instead of a separate pad_slipway_rules file).
-Every capture frame up to f152 is unchanged but f16, byte for byte.
+Before plan 12 step 7 the menus opened by triangle on the centre, which
+landed network mode; they now open from jump mode.
 
-- f175: square: plain aim mode, the camera unmoved (190 197). f179-197:
+- f175: square: aim mode, the camera unmoved (190 197). f179-197:
   Up+Right 10, Up 9, then idle f198-207: camera 200 169, p25 under the
   centre. (Before plan 12 step 7, f175 was square from network mode into
-  the drag and f177 square into plain aim mode: gone with the
+  the drag and f177 square out of it: gone with the
   ○ return above.)
-  f208-213: triangle, Down, X on "nanotech": p25 colonised, $89 -> $81,
-  month 6 -> 9.
-- f215: square: aim mode, the camera centred on p25 (200 169).
+  f206: square: jump mode on p25, the target nearest the centre.
+  f208-213: triangle on the hovered p25, Down, X on "nanotech": p25
+  colonised, $89 -> $81, month 6 -> 9.
+- f215: square: aim mode, the camera unmoved (200 169).
   f217-251: Down+Left 13, Down 22, then idle f252-257: camera 184 229,
   the centre 24 px beyond p47, on empty space.
 - f258: X tap on empty space: a probe exists, so the background press
@@ -118,7 +122,7 @@ Every capture frame up to f152 is unchanged but f16, byte for byte.
 From here the slipway is built the cross way (plan 12 step 6): X on the
 hovered colony starts it, the D-pad aims, X builds, and slipway mode
 continues from the target. f0-266 are the inputs of the step 6 file
-but f17, f155, f177, f198-201 and f264-266 (step 7).
+but f17, f86, f155, f177, f198-201, f206 and f264-266 (step 7).
 
 - f269: X on p25: the pad presses it, the ui holds the slipway from
   f270. f271: Down: the aim jumps to p47 (the only other candidate),

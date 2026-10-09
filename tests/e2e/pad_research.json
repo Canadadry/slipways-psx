@@ -196,7 +196,7 @@
     { "pad": ["up"] },
     { "pad": [] },
     { "pad": ["right"] },
-    { "pad": [] },
+    { "pad": ["square"] },
     { "pad": [] },
     { "pad": ["triangle"] },
     { "pad": [] },

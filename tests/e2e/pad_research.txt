@@ -83,7 +83,9 @@ is the one of the shorter file, byte for byte, but f28 (plan 12 step 7).
   centre world (263, 251). f159-174: X held 16: a fold, $197 at f175.
   p47 turns type m and p78 type f at f179, p23 type o at f184: the
   first three reveal rolls of this game.
-- f177-205: p23 as "algae" (food), $197 -> $189. f207-243: R1, Left
+- f177-205: pan onto p23; f195: square: jump mode on p23 (plan 12 step
+  7: triangle does nothing in aim mode); f197: triangle on the hovered
+  p23, p23 as "algae" (food), $197 -> $189. f207-243: R1, Left
   x3, X: the trading hub s1 built at (300, 262), $169.
   f245: square: aim mode left for jump mode on s1, under the centre.
   (Before plan 12 step 7, the hub was taken from network mode on p23,
@@ -99,12 +101,12 @@ inputs of the old file but f29 (plan 12 step 7).
 - f249: X on s1, f251: Up onto p23,
   f254: X: `slipway s1 p23`, $169 -> $164. f255: the pad presses p23;
   f257: circle: jump mode on p23.
-- f259: square: plain aim mode, camera 220 202. f261-262: Up 2: camera
+- f259: square: aim mode, camera 220 202. f261-262: Up 2: camera
   220 200, the camera the old file's X took the slipgate from (its
   network mode centred on s1 there). f263-268: R1, Right, X: the
   slipgate carried, the camera unmoved. f270-302: Down+Left 15, Left
   12, Down 1, X: the slipgate s2 built at (256, 281), $154.
-- f304: square: plain aim mode left for jump mode on s2, under the
+- f304: square: aim mode left for jump mode on s2, under the
   centre. f306: circle, inert in jump mode. f308: X on s2.
 - The crossed planet: f310, f312: Up, Up: the aim on p47 (known, the
   colour-8 label), then on p23, 57 px from s2, whose line passes 6 px
@@ -135,7 +137,7 @@ inputs of the old file but f29 (plan 12 step 7).
   3403" box; L1 L1, the map. Transit dots on the slipways.
 - f401, f403: Up, Left onto p78. f406: triangle: its panel, "content",
   "wants more:", "receives:", "exports: 1/3". f412: O.
-- f414: square: plain aim mode. f416-466: Up+Left 17, Left 20, Left
+- f414: square: aim mode. f416-466: Up+Left 17, Left 20, Left
   13: camera 96 185, p47 at screen x 174, visible 0: its particles are
   no longer drawn.
 

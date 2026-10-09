@@ -1,15 +1,14 @@
 Six years, "nanomaterials" on the `tech` tab, an earth-like planet's
 menu at x0.85; then the cheat, "space folding" and "xenofoods", the same
 menu with improved recipes at x1.5. Then a mine linked to three people
-suppliers, a colony needing ore and two labs, rich at the year. 565
+suppliers, a colony needing ore and two labs, rich at the year. 566
 frames.
 
 Jump mode is the map's root, where every game starts: square on f17
-enters aim mode, the camera unmoved. O in network mode now returns to jump mode, so the cheat
-moved there, where X and O do nothing: f126 O leaves network mode on
-p31, the cheat runs two frames later over two idle frames, and f170
-square, f172 triangle land network mode on p31 again from aim mode.
-Every other frame is the one this file had before.
+enters aim mode, the camera unmoved. The menus open from jump mode
+(plan 12 step 7: triangle does nothing in aim mode): f116 and f252
+square leave aim mode for jump mode on the planet under the centre, and
+the cheat is typed in jump mode, where X and O do nothing.
 
 Pad input declared ("input": "pad"). The title takes Down at f10 and X
 on "reasonable" at f16, 4 frames later than pad_title's: the title
@@ -30,18 +29,19 @@ from the capture.
   earth-like), p47 at f110 (type f) and p84 at f113 (empty, gone from
   f175).
 - f100-115: Left 16: p31 under the centre (screen 79.89, 60.36, camera
-  144 216). f117: triangle: its menu, drawn f118-123. Row 2 (agroworld,
+  144 216). f116: square: jump mode on p31. f117: triangle on the
+  hovered p31: its menu, drawn f118-123. Row 2 (agroworld,
   base 5) ends in a colour-2 price tag at x144-156 whose first digit
   reads 4 (x148-153, y84-88): 5 x 0.85.
-- f124: O closes it. f126: O leaves network mode for jump mode on p31.
-  f128-134: X four times. The X taps on p31 open no menu (a colour-8
+- f124: O closes it, jump mode still on p31. f126: idle (it was O,
+  leaving network mode, before plan 12 step 7). f128-134: X four times. The X taps on p31 open no menu (a colour-8
   label beside the centre, x96-106, y43-47 at f134) and charge nothing
   ($97, month 2 up to f141). f136-142: the cheat, four X + O chords one
   every two frames; f142: $200, research 99.
 - f144-154: R1 x3, Down, X: "space folding" (research 95). f158-168:
   the same: the first row is now "xenofoods" (era 2): research 85.
-- f170: square, plain aim mode, p31 under the centre. f172: triangle
-  on p31, network mode on it: from f173 row 2's recipe icons change
+- f170: idle (it was square into aim mode before plan 12 step 7).
+  f172: triangle on the hovered p31: from f173 row 2's recipe icons change
   (from x97, y83-89) and its tag reads 6 (5 x 1.5 x 0.85); row 1 is
   pixel-identical to f123, row 3 but for 3 pixels of row 2's tag
   border (x143-145, y91).
@@ -57,38 +57,40 @@ x1.5): `research_project_cost` x0.85 and x1.5, the upgraded production
 entry. Two era-1 inventions open era 2 here, so "geneseeds" is not
 needed.
 
-Rich mine, f179-564 (remove-mouse-mode PRD, chunk 7; appended here to
+Rich mine, f179-565 (remove-mouse-mode PRD, chunk 7; appended here to
 share the cheat, the techs and the probe instead of a separate
 pad_rich_mine file).
 
-- f179-181: O closes p31's menu, square: aim mode.
-- f183-197: Up+Left 6, Left 9: camera 123 210, centre world (204,
-  270). f199-226: X held 28 (the radius grows with the hold, space
-  folding widens it): a second fold, $197 at f227. p1 turns type x at
-  f233, p55 empty at f234 (gone from f296), p37 type o at f240, p54
-  type m at f241.
-- f228-259: Down+Left 16, Down 6 onto p54, triangle, Down, X: p54 as
-  "mine", $193.
+- f179-181: O closes p31's menu, square: aim mode, the camera unmoved
+  (144 216; network mode used to centre it at 143 216).
+- f183-197: Up+Left 6, Left 9, f199: Left 1, a separate tap (one frame
+  inserted): camera 123 210, centre world (204, 270), the fold's
+  reference point. f200-227: X held 28 (the radius grows with the hold, space
+  folding widens it): a second fold, $197 at f228. p1 turns type x at
+  f234, p55 empty at f235 (gone from f297), p37 type o at f241, p54
+  type m at f242.
+- f229-251: Down+Left 16, Down 6 onto p54. f252: square: jump mode on
+  p54. f254: triangle on the hovered p54, Down, X (f260): p54 as "mine",
+  $193.
 
 The slipways are built the cross way (plan 12 step 6), each in its
 direction, the colonies through the planet's menu from jump mode, and
-network travel only used to get somewhere is replaced by jumps. f0-260
-are the frames of the step 6 file.
+network travel only used to get somewhere is replaced by jumps.
 
-- f261: O: network mode on p54 left for jump mode on p54 (camera 101
-  243). f263: Right onto p31, inside the inner rectangle. f266:
-  triangle: its menu; f270: Down;
-  f272: X on "hiveworld": p31 colonised, $193 -> $189.
-- f278, f280: Left, Down onto p54. f283: X on p54, f285: Right onto
-  p31, f288: X: `slipway p54 p31`, $181. f291: O: jump mode on p31.
-- f293: Left onto p1. f296: triangle, f300: Down, f302: X on "colony":
-  $174. f308: Down onto p54. f311: X on p54, f313: Up onto p1, f316:
-  X: `slipway p54 p1`, $164. f319: O: jump mode on p1.
-- f321: Right onto p37. f324: triangle, f328: Down, f330: X on
-  "colony" (needs ore): $156. f336, f338: Left, Down onto p54. f341: X
-  on p54, f343, f345: Up, Right onto p37, f348: X: `slipway p54 p37`,
-  $141. f351: O: jump mode on p37.
-- f353: square: aim mode, camera 101 216. f355-372: Down 18, f373-380
+- f262: idle (it was O, leaving network mode). Camera 101 243. f264:
+  Right onto p31, inside the inner rectangle. f267:
+  triangle: its menu; f271: Down;
+  f273: X on "hiveworld": p31 colonised, $193 -> $189.
+- f279, f281: Left, Down onto p54. f284: X on p54, f286: Right onto
+  p31, f289: X: `slipway p54 p31`, $181. f292: O: jump mode on p31.
+- f294: Left onto p1. f297: triangle, f301: Down, f303: X on "colony":
+  $174. f309: Down onto p54. f312: X on p54, f314: Up onto p1, f317:
+  X: `slipway p54 p1`, $164. f320: O: jump mode on p1.
+- f322: Right onto p37. f325: triangle, f329: Down, f331: X on
+  "colony" (needs ore): $156. f337, f339: Left, Down onto p54. f342: X
+  on p54, f344, f346: Up, Right onto p37, f349: X: `slipway p54 p37`,
+  $141. f352: O: jump mode on p37.
+- f354: square: aim mode, camera 101 216. f356-373: Down 18, f374-381
   idle: camera 101 242, the camera the old file's network mode centred
   on p54 before each lab was taken (rule 8).
   (Before plan 12 step 7, f253's triangle on the centre left aim mode
@@ -96,38 +98,38 @@ are the frames of the step 6 file.
   f261's circle returned to p31 in network mode, the camera centred on
   it (143 216): that return is gone with the starting planet, so the
   route jumps from p54 to p31 and the pan before the lab is Down
-  only.) f382-385: R1, X: a lab carried, the
-  camera unmoved. f387-407: the old file's pan (Down+Right 10, Down 6,
+  only.) f383-386: R1, X: a lab carried, the
+  camera unmoved. f388-408: the old file's pan (Down+Right 10, Down 6,
   Down 1), X: the lab s1 built at (191, 325), $126.
-- f410: square: aim mode left for jump mode on s1, the target nearest
-  the centre. f412: idle (it was O, leaving network mode, before plan 12
-  step 7). f414: X on s1, f416: Up onto p54, f419: X: `slipway s1
-  p54`, $123. f422: O: jump mode on p54.
-- f424: square: plain aim mode. f426-450: Up+Left 10, Up 10, Up 3:
-  camera 101 242 again. f452-455: R1, X: a second lab carried.
-  f458-478: the old file's pan (Up+Right 4, Right 14), X: s2 built at
+- f411: square: aim mode left for jump mode on s1, the target nearest
+  the centre. f413: idle (it was O, leaving network mode, before plan 12
+  step 7). f415: X on s1, f417: Up onto p54, f420: X: `slipway s1
+  p54`, $123. f423: O: jump mode on p54.
+- f425: square: aim mode. f427-451: Up+Left 10, Up 10, Up 3:
+  camera 101 242 again. f453-456: R1, X: a second lab carried.
+  f459-479: the old file's pan (Up+Right 4, Right 14), X: s2 built at
   (207, 298), $108.
-- f480: square: aim mode left for jump mode on s2. f482: idle (it was O,
-  leaving network mode). f484: X
-  on s2, f486: Up onto p31, f489: X: `slipway s2 p31`, $105: p31 feeds
-  s2 people. f492: O: jump mode on p31. f494: Down onto s2. f497: X on
-  s2, f499: Left onto p54, f502: X: `slipway s2 p54`; the year passes on
-  its own on the way ($119, year 3409). f505: O: jump mode on p54.
-- f509-517: R1 R1, X on `end turn` (f513): year 3410, the "year 3410"
+- f481: square: aim mode left for jump mode on s2. f483: idle (it was O,
+  leaving network mode). f485: X
+  on s2, f487: Up onto p31, f490: X: `slipway s2 p31`, $105: p31 feeds
+  s2 people. f493: O: jump mode on p31. f495: Down onto s2. f498: X on
+  s2, f500: Left onto p54, f503: X: `slipway s2 p54`; the year passes on
+  its own on the way ($119, year 3409). f506: O: jump mode on p54.
+- f510-518: R1 R1, X on `end turn` (f514): year 3410, the "year 3410"
   box; L1 L1, the map.
-- f520: square: plain aim mode. f522-539: Down+Left 4, Left 14: camera
-  101 242, p54 under the centre. f541: square: aim mode left for jump
+- f521: square: aim mode. f523-540: Down+Left 4, Left 14: camera
+  101 242, p54 under the centre. f542: square: aim mode left for jump
   mode on p54, the target nearest the centre.
-- f544: triangle on the hovered p54: "rich", "receives:" three people,
-  "exports: 3/3". f550: O closes it, jump mode on p54. f552: Right onto
-  s2, inside the inner rectangle: the camera stays 101 242. f559:
+- f545: triangle on the hovered p54: "rich", "receives:" three people,
+  "exports: 3/3". f551: O closes it, jump mode on p54. f553: Right onto
+  s2, inside the inner rectangle: the camera stays 101 242. f560:
   triangle on s2: "laboratory", "wants more:", "receives:", "makes: 1".
-  (Before plan 12 step 7, f541's square selected p54 into network mode,
-  f552 and f554 turned its selected slipway with Left and f556's X
+  (Before plan 12 step 7, f542's square selected p54 into network mode,
+  f553 and f555 turned its selected slipway with Left and f557's X
   travelled along it to s2, the camera centred there (127 234): network
   travel is gone with its mechanic.)
 
-`make state` at f564: year 3410 month 1, credits 136, research 90,
+`make state` at f565: year 3410 month 1, credits 136, research 90,
 income 17; camera 101 242; p54 colonized m, p31 colonized e, p1
 colonized x, p37 colonized o, s1 and s2 colonized structure; slipways
 p54 p31, p54 p1, p54 p37, s1 p54, s2 p31, s2 p54; planets 90, colonies

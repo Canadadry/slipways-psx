@@ -995,44 +995,8 @@ static void assert_cursor_at_centre(const input_step_t *step) {
     assert(played->mouse_x == P8_SCREEN_WIDTH / 2 && played->mouse_y == P8_SCREEN_HEIGHT / 2);
 }
 
-static void assert_network_on(const input_step_t *step, const planet_t *planet) {
-    assert(pad_nav_selection(&step->pad_nav) == &planet->header);
-    assert(!pad_nav_aim_mode(&step->pad_nav));
-}
-
-/* △ opens the menu, then ○ closes it: network mode on a known planet, nothing charged. */
-static planet_t *network_on_known_planet(input_step_t *step) {
-    planet_t *planet = known_planet_under_centre(step);
-    tap(step, P8_PAD_TRIANGLE);
-    assert(main_ui()->ephemerals.count > 0);
-    tap(step, P8_PAD_CIRCLE);
-    assert(main_ui()->ephemerals.count == 0);
-    return planet;
-}
-
 static int is_button_of(const entity_t *e, const planet_t *planet) {
     return e->class == button_class() && entity_get(((const button_t *)e)->project_planet) == &planet->header;
-}
-
-static void test_triangle_on_a_known_planet_opens_its_menu(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = known_planet_under_centre(&step);
-    (void)planet_left_press(planet);
-    int rows = main_ui()->ephemerals.count;
-    assert(rows > 0);
-    ui_clear_ephemerals(main_ui());
-
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
-    assert(main_ui()->ephemerals.count == rows);
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0);
-    assert(pad_nav_focus(&step.pad_nav) == pad_nav_first_item() && pad_nav_first_item() != NULL);
-    run_frame(&step, 0);
-    assert(ui_hovered(main_ui()) == pad_nav_first_item());
-    assert(pad_nav_selection(&step.pad_nav) == &planet->header);
-    assert(!pad_nav_aim_mode(&step.pad_nav));
 }
 
 static void assert_triangle_does_nothing(input_step_t *step) {
@@ -1061,143 +1025,6 @@ static void test_triangle_on_empty_space_or_an_unexplored_planet_does_nothing(vo
     assert(planet->header.state != ENTITY_STATE_KNOWN && planet->header.state != ENTITY_STATE_SETTLED);
     pan_planet_under_centre(&step, planet, 0);
     assert_triangle_does_nothing(&step);
-}
-
-/* The colony is made through its menu row's own click, as the mouse makes it; the pad stays in aim mode. */
-static void test_triangle_on_a_settled_planet_opens_its_inspection_panel(void) {
-    entity_t *rows[ITEMS_CAP];
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = known_planet_closest_to_centre();
-    (void)planet_left_press(planet);
-    int count = box_entries(rows);
-    for (int i = 0; i < count && planet->header.state == ENTITY_STATE_KNOWN; i++) {
-        button_t *row = (button_t *)rows[i];
-        if (row->on_click != NULL) {
-            row->on_click(row);
-        }
-    }
-    ui_clear_ephemerals(main_ui());
-    settle(&step);
-    assert(planet->header.state == ENTITY_STATE_SETTLED);
-    pan_planet_under_centre(&step, planet, 0);
-    assert(pad_nav_aim_mode(&step.pad_nav));
-    p8_fixed_t credits = main_economy_typed()->credits;
-    int slipways = tagged_count(TAG_SLIPWAY);
-
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0);
-    assert(main_ui()->ephemerals.count > 0);
-    settle(&step);
-    assert(tagged_count(TAG_SLIPWAY) == slipways && ui_left_held(main_ui()) == NULL);
-    assert(main_economy_typed()->credits == credits);
-    assert_network_on(&step, planet);
-}
-
-static void test_colonising_through_the_menu_lands_network_mode_on_the_planet(void) {
-    entity_t *rows[ITEMS_CAP];
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = known_planet_under_centre(&step);
-    p8_fixed_t credits = main_economy_typed()->credits;
-    tap(&step, P8_PAD_TRIANGLE);
-    settle(&step);
-    int count = box_entries(rows);
-    assert(count >= 3 && ((button_t *)rows[0])->on_click == NULL && is_button_of(rows[1], planet));
-    assert(pad_nav_focus(&step.pad_nav) == rows[0]);
-    tap(&step, P8_PAD_DOWN);
-    tap(&step, P8_PAD_DOWN);
-    assert(pad_nav_focus(&step.pad_nav) == rows[2]);
-    tap(&step, P8_PAD_UP);
-    assert(pad_nav_focus(&step.pad_nav) == rows[1] && ui_hovered(main_ui()) == rows[1]);
-    p8_fixed_t cost = ((button_t *)rows[1])->project_cost;
-    assert(cost > 0);
-
-    for (int i = 0; i < 4 && main_ui()->ephemerals.count > 0; i++) {
-        run_frame(&step, P8_PAD_CROSS);
-    }
-    assert(main_ui()->ephemerals.count == 0);
-    assert(planet->header.state == ENTITY_STATE_SETTLED);
-    assert(main_economy_typed()->credits == p8_fixed_sub(credits, cost));
-    for (int i = 0; i < 3; i++) {
-        run_frame(&step, P8_PAD_CROSS);
-        assert(input_step_played_frame(&step)->mouse_buttons == 0);
-        assert_cursor_on(&step, &planet->header);
-        assert(ui_hovered(main_ui()) == &planet->header);
-        assert_network_on(&step, planet);
-    }
-    assert(main_ui()->ephemerals.count == 0 && ui_left_held(main_ui()) == NULL);
-    assert(tagged_count(TAG_SLIPWAY) == 0);
-    camera_pan(main_camera_typed(), 13, -9);
-    run_frame(&step, 0);
-    assert_cursor_on(&step, &planet->header);
-    assert(ui_hovered(main_ui()) == &planet->header);
-}
-
-static void test_circle_closes_the_menu_and_stays_on_the_planet(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = known_planet_under_centre(&step);
-    p8_fixed_t credits = main_economy_typed()->credits;
-    tap(&step, P8_PAD_TRIANGLE);
-    assert(main_ui()->ephemerals.count > 0);
-    run_frame(&step, P8_PAD_CIRCLE);
-    assert(main_ui()->ephemerals.count == 0);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0);
-    assert_cursor_on(&step, &planet->header);
-    run_frame(&step, 0);
-    settle(&step);
-    assert(planet->header.state == ENTITY_STATE_KNOWN);
-    assert(main_economy_typed()->credits == credits);
-    assert_network_on(&step, planet);
-    assert(ui_hovered(main_ui()) == &planet->header);
-}
-
-static void test_network_mode_ignores_cross_directions_and_the_unbound_buttons(void) {
-    static const int buttons[5] = { P8_PAD_CROSS, P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    vec_t from = camera_at();
-    int live = live_entities()->count;
-    p8_fixed_t credits = main_economy_typed()->credits;
-    for (int b = 0; b < 5; b++) {
-        for (int i = 0; i < 12; i++) {
-            run_frame(&step, i < 10 ? buttons[b] : 0);
-            assert(input_step_played_frame(&step)->mouse_buttons == 0);
-            assert_cursor_on(&step, &planet->header);
-        }
-    }
-    assert_moved(from, 0, 0);
-    assert(live_entities()->count == live && main_economy_typed()->credits == credits);
-    assert(main_ui()->ephemerals.count == 0 && ui_left_held(main_ui()) == NULL);
-    assert(planet->header.state == ENTITY_STATE_KNOWN);
-    assert_network_on(&step, planet);
-}
-
-/* × held across the △: the click still releases on the next frame. */
-static void test_triangle_click_releases_even_with_cross_held(void) {
-    input_step_t step;
-    start_game(&step);
-    (void)network_on_known_planet(&step);
-    run_frame(&step, P8_PAD_CROSS);
-    run_frame(&step, P8_PAD_CROSS | P8_PAD_TRIANGLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
-    run_frame(&step, P8_PAD_CROSS);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0);
-}
-
-static void test_triangle_in_network_mode_reopens_the_menu(void) {
-    entity_t *rows[ITEMS_CAP];
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    tap(&step, P8_PAD_TRIANGLE);
-    int count = box_entries(rows);
-    assert(count > 0 && is_button_of(rows[count - 1], planet));
-    assert_network_on(&step, planet);
 }
 
 static void test_circle_on_the_title_does_nothing(void) {
@@ -1245,29 +1072,6 @@ static void test_triangle_while_cross_holds_a_fold_does_nothing(void) {
     }
     assert(ui_left_held(main_ui()) == held && main_ui()->ephemerals.count == 0);
     assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
-}
-
-static void test_a_dead_selection_falls_back_to_jump_mode(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    vec_t from = camera_at();
-    planet->header.is_dead = 1;
-    assert(pad_nav_selection(&step.pad_nav) == NULL);
-    run_frame(&step, 0);
-    assert(pad_nav_jump_mode(&step.pad_nav) && !pad_nav_aim_mode(&step.pad_nav));
-    assert(pad_nav_hovered(&step.pad_nav) == NULL);
-    assert_cursor_at_centre(&step);
-    assert_moved(from, 0, 0);
-}
-
-/* The planet bobs by a fraction of a pixel, so its floored point may sit one pixel off the centre. */
-static void assert_centred_on(const entity_t *e) {
-    vec_t at = entity_pos(e);
-    vec_t camera = camera_at();
-    int dx = p8_fixed_flr_int(at.x) - p8_fixed_flr_int(camera.x) - P8_SCREEN_WIDTH / 2;
-    int dy = p8_fixed_flr_int(at.y) - p8_fixed_flr_int(camera.y) - P8_SCREEN_HEIGHT / 2;
-    assert(absolute_int(dx) <= 1 && absolute_int(dy) <= 1);
 }
 
 /* Clicks the first row that colonises in place: a row whose project names a class replaces the planet. */
@@ -1392,26 +1196,32 @@ static void assert_world_unchanged(world_count_t before) {
     assert(now.slipways == before.slipways && now.probes == before.probes && now.wormholes == before.wormholes);
 }
 
-static void test_square_in_network_mode_enters_aim_mode_centred_on_the_planet_pressing_nothing(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *colony = known_planet_closest_to_centre();
-    settle_planet(&step, colony);
-    pan_planet_under_centre(&step, colony, 0);
-    tap(&step, P8_PAD_TRIANGLE);
-    tap(&step, P8_PAD_CIRCLE);
-    assert_network_on(&step, colony);
-    camera_pan(main_camera_typed(), 13, -9);
-    run_frame(&step, 0);
-    run_frame(&step, P8_PAD_SQUARE);
-    assert_centred_on(&colony->header);
-    for (int i = 0; i <= 10; i++) {
-        assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
-        assert_cursor_at_centre(&step);
-        assert(input_step_played_frame(&step)->mouse_buttons == 0 && ui_left_held(main_ui()) == NULL);
-        run_frame(&step, 0);
+/* The planet menu is jump mode's △ on the hovered object: aim mode presses no planet under the crosshair. */
+static void test_aim_mode_triangle_over_a_known_planet_or_a_colony_does_nothing(void) {
+    for (int settled = 0; settled < 2; settled++) {
+        if (in_forked_copy()) {
+            input_step_t step;
+            start_game(&step);
+            planet_t *planet = known_planet_under_centre(&step);
+            if (settled) {
+                settle_planet(&step, planet);
+                pan_planet_under_centre(&step, planet, 0);
+            }
+            vec_t from = camera_at();
+            world_count_t before = world_count();
+            for (int i = 0; i < 4; i++) {
+                run_frame(&step, i % 2 ? 0 : P8_PAD_TRIANGLE);
+                assert(input_step_played_frame(&step)->mouse_buttons == 0);
+                assert_cursor_at_centre(&step);
+                assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
+            }
+            settle(&step);
+            assert(main_ui()->ephemerals.count == 0 && pad_nav_aim_mode(&step.pad_nav));
+            assert_moved(from, 0, 0);
+            assert_world_unchanged(before);
+            end_forked_copy();
+        }
     }
-    assert(world_count().slipways == 0 && ui_pad_selection(main_ui()) == NULL);
 }
 
 /* A slipway pressed out of a colony under the crosshair would follow it: aim mode holds none. */
@@ -1474,20 +1284,6 @@ static planet_t *full_slipgate_under_centre(input_step_t *step) {
     assert(gate->slipways.count == 3);
     pan_planet_under_centre(step, gate, 0);
     return gate;
-}
-
-static void test_circle_first_closes_a_box_then_returns(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *start = network_on_known_planet(&step);
-    tap(&step, P8_PAD_SQUARE);
-    (void)planet_left_press(start);
-    assert(main_ui()->ephemerals.count > 0);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(main_ui()->ephemerals.count == 0);
-    assert(pad_nav_aim_mode(&step.pad_nav));
-    tap(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == &start->header);
 }
 
 /* Away from the map's edges, so the camera can centre every planet placed around it. */
@@ -1593,117 +1389,6 @@ static void test_straight_up_splits_the_two_halves(void) {
     assert(pad_nav_next_slipway(&hub->header, slipways[1], -1) == slipways[0]);
 }
 
-static planet_t *network_on_star(input_step_t *step, const int offsets[][2], int count, planet_t *ends[], entity_t *slipways[]) {
-    planet_t *hub = most_isolated_planet();
-    for (int i = 0; i < 64 && hub->header.state != ENTITY_STATE_KNOWN; i++) {
-        planet_roll_type(hub);
-    }
-    assert(hub->header.state == ENTITY_STATE_KNOWN);
-    star_around(hub, offsets, count, ends, slipways);
-    pan_planet_under_centre(step, hub, 0);
-    tap(step, P8_PAD_TRIANGLE);
-    assert(main_ui()->ephemerals.count > 0);
-    tap(step, P8_PAD_CIRCLE);
-    assert(main_ui()->ephemerals.count == 0);
-    assert_network_on(step, hub);
-    return hub;
-}
-
-static void assert_selected(const input_step_t *step, const planet_t *planet, const entity_t *slipway) {
-    assert_network_on(step, planet);
-    assert(pad_nav_selected_slipway(&step->pad_nav) == slipway);
-    assert(input_step_played_frame(step)->mouse_buttons == 0);
-    assert_cursor_on(step, &planet->header);
-}
-
-static void test_left_and_right_turn_the_selected_slipway(void) {
-    static const int offsets[3][2] = { { 0, -12 }, { 9, 9 }, { -12, 0 } };
-    input_step_t step;
-    planet_t *ends[3];
-    entity_t *slipways[3];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, offsets, 3, ends, slipways);
-    vec_t from = camera_at();
-    run_frame(&step, 0);
-    assert_selected(&step, hub, slipways[0]);
-    for (int i = 0; i < 10; i++) {
-        run_frame(&step, P8_PAD_RIGHT);
-        assert_selected(&step, hub, slipways[1]);
-    }
-    run_frame(&step, 0);
-    tap(&step, P8_PAD_RIGHT);
-    assert_selected(&step, hub, slipways[2]);
-    tap(&step, P8_PAD_RIGHT);
-    assert_selected(&step, hub, slipways[0]);
-    tap(&step, P8_PAD_LEFT);
-    assert_selected(&step, hub, slipways[2]);
-    tap(&step, P8_PAD_LEFT);
-    assert_selected(&step, hub, slipways[1]);
-    assert_moved(from, 0, 0);
-}
-
-static void assert_travelled(const input_step_t *step, const planet_t *planet, const entity_t *slipway) {
-    assert_selected(step, planet, slipway);
-    assert_centred_on(&planet->header);
-    assert(ui_pad_selection(main_ui()) == &planet->header && main_ui()->pad_selection_frames == 0);
-}
-
-static void test_cross_travels_along_the_selected_slipway(void) {
-    static const int offsets[2][2] = { { 0, -12 }, { -12, 0 } };
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, offsets, 2, ends, slipways);
-    settle(&step);
-    assert_selected(&step, hub, slipways[0]);
-    assert(main_ui()->pad_selection_frames > 0);
-    run_frame(&step, P8_PAD_CROSS);
-    assert_travelled(&step, ends[0], slipways[0]);
-    for (int i = 0; i < 10; i++) {
-        run_frame(&step, P8_PAD_CROSS);
-        assert_selected(&step, ends[0], slipways[0]);
-    }
-    run_frame(&step, 0);
-    run_frame(&step, P8_PAD_CROSS);
-    assert_travelled(&step, hub, slipways[0]);
-    run_frame(&step, 0);
-    run_frame(&step, P8_PAD_CROSS | P8_PAD_RIGHT);
-    assert_travelled(&step, ends[0], slipways[0]);
-    run_frame(&step, 0);
-    tap(&step, P8_PAD_CROSS);
-    assert_selected(&step, hub, slipways[0]);
-    tap(&step, P8_PAD_LEFT);
-    assert_selected(&step, hub, slipways[1]);
-    run_frame(&step, P8_PAD_CROSS);
-    assert_travelled(&step, ends[1], slipways[1]);
-}
-
-/* Network mode reads only Left/Right off the D-pad: a diagonal still turns. */
-static void test_up_and_down_do_nothing_in_network_mode(void) {
-    static const int offsets[2][2] = { { 0, -12 }, { -12, 0 } };
-    static const int directions[2] = { P8_PAD_UP, P8_PAD_DOWN };
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, offsets, 2, ends, slipways);
-    run_frame(&step, 0);
-    vec_t from = camera_at();
-    for (int d = 0; d < 2; d++) {
-        for (int i = 0; i < 12; i++) {
-            run_frame(&step, i < 10 ? directions[d] : 0);
-            assert_selected(&step, hub, slipways[0]);
-        }
-    }
-    assert_moved(from, 0, 0);
-    tap(&step, P8_PAD_UP | P8_PAD_RIGHT);
-    assert_selected(&step, hub, slipways[1]);
-    tap(&step, P8_PAD_DOWN | P8_PAD_LEFT);
-    assert_selected(&step, hub, slipways[0]);
-    assert_moved(from, 0, 0);
-}
-
 /* The fold holds the left button: □ must not land in network mode under it. */
 static void test_square_while_cross_holds_a_fold_selects_nothing(void) {
     input_step_t step;
@@ -1725,121 +1410,7 @@ static void test_square_while_cross_holds_a_fold_selects_nothing(void) {
     }
 }
 
-static void test_shoulders_in_aim_mode_switch_and_come_back_to_it(void) {
-    input_step_t step;
-    start_game(&step);
-    (void)network_on_known_planet(&step);
-    tap(&step, P8_PAD_SQUARE);
-    hold(&step, P8_PAD_RIGHT, 20);
-    run_frame(&step, 0);
-    vec_t from = camera_at();
-    run_frame(&step, P8_PAD_R1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_BUILD);
-    run_frame(&step, 0);
-    tap(&step, P8_PAD_L1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
-    assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
-    assert_moved(from, 0, 0);
-}
-
-/* A settled planet's △ holds its slipway until the release: a travel then would drop it on the other end. */
-static void test_cross_on_the_triangle_release_frame_is_ignored(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *hub = most_isolated_planet();
-    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
-    planet_t *end = (planet_t *)planets->items[planets->items[0] == &hub->header ? 1 : 0];
-    settle_planet(&step, hub);
-    settle_planet(&step, end);
-    place_near(end, hub, 0, -12);
-    main_economy_typed()->credits = p8_fixed_from_int(999);
-    (void)link_planets(hub, end);
-    world_count_t before = world_count();
-    pan_planet_under_centre(&step, hub, 0);
-    run_frame(&step, P8_PAD_TRIANGLE);
-    run_frame(&step, P8_PAD_CROSS);
-    assert_network_on(&step, hub);
-    assert_cursor_on(&step, &hub->header);
-    assert(main_ui()->ephemerals.count > 0);
-    run_frame(&step, 0);
-    assert_world_unchanged(before);
-}
-
-static void test_the_ui_pad_selection_is_the_planet_only_in_network_mode_without_a_box(void) {
-    input_step_t step;
-    start_game(&step);
-    assert(ui_pad_selection(main_ui()) == NULL);
-    planet_t *planet = known_planet_under_centre(&step);
-    assert(ui_pad_selection(main_ui()) == NULL);
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(main_ui()->ephemerals.count > 0 && ui_pad_selection(main_ui()) == NULL);
-    run_frame(&step, 0);
-    assert(main_ui()->ephemerals.count > 0 && ui_pad_selection(main_ui()) == NULL);
-    run_frame(&step, P8_PAD_CIRCLE);
-    assert(ui_pad_selection(main_ui()) == &planet->header);
-    run_frame(&step, 0);
-    assert(ui_pad_selection(main_ui()) == &planet->header);
-    planet->header.is_dead = 1;
-    run_frame(&step, 0);
-    assert(pad_nav_jump_mode(&step.pad_nav) && ui_pad_selection(main_ui()) == NULL);
-}
-
-static void test_the_ui_pad_slipway_is_shown_with_the_planet(void) {
-    static const int offsets[2][2] = { { 0, -12 }, { 0, 12 } };
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    assert(ui_pad_slipway(main_ui()) == NULL);
-    planet_t *hub = network_on_star(&step, offsets, 2, ends, slipways);
-    assert(ui_pad_slipway(main_ui()) == slipways[0]);
-    tap(&step, P8_PAD_RIGHT);
-    assert(ui_pad_slipway(main_ui()) == slipways[1]);
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(ui_pad_selection(main_ui()) == NULL && ui_pad_slipway(main_ui()) == NULL);
-    run_frame(&step, 0);
-    assert(main_ui()->ephemerals.count > 0 && ui_pad_slipway(main_ui()) == NULL);
-    run_frame(&step, 0);
-    assert(ui_pad_slipway(main_ui()) == NULL);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(ui_pad_selection(main_ui()) == &hub->header && ui_pad_slipway(main_ui()) == slipways[1]);
-    tap(&step, P8_PAD_SQUARE);
-    assert(pad_nav_aim_mode(&step.pad_nav) && ui_pad_slipway(main_ui()) == NULL);
-}
-
 enum { PAD_CIRCLE_RADIUS = 9, PAD_CIRCLE_COLOUR = 7 };
-
-/* Of the radius-9 circle's pixels around the point, how many show colour 7; *total gets their number. */
-static int circle_pixels_lit(int x, int y, int *total) {
-    static p8_vram_t pattern;
-    p8_graphics_t pattern_graphics;
-    p8_vram_init(&pattern);
-    p8_gfx_init(&pattern_graphics);
-    p8_circ(&pattern_graphics, &pattern, x, y, PAD_CIRCLE_RADIUS, 1);
-    int lit = 0;
-    *total = 0;
-    for (int row = 0; row < P8_SCREEN_HEIGHT; row++) {
-        for (int column = 0; column < P8_SCREEN_WIDTH; column++) {
-            if (pattern.screen[row][column] == 1) {
-                (*total)++;
-                lit += memory.screen[row][column] == PAD_CIRCLE_COLOUR;
-            }
-        }
-    }
-    return lit;
-}
-
-/* The draw floors the planet and the camera apart, the cursor floors their difference: the two can be a pixel apart. */
-static int circle_pixels_lit_near(int x, int y, int *total) {
-    int best = 0;
-    for (int dy = -1; dy <= 1; dy++) {
-        for (int dx = -1; dx <= 1; dx++) {
-            int lit = circle_pixels_lit(x + dx, y + dy, total);
-            best = lit > best ? lit : best;
-        }
-    }
-    return best;
-}
 
 enum { CROSSHAIR_COLOUR = 7, CROSSHAIR_ARM = 2 };
 
@@ -1855,64 +1426,6 @@ static int crosshair_pixels_lit(void) {
         lit += memory.screen[y + d][x] == CROSSHAIR_COLOUR;
     }
     return lit;
-}
-
-static void test_network_mode_hides_the_cursor_and_blinks_a_circle(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    assert_cursor_on(&step, &planet->header);
-    int x = input_step_played_frame(&step)->mouse_x;
-    int y = input_step_played_frame(&step)->mouse_y;
-    int total;
-    cart_draw();
-    int lit = circle_pixels_lit_near(x, y, &total);
-    assert(lit == total);
-    for (int i = 0; i < UI_PAD_BLINK_PERIOD / 2; i++) {
-        run_frame(&step, 0);
-    }
-    assert_cursor_on(&step, &planet->header);
-    cart_draw();
-    lit = circle_pixels_lit_near(x, y, &total);
-    assert(lit == 0);
-}
-
-enum { CORE_REACH = 30, SLIPWAY_COLOUR = 1, BRIGHT_SLIPWAY_COLOUR = 12 };
-
-static const int vertical_star[2][2] = { { 0, -CORE_REACH }, { 0, CORE_REACH } };
-
-/* Pixels of that colour on the middle of the vertical slipway from the hub towards side (-1 up, +1 down),
- * clear of the planets and the selection circle. */
-static int core_pixels(const planet_t *hub, int side, int colour) {
-    vec_t at = vec_sub(entity_pos(&hub->header), entity_pos(&main_camera_typed()->header));
-    int x = p8_fixed_flr_int(at.x);
-    int y = p8_fixed_flr_int(at.y);
-    int count = 0;
-    for (int distance = PAD_CIRCLE_RADIUS + 2; distance <= CORE_REACH - 9; distance++) {
-        for (int column = x - 3; column <= x + 4; column++) {
-            count += memory.screen[y + side * distance][column] == colour;
-        }
-    }
-    return count;
-}
-
-static void finish_fade_in(entity_t *const slipways[], int count) {
-    for (int i = 0; i < count; i++) {
-        ((slipway_t *)slipways[i])->fade_in_step = p8_fixed_from_int(20);
-    }
-}
-
-static void test_the_selected_slipway_is_drawn_bright(void) {
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, vertical_star, 2, ends, slipways);
-    assert(ui_pad_slipway(main_ui()) == slipways[0]);
-    finish_fade_in(slipways, 2);
-    cart_draw();
-    assert(core_pixels(hub, -1, BRIGHT_SLIPWAY_COLOUR) > 0 && core_pixels(hub, -1, SLIPWAY_COLOUR) == 0);
-    assert(core_pixels(hub, 1, BRIGHT_SLIPWAY_COLOUR) == 0 && core_pixels(hub, 1, SLIPWAY_COLOUR) > 0);
 }
 
 /* The year box has no button and is not modal: it opens no panel and changes no box's items. */
@@ -2271,28 +1784,6 @@ static void test_a_panel_opened_while_carrying_releases_at_the_icon(void) {
     assert_played(&step, x, y, 0);
 }
 
-static void test_taking_from_network_mode_enters_aim_mode_centred_on_the_selected_planet(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *colony = known_planet_closest_to_centre();
-    settle_planet(&step, colony);
-    pan_planet_under_centre(&step, colony, 0);
-    tap(&step, P8_PAD_TRIANGLE);
-    tap(&step, P8_PAD_CIRCLE);
-    assert_network_on(&step, colony);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
-    camera_pan(main_camera_typed(), 30, 0);
-    run_frame(&step, 0);
-    entity_t *structure = take_structure(&step);
-    assert(pad_nav_selection(&step.pad_nav) == NULL);
-    assert_centred_on(&colony->header);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(structure->is_dead);
-    assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == &colony->header);
-}
-
 static void test_circle_cancels_a_structure_taken_from_jump_mode_then_leaves_aim_mode(void) {
     input_step_t step;
     start_game_in_jump_mode(&step);
@@ -2347,30 +1838,6 @@ static void test_shoulders_cancel_the_carried_structure_then_switch(void) {
     assert_played(&step, x, y, 0);
     tap(&step, P8_PAD_L1);
     assert(pad_nav_aim_mode(&step.pad_nav));
-}
-
-static void test_shoulders_cancel_a_structure_taken_in_network_mode_and_come_back_to_aim_mode(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *colony = known_planet_closest_to_centre();
-    settle_planet(&step, colony);
-    pan_planet_under_centre(&step, colony, 0);
-    tap(&step, P8_PAD_TRIANGLE);
-    tap(&step, P8_PAD_CIRCLE);
-    assert_network_on(&step, colony);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
-    entity_t *structure = take_structure(&step);
-    world_count_t before = world_count();
-    run_frame(&step, P8_PAD_L1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_SCORE && input_step_played_frame(&step)->mouse_buttons == 0);
-    run_frame(&step, 0);
-    assert(structure->is_dead && pad_nav_placing(&step.pad_nav) == NULL);
-    assert_world_unchanged(before);
-    run_frame(&step, 0);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
-    assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
-    assert_centred_on(&colony->header);
 }
 
 static void test_cross_held_on_arrival_on_build_takes_nothing(void) {
@@ -2513,23 +1980,6 @@ static void visit_two_tabs_and_come_back(input_step_t *step) {
     assert(pad_nav_tab(&step->pad_nav) == PAD_NAV_TAB_MAP);
 }
 
-static void test_network_mode_survives_a_tab_visit(void) {
-    static const int offsets[2][2] = { { 0, -12 }, { -12, 0 } };
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, offsets, 2, ends, slipways);
-    tap(&step, P8_PAD_RIGHT);
-    assert_selected(&step, hub, slipways[1]);
-    vec_t from = camera_at();
-    visit_two_tabs_and_come_back(&step);
-    assert_cursor_on(&step, &hub->header);
-    run_frame(&step, 0);
-    assert_selected(&step, hub, slipways[1]);
-    assert_moved(from, 0, 0);
-}
-
 static void test_aim_mode_survives_a_tab_visit_and_pans_from_slow(void) {
     input_step_t step;
     start_game(&step);
@@ -2580,21 +2030,6 @@ static void test_final_score_ignores_shoulders_circle_and_start(void) {
     }
 }
 
-static void test_shoulders_close_a_planet_menu_then_switch(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    tap(&step, P8_PAD_TRIANGLE);
-    assert(main_ui()->ephemerals.count > 0);
-    run_frame(&step, P8_PAD_R1);
-    assert(main_ui()->ephemerals.count == 0 && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_BUILD);
-    run_frame(&step, 0);
-    assert(main_ui()->ephemerals.count == 0);
-    tap(&step, P8_PAD_L1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
-    assert_network_on(&step, planet);
-}
-
 static void test_shoulders_wait_under_the_pause_menu(void) {
     input_step_t step;
     start_game(&step);
@@ -2606,20 +2041,6 @@ static void test_shoulders_wait_under_the_pause_menu(void) {
     assert(pause_menu_shown());
     tap(&step, P8_PAD_CIRCLE);
     assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_END_TURN && !pause_menu_shown());
-}
-
-/* A settled planet opens its panel on the release, so no panel is up yet on that frame. */
-static void test_shoulders_wait_on_the_triangle_release_frame(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = known_planet_closest_to_centre();
-    settle_planet(&step, planet);
-    pan_planet_under_centre(&step, planet, 0);
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT && main_ui()->ephemerals.count == 0);
-    run_frame(&step, P8_PAD_R1);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0 && main_ui()->ephemerals.count > 0);
 }
 
 static void test_the_ui_pad_tab_is_the_tab_hud_button(void) {
@@ -2639,29 +2060,6 @@ static void test_the_ui_pad_tab_is_the_tab_hud_button(void) {
     cart_start_game((button_t *)title_button("forgiving"));
     run_frame(&step, 0);
     assert(ui_pad_tab(main_ui()) == NULL);
-}
-
-static void test_no_pad_selection_is_shown_behind_a_tab(void) {
-    static const int offsets[2][2] = { { 0, -12 }, { -12, 0 } };
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, offsets, 2, ends, slipways);
-    assert(ui_pad_selection(main_ui()) == &hub->header && ui_pad_slipway(main_ui()) == slipways[0]);
-    for (int i = 0; i < 4; i++) {
-        tap(&step, P8_PAD_R1);
-        assert(pad_nav_tab(&step.pad_nav) == forward_cycle[i]);
-        assert(ui_pad_selection(main_ui()) == NULL && ui_pad_slipway(main_ui()) == NULL);
-    }
-    /* ○ leaves score through a backdrop click: its release frame shows no selection either. */
-    run_frame(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && ui_pad_selection(main_ui()) == NULL);
-    run_frame(&step, 0);
-    assert(ui_pad_selection(main_ui()) == NULL);
-    run_frame(&step, 0);
-    assert(ui_pad_selection(main_ui()) == &hub->header && ui_pad_slipway(main_ui()) == slipways[0]);
-    assert(main_ui()->pad_selection_frames == 0);
 }
 
 enum { HOVER_FILL = 12, IDLE_FILL = 13 };
@@ -2748,27 +2146,6 @@ static void test_cross_on_the_tech_header_closes_the_box_and_returns_to_the_map(
     tap(&step, P8_PAD_CROSS);
     assert(invented_count() == 0 && main_ui()->ephemerals.count == 0);
     assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
-}
-
-static void test_circle_on_tech_closes_the_box_and_returns_to_the_map_in_one_press(void) {
-    static const int offsets[2][2] = { { 0, -12 }, { -12, 0 } };
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, offsets, 2, ends, slipways);
-    tap(&step, P8_PAD_RIGHT);
-    vec_t from = camera_at();
-    go_to_tab(&step, PAD_NAV_TAB_TECH);
-    assert(main_ui()->ephemerals.count > 0);
-    run_frame(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && main_ui()->ephemerals.count == 0);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0);
-    run_frame(&step, P8_PAD_CIRCLE);
-    run_frame(&step, 0);
-    assert(main_ui()->ephemerals.count == 0);
-    assert_selected(&step, hub, slipways[1]);
-    assert_moved(from, 0, 0);
 }
 
 static int score_panel_shown(void) {
@@ -2878,25 +2255,6 @@ static void leave_score_then_triangle_on_the_release_frame(input_step_t *step) {
     assert(backdrop() == NULL && tagged_count(TAG_PROBE) == 0);
 }
 
-static void test_triangle_on_the_release_frame_of_leaving_score_does_nothing(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = known_planet_under_centre(&step);
-    if (in_forked_copy()) {
-        leave_score_then_triangle_on_the_release_frame(&step);
-        assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
-        tap(&step, P8_PAD_TRIANGLE);
-        assert(main_ui()->ephemerals.count > 0 && pad_nav_selection(&step.pad_nav) == &planet->header);
-        end_forked_copy();
-    }
-    (void)network_on_known_planet(&step);
-    run_frame(&step, 0);
-    leave_score_then_triangle_on_the_release_frame(&step);
-    assert(pad_nav_selection(&step.pad_nav) == &planet->header);
-    tap(&step, P8_PAD_TRIANGLE);
-    assert(main_ui()->ephemerals.count > 0);
-}
-
 static void pause_button_point(int *x, int *y) {
     pad_panel_focus_point(&galaxy_menu_find_button(4)->header, x, y);
 }
@@ -2981,26 +2339,6 @@ static void test_start_and_circle_close_pause_pressing_nothing_on_the_map(void) 
     }
 }
 
-static void test_pause_from_network_mode_gives_back_the_planet_slipway_and_camera(void) {
-    static const int offsets[2][2] = { { 0, -12 }, { -12, 0 } };
-    input_step_t step;
-    planet_t *ends[2];
-    entity_t *slipways[2];
-    start_game(&step);
-    planet_t *hub = network_on_star(&step, offsets, 2, ends, slipways);
-    tap(&step, P8_PAD_RIGHT);
-    assert_selected(&step, hub, slipways[1]);
-    vec_t from = camera_at();
-    open_pause(&step);
-    tap(&step, P8_PAD_UP);
-    close_pause(&step, P8_PAD_START);
-    assert_cursor_on(&step, &hub->header);
-    run_frame(&step, 0);
-    assert_selected(&step, hub, slipways[1]);
-    assert(ui_pad_selection(main_ui()) == &hub->header);
-    assert_moved(from, 0, 0);
-}
-
 static void test_pause_from_end_turn_and_build_keeps_the_tab_and_its_cursor(void) {
     input_step_t step;
     start_game(&step);
@@ -3029,22 +2367,6 @@ static void test_pause_from_end_turn_and_build_keeps_the_tab_and_its_cursor(void
     run_frame(&step, 0);
     assert_build_focus(&step, icon);
     assert(live_entities()->count == live && pad_nav_placing(&step.pad_nav) == NULL);
-}
-
-static void test_pause_keeps_aim_mode_for_the_next_circle(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    tap(&step, P8_PAD_SQUARE);
-    hold(&step, P8_PAD_RIGHT, 20);
-    run_frame(&step, 0);
-    vec_t from = camera_at();
-    open_pause(&step);
-    close_pause(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_aim_mode(&step.pad_nav));
-    assert_moved(from, 0, 0);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == &planet->header);
 }
 
 /* × on "toggle music", "toggle sfx" and "how to play?" closes pause as the mouse click does, and opens nothing. */
@@ -3179,36 +2501,6 @@ static void test_start_is_ignored_on_the_title(void) {
     assert_focused_and_hovered(&step, "reasonable");
 }
 
-static void test_start_is_ignored_under_a_planet_menu_and_on_tech_and_score(void) {
-    input_step_t step;
-    start_game(&step);
-    if (in_forked_copy()) {
-        planet_t *planet = network_on_known_planet(&step);
-        tap(&step, P8_PAD_TRIANGLE);
-        int rows = main_ui()->ephemerals.count;
-        assert(rows > 0);
-        assert_start_ignored(&step, 0);
-        settle(&step);
-        assert(main_ui()->ephemerals.count == rows && !pause_menu_shown());
-        assert_network_on(&step, planet);
-        end_forked_copy();
-    }
-    if (in_forked_copy()) {
-        go_to_tab(&step, PAD_NAV_TAB_TECH);
-        int rows = main_ui()->ephemerals.count;
-        assert(rows > 0);
-        assert_start_ignored(&step, 0);
-        settle(&step);
-        assert(main_ui()->ephemerals.count == rows && !pause_menu_shown());
-        assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_TECH);
-        end_forked_copy();
-    }
-    open_score_from_the_map(&step);
-    assert_start_ignored(&step, 0);
-    settle(&step);
-    assert(score_panel_shown() && !pause_menu_shown() && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_SCORE);
-}
-
 static void test_start_is_ignored_while_cross_holds_a_fold(void) {
     input_step_t step;
     start_game(&step);
@@ -3221,21 +2513,6 @@ static void test_start_is_ignored_while_cross_holds_a_fold(void) {
     assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
     assert_cursor_at_centre(&step);
     assert(ui_left_held(main_ui()) == held && main_ui()->ephemerals.count == 0);
-}
-
-static void test_start_is_ignored_on_the_triangle_release_frame(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = known_planet_closest_to_centre();
-    settle_planet(&step, planet);
-    pan_planet_under_centre(&step, planet, 0);
-    run_frame(&step, P8_PAD_TRIANGLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT && main_ui()->ephemerals.count == 0);
-    run_frame(&step, P8_PAD_START);
-    assert_cursor_on(&step, &planet->header);
-    run_frame(&step, 0);
-    assert(!pause_menu_shown() && main_ui()->ephemerals.count > 0);
-    assert_network_on(&step, planet);
 }
 
 /* Once an invention closes the tech box, the tab returns to the map on the next frame: Start there opens nothing. */
@@ -3386,26 +2663,6 @@ static void test_restart_under_pause_drops_the_suspended_structure(void) {
     assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_BUILD);
 }
 
-static void test_pause_while_carrying_from_network_mode_comes_back_to_the_carry(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *colony = known_planet_closest_to_centre();
-    settle_planet(&step, colony);
-    pan_planet_under_centre(&step, colony, 0);
-    tap(&step, P8_PAD_TRIANGLE);
-    tap(&step, P8_PAD_CIRCLE);
-    assert_network_on(&step, colony);
-    go_to_tab(&step, PAD_NAV_TAB_BUILD);
-    entity_t *structure = take_structure(&step);
-    suspend_into_pause(&step, structure);
-    close_pause_into_the_carry(&step, structure);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(structure->is_dead);
-    assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
-    tap(&step, P8_PAD_CIRCLE);
-    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == &colony->header);
-}
-
 /* ui_clear_ephemerals would close pause there with the left button up, so the resume's held button would be a press on the map. */
 static void test_circle_on_the_release_frame_of_the_pause_click_is_dropped(void) {
     input_step_t step;
@@ -3476,23 +2733,6 @@ static void test_a_carried_structure_draws_no_crosshair(void) {
     assert_no_crosshair_drawn();
 }
 
-static void test_network_mode_draws_no_crosshair(void) {
-    input_step_t step;
-    start_game(&step);
-    network_on_known_planet(&step);
-    assert_no_crosshair_drawn();
-}
-
-static void test_a_planet_menu_draws_no_crosshair(void) {
-    input_step_t step;
-    start_game(&step);
-    known_planet_under_centre(&step);
-    tap(&step, P8_PAD_TRIANGLE);
-    run_frame(&step, 0);
-    assert(pad_nav_panel_open() && ui_hovered(main_ui()) == pad_nav_first_item());
-    assert_no_crosshair_drawn();
-}
-
 static void assert_jump_mode_rests_at_the_centre(input_step_t *step) {
     assert(pad_nav_jump_mode(&step->pad_nav) && !pad_nav_aim_mode(&step->pad_nav));
     assert(pad_nav_hovered(&step->pad_nav) == NULL && pad_nav_selection(&step->pad_nav) == NULL);
@@ -3524,14 +2764,6 @@ static void restart_into_a_new_game(input_step_t *step) {
     cart_start_game((button_t *)title_button("forgiving"));
     run_frame(step, 0);
     assert(main_economy_typed() != NULL && !pad_nav_panel_open());
-}
-
-static void test_a_new_game_after_network_mode_starts_in_jump_mode(void) {
-    input_step_t step;
-    start_game(&step);
-    (void)network_on_known_planet(&step);
-    restart_into_a_new_game(&step);
-    assert_jump_mode_rests_at_the_centre(&step);
 }
 
 static void test_a_new_game_after_aim_mode_starts_in_jump_mode(void) {
@@ -3860,44 +3092,6 @@ static void test_cross_and_circle_in_jump_mode_change_nothing(void) {
     assert(tagged_count(TAG_PROBE) == 0 && tagged_count(TAG_WORMHOLE) == 0);
 }
 
-/* Two known planets, one each side of the centre: the reseed takes the nearer, not the first in creation order. */
-static void test_a_dead_selection_reseeds_on_the_object_nearest_the_centre(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    planet->header.is_dead = 1;
-    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
-    int cx, cy;
-    vec_t camera = camera_at();
-    cx = p8_fixed_flr_int(camera.x) + P8_SCREEN_WIDTH / 2;
-    cy = p8_fixed_flr_int(camera.y) + P8_SCREEN_HEIGHT / 2;
-    planet_t *near = NULL, *far = NULL;
-    int near_distance = 0, far_distance = 0;
-    for (int i = 0; i < planets->count; i++) {
-        planet_t *p = (planet_t *)planets->items[i];
-        int x, y;
-        if (p == planet) {
-            continue;
-        }
-        pad_jump_world_point(&p->header, &x, &y);
-        int distance = (x - cx) * (x - cx) + (y - cy) * (y - cy);
-        if (near == NULL || distance < near_distance) {
-            near = p;
-            near_distance = distance;
-        }
-        if (far == NULL || distance > far_distance) {
-            far = p;
-            far_distance = distance;
-        }
-    }
-    assert(near != NULL && far != NULL && near != far);
-    make_known(far);
-    make_known(near);
-    run_frame(&step, 0);
-    assert(pad_nav_jump_mode(&step.pad_nav));
-    assert(pad_nav_hovered(&step.pad_nav) == &near->header);
-}
-
 static void test_pad_nav_hovered_is_null_outside_jump_mode(void) {
     input_step_t step;
     start_game_in_jump_mode(&step);
@@ -4166,23 +3360,6 @@ static void test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing
     assert_world_unchanged(before);
 }
 
-static void test_circle_in_network_mode_returns_to_jump_mode_on_that_planet(void) {
-    input_step_t step;
-    start_game(&step);
-    planet_t *planet = network_on_known_planet(&step);
-    assert_network_on(&step, planet);
-    vec_t from = camera_at();
-    run_frame(&step, P8_PAD_CIRCLE);
-    assert(input_step_played_frame(&step)->mouse_buttons == 0);
-    assert(pad_nav_selection(&step.pad_nav) == NULL && pad_nav_selected_slipway(&step.pad_nav) == NULL);
-    run_frame(&step, 0);
-    assert_hovering(&step, &planet->header);
-    int x, y;
-    rest_screen_point(&planet->header, &x, &y);
-    assert(pad_jump_inside(x, y));
-    assert_moved(from, 0, 0);
-}
-
 #define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
 
 /* Four chords, one every 2 frames; returns how often the cheat fired and asserts the mouse buttons played. */
@@ -4262,24 +3439,6 @@ static void test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up(void
     assert_world_unchanged(before);
     run_frame(&step, P8_PAD_CIRCLE);
     assert(!pad_nav_panel_open());
-}
-
-/* In aim mode the chord's × would place a probe; in network mode its ○ would return to jump mode. */
-static void test_a_chord_places_no_probe_and_leaves_network_mode_alone(void) {
-    input_step_t step;
-    start_game(&step);
-    pan_to_empty_space(&step);
-    world_count_t before = world_count();
-    assert(type_chords(&step) == 1);
-    hold(&step, 0, 10);
-    before.credits = main_economy_typed()->credits;
-    assert_world_unchanged(before);
-    assert(pad_nav_aim_mode(&step.pad_nav));
-
-    planet_t *planet = network_on_known_planet(&step);
-    assert_network_on(&step, planet);
-    assert(type_chords(&step) == 1);
-    assert_network_on(&step, planet);
 }
 
 /* The chord's ○ would leave aim mode and its × would place a probe. */
@@ -4897,6 +4056,332 @@ static void test_building_refusing_and_cancelling_leave_the_game_stream_unchange
     assert(p8_fixed_rnd_state() == game && "slipway mode draws no game number");
 }
 
+/* Jump mode hovering the known planet closest to the centre, the edge scroll done. */
+static planet_t *jump_on_known_planet(input_step_t *step) {
+    start_game_in_jump_mode(step);
+    planet_t *planet = known_planet_closest_to_centre();
+    hold(step, 0, 40);
+    assert_hovering(step, &planet->header);
+    return planet;
+}
+
+static planet_t *jump_on_colony(input_step_t *step) {
+    start_game_in_jump_mode(step);
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(step, colony);
+    hold(step, 0, 40);
+    assert_hovering(step, &colony->header);
+    return colony;
+}
+
+static void test_colonising_through_the_menu_ends_in_jump_mode_on_the_colony(void) {
+    entity_t *rows[ITEMS_CAP];
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    p8_fixed_t credits = main_economy_typed()->credits;
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    int count = box_entries(rows);
+    assert(count >= 3 && ((button_t *)rows[0])->on_click == NULL && is_button_of(rows[1], planet));
+    assert(pad_nav_focus(&step.pad_nav) == rows[0]);
+    tap(&step, P8_PAD_DOWN);
+    tap(&step, P8_PAD_DOWN);
+    assert(pad_nav_focus(&step.pad_nav) == rows[2]);
+    tap(&step, P8_PAD_UP);
+    assert(pad_nav_focus(&step.pad_nav) == rows[1] && ui_hovered(main_ui()) == rows[1]);
+    p8_fixed_t cost = ((button_t *)rows[1])->project_cost;
+    assert(cost > 0);
+    for (int i = 0; i < 4 && main_ui()->ephemerals.count > 0; i++) {
+        run_frame(&step, P8_PAD_CROSS);
+    }
+    assert(main_ui()->ephemerals.count == 0);
+    assert(planet->header.state == ENTITY_STATE_SETTLED);
+    assert(main_economy_typed()->credits == p8_fixed_sub(credits, cost));
+    run_frame(&step, 0);
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+    assert(ui_left_held(main_ui()) == NULL && tagged_count(TAG_SLIPWAY) == 0);
+}
+
+/* × held across the △: the click still releases on the next frame. */
+static void test_triangle_click_releases_even_with_cross_held(void) {
+    input_step_t step;
+    (void)jump_on_known_planet(&step);
+    run_frame(&step, P8_PAD_CROSS);
+    run_frame(&step, P8_PAD_CROSS | P8_PAD_TRIANGLE);
+    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+    run_frame(&step, P8_PAD_CROSS);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+}
+
+/* A colony's △ opens its panel on the release: × on that frame must start no slipway out of it. */
+static void test_cross_on_the_triangle_release_frame_is_ignored(void) {
+    input_step_t step;
+    planet_t *colony = jump_on_colony(&step);
+    world_count_t before = world_count();
+    run_frame(&step, P8_PAD_TRIANGLE);
+    run_frame(&step, P8_PAD_CROSS);
+    assert(pad_nav_slipway_start(&step.pad_nav) == NULL && ui_left_held(main_ui()) == NULL);
+    assert_cursor_on(&step, &colony->header);
+    assert(main_ui()->ephemerals.count > 0);
+    run_frame(&step, 0);
+    assert_world_unchanged(before);
+}
+
+static void test_shoulders_in_aim_mode_switch_and_come_back_to_it(void) {
+    input_step_t step;
+    start_game(&step);
+    hold(&step, P8_PAD_RIGHT, 20);
+    run_frame(&step, 0);
+    vec_t from = camera_at();
+    run_frame(&step, P8_PAD_R1);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_BUILD);
+    run_frame(&step, 0);
+    tap(&step, P8_PAD_L1);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_selection(&step.pad_nav) == NULL);
+    assert_moved(from, 0, 0);
+}
+
+static void test_shoulders_close_a_planet_menu_then_switch(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    tap(&step, P8_PAD_TRIANGLE);
+    assert(main_ui()->ephemerals.count > 0);
+    run_frame(&step, P8_PAD_R1);
+    assert(main_ui()->ephemerals.count == 0 && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_BUILD);
+    run_frame(&step, 0);
+    assert(main_ui()->ephemerals.count == 0);
+    tap(&step, P8_PAD_L1);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    run_frame(&step, 0);
+    assert_hovering(&step, &planet->header);
+}
+
+/* A settled planet opens its panel on the release, so no panel is up yet on that frame. */
+static void test_shoulders_wait_on_the_triangle_release_frame(void) {
+    input_step_t step;
+    (void)jump_on_colony(&step);
+    run_frame(&step, P8_PAD_TRIANGLE);
+    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT && main_ui()->ephemerals.count == 0);
+    run_frame(&step, P8_PAD_R1);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0 && main_ui()->ephemerals.count > 0);
+}
+
+static void test_start_is_ignored_under_a_planet_menu_and_on_tech_and_score(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_TRIANGLE);
+        int rows = main_ui()->ephemerals.count;
+        assert(rows > 0);
+        assert_start_ignored(&step, 0);
+        settle(&step);
+        assert(main_ui()->ephemerals.count == rows && !pause_menu_shown());
+        assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        go_to_tab(&step, PAD_NAV_TAB_TECH);
+        int rows = main_ui()->ephemerals.count;
+        assert(rows > 0);
+        assert_start_ignored(&step, 0);
+        settle(&step);
+        assert(main_ui()->ephemerals.count == rows && !pause_menu_shown());
+        assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_TECH);
+        end_forked_copy();
+    }
+    open_score_from_the_map(&step);
+    assert_start_ignored(&step, 0);
+    settle(&step);
+    assert(score_panel_shown() && !pause_menu_shown() && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_SCORE);
+}
+
+static void test_start_is_ignored_on_the_triangle_release_frame(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_colony(&step);
+    run_frame(&step, P8_PAD_TRIANGLE);
+    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT && main_ui()->ephemerals.count == 0);
+    run_frame(&step, P8_PAD_START);
+    assert_cursor_on(&step, &planet->header);
+    run_frame(&step, 0);
+    assert(!pause_menu_shown() && main_ui()->ephemerals.count > 0);
+    assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
+}
+
+static void test_no_pad_selection_is_shown_behind_a_tab(void) {
+    input_step_t step;
+    planet_t *colony = jump_on_colony(&step);
+    assert(ui_pad_selection(main_ui()) == &colony->header);
+    for (int i = 0; i < 4; i++) {
+        tap(&step, P8_PAD_R1);
+        assert(pad_nav_tab(&step.pad_nav) == forward_cycle[i]);
+        assert(ui_pad_selection(main_ui()) == NULL);
+    }
+    /* ○ leaves score through a backdrop click: its release frame shows no selection either. */
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && ui_pad_selection(main_ui()) == NULL);
+    run_frame(&step, 0);
+    assert(ui_pad_selection(main_ui()) == NULL);
+    run_frame(&step, 0);
+    assert(ui_pad_selection(main_ui()) == &colony->header);
+}
+
+static void test_circle_on_tech_closes_the_box_and_returns_to_the_map_in_one_press(void) {
+    input_step_t step;
+    planet_t *colony = jump_on_colony(&step);
+    vec_t from = camera_at();
+    go_to_tab(&step, PAD_NAV_TAB_TECH);
+    assert(main_ui()->ephemerals.count > 0);
+    run_frame(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && main_ui()->ephemerals.count == 0);
+    assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    run_frame(&step, P8_PAD_CIRCLE);
+    run_frame(&step, 0);
+    assert(main_ui()->ephemerals.count == 0);
+    assert_hovering(&step, &colony->header);
+    assert_moved(from, 0, 0);
+}
+
+static void test_triangle_on_the_release_frame_of_leaving_score_does_nothing(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    leave_score_then_triangle_on_the_release_frame(&step);
+    assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
+    tap(&step, P8_PAD_TRIANGLE);
+    assert(main_ui()->ephemerals.count > 0);
+}
+
+static void test_a_planet_menu_draws_no_crosshair(void) {
+    input_step_t step;
+    (void)jump_on_known_planet(&step);
+    tap(&step, P8_PAD_TRIANGLE);
+    run_frame(&step, 0);
+    assert(pad_nav_panel_open() && ui_hovered(main_ui()) == pad_nav_first_item());
+    assert_no_crosshair_drawn();
+}
+
+static void test_pause_keeps_aim_mode_for_the_next_circle(void) {
+    input_step_t step;
+    start_game(&step);
+    planet_t *planet = known_planet_under_centre(&step);
+    hold(&step, P8_PAD_RIGHT, 20);
+    run_frame(&step, 0);
+    vec_t from = camera_at();
+    open_pause(&step);
+    close_pause(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_aim_mode(&step.pad_nav));
+    assert_moved(from, 0, 0);
+    tap(&step, P8_PAD_CIRCLE);
+    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == &planet->header);
+}
+
+static void test_pause_from_jump_mode_gives_back_the_hovered_object_and_camera(void) {
+    input_step_t step;
+    planet_t *colony = jump_on_colony(&step);
+    vec_t from = camera_at();
+    open_pause(&step);
+    tap(&step, P8_PAD_UP);
+    close_pause(&step, P8_PAD_START);
+    run_frame(&step, 0);
+    assert_hovering(&step, &colony->header);
+    assert_moved(from, 0, 0);
+}
+
+/* Of the radius-9 circle's pixels around the point, how many show colour 7; *total gets their number. */
+static int circle_pixels_lit(int x, int y, int *total) {
+    static p8_vram_t pattern;
+    p8_graphics_t pattern_graphics;
+    p8_vram_init(&pattern);
+    p8_gfx_init(&pattern_graphics);
+    p8_circ(&pattern_graphics, &pattern, x, y, PAD_CIRCLE_RADIUS, 1);
+    int lit = 0;
+    *total = 0;
+    for (int row = 0; row < P8_SCREEN_HEIGHT; row++) {
+        for (int column = 0; column < P8_SCREEN_WIDTH; column++) {
+            if (pattern.screen[row][column] == 1) {
+                (*total)++;
+                lit += memory.screen[row][column] == PAD_CIRCLE_COLOUR;
+            }
+        }
+    }
+    return lit;
+}
+
+/* The draw floors the planet and the camera apart, the cursor floors their difference: the two can be a pixel apart. */
+static int circle_pixels_lit_near(int x, int y, int *total) {
+    int best = 0;
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            int lit = circle_pixels_lit(x + dx, y + dy, total);
+            best = lit > best ? lit : best;
+        }
+    }
+    return best;
+}
+
+/* Over one blink period the circle round the hovered object is drawn whole on some frames and not at all on others;
+ * a planet menu hides it. */
+static void test_the_hovered_object_blinks_a_circle(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    int whole = 0, none = 0;
+    for (int i = 0; i < UI_PAD_BLINK_PERIOD; i++) {
+        run_frame(&step, 0);
+        assert_hovering(&step, &planet->header);
+        int total;
+        cart_draw();
+        int lit = circle_pixels_lit_near(input_step_played_frame(&step)->mouse_x, input_step_played_frame(&step)->mouse_y,
+                                         &total);
+        whole += lit == total;
+        none += lit == 0;
+    }
+    assert(whole > 0 && none > 0 && whole + none == UI_PAD_BLINK_PERIOD);
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    assert(pad_nav_panel_open() && ui_pad_selection(main_ui()) == NULL);
+}
+
+/* A colony far off and two known planets near the centre: once the hovered one dies, the reseed takes the object
+ * nearest the centre, not the first colony; with every candidate dead, nothing is hovered. */
+static void test_a_dead_hovered_object_reseeds_on_the_object_nearest_the_centre(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    planet_t *colony = planet_farthest_outside();
+    make_known(colony);
+    (void)planet_left_press(colony);
+    assert(click_colonise_row());
+    ui_clear_ephemerals(main_ui());
+    planet_t *near = known_planet_closest_to_centre();
+    hover_object(&step, &near->header);
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    planet_t *second = NULL;
+    vec_t centre = centre_world();
+    for (int i = 0; i < planets->count; i++) {
+        planet_t *p = (planet_t *)planets->items[i];
+        if (p == near || p == colony) {
+            continue;
+        }
+        vec_t gap = vec_sub(entity_pos(&p->header), centre);
+        vec_t best = second != NULL ? vec_sub(entity_pos(&second->header), centre) : gap;
+        if (second == NULL || vec_length_squared(gap) < vec_length_squared(best)) {
+            second = p;
+        }
+    }
+    make_known(second);
+    run_frame(&step, 0);
+    assert(pad_nav_hovered(&step.pad_nav) == &near->header);
+    near->header.is_dead = 1;
+    run_frame(&step, 0);
+    assert(pad_nav_hovered(&step.pad_nav) == &second->header && "the nearest, not the first colony");
+    second->header.is_dead = 1;
+    colony->header.is_dead = 1;
+    run_frame(&step, 0);
+    assert(pad_nav_jump_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == NULL);
+    assert_cursor_at_centre(&step);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -4921,6 +4406,7 @@ int main(void) {
     in_fresh_child(test_aim_mode_diagonal_cancel_and_reset);
     in_fresh_child(test_aim_mode_bound_brings_every_planet_under_the_centre);
     in_fresh_child(test_aim_mode_triangle_on_empty_space_does_nothing);
+    in_fresh_child(test_aim_mode_triangle_over_a_known_planet_or_a_colony_does_nothing);
     in_fresh_child(test_select_changes_nothing_yet);
     in_fresh_child(test_aim_mode_first_cross_places_the_probe);
     in_fresh_child(test_aim_mode_short_cross_hold_abandons_the_fold);
@@ -4937,21 +4423,13 @@ int main(void) {
     in_fresh_child(test_year_message_box_adds_and_removes_nothing);
     in_fresh_child(test_help_is_the_title_screen);
     in_fresh_child(test_how_to_play_is_reachable_and_opens_nothing);
-    in_fresh_child(test_triangle_on_a_known_planet_opens_its_menu);
     in_fresh_child(test_triangle_on_empty_space_or_an_unexplored_planet_does_nothing);
-    in_fresh_child(test_triangle_on_a_settled_planet_opens_its_inspection_panel);
-    in_fresh_child(test_colonising_through_the_menu_lands_network_mode_on_the_planet);
-    in_fresh_child(test_circle_closes_the_menu_and_stays_on_the_planet);
-    in_fresh_child(test_network_mode_ignores_cross_directions_and_the_unbound_buttons);
-    in_fresh_child(test_triangle_in_network_mode_reopens_the_menu);
+    in_fresh_child(test_colonising_through_the_menu_ends_in_jump_mode_on_the_colony);
     in_fresh_child(test_triangle_click_releases_even_with_cross_held);
     in_fresh_child(test_circle_on_the_title_does_nothing);
     in_fresh_child(test_circle_closes_the_pause_menu);
     in_fresh_child(test_triangle_while_cross_holds_a_fold_does_nothing);
-    in_fresh_child(test_a_dead_selection_falls_back_to_jump_mode);
-    in_fresh_child(test_a_dead_selection_reseeds_on_the_object_nearest_the_centre);
     in_fresh_child(test_a_new_game_starts_in_jump_mode_with_nothing_hovered);
-    in_fresh_child(test_a_new_game_after_network_mode_starts_in_jump_mode);
     in_fresh_child(test_a_new_game_after_aim_mode_starts_in_jump_mode);
     in_fresh_child(test_jump_mode_seeds_on_the_first_object_that_appears);
     in_fresh_child(test_the_edge_scroll_brings_the_hovered_object_just_inside_at_8_px_a_frame);
@@ -4968,6 +4446,8 @@ int main(void) {
     in_fresh_child(test_aim_pans_and_toggles_leave_the_game_stream_unchanged);
     in_fresh_child(test_crosshair_is_drawn_in_aim_mode_only);
     in_fresh_child(test_cross_and_circle_in_jump_mode_change_nothing);
+    in_fresh_child(test_the_hovered_object_blinks_a_circle);
+    in_fresh_child(test_a_dead_hovered_object_reseeds_on_the_object_nearest_the_centre);
     in_fresh_child(test_pad_nav_hovered_is_null_outside_jump_mode);
     in_fresh_child(test_a_tab_visit_comes_back_to_jump_mode_on_the_hovered_object);
     in_fresh_child(test_taking_a_structure_from_jump_mode_enters_plain_aim_mode_where_the_camera_is);
@@ -4980,22 +4460,12 @@ int main(void) {
     in_fresh_child(test_triangle_on_a_hovered_known_planet_opens_its_menu_and_circle_comes_back);
     in_fresh_child(test_triangle_on_a_hovered_colony_opens_its_panel_and_no_jump_shares_the_click);
     in_fresh_child(test_triangle_on_a_hovered_object_still_scrolling_in_presses_nothing);
-    in_fresh_child(test_circle_in_network_mode_returns_to_jump_mode_on_that_planet);
-    in_fresh_child(test_the_ui_pad_selection_is_the_planet_only_in_network_mode_without_a_box);
-    in_fresh_child(test_square_in_network_mode_enters_aim_mode_centred_on_the_planet_pressing_nothing);
     in_fresh_child(test_cross_in_aim_mode_on_a_colony_presses_nothing);
     in_fresh_child(test_square_while_cross_holds_a_fold_selects_nothing);
     in_fresh_child(test_shoulders_in_aim_mode_switch_and_come_back_to_it);
-    in_fresh_child(test_circle_first_closes_a_box_then_returns);
     in_fresh_child(test_slipways_turn_clockwise_from_straight_up);
     in_fresh_child(test_straight_up_splits_the_two_halves);
-    in_fresh_child(test_left_and_right_turn_the_selected_slipway);
-    in_fresh_child(test_cross_travels_along_the_selected_slipway);
-    in_fresh_child(test_up_and_down_do_nothing_in_network_mode);
     in_fresh_child(test_cross_on_the_triangle_release_frame_is_ignored);
-    in_fresh_child(test_the_ui_pad_slipway_is_shown_with_the_planet);
-    in_fresh_child(test_network_mode_hides_the_cursor_and_blinks_a_circle);
-    in_fresh_child(test_the_selected_slipway_is_drawn_bright);
     in_fresh_child(test_r1_and_l1_cycle_the_tabs);
     in_fresh_child(test_a_held_shoulder_moves_one_tab_and_both_together_move_none);
     in_fresh_child(test_build_focuses_the_basic_structure_icon_from_the_tab_change_frame);
@@ -5009,18 +4479,15 @@ int main(void) {
     in_fresh_child(test_a_refused_drop_kills_the_structure_and_charges_nothing);
     in_fresh_child(test_circle_cancels_the_structure_and_charges_nothing);
     in_fresh_child(test_a_panel_opened_while_carrying_releases_at_the_icon);
-    in_fresh_child(test_taking_from_network_mode_enters_aim_mode_centred_on_the_selected_planet);
     in_fresh_child(test_circle_cancels_a_structure_taken_from_jump_mode_then_leaves_aim_mode);
     in_fresh_child(test_triangle_and_square_wait_while_carrying);
     in_fresh_child(test_shoulders_cancel_the_carried_structure_then_switch);
-    in_fresh_child(test_shoulders_cancel_a_structure_taken_in_network_mode_and_come_back_to_aim_mode);
     in_fresh_child(test_cross_held_on_arrival_on_build_takes_nothing);
     in_fresh_child(test_a_press_that_hands_over_no_structure_stays_on_build);
     in_fresh_child(test_end_turn_focuses_and_hovers_the_year_skip_button);
     in_fresh_child(test_cross_on_end_turn_ends_one_year_per_press);
     in_fresh_child(test_cross_held_on_arrival_ends_no_year);
     in_fresh_child(test_a_new_game_starts_on_the_map);
-    in_fresh_child(test_network_mode_survives_a_tab_visit);
     in_fresh_child(test_aim_mode_survives_a_tab_visit_and_pans_from_slow);
     in_fresh_child(test_shoulders_close_a_planet_menu_then_switch);
     in_fresh_child(test_shoulders_wait_under_the_pause_menu);
@@ -5029,7 +4496,7 @@ int main(void) {
     in_fresh_child(test_shoulders_switch_and_aim_pans_under_the_year_box);
     in_fresh_child(test_start_opens_pause_from_aim_mode);
     in_fresh_child(test_start_and_circle_close_pause_pressing_nothing_on_the_map);
-    in_fresh_child(test_pause_from_network_mode_gives_back_the_planet_slipway_and_camera);
+    in_fresh_child(test_pause_from_jump_mode_gives_back_the_hovered_object_and_camera);
     in_fresh_child(test_pause_from_end_turn_and_build_keeps_the_tab_and_its_cursor);
     in_fresh_child(test_pause_keeps_aim_mode_for_the_next_circle);
     in_fresh_child(test_cross_on_each_row_but_restart_closes_pause);
@@ -5047,7 +4514,6 @@ int main(void) {
     in_fresh_child(test_start_while_carrying_suspends_the_structure_under_pause);
     in_fresh_child(test_closing_pause_resumes_the_carry_where_it_was);
     in_fresh_child(test_restart_under_pause_drops_the_suspended_structure);
-    in_fresh_child(test_pause_while_carrying_from_network_mode_comes_back_to_the_carry);
     in_fresh_child(test_circle_on_the_release_frame_of_the_pause_click_is_dropped);
     in_fresh_child(test_the_ui_pad_tab_is_the_tab_hud_button);
     in_fresh_child(test_no_pad_selection_is_shown_behind_a_tab);
@@ -5065,13 +4531,11 @@ int main(void) {
     in_fresh_child(test_the_landing_after_a_shoulder_cancel_waits_for_its_release);
     in_fresh_child(test_pad_pause_draws_no_crosshair);
     in_fresh_child(test_a_carried_structure_draws_no_crosshair);
-    in_fresh_child(test_network_mode_draws_no_crosshair);
     in_fresh_child(test_a_planet_menu_draws_no_crosshair);
     in_fresh_child(test_pad_aim_mode_draws_a_crosshair_at_the_centre);
     in_fresh_child(test_four_chords_on_a_hovered_colony_cheat_and_change_nothing_else);
     in_fresh_child(test_a_chord_on_a_planet_menu_presses_no_row_and_closes_nothing);
     in_fresh_child(test_buttons_held_from_a_chord_act_on_nothing_until_both_are_up);
-    in_fresh_child(test_a_chord_places_no_probe_and_leaves_network_mode_alone);
     in_fresh_child(test_four_chords_in_aim_mode_cheat_and_change_nothing_else);
     in_fresh_child(test_probing_and_leaving_aim_mode_never_types_the_cheat);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);

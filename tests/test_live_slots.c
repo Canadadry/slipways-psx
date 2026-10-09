@@ -776,26 +776,26 @@ static void pad_game_end_rebuild_does_not_grow_game(void) {
     assert(f21 == f69 && "an incoming routes rebuild grows the generation");
 }
 
-/* f513-564: the f513 year jump over six placed slipways, so
+/* f514-565: the f514 year jump over six placed slipways, so
  * planet_rebuild_trades and planet_offer_trade, which offer known routes
- * again. The f512 rebuild keeps the route of the slipway placed at f502. The
- * presses of the f544 and f559 triangles reuse the slipway construction arena
- * the f503 re-press took and its cancel left. */
+ * again. The f513 rebuild keeps the route of the slipway placed at f503. The
+ * presses of the f545 and f560 triangles reuse the slipway construction arena
+ * the f504 re-press took and its cancel left. */
 static void pad_tech_costs_route_rebuild_does_not_grow_game(void) {
     start_e2e("pad_tech_costs");
-    play_until(502);
-    const size_t f502 = game_without_registries();
     play_until(503);
     const size_t f503 = game_without_registries();
-    assert(f503 == f502 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
-           "the f503 re-press of p54 takes a slipway construction arena");
-    play_until(512);
-    const size_t f512 = game_without_registries();
-    play_until(564);
-    const size_t f564 = game_without_registries();
-    printf("  pad_tech_costs f512/f564: game - registries = %lu/%lu\n", (unsigned long)f512,
-           (unsigned long)f564);
-    assert(f564 == f512 && "a rebuild over routes grows the generation, or a triangle press does not reuse the arena");
+    play_until(504);
+    const size_t f504 = game_without_registries();
+    assert(f504 == f503 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
+           "the f504 re-press of p54 takes a slipway construction arena");
+    play_until(513);
+    const size_t f513 = game_without_registries();
+    play_until(565);
+    const size_t f565 = game_without_registries();
+    printf("  pad_tech_costs f513/f565: game - registries = %lu/%lu\n", (unsigned long)f513,
+           (unsigned long)f565);
+    assert(f565 == f513 && "a rebuild over routes grows the generation, or a triangle press does not reuse the arena");
 }
 
 static const planet_t *planet_with_id(const char *id) {
@@ -808,39 +808,39 @@ static const planet_t *planet_with_id(const char *id) {
     return NULL;
 }
 
-/* A route of outgoing_routes kept by the f512 rebuild reads back at f564,
+/* A route of outgoing_routes kept by the f513 rebuild reads back at f565,
  * after 52 resets of the frame zone where its candidates are made. */
 static void pad_tech_costs_kept_route_survives_frame(void) {
     entity_id_t lp[16];
     entity_id_t rl[16];
     start_e2e("pad_tech_costs");
-    play_until(512);
+    play_until(513);
     const planet_t *p54 = planet_with_id("p54");
     const trade_route_list_t *by = &p54->outgoing_routes;
-    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f512: p54 keeps a route");
+    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f513: p54 keeps a route");
     const trade_route_t *t = trade_route_list_at(by, trade_route_list_count(by) - 1);
     const int nlp = t->planets.count;
     const int nrl = t->slipways.count;
     assert(nlp <= 16 && nrl <= 16);
     memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
     memcpy(rl, t->slipways.items, (size_t)nrl * sizeof *rl);
-    play_until(564);
+    play_until(565);
     assert(t->planets.count == nlp && memcmp(lp, t->planets.items, (size_t)nlp * sizeof *lp) == 0);
     assert(t->slipways.count == nrl && memcmp(rl, t->slipways.items, (size_t)nrl * sizeof *rl) == 0);
-    printf("  pad_tech_costs: p54 route (%d planets, %d slipways) read back at f564\n", nlp, nrl);
+    printf("  pad_tech_costs: p54 route (%d planets, %d slipways) read back at f565\n", nlp, nrl);
 }
 
-/* At f512, a rebuild of p54 over its kept routes gives back to the frame
+/* At f513, a rebuild of p54 over its kept routes gives back to the frame
  * zone every candidate offer it made, and the routes it hands back still
  * read the same. */
 static void pad_tech_costs_rebuild_gives_back_frame(void) {
     entity_id_t lp[16];
     start_e2e("pad_tech_costs");
-    play_until(512);
+    play_until(513);
     planet_t *p54 = (planet_t *)planet_with_id("p54");
-    assert(p54->slipways.zone != NULL && p54->slipways.count > 0 && "f512: p54 is linked");
+    assert(p54->slipways.zone != NULL && p54->slipways.count > 0 && "f513: p54 is linked");
     const trade_route_list_t *by = &p54->outgoing_routes;
-    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f512: p54 keeps a route");
+    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f513: p54 keeps a route");
     const int n = trade_route_list_count(by);
     const trade_route_t *t = trade_route_list_at(by, n - 1);
     const int nlp = t->planets.count;
@@ -849,7 +849,7 @@ static void pad_tech_costs_rebuild_gives_back_frame(void) {
     const size_t before = frame_zone_used();
     trade_route_list_t *out = planet_rebuild_trades(p54);
     const size_t after = frame_zone_used();
-    printf("  pad_tech_costs f512: frame %lu -> %lu across a rebuild of p54\n", (unsigned long)before,
+    printf("  pad_tech_costs f513: frame %lu -> %lu across a rebuild of p54\n", (unsigned long)before,
            (unsigned long)after);
     assert(after == before && "planet_rebuild_trades keeps its candidate offers in the frame zone");
     assert(out == by && trade_route_list_count(out) == n && "the rebuild hands back the kept routes");
@@ -980,8 +980,9 @@ static void refused_grab_crosses_new_game(void) {
 #define SLIPWAYS "tests/fixtures/slipways_refused.json"
 
 /* SLIPWAYS: f0-98 of pad_colonise (probe, fold, p47 colonised, but as
- * "dismantle" so that no trade route joins it to p25); square, aim mode on
- * p47, panned onto p25, colonised (f128-133), circle to jump mode on p25;
+ * "dismantle" so that no trade route joins it to p25, its menu from jump
+ * mode after the f86 square); square at f100, aim mode, panned onto p25;
+ * square at f127, jump mode on p25, colonised from its menu (f128-133);
  * the basic structure s1 placed 40 px beyond p25 on the line from p47
  * (f138-169); circle, Down: jump mode on p25. Then 16-frame cycles from
  * f182: X starts the slipway from p25, Down aims it at p47, circle cancels
@@ -1395,14 +1396,14 @@ static void pad_empty_planet_does_not_grow(void) {
     assert(none_rises(&r[0], &r[1]) && "a slot kind rises while p71 fades");
 }
 
-/* f172: 'harvest', p25 becomes a burst that lives to f255 and is gone at f256. */
+/* f174: 'harvest', p25 becomes a burst that lives to f257 and is gone at f258. */
 static void pad_planet_projects_releases_burst(void) {
-    const int frames[] = {171, 172, 255, 256};
+    const int frames[] = {173, 174, 257, 258};
     reading_t r[4];
     replay_e2e("pad_planet_projects", frames, 4, r);
     assert(r[0].burst == 0 && r[1].burst == 1 && "'harvest' makes a burst");
     assert(r[1].particle - r[0].particle >= 140 && "a burst is born with 140 particles");
-    assert(r[2].burst == 1 && "the burst burns out at f256, not before");
+    assert(r[2].burst == 1 && "the burst burns out at f258, not before");
     assert(r[3].burst == 0 && "a burnt-out burst must give back its slot");
     assert(r[3].particles == r[0].particles && "a burnt-out burst must give back its list");
 }

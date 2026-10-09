@@ -394,17 +394,7 @@ static int cancel_slipway(pad_nav_t *nav) {
     return held;
 }
 
-/* Returns whether △ clicked a planet under the centre, which lands network mode on it. */
-static int triangle_on_centre(pad_nav_t *nav, p8_input_frame_t *played) {
-    entity_t *planet = entity_under(nav->cursor_x, nav->cursor_y, is_clickable_planet);
-    if (planet == NULL) {
-        return 0;
-    }
-    click_planet(nav, planet, played);
-    return 1;
-}
-
-/* On a click's release frame × and △ start nothing: their press would be forced up, and △ would still select. */
+/* On a click's release frame × starts nothing: its press would be forced up. △ does nothing here. */
 static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
                           p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
@@ -422,8 +412,6 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
     }
     if (nav->cross_engaged) {
         played->mouse_buttons = P8_MOUSE_LEFT;
-    } else if ((pressed & P8_PAD_TRIANGLE) && !release && triangle_on_centre(nav, played)) {
-        return;
     } else if (circle_returns) {
         leave_aim_mode(nav);
     }
