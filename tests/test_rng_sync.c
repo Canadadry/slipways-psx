@@ -272,7 +272,7 @@ static int in_fresh_child(const probe_case_t *c) {
 
 int main(void) {
     const probe_case_t burst_case = {"burst", 98, 198, 1};
-    const probe_case_t quiet_case = {"quiet", 288, 410, 0};
+    const probe_case_t quiet_case = {"quiet", 292, 416, 0};
     int failed = 0;
 
     p8_vram_init(&memory);

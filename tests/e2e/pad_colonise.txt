@@ -1,10 +1,13 @@
-Probe, space fold, then a colony through the planet's menu with triangle
-and X, and jump mode on the new colony; then square into aim mode
-over it, a fold there, and circle back to jump mode on the
-colony. Then the slipway rules: a second colony, a fold abandoned on
-empty space, a slipway built, the same slipway refused, a slipway aimed
-under the top HUD, a fold held on its middle from aim mode and
-abandoned, a year with the slipway. 411 frames.
+Probe, space fold, then a colony through the menu X opens on the
+hovered planet, and jump mode on the new colony; its inspection panel
+closed with circle, then opened and closed with triangle; then square
+into aim mode over it, a fold there, and circle back to jump mode on
+the colony. Then the slipway rules: a second colony, a fold abandoned
+on empty space, circle at the root jumping back to the last object X
+acted on, a slipway built, the same slipway refused, circle at the root
+on that last object doing nothing, a slipway aimed under the top HUD, a
+fold held on its middle from aim mode and abandoned, a year with the
+slipway. 417 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
 enters aim mode, the camera unmoved. pad_probe's f16-17 (O back to jump
@@ -25,7 +28,9 @@ frame.
   any frame.
 - f86: square: aim mode left for jump mode on p47, the target nearest
   the centre (plan 12 step 7: △ does nothing in aim mode).
-- f88: triangle on the hovered p47: its menu opens beside the planet (colour-5
+- f88: X on the hovered known p47 (plan 12 step 8; it was triangle,
+  the same click, every frame identical): its menu opens beside the
+  planet (colour-5
   header box from x=79, y=59), with the colonise row ("strip") below it
   and two more rows below that. Focus starts on the header (row 0, no
   click): the cursor point is inside it. The crosshair is gone from
@@ -34,7 +39,8 @@ frame.
   menu slides in).
   f94: Down: the next row (y81-89) turns colour 12.
   f96: Up: back on the colonise row in colour 12 (y71-79).
-- f98: X on the colonise row: p47 colonised, $97 -> $92, month 2 -> 5.
+- f98: X on the colonise row, a fresh press (the X that opened the menu
+  was released at f89): p47 colonised, $97 -> $92, month 2 -> 5.
   The menu is gone on the same frame and the colony ring (colour 2,
   radius ~6) circles the planet.
 - f99-134: idle, jump mode on p47. No crosshair on any of these
@@ -44,8 +50,11 @@ frame.
   f136 release (colour-5 panel x79-142, y59-78). The circle is hidden
   while the panel is open; the cursor point is on the planet on
   f135-136, the click's two frames, with nothing drawn there.
-- f139: O closes the panel. f139-145: no crosshair, and the circle
-  shows from f139, its blink restarted when the panel closed.
+- f139: O closes the panel. f139-145: no crosshair.
+- f141: triangle on the hovered colony again: its inspection panel opens
+  on the f142 release. f144: triangle again closes it (plan 12 step 8:
+  triangle toggles the planet menu), no button pressed on that frame,
+  jump mode still on p47, the marker back from f145.
 - f146: square: aim mode, the camera unmoved (190, 206); nothing is
   pressed. The crosshair is back.
 - f147-155: Up 9, camera (190, 206) -> (190, 197), p47 at screen (80.24,
@@ -90,7 +99,7 @@ Covers the first-colony part of keyboard_slipway (f77-92). Its second
 colony and its slipway are covered by pad_slipway (step 2.3), its probe
 and fold by pad_probe (step 2.1).
 
-Slipway rules, f175-410 (remove-mouse-mode PRD, chunk 5; appended here
+Slipway rules, f175-416 (remove-mouse-mode PRD, chunk 5; appended here
 to share the colony instead of a separate pad_slipway_rules file).
 Before plan 12 step 7 the menus opened by triangle on the centre, which
 landed network mode; they now open from jump mode.
@@ -110,8 +119,11 @@ landed network mode; they now open from jump mode.
   is a fold, released on f259 under 15 ticks and abandoned: nothing
   charged ($81).
 - f262: square: aim mode left for jump mode on p47, the target nearest
-  the centre (camera 184 229). f266: Up onto p25: the edge scroll takes
-  the camera to 184 209 by f268.
+  the centre (camera 184 229). f266: Up onto p25: the edge scroll starts
+  (184 221, 184 213). f268: circle at the root (plan 12 step 8): the
+  cursor jumps back to p47, the last object X acted on (f88's X opened
+  its menu); p47 is inside the inner rectangle, so the camera stops at
+  184 213. f270: Up onto p25 again: the camera 184 209 on that frame.
   (Before plan 12 step 7: f215's square pressed the old drag out of p25,
   f257 showed its line crossing p47, the crossed planet, now shown in
   slipway mode by pad_research; f258 dropped it on empty space, refused,
@@ -122,40 +134,51 @@ landed network mode; they now open from jump mode.
 From here the slipway is built the cross way (plan 12 step 6): X on the
 hovered colony starts it, the D-pad aims, X builds, and slipway mode
 continues from the target. f0-266 are the inputs of the step 6 file
-but f17, f86, f155, f177, f198-201, f206 and f264-266 (step 7).
+but f17, f86, f155, f177, f198-201, f206 and f264-266 (step 7) and f88,
+f141 and f144 (step 8). From f273 the inputs are the step 7 file's
+from its f269, 4 frames later, and 6 frames later from its f289, with
+f268's circle, f270's Up and f293's circle added and f365's Up moved to
+f369 (step 8).
 
-- f269: X on p25: the pad presses it, the ui holds the slipway from
-  f270. f271: Down: the aim jumps to p47 (the only other candidate),
+- f273: X on p25: the pad presses it, the ui holds the slipway from
+  f274. f275: Down: the aim jumps to p47 (the only other candidate),
   already inside the inner rectangle, so the camera stays 184 209; the
   dragged line runs from p25 to p47, the cursor on p47.
-- f275: X on p47: `slipway p25 p47`, $81 -> $76, month 9 -> 10.
-  f276: the pad presses p47, the new start; slipway mode from p47.
-- f279: Up: the aim on p25. The line and the existing slipway are
+- f279: X on p47: `slipway p25 p47`, $81 -> $76, month 9 -> 10. f280:
+  the outcome read, p47 is the last object X acted on; the pad presses
+  p47, the new start; slipway mode from p47.
+- f283: Up: the aim on p25. The line and the existing slipway are
   colour 2, the forbidden sign above p25, the blinking marker round it.
-  f283: X: refused, $76, slipways 1. f284: p47 pressed again.
-- f287: circle: the slipway dropped with no target, jump mode on p47.
-- The aim under the top HUD (plan 12 step 7): f289: square: aim mode.
-  f291-316: Down 26, f318-335: Right 18: camera 210 251. f337: square:
+  f287: X: refused, $76, slipways 1; the last object stays p47. f288:
+  p47 pressed again.
+- f291: circle: the slipway dropped with no target, jump mode on p47.
+  f293: circle at the root on p47, the last object: nothing happens
+  (plan 12 step 8), no button, the camera unmoved.
+- The aim under the top HUD (plan 12 step 7): f295: square: aim mode.
+  f297-322: Down 26, f324-341: Right 18: camera 210 251. f343: square:
   jump mode on p47, the target nearest the centre, the edge scroll
-  bringing it inside by f339. f339: X on p47: the slipway pressed out of
-  it. f340-364: idle, the slipway aimed at its start. f365: Up: the aim
-  on p25, 22 px above the screen, under the score button (x63-71); the
-  edge scroll brings it down 8 px a frame. On f366-367 the cursor, on
-  p25's screen point, is on the HUD row (y -8, then 0): the ui hovers
-  the button, not p25, so slipway_drag hangs the line's end on the
-  cursor point, the line drawn up to the HUD; from f368 the end is p25
-  again (already linked: refused feedback). f372: circle: the slipway
-  dropped with no target, nothing built or charged, jump mode on p47.
-- f374: square: aim mode, the camera unmoved (210 209). f375-384:
-  Up+Left 10, f386-390: Up+Left 5, f391-396: Up 6: camera 195 187, the
-  reference camera, the centre on the slipway's middle. f400-402: X held
+  bringing it inside by f345. f345: X on p47: the slipway pressed out of
+  it. f346-368: idle, the slipway aimed at its start. f369: Up (2
+  frames earlier than the step 7 file's, so `slipway_spawn_transit_dot`
+  still runs once with the cursor point as the line's end, no planet id
+  and no dot): the aim on p25, 22 px above the screen, under the score button
+  (x63-71); the edge scroll brings it down 8 px a frame. On f370-371 the
+  cursor, on p25's screen point, is on the HUD row (y -8, then 0): the
+  ui hovers the button, not p25, so slipway_drag hangs the line's end
+  on the cursor point, the line drawn up to the HUD; from f372 the end
+  is p25 again (already linked: refused feedback). f378: circle: the
+  slipway dropped with no target, nothing built or charged, jump mode on
+  p47.
+- f380: square: aim mode, the camera unmoved (210 209). f381-390:
+  Up+Left 10, f392-396: Up+Left 5, f397-402: Up 6: camera 195 187, the
+  reference camera, the centre on the slipway's middle. f406-408: X held
   3 frames: a fold press whose target is the slipway (the slipway colour
-  2: 70 colour-2 pixels in x30-129, y20-99 against 40 at f399); released
-  at f403, under 15 ticks: abandoned, nothing charged.
-- f404-408: R1 R1, X on `end turn`: year 3402, $76 -> $79, income 3
+  2: 69-72 colour-2 pixels in x30-129, y20-99 against 40 at f405);
+  released at f409, under 15 ticks: abandoned, nothing charged.
+- f410-414: R1 R1, X on `end turn`: year 3402, $76 -> $79, income 3
   (the strip's ore feeds the nanotech colony).
 
-`make state` at f410: year 3402 month 1, credits 79, research 1, income
+`make state` at f416: year 3402 month 1, credits 79, research 1, income
 3, camera 195 187, `slipway p25 p47 normal`, p25 colonized type f, p47
 colonized type r, planets 90, colonies 2, slipways 1.
 

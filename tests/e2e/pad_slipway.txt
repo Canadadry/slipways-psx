@@ -20,7 +20,9 @@ probe.c). Readings below
 come from the framebuffer of each frame (the capture, or the dump and
 `make state` of the file cut after that frame).
 
-- f0-98: as pad_colonise up to its X on the colonise row. After f98:
+- f0-98: as pad_colonise up to its X on the colonise row, p47's menu
+  opened by f88's X on the hovered known planet (plan 12 step 8; it was
+  triangle, the same click, every frame identical). After f98:
   camera (190, 206), $92, month 5, jump mode on p47.
 - f100: square: aim mode, the camera unmoved (190, 206); nothing is
   pressed. The circle is gone and the crosshair is back at the centre.
