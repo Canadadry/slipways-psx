@@ -64,7 +64,7 @@ int main(int argc, const char *argv[]) {
 	StartPAD();
 	ChangeClearPAD(0);
 
-	// make psx-hello-check and plan 10 search the TTY for this line verbatim.
+	// make psx-hello-check searches the TTY for this line verbatim.
 	printf("psx-hello: main loop started\n");
 
 	int cursor_x = SCREEN_XRES / 2;
