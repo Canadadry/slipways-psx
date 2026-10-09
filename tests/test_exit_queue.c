@@ -165,9 +165,9 @@ static int case_reset_world_enqueues_registered(void) {
     return 0;
 }
 
-/* The largest reset_world burst a worst-case/ game has reached (119 with a
+/* The largest reset_world burst a worst-case/ game has reached (136 with a
  * release), with margin: keep it when those games are re-authored lower. */
-#define FULL_GAME_LIVE_ENTITIES 130
+#define FULL_GAME_LIVE_ENTITIES 150
 
 static int case_reset_world_after_a_full_game(void) {
     load_cart_and_start();

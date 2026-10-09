@@ -1,113 +1,102 @@
-cheat activations 30
-clock year 3423 month 1
-count colonies 2
-count nodes 89
-count planets 87
+cheat activations 0
+clock year 3401 month 1
+count colonies 0
+count nodes 90
+count planets 90
 count slipways 0
-count structures 2
-count techs 12
+count structures 0
+count techs 0
 difficulty reasonable
-planet p1 unknown planet - world 130.25 273.95
-planet p10 unknown planet - world 140.11 113.98
-planet p11 unknown planet - world 193.46 174.25
-planet p12 unknown planet - world 347.14 314.27
-planet p13 unknown planet - world 273.36 313.29
-planet p14 unknown planet - world 283.89 57.89
-planet p15 unknown planet - world 228.31 100.85
-planet p16 unknown planet - world 104.08 336.36
-planet p17 unknown planet - world 320.71 28.05
-planet p18 unknown planet - world 200.11 359.04
-planet p19 unknown planet - world 31.77 214.80
-planet p2 unknown planet - world 74.45 360.31
-planet p20 unknown planet - world 83.63 285.42
-planet p21 unknown planet - world 16.89 361.58
-planet p22 unknown planet - world 302.64 156.67
-planet p23 unknown planet - world 150.35 178.97
-planet p24 unknown planet - world 132.29 366.87
-planet p26 unknown planet - world 353.42 107.76
-planet p27 unknown planet - world 301.50 100.18
-planet p28 unknown planet - world 297.98 336.29
-planet p29 unknown planet - world 58.85 34.53
-planet p3 known planet e world 193.15 246.73
-planet p30 unknown planet - world 191.30 75.94
-planet p31 unknown planet - world 217.94 152.90
-planet p32 known planet f world 223.89 276.36
-planet p33 unknown planet - world 168.61 212.76
-planet p34 unknown planet - world 333.41 211.12
-planet p35 unknown planet - world 334.38 279.41
-planet p36 unknown planet - world 215.26 52.96
-planet p37 unknown planet - world 102.85 60.02
-planet p38 known planet f world 220.02 236.72
-planet p39 unknown planet - world 68.70 167.40
-planet p4 unknown planet - world 159.28 30.36
-planet p40 unknown planet - world 67.94 122.35
-planet p41 unknown planet - world 79.81 222.67
-planet p42 unknown planet - world 186.75 105.63
-planet p43 unknown planet - world 34.81 88.45
-planet p44 unknown planet - world 358.89 49.04
-planet p45 unknown planet - world 336.59 357.39
-planet p46 unknown planet - world 106.98 141.59
-planet p47 known planet r world 270.24 265.75
-planet p48 unknown planet - world 134.72 330.03
-planet p49 unknown planet - world 17.23 266.48
-planet p5 unknown planet - world 115.24 210.95
-planet p50 unknown planet - world 42.99 317.79
-planet p51 unknown planet - world 260.28 342.62
-planet p52 unknown planet - world 136.22 50.66
-planet p53 unknown planet - world 263.96 113.19
-planet p54 known planet s world 181.73 302.83
-planet p55 known planet m world 176.01 270.71
-planet p56 unknown planet - world 76.05 93.18
-planet p57 unknown planet - world 106.74 307.25
-planet p58 unknown planet - world 328.21 182.33
-planet p60 unknown planet - world 35.27 177.38
-planet p61 unknown planet - world 162.01 139.69
-planet p62 unknown planet - world 97.43 22.17
-planet p63 unknown planet - world 246.88 34.35
-planet p64 unknown planet - world 237.17 360.47
-planet p65 unknown planet - world 359.79 252.08
-planet p66 unknown planet - world 115.11 172.27
-planet p67 known planet x world 274.58 166.96
-planet p68 unknown planet - world 353.83 167.58
-planet p69 unknown planet - world 105.64 103.70
-planet p7 unknown planet - world 304.89 303.19
-planet p70 unknown planet - world 159.80 70.41
-planet p72 unknown planet - world 132.78 82.99
-planet p73 unknown planet - world 25.50 140.34
-planet p74 unknown planet - world 255.77 64.67
-planet p75 unknown planet - world 335.83 137.33
-planet p76 unknown planet - world 170.70 344.59
-planet p77 unknown planet - world 62.16 257.91
-planet p78 unknown planet - world 148.38 251.73
-planet p79 unknown planet - world 68.58 64.58
-planet p8 unknown planet - world 153.08 291.81
-planet p80 unknown planet - world 189.05 16.31
-planet p81 unknown planet - world 349.78 20.90
-planet p82 unknown planet - world 28.07 44.07
-planet p83 unknown planet - world 242.51 305.40
-planet p84 unknown planet - world 73.02 316.36
-planet p85 unknown planet - world 57.85 196.18
-planet p86 unknown planet - world 304.72 367.57
-planet p87 unknown planet - world 308.73 127.96
-planet p88 unknown planet - world 362.91 214.17
-planet p9 unknown planet - world 326.51 70.94
-planet p90 unknown planet - world 364.93 81.02
-planet s1 colonized structure - world 138 215
-planet s8 colonized structure - world 41 296
-resources credits 188
-resources income -4
-resources science 102
-structure s3 slipgate world 101 271 links 0
-structure s5 infragate world 164 226 links 0
-techs ascension
-techs autoassemblers
-techs gene rewriting
-techs geneseeds
-techs infraspace
-techs slipgates
-techs space folding
-techs starbirth
-techs superhuman ai
-techs time compression
-techs trade league
-techs void synthesis
+planet p1 unknown planet - world 117.80 120.72
+planet p10 unknown planet - world 215.64 252.06
+planet p11 unknown planet - world 31.37 359.78
+planet p12 unknown planet - world 346.90 133.81
+planet p13 unknown planet - world 264.44 108.34
+planet p14 unknown planet - world 271.72 295.98
+planet p15 unknown planet - world 357.17 211.23
+planet p16 unknown planet - world 57.92 211.81
+planet p17 unknown planet - world 74.21 345.49
+planet p18 unknown planet - world 216.01 174.65
+planet p19 unknown planet - world 152.32 186.99
+planet p2 unknown planet - world 287.89 140.95
+planet p20 unknown planet - world 207.28 145.97
+planet p21 unknown planet - world 240.29 299.08
+planet p22 unknown planet - world 27.22 112.88
+planet p23 unknown planet - world 139.32 144.22
+planet p24 unknown planet - world 90.83 102.01
+planet p25 unknown planet - world 309.42 169.28
+planet p26 unknown planet - world 88.43 227.26
+planet p27 unknown planet - world 75.73 39.85
+planet p28 unknown planet - world 198.93 211.18
+planet p29 unknown planet - world 284.09 327.63
+planet p3 unknown planet - world 75.49 176.08
+planet p30 unknown planet - world 124.85 83.99
+planet p31 unknown planet - world 235.08 218.93
+planet p32 unknown planet - world 19.69 316.15
+planet p33 unknown planet - world 347.12 38.58
+planet p34 unknown planet - world 156.21 300.75
+planet p35 unknown planet - world 197.53 334.84
+planet p36 unknown planet - world 51.53 262.35
+planet p37 unknown planet - world 101.65 291.39
+planet p38 unknown planet - world 185.35 171.08
+planet p39 unknown planet - world 96.82 17.59
+planet p4 unknown planet - world 261.92 192.98
+planet p40 unknown planet - world 48.72 79.22
+planet p41 unknown planet - world 240.14 79.79
+planet p42 unknown planet - world 178.90 134.50
+planet p43 unknown planet - world 119.45 169.39
+planet p44 unknown planet - world 142.93 55.34
+planet p45 unknown planet - world 18.22 59.10
+planet p46 unknown planet - world 331.01 329.83
+planet p47 unknown planet - world 24.97 210.56
+planet p48 unknown planet - world 366.70 165.42
+planet p49 unknown planet - world 157.68 367.06
+planet p5 unknown planet - world 99.67 360.07
+planet p50 unknown planet - world 292.80 221.26
+planet p51 unknown planet - world 305.03 82.37
+planet p52 unknown planet - world 210.29 297.56
+planet p53 unknown planet - world 320.33 253.93
+planet p54 unknown planet - world 60.94 147.03
+planet p55 unknown planet - world 170.14 43.43
+planet p56 unknown planet - world 351.13 85.41
+planet p57 unknown planet - world 135.34 24.02
+planet p58 unknown planet - world 78.90 310.21
+planet p59 unknown planet - world 258.85 22.08
+planet p6 unknown planet - world 147.53 243.73
+planet p60 unknown planet - world 225.99 331.66
+planet p61 unknown planet - world 208.67 33.52
+planet p62 unknown planet - world 263.87 357.70
+planet p63 unknown planet - world 207.84 65.22
+planet p64 unknown planet - world 186.35 249.39
+planet p65 unknown planet - world 251.36 165.51
+planet p66 unknown planet - world 43.39 296.83
+planet p67 unknown planet - world 197.52 365.49
+planet p68 unknown planet - world 296.16 110.05
+planet p69 unknown planet - world 240.35 136.09
+planet p7 unknown planet - world 145.39 331.73
+planet p70 unknown planet - world 156.12 92.44
+planet p71 unknown planet - world 337.03 281.32
+planet p72 unknown planet - world 264.78 240.62
+planet p73 unknown planet - world 320.75 213.66
+planet p74 unknown planet - world 261.96 57.20
+planet p75 unknown planet - world 303.78 26.11
+planet p76 unknown planet - world 299.39 360.22
+planet p77 unknown planet - world 93.12 138.31
+planet p78 unknown planet - world 162.44 268.88
+planet p79 unknown planet - world 18.68 244.91
+planet p8 unknown planet - world 197.97 106.41
+planet p80 unknown planet - world 32.73 24.75
+planet p81 unknown planet - world 232.11 360.90
+planet p82 unknown planet - world 118.38 205.99
+planet p83 unknown planet - world 358.36 249.62
+planet p84 unknown planet - world 168.23 210.82
+planet p85 unknown planet - world 37.37 172.37
+planet p86 unknown planet - world 127.73 304.22
+planet p87 unknown planet - world 355.13 349.16
+planet p88 unknown planet - world 106.69 252.92
+planet p89 unknown planet - world 260.59 269.03
+planet p9 unknown planet - world 366.11 294.35
+planet p90 unknown planet - world 303.91 283.45
+resources credits 100
+resources income 0
+resources science 0
