@@ -9,6 +9,9 @@
 #include "game/input_step.h"
 #include "game/save_state.h"
 #include "p8/assets.h"
+#include "p8/draw_backend.h"
+#include "p8/draw_meter.h"
+#include "p8/gpu_sizes.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -102,6 +105,38 @@ static void test_stopped_line(void) {
     assert(strcmp(g_sink_text.text, "stopped p8_fatal frame 37\n") == 0);
 }
 
+
+static void test_gpu_lines_carry_the_meter_peaks_and_the_limits(void) {
+    static p8_vram_t mem;
+    static p8_graphics_t gfx;
+    p8_vram_init(&mem);
+    p8_gfx_init(&gfx);
+    const p8_draw_backend_t *previous = p8_draw_meter_install();
+    p8_fillp(&gfx, 0xA5A5);
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 0x15);
+    p8_spr(&gfx, &mem, 1, 0, 0, 1, 1);
+    p8_draw_meter_frame_end();
+    p8_cls(&mem);
+    p8_draw_meter_frame_end();
+    p8_draw_backend_set(previous);
+    p8_draw_meter_counts_t last = p8_draw_meter_last_frame();
+    p8_draw_meter_counts_t peak = p8_draw_meter_peak();
+    assert(last.bytes < peak.bytes && peak.cluts == 1 && peak.patterns == 1);
+
+    state_format(fresh_sink());
+    char expected[256];
+    const char *budget = strstr(g_sink_text.text, "\nbudget zones ");
+    assert(budget != NULL);
+    const char *gpu = strstr(g_sink_text.text, "\nzone gpu_frame ");
+    assert(gpu != NULL && gpu > budget && strchr(budget + 1, '\n') == gpu && "right after the budget line");
+    snprintf(expected, sizeof expected, "\nzone gpu_frame %lu %lu %d\n", last.bytes, peak.bytes, GPU_FRAME_BUFFER_BYTES);
+    assert(strncmp(gpu, expected, strlen(expected)) == 0);
+    snprintf(expected, sizeof expected, "\ncap gpu_cluts - 1 %d\ncap gpu_patterns - 1 %d\n", GPU_CLUT_SLOTS, GPU_PATTERN_SLOTS);
+    size_t length = strlen(expected);
+    assert(g_sink_text.length >= length);
+    assert(strcmp(g_sink_text.text + g_sink_text.length - length, expected) == 0 && "the last two lines");
+}
+
 int main(void) {
     static p8_vram_t memory;
     static p8_graphics_t graphics;
@@ -114,6 +149,7 @@ int main(void) {
     test_state_lines_equal_the_file_text();
     test_save_summary_lines_equal_the_file_text();
     test_stopped_line();
+    test_gpu_lines_carry_the_meter_peaks_and_the_limits();
     printf("test_state_format: ok\n");
     return 0;
 }

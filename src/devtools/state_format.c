@@ -22,6 +22,8 @@
 #include "game/planet_family_trade.h"
 #include "game/slipway.h"
 #include "game/ui_zone.h"
+#include "p8/draw_meter.h"
+#include "p8/gpu_sizes.h"
 
 static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "row", "ephemerals"};
 static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particle", "particles", "particles_help_screen", "burst", "transit_dots"};
@@ -275,6 +277,7 @@ static void write_zones(const state_sink_t *sink) {
     line_t line = line_start(sink);
     line_add(&line, "budget zones %lu %lu", (unsigned long)ZONE_BUDGET_USED_BYTES, (unsigned long)ZONE_BUDGET_BYTES);
     line_end(&line);
+    write_zone(sink, "gpu_frame", p8_draw_meter_last_frame().bytes, p8_draw_meter_peak().bytes, GPU_FRAME_BUFFER_BYTES);
 }
 
 static void write_cap(const state_sink_t *sink, const char *name, int live, int peak, int limit) {
@@ -317,6 +320,8 @@ static void write_caps(const state_sink_t *sink) {
         snprintf(name, sizeof name, "bytes_%s", SLOT_KIND_NAMES[i]);
         write_peak(sink, name, ui_zone_max_bytes(k), ui_zone_slot_size(k));
     }
+    write_peak(sink, "gpu_cluts", (size_t)p8_draw_meter_peak().cluts, GPU_CLUT_SLOTS);
+    write_peak(sink, "gpu_patterns", (size_t)p8_draw_meter_peak().patterns, GPU_PATTERN_SLOTS);
 }
 
 void state_format(const state_sink_t *sink) {

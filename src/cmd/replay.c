@@ -6,7 +6,8 @@
  * "max_bytes load <bytes>".
  *
  * STATE=<file>: the devtools/state text of the last frame; after a p8_fatal,
- * "stopped p8_fatal frame <n>" first.
+ * "stopped p8_fatal frame <n>" first. Also installs the draw meter, whose
+ * per-frame GPU cost peaks the state reports.
  *
  * DIGEST=<file>: the devtools/vram_digest lines, "sprite-sheet" once loaded,
  * "screen" after cart_draw on each sampled frame, "map" after the last frame;
@@ -19,6 +20,7 @@
 #include "p8/vram.h"
 #include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
+#include "p8/draw_meter.h"
 #include "p8/input.h"
 #include "game/input_step.h"
 #include "devtools/dump.h"
@@ -151,6 +153,9 @@ int main(int argc, char **argv) {
     dispatch_context_set_mem(&memory);
     dispatch_context_set_input(input);
 
+    const char *state_path = getenv("STATE");
+    if (state_path != NULL) p8_draw_meter_install();
+
     cart_load();
     cart_init();
 
@@ -163,7 +168,6 @@ int main(int argc, char **argv) {
     }
 
     int frame_count = input->frame_count;
-    const char *state_path = getenv("STATE");
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
@@ -172,6 +176,7 @@ int main(int argc, char **argv) {
         input_step_run(&step, &input->frames[input->current_frame]);
         cart_update60();
         cart_draw();
+        if (state_path != NULL) p8_draw_meter_frame_end();
         if (digest_path != NULL && vram_digest_samples_frame(i, frame_count)) {
             vram_digest_write_screen(&digest, &memory, i);
         }

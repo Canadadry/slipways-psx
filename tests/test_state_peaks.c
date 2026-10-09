@@ -171,6 +171,32 @@ static void test_exempt_line_over_its_limit_fails(void) {
     assert(strstr(read_file(LOG), "state: cap bytes_row peak 97 over margin 85 (limit 96, a.json)\n") != NULL);
 }
 
+
+static void test_gpu_frame_peak_over_its_margin_fails(void) {
+    reset();
+    write_file(DIR "/a.txt", "zone gpu_frame 100 9000 10240\ncap gpu_cluts - 5 6\ncap gpu_patterns - 3 4\n");
+    write_file(DIR "/b.txt", "zone gpu_frame 100 9200 10240\ncap gpu_cluts - 6 6\ncap gpu_patterns - 4 4\n");
+    assert(run("a.json " DIR "/a.txt") == 0);
+    assert(run("a.json " DIR "/a.txt b.json " DIR "/b.txt") != 0);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "zone gpu_frame 9200 10240 b.json\n") != NULL);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "state: zone gpu_frame peak 9200 over margin 9102 (limit 10240, b.json)\n") != NULL);
+    assert(strstr(log, "state: cap gpu_cluts peak 6 over margin 5 (limit 6, b.json)\n") != NULL);
+    assert(strstr(log, "state: cap gpu_patterns peak 4 over margin 3 (limit 4, b.json)\n") != NULL);
+}
+
+static void test_gpu_buffers_are_printed_after_the_bytes_left(void) {
+    reset();
+    write_file(DIR "/a.txt", "zone game 1 100 1000\nbudget zones 784452 786432\nzone gpu_frame 100 9000 10240\n");
+    assert(run("a.json " DIR "/a.txt") == 0);
+    const char *log = read_file(LOG);
+    const char *left = strstr(log, "state: 1980 bytes left under ZONE_BUDGET_BYTES\n");
+    assert(left != NULL);
+    assert(strstr(log, "state: GPU primitive buffers 2 x 10240 = 20480 bytes, outside ZONE_BUDGET_BYTES\n")
+           == left + strlen("state: 1980 bytes left under ZONE_BUDGET_BYTES\n"));
+}
+
 int main(void) {
     test_highest_peak_is_kept_with_its_replay_and_limit();
     test_tie_keeps_the_first_replay();
@@ -183,6 +209,8 @@ int main(void) {
     test_proven_ceiling_is_judged_on_its_limit();
     test_fully_reserved_slot_is_judged_on_its_limit();
     test_exempt_line_over_its_limit_fails();
+    test_gpu_frame_peak_over_its_margin_fails();
+    test_gpu_buffers_are_printed_after_the_bytes_left();
     assert(system("rm -rf " DIR) == 0);
     printf("test_state_peaks: all tests passed\n");
     return 0;

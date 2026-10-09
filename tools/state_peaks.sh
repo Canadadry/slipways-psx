@@ -4,7 +4,8 @@
 # line per pair, then one `<zone|cap> <name> <peak> <limit> <events>` line per
 # zone and cap, the highest peak over every state (a tie keeps the first
 # pair), then the first `budget zones <sum> <limit>` line, whose bytes left
-# go to stdout. Exit 1, with `state: <events> stopped`, when a state is missing or
+# go to stdout, followed by the two GPU primitive buffers sized by the
+# `zone gpu_frame` limit. Exit 1, with `state: <events> stopped`, when a state is missing or
 # starts with `stopped`, and with `state: <zone|cap> <name> peak ... over margin`
 # for each peak line where 9 x peak > 8 x limit (limits are sized at peak +
 # 1/8); an exempt line only needs peak <= limit.
@@ -54,6 +55,7 @@ fi
 
 mv "$out.tmp" "$out"
 awk '$1 == "budget" { print "state: " $4 - $3 " bytes left under ZONE_BUDGET_BYTES" }' "$out"
+awk '$1 == "zone" && $2 == "gpu_frame" { print "state: GPU primitive buffers 2 x " $4 " = " 2 * $4 " bytes, outside ZONE_BUDGET_BYTES" }' "$out"
 
 # Proven ceilings (largest-case unit tests, sized without margin):
 #   bytes_button bytes_row particles_help_screen.

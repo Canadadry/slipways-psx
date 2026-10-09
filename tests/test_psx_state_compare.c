@@ -174,6 +174,23 @@ static void test_tty_without_state_lines_fails(void) {
     assert(strstr(read_file(LOG), "no psx-state") != NULL);
 }
 
+
+/* The meter lines differ when the MIPS replay runs without the meter: measured, not compared. */
+static void test_gpu_meter_lines_are_measured_not_compared(void) {
+    reset();
+    write_file(PC, PC_STATE "zone gpu_frame 4000 9000 10240\ncap gpu_cluts - 5 6\ncap gpu_patterns - 3 4\n");
+    const char *tty = PSX_HEADER PSX_DONE PSX_STATE_LINES
+        "psx-state: zone gpu_frame 0 0 10240\n"
+        "psx-state: cap gpu_cluts - 0 6\n"
+        "psx-state: cap gpu_patterns - 0 4\n";
+    assert(run(tty, FRAMES) == 0);
+    assert(strstr(read_file(LOG), "game lines match") != NULL);
+    const char *measure = read_file(MEASURE);
+    assert(strstr(measure, "zone gpu_frame 0 0 10240\n") != NULL);
+    assert(strstr(measure, "cap gpu_cluts - 0 6\n") != NULL);
+    assert(strstr(measure, "cap gpu_patterns - 0 4\n") != NULL);
+}
+
 int main(void) {
     test_match_with_different_zone_lines_passes_and_writes_measurements();
     test_differing_planet_line_fails_naming_both_lines();
@@ -183,6 +200,7 @@ int main(void) {
     test_wrong_frame_count_fails_naming_both_counts();
     test_stopped_p8_fatal_fails();
     test_tty_without_state_lines_fails();
+    test_gpu_meter_lines_are_measured_not_compared();
     assert(system("rm -rf " DIR) == 0);
     printf("test_psx_state_compare: all tests passed\n");
     return 0;
