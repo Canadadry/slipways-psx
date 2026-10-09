@@ -604,16 +604,18 @@ $(TMP_DIR)/test_infraspace_gate: $(call objs,tests/test_infraspace_gate.c tests/
 $(TMP_DIR)/test_burst: $(call objs,tests/test_burst.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
+STATE_SRCS := src/devtools/state.c src/devtools/state_format.c
+
+$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_probe: $(call objs,tests/test_probe.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -643,7 +645,7 @@ $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c
 $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c src/devtools/state.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c $(STATE_SRCS) $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -655,18 +657,21 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_state: $(call objs,tests/test_state.c src/devtools/state.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
+$(TMP_DIR)/test_state: $(call objs,tests/test_state.c $(STATE_SRCS) $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_state_format: $(call objs,tests/test_state_format.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)) tests/e2e/pad_slipway.json pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
@@ -777,6 +782,7 @@ UNIT_TESTS := \
     test_toast \
     test_message_box \
     test_state \
+    test_state_format \
     test_modal_backdrop \
     test_mouse \
     test_main_mouse \
