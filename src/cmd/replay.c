@@ -13,7 +13,7 @@
  * record does not decode, or when there is none (the file is then removed). */
 
 #include "p8/vram.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/input_step.h"
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
 
     static replay_source_t source;
     replay_source_status_t source_status = replay_source_open(&source, replay_path);

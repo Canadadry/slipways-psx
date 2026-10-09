@@ -122,6 +122,10 @@
 # make sin-table     -> regenerates src/p8/quarter_wave.h (the sine and cosine
 #                       table of the core) from tools/gen_quarter_wave.c,
 #                       outside the suite
+# make sprite-sheet  -> regenerates src/p8/sprite_sheet_packed.h (the sprite
+#                       sheet embedded in the core, 4 bits per pixel) from
+#                       pico8/gfx.json with tools/gen_sprite_sheet.c, outside
+#                       the suite
 # make raylib        -> compiles and LINKS the interactive binary, never runs
 #                       it (needs make raylib-vendor-setup first)
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
@@ -296,6 +300,7 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 # targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
     src/p8/assets.c \
+    src/p8/sprite_sheet.c \
     src/game/background.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
@@ -417,6 +422,9 @@ $(TMP_DIR)/test_vram: $(call objs,tests/test_vram.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/assets.c src/p8/vram.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_sprite_sheet: $(call objs,tests/test_sprite_sheet.c src/p8/sprite_sheet.c src/p8/assets.c src/p8/vram.c) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
@@ -806,6 +814,7 @@ $(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil
 UNIT_TESTS := \
     test_vram \
     test_asset_loading \
+    test_sprite_sheet \
     test_gfx \
     test_input \
     test_dump \
@@ -1202,6 +1211,16 @@ sin-table: $(TMP_DIR)/gen_quarter_wave
 	mv $(TMP_DIR)/quarter_wave.h src/p8/quarter_wave.h
 
 .PHONY: sin-table
+
+$(TMP_DIR)/gen_sprite_sheet: $(call objs,tools/gen_sprite_sheet.c src/p8/assets.c src/p8/vram.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+# Writes the committed header only when the generator succeeded.
+sprite-sheet: $(TMP_DIR)/gen_sprite_sheet
+	./$(TMP_DIR)/gen_sprite_sheet pico8/gfx.json > $(TMP_DIR)/sprite_sheet_packed.h
+	mv $(TMP_DIR)/sprite_sheet_packed.h src/p8/sprite_sheet_packed.h
+
+.PHONY: sprite-sheet
 
 PSX_SOURCES ?= tools/psx_sources.txt
 PSN00BSDK_DIR ?= third_party/psn00bsdk
