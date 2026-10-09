@@ -461,3 +461,25 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - Coverage: the same 69 unhit lines.
   - `full-game`, `save-worst-case` and `save-fuzz` are clean.
   - `make test` is not slower, compared like for like with 80f7289.
+
+### Step 11
+- **Commits:**
+  - `6092083`: `pad_end_turn` f16 and `pad_message_box` f96 on L1, frame-identical; `pad_nav_tech_open` and `pad_nav_score_open`.
+  - `6509e43`: R1 from the map opens tech.
+  - `3b4caf8`, a `fix:`: a × held through R1 pressed the tech header. It predates step 11 (the same through the old ring); the arm rule now covers the panel tabs.
+- **R1:** map → tech → score → closed. R1 on the bar still goes to end turn, and R1 on end turn to tech (`guideline` G-1), until step 12 removes the ring.
+- **No new struct:** step 11 adds no state (G-3).
+- **Landing:** the tech landing clicks on the R1 frame itself unless a cancel is due, which differs from the PRD's case 1. The landing-after-cancel guard is tested again.
+- **Replays** (G-2, frame-aligned): 23 R1 R1 R1 chains to tech, in `pad_planet_projects`, `pad_research`, `pad_tech_costs`, `pad_score`, `pad_message_box` and the `title_pick_*` fixtures, keep their last R1 and idle the first two.
+  - Frame counts, end states and pins are unchanged, and captures are identical from each landing on.
+  - `pad_score` 77 → 96 frames, appending map → tech → score → closed.
+  - 5 hashes re-baselined. About 11 minutes of re-authoring.
+- **Dropped, ring passes only:** "R1 from the map: build" and "R1 on build: end turn" on the way to tech.
+- **Tests:** `test_pad_nav.c` 216 → 224, none deleted.
+- **Size:** `pad_nav.c` 1219 → 1227 lines; `pad_nav_t` 26 fields.
+- **Checks:**
+  - Cheat unchanged (unit-tested).
+  - Coverage: the same 69 unhit lines.
+  - `full-game`, `save-worst-case` and `save-fuzz` are clean.
+  - `make test` and `make e2e` are not slower, measured like for like.
+- **Seen, not investigated:** a test that starts a second game in the same process (`start_title` twice) died on `zone ui button full`. Other tests restart with `cart_init` and pass, so it looks like the test harness. It was worked around with a forked copy.
