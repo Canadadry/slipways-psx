@@ -116,7 +116,7 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 
 ## 5. Open questions
 
-- The tuning values (score weight 2, repeat 18/8 frames, margin 20 px, 8 px per frame scroll) are first guesses, kept as written for the whole plan. Tuning them comes after the human's game, as a mapping change under the re-authoring guardrails of section 2.
+- The tuning values (score weight 2, repeat 18/8 frames, margin 20 px, 8 px per frame scroll, Select tap 10 / hold 30 / chain window 15 frames) are first guesses, kept as written for the whole plan. Tuning them comes after the human's game, as a mapping change under the re-authoring guardrails of section 2.
 - "Colonies needing attention" depends on what the game tracks (step 9 decides, with a fallback).
 
 ## 6. Step notes
@@ -388,3 +388,46 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - Cheat unchanged: ordinary × △ ○ play cannot type it (unit-tested).
 - **For step 9:** ○ on the map closes a year box first. ○ at the root jumps once × has acted. Frame shifts move visual draws: `slipway.c:92` in `pad_colonise` depends on an 8% transit-dot draw on the HUD-aim frames.
 - **Found by a verifier, not fixed:** `tools/pointer_guard.sh` still skips any block whose header contains a real `=` (`while ((e = f()) != NULL) {`), and the statement after it. Nothing is hidden today (9 such blocks, no arrays). It is a follow-up outside this plan.
+
+### Step 9
+- **Commits:**
+  - `53b469b`: `pad_select`.
+  - `5c38b14`: the long-exception frame-count check (plan-review, after phase 3).
+  - `ff2ddf3`: Select wired in.
+  - `b2a2369`, `4382824`, `a660fc0`: replays.
+  - `7286d84`, a `fix:` found while re-authoring: × held into the final score panel on the map pressed "again?" (a stale `menu_cross_armed`). Now every map panel arms it.
+- **Select**, on the map tab in jump or aim mode:
+  - A tap (≤ 10 frames) jumps to the next colony or structure needing attention. That is one whose inspection panel lists a need under "needs:", in list order, wrapping. The game tracks it, so the fallback was not used.
+  - A 30-frame hold presses the HUD year-skip button, the same press × on end turn makes. A refused press is never retried; input can reach it, and the test uses that route.
+  - Select is blocked in slipway mode, while placing, while × holds a fold, under a menu, panel or pause, on a click's frames and on the other tabs.
+- **`guideline` decisions:**
+  - D-1, **an extension of the locked Select rule:** for 15 frames after a year, a fresh press ends one more year (the chain). Holding never ends a second year. The window is a section 5 tuning value, for the human to drop after their game.
+  - D-2: `pad_bankrupt` could not be compressed to ≤ 162 frames (minimum about 190), so it resumes from the record after its fourth lab and retypes the cheat as chords. Toast peak 42 and `entity_table` 161 are unchanged.
+  - D-3: `pad_tech_costs` accepted at 558 frames (limit 600).
+  - D-4: `pad_end_turn` keeps one year on the end-turn tab until step 12.
+- **Frame counts:**
+
+  | Replay | Before | After |
+  |---|---|---|
+  | `pad_colonise` | 417 | 445 |
+  | `pad_end_turn` | 91 | 139 |
+  | `pad_research` | 468 | 500 |
+  | `pad_game_end` | 104 | 112 |
+  | `pad_message_box` | 190 | 214 |
+  | `pad_bankrupt` | 170 | 95 (cut) |
+  | `pad_planet_projects` | 585 | 524 (cut at f86) |
+  | `pad_tech_costs` | 566 | 558 (cut after six years) |
+  | `pad_resume_at_start` | 48 | 48 (re-cut) |
+  | **Total** | **3567** | **3563** |
+
+  `make e2e` is not slower, measured like for like.
+- **Cuts:** each cut's `SAVE_HEX` recipe is in its `.txt`. The probe, fold and labs that moved into a save are still hit by other replays (coverage unchanged).
+- **Situations dropped, ring only:** × years on end turn, R1 R1 / L1 L1 cycling, `pad_message_box`'s ○ back from end turn.
+- **Situation moved:** the tap cycle went to `pad_research` f490–497, since `pad_colonise` has only one colony needing attention.
+- **Tests:**
+  - `test_select_changes_nothing_yet` deleted with "Select is ignored"; its intent lives in the blocked-states test.
+  - `test_live_slots` now seeds a replay's `initial_save`. The cut replays had run there as new games.
+  - `test_rng_sync`: quiet window f292–444, with `WINDOW_CAP` raised from 128 to 160 (buffer size only).
+  - A merge of the `test_e2e_limits` cases that weakened them was reverted.
+- **Size:** `pad_nav.c` 1170 → 1245 lines; `pad_nav_t` 25 → 26 fields (`select`); `test_pad_nav.c` 189 → 202 tests.
+- **Re-authoring:** about 65 minutes. Coverage: the same 69 unhit lines. Cheat: Select is no part of the chord (unit-tested). Every count is unchanged.
