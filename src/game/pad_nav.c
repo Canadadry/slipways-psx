@@ -235,6 +235,7 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->build_icon = ENTITY_ID_NONE;
     set_tab(nav, PAD_NAV_TAB_MAP);
     pad_jump_init(&nav->jump);
+    pad_back_init(&nav->back);
     reset_map_mode(nav);
     nav->release_pending = 0;
     nav->pause_due = 0;
@@ -453,6 +454,7 @@ static void start_new_game(pad_nav_t *nav) {
         return;
     }
     pad_jump_init(&nav->jump);
+    pad_back_init(&nav->back);
     nav->jump.game = entity_id_link(economy);
     reset_map_mode(nav);
 }

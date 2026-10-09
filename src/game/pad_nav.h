@@ -3,6 +3,7 @@
 
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
+#include "game/pad_back.h"
 #include "game/pad_jump.h"
 #include "game/pad_slipway.h"
 #include "p8/input.h"
@@ -49,6 +50,7 @@ typedef struct {
     int cross_engaged;
     pad_jump_t jump;
     pad_slipway_t slipway;
+    pad_back_t back;
 } pad_nav_t;
 
 void pad_nav_init(pad_nav_t *nav);
