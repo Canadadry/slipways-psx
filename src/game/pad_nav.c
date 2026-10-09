@@ -145,6 +145,9 @@ static void aim_pan(pad_nav_t *nav, int pad_buttons) {
         }
         speed[i] = pan_speed(nav->held_frames[i]);
     }
+    assert(pad_jump_direction(0) == P8_PAD_UP && pad_jump_direction(1) == P8_PAD_DOWN &&
+           pad_jump_direction(2) == P8_PAD_LEFT && pad_jump_direction(3) == P8_PAD_RIGHT &&
+           "aim_pan: speed[] is indexed Up, Down, Left, Right");
     camera_t *camera = main_camera_typed();
     if (camera != NULL) {
         camera_pan(camera, speed[3] - speed[2], speed[1] - speed[0]);

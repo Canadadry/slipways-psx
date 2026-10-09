@@ -161,6 +161,7 @@ void pad_author_init(pad_author_t *author) {
 }
 
 static const char *button_name(int buttons) {
+    assert(buttons != 0 && "button_name: no button set, the scan would never end");
     int b = 0;
     while (!(buttons & (1 << b))) b++;
     assert(b < PAD_METRICS_BUTTON_COUNT);
