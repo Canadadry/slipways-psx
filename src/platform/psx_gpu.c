@@ -5,6 +5,8 @@
 #include "p8/gpu_sizes.h"
 #include "p8/palette.h"
 #include "p8/sprite_sheet.h"
+#include "platform/psx_clut_cache.h"
+#include "platform/psx_sprite.h"
 #include "platform/psx_tiles.h"
 #include "platform/psx_vram_layout.h"
 
@@ -40,6 +42,8 @@ static size_t used;
 static uint32_t *previous;
 static int frame_number;
 static DISPENV displays[2];
+/* One per primitive buffer: frame N fills its cache while frame N-1's LoadImage may still read the other. */
+static psx_clut_cache_t clut_caches[2];
 
 static void *packet(size_t bytes) {
     if (used + bytes > GPU_FRAME_BUFFER_BYTES) {
@@ -192,9 +196,33 @@ static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int c
     }
 }
 
-/* TODO step 4: SPRT through the draw-palette CLUT cache. */
+static int clut_slot(const unsigned char draw_palette[PSX_GPU_TEXTURES_CLUT_ENTRIES]) {
+    int slot = psx_clut_cache_slot(&clut_caches[current], draw_palette);
+    if (slot < 0) {
+        static char message[128];
+        snprintf(message, sizeof message, "psx_gpu: frame %d needs more than %d spr CLUTs", frame_number,
+                 GPU_CLUT_SLOTS);
+        p8_fatal(message);
+    }
+    return slot;
+}
+
 static void gpu_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
-    (void)gfx, (void)mem, (void)n, (void)x, (void)y, (void)w, (void)h;
+    psx_sprite_t sprite;
+    if (!psx_sprite_place(gfx, n, x, y, w, h, &sprite)) {
+        return;
+    }
+    psx_vram_rect_t clut = psx_vram_layout_palette_clut(clut_slot(mem->draw_palette));
+    psx_vram_rect_t sheet = psx_vram_layout_region(PSX_VRAM_SPRITE_SHEET);
+    psx_vram_rect_t page = psx_vram_layout_texture_page();
+    SPRT *primitive = packet(sizeof *primitive);
+    setSprt(primitive);
+    setShadeTex(primitive, 1);
+    setRGB0(primitive, 128, 128, 128);
+    setXY0(primitive, sprite.x, sprite.y);
+    setUV0(primitive, (sheet.x - page.x) * 4 + sprite.u, sheet.y - page.y + sprite.v);
+    setWH(primitive, sprite.w, sprite.h);
+    primitive->clut = getClut(clut.x, clut.y);
 }
 
 /* TODO step 4: one SPRT per lit glyph from the font texture. */
@@ -214,6 +242,7 @@ void psx_gpu_frame_begin(int frame) {
     frame_number = frame;
     used = 0;
     previous = NULL;
+    psx_clut_cache_reset(&clut_caches[current]);
     add_draw_target(psx_vram_layout_region(PSX_VRAM_DRAW_AREA));
     psx_vram_rect_t page = psx_vram_layout_texture_page();
     DR_TPAGE *tpage = packet(sizeof *tpage);
@@ -234,6 +263,18 @@ static void add_upscale(void) {
     quad->clut = 0;
 }
 
+/* Queued behind the previous frame's DrawSync and ahead of this frame's DrawOTag, so no slot
+ * changes while a frame reads it. */
+static void upload_cluts(const psx_clut_cache_t *cache) {
+    for (int slot = 0; slot < psx_clut_cache_count(cache); slot++) {
+        psx_vram_rect_t line = psx_vram_layout_palette_clut(slot);
+        RECT rect = { (int16_t)line.x, (int16_t)line.y, (int16_t)line.w, (int16_t)line.h };
+        const uint16_t *clut = psx_clut_cache_clut(cache, slot);
+        assert(((uintptr_t)clut & 3) == 0 && "LoadImage's DMA reads whole words");
+        LoadImage(&rect, (const uint32_t *)clut);
+    }
+}
+
 void psx_gpu_frame_end(unsigned long metered_bytes) {
     psx_vram_rect_t display = psx_vram_layout_region(current == 0 ? PSX_VRAM_DISPLAY_0 : PSX_VRAM_DISPLAY_1);
     add_draw_target(display);
@@ -249,6 +290,7 @@ void psx_gpu_frame_end(unsigned long metered_bytes) {
         p8_fatal(message);
     }
     DrawSync(0);
+    upload_cluts(&clut_caches[current]);
     PutDispEnv(&displays[current ^ 1]);
     DrawOTag(buffers[current]);
     current ^= 1;

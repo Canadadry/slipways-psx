@@ -100,7 +100,8 @@ the previous one; NULL, the default, is the software backend
 PC game, the e2e and every test.
 
 **`fillp`, `palt` and the draw palette on the GPU: per-texture CLUT and
-pattern textures, no software fallback** (decided; step 4 implements it).
+pattern textures, no software fallback** (decided; step 4 implements it,
+`spr` done).
 
 - `spr` reads its texture through a CLUT built from `mem->draw_palette` at
   the call: entry `c` is 0x0000 (transparent) when bit 0x80 is set, else the
@@ -173,8 +174,18 @@ point, no `malloc`):
   `circ` is one `TILE_1` per on-screen pixel and a plain `circfill` one
   `TILE` span per screen row, both from the software backend's midpoint
   loop (`psx_tiles.c`, host-tested pixel for pixel), so circles match the
-  PC exactly; a patterned `rectfill` or `circfill`, `spr` and `print` draw
-  nothing yet;
+  PC exactly; `spr` (and `map` through it) is one `SPRT` from the sheet's
+  4-bit page, after the camera and clipped to the screen
+  (`src/platform/psx_sprite.c`, host-tested pixel for pixel by
+  `test_psx_sprite`; a sprite reading past the sheet is an assert, which no
+  replay reaches), raw texture, through the CLUT of the call's draw palette;
+  a frame's CLUTs are cached by their 16 draw-palette bytes
+  (`src/platform/psx_clut_cache.c`, built by `psx_gpu_textures_clut`, one
+  cache per primitive buffer), and uploaded to their palette CLUT lines
+  with `LoadImage` after the previous frame's `DrawSync` and before this
+  frame's `DrawOTag`, so no line changes while a frame reads it; more than
+  `GPU_CLUT_SLOTS` distinct palettes in a frame is a `p8_fatal` naming the
+  frame; a patterned `rectfill` or `circfill` and `print` draw nothing yet;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -348,7 +359,7 @@ None of these targets is in `make test-all`, and none runs a setup.
 ## Still to do
 
 - Step 4 of plan 10: the GPU families, one at a time, each with its capture
-  line in `psx/gpu_captures.txt`: `spr` and `map` (with the draw-palette CLUT cache), `print` (with the font texture
+  line in `psx/gpu_captures.txt`: `print` (with the font texture
   and its 16 CLUTs), the fill patterns of `rectfill` and `circfill` (with the
   pattern slots), then the `all` captures.
 
@@ -370,6 +381,10 @@ None of these targets is in `make test-all`, and none runs a setup.
     0. Every plain `circfill` of the game is the colour-0 disc behind a
     planet, invisible on a cleared screen: the mask keeps `line` so the
     discs show as the 14 pixels they cut from the slipways.
+  - `spr` f234: `spr f234 mask cls,spr calls 191 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
+    background map and the planet sprites, 1,134 lit pixels in 14 colours,
+    under 4 distinct draw palettes (the meter's count at that frame).
   - `rect` f322: `rect f322 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `circ` f394: `circ f394 mask cls,circ calls 2 differ 0 (0.0‰) near1 0
