@@ -552,3 +552,8 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
   - Menus and pause: `test_cross_held_from_the_opening_click_presses_no_row_until_pressed_again`, `test_start_is_ignored_under_a_planet_menu_and_on_tech_and_score`, `test_start_and_circle_close_pause_pressing_nothing_on_the_map`; `pad_colonise` f88-98; `pad_message_box` f122-138.
   - ○ order: `test_circle_closes_the_year_box_over_a_slipway_then_cancels_it`, `test_circle_cancels_a_structure_then_leaves_aim_mode_then_jumps_back`, `test_circle_closes_a_planet_menu_then_the_year_box`; `pad_build` f52, f63; `pad_research` f364.
 - No replay or test touched; section 2's extra checks do not apply.
+
+### Step 16
+- **Committed:** `342f551`, `43db9d8`, `e0b56bc`, `23df964`, `0b3b145` (comments only, stripped output byte-identical, headers with no comment) and `a826fb8` (two asserts replacing comments: `aim_pan`'s direction order, `button_name`'s non-zero buttons). Comment lines over the 21 files: 263 → 47 (`pad_nav` 94 → 18, `pad_author` with its cmd 73 → 26, `pad_metrics` 34 → 2, the seven small game modules 62 → 1).
+- **Checks:** `make test`, `make e2e`, `make raylib`, `make pad-author-proof`, `make pad-author` with `worst-case/` byte-identical, `make pad-metrics-check`.
+- **Findings, not fixed (notes in the commit messages):** `pad_author`'s usage text omits `--try`'s `.eco.txt` files and its "fork stopped" failure, and that only the CLI `--stop-at` waives the aim budget; `pad_metrics_cone_empty` resets the scratch zone before its NULL check. No defect found.
