@@ -114,12 +114,24 @@ The current scheme (`src/game/pad_nav.c`) was measured on a 30-minute human game
 - Measured with the step 14 tool on the re-authored `worst-case/` games, against the baseline of section 1: zero cheat activations, no dead D-pad press in jump mode and no dead ○ anywhere outside the group the locked rules require, and less than 25% of game time in aim mode.
 - After the plan, outside it: the human plays a game and records it. The same tool measures that recording, and the human's complaints become fix-bug runs or a new plan.
 
+**Checked at `766d1c5` (after step 16):** `make test-all` passes; `make end-state`: 22 replays match their reference. README Controls: new scheme only (step 15). `make pad-metrics-worst-case`: `section4 verdict ok` on all four games: cheat 0, dead jump-mode D-pad presses 0, other-group dead ○ 0; aim over in-game frames `full_game` 24.74% (1487/6011), `new_game` 24.73%, `pause_restart` 24.92%, `pause_idle` 24.97% (1487/5955, 2 frames under the line). Two `make state` peaks stay short of the 8c4bbf4 table (`bytes_button`, `message_box`; step 13, G-3.4).
+
 ## 5. Open questions
 
-- The tuning values (score weight 2, repeat 18/8 frames, margin 20 px, 8 px per frame scroll, Select tap 10 / hold 30 / chain window 15 frames) are first guesses, kept as written for the whole plan. Tuning them comes after the human's game, as a mapping change under the re-authoring guardrails of section 2.
+- The tuning values (score weight 2, repeat 18/8 frames, margin 20 px, 8 px per frame scroll, Select tap 10 / hold 30 / chain window 15 frames) are first guesses, kept as written for the whole plan. Tuning them comes after the human's game, as a mapping change under the re-authoring guardrails of section 2. Any retune re-runs `make pad-metrics-worst-case`: the aim share is within 0.03 points of the 25% line (`pause_idle` 24.97%), so a change that adds aim frames to the `worst-case/` games needs them regenerated from their `.pad` scripts first.
 - "Colonies needing attention" depends on what the game tracks (step 9 decides, with a fallback).
 - Should the D-pad reach every object? The cone rule can strand one, rarely (step 13 note). A fallback pick, for example the nearest object in the half-plane when no cone candidate wins any origin, would change the rule of section 3; decided with the tuning values after the human's game.
 - After a resume, a HUD button covering a structure built during the game wins the hover, while before the save the structure did (resume registers saved nodes before the HUD; step 13 note). To fix with fix-bug after the plan, likely by making hover prefer the higher layer.
+
+### Follow-ups after the plan (not decided, not scheduled)
+- `tools/pointer_guard.sh` skips any block whose header holds a real `=` and the statement after it (step 8).
+- A second `start_title` in one test process dies on `zone ui button full`; worked around with a fork (step 11).
+- `save_state.c:888` (skipping a point-ended slipway in a save) is no longer hit by any replay (steps 7, 12).
+- `pad_metrics` keeps the caller's scratch zone and resets it in `pad_metrics_cone_empty` and `read_group_facts`, a zone `pad_author`'s `live_candidates` also uses: today every caller re-takes its list after each tap; the next one may not. The reset also runs before the NULL check (step 16).
+- `pad_metrics.c` restates the locked ○-at-root and empty-cone rules of `pad_back`/`pad_nav` with no test tying them, and `pad_author.c`'s `settle_circle` keeps a second dead-○ judge beside `judge_frame`; candidate building and `camera_point`/`count_of` are also duplicated with `pad_author.c` and `state.c`.
+- `pad_metrics_section4_t` and the report's `section4 …` lines are named after this plan's section 4, which goes when the plan file is deleted; `make pad-metrics-worst-case` greps `section4 verdict ok`, so a rename edits both.
+- `src/devtools/pad_author.c` (1321 lines) has no direct unit test; its only gate is `make pad-author-proof` plus a byte-identical `make pad-author`.
+- `pad_author`'s usage text omits `--try`'s `.eco.txt` files, its "fork stopped" failure, and that only the CLI `--stop-at` waives the aim budget (step 16).
 
 ## 6. Step notes
 
