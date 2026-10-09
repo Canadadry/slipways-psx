@@ -163,11 +163,11 @@ static void pad_tech_costs_rich_mine(void) {
     assert(has("count slipways 6"));
     assert(has("count colonies 6") && "p1, p31, p37, p54 and the two labs");
     assert(has("count structures 0"));
-    assert(has("planet p31 colonized planet e world 223.89 276.36 screen 96.89 42.36 visible 1"));
-    assert(has("planet p2 unknown planet - world 159.28 30.36 screen 32.28 -203.63 visible 0"));
+    assert(has("planet p31 colonized planet e world 223.89 276.36 screen 122.89 34.36 visible 1"));
+    assert(has("planet p2 unknown planet - world 159.28 30.36 screen 58.28 -211.63 visible 0"));
     assert(has("slipway p54 p31 normal"));
     assert(has("slipway s2 p31 normal"));
-    assert(has("camera world 127 234"));
+    assert(has("camera world 101 242"));
     assert(has("techs space folding"));
     assert(has("techs xenofoods"));
     assert(has("cheat activations 1"));

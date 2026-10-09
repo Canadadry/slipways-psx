@@ -350,14 +350,6 @@ static void return_to_starting_planet(pad_nav_t *nav) {
     }
 }
 
-/* Plain aim mode only: at game start, or once the last planet is dead, ○ does nothing. */
-static void return_to_last_planet(pad_nav_t *nav) {
-    entity_t *last = live(entity_get(nav->last_planet));
-    if (last != NULL) {
-        land_on(nav, last, live(entity_get(nav->last_slipway)));
-    }
-}
-
 static void enter_aim_mode_from(pad_nav_t *nav, const entity_t *selected) {
     centre_camera_on(selected);
     nav->starting_planet = entity_id_link(selected);
@@ -434,11 +426,46 @@ static void drop_held_slipway(void) {
     }
 }
 
+/* Above the TAG_NODE reservation in cart.c. */
+enum { JUMP_CANDIDATES_CAP = 128 };
+
+static void centre_world_point(int *x, int *y) {
+    const camera_t *camera = main_camera_typed();
+    vec_t at = camera != NULL ? camera_pos_before_shake(camera) : vec_make(0, 0);
+    *x = p8_fixed_flr_int(at.x) + P8_SCREEN_WIDTH / 2;
+    *y = p8_fixed_flr_int(at.y) + P8_SCREEN_HEIGHT / 2;
+}
+
+/* Points out at storage, JUMP_CANDIDATES_CAP entries the caller owns; empty when no TAG_NODE bucket exists. */
+static void live_candidates(entity_t **storage, entity_list_t *out) {
+    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
+    if (nodes == NULL) {
+        *out = (entity_list_t){.items = storage, .count = 0, .capacity = JUMP_CANDIDATES_CAP};
+        return;
+    }
+    (void)pad_jump_candidates(nodes, storage, JUMP_CANDIDATES_CAP, out);
+}
+
 /* Jump mode hovering e, or nothing when e is no candidate: the jump mode reseed then runs. */
 static void back_to_jump_mode(pad_nav_t *nav, const entity_t *e) {
     nav->map_mode = PAD_NAV_MAP_JUMP;
     nav->jump.hovered = pad_target_is_candidate(e) ? entity_id_link(e) : ENTITY_ID_NONE;
     pad_slipway_init(&nav->slipway);
+}
+
+/* Jump mode on the target nearest the centre, or on nothing when the game has none: seeded, so jump mode never
+ * reseeds on the first colony afterwards. */
+static void leave_aim_mode(pad_nav_t *nav) {
+    entity_t *storage[JUMP_CANDIDATES_CAP];
+    entity_list_t candidates;
+    live_candidates(storage, &candidates);
+    int x, y;
+    centre_world_point(&x, &y);
+    entity_t *nearest = pad_jump_nearest(x, y, &candidates);
+    nav->map_mode = PAD_NAV_MAP_JUMP;
+    nav->jump.hovered = entity_id_link(nearest);
+    nav->jump.seeded |= nearest != NULL;
+    pad_jump_repeat_clear(&nav->jump);
 }
 
 /* Returns whether a slipway was held, and so dropped: nothing built or charged, jump mode back on the start. */
@@ -452,7 +479,7 @@ static int cancel_slipway(pad_nav_t *nav) {
     return held;
 }
 
-/* Plain aim mode: no starting planet, so no drag starts again; ○ goes back to the planet it came from. */
+/* Plain aim mode: no starting planet, so no drag starts again. */
 static void leave_starting_planet(pad_nav_t *nav) {
     cancel_drag(nav);
     nav->last_planet = nav->starting_planet;
@@ -581,13 +608,12 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
         return;
     }
     if ((pressed & P8_PAD_SQUARE) && !nav->cross_engaged) {
-        if (square_selects_under_centre(nav)) {
-            return;
-        }
-        if (pad_nav_starting_planet(nav) != NULL) {
+        if (pad_nav_starting_planet(nav) == NULL) {
+            leave_aim_mode(nav);
+        } else if (!square_selects_under_centre(nav)) {
             leave_starting_planet(nav);
-            return;
         }
+        return;
     }
     if (dragged_slipway(nav) != NULL) {
         drag_step(nav, pressed, circle_returns, release, played);
@@ -606,7 +632,7 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
     } else if (circle_returns && pad_nav_starting_planet(nav) != NULL) {
         return_to_starting_planet(nav);
     } else if (circle_returns) {
-        return_to_last_planet(nav);
+        leave_aim_mode(nav);
     } else if (!release) {
         (void)begin_drag(nav, played);
     }
@@ -936,26 +962,6 @@ static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_inpu
         return;
     }
     played->mouse_buttons = P8_MOUSE_LEFT;
-}
-
-/* Above the TAG_NODE reservation in cart.c. */
-enum { JUMP_CANDIDATES_CAP = 128 };
-
-static void centre_world_point(int *x, int *y) {
-    const camera_t *camera = main_camera_typed();
-    vec_t at = camera != NULL ? camera_pos_before_shake(camera) : vec_make(0, 0);
-    *x = p8_fixed_flr_int(at.x) + P8_SCREEN_WIDTH / 2;
-    *y = p8_fixed_flr_int(at.y) + P8_SCREEN_HEIGHT / 2;
-}
-
-/* Points out at storage, JUMP_CANDIDATES_CAP entries the caller owns; empty when no TAG_NODE bucket exists. */
-static void live_candidates(entity_t **storage, entity_list_t *out) {
-    const entity_list_t *nodes = entities_by_tag(TAG_NODE);
-    if (nodes == NULL) {
-        *out = (entity_list_t){.items = storage, .count = 0, .capacity = JUMP_CANDIDATES_CAP};
-        return;
-    }
-    (void)pad_jump_candidates(nodes, storage, JUMP_CANDIDATES_CAP, out);
 }
 
 /* A game stays unseeded until its first candidate: the first colony then, else the nearest; later, the nearest. */

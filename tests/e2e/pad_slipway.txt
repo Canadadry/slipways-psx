@@ -1,20 +1,19 @@
-A second fold and colony, the old slipway drag in free mode with what
+A second fold and colony, the old slipway drag in aim mode with what
 only it draws (partial line and cost, snap on a known planet, a crossed
 planet, a drop on empty space, a fold under a drag, a drag pressed from
 an off-screen starting planet); then the slipway built the cross way,
-with a refused known planet, an already linked planet and too far; square
-selecting the colony under the centre from plain free mode, travel along
-the slipway in network mode with X, and a cancelled drag. It is the
-regression guard for the drag the pad once lacked (a blind press-release
-gesture drew nothing while aiming). 362 frames.
+with a refused known planet, an already linked planet and too far;
+square leaving aim mode for jump mode on the colony under the centre.
+It is the regression guard for the drag the pad once lacked (a blind
+press-release gesture drew nothing while aiming). 308 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
-leaves it for plain free mode, the camera unmoved, as games started
-before it. Every frame is the one this file had without it.
+enters aim mode, the camera unmoved. pad_probe's f16-17 (O back to jump
+mode with nothing hovered, square back to aim mode) are shared.
 
 f0-98 are pad_colonise's frames verbatim (f0-68 being pad_probe's), so
 the galaxy and pad_probe.txt's planet list apply, and p47 (type r) is
-colony A. In free mode the cursor is the screen centre (80, 60), marked
+colony A. In aim mode the cursor is the screen centre (80, 60), marked
 by the colour-7 crosshair (x78-82 on y=60, y58-62 on x=80, the centre
 pixel undrawn). The dragged line is the slipway's core, two pixels
 thick: colour 1 once faded in, colour 2 when refused (a target set,
@@ -26,7 +25,7 @@ come from the framebuffer of each frame (the capture, or the dump and
 
 - f0-98: as pad_colonise up to its X on the colonise row. After f98:
   camera (190, 206), $92, month 5, network mode on p47.
-- f100: square: free mode, p47 is the starting planet. The camera
+- f100: square: aim mode, p47 is the starting planet. The camera
   centres on it, (190, 206) -> (190, 205), p47 at screen (80.24, 60.75).
   The circle is gone and the crosshair is back at the centre. This frame
   presses p47 (the cursor point on p47's screen point), and from f101
@@ -69,14 +68,15 @@ come from the framebuffer of each frame (the capture, or the dump and
   p28, whose menu slides open, focus on the header.
 - f233: Down: the colonise row turns colour 12.
   f235: X on it ("colony"): p28 colonised, $89 -> $79, month 6 -> 9.
-  The menu closes; from f236 free mode is back with p47 as the starting
+  The menu closes; from f236 aim mode is back with p47 as the starting
   planet and the camera still on p28 (the triangle's planet). The pad
   presses p47 at its off-screen point (52, -10).
 - f238, aimed at B: the colour-1 line runs from the top edge down to
   p28 under the crosshair, the label "15$" above it (x74-84, y52-56).
   The only colour-2 pixels on the map are p28's colony ring. $79,
   month 9.
-f0-238 are the frames of the old file, byte for byte. The old drag keeps
+f0-238 are the captured frames of the step 6 file but f16 (step 7: f17 is
+now square). The old drag keeps
 the situations only it produces until plan 12 step 7 removes it: the
 drop on empty space and the fold under a drag (f194-210), triangle under
 the centre during a drag and the drag resumed from the off-screen
@@ -109,34 +109,23 @@ test_an_off_screen_start_still_builds.
   presses p28 at (107, 127), on the screen's last row.
 - f276: circle: the slipway dropped with no target, jump mode on p28,
   the edge scroll back to (190, 248) by f280.
-- f281: square: plain free mode, the camera unmoved. f283-301:
-  Down+Right 19: camera (218, 276), p28 under the centre. f302: square
-  in plain free mode over p28, the settled planet under the centre:
-  network mode on it, camera (217, 276); the crosshair is gone.
-- f305: X: travel to p47, camera (217, 276) -> (190, 205), the circle
-  round p47. f307: X: back to p28, camera (217, 276). X travels in
-  network mode.
-- f309: Right, f311: Left. p28 has one slipway: it stays selected and
-  the camera stays (217, 276).
-- f313: square on p28: free mode, the drag starts from p28.
-  f315-354: Up+Left 19, Up 21.
-- f355, a planet already linked, seen from the old drag: camera (189,
-  206), p47 under the crosshair, p28 off screen. slipway_obstruction
-  returns the slipway p47-p28: the dragged line and that slipway are
-  both colour 2 along the same path (194 colour-2 pixels on the screen
-  above the HUD, 195 at the old file's f338); the label is the colour-8
-  forbidden sign.
-- f356: X on p47: the drag's drop is refused, p47 already linked (the
-  old drag's own duplicate check, slipway_between), $64 kept. f357: the
-  pad presses p28 again at its off-screen point (108, 130); the drag
-  holds from f358.
-- f359: circle: the drag is dropped on nothing, network mode back on
-  p28, camera (189, 206) -> (217, 276). f360: the selected slipway is
-  colour 12 (123 colour-12 pixels above the HUD). f360-361: idle; still
-  one slipway, $64, month 10.
+- f281: square: plain aim mode, the camera unmoved. f283-301:
+  Down+Right 19: camera (218, 276), p28 under the centre. f302: square:
+  aim mode left for jump mode on p28, the target nearest the centre; the
+  crosshair is gone, the blinking hovered circle round p28. f303-307:
+  idle.
 
-`make state` at f361 (the file's end): clock year 3401 month 10,
-credits 64, income 0, camera world 217 276, `slipway p47 p28 normal`,
+Dropped by plan 12 step 7 with their mechanics (the old file's
+f302-361): square selecting p28 into network mode, network travel with
+X to p47 and back, Left/Right on a planet with one slipway, the
+selected slipway drawn in colour 12 (network mode); square from network
+mode into the drag, the already linked p47 seen from the drag, the
+drag's drop refused on it, circle dropping the drag into network mode
+(the drag). The already linked planet is still refused the cross way at
+f259-263.
+
+`make state` at f307 (the file's end): clock year 3401 month 10,
+credits 64, income 0, camera world 218 276, `slipway p47 p28 normal`,
 planets 88, colonies 2, slipways 1, structures 0, techs 0. p47
 colonized type r, p28 colonized type x, p25 known type f; every other
 planet unknown (p7 and p13 vanished).

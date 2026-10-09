@@ -1,10 +1,10 @@
-Probe and space fold in free mode, with the D-pad and X. 77 frames.
+Probe and space fold in aim mode, with the D-pad and X. 77 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
-leaves it for plain free mode, the camera unmoved, as games started
-before it. Every frame is the one this file had without it.
+enters aim mode, the camera unmoved. Every capture frame but f16 is the
+one this file had before plan 12 step 7.
 
-In free mode the cursor is the screen centre (80, 60), marked by the
+In aim mode the cursor is the screen centre (80, 60), marked by the
 colour-7 crosshair (x78-82 on y=60, y58-62 on x=80, the centre pixel
 undrawn), and the D-pad pans the camera (1 px a frame for the first 10
 frames of a held direction, 2 px up to 40). Readings below come from the
@@ -14,8 +14,9 @@ framebuffer dump and `make state` of the file cut after that frame.
   reasonable (y64-72, x=108) is the only row in colour 12.
 - f12: X on "reasonable": the title rows are gone from f12, the game
   starts. Camera at (176, 196), so the centre is world (256, 256).
-- f16: O tap in free mode: camera, entities and ephemerals identical at
-  f15 and f17.
+- f16: O in aim mode: back to jump mode, nothing hovered (no object is
+  known yet), the crosshair gone on f16 alone. f17: square: aim mode
+  again. Camera, entities and ephemerals identical at f15 and f17.
 - f19-24: Up held 6 frames, camera y 196 -> 190, centre world
   (256, 250). Without it, X at the start centre lands 17 px from p47
   and the probe is refused (red hatched disk, nothing placed).

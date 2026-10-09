@@ -4,10 +4,14 @@ protostar's energy to a nanotech forgeworld, a trading hub fed tech and
 food, the protostar panned off screen. 458 frames.
 
 Jump mode is the map's root, where every game starts: square on f25
-leaves it for plain free mode, the camera unmoved, as games started
-before it. Square on f259 and f404 enters plain free mode again from
-jump mode; f245 and f304 select s1 and s2 into network mode. The f330
-collapse replaces the hovered p47, so jump mode reseeds onto p23.
+enters aim mode, the camera unmoved. Square on f259 and f404 enters aim
+mode again from jump mode. f245 selects s1 into network mode (the hub is
+taken at f207 from network mode on p23, so aim mode has p23 as its
+starting planet), and f247's circle leaves network mode for jump mode on
+s1. f304 leaves plain aim mode for jump mode on s2, the target nearest
+the centre. The f330 collapse replaces
+the hovered p47, so jump mode reseeds onto the target nearest the
+centre, s2.
 
 The title takes Down at f10 and X on "reasonable" at f24, 12 frames
 later than pad_probe's: the title draws one game-stream number per
@@ -15,14 +19,16 @@ frame, so the galaxy is the one of a game started at f24, chosen for
 its reveal rolls (the fold below reveals a mineral, a forgeworld and an
 ocean planet, as the trade needs). HUD buttons are read at one fill pixel each: tech (1, 1),
 score (64, 1), year skip (152, 1); colour 12 is the lit tab, 13 the
-others. In free mode the colour-7 crosshair marks the centre (x78-82 on
+others. In aim mode the colour-7 crosshair marks the centre (x78-82 on
 y=60, y58-62 on x=80, the centre pixel undrawn), as on f25-47 and
 f59-71. Readings come from the capture's framebuffer at each frame, and
 the economy from `make state` of the file cut after that frame.
 
 - f0-24: the title. Its X is a lone X press, which leaves the cheat
   matcher at 0.
-- f28: O tap in free mode, with no starting planet: nothing on the map.
+- f28: O in aim mode: back to jump mode, nothing hovered (no object is
+  known yet), the crosshair gone on f28 alone. f29: square: aim mode
+  again, nothing else changed on the map.
 - f30-36: X four times, one tap every two frames, at the start centre.
   Each X makes a probe on its press (entities 107 -> 108 at f30) that
   lands 14 px from p78 and is refused: a colour-2 hatched disk round
@@ -47,7 +53,7 @@ the economy from `make state` of the file cut after that frame.
   is gone on f58's capture, the tech button still colour 12 on that
   frame.
 - f59: back on `map`: nothing lit, the crosshair at the centre.
-  f59-71: idle, free mode.
+  f59-71: idle, aim mode.
 
 `make state` at f71: clock year 3401 month 1, credits 200, research 95,
 income 0, `techs space folding`, camera world 176 196, planets 90,
@@ -71,7 +77,7 @@ measured before and after them, in pad_score.txt.
 Trade, f72-457 (remove-mouse-mode PRD, chunk 7; appended here to share
 the title and the cheat instead of separate pad_slipgate,
 pad_trading_hub and pad_protostar files). Every capture frame up to f71
-is the one of the shorter file, byte for byte.
+is the one of the shorter file, byte for byte, but f28 (plan 12 step 7).
 
 - f72-82: Down+Left 8, Down 3; f84: X: the starting probe at (248,
   268), 23 px from the nearest planet. f86-139: "geneseeds",
@@ -82,29 +88,31 @@ is the one of the shorter file, byte for byte.
   first three reveal rolls of this game.
 - f177-205: p23 as "algae" (food), $197 -> $189. f207-243: R1, Left
   x3, X: the trading hub s1 built at (300, 262), $169.
-  f245: square: network mode on s1, under the centre.
+  f245: square: network mode on s1, under the centre (aim mode has p23
+  as its starting planet, from f207).
 
 The slipways are built the cross way (plan 12 step 6), each in its
 direction: X on the hovered start, the D-pad onto the target, X. Network
 travel only used to get somewhere is replaced by jumps. f0-245 are the
-frames of the old file, byte for byte.
+inputs of the old file but f29 (plan 12 step 7).
 
 - f247: circle: jump mode on s1. f249: X on s1, f251: Up onto p23,
   f254: X: `slipway s1 p23`, $169 -> $164. f255: the pad presses p23;
   f257: circle: jump mode on p23.
-- f259: square: plain free mode, camera 220 202. f261-262: Up 2: camera
+- f259: square: plain aim mode, camera 220 202. f261-262: Up 2: camera
   220 200, the camera the old file's X took the slipgate from (its
   network mode centred on s1 there). f263-268: R1, Right, X: the
   slipgate carried, the camera unmoved. f270-302: Down+Left 15, Left
   12, Down 1, X: the slipgate s2 built at (256, 281), $154.
-- f304: square: network mode on s2, under the centre. f306: circle:
-  jump mode on s2. f308: X on s2, f310: Right onto s1, f313: X:
+- f304: square: plain aim mode left for jump mode on s2, under the
+  centre. f306: circle, inert in jump mode. f308: X on s2, f310: Right onto s1, f313: X:
   `slipway s2 s1`, $147, placed first on s2. f314: s1 pressed; f316:
   circle: jump mode on s1.
 - f318: Left onto p47. f322: triangle: its menu; f326, f328: Down
   twice; f330: X on "collapse": p47 a protostar, burst 1, $147 -> $117.
-  The jump mode then hovers p23, the candidate nearest the centre.
-- f336: Left onto p78. f339: triangle; f343: Down; f345: X on
+  The jump mode then hovers s2, the target nearest the centre (it
+  hovered p23 before plan 12 step 7, which seeds the jump state when aim
+  mode is left). f333: Up onto p47, f336: Left onto p78. f339: triangle; f343: Down; f345: X on
   "nanotech", $117 -> $107; the year passes on its own on the way (3402
   at f345).
 - f351: X on p78, f353: Down onto s2, f356: X: `slipway p78 s2`,
@@ -120,13 +128,13 @@ frames of the old file, byte for byte.
   3403" box; L1 L1, the map. Transit dots on the slipways.
 - f391, f393: Up, Left onto p78. f396: triangle: its panel, "content",
   "wants more:", "receives:", "exports: 1/3". f402: O.
-- f404: square: plain free mode. f406-456: Up+Left 17, Left 20, Left
-  13: camera 96 185, p47 at screen x 174, visible 0: its particles are
+- f404: square: plain aim mode. f406-456: Up+Left 17, Left 20, Left
+  13: camera 96 197, p47 at screen x 174, visible 0: its particles are
   no longer drawn.
 
 `make state` at f457: year 3403 month 1, credits 122, research 39,
 income 23, techs + geneseeds, slipgates, trade league, starbirth; camera
-96 185; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
+96 197; p78 colonized f, p23 colonized o, p47 colonized protostar, s1
 colonized trading_hub, structure s2 slipgate links 3; slipways s1 p23,
 s2 s1, p78 s2, p47 s2; planets 91, colonies 4. Peaks: bytes_row 712
 (tech_trade_league_hub's 600), burst 1.

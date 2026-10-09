@@ -4,9 +4,10 @@ the title's "resume" row. The resumed game is the game before the
 restart. 155 frames.
 
 Jump mode is the map's root, where every game starts: square on f13
-leaves it for plain free mode, the camera unmoved, as games started
-before it; f133: the same in the game resumed at f132. Every frame is
-the one this file had without them.
+enters aim mode, the camera unmoved; f133: the same in the game resumed
+at f132. pad_probe's f16-17 (O back to jump mode with nothing hovered,
+square back to aim mode) are shared: every capture frame but f16 is the
+one this file had before plan 12 step 7.
 
 f0-76 are pad_probe's 77 frames verbatim: the first 77 frames of this
 capture equal pad_probe's capture byte for byte (`cmp -n 739200`, both
@@ -35,7 +36,7 @@ pad_pause_restart.txt.
 - f130: Up: "resume" colour 12, forgiving back to 13 (f130-131).
 - f132: X on "resume": the title rows are gone on f132, the game is
   resumed during that frame's update; the crosshair is back from f133.
-  f133-154: idle in free mode.
+  f133-154: idle in aim mode.
 
 `make state` at f111, at f132 and at f154, the same lines apart from
 zone and cap: clock year 3401 month 2, difficulty reasonable, credits
