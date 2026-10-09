@@ -1,7 +1,7 @@
 Six years, "nanomaterials" on the `tech` tab, an earth-like planet's
 menu at x0.85; then the cheat, "space folding" and "xenofoods", the same
 menu with improved recipes at x1.5. Then a mine linked to three people
-suppliers, a colony needing ore and two labs, rich at the year. 571
+suppliers, a colony needing ore and two labs, rich at the year. 565
 frames.
 
 Jump mode is the map's root, where every game starts: square on f17
@@ -58,7 +58,7 @@ x1.5): `research_project_cost` x0.85 and x1.5, the upgraded production
 entry. Two era-1 inventions open era 2 here, so "geneseeds" is not
 needed.
 
-Rich mine, f179-570 (remove-mouse-mode PRD, chunk 7; appended here to
+Rich mine, f179-564 (remove-mouse-mode PRD, chunk 7; appended here to
 share the cheat, the techs and the probe instead of a separate
 pad_rich_mine file).
 
@@ -70,26 +70,57 @@ pad_rich_mine file).
   type m at f241.
 - f228-259: Down+Left 16, Down 6 onto p54, triangle, Down, X: p54 as
   "mine", $193.
-- f261-410: from p54, three times square (twice the first time), the
-  D-pad onto the target, triangle, X on its first row, then X: the
-  target colonised, the slipway from p54 built, network on it, X back
-  to p54: p31 "hiveworld" (f299, `slipway p54 p31` f302), p1 "colony"
-  (f349, f352), p37 "colony" (needs ore; f404, f407).
-- f411-463: R1, X: a lab, built at (191, 325) (f436), square twice, X
-  on p54: `slipway s1 p54` (f462). f464-542: a second lab at (207, 298)
-  (f489), `slipway s2 p31` (f515), X back to s2, `slipway s2 p54`
-  (f541): p31 feeds s2 people. The year passes on its own at f541.
-- f543-554: R1 R1, X on `end turn` (f547): year 3410, the "year 3410"
-  box; L1 L1, the map.
-- f555: triangle on p54: "rich", "receives:" three people, "exports:
-  3/3". f561: O; f563: X to s2; f565: triangle: "laboratory", "wants
-  more:", "receives:", "makes: 1".
 
-`make state` at f570: year 3410 month 1, credits 136, research 90,
+The slipways are built the cross way (plan 12 step 6), each in its
+direction, the colonies through the planet's menu from jump mode, and
+network travel only used to get somewhere is replaced by jumps. f0-260
+are the frames of the old file, byte for byte.
+
+- f261: O: network mode on p31, the last planet (camera 143 216).
+  f263: O: jump mode on p31. f266: triangle: its menu; f270: Down;
+  f272: X on "hiveworld": p31 colonised, $193 -> $189.
+- f278, f280: Left, Down onto p54. f283: X on p54, f285: Right onto
+  p31, f288: X: `slipway p54 p31`, $181. f291: O: jump mode on p31.
+- f293: Left onto p1. f296: triangle, f300: Down, f302: X on "colony":
+  $174. f308: Down onto p54. f311: X on p54, f313: Up onto p1, f316:
+  X: `slipway p54 p1`, $164. f319: O: jump mode on p1.
+- f321: Right onto p37. f324: triangle, f328: Down, f330: X on
+  "colony" (needs ore): $156. f336, f338: Left, Down onto p54. f341: X
+  on p54, f343, f345: Up, Right onto p37, f348: X: `slipway p54 p37`,
+  $141. f351: O: jump mode on p37.
+- f353: square: plain free mode. f355-380: Down+Left 18, Left 8: camera
+  101 242, the camera the old file's network mode centred on p54 before
+  each lab was taken (rule 8). f382-385: R1, X: a lab carried, the
+  camera unmoved. f387-407: the old file's pan (Down+Right 10, Down 6,
+  Down 1), X: the lab s1 built at (191, 325), $126.
+- f410: square: network mode on s1, under the centre. f412: O: jump
+  mode on s1. f414: X on s1, f416: Up onto p54, f419: X: `slipway s1
+  p54`, $123. f422: O: jump mode on p54.
+- f424: square: plain free mode. f426-450: Up+Left 10, Up 10, Up 3:
+  camera 101 242 again. f452-455: R1, X: a second lab carried.
+  f458-478: the old file's pan (Up+Right 4, Right 14), X: s2 built at
+  (207, 298), $108.
+- f480: square: network mode on s2. f482: O: jump mode on s2. f484: X
+  on s2, f486: Up onto p31, f489: X: `slipway s2 p31`, $105: p31 feeds
+  s2 people. f492: O: jump mode on p31. f494: Down onto s2. f497: X on
+  s2, f499: Left onto p54, f502: X: `slipway s2 p54`; the year passes on
+  its own on the way ($119, year 3409). f505: O: jump mode on p54.
+- f509-517: R1 R1, X on `end turn` (f513): year 3410, the "year 3410"
+  box; L1 L1, the map.
+- f520: square: plain free mode. f522-539: Down+Left 4, Left 14: camera
+  101 242, p54 under the centre. f541: square: network mode on p54, its
+  slipways sorted for the turn.
+- f544: triangle on p54: "rich", "receives:" three people, "exports:
+  3/3". f550: O; f552, f554: Left twice, the slipway to s2 selected;
+  f556: X: travel to s2, camera 127 234. f559: triangle: "laboratory",
+  "wants more:", "receives:", "makes: 1".
+
+`make state` at f564: year 3410 month 1, credits 136, research 90,
 income 17; camera 127 234; p54 colonized m, p31 colonized e, p1
 colonized x, p37 colonized o, s1 and s2 colonized structure; slipways
 p54 p31, p54 p1, p54 p37, s1 p54, s2 p31, s2 p54; planets 90, colonies
-6, transit dots live at the end. Peak: transit_dots 25.
+6, transit dots live at the end. Peak: transit_dots 37 (25 before the
+cross route: the slipways now age differently before the year).
 
 Replaces trade_rich_mine (a mine linked to three people suppliers and
 three labs, rich at the year, its "exports:" panel, a served lab's

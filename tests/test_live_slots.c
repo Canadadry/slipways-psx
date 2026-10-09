@@ -776,21 +776,26 @@ static void pad_game_end_rebuild_does_not_grow_game(void) {
     assert(f21 == f69 && "an incoming routes rebuild grows the generation");
 }
 
-/* f547-570: the f547 year jump over six placed slipways, so
+/* f513-564: the f513 year jump over six placed slipways, so
  * planet_rebuild_trades and planet_offer_trade, which offer known routes
- * again. The f546 rebuild keeps the route of the slipway placed at f541. The
- * press of the f555 triangle takes a slipway construction arena, which the
- * f565 one reuses. */
+ * again. The f512 rebuild keeps the route of the slipway placed at f502. The
+ * presses of the f544 and f559 triangles reuse the slipway construction arena
+ * the f503 re-press took and its cancel left. */
 static void pad_tech_costs_route_rebuild_does_not_grow_game(void) {
     start_e2e("pad_tech_costs");
-    play_until(546);
-    const size_t f546 = game_without_registries();
-    play_until(570);
-    const size_t f570 = game_without_registries();
-    printf("  pad_tech_costs f546/f570: game - registries = %lu/%lu\n", (unsigned long)f546,
-           (unsigned long)f570);
-    assert(f570 == f546 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
-           "a rebuild over routes grows the generation, or the f565 press does not reuse the f555 arena");
+    play_until(502);
+    const size_t f502 = game_without_registries();
+    play_until(503);
+    const size_t f503 = game_without_registries();
+    assert(f503 == f502 + arena_size_for(SLIPWAY_CONSTRUCTION_BYTES) &&
+           "the f503 re-press of p54 takes a slipway construction arena");
+    play_until(512);
+    const size_t f512 = game_without_registries();
+    play_until(564);
+    const size_t f564 = game_without_registries();
+    printf("  pad_tech_costs f512/f564: game - registries = %lu/%lu\n", (unsigned long)f512,
+           (unsigned long)f564);
+    assert(f564 == f512 && "a rebuild over routes grows the generation, or a triangle press does not reuse the arena");
 }
 
 static const planet_t *planet_with_id(const char *id) {
@@ -803,39 +808,39 @@ static const planet_t *planet_with_id(const char *id) {
     return NULL;
 }
 
-/* A route of outgoing_routes kept by the f546 rebuild reads back at f570,
- * after 24 resets of the frame zone where its candidates are made. */
+/* A route of outgoing_routes kept by the f512 rebuild reads back at f564,
+ * after 52 resets of the frame zone where its candidates are made. */
 static void pad_tech_costs_kept_route_survives_frame(void) {
     entity_id_t lp[16];
     entity_id_t rl[16];
     start_e2e("pad_tech_costs");
-    play_until(546);
+    play_until(512);
     const planet_t *p54 = planet_with_id("p54");
     const trade_route_list_t *by = &p54->outgoing_routes;
-    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f546: p54 keeps a route");
+    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f512: p54 keeps a route");
     const trade_route_t *t = trade_route_list_at(by, trade_route_list_count(by) - 1);
     const int nlp = t->planets.count;
     const int nrl = t->slipways.count;
     assert(nlp <= 16 && nrl <= 16);
     memcpy(lp, t->planets.items, (size_t)nlp * sizeof *lp);
     memcpy(rl, t->slipways.items, (size_t)nrl * sizeof *rl);
-    play_until(570);
+    play_until(564);
     assert(t->planets.count == nlp && memcmp(lp, t->planets.items, (size_t)nlp * sizeof *lp) == 0);
     assert(t->slipways.count == nrl && memcmp(rl, t->slipways.items, (size_t)nrl * sizeof *rl) == 0);
-    printf("  pad_tech_costs: p54 route (%d planets, %d slipways) read back at f570\n", nlp, nrl);
+    printf("  pad_tech_costs: p54 route (%d planets, %d slipways) read back at f564\n", nlp, nrl);
 }
 
-/* At f546, a rebuild of p54 over its kept routes gives back to the frame
+/* At f512, a rebuild of p54 over its kept routes gives back to the frame
  * zone every candidate offer it made, and the routes it hands back still
  * read the same. */
 static void pad_tech_costs_rebuild_gives_back_frame(void) {
     entity_id_t lp[16];
     start_e2e("pad_tech_costs");
-    play_until(546);
+    play_until(512);
     planet_t *p54 = (planet_t *)planet_with_id("p54");
-    assert(p54->slipways.zone != NULL && p54->slipways.count > 0 && "f546: p54 is linked");
+    assert(p54->slipways.zone != NULL && p54->slipways.count > 0 && "f512: p54 is linked");
     const trade_route_list_t *by = &p54->outgoing_routes;
-    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f546: p54 keeps a route");
+    assert((p54->has & PLANET_HAS_OUTGOING_ROUTES) && trade_route_list_count(by) > 0 && "f512: p54 keeps a route");
     const int n = trade_route_list_count(by);
     const trade_route_t *t = trade_route_list_at(by, n - 1);
     const int nlp = t->planets.count;
@@ -844,7 +849,7 @@ static void pad_tech_costs_rebuild_gives_back_frame(void) {
     const size_t before = frame_zone_used();
     trade_route_list_t *out = planet_rebuild_trades(p54);
     const size_t after = frame_zone_used();
-    printf("  pad_tech_costs f546: frame %lu -> %lu across a rebuild of p54\n", (unsigned long)before,
+    printf("  pad_tech_costs f512: frame %lu -> %lu across a rebuild of p54\n", (unsigned long)before,
            (unsigned long)after);
     assert(after == before && "planet_rebuild_trades keeps its candidate offers in the frame zone");
     assert(out == by && trade_route_list_count(out) == n && "the rebuild hands back the kept routes");
