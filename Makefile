@@ -440,6 +440,9 @@ $(TMP_DIR)/test_frames_tool: $(call objs,tests/test_frames_tool.c src/devtools/s
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_state_compare: $(call objs,tests/test_psx_state_compare.c) tools/psx_state_compare.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -785,6 +788,7 @@ UNIT_TESTS := \
     test_hud \
     test_frames_tool \
     test_frames_check \
+    test_psx_state_compare \
     test_e2e_limits \
     test_state_peaks \
     test_float_guard \
