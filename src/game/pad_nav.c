@@ -933,7 +933,13 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
         reset_aim_mode(nav);
-        panel_step(nav, pad_buttons, pressed, direction, played);
+        /* On the map tab only jump mode's click opens an ephemeral box: a later one that is no planet menu must keep △
+         * from closing it here. */
+        if ((pressed & P8_PAD_TRIANGLE) && !release && !nav->release_pending && planet_menu_open(nav)) {
+            ui_clear_ephemerals(main_ui());
+        } else {
+            panel_step(nav, pad_buttons, pressed, direction, played);
+        }
     } else if (pad_nav_aim_mode(nav)) {
         aim_mode_step(nav, pad_buttons, pressed, circle_returns, release, played);
     } else if (pad_nav_selection(nav) != NULL) {

@@ -3379,6 +3379,15 @@ static planet_t *jump_on_known_planet(input_step_t *step) {
     return planet;
 }
 
+static planet_t *jump_on_colony(input_step_t *step) {
+    start_game_in_jump_mode(step);
+    planet_t *colony = planet_closest_to_centre();
+    settle_planet(step, colony);
+    hold(step, 0, 40);
+    assert_hovering(step, &colony->header);
+    return colony;
+}
+
 static void test_cross_on_a_hovered_known_planet_opens_its_menu_and_records_it(void) {
     entity_t *rows[ITEMS_CAP];
     input_step_t step;
@@ -3478,6 +3487,79 @@ static void test_cross_and_triangle_on_one_frame_give_one_click(void) {
     int count = box_entries(rows);
     assert(count > 0 && is_button_of(rows[count - 1], planet) && pad_nav_panel_open());
     assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
+}
+
+/* The closing frame presses nothing, and the marker is back on the next. */
+static void assert_triangle_closes_the_menu_of(input_step_t *step, const planet_t *planet) {
+    assert(pad_nav_panel_open() && main_ui()->ephemerals.count > 0);
+    world_count_t before = world_count();
+    state_t state = planet->header.state;
+    run_frame(step, P8_PAD_TRIANGLE);
+    assert(input_step_played_frame(step)->mouse_buttons == 0);
+    assert(!pad_nav_panel_open() && main_ui()->ephemerals.count == 0);
+    assert(pad_nav_jump_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == &planet->header);
+    run_frame(step, 0);
+    assert(input_step_played_frame(step)->mouse_buttons == 0);
+    assert_hovering(step, &planet->header);
+    assert(ui_pad_selection(main_ui()) == &planet->header);
+    assert(planet->header.state == state);
+    assert_world_unchanged(before);
+}
+
+static void test_triangle_again_closes_a_known_planets_menu(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    assert_triangle_closes_the_menu_of(&step, planet);
+}
+
+static void test_triangle_again_closes_a_colonys_inspection_panel(void) {
+    input_step_t step;
+    planet_t *colony = jump_on_colony(&step);
+    tap(&step, P8_PAD_TRIANGLE);
+    settle(&step);
+    assert_triangle_closes_the_menu_of(&step, colony);
+}
+
+/* △ on the release frame of ×'s click leaves the menu up; the next △ closes it. */
+static void test_triangle_on_the_release_frame_closes_nothing_and_closes_a_menu_cross_opened_after(void) {
+    input_step_t step;
+    planet_t *planet = jump_on_known_planet(&step);
+    run_frame(&step, P8_PAD_CROSS);
+    assert(input_step_played_frame(&step)->mouse_buttons == P8_MOUSE_LEFT);
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_TRIANGLE);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert(pad_nav_panel_open() && main_ui()->ephemerals.count > 0);
+        end_forked_copy();
+    }
+    run_frame(&step, 0);
+    run_frame(&step, 0);
+    assert_triangle_closes_the_menu_of(&step, planet);
+}
+
+/* △ means only the hovered object's menu: it never closes the year box. */
+static void test_triangle_under_the_year_box_closes_only_a_planet_menu(void) {
+    input_step_t step;
+    start_game_in_jump_mode(&step);
+    score_panel_new_year(p8_fixed_from_int(3421));
+    entity_t *year_box = &shown_message_box()->header;
+    run_frame(&step, 0);
+    assert(pad_nav_hovered(&step.pad_nav) == NULL);
+    for (int i = 0; i < 2; i++) {
+        run_frame(&step, i == 0 ? P8_PAD_TRIANGLE : 0);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
+    assert(!pad_nav_panel_open() && main_ui()->ephemerals.count == 0);
+    assert(shown_message_box() == (message_box_t *)year_box);
+    planet_t *planet = known_planet_closest_to_centre();
+    hold(&step, 0, 2);
+    assert_hovering(&step, &planet->header);
+    tap(&step, P8_PAD_TRIANGLE);
+    run_frame(&step, 0);
+    assert_triangle_closes_the_menu_of(&step, planet);
+    assert(shown_message_box() == (message_box_t *)year_box);
 }
 
 #define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
@@ -4298,15 +4380,6 @@ static void test_building_refusing_and_cancelling_leave_the_game_stream_unchange
     assert(p8_fixed_rnd_state() == game && "slipway mode draws no game number");
 }
 
-static planet_t *jump_on_colony(input_step_t *step) {
-    start_game_in_jump_mode(step);
-    planet_t *colony = planet_closest_to_centre();
-    settle_planet(step, colony);
-    hold(step, 0, 40);
-    assert_hovering(step, &colony->header);
-    return colony;
-}
-
 static void test_colonising_through_the_menu_ends_in_jump_mode_on_the_colony(void) {
     entity_t *rows[ITEMS_CAP];
     input_step_t step;
@@ -4696,6 +4769,10 @@ int main(void) {
     in_fresh_child(test_cross_held_from_the_opening_click_presses_no_row_until_pressed_again);
     in_fresh_child(test_cross_on_a_known_planet_scrolling_in_or_under_the_hud_presses_nothing);
     in_fresh_child(test_cross_and_triangle_on_one_frame_give_one_click);
+    in_fresh_child(test_triangle_again_closes_a_known_planets_menu);
+    in_fresh_child(test_triangle_again_closes_a_colonys_inspection_panel);
+    in_fresh_child(test_triangle_on_the_release_frame_closes_nothing_and_closes_a_menu_cross_opened_after);
+    in_fresh_child(test_triangle_under_the_year_box_closes_only_a_planet_menu);
     in_fresh_child(test_cross_in_aim_mode_on_a_colony_presses_nothing);
     in_fresh_child(test_square_while_cross_holds_a_fold_selects_nothing);
     in_fresh_child(test_shoulders_in_aim_mode_switch_and_come_back_to_it);
