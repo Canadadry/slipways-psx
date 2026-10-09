@@ -87,7 +87,8 @@ A capture is one text line `psx-vram <w> <h> <depth>` (depth 16 or 24), then
 the raw bytes of the displayed frame, as `PCSX.GPU.takeScreenShot()` returns
 them (`tools/psx_capture.lua`). A boot that exits non-zero, writes no capture
 or outlasts `PSX_BOOT_TIMEOUT` seconds (default 120) fails naming its input.
-Any later PSX binary boots the same way.
+Any later PSX binary boots the same way; the until-exit mode for programs
+that leave the emulator themselves is in `docs/psx-game.md`.
 
 ## Checks
 
@@ -139,10 +140,9 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- No target drives the pad, so the mouse mapping (Cross, D-pad, Circle) is not
-  checked by anything.
-- Scripted pad input is proven on the game's pad probe (`make psx-pad-check`,
-  `tools/psx_pad_play.lua`), not on psx-hello.
+- No target drives psx-hello's pad, so its mouse mapping (Cross, D-pad,
+  Circle) is not checked by anything. Scripted pad input itself is proven on
+  the game's pad probe: see `docs/psx-game.md`.
 
 Playing `psx-hello` in a windowed emulator is a human's job; agents never open
 a window.

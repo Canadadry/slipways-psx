@@ -39,6 +39,7 @@ src/cmd/embed_replay.c | entry point of embed_replay, which writes a recording a
 src/devtools/embedded_replay.h | declarations of the source embed_replay writes, linked by the replay tools
 src/cmd/psx_replay.c | entry point of the PSX replay, PSX only
 src/cmd/psx_pad_probe.c | entry point of the PSX pad probe, PSX only
+src/cmd/format_self_test.c | entry point of format_self_test, which prints the PC side of the PSX format self-test, host tool
 src/devtools/format_self_test.c | printf self-test of the PSX replay, compared with the PC's
 src/devtools/format_self_test.h | printf self-test of the PSX replay, header of devtools/format_self_test.c
 src/platform/assert_psx.c | PSX assert handler, PSX only
