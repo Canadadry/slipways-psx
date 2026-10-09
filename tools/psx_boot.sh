@@ -8,7 +8,7 @@
 # --until-exit adds -testmode and writes no capture: the program's own exit
 # code is the result (0 passes, anything else fails naming it), and <frames>
 # is a vsync ceiling; reaching it or the timeout fails naming the input and
-# the last "psx-replay:" or "psx-pad:" line of the TTY.
+# the last "psx-replay:", "psx-pad:" or "psx-game:" line of the TTY.
 # --pad-script plays that pad script on port 1 (tools/psx_pad_play.lua,
 # format in tools/psx_pad_compare.sh); a bad script fails naming its line.
 # --capture-script drives the GPU replay's frame-locked captures
@@ -115,7 +115,7 @@ status=0
 ) || status=$?
 
 if [ -n "$until_exit" ]; then
-    progress=$(tr -d '\r' < "$prefix.tty.txt" | grep -E '^psx-(replay|pad): ' | tail -n 1)
+    progress=$(tr -d '\r' < "$prefix.tty.txt" | grep -E '^psx-(replay|pad|game): ' | tail -n 1)
     last="last progress line: ${progress:-(none)}"
     if [ "$status" -eq 124 ]; then
         fail "$label: timed out after ${PSX_BOOT_TIMEOUT:-120} s before exiting; $last (see $prefix.log)"

@@ -1,8 +1,8 @@
 -- Loaded by tools/psx_until_exit.lua when PSX_PAD_SCRIPT is set. Plays the
 -- pad script (format in tools/psx_pad_compare.sh) on port 1 through the pad
--- overrides, offsets counted from the vsync on which the probe's handshake
+-- overrides, offsets counted from the vsync on which the program's handshake
 -- word appears in the last scratchpad word. END_DELAY vsyncs after the last
--- step it writes the end word just below it, telling the probe the script is
+-- step it writes the end word just below it, telling the program the script is
 -- over. Raises an error naming the line on a bad script.
 
 local HANDSHAKE_OFFSET = 0x3fc

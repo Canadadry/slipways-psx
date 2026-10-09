@@ -8,21 +8,23 @@ project(
 	slipways-psx
 	LANGUAGES    C
 	VERSION      0.1.0
-	DESCRIPTION  "Slipways PSX port -- core replays and pad probe"
+	DESCRIPTION  "Slipways PSX port -- the game, core replays and pad probe"
 	HOMEPAGE_URL "https://github.com/canadadry/slipways-love"
 )
 
-foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX_PAD_PROBE_SOURCES)
+foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX_PAD_PROBE_SOURCES PSX_GAME_SOURCES)
 	if(NOT DEFINED ${_required})
 		message(FATAL_ERROR "${_required} is not set: build through make psx-build")
 	endif()
 endforeach()
 
-foreach(_target psx-replay psx-gpu-replay psx-pad-probe)
+foreach(_target psx-replay psx-gpu-replay psx-pad-probe psx-game)
 	if(_target STREQUAL "psx-replay")
 		set(_sources ${PSX_REPLAY_SOURCES})
 	elseif(_target STREQUAL "psx-gpu-replay")
 		set(_sources ${PSX_GPU_REPLAY_SOURCES})
+	elseif(_target STREQUAL "psx-game")
+		set(_sources ${PSX_GAME_SOURCES})
 	else()
 		set(_sources ${PSX_PAD_PROBE_SOURCES})
 	endif()

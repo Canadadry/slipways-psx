@@ -147,8 +147,9 @@
 #                       two PS-EXEs replaying that recording (default
 #                       tests/e2e/pad_slipway.json, embedded through
 #                       tmp/embed_replay), psx-replay drawing in RAM and
-#                       psx-gpu-replay through the GPU backend, and the pad
-#                       probe, against
+#                       psx-gpu-replay through the GPU backend, the pad
+#                       probe, and psx-game (the game read from the pad),
+#                       against
 #                       PSN00BSDK_DIR, then prints their ELF sizes; never
 #                       boots them; fails pointing at
 #                       psn00bsdk-toolchain-setup when the SDK is missing,
@@ -165,7 +166,20 @@
 #                       tmp/psx/replay, ~45 s); never
 #                       runs a setup, outside the suite
 # make psx-tools-test -> host tests of the PSX check scripts, outside make
-#                       test-all; a prerequisite of psx-check
+#                       test-all; a prerequisite of psx-check and
+#                       psx-game-check
+# make psx-game-check -> runs psx-build, boots the game PS-EXE until it exits
+#                       while tools/psx_pad_play.lua plays PSX_GAME_SCRIPT
+#                       (default psx/game_title_script.txt; ceiling
+#                       PSX_GAME_CEILING vsyncs, timeout PSX_GAME_TIMEOUT s),
+#                       then tools/psx_game_check.sh: game-done,
+#                       game-pad-log (the TTY pad log turned into
+#                       game_events.json by tmp/psx_pad_log), game-pad-states,
+#                       game-state-game-lines (that recording replayed by
+#                       tmp/replay with STATE=), game-title-left (difficulty
+#                       PSX_GAME_DIFFICULTY, default reasonable); outputs in
+#                       tmp/psx/game, ~10 s; never runs a setup, outside the
+#                       suite
 # make psx-check     -> the plan-10 check: runs psx-build, writes the PC state
 #                       and VRAM digests of PSX_EVENTS in one tmp/replay run
 #                       (STATE=, DIGEST=, and CAPTURE_LIST=psx/gpu_captures.txt
@@ -273,7 +287,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -599,6 +613,12 @@ $(TMP_DIR)/test_psx_capture_check: $(call objs,tests/test_psx_capture_check.c) t
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_capture_protocol: $(call objs,tests/test_psx_capture_protocol.c) tools/psx_capture_protocol_check.sh src/platform/psx_capture_protocol.h tools/psx_capture_frames.lua | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_pad_protocol: $(call objs,tests/test_psx_pad_protocol.c) tools/psx_pad_protocol_check.sh src/platform/psx_pad_protocol.h tools/psx_pad_play.lua | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_game_check: $(call objs,tests/test_psx_game_check.c) tools/psx_game_check.sh tools/psx_state_compare.sh $(TMP_DIR)/psx_pad_log $(TMP_DIR)/replay tests/e2e/pad_title.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
@@ -1067,7 +1087,8 @@ UNIT_RUNS_SPECIAL := unit-run-test_zone unit-run-test_allocator unit-run-test_fr
 
 unit: $(UNIT_RUNS)
 
-PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol
+PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
+	test_psx_pad_protocol test_psx_game_check
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
@@ -1388,11 +1409,14 @@ PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform
 	src/platform/format_psx.c src/p8/format.c
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
+PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_text.c \
+	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c \
+	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) src/devtools/state_format.c src/devtools/format_self_test.c \
-	src/devtools/draw_filter.c src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_text.c src/platform/psx_clut_cache.c \
-	src/platform/psx_pattern.c src/platform/psx_pattern_cache.c \
-	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
+	src/devtools/draw_filter.c $(PSX_GPU_BACKEND_SRCS) $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
+PSX_GAME_SRCS := src/cmd/psx_game.c $(CORE_SRCS) src/devtools/state_format.c $(PSX_GPU_BACKEND_SRCS) \
+	src/platform/psx_pad.c src/platform/psx_pad_map.c $(PSX_PLATFORM_SRCS)
 PSX_SIZE = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-size
 PSX_NM = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-nm
 psx_cmake_list = $(subst $(space),;,$(strip $(abspath $(1))))
@@ -1407,9 +1431,11 @@ psx-build: $(TMP_DIR)/embed_replay
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
-		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))'
+		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))' \
+		'-DPSX_GAME_SOURCES=$(call psx_cmake_list,$(PSX_GAME_SRCS))'
 	+cmake --build $(PSX_BUILD_DIR)
-	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-gpu-replay.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf
+	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-gpu-replay.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf \
+		$(PSX_BUILD_DIR)/psx-game.elf
 
 PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
 
@@ -1470,6 +1496,21 @@ psx-pad-check: psx-build
 	PSX_BOOT_TIMEOUT=$(PSX_PAD_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_PAD_SCRIPT) --exe $(PSX_BUILD_DIR)/psx-pad-probe.exe $(PSX_PAD_CEILING) $(PSX_PAD_OUT)/run
 	sh tools/psx_pad_compare.sh $(PSX_PAD_SCRIPT) $(PSX_PAD_OUT)/run.tty.txt
+
+PSX_GAME_SCRIPT ?= psx/game_title_script.txt
+PSX_GAME_DIFFICULTY ?= reasonable
+PSX_GAME_OUT := $(TMP_DIR)/psx/game
+PSX_GAME_CEILING ?= 545
+PSX_GAME_TIMEOUT ?= 10
+
+# The boot's failure is the game-done condition's, not make's: every condition is still printed.
+psx-game-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_log
+	@mkdir -p $(PSX_GAME_OUT)
+	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
+		--pad-script $(PSX_GAME_SCRIPT) --exe $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_CEILING) $(PSX_GAME_OUT)/run 2>&1); \
+		status=$$?; echo "$$boot"; \
+		sh tools/psx_game_check.sh $(PSX_GAME_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
+			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_OUT)
 
 PSX_CHECK_OUT := $(TMP_DIR)/psx/game-check
 PSX_GPU_CEILING ?= 1655
