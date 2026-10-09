@@ -37,6 +37,8 @@
 #define PATH_MAX_CHARS 256
 #define INCLUDE_DEPTH_MAX 4
 #define FOLD_HOLD_FRAMES 16
+/* A jump tap costs one non-aim frame pair; an aim frame counts this much more in the pre-aim search. */
+#define AIM_FRAME_WEIGHT 6
 #define CIRCLE_EFFECT_FRAMES 2
 #define TITLE_ROWS_FRAMES 7
 #define PAN_ROUNDS_MAX 32
@@ -594,6 +596,8 @@ static int pan_to(pad_author_t *author, const script_t *script, int x, int y) {
         for (int f = 0; f < (nx > ny ? nx : ny); f++) {
             if (!emit(author, script, (f < nx ? bx : 0) | (f < ny ? by : 0))) return 0;
         }
+        centre_world_point(&cx, &cy);
+        if (cx == x && cy == y) return 1;
         if (!emit(author, script, 0)) return 0;
     }
     int cx, cy;
@@ -601,15 +605,89 @@ static int pan_to(pad_author_t *author, const script_t *script, int x, int y) {
     return fail(author, script, "pan: the centre stays at %d %d, not %d %d", cx, cy, x, y);
 }
 
+/* The aim frames pan_to spends on one axis. */
+static int pan_cost(int distance) {
+    int frames = 0;
+    while (distance > 0) {
+        int n = pan_frames(distance);
+        frames += n + 1;
+        distance -= pan_distance(n);
+    }
+    return frames;
+}
+
+static int scroll_shift(int value, int low, int high) {
+    return value < low ? value - low : value > high ? value - high : 0;
+}
+
+/* The camera once jump mode's edge scroll has brought e inside the inner rectangle, from camera (cx, cy). */
+static void camera_after_jump(const entity_t *e, int *cx, int *cy) {
+    int wx, wy;
+    pad_jump_world_point(e, &wx, &wy);
+    *cx += scroll_shift(wx - *cx, PAD_JUMP_SCROLL_MARGIN, P8_SCREEN_WIDTH - 1 - PAD_JUMP_SCROLL_MARGIN);
+    *cy += scroll_shift(wy - *cy, PAD_JUMP_SCROLL_MARGIN, P8_SCREEN_HEIGHT - 1 - PAD_JUMP_SCROLL_MARGIN_BOTTOM);
+}
+
+static int pan_cost_to(int x, int y, int cx, int cy) {
+    int px = pan_cost(abs_int(x - cx - P8_SCREEN_WIDTH / 2)), py = pan_cost(abs_int(y - cy - P8_SCREEN_HEIGHT / 2));
+    return px > py ? px : py;
+}
+
+/* From jump mode, one or two jumps whose edge scroll leaves the shortest pan to the point: jump frames are not aim
+ * frames. Writes the objects to jump to, NULL for none. */
+static void best_jumps_before_aim(pad_author_t *author, int x, int y, entity_t **first, entity_t **second) {
+    enum { CANDIDATES_MAX = 128 };
+    static int length_from[CANDIDATES_MAX];
+    entity_t *hovered = pad_nav_hovered(nav_of(author));
+    int cx, cy;
+    camera_point(&cx, &cy);
+    int best_cost = AIM_FRAME_WEIGHT * pan_cost_to(x, y, cx, cy);
+    *first = NULL;
+    *second = NULL;
+    if (hovered == NULL) return;
+    entity_list_t candidates = live_candidates();
+    int n = candidates.count < CANDIDATES_MAX ? candidates.count : CANDIDATES_MAX;
+    int directions[PATH_STEPS_MAX];
+    for (int i = 0; i < n; i++) {
+        entity_t *a = candidates.items[i];
+        length_from[i] = name_of(a)[0] == '-' ? -1 : pick_path(hovered, a, &candidates, directions);
+        if (length_from[i] <= 0) continue;
+        int ax = cx, ay = cy;
+        camera_after_jump(a, &ax, &ay);
+        int cost = AIM_FRAME_WEIGHT * pan_cost_to(x, y, ax, ay) + length_from[i];
+        if (cost < best_cost) {
+            best_cost = cost;
+            *first = a;
+            *second = NULL;
+        }
+        for (int j = 0; j < n; j++) {
+            entity_t *b = candidates.items[j];
+            if (j == i || name_of(b)[0] == '-') continue;
+            int bx = ax, by = ay;
+            camera_after_jump(b, &bx, &by);
+            int lower = AIM_FRAME_WEIGHT * pan_cost_to(x, y, bx, by) + length_from[i] + 1;
+            if (lower >= best_cost) continue;
+            int length = pick_path(a, b, &candidates, directions);
+            if (length <= 0 || lower - 1 + length >= best_cost) continue;
+            best_cost = lower - 1 + length;
+            *first = a;
+            *second = b;
+        }
+    }
+}
+
 static int enter_aim(pad_author_t *author, const script_t *script, int x, int y, int has_point) {
     if (current_mode(author) == PAD_AUTHOR_MODE_AIM) return 1;
     if (!require_map(author, script, "aim")) return 0;
-    entity_t *nearest = has_point ? nearest_candidate(x, y) : NULL;
-    if (nearest != NULL && nearest != pad_nav_hovered(nav_of(author))) {
-        const char *id = planet_is_family(nearest) ? planet_id_or_null((const planet_t *)nearest) : NULL;
-        if (id != NULL && !run_jump(author, script, id)) return 0;
+    entity_t *jumps[2] = {NULL, NULL};
+    if (has_point) best_jumps_before_aim(author, x, y, &jumps[0], &jumps[1]);
+    char ids[2][LINE_MAX_CHARS];
+    for (int k = 0; k < 2; k++) snprintf(ids[k], sizeof ids[k], "%s", jumps[k] != NULL ? name_of(jumps[k]) : "");
+    for (int k = 0; k < 2; k++) {
+        if (jumps[k] != NULL && !run_jump(author, script, ids[k])) return 0;
     }
-    if (!tap(author, script, P8_PAD_SQUARE)) return 0;
+    /* No release frame of its own: the pan's first frame lets □ go. */
+    if (!emit(author, script, P8_PAD_SQUARE)) return 0;
     if (current_mode(author) != PAD_AUTHOR_MODE_AIM) return fail(author, script, "square: no aim mode");
     return 1;
 }
@@ -623,9 +701,12 @@ static int leave_aim(pad_author_t *author, const script_t *script) {
 static int run_probe(pad_author_t *author, const script_t *script, int x, int y) {
     if (!enter_aim(author, script, x, y, 1) || !pan_to(author, script, x, y)) return 0;
     int probes = count_of(entities_by_tag(TAG_PROBE));
-    if (!tap(author, script, P8_PAD_CROSS) || !emit_repeated(author, script, 0, PROBE_REFUSAL_FRAMES)) return 0;
+    if (!tap(author, script, P8_PAD_CROSS) || !leave_aim(author, script) ||
+        !emit_repeated(author, script, 0, PROBE_REFUSAL_FRAMES)) {
+        return 0;
+    }
     if (count_of(entities_by_tag(TAG_PROBE)) <= probes) return fail(author, script, "probe: refused at %d %d", x, y);
-    return leave_aim(author, script);
+    return 1;
 }
 
 static int run_fold(pad_author_t *author, const script_t *script, int x, int y, int has_point) {
@@ -633,9 +714,13 @@ static int run_fold(pad_author_t *author, const script_t *script, int x, int y, 
     if (has_point && !pan_to(author, script, x, y)) return 0;
     if (count_of(entities_by_tag(TAG_PROBE)) == 0) return fail(author, script, "fold: no probe yet");
     p8_fixed_t credits = main_economy_typed()->credits;
-    if (!emit_repeated(author, script, P8_PAD_CROSS, FOLD_HOLD_FRAMES) || !emit(author, script, 0)) return 0;
+    /* × let go and ○ on one frame: the fold drops, and ○ leaves aim mode, the × no longer engaged. */
+    if (!emit_repeated(author, script, P8_PAD_CROSS, FOLD_HOLD_FRAMES) || !emit(author, script, P8_PAD_CIRCLE) ||
+        !emit(author, script, 0)) {
+        return 0;
+    }
     if (main_economy_typed()->credits >= credits) return fail(author, script, "fold: not confirmed, nothing charged");
-    return leave_aim(author, script);
+    return current_mode(author) == PAD_AUTHOR_MODE_AIM ? leave_aim(author, script) : 1;
 }
 
 static int has_focus(pad_author_t *author, const void *context) {

@@ -15,7 +15,7 @@
  *
  * --try <file>: after the run, each line of <file> (commands separated by `;`)
  * runs in its own fork from the run's last frame, writes its state to
- * tmp/pad-author/<name>.try<k>.txt and prints `try <k> ok <frames> science/year <n>` or
+ * tmp/pad-author/<name>.try<k>.txt and prints `try <k> ok <frames> science/year <n> aim <aim frames>` or
  * `try <k> failed <error>`; nothing it does reaches <events.json>. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -173,7 +173,8 @@ static int run_trials(const char *try_path, const char *name) {
             snprintf(path, sizeof path, "%s/%s.try%d.eco.txt", WORK_DIR, name, k);
             write_economy(path);
             if (ok) {
-                printf("try %d ok %d science/year %d\n", k, author.frame_count, science_per_year());
+                printf("try %d ok %d science/year %d aim %d\n", k, author.frame_count, science_per_year(),
+                       author.mode_frames[PAD_AUTHOR_MODE_AIM]);
             } else {
                 printf("try %d failed %s\n", k, author.error);
             }
