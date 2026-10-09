@@ -1453,7 +1453,15 @@ static void open_build_bar(input_step_t *step) {
     assert(pad_nav_build_bar_open(&step->pad_nav));
 }
 
+/* end turn is reached through the bar, so the route holds whether R1 from the map gives build or tech. */
 static void go_to_tab(input_step_t *step, pad_nav_tab_t tab) {
+    if (tab == PAD_NAV_TAB_END_TURN && pad_nav_tab(&step->pad_nav) != tab) {
+        if (!pad_nav_build_bar_open(&step->pad_nav)) {
+            tap(step, P8_PAD_L1);
+        }
+        tap(step, P8_PAD_R1);
+        assert(pad_nav_tab(&step->pad_nav) == tab);
+    }
     for (int i = 0; i < 5 && pad_nav_tab(&step->pad_nav) != tab; i++) {
         tap(step, P8_PAD_R1);
     }
@@ -2150,6 +2158,33 @@ static void test_r1_on_score_hides_it_and_returns_to_the_map(void) {
     assert(pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP && !score_panel_shown());
     run_frame(&step, 0);
     assert(backdrop() == NULL && pad_nav_tab(&step.pad_nav) == PAD_NAV_TAB_MAP);
+}
+
+static void test_tech_and_score_read_open_from_the_tab_change_frame_and_closed_without_a_game(void) {
+    input_step_t step;
+    start_game(&step);
+    assert(!pad_nav_tech_open(&step.pad_nav) && !pad_nav_score_open(&step.pad_nav));
+    go_to_tab(&step, PAD_NAV_TAB_END_TURN);
+    run_frame(&step, P8_PAD_R1);
+    assert(pad_nav_tech_open(&step.pad_nav) && !pad_nav_score_open(&step.pad_nav));
+    run_frame(&step, 0);
+    assert(pad_nav_tech_open(&step.pad_nav) && main_ui()->ephemerals.count > 0);
+    run_frame(&step, P8_PAD_R1);
+    assert(!pad_nav_tech_open(&step.pad_nav) && pad_nav_score_open(&step.pad_nav));
+    run_frame(&step, 0);
+    assert(pad_nav_score_open(&step.pad_nav) && score_panel_shown());
+    run_frame(&step, P8_PAD_R1);
+    assert(!pad_nav_tech_open(&step.pad_nav) && !pad_nav_score_open(&step.pad_nav));
+    run_frame(&step, 0);
+    if (in_forked_copy()) {
+        go_to_tab(&step, PAD_NAV_TAB_TECH);
+        cart_init();
+        assert(main_economy_typed() == NULL && !pad_nav_tech_open(&step.pad_nav));
+        end_forked_copy();
+    }
+    open_score_from_the_map(&step);
+    cart_init();
+    assert(main_economy_typed() == NULL && !pad_nav_score_open(&step.pad_nav));
 }
 
 static void test_a_tab_whose_button_is_gone_returns_to_the_map(void) {
@@ -5800,6 +5835,7 @@ int main(void) {
     in_fresh_child(test_landing_on_score_shows_its_panel_and_cross_presses_nothing);
     in_fresh_child(test_r1_on_tech_closes_the_box_and_shows_score_on_the_same_frame);
     in_fresh_child(test_r1_on_score_hides_it_and_returns_to_the_map);
+    in_fresh_child(test_tech_and_score_read_open_from_the_tab_change_frame_and_closed_without_a_game);
     in_fresh_child(test_a_tab_whose_button_is_gone_returns_to_the_map);
     in_fresh_child(test_triangle_on_the_release_frame_of_leaving_score_does_nothing);
     in_fresh_child(test_circle_leaving_score_is_back_in_aim_mode_before_the_next_frame);

@@ -141,6 +141,14 @@ int pad_nav_build_bar_open(const pad_nav_t *nav) {
     return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD;
 }
 
+int pad_nav_tech_open(const pad_nav_t *nav) {
+    return pad_nav_tab(nav) == PAD_NAV_TAB_TECH;
+}
+
+int pad_nav_score_open(const pad_nav_t *nav) {
+    return pad_nav_tab(nav) == PAD_NAV_TAB_SCORE;
+}
+
 entity_t *pad_nav_build_icon(const pad_nav_t *nav) {
     return pad_nav_tab(nav) == PAD_NAV_TAB_BUILD ? pad_build_icon(&nav->build) : NULL;
 }

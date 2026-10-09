@@ -40,9 +40,9 @@ same pixel for pixel, and before it only the year-skip button (lit on
   on f86), "5 years remain" x0-14.
 - f88-93: Right held 6 frames: camera world 176 196 -> 182 196 (f93),
   the map's grid drawn 3 px left on f101. The box is not in the way.
-- f96: R1: `build` (f96-97, HUD buttons hidden by the tooltip, the
+- f96: L1: the bar (f96-97, HUD buttons hidden by the tooltip, the
   colour-2 line still drawn below it, x7-61 on f96). f98: L1 closes the
-  build tab: `map`,
+  bar: `map`,
   the crosshair back at the centre, the HUD buttons 13. `make state` at
   f95, f97 and f99: message_box 1, modal_backdrop 0, camera 182 196:
   the box blocks no tab switch and no pan.

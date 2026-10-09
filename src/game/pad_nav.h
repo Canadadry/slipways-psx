@@ -101,6 +101,12 @@ entity_t *pad_nav_slipway_target(const pad_nav_t *nav);
 /* 1 while a game runs and the build bar is open; 0 with no game. */
 int pad_nav_build_bar_open(const pad_nav_t *nav);
 
+/* 1 while a game runs, from the frame the tech tab is entered, whether its landing is due or its panel drawn; 0 with no game. */
+int pad_nav_tech_open(const pad_nav_t *nav);
+
+/* 1 while a game runs, from the frame the score tab is entered, whether its landing is due or its panel drawn; 0 with no game. */
+int pad_nav_score_open(const pad_nav_t *nav);
+
 /* The focused structure icon on the build tab; NULL on every other tab or once it is no longer a revealed icon. */
 entity_t *pad_nav_build_icon(const pad_nav_t *nav);
 

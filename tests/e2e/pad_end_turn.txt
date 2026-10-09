@@ -19,13 +19,13 @@ the clock from `make state` of the file cut after that frame.
   the centre (x78-82 on y=60, y58-62 on x=80, the centre pixel
   undrawn), the three HUD buttons in colour 13. Pad mode draws no
   cursor sprite on any frame.
-- f16: R1: `build`. f16-17: nothing lit, no crosshair, the cursor on
+- f16: L1: the bar. f16-17: nothing lit, no crosshair, the cursor on
   the basic structure's icon, its tooltip shown: the
   tooltip box over the top of the screen (text y3-40) hides the HUD
   buttons (colour 1 at the three fill pixels), its cost in colour 8 at
   x149-158, y108-112.
-- f18: R1: `end turn`. From f18 the year-skip button is colour 12, the
-  other two 13, and the cursor point sits on it.
+- f18: R1 on the bar: `end turn`. From f18 the year-skip button is
+  colour 12, the other two 13, and the cursor point sits on it.
   f18-20: year 3401, research 0.
 - f21-40: X held 20 frames: year 3402 on f21, research 1, $100 (income
   0), and still 3402 at f40 and f41: one press, one year. This is the
