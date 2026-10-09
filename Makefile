@@ -503,13 +503,16 @@ $(TMP_DIR)/test_capture_compare: $(call objs,tests/test_capture_compare.c src/de
 $(TMP_DIR)/test_psx_colour: $(call objs,tests/test_psx_colour.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_psx_gpu_textures: $(call objs,tests/test_psx_gpu_textures.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
+$(TMP_DIR)/test_psx_gpu_textures: $(call objs,tests/test_psx_gpu_textures.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/gfx_software.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_psx_clut_cache: $(call objs,tests/test_psx_clut_cache.c src/platform/psx_clut_cache.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
+$(TMP_DIR)/test_psx_clut_cache: $(call objs,tests/test_psx_clut_cache.c src/platform/psx_clut_cache.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/gfx_software.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_sprite: $(call objs,tests/test_psx_sprite.c src/platform/psx_sprite.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_text: $(call objs,tests/test_psx_text.c src/platform/psx_text.c src/platform/psx_sprite.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_mouse_recording_refused.json $(wildcard tests/fixtures/events_pad_*.json) | $(TMP_DIR)
@@ -1031,7 +1034,8 @@ UNIT_TESTS := \
     test_pad_nav \
     test_psx_gpu_textures \
     test_psx_clut_cache \
-    test_psx_sprite
+    test_psx_sprite \
+    test_psx_text
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
@@ -1362,7 +1366,7 @@ PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) src/devtools/state_format.c src/devtools/format_self_test.c \
-	src/devtools/draw_filter.c src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_clut_cache.c \
+	src/devtools/draw_filter.c src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_text.c src/platform/psx_clut_cache.c \
 	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
 PSX_SIZE = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-size

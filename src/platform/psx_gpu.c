@@ -6,7 +6,9 @@
 #include "p8/palette.h"
 #include "p8/sprite_sheet.h"
 #include "platform/psx_clut_cache.h"
+#include "platform/psx_gpu_textures.h"
 #include "platform/psx_sprite.h"
+#include "platform/psx_text.h"
 #include "platform/psx_tiles.h"
 #include "platform/psx_vram_layout.h"
 
@@ -87,6 +89,28 @@ static void upload_sprite_sheet(void) {
     }
 }
 
+static void load_and_wait(psx_vram_rect_t region, const void *pixels) {
+    RECT rect = { (int16_t)region.x, (int16_t)region.y, (int16_t)region.w, (int16_t)region.h };
+    assert(((uintptr_t)pixels & 3) == 0 && "LoadImage's DMA reads whole words");
+    LoadImage(&rect, (const uint32_t *)pixels);
+    DrawSync(0);
+}
+
+static void upload_font(void) {
+    static uint16_t texture[PSX_GPU_TEXTURES_FONT_UNITS];
+    static uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES];
+    psx_vram_rect_t font = psx_vram_layout_region(PSX_VRAM_FONT);
+    if (font.w * 4 != PSX_GPU_TEXTURES_FONT_SIZE || font.h != PSX_GPU_TEXTURES_FONT_SIZE) {
+        p8_fatal("psx_gpu: the font region does not hold the font texture");
+    }
+    psx_gpu_textures_font(texture);
+    load_and_wait(font, texture);
+    for (int colour = 0; colour < PSX_VRAM_FONT_COLOURS; colour++) {
+        psx_gpu_textures_font_clut(colour, clut);
+        load_and_wait(psx_vram_layout_font_clut(colour), clut);
+    }
+}
+
 void psx_gpu_init(void) {
     psx_vram_rect_t sheet = psx_vram_layout_region(PSX_VRAM_SPRITE_SHEET);
     if (sheet.w * sheet.h * 2 != P8_SPRITE_SHEET_PACKED_SIZE || sheet.h % SHEET_UPLOAD_LINES != 0) {
@@ -98,6 +122,7 @@ void psx_gpu_init(void) {
         SetDefDispEnv(&displays[i], display.x, display.y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     }
     upload_sprite_sheet();
+    upload_font();
     current = 0;
     PutDispEnv(&displays[1]);
     SetDispMask(1);
@@ -196,6 +221,18 @@ static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int c
     }
 }
 
+static void add_textured_sprite(psx_sprite_t sprite, psx_vram_rect_t texture, psx_vram_rect_t clut) {
+    psx_vram_rect_t page = psx_vram_layout_texture_page();
+    SPRT *primitive = packet(sizeof *primitive);
+    setSprt(primitive);
+    setShadeTex(primitive, 1);
+    setRGB0(primitive, 128, 128, 128);
+    setXY0(primitive, sprite.x, sprite.y);
+    setUV0(primitive, (texture.x - page.x) * 4 + sprite.u, texture.y - page.y + sprite.v);
+    setWH(primitive, sprite.w, sprite.h);
+    primitive->clut = getClut(clut.x, clut.y);
+}
+
 static int clut_slot(const unsigned char draw_palette[PSX_GPU_TEXTURES_CLUT_ENTRIES]) {
     int slot = psx_clut_cache_slot(&clut_caches[current], draw_palette);
     if (slot < 0) {
@@ -213,21 +250,18 @@ static void gpu_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int 
         return;
     }
     psx_vram_rect_t clut = psx_vram_layout_palette_clut(clut_slot(mem->draw_palette));
-    psx_vram_rect_t sheet = psx_vram_layout_region(PSX_VRAM_SPRITE_SHEET);
-    psx_vram_rect_t page = psx_vram_layout_texture_page();
-    SPRT *primitive = packet(sizeof *primitive);
-    setSprt(primitive);
-    setShadeTex(primitive, 1);
-    setRGB0(primitive, 128, 128, 128);
-    setXY0(primitive, sprite.x, sprite.y);
-    setUV0(primitive, (sheet.x - page.x) * 4 + sprite.u, sheet.y - page.y + sprite.v);
-    setWH(primitive, sprite.w, sprite.h);
-    primitive->clut = getClut(clut.x, clut.y);
+    add_textured_sprite(sprite, psx_vram_layout_region(PSX_VRAM_SPRITE_SHEET), clut);
 }
 
-/* TODO step 4: one SPRT per lit glyph from the font texture. */
+static void add_glyph(psx_sprite_t glyph, void *context) {
+    const psx_vram_rect_t *clut = context;
+    add_textured_sprite(glyph, psx_vram_layout_region(PSX_VRAM_FONT), *clut);
+}
+
 static void gpu_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
-    (void)gfx, (void)mem, (void)str, (void)x, (void)y, (void)col;
+    (void)mem;
+    psx_vram_rect_t clut = psx_vram_layout_font_clut(col & 0x0F);
+    psx_text_place(gfx, str, x, y, add_glyph, &clut);
 }
 
 static const p8_draw_backend_t GPU_BACKEND = {

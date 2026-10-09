@@ -20,6 +20,11 @@ static int clip_axis(int *start, int *texel, int *size, int limit) {
     return *size > 0;
 }
 
+int psx_sprite_clip(psx_sprite_t *sprite) {
+    return clip_axis(&sprite->x, &sprite->u, &sprite->w, P8_SCREEN_WIDTH)
+        && clip_axis(&sprite->y, &sprite->v, &sprite->h, P8_SCREEN_HEIGHT);
+}
+
 int psx_sprite_place(const p8_graphics_t *gfx, int n, int x, int y, int w, int h, psx_sprite_t *sprite) {
     if (w <= 0 || h <= 0) {
         return 0;
@@ -28,8 +33,7 @@ int psx_sprite_place(const p8_graphics_t *gfx, int n, int x, int y, int w, int h
         x - gfx->camera_x, y - gfx->camera_y, (n % SHEET_COLUMNS) * P8_SPRITE_SIZE, (n / SHEET_COLUMNS) * P8_SPRITE_SIZE,
         w * P8_SPRITE_SIZE, h * P8_SPRITE_SIZE,
     };
-    if (!clip_axis(&placed.x, &placed.u, &placed.w, P8_SCREEN_WIDTH)
-        || !clip_axis(&placed.y, &placed.v, &placed.h, P8_SCREEN_HEIGHT)) {
+    if (!psx_sprite_clip(&placed)) {
         return 0;
     }
     assert(n >= 0 && placed.u + placed.w <= P8_SPRITE_SHEET_WIDTH && placed.v + placed.h <= P8_SPRITE_SHEET_HEIGHT

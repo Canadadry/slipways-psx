@@ -64,8 +64,10 @@ src/platform/psx_tiles.c | pset, rect, rectfill, circ and circfill as clipped GP
 src/platform/psx_tiles.h | pset, rect, rectfill, circ and circfill as clipped GPU tiles and line as a GPU segment, header of platform/psx_tiles.c
 src/platform/psx_sprite.c | spr as a clipped GPU sprite, PSX build and its host test
 src/platform/psx_sprite.h | spr as a clipped GPU sprite, header of platform/psx_sprite.c
-src/platform/psx_gpu_textures.c | CLUTs built for the PSX GPU backend, PSX build and its host test
-src/platform/psx_gpu_textures.h | CLUTs built for the PSX GPU backend, header of platform/psx_gpu_textures.c
+src/platform/psx_text.c | print as clipped GPU glyph sprites, PSX build and its host test
+src/platform/psx_text.h | print as clipped GPU glyph sprites, header of platform/psx_text.c
+src/platform/psx_gpu_textures.c | CLUTs and the font texture built for the PSX GPU backend, PSX build and its host test
+src/platform/psx_gpu_textures.h | CLUTs and the font texture built for the PSX GPU backend, header of platform/psx_gpu_textures.c
 src/platform/psx_clut_cache.c | per-frame spr CLUT cache of the PSX GPU backend, PSX build and its host test
 src/platform/psx_clut_cache.h | per-frame spr CLUT cache of the PSX GPU backend, header of platform/psx_clut_cache.c
 src/devtools/draw_filter.c | family filter of the GPU captures, shared by the PC replay and the PSX GPU replay

@@ -4,7 +4,7 @@
 #include "p8/draw_backend.h"
 
 /* After ResetGraph: sets up the NTSC 320x240 display and the VRAM layout of
- * platform/psx_vram_layout.h, and uploads the packed sprite sheet. */
+ * platform/psx_vram_layout.h, and uploads the packed sprite sheet, the font texture and its CLUTs. */
 void psx_gpu_init(void);
 
 /* Static table, never freed. Draws into the frame begun by psx_gpu_frame_begin. */

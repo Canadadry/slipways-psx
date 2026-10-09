@@ -48,7 +48,8 @@ No asset is read from a file, on PC or PSX. The sprite sheet is
 4-bit texture layout), regenerated from `pico8/gfx.json` by `make sprite-sheet`;
 `p8_sprite_sheet_load` unpacks it into `p8_vram_t.sprite_sheet`. The map has no
 data: `background.c` builds it at runtime with `p8_mset`. The font is the
-`static const` glyph tables of `src/p8/gfx.c`. No JSON loader
+`static const` glyph tables of `src/p8/gfx_software.c`, read by both
+backends through `p8_font_glyph_rows`. No JSON loader
 (`src/p8/assets.c`, `src/devtools/input_json.c`) is in `CORE_SRCS`, and
 `psx-check`'s `no-json` checks the ELF for it.
 
@@ -101,7 +102,7 @@ PC game, the e2e and every test.
 
 **`fillp`, `palt` and the draw palette on the GPU: per-texture CLUT and
 pattern textures, no software fallback** (decided; step 4 implements it,
-`spr` done).
+`spr` and `print` done).
 
 - `spr` reads its texture through a CLUT built from `mem->draw_palette` at
   the call: entry `c` is 0x0000 (transparent) when bit 0x80 is set, else the
@@ -185,7 +186,16 @@ point, no `malloc`):
   with `LoadImage` after the previous frame's `DrawSync` and before this
   frame's `DrawOTag`, so no line changes while a frame reads it; more than
   `GPU_CLUT_SLOTS` distinct palettes in a frame is a `p8_fatal` naming the
-  frame; a patterned `rectfill` or `circfill` and `print` draw nothing yet;
+  frame; `print` is one `SPRT` per glyph with a lit texel that shows, walked
+  as the software walks the string, after the camera and clipped to the
+  screen (`src/platform/psx_text.c`, host-tested pixel for pixel by
+  `test_psx_text`), from the font texture `psx_gpu_init` uploads once: the
+  256 character codes' glyphs from `p8_font_glyph_rows`, each in a 4x6 cell
+  (texel 1 lit), and the 16 font CLUTs (entry 1 the colour, every other
+  entry transparent), built by `psx_gpu_textures_font` and
+  `psx_gpu_textures_font_clut` (host-tested by `test_psx_gpu_textures`);
+  the CLUT is the font line of `col & 0x0F`; a patterned `rectfill` or
+  `circfill` draws nothing yet;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -359,9 +369,8 @@ None of these targets is in `make test-all`, and none runs a setup.
 ## Still to do
 
 - Step 4 of plan 10: the GPU families, one at a time, each with its capture
-  line in `psx/gpu_captures.txt`: `print` (with the font texture
-  and its 16 CLUTs), the fill patterns of `rectfill` and `circfill` (with the
-  pattern slots), then the `all` captures.
+  line in `psx/gpu_captures.txt`: the fill patterns of `rectfill` and
+  `circfill` (with the pattern slots), then the `all` captures.
 
 - Pending human acceptance (review the report line and
   `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` after `make
@@ -385,6 +394,9 @@ None of these targets is in `make test-all`, and none runs a setup.
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
     background map and the planet sprites, 1,134 lit pixels in 14 colours,
     under 4 distinct draw palettes (the meter's count at that frame).
+  - `print` f299: `print f299 mask cls,print calls 72 differ 0 (0.0‰) near1
+    0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: "-too
+    far-", the HUD figures and labels, 220 lit pixels in 4 colours.
   - `rect` f322: `rect f322 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `circ` f394: `circ f394 mask cls,circ calls 2 differ 0 (0.0‰) near1 0

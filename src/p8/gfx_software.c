@@ -234,7 +234,7 @@ static const unsigned char FONT_ROWS_COLON[P8_FONT_GLYPH_HEIGHT] = {0, 2, 0, 2, 
 static const unsigned char FONT_ROWS_EQUALS[P8_FONT_GLYPH_HEIGHT] = {0, 7, 0, 7, 0};
 static const unsigned char FONT_ROWS_QUESTION[P8_FONT_GLYPH_HEIGHT] = {6, 1, 2, 0, 2};
 
-static const unsigned char *font_glyph_rows(char character) {
+const unsigned char *p8_font_glyph_rows(char character) {
     switch (character) {
         case ' ': return FONT_ROWS_SPACE;
         case '0': return FONT_ROWS_0;
@@ -294,7 +294,7 @@ static const unsigned char *font_glyph_rows(char character) {
 static void software_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
     int cx = x;
     for (const char *p = str; *p != '\0'; p++) {
-        const unsigned char *rows = font_glyph_rows(*p);
+        const unsigned char *rows = p8_font_glyph_rows(*p);
         for (int row = 0; row < P8_FONT_GLYPH_HEIGHT; row++) {
             for (int gx = 0; gx < P8_FONT_GLYPH_WIDTH; gx++) {
                 int bit_index = P8_FONT_GLYPH_WIDTH - 1 - gx;
