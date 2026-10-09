@@ -36,6 +36,7 @@ typedef struct {
     int cross_armed;
     int pause_due;
     int pause_cross_armed;
+    int menu_cross_armed;
     pad_nav_map_mode_t map_mode;
     entity_id_t selection;
     entity_id_t selected_slipway;
@@ -78,6 +79,11 @@ entity_t *pad_nav_hovered(const pad_nav_t *nav);
 
 /* The slipway's start while the map mode is slipway; NULL in any other mode or once the start is dead. */
 entity_t *pad_nav_slipway_start(const pad_nav_t *nav);
+
+/* The last object × acted on in this game (a known planet whose menu it opened, a slipway's start or built target),
+ * whatever the map mode; NULL with no game, when nothing was recorded, or once it is no longer a
+ * pad_target_is_candidate. */
+entity_t *pad_nav_last_acted(const pad_nav_t *nav);
 
 /* The aimed target while the map mode is slipway; NULL while aimed at the start, in any other mode, or once the
  * target is no longer a pad_target_is_candidate. */

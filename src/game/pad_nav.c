@@ -28,6 +28,10 @@ pad_nav_tab_t pad_nav_tab(const pad_nav_t *nav) {
     return main_economy_typed() != NULL ? nav->tab : PAD_NAV_TAB_MAP;
 }
 
+entity_t *pad_nav_last_acted(const pad_nav_t *nav) {
+    return main_economy_typed() != NULL ? pad_back_target(&nav->back, NULL) : NULL;
+}
+
 int pad_nav_aim_mode(const pad_nav_t *nav) {
     return main_economy_typed() != NULL && nav->tab == PAD_NAV_TAB_MAP && !pad_nav_panel_open() &&
            nav->map_mode == PAD_NAV_MAP_AIM;
@@ -240,6 +244,7 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->release_pending = 0;
     nav->pause_due = 0;
     nav->pause_cross_armed = 0;
+    nav->menu_cross_armed = 0;
     nav->previous_pad = 0;
     nav->chord_held = 0;
     nav->left_was_down = 0;
@@ -253,11 +258,21 @@ entity_t *pad_nav_focus(const pad_nav_t *nav) {
     return pad_nav_is_item(focus) ? focus : NULL;
 }
 
-/* A × held into pause presses no row until pressed again: pad_panel_step holds the left button while × is held. */
+static int planet_menu_open(const pad_nav_t *nav) {
+    return nav->tab == PAD_NAV_TAB_MAP && pad_panel_box_open() && !pause_menu_shown();
+}
+
+/* A × held into pause, or held from the click that opened a planet menu, presses no row until pressed again:
+ * pad_panel_step holds the left button while × is held. */
 static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, p8_input_frame_t *played) {
     if (pause_menu_shown()) {
         nav->pause_cross_armed |= (pressed & P8_PAD_CROSS) != 0;
         if (!nav->pause_cross_armed) {
+            pad_buttons &= ~P8_PAD_CROSS;
+        }
+    } else if (planet_menu_open(nav)) {
+        nav->menu_cross_armed |= (pressed & P8_PAD_CROSS) != 0;
+        if (!nav->menu_cross_armed) {
             pad_buttons &= ~P8_PAD_CROSS;
         }
     }
@@ -499,10 +514,6 @@ static int own_panel_up(const pad_nav_t *nav) {
 
 static int foreign_panel_open(const pad_nav_t *nav) {
     return pad_nav_panel_open() && !own_panel_up(nav);
-}
-
-static int planet_menu_open(const pad_nav_t *nav) {
-    return nav->tab == PAD_NAV_TAB_MAP && pad_panel_box_open() && !pause_menu_shown();
 }
 
 /* A slipway released on this frame is judged on the next: tabs and pause wait for it. */
@@ -758,12 +769,14 @@ static int pressable(const entity_t *e) {
     return !pressed_before(e, x, y);
 }
 
-/* Returns whether △ clicked. */
-static int triangle_on_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
+/* △'s click, and ×'s on a known planet: the press opens its menu, which no × held from here presses. Returns whether it
+ * clicked. */
+static int click_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
     if (!pressable(hovered)) {
         return 0;
     }
     click(nav, played);
+    nav->menu_cross_armed = 0;
     return 1;
 }
 
@@ -811,9 +824,16 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         return;
     }
     if (!clicking && (pressed & P8_PAD_TRIANGLE)) {
-        clicking = triangle_on_hovered(nav, hovered, played);
+        clicking = click_hovered(nav, hovered, played);
+    }
+    if (!clicking && (pressed & P8_PAD_CROSS) && hovered->state == ENTITY_STATE_KNOWN) {
+        clicking = click_hovered(nav, hovered, played);
+        if (clicking) {
+            pad_back_record(&nav->back, hovered);
+        }
     }
     if (!clicking && (pressed & P8_PAD_CROSS) && cross_starts_slipway(nav, hovered, played)) {
+        pad_back_record(&nav->back, hovered);
         return;
     }
     if (direction != 0 && !clicking) {
@@ -859,6 +879,9 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
     if (nav->slipway.phase == PAD_SLIPWAY_RELEASED) {
         pad_slipway_outcome_t outcome =
             pad_slipway_outcome(start, entity_get(nav->slipway.target), nav->slipway.linked_before);
+        if (outcome == PAD_SLIPWAY_BUILT) {
+            pad_back_record(&nav->back, entity_get(nav->slipway.target));
+        }
         pad_slipway_rebase(&nav->slipway, outcome);
         start = live(entity_get(nav->slipway.start));
         if (!press_start_again(nav, start, played)) {

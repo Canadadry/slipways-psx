@@ -8,7 +8,7 @@ Jump mode is the map's root, where every game starts: square on f17
 enters aim mode, the camera unmoved. The menus open from jump mode
 (plan 12 step 7: triangle does nothing in aim mode): f116 and f252
 square leave aim mode for jump mode on the planet under the centre, and
-the cheat is typed in jump mode, where X and O do nothing.
+the cheat is typed in jump mode, where its chords' X and O do nothing.
 
 Pad input declared ("input": "pad"). The title takes Down at f10 and X
 on "reasonable" at f16, 4 frames later than pad_title's: the title
@@ -34,10 +34,12 @@ from the capture.
   base 5) ends in a colour-2 price tag at x144-156 whose first digit
   reads 4 (x148-153, y84-88): 5 x 0.85.
 - f124: O closes it, jump mode still on p31. f126: idle (it was O,
-  leaving network mode, before plan 12 step 7). f128-134: X four times. The X taps on p31 open no menu (a colour-8
-  label beside the centre, x96-106, y43-47 at f134) and charge nothing
-  ($97, month 2 up to f141). f136-142: the cheat, four X + O chords one
-  every two frames; f142: $200, research 99.
+  leaving network mode, before plan 12 step 7). f128-135: idle (four X
+  taps on p31 that opened no menu, before plan 12 step 8: X on a known
+  planet now opens its menu); a colour-8 label beside the centre, x96-106,
+  y43-47 at f134, and nothing charged ($97, month 2 up to f141).
+  f136-142: the cheat, four X + O chords one every two frames; f142:
+  $200, research 99.
 - f144-154: R1 x3, Down, X: "space folding" (research 95). f158-168:
   the same: the first row is now "xenofoods" (era 2): research 85.
 - f170: idle (it was square into aim mode before plan 12 step 7).
