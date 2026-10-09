@@ -1,25 +1,28 @@
-# PSX game build: the core replayed on MIPS
+# PSX game build: the core on MIPS
 
 The game's C core builds, unchanged, as a PS-EXE that replays an e2e recording
 inside the headless emulator and prints its `make state` text and VRAM digests
-over TTY, and as a second PS-EXE that replays it through the GPU drawing
-backend. `make psx-check` proves they play the same game as the PC, that the
-software one draws the same pictures, that the GPU one receives the same draw
-calls and fits in RAM, that its frame captures are deterministic and within
-their recorded divergence from the PC, and that scripted pad input reaches a
-PS-EXE. Toolchain, emulator, setups and the plain boot mode are
+over TTY, as a second PS-EXE that replays it through the GPU drawing backend,
+and as the game itself, `psx-game`, driven by the controller. `make psx-check`
+proves the replays play the same game as the PC, that the software one draws
+the same pictures, that the GPU one receives the same draw calls and fits in
+RAM, that its frame captures are deterministic and within their recorded
+divergence from the PC, that scripted pad input reaches a PS-EXE, and that the
+game, driven by a pad script, leaves the title screen and plays what the PC
+plays from the same input. Toolchain, emulator, setups and the plain boot mode are
 in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
 `tools/psx_*.sh` script hold the per-option detail.
 
 ## Build
 
-`make psx-build [EVENTS=<events>]` builds three PS-EXEs in `tmp/psx/build`
+`make psx-build [EVENTS=<events>]` builds four PS-EXEs in `tmp/psx/build`
 (`PSX_BUILD_DIR`), then prints their ELF sizes:
 
 - `psx-replay.{elf,exe}`: the core replaying `EVENTS` (default
   `tests/e2e/pad_slipway.json`), drawing into the RAM framebuffer;
 - `psx-gpu-replay.{elf,exe}`: the same replay drawing through the GPU backend;
-- `psx-pad-probe.{elf,exe}`: the pad probe.
+- `psx-pad-probe.{elf,exe}`: the pad probe;
+- `psx-game.{elf,exe}`: the game read from the pad, the EXE that ships (below).
 
 `psx/CMakeLists.txt` is a PSn00bSDK project. The Makefile hands it the source
 lists, nothing is globbed: `CORE_SRCS` (which holds the memory save storage
@@ -31,7 +34,10 @@ the PSX platform files of `src/platform/` (`psx_exit`, `psx_tty`, `fatal_psx`,
 replay source. The GPU replay swaps the VRAM digest for the GPU backend
 (`src/platform/psx_gpu.c`), the VRAM layout
 (`src/platform/psx_vram_layout.c`) and the draw family filter
-(`src/devtools/draw_filter.c`). A file added to `CORE_SRCS` is in the PSX
+(`src/devtools/draw_filter.c`). The game takes `CORE_SRCS`, the state
+formatter, the GPU backend (`PSX_GPU_BACKEND_SRCS`, shared with the GPU
+replay), `psx_pad` and `psx_pad_map`, and no embedded replay, format self-test,
+family filter or capture code. A file added to `CORE_SRCS` is in the PSX
 build at once.
 
 It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
@@ -230,7 +236,7 @@ adds `-testmode`, so the program's write to the PCSX exit register quits the
 emulator with its code. No capture is written, except the frame-locked ones of
 `--capture-script` (below). `<ceiling>` is a vsync ceiling:
 reaching it, or `PSX_BOOT_TIMEOUT` seconds, fails naming the input and the last
-`psx-replay:` or `psx-pad:` line. Code 0 passes, any other fails naming it.
+`psx-replay:`, `psx-pad:` or `psx-game:` line. Code 0 passes, any other fails naming it.
 Without `--until-exit`, `psx_boot.sh` behaves as `docs/psx-hello-world.md`
 describes.
 
@@ -241,15 +247,76 @@ overrides (`tools/psx_pad_play.lua`, loaded by `tools/psx_until_exit.lua`).
 A line is `<vsync offset> <button>...` or `<vsync offset> -` (nothing held);
 offsets increase, the last step is `-`, blank and `#` lines are skipped.
 Buttons: `SELECT START UP RIGHT DOWN LEFT L2 R2 L1 R1 TRIANGLE CIRCLE CROSS
-SQUARE`. Offsets count from a handshake, not from boot: the probe writes a magic
-word into the last scratchpad word once its pad driver runs, and the Lua polls
-it each vsync. Ten vsyncs after the last step, the Lua writes an end word just
-below it and the probe exits.
+SQUARE`. Offsets count from a handshake, not from boot: the program writes a
+magic word into the last scratchpad word once its pad driver runs, and the Lua
+polls it each vsync. Ten vsyncs after the last step, the Lua writes an end word
+just below it and the program exits. Both words and magics are in
+`src/platform/psx_pad_protocol.h`, shared by the probe and the game;
+`test_psx_pad_protocol` (`make psx-tools-test`) checks the Lua's constants
+equal them. `psx_pad_start` fills the BIOS pad buffers with 0xff ("no pad")
+after starting the driver: until the first poll at the next vsync they hold
+zero, which reads as every button held.
 
 `src/cmd/psx_pad_probe.c` prints `psx-pad: <hex4>` (hardware bit order,
 1 = pressed) each time the pressed buttons change, then `psx-pad: done`.
-`psx/pad_probe_script.txt` is the script of `make psx-check`. The pad driver
-does not feed `pad_buttons` yet: the game itself is not driven by the pad.
+`psx/pad_probe_script.txt` is the probe's script in `make psx-check`.
+
+## Game EXE
+
+`src/cmd/psx_game.c` is the GPU replay's frame (input step, `cart_update60`,
+`cart_draw`, the meter's frame end, `psx_gpu_frame_end` with the metered
+bytes, `psx_gpu_frame_begin`) driven by port 1 instead of a recording, with
+no family filter and no capture handshake. It starts with an erased save
+storage and a one-frame zero input during `cart_load` and `cart_init`, as a
+PC replay of a pad recording without `initial_save`. It runs at most one frame
+a vsync: a frame that starts on the vsync the previous one started on waits
+for the next. The draw meter wraps the GPU backend, so a frame sending more
+bytes than metered is a `p8_fatal`, as in the GPU replay.
+
+**Pad map** (`src/platform/psx_pad_map.c`, pure, host-tested by
+`test_psx_pad_map`). Each frame reads `psx_pad_read_pressed()` once, before
+the input step, and `psx_pad_map_buttons` turns it into `pad_buttons`: each
+controller button named like a `keymap.cfg` button sets that button's
+`P8_PAD_*` bit, so the game reads on PSX what the PC reads through
+`keymap.cfg`. `psx_pad.c` checks the hardware bits against the SDK's `PAD_*`
+at compile time. No `keymap.cfg` is read on PSX.
+
+| hardware bit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| button | SELECT | L3 | R3 | START | UP | RIGHT | DOWN | LEFT | L2 | R2 | L1 | R1 | TRIANGLE | CIRCLE | CROSS | SQUARE |
+| `pad_buttons` | - | - | - | `START` | `UP` | `RIGHT` | `DOWN` | `LEFT` | - | - | `L1` | `R1` | `TRIANGLE` | `CIRCLE` | `CROSS` | `SQUARE` |
+
+**Pad log.** Its TTY is `psx-game: ready` once the handshake is raised, then
+`psx-game: pad <frame> <pad_buttons as %03x>` on frame 0 and on every frame
+where `pad_buttons` changes: a run-length log of every frame's input, each
+line carrying its frame so a lost line is detected.
+`tmp/psx_pad_log <tty> <pad-script> <events.json>` (`src/cmd/psx_pad_log.c`,
+parser `src/devtools/pad_log.c`, tested by `test_pad_log`) refuses a malformed
+log naming its line (no frame 0, a frame not increasing, bad hex, a bit outside
+the eleven `P8_PAD_*`, no done line or two, a pad line at or after the done
+frame count), writes the log as an `events.json` through `p8_input_save` with
+no `initial_save`, and compares its ordered distinct states with the script's,
+mapped by the same table:
+`psx-pad-log: log: ok, <frames> frames` and `psx-pad-log: states: ok, <n>
+states`, or the first difference; exit 0, 1, or 2 on usage.
+
+**End word.** The game clears the pad end word before raising the handshake
+and tests it at the top of each frame, before reading the pad. Under check,
+`tools/psx_pad_play.lua` writes it ten vsyncs after the script's last step;
+the game then prints the replays' end protocol, `psx-replay: done game
+<frames> vsyncs <n>` (vsyncs since the first frame; the log's frames are 0 to
+`<frames>` − 1) and the `psx-state:` block, and exits with code 0. On a
+console nothing writes that word, so the game never ends: the EXE checked is
+the EXE that ships, with no build flag. A `p8_fatal` prints `psx-state:
+stopped p8_fatal frame <n>` and the state, code 3; a failed assert, code 4.
+
+**Title script** `psx/game_title_script.txt` walks the title screen as
+`tests/e2e/pad_title.json` does: idle 90 vsyncs while the title rows slide in,
+Down, Down, Right, Up, then ✕ on "reasonable", each press and release held 20
+vsyncs, then 60 idle vsyncs into the first month. Pad navigation acts on
+edges, so a press held several frames moves the focus once. Its states are
+`000 002 000 002 000 008 000 001 000 010 000`; a state shorter than one frame
+is fixed by lengthening the offsets.
 
 ## GPU family captures
 
@@ -319,7 +386,8 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the twenty-one conditions below, on `pad_slipway.json` | ~90 s |
+| `make psx-check` | the twenty-seven conditions below, on `pad_slipway.json` and the title script | ~100 s |
+| `make psx-game-check` | the five `game-*` conditions alone, on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
@@ -329,11 +397,12 @@ mask.
 condition to it. It builds the PS-EXEs, writes the PC references with
 `STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
 `tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
-script) and the probe until they exit, then checks every condition before
+script), the probe and the game (with `PSX_GAME_SCRIPT`) until they exit, then
+checks every condition before
 concluding, one line each (`tools/psx_check.sh`, outputs in
 `tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
-- `magic`: the three `.exe` start with `PS-X EXE`;
+- `magic`: the four `.exe` start with `PS-X EXE`;
 - `asserts-on`: the replay printed `asserts on`;
 - `format`: its self-test string equals the PC's;
 - `replay-done`: the boot exited with 0, its `done` line has the PC's frame
@@ -371,22 +440,41 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   for an unlisted capture fails;
 - `no-json`: the toolchain's `nm` (`PSX_NM`) finds no definition of
   `p8_load_gfx_json`, `p8_input_load`, `p8_input_save`, `p8_input_append` or
-  `p8_input_free` in either replay ELF;
+  `p8_input_free` in either replay ELF or the game ELF;
 - `pad-script`: the probe's ordered pad states equal the script's
-  (`tools/psx_pad_compare.sh`).
+  (`tools/psx_pad_compare.sh`);
+- the five game conditions, from `tools/psx_game_check.sh` (outputs in
+  `run/game`: `game_events.json`, a pad recording `make replay EVENTS=` can
+  dump, its PC state `pc_state.txt` and `game-state/`):
+  - `game-done`: the game boot exited with 0, printed one `psx-replay: done
+    game <frames> vsyncs <n>` line and no `stopped p8_fatal`;
+  - `game-pad-log`: `tmp/psx_pad_log` turned the TTY's pad log into
+    `game_events.json`, with the done line's frame count;
+  - `game-pad-states`: the log's ordered pad states equal the script's,
+    mapped by `psx_pad_map` (the mapping proven on MIPS); a difference names
+    the first differing state;
+  - `game-state-game-lines`: `tmp/replay` replays `game_events.json` with
+    `STATE=` for the same frame count, and `tools/psx_state_compare.sh` finds
+    every game line equal to the PSX state's;
+  - `game-title-left`: the PSX state's `difficulty` line is `difficulty
+    PSX_GAME_DIFFICULTY` (`reasonable`) and its `clock` line is not `clock
+    year - month -`;
+- `game-ram-room`: `ram-room` on the game ELF.
 
 `measurements.txt` (in `tmp/psx/game-check/run`, and in the output directory of
 `psx-replay-check` and `psx-full-game-check`) holds the MIPS `zone`, `budget`
 and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
-`gpu capture `. The MIPS figures
+`gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
+behind `game `. The MIPS figures
 are lower than the PC's (4-byte pointers): a measurement, not a limit check.
 
 Ceilings and timeouts are the first measured run plus half again:
 `PSX_REPLAY_CEILING`/`PSX_REPLAY_TIMEOUT` for `pad_slipway`,
 `PSX_GPU_CEILING`/`PSX_GPU_TIMEOUT` for the GPU replay of `pad_slipway`,
 `PSX_PAD_CEILING`/`PSX_PAD_TIMEOUT` for the probe,
+`PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game with the title script,
 `PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` for `full_game`.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
@@ -394,6 +482,9 @@ Ceilings and timeouts are the first measured run plus half again:
 None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
+
+- Plan 10 step 6: pack `psx-game.exe`, as built, into the game's `.bin/.cue`
+  and repeat the controller proof on the CD image.
 
 - Pending human acceptance, one label at a time: run `make psx-check`,
   review each capture's report line and

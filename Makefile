@@ -186,8 +186,10 @@
 #                       for the PC frames, family call counts and capture
 #                       script), boots the replay PS-EXE, the GPU replay PS-EXE
 #                       twice with that capture script (ceiling PSX_GPU_CEILING
-#                       vsyncs, timeout PSX_GPU_TIMEOUT s) and the pad probe
-#                       until they exit, then prints one line per condition
+#                       vsyncs, timeout PSX_GPU_TIMEOUT s), the pad probe and
+#                       the game PS-EXE with PSX_GAME_SCRIPT (as
+#                       psx-game-check does) until they exit, then prints one
+#                       line per condition
 #                       (magic, asserts-on, format against
 #                       tmp/format_self_test, replay-done, state-game-lines, sprite-sheet, screen, map,
 #                       gpu-replay-done, gpu-state-game-lines, gpu-cost: its
@@ -197,14 +199,18 @@
 #                       tools/psx_capture_check.sh against
 #                       psx/gpu_capture_ceilings.txt and
 #                       psx/gpu_capture_references.txt,
-#                       no-json through PSX_NM on both replay ELFs,
-#                       pad-script) through tools/psx_check.sh; fails if any
+#                       no-json through PSX_NM on both replay ELFs and the game
+#                       ELF, pad-script, the five game-* conditions of
+#                       tools/psx_game_check.sh, game-ram-room: ram-room on
+#                       the game ELF) through tools/psx_check.sh; fails if any
 #                       fails; measurements.txt (MIPS zone/budget/cap, vsyncs,
 #                       size of the ELF, then the GPU replay's vsyncs, meter
 #                       lines, RAM room, size and capture reports behind "gpu
-#                       ") and conditions.txt in tmp/psx/game-check/run, the
-#                       capture reports, diff maps and images in its
-#                       gpu-captures/, ~90 s; never runs a setup, outside the
+#                       ", then the game's vsyncs, frames, RAM room and size
+#                       behind "game ") and conditions.txt in
+#                       tmp/psx/game-check/run, the capture reports, diff maps
+#                       and images in its gpu-captures/, the game's outputs
+#                       in its game/, ~100 s; never runs a setup, outside the
 #                       suite
 # make psx-gpu-capture-ceilings LABEL=<label> -> writes the differ counts of
 #                       that label's captures from the last psx-check run into
@@ -1520,7 +1526,8 @@ PSX_CAPTURE_LIST := psx/gpu_captures.txt
 PSX_CAPTURE_CEILINGS := psx/gpu_capture_ceilings.txt
 PSX_CAPTURE_REFERENCES := psx/gpu_capture_references.txt
 
-psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_test $(TMP_DIR)/psx_capture_compare
+psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_test $(TMP_DIR)/psx_capture_compare \
+		$(TMP_DIR)/psx_pad_log
 	@rm -rf $(PSX_CHECK_OUT)/pc-captures && mkdir -p $(PSX_CHECK_OUT)/pc-captures
 	CAPTURE_LIST=$(PSX_CAPTURE_LIST) CAPTURE_DIR=$(PSX_CHECK_OUT)/pc-captures \
 		STATE=$(PSX_CHECK_OUT)/pc_state.txt DIGEST=$(PSX_CHECK_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CHECK_OUT)/pc.dump.txt > $(PSX_CHECK_OUT)/pc.log 2>&1 \
@@ -1531,7 +1538,9 @@ psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_tes
 			"$$(./$(TMP_DIR)/format_self_test)" $(PSX_PAD_SCRIPT) $(PSX_REPLAY_CEILING) $(PSX_REPLAY_TIMEOUT) \
 			$(PSX_GPU_CEILING) $(PSX_GPU_TIMEOUT) $(PSX_PAD_CEILING) $(PSX_PAD_TIMEOUT) $(PSX_SIZE) $(PSX_NM) \
 			$(PSX_STACK_RESERVE) $(PSX_CAPTURE_LIST) $(PSX_CHECK_OUT)/pc-captures ./$(TMP_DIR)/psx_capture_compare \
-			$(PSX_CAPTURE_CEILINGS) $(PSX_CAPTURE_REFERENCES) $(PSX_CHECK_OUT)/run
+			$(PSX_CAPTURE_CEILINGS) $(PSX_CAPTURE_REFERENCES) $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_SCRIPT) \
+			$(PSX_GAME_CEILING) $(PSX_GAME_TIMEOUT) $(PSX_GAME_DIFFICULTY) ./$(TMP_DIR)/psx_pad_log ./$(TMP_DIR)/replay \
+			$(PSX_CHECK_OUT)/run
 
 psx-gpu-capture-ceilings:
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-ceilings: LABEL missing: make psx-gpu-capture-ceilings LABEL=<label>" >&2; exit 1; }

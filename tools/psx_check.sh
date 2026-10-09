@@ -2,22 +2,26 @@
 # usage: psx_check.sh <install-dir> <replay-exe> <gpu-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames>
 #                     <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout>
 #                     <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <capture-list>
-#                     <pc-capture-dir> <compare-tool> <ceilings> <references> <out-dir>
+#                     <pc-capture-dir> <compare-tool> <ceilings> <references> <game-exe> <game-script>
+#                     <game-ceiling> <game-timeout> <game-difficulty> <pad-log-tool> <replay-tool> <out-dir>
 # Boots the replay PS-EXE, the GPU replay PS-EXE (twice, both driven by
-# <pc-capture-dir>/capture_script.txt) and the pad probe until they exit, then
-# checks the twenty-one conditions of make psx-check, the seven GPU capture
-# ones through tools/psx_capture_check.sh. Every condition is checked before
-# concluding, one line per condition, exit 1 if any failed; each also goes to
-# <out-dir>/conditions.txt as "<condition> ok|failed".
+# <pc-capture-dir>/capture_script.txt), the pad probe and the game PS-EXE
+# (driven by <game-script>) until they exit, then checks the twenty-seven
+# conditions of make psx-check, the seven GPU capture ones through
+# tools/psx_capture_check.sh and five game ones through
+# tools/psx_game_check.sh (outputs in <out-dir>/game). Every condition is
+# checked before concluding, one line per condition, exit 1 if any failed;
+# each also goes to <out-dir>/conditions.txt as "<condition> ok|failed".
 # Writes <out-dir>/measurements.txt: the MIPS zone/budget/cap lines, the vsync
 # count and the size of the replay ELF (the .exe path with .elf), then the GPU
 # replay's vsyncs, meter lines, RAM room and ELF size, each line behind "gpu ",
-# then the capture report lines behind "gpu capture ".
+# the capture report lines behind "gpu capture ", then the game's vsyncs,
+# frames, RAM room and ELF size behind "game ".
 
 set -u
 
-usage="usage: psx_check.sh <install-dir> <replay-exe> <gpu-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames> <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <capture-list> <pc-capture-dir> <compare-tool> <ceilings> <references> <out-dir>"
-[ $# -eq 24 ] || { echo "psx-check: $usage" >&2; exit 1; }
+usage="usage: psx_check.sh <install-dir> <replay-exe> <gpu-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames> <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <capture-list> <pc-capture-dir> <compare-tool> <ceilings> <references> <game-exe> <game-script> <game-ceiling> <game-timeout> <game-difficulty> <pad-log-tool> <replay-tool> <out-dir>"
+[ $# -eq 31 ] || { echo "psx-check: $usage" >&2; exit 1; }
 install_dir=$1
 replay_exe=$2
 gpu_exe=$3
@@ -43,7 +47,15 @@ pc_capture_dir=$2
 compare_tool=$3
 ceilings=$4
 references=$5
-out_dir=$6
+game_exe=$6
+game_script=$7
+game_ceiling=$8
+game_timeout=$9
+shift 9
+game_difficulty=$1
+pad_log_tool=$2
+replay_tool=$3
+out_dir=$4
 script_dir=$(cd "$(dirname "$0")" && pwd)
 
 rm -rf "$out_dir"
@@ -63,6 +75,9 @@ PSX_BOOT_TIMEOUT=$gpu_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --unti
 pad_boot=$(PSX_BOOT_TIMEOUT=$pad_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --pad-script "$pad_script" --exe "$pad_exe" "$pad_ceiling" "$out_dir/pad" 2>&1)
 pad_status=$?
+game_boot=$(PSX_BOOT_TIMEOUT=$game_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
+    --pad-script "$game_script" --exe "$game_exe" "$game_ceiling" "$out_dir/game" 2>&1)
+game_status=$?
 
 tty=$out_dir/replay.tty.txt
 [ -f "$tty" ] || : > "$tty"
@@ -80,7 +95,7 @@ report() {
 }
 
 bad_magic=
-for exe in "$replay_exe" "$gpu_exe" "$pad_exe"; do
+for exe in "$replay_exe" "$gpu_exe" "$pad_exe" "$game_exe"; do
     [ "$(head -c 8 "$exe" 2>/dev/null)" = "PS-X EXE" ] || bad_magic="$bad_magic $exe"
 done
 if [ -z "$bad_magic" ]; then
@@ -108,17 +123,17 @@ fi
 compare=$(sh "$script_dir/psx_state_compare.sh" "$tty" "$pc_state" "$out_dir" "$pc_frames" 2>&1)
 "$size_tool" "${replay_exe%.exe}.elf" >> "$out_dir/measurements.txt" 2>&1
 
-# usage: check_replay_done <condition> <boot-status> <boot-output> <tty>
+# usage: check_replay_done <condition> <boot-status> <boot-output> <tty> <frames>
 check_replay_done() {
     done_line=$(tr -d '\r' < "$4" | grep '^psx-replay: done ' | tail -n 1)
     stopped=$(tr -d '\r' < "$4" | grep '^psx-state: stopped p8_fatal' | head -n 1)
-    set -- "$1" "$2" "$3" $done_line
+    set -- "$1" "$2" "$3" "$5" $done_line
     if [ "$2" -ne 0 ]; then
         report "$1" "$3"
     elif [ -n "$stopped" ]; then
         report "$1" "the PSX replay stopped: ${stopped#psx-state: }"
-    elif [ "${7:-}" != "$pc_frames" ]; then
-        report "$1" "expected $pc_frames frames, got: ${done_line:-(no done line)}"
+    elif [ "${8:-}" != "$4" ]; then
+        report "$1" "expected $4 frames, got: ${done_line:-(no done line)}"
     else
         pass "$1"
     fi
@@ -133,7 +148,7 @@ check_game_lines() {
     fi
 }
 
-check_replay_done replay-done "$replay_status" "$replay_boot" "$tty"
+check_replay_done replay-done "$replay_status" "$replay_boot" "$tty" "$pc_frames"
 check_game_lines state-game-lines "$compare"
 
 digest_compare=$(sh "$script_dir/psx_digest_compare.sh" "$tty" "$pc_digest" "$out_dir" 2>&1)
@@ -152,7 +167,7 @@ done
 gpu_tty=$out_dir/gpu.tty.txt
 [ -f "$gpu_tty" ] || : > "$gpu_tty"
 gpu_compare=$(sh "$script_dir/psx_state_compare.sh" "$gpu_tty" "$pc_state" "$out_dir/gpu-state" "$pc_frames" 2>&1)
-check_replay_done gpu-replay-done "$gpu_status" "$gpu_boot" "$gpu_tty"
+check_replay_done gpu-replay-done "$gpu_status" "$gpu_boot" "$gpu_tty" "$pc_frames"
 check_game_lines gpu-state-game-lines "$gpu_compare"
 
 meter_lines='^(zone gpu_frame|cap gpu_cluts|cap gpu_patterns) '
@@ -166,24 +181,32 @@ else
   pc:  $(echo ${pc_meter:-(no line)})"
 fi
 
-gpu_elf=${gpu_exe%.exe}.elf
 kernel_area=65536
 ram_bytes=2097152
-if ! gpu_size=$("$size_tool" "$gpu_elf" 2>&1); then
-    report ram-room "$size_tool failed on $gpu_elf: $gpu_size"
+# usage: check_ram_room <condition> <elf>; sets elf_size (the size tool's output) and room_line
+# ("<used> <limit> <left>", empty when the size tool failed)
+check_ram_room() {
     room_line=
-else
-    room_line=$(printf '%s\n' "$gpu_size" | awk -v kernel="$kernel_area" -v stack="$stack_reserve" -v ram="$ram_bytes" '
-        NR == 2 { used = kernel + $1 + $2 + $3 + stack; print used, ram, ram - used }')
-    set -- $room_line
-    if [ -z "$room_line" ]; then
-        report ram-room "no size line for $gpu_elf: $gpu_size"
-    elif [ "$3" -ge 0 ]; then
-        pass ram-room "$3 bytes left in $2 (kernel $kernel_area + ELF + stack $stack_reserve = $1)"
-    else
-        report ram-room "kernel $kernel_area + ELF + stack $stack_reserve = $1 bytes, over $2 by $((-$3))"
+    if ! elf_size=$("$size_tool" "$2" 2>&1); then
+        report "$1" "$size_tool failed on $2: $elf_size"
+        return
     fi
-fi
+    room_line=$(printf '%s\n' "$elf_size" | awk -v kernel="$kernel_area" -v stack="$stack_reserve" -v ram="$ram_bytes" '
+        NR == 2 { used = kernel + $1 + $2 + $3 + stack; print used, ram, ram - used }')
+    set -- "$1" "$2" $room_line
+    if [ -z "$room_line" ]; then
+        report "$1" "no size line for $2: $elf_size"
+    elif [ "$5" -ge 0 ]; then
+        pass "$1" "$5 bytes left in $4 (kernel $kernel_area + ELF + stack $stack_reserve = $3)"
+    else
+        report "$1" "kernel $kernel_area + ELF + stack $stack_reserve = $3 bytes, over $4 by $((-$5))"
+    fi
+}
+
+gpu_elf=${gpu_exe%.exe}.elf
+check_ram_room ram-room "$gpu_elf"
+gpu_size=$elf_size
+gpu_room_line=$room_line
 
 sh "$script_dir/psx_capture_report.sh" "$compare_tool" "$capture_list" "$pc_capture_dir" "$out_dir/gpu" \
     "$out_dir/gpu-captures"
@@ -195,12 +218,13 @@ sh "$script_dir/psx_capture_check.sh" "$capture_list" "$pc_capture_dir" "$gpu_tt
     set -- $gpu_done
     [ "${5:-}" = vsyncs ] && echo "gpu vsyncs ${6:-}"
     printf '%s\n' "$gpu_meter" | grep . | sed 's/^/gpu /'
-    [ -n "$room_line" ] && echo "gpu ram-room $room_line"
+    [ -n "$gpu_room_line" ] && echo "gpu ram-room $gpu_room_line"
     printf '%s\n' "${gpu_size:-}" | sed 's/^/gpu /'
     sed 's/^/gpu capture /' "$out_dir/gpu-captures/report.txt"
 } >> "$out_dir/measurements.txt"
 
-for elf in "${replay_exe%.exe}.elf" "$gpu_elf"; do
+game_elf=${game_exe%.exe}.elf
+for elf in "${replay_exe%.exe}.elf" "$gpu_elf" "$game_elf"; do
     if ! symbols=$("$nm_tool" "$elf" 2>&1); then
         json_symbols="($nm_tool failed on $elf: $symbols)"
     else
@@ -225,6 +249,37 @@ else
     report pad-script "$pad"
 fi
 
+sh "$script_dir/psx_game_check.sh" "$out_dir/game.tty.txt" "$game_status" "$game_boot" "$game_script" \
+    "$pad_log_tool" "$replay_tool" "$game_difficulty" "$out_dir/game" \
+    > "$out_dir/game-check.out.txt" 2> "$out_dir/game-check.err.txt"
+for condition in game-done game-pad-log game-pad-states game-state-game-lines game-title-left; do
+    prefix="psx-game-check: $condition: "
+    line=$(grep -F "$prefix" "$out_dir/game-check.out.txt" | head -n 1)
+    case $line in
+        "${prefix}ok") pass "$condition" ;;
+        "${prefix}ok, "*) pass "$condition" "${line#"${prefix}ok, "}" ;;
+        *)
+            reason=$(awk -v prefix="$prefix" '
+                index($0, prefix) == 1 { found = 1; print substr($0, length(prefix) + 1); next }
+                /^psx-game-check: / { found = 0; next }
+                found' "$out_dir/game-check.err.txt")
+            report "$condition" "${reason:-no line from psx_game_check.sh: $(cat "$out_dir/game-check.err.txt")}"
+            ;;
+    esac
+done
+
+check_ram_room game-ram-room "$game_elf"
+
+{
+    set -- $(tr -d '\r' < "$out_dir/game.tty.txt" 2>/dev/null | grep '^psx-replay: done game ' | tail -n 1)
+    if [ "${5:-}" = vsyncs ]; then
+        echo "game vsyncs ${6:-}"
+        echo "game frames $4"
+    fi
+    [ -n "$room_line" ] && echo "game ram-room $room_line"
+    printf '%s\n' "${elf_size:-}" | sed 's/^/game /'
+} >> "$out_dir/measurements.txt"
+
 echo "psx-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-check: all twenty-one conditions hold"
+echo "psx-check: all twenty-seven conditions hold"
