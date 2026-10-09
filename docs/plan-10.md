@@ -40,4 +40,13 @@ The full game compiled for MIPS, in a `.bin/.cue` that boots in the emulator, sh
 
 ## 6. Step notes
 
-(empty — plan-pilot appends a note after each step)
+### Step 1.1
+
+- Gate: `make psx-hello-e2e` green after both setups (five conditions, capture matches its sha256).
+- Open question decided (PRD): the recording is embedded at build time (`tmp/embed_replay` writes a C source from the PC replay loader; one PS-EXE per recording), no `fopen`/JSON/CD on PSX. Scripted pad input goes through PCSX-Redux Lua `setOverride`/`clearOverride`, started on a scratchpad handshake; it works at the pin, no fallback.
+- `make psx-build [EVENTS=]` builds the replay and the pad probe (`psx/CMakeLists.txt`, `src/platform/psx_*`, `src/cmd/psx_replay.c`, `psx_pad_probe.c`), `-O2` GPREL, asserts kept (`-UNDEBUG`, `--wrap=_assert_abort`). The state text moved behind a line sink (`src/devtools/state_format.c`); PC output byte-identical.
+- libc: nothing missing (`__divdi3` from libgcc). One portability fix, outside the core: PSn00bSDK 0.24 `vsnprintf` overflows from 276447232 up, so `snprintf`/`vsnprintf` are wrapped onto a portable `p8_vsnprintf` (`src/p8/format.c`). No `src/game`/`src/engine` change.
+- Proof: `make psx-check` (the plan 10 check target, ~50 s, outside `test-all`): magic, asserts-on, format, replay-done, state-game-lines (all 103 game lines of `pad_slipway.json` match), pad-script (9 states, 14 buttons). psx-hello targets stay as the toolchain smoke test.
+- First MIPS measurement (pad_slipway): 401 frames in 2584 vsyncs (~6.4/frame, real-time emulator); text 331996, data 2868, bss 977224; zones game 52912, load 1904, frame 8232, ui 60096, particles 7325 peak; budget zones 793195/794584. Ceilings: replay 3906 vsyncs / 66 s, pad 306 vsyncs / 6 s (tight: emulator start is most of the 4 s).
+- `full_game.json`: pending for plan 11. `make psx-full-game-check` exists; the emulator aborts (exit 134, "unknown exception") after ~9 min. With unbuffered stdout it reached frame 4608 of 4778, no `p8_fatal`, then aborted before `done`. Cause unknown; recorded in `docs/psx-game.md`.
+- Deviations: the comparison script takes the expected frame count as a 4th argument; the probe ends on a Lua end word instead of "final state seen"; a `tmp/format_self_test` host tool is the PC side of `format`.

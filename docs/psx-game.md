@@ -122,11 +122,12 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- `make psx-full-game-check` is red, pending for plan 11. Its first run built
-  the PS-EXE (text 402028, data 2868, bss 977224) and the PC replay ran its
-  4,778 frames, but the emulator aborted after about 9 minutes (exit 134,
+- `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
+  (text 402028, data 2868, bss 977224) and the PC replay runs its 4,778
+  frames, but the emulator aborts after about 9 minutes (exit 134,
   `An unknown exception occured`, `terminate called without an active
-  exception` in `run.log`) before the ceiling or the timeout. Its TTY was
-  empty: the emulator's stdout is block-buffered into the file and lost on an
-  abort, so the frames reached are unknown. Line-buffering that stdout is the
-  first thing to try.
+  exception` in `run.log`), before the ceiling or the timeout. A rerun with
+  the emulator's stdout unbuffered (`stdbuf -o0`; `psx_boot.sh` leaves it
+  block-buffered, so an abort loses the TTY) reached `psx-replay: frame 4608`
+  with no `p8_fatal` line, then aborted the same way before the `done` line.
+  The cause, in the guest or in the emulator, is not found yet.
