@@ -3,26 +3,29 @@
 The game's C core builds, unchanged, as a PS-EXE that replays an e2e recording
 inside the headless emulator and prints its `make state` text and VRAM digests
 over TTY, as a second PS-EXE that replays it through the GPU drawing backend,
-and as the game itself, `psx-game`, driven by the controller. `make psx-check`
+and as the game itself, `psx-game`, driven by the controller and packed into
+the game's CD image, `slipways.bin`/`.cue`. `make psx-check`
 proves the replays play the same game as the PC, that the software one draws
 the same pictures, that the GPU one receives the same draw calls and fits in
 RAM, that its frame captures are deterministic and within their recorded
 divergence from the PC, that scripted pad input reaches a PS-EXE, and that the
-game, driven by a pad script, leaves the title screen and plays what the PC
-plays from the same input. Toolchain, emulator, setups and the plain boot mode are
+game, booted from its CD image and driven by a pad script, leaves the title
+screen and plays what the PC plays from the same input. Toolchain, emulator, setups and the plain boot mode are
 in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
 `tools/psx_*.sh` script hold the per-option detail.
 
 ## Build
 
-`make psx-build [EVENTS=<events>]` builds four PS-EXEs in `tmp/psx/build`
-(`PSX_BUILD_DIR`), then prints their ELF sizes:
+`make psx-build [EVENTS=<events>]` builds four PS-EXEs and the game's CD
+image in `tmp/psx/build` (`PSX_BUILD_DIR`), then prints the ELF sizes and the
+image paths:
 
 - `psx-replay.{elf,exe}`: the core replaying `EVENTS` (default
   `tests/e2e/pad_slipway.json`), drawing into the RAM framebuffer;
 - `psx-gpu-replay.{elf,exe}`: the same replay drawing through the GPU backend;
 - `psx-pad-probe.{elf,exe}`: the pad probe;
-- `psx-game.{elf,exe}`: the game read from the pad, the EXE that ships (below).
+- `psx-game.{elf,exe}`: the game read from the pad, the EXE that ships (below);
+- `slipways.{bin,cue}`: the CD image holding `psx-game.exe` ("CD image" below).
 
 `psx/CMakeLists.txt` is a PSn00bSDK project. The Makefile hands it the source
 lists, nothing is globbed: `CORE_SRCS` (which holds the memory save storage
@@ -318,6 +321,53 @@ edges, so a press held several frames moves the focus once. Its states are
 `000 002 000 002 000 008 000 001 000 010 000`; a state shorter than one frame
 is fixed by lengthening the offsets.
 
+## CD image
+
+`psx/CMakeLists.txt`'s `psn00bsdk_add_cd_image(psx-game-iso slipways iso.xml
+DEPENDS psx-game system.cnf)`, the call `psx-hello` uses, is in `ALL`: every
+`make psx-build` writes `slipways.bin` and `slipways.cue`
+(`PSX_GAME_BIN`, `PSX_GAME_CUE`) after `psx-game.exe`, and fails naming
+either when it is missing. `make psx-game-cd` is the named target: it runs
+`psx-build` and prints the two paths.
+
+- **Layout** (`psx/iso.xml`, one data track): system and application
+  `PLAYSTATION`, volume, volume set and publisher `SLIPWAYS`; files
+  `SYSTEM.CNF` and `SLIPWAYS.EXE` (`PSX_GAME_DISC_EXE`, a byte copy of
+  `psx-game.exe`), then 1,024 dummy sectors. Names on the disc are 8.3: the
+  BIOS's ISO 9660 reader finds nothing else.
+- **`psx/system.cnf`**: `BOOT=cdrom:\SLIPWAYS.EXE;1`, `TCB=4`, `EVENT=10`,
+  `STACK=801FFFF0` (top of RAM, where `ram-room` counts
+  `PSX_STACK_RESERVE`).
+- **No license data, no region**: PSn00bSDK ships none, and the pinned
+  OpenBIOS checks neither. The image boots in the emulator, not on a console
+  or under a Sony BIOS ("Still to do").
+- The image is 2,881,200 bytes, 1,225 sectors of 2,352. The CD boot exits
+  after 760 vsyncs from power-on (the EXE boot: 363), the game's own 342 from
+  its first frame included.
+- **Never hash the `.bin`**: mkpsxiso stamps the build time into it. Its size
+  is measured; the proof is state-based, and no capture of the CD boot is
+  compared to a reference.
+- `make psx-boot PSX_ISO=tmp/psx/build/slipways.cue` boots it in the plain
+  capture mode, to look at a frame of the disc's title screen.
+
+`tools/psx_cd_check.sh <cue> <exe> <disc-name> <dumpsxiso> <out-dir>` checks
+an image after the build, without the emulator, one `psx-cd-check:` line per
+condition:
+
+- `cue`: `tools/psx_cue_check.sh` (shared with `psx-hello`): the `.cue`'s
+  first `FILE` line names a non-empty `.bin`, next to it, of whole 2,352-byte
+  sectors;
+- `cd-exe`: `dumpsxiso -x <out-dir>/disc <bin>` (`PSX_DUMPSXISO`, shipped
+  with the SDK) extracts the disc, and `<disc-name>` is byte-identical to
+  `<exe>`: the EXE `magic`, `no-json` and `game-ram-room` read is the EXE
+  shipped. A failure names `dumpsxiso`'s error, the extracted names, or the
+  first differing byte.
+
+The game itself does not depend on how it was loaded (it reads no argument
+and raises the pad handshake itself), so `make psx-check` boots the disc
+instead of the EXE: one boot carries the controller proof and the CD proof.
+`make psx-game-check` keeps booting the EXE, for quicker controller work.
+
 ## GPU family captures
 
 Each GPU draw family is checked by a capture of one frame of the check replay,
@@ -386,8 +436,10 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the twenty-seven conditions below, on `pad_slipway.json` and the title script | ~100 s |
-| `make psx-game-check` | the five `game-*` conditions alone, on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
+| `make psx-check` | the thirty conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; five boots | ~105 s |
+| `make psx-game-check` | the five `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
+| `make psx-game-cd-check` | the five `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
+| `make psx-game-cd` | builds the CD image and prints its paths | build |
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
@@ -397,8 +449,8 @@ mask.
 condition to it. It builds the PS-EXEs, writes the PC references with
 `STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
 `tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
-script), the probe and the game (with `PSX_GAME_SCRIPT`) until they exit, then
-checks every condition before
+script), the probe and the game's CD image (with `PSX_GAME_SCRIPT`) until
+they exit, five boots, then checks every condition before
 concluding, one line each (`tools/psx_check.sh`, outputs in
 `tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
@@ -443,7 +495,7 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   `p8_input_free` in either replay ELF or the game ELF;
 - `pad-script`: the probe's ordered pad states equal the script's
   (`tools/psx_pad_compare.sh`);
-- the five game conditions, from `tools/psx_game_check.sh` (outputs in
+- the five game conditions, on the CD boot, from `tools/psx_game_check.sh` (outputs in
   `run/game`: `game_events.json`, a pad recording `make replay EVENTS=` can
   dump, its PC state `pc_state.txt` and `game-state/`):
   - `game-done`: the game boot exited with 0, printed one `psx-replay: done
@@ -459,6 +511,13 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   - `game-title-left`: the PSX state's `difficulty` line is `difficulty
     PSX_GAME_DIFFICULTY` (`reasonable`) and its `clock` line is not `clock
     year - month -`;
+- `game-gpu-cost`: `gpu-cost` on the CD game: its meter lines equal those of
+  the PC replay of its pad log (`run/game/pc_state.txt`), title frames
+  included; both use one function, so they cannot drift;
+- `game-cue`, `game-cd-exe`: `cue` and `cd-exe` of `tools/psx_cd_check.sh` on
+  `PSX_GAME_CUE` and `psx-game.exe` (extracted disc in `run/game-cd/disc`);
+  a disc that lands in the OpenBIOS shell fails `game-done` first, with "last
+  progress line: (none)";
 - `game-ram-room`: `ram-room` on the game ELF.
 
 `measurements.txt` (in `tmp/psx/game-check/run`, and in the output directory of
@@ -467,14 +526,17 @@ and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
-behind `game `. The MIPS figures
+behind `game `, then `bin-bytes <n> sectors <n>` and `boot-vsyncs <n>`
+(from power-on, BIOS and CD load included) behind `game cd `. The MIPS figures
 are lower than the PC's (4-byte pointers): a measurement, not a limit check.
 
 Ceilings and timeouts are the first measured run plus half again:
 `PSX_REPLAY_CEILING`/`PSX_REPLAY_TIMEOUT` for `pad_slipway`,
 `PSX_GPU_CEILING`/`PSX_GPU_TIMEOUT` for the GPU replay of `pad_slipway`,
 `PSX_PAD_CEILING`/`PSX_PAD_TIMEOUT` for the probe,
-`PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game with the title script,
+`PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
+(`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,
+20 s) for the CD boot (`psx-game-cd-check`, `psx-check`),
 `PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` for `full_game`.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
@@ -483,8 +545,12 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Plan 10 step 6: pack `psx-game.exe`, as built, into the game's `.bin/.cue`
-  and repeat the controller proof on the CD image.
+- A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
+  data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
+  checks neither, so the disc is proven in the emulator only.
+
+- The human's play: load `tmp/psx/build/slipways.cue` in a windowed
+  emulator and judge the controller by hand. No agent opens a window.
 
 - Pending human acceptance, one label at a time: run `make psx-check`,
   review each capture's report line and

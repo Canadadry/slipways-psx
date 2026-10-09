@@ -204,9 +204,9 @@
 #                       script), boots the replay PS-EXE, the GPU replay PS-EXE
 #                       twice with that capture script (ceiling PSX_GPU_CEILING
 #                       vsyncs, timeout PSX_GPU_TIMEOUT s), the pad probe and
-#                       the game PS-EXE with PSX_GAME_SCRIPT (as
-#                       psx-game-check does) until they exit, then prints one
-#                       line per condition
+#                       the game's CD image PSX_GAME_CUE with PSX_GAME_SCRIPT
+#                       (as psx-game-cd-check does) until they exit, five
+#                       boots, then prints one line per condition, thirty
 #                       (magic, asserts-on, format against
 #                       tmp/format_self_test, replay-done, state-game-lines, sprite-sheet, screen, map,
 #                       gpu-replay-done, gpu-state-game-lines, gpu-cost: its
@@ -218,16 +218,22 @@
 #                       psx/gpu_capture_references.txt,
 #                       no-json through PSX_NM on both replay ELFs and the game
 #                       ELF, pad-script, the five game-* conditions of
-#                       tools/psx_game_check.sh, game-ram-room: ram-room on
+#                       tools/psx_game_check.sh on the CD boot, game-gpu-cost:
+#                       the CD game's meter lines equal those of the PC replay
+#                       of its pad log, game-cue and game-cd-exe of
+#                       tools/psx_cd_check.sh, game-ram-room: ram-room on
 #                       the game ELF) through tools/psx_check.sh; fails if any
 #                       fails; measurements.txt (MIPS zone/budget/cap, vsyncs,
 #                       size of the ELF, then the GPU replay's vsyncs, meter
 #                       lines, RAM room, size and capture reports behind "gpu
 #                       ", then the game's vsyncs, frames, RAM room and size
-#                       behind "game ") and conditions.txt in
+#                       behind "game ", the .bin's bytes and sectors and the
+#                       CD boot's vsyncs from power-on behind "game cd ") and
+#                       conditions.txt in
 #                       tmp/psx/game-check/run, the capture reports, diff maps
 #                       and images in its gpu-captures/, the game's outputs
-#                       in its game/, ~100 s; never runs a setup, outside the
+#                       in its game/ and the extracted disc in its game-cd/,
+#                       ~110 s; never runs a setup, outside the
 #                       suite
 # make psx-gpu-capture-ceilings LABEL=<label> -> writes the differ counts of
 #                       that label's captures from the last psx-check run into
@@ -1588,8 +1594,8 @@ psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_tes
 			$(PSX_GPU_CEILING) $(PSX_GPU_TIMEOUT) $(PSX_PAD_CEILING) $(PSX_PAD_TIMEOUT) $(PSX_SIZE) $(PSX_NM) \
 			$(PSX_STACK_RESERVE) $(PSX_CAPTURE_LIST) $(PSX_CHECK_OUT)/pc-captures ./$(TMP_DIR)/psx_capture_compare \
 			$(PSX_CAPTURE_CEILINGS) $(PSX_CAPTURE_REFERENCES) $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_SCRIPT) \
-			$(PSX_GAME_CEILING) $(PSX_GAME_TIMEOUT) $(PSX_GAME_DIFFICULTY) ./$(TMP_DIR)/psx_pad_log ./$(TMP_DIR)/replay \
-			$(PSX_CHECK_OUT)/run
+			$(PSX_GAME_CD_CEILING) $(PSX_GAME_CD_TIMEOUT) $(PSX_GAME_DIFFICULTY) $(PSX_GAME_CUE) $(PSX_DUMPSXISO) \
+			$(PSX_GAME_DISC_EXE) ./$(TMP_DIR)/psx_pad_log ./$(TMP_DIR)/replay $(PSX_CHECK_OUT)/run
 
 psx-gpu-capture-ceilings:
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-ceilings: LABEL missing: make psx-gpu-capture-ceilings LABEL=<label>" >&2; exit 1; }

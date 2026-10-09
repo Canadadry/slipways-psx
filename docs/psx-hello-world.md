@@ -103,7 +103,8 @@ The `psx-hello` proof boots the input twice and nothing once, checks every
 condition before concluding and prints one line per condition:
 
 - `magic` (`.exe`): the file starts with the PS-EXE magic; or `cue` (CD): the
-  `.cue` names a `.bin` of whole 2352-byte sectors;
+  `.cue` names a `.bin` of whole 2352-byte sectors (`tools/psx_cue_check.sh`,
+  shared with the game's disc check);
 - `deterministic`: both captures are identical;
 - `differs-from-empty`: they differ from the empty boot's;
 - `not-uniform`: they are not one color;
