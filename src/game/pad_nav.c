@@ -119,23 +119,10 @@ entity_t *pad_nav_neighbor(const entity_t *item, int direction) {
     return pad_panel_neighbor(item, direction);
 }
 
-/* 0 when no direction went down; Up, Down, Left, Right is the priority order. */
-static int pressed_direction(int pressed) {
-    static const int order[4] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
-    for (int i = 0; i < 4; i++) {
-        if (pressed & order[i]) {
-            return order[i];
-        }
-    }
-    return 0;
-}
-
 enum { HELD_FRAMES_CAP = 41 };
 
-static const int pan_directions[4] = { P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT };
-
 static void reset_aim_mode(pad_nav_t *nav) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
         nav->held_frames[i] = 0;
     }
     nav->cross_engaged = 0;
@@ -151,10 +138,11 @@ static int pan_speed(int held_frames) {
     return held_frames <= 40 ? 2 : 4;
 }
 
+/* held_frames and speed are indexed in pad_jump_direction's order: Up, Down, Left, Right. */
 static void aim_pan(pad_nav_t *nav, int pad_buttons) {
-    int speed[4];
-    for (int i = 0; i < 4; i++) {
-        if (!(pad_buttons & pan_directions[i])) {
+    int speed[PAD_JUMP_DIRECTIONS];
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
+        if (!(pad_buttons & pad_jump_direction(i))) {
             nav->held_frames[i] = 0;
         } else if (nav->held_frames[i] < HELD_FRAMES_CAP) {
             nav->held_frames[i]++;
@@ -984,7 +972,7 @@ static int without_chord(pad_nav_t *nav, int raw_buttons) {
 void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     int pad_buttons = without_chord(nav, raw_buttons);
     int pressed = pad_buttons & ~nav->previous_pad;
-    int direction = pressed_direction(pressed);
+    int direction = pad_jump_first_direction(pressed);
     int release = nav->release_pending;
     nav->previous_pad = raw_buttons;
     nav->release_pending = 0;

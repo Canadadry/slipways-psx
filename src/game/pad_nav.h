@@ -37,7 +37,7 @@ typedef struct {
     int left_was_down;
     int cursor_x;
     int cursor_y;
-    int held_frames[4];
+    int held_frames[PAD_JUMP_DIRECTIONS];
     int cross_engaged;
     entity_id_t game;
     pad_jump_t jump;

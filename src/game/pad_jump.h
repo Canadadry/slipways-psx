@@ -12,6 +12,9 @@
 #define PAD_JUMP_SCROLL_MARGIN_BOTTOM 31
 #define PAD_JUMP_SCROLL_SPEED 8
 
+/* Up, Down, Left, Right: the order a press of several directions is read in. */
+enum { PAD_JUMP_DIRECTIONS = 4 };
+
 /* A game stays unseeded until its first hovered object: pad_jump_reseed then takes the first colony, later the
  * nearest. */
 typedef struct {
@@ -31,6 +34,11 @@ entity_t *pad_jump_hovered(const pad_jump_t *jump);
 void pad_jump_hover_seeded(pad_jump_t *jump, const entity_t *e);
 /* Hovers, and returns, pad_jump_seed's pick while unseeded, else pad_jump_nearest's; seeds when it is not NULL. */
 entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int centre_x, int centre_y);
+
+/* The direction bit at that index of the priority order; index 0 to PAD_JUMP_DIRECTIONS - 1 (asserted). */
+int pad_jump_direction(int index);
+/* The first direction bit of buttons in priority order; 0 when no direction is in buttons. */
+int pad_jump_first_direction(int buttons);
 
 /* pad_buttons are the bits held this frame, pressed the bits newly down. Returns the single direction bit to jump
  * this frame, or 0. */

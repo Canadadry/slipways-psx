@@ -73,6 +73,22 @@ static void test_simultaneous_presses_go_up_down_left_right(void) {
     assert(pad_jump_repeat_step(&jump, all, P8_PAD_LEFT | P8_PAD_RIGHT) == P8_PAD_LEFT);
 }
 
+static void test_the_first_pressed_direction_goes_up_down_left_right(void) {
+    int all = P8_PAD_UP | P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT;
+    assert(pad_jump_first_direction(all | P8_PAD_CROSS) == P8_PAD_UP);
+    assert(pad_jump_first_direction(P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT) == P8_PAD_DOWN);
+    assert(pad_jump_first_direction(P8_PAD_LEFT | P8_PAD_RIGHT) == P8_PAD_LEFT);
+    assert(pad_jump_first_direction(P8_PAD_RIGHT) == P8_PAD_RIGHT);
+    assert(pad_jump_first_direction(P8_PAD_CROSS | P8_PAD_SQUARE) == 0 && pad_jump_first_direction(0) == 0);
+}
+
+static void test_the_directions_by_index_are_up_down_left_right(void) {
+    static const int expected[PAD_JUMP_DIRECTIONS] = {P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT};
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
+        assert(pad_jump_direction(i) == expected[i]);
+    }
+}
+
 static void test_clear_stops_the_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
@@ -314,6 +330,8 @@ int main(void) {
     test_a_second_direction_takes_over_at_once();
     test_simultaneous_presses_go_up_down_left_right();
     test_clear_stops_the_repeat();
+    test_the_first_pressed_direction_goes_up_down_left_right();
+    test_the_directions_by_index_are_up_down_left_right();
     test_other_buttons_neither_jump_nor_repeat();
     printf("test_pad_jump: ok\n");
     return 0;
