@@ -35,3 +35,5 @@ src/devtools/save_check.h | save comparison harness of the tests, header of devt
 src/platform/keymap.c | raylib backend, keymap.cfg parser
 src/platform/keymap.h | raylib backend, header of platform/keymap.c
 src/platform/keymap_names.h | raylib backend, raylib key and gamepad names
+src/cmd/embed_replay.c | entry point of embed_replay, which writes a recording as C source, host tool
+src/devtools/embedded_replay.h | declarations of the source embed_replay writes, linked by the replay tools

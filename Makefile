@@ -249,7 +249,7 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-# The whole engine closure: all of src/ except the three entry points of
+# The whole engine closure: all of src/ except the entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c`, `src/platform/keymap.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, replay_control, replay_source, screencast,
@@ -662,6 +662,33 @@ REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c $(STATE_SRCS) src/devt
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+EMBED_REPLAY_SRCS := src/cmd/embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c
+
+$(TMP_DIR)/embed_replay: $(call objs,$(EMBED_REPLAY_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+# `$(call embedded,<name>)` -> the generated source of that recording,
+# under tmp/embedded/; its object follows from the generic %.c rule.
+embedded = $(TMP_DIR)/embedded/$(1).c
+
+# The name argument is the recording's path: the test reopens it from the
+# embedded name to compare.
+$(call embedded,test_embed_replay_pad): tests/e2e/pad_slipway.json $(TMP_DIR)/embed_replay
+	@mkdir -p $(@D)
+	./$(TMP_DIR)/embed_replay $< $< $@
+
+$(call embedded,test_embed_replay_save): tests/e2e/pad_resume_at_start.json $(TMP_DIR)/embed_replay
+	@mkdir -p $(@D)
+	./$(TMP_DIR)/embed_replay $< $< $@
+
+TEST_EMBED_REPLAY_SRCS := tests/test_embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c
+
+$(TMP_DIR)/test_embed_replay: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_pad)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_embed_replay_save: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_save)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c $(STATE_SRCS) $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -745,6 +772,8 @@ UNIT_TESTS := \
     test_demo \
     test_keymap \
     test_replay_source \
+    test_embed_replay \
+    test_embed_replay_save \
     test_recording_continuity \
     test_replay_control \
     test_marker_coherence \
