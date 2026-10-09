@@ -74,7 +74,6 @@ static int write_state(const char *path) {
     return fclose(out) == 0;
 }
 
-/* Returns 1 when the replay ran to its end and wrote a state file. */
 static int replay(const char *replay_binary, const char *events, const char *state_path, const char *dump_path) {
     remove(state_path);
     fflush(NULL);
@@ -91,7 +90,6 @@ static int replay(const char *replay_binary, const char *events, const char *sta
     return WIFEXITED(status) && WEXITSTATUS(status) == 0;
 }
 
-/* Returns 1 when both files exist and hold the same bytes. */
 static int same_file(const char *left, const char *right) {
     FILE *a = fopen(left, "rb");
     FILE *b = fopen(right, "rb");
@@ -107,7 +105,7 @@ static int same_file(const char *left, const char *right) {
     return same;
 }
 
-/* The labs' yearly science, as economy_new_year adds it; 0 with no game. */
+/* Keep in step with economy_new_year's science read, its +1 left out. */
 static int science_per_year(void) {
     economy_t *economy = main_economy_typed();
     int k;
@@ -124,7 +122,6 @@ static const char *resource_letter(p8_fixed_t number) {
     return "-";
 }
 
-/* For planning: one line per settled planet or structure, its project, tier, production and needs met. */
 static void write_economy(const char *path) {
     FILE *out = fopen(path, "w");
     if (out == NULL) return;
@@ -152,7 +149,6 @@ static void write_economy(const char *path) {
     fclose(out);
 }
 
-/* Each trial forks from the run's last frame, so trials never see each other. */
 static int run_trials(const char *try_path, const char *name) {
     FILE *in = fopen(try_path, "r");
     if (in == NULL) {

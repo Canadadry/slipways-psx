@@ -40,7 +40,6 @@
 #define PATH_MAX_CHARS 256
 #define INCLUDE_DEPTH_MAX 4
 #define FOLD_HOLD_FRAMES 16
-/* A jump tap costs one non-aim frame pair; an aim frame counts this much more in the pre-aim search. */
 #define AIM_FRAME_WEIGHT 6
 #define CIRCLE_EFFECT_FRAMES 2
 #define TITLE_ROWS_FRAMES 7
@@ -58,7 +57,6 @@ typedef struct {
     int number;
 } script_line_t;
 
-/* One script file, owned by its run_file call; lines freed at its end. */
 typedef struct {
     const char *path;
     script_line_t *lines;
@@ -90,8 +88,6 @@ static char stop_label_copy[LINE_MAX_CHARS];
 static p8_input_frame_t boot_frame;
 static p8_input_t boot_input;
 
-/* Candidate lists built between frames: never in frame_zone(), whose peak make state reports, or the self-check
- * would see a bigger frame zone than the replay. */
 #define SCRATCH_BYTES (1 << 16)
 BUMP_ZONE_STORAGE(scratch_cells, SCRATCH_BYTES);
 static bump_zone_t scratch;
@@ -164,7 +160,6 @@ void pad_author_init(pad_author_t *author) {
     dispatch_context_set_input(&boot_input);
 }
 
-/* The name of the lowest button in buttons, which must not be 0. */
 static const char *button_name(int buttons) {
     int b = 0;
     while (!(buttons & (1 << b))) b++;
@@ -184,7 +179,6 @@ static void write_buttons(FILE *out, int buttons) {
     fputc(']', out);
 }
 
-/* Returns 0 once the pending ○ check failed. */
 static int settle_circle(pad_author_t *author, const script_t *script, const pad_metrics_view_t *now, int final) {
     if (author->circle_pending == 0) return 1;
     if (pad_metrics_navigation_changed(&author->circle_before, now)) {
@@ -262,7 +256,6 @@ static int tap(pad_author_t *author, const script_t *script, int buttons) {
 
 typedef int (*condition_t)(pad_author_t *author, const void *context);
 
-/* Idles until condition holds, checked before each frame; fails after max_frames frames. */
 static int wait_until(pad_author_t *author, const script_t *script, condition_t condition, const void *context,
                       int max_frames, const char *what) {
     for (int i = 0; !condition(author, context); i++) {
@@ -272,7 +265,6 @@ static int wait_until(pad_author_t *author, const script_t *script, condition_t 
     return 1;
 }
 
-/* Returns the button mask of "<name>[+<name>...]", 0 when a name is unknown. */
 static int parse_buttons(const char *text) {
     int mask = 0;
     const char *p = text;
@@ -291,7 +283,6 @@ static int parse_buttons(const char *text) {
     return mask;
 }
 
-/* Returns -1 unless text is a whole decimal number >= 0. */
 static int parse_count(const char *text) {
     char *end = NULL;
     long value = strtol(text, &end, 10);
@@ -299,7 +290,6 @@ static int parse_count(const char *text) {
     return (int)value;
 }
 
-/* Returns 0 unless text is a whole decimal number, sign allowed. */
 static int parse_coordinate(const char *text, int *out) {
     char *end = NULL;
     long value = strtol(text, &end, 10);
@@ -315,8 +305,6 @@ static int difficulty_index(const char *name) {
     return -1;
 }
 
-/* The title's focus starts on the first difficulty: one Down tap per row,
- * every other frame, the last two frames before the cross. */
 static int run_title(pad_author_t *author, const script_t *script, int cross_frame, int difficulty) {
     int first_down = cross_frame - 2 * difficulty;
     if (first_down < author->frame_count || cross_frame < author->frame_count) {
@@ -336,7 +324,6 @@ static int run_title(pad_author_t *author, const script_t *script, int cross_fra
     return 1;
 }
 
-/* NULL when no live node carries that id. */
 static entity_t *object_named(const char *id) {
     const entity_list_t *nodes = entities_by_tag(TAG_NODE);
     for (int i = 0; i < count_of(nodes); i++) {
@@ -384,8 +371,6 @@ static int inside(pad_author_t *author, const void *context) {
     return pad_jump_inside(x, y);
 }
 
-/* Breadth-first over the picks of the four directions from origin, which need not be in candidates. Returns the tap
- * count written to directions, or -1 when target cannot be reached. */
 static int pick_path(const entity_t *origin, const entity_t *target, const entity_list_t *candidates, int *directions) {
     int n = candidates->count;
     if (origin == target) return 0;
@@ -394,7 +379,6 @@ static int pick_path(const entity_t *origin, const entity_t *target, const entit
     int *queue = malloc((size_t)(n + 1) * sizeof *queue);
     assert(previous != NULL && via != NULL && queue != NULL);
     for (int i = 0; i <= n; i++) previous[i] = -2;
-    /* Index n stands for origin. */
     int head = 0, tail = 0, found = -1;
     previous[n] = -1;
     queue[tail++] = n;
@@ -436,7 +420,6 @@ static int is_candidate_named(pad_author_t *author, const void *context) {
     return pad_target_is_candidate(object_named(context));
 }
 
-/* A fold's reveals land some frames after its release: the target may still be turning known. */
 static int run_jump(pad_author_t *author, const script_t *script, const char *id) {
     if (!wait_until(author, script, is_candidate_named, id, REVEAL_FRAMES_MAX, "jump: the target a candidate")) return 0;
     entity_t *target = object_named(id);
@@ -484,8 +467,6 @@ static int abs_int(int v) {
     return v < 0 ? -v : v;
 }
 
-/* Holds both axes at once, each for the longest hold that does not overshoot, then one frame up: the hold count
- * starts over. */
 static int pan_to(pad_author_t *author, const script_t *script, int x, int y) {
     for (int round = 0; round < PAN_ROUNDS_MAX; round++) {
         int cx, cy;
@@ -506,7 +487,6 @@ static int pan_to(pad_author_t *author, const script_t *script, int x, int y) {
     return fail(author, script, "pan: the centre stays at %d %d, not %d %d", cx, cy, x, y);
 }
 
-/* The aim frames pan_to spends on one axis. */
 static int pan_cost(int distance) {
     int frames = 0;
     while (distance > 0) {
@@ -521,7 +501,6 @@ static int scroll_shift(int value, int low, int high) {
     return value < low ? value - low : value > high ? value - high : 0;
 }
 
-/* The camera once jump mode's edge scroll has brought e inside the inner rectangle, from camera (cx, cy). */
 static void camera_after_jump(const entity_t *e, int *cx, int *cy) {
     int wx, wy;
     pad_jump_world_point(e, &wx, &wy);
@@ -534,8 +513,6 @@ static int pan_cost_to(int x, int y, int cx, int cy) {
     return px > py ? px : py;
 }
 
-/* From jump mode, one or two jumps whose edge scroll leaves the shortest pan to the point: jump frames are not aim
- * frames. Writes the objects to jump to, NULL for none. */
 static void best_jumps_before_aim(pad_author_t *author, int x, int y, entity_t **first, entity_t **second) {
     enum { CANDIDATES_MAX = 128 };
     static int length_from[CANDIDATES_MAX];
@@ -587,7 +564,6 @@ static int enter_aim(pad_author_t *author, const script_t *script, int x, int y,
     for (int k = 0; k < 2; k++) {
         if (jumps[k] != NULL && !run_jump(author, script, ids[k])) return 0;
     }
-    /* No release frame of its own: the pan's first frame lets □ go. */
     if (!emit(author, script, P8_PAD_SQUARE)) return 0;
     if (current_mode(author) != PAD_METRICS_MODE_AIM) return fail(author, script, "square: no aim mode");
     return 1;
@@ -615,7 +591,6 @@ static int run_fold(pad_author_t *author, const script_t *script, int x, int y, 
     if (has_point && !pan_to(author, script, x, y)) return 0;
     if (count_of(entities_by_tag(TAG_PROBE)) == 0) return fail(author, script, "fold: no probe yet");
     p8_fixed_t credits = main_economy_typed()->credits;
-    /* × let go and ○ on one frame: the fold drops, and ○ leaves aim mode, the × no longer engaged. */
     if (!emit_repeated(author, script, P8_PAD_CROSS, FOLD_HOLD_FRAMES) || !emit(author, script, P8_PAD_CIRCLE) ||
         !emit(author, script, 0)) {
         return 0;
@@ -656,7 +631,6 @@ static panel_layout_t panel_layout(pad_author_t *author) {
     return layout;
 }
 
-/* A panel slides in: its Down neighbours are only right once no item moves from one frame to the next. */
 static int wait_panel_settled(pad_author_t *author, const script_t *script, const char *what) {
     panel_layout_t before = panel_layout(author);
     for (int i = 0; i < SETTLE_FRAMES_MAX; i++) {
@@ -687,7 +661,7 @@ static int move_down_rows(pad_author_t *author, const script_t *script, int rows
     return 1;
 }
 
-/* By id: a collapse replaces the planet with a new protostar entity. */
+/* Looked up by id each time: a collapse replaces the planet with a new protostar entity. */
 static int is_settled(pad_author_t *author, const void *context) {
     (void)author;
     const entity_t *planet = object_named(context);
@@ -698,7 +672,6 @@ static int move_to_item(pad_author_t *author, const script_t *script, item_match
                         const char *command);
 static int is_project_button(const entity_t *e, const char *project);
 
-/* project NULL picks the row-th row below the header. */
 static int run_colonise(pad_author_t *author, const script_t *script, const char *id, int row, const char *project) {
     if (!require_map(author, script, "colonise")) return 0;
     if (current_mode(author) == PAD_METRICS_MODE_AIM && !leave_aim(author, script)) return 0;
@@ -781,7 +754,6 @@ static int run_slipway(pad_author_t *author, const script_t *script, char *const
         if (!emit(author, script, 0) || !emit(author, script, 0)) return 0;
         start = target;
     }
-    /* ○ closes a shown message box (a year's) before it drops the slipway. */
     for (int i = 0; i < 3 && current_mode(author) == PAD_METRICS_MODE_SLIPWAY; i++) {
         if (!tap(author, script, P8_PAD_CIRCLE)) return 0;
     }
@@ -789,7 +761,6 @@ static int run_slipway(pad_author_t *author, const script_t *script, char *const
     return wait_until(author, script, is_mode, &jump, 4, "slipway: back in jump mode");
 }
 
-/* NULL unless kind is one of the seven. */
 static const structure_kind_t *structure_kind_named(const char *name) {
     for (int k = 0; k < STRUCTURE_KIND_COUNT; k++) {
         if (strcmp(STRUCTURE_KINDS[k].name, name) == 0) return &STRUCTURE_KINDS[k];
@@ -803,7 +774,6 @@ static int icon_x(const entity_t *icon) {
     return x;
 }
 
-/* The revealed icon of that kind, NULL when none is revealed. */
 static entity_t *icon_of(const structure_kind_t *kind) {
     const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (int i = 0; i < count_of(bucket); i++) {
@@ -819,7 +789,6 @@ typedef struct {
     const structure_kind_t *kind;
 } placed_t;
 
-/* The settled structure of that kind standing on the world point, NULL when none. */
 static entity_t *structure_at(const placed_t *placed) {
     const entity_list_t *nodes = entities_by_tag(TAG_NODE);
     for (int i = 0; i < count_of(nodes); i++) {
@@ -893,7 +862,6 @@ static int tech_panel_up(pad_author_t *author, const void *context) {
     return pad_nav_tech_open(nav_of(author)) && pad_nav_panel_open() && pad_nav_focus(nav_of(author)) != NULL;
 }
 
-/* Breadth-first over the panel's items from the focus. Returns the tap count, -1 when no item matches. */
 static int item_path(const entity_t *from, item_match_t match, const char *name, int *directions) {
     enum { ITEMS_MAX = 64 };
     const entity_t *items[ITEMS_MAX];
@@ -1091,7 +1059,6 @@ static int run_pause(pad_author_t *author, const script_t *script) {
     return tap(author, script, P8_PAD_START) && wait_until(author, script, pause_shown, NULL, 4, "pause: the menu");
 }
 
-/* The pause menu's focus starts on "restart"; the final score panel's on "again?". */
 static int run_leave_game(pad_author_t *author, const script_t *script, const char *command, condition_t shown) {
     if (!shown(author, NULL)) return fail(author, script, "%s: not on its menu", command);
     if (!wait_until(author, script, has_focus, NULL, 20, command) || !wait_panel_settled(author, script, command)) return 0;
@@ -1246,8 +1213,6 @@ static int tokenize(pad_author_t *author, const script_t *script, script_line_t 
     return 1;
 }
 
-/* Returns 0 when the file cannot be read or holds an overlong line; the
- * caller frees script->lines. */
 static int load_lines(pad_author_t *author, script_t *script) {
     FILE *in = fopen(script->path, "r");
     if (in == NULL) return fail(author, NULL, "cannot read the script '%s'", script->path);
