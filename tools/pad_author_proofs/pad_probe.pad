@@ -1,0 +1,18 @@
+# Escape hatches only: regenerates tests/e2e/pad_probe.json byte for byte.
+title 12 reasonable
+tap square
+idle 2
+tap circle
+tap square
+idle 1
+hold up 6
+idle 1
+tap cross
+idle 2
+hold up+right 6
+hold right 5
+idle 1
+hold cross 16
+idle 12
+label folded
+idle 8

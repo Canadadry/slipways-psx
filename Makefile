@@ -95,6 +95,26 @@
 #                       binary of make test; passes when every replay exits
 #                       cleanly (fails on any p8_fatal, a full zone or cap),
 #                       outside the suite
+# make pad-author    -> builds tmp/pad_author, plays each worst-case/<game>.pad
+#                       headless and rewrites worst-case/<game>.json from the
+#                       frames it pressed, then replays each JSON with
+#                       tmp/replay and fails unless the two last-frame states
+#                       are byte-identical, outside the suite
+# make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
+#                       for one script, written to OUT (default
+#                       tmp/pad-author/<name>.json), ending at its first
+#                       `label <STOP_AT>`; a failed command writes the frames
+#                       so far to tmp/pad-author/<name>.failed.json and the
+#                       state to tmp/pad-author/<name>.state.txt
+# make pad-author-proof -> runs each tools/pad_author_proofs/<name>.pad and
+#                       fails unless its output is byte-identical to
+#                       tests/e2e/<name>.json, outside the suite
+# make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
+#                       as make state does and prints, per line of
+#                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
+#                       highest peak over those games and its holder, and ok
+#                       or short; fails on any short line or a stopped game,
+#                       outside the suite
 # make rng-sync-probe -> builds and runs tests/test_rng_sync (pad_colonise
 #                       replayed to a save frame, forked, rnd_state compared
 #                       with and without the state a save never holds);
@@ -1027,6 +1047,34 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 	@$(foreach e,$(FULL_GAME_EVENTS),./$(TMP_DIR)/replay $(e) /dev/null $(FULL_GAME_DIR)/$(notdir $(e)).dump.txt > $(FULL_GAME_DIR)/$(notdir $(e)).log 2>&1 || { cat $(FULL_GAME_DIR)/$(notdir $(e)).log; echo "full-game: $(e) stopped"; exit 1; }; echo "full-game: $(e) clean"; ) true
 
 .PHONY: full-game
+
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/state.c $(ENGINE_SRCS)
+PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
+PAD_AUTHOR_PROOFS := $(wildcard tools/pad_author_proofs/*.pad)
+
+$(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+ifneq ($(strip $(SCRIPT)),)
+pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
+	./$(TMP_DIR)/pad_author $(SCRIPT) $(or $(OUT),$(TMP_DIR)/pad-author/$(basename $(notdir $(SCRIPT))).json)$(if $(STOP_AT), --stop-at $(STOP_AT))
+else
+pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
+	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
+endif
+
+# Each proof regenerates the tests/e2e/ replay of its name into tmp/ and
+# compares the bytes.
+pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_PROOFS)
+	@mkdir -p $(TMP_DIR)/pad-author
+	@$(foreach p,$(PAD_AUTHOR_PROOFS),./$(TMP_DIR)/pad_author $(p) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.json)) || exit 1; cmp $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.json)) $(E2E_DIR)/$(notdir $(p:.pad=.json)) || exit 1; echo "pad-author-proof: $(p) regenerates $(E2E_DIR)/$(notdir $(p:.pad=.json))"; ) true
+
+WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
+
+worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE)
+	@sh tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) $(TMP_DIR)/worst-case-peaks.txt $(foreach e,$(FULL_GAME_EVENTS),$(e) $(call state_file,$(e)))
+
+.PHONY: pad-author pad-author-proof worst-case-peaks
 
 rng-sync-probe: $(TMP_DIR)/test_rng_sync
 	./$<

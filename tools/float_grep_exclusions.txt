@@ -33,3 +33,6 @@ src/devtools/save_check.h | save comparison harness of the tests, header of devt
 src/platform/keymap.c | raylib backend, keymap.cfg parser
 src/platform/keymap.h | raylib backend, header of platform/keymap.c
 src/platform/keymap_names.h | raylib backend, raylib key and gamepad names
+src/cmd/pad_author.c | entry point of the worst-case game generator, host tool
+src/devtools/pad_author.c | worst-case game generator, plays a pad script headless, host tool
+src/devtools/pad_author.h | worst-case game generator, header of devtools/pad_author.c

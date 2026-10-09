@@ -1,0 +1,99 @@
+# pad_probe's frames up to its label, then escape hatches: regenerates tests/e2e/pad_colonise.json.
+include pad_probe.pad folded
+hold down+right 2
+hold down 14
+idle 1
+tap square
+idle 1
+tap cross
+idle 3
+tap down
+idle 1
+tap down
+idle 1
+tap up
+idle 1
+tap cross
+idle 36
+tap triangle
+idle 3
+tap circle
+idle 1
+tap triangle
+idle 2
+tap triangle
+idle 1
+tap square
+hold up 9
+hold cross 16
+idle 1
+tap circle
+idle 1
+tap square
+idle 3
+hold up+right 10
+hold up 9
+idle 8
+tap square
+idle 1
+tap triangle
+idle 2
+tap down
+idle 1
+tap cross
+idle 1
+tap square
+idle 1
+hold down+left 13
+hold down 22
+idle 6
+tap cross
+idle 3
+tap square
+idle 3
+tap up
+idle 1
+tap circle
+idle 1
+tap up
+idle 2
+tap cross
+idle 1
+tap down
+idle 3
+tap cross
+idle 3
+tap up
+idle 3
+tap cross
+idle 3
+tap circle
+idle 1
+tap circle
+idle 1
+tap square
+idle 1
+hold down 26
+idle 1
+hold right 18
+idle 1
+tap square
+idle 1
+tap cross
+idle 23
+tap up
+idle 8
+tap circle
+idle 1
+tap square
+hold up+left 10
+idle 1
+hold up+left 5
+hold up 6
+idle 3
+hold cross 3
+idle 1
+tap square
+idle 1
+hold select 30
+idle 3
