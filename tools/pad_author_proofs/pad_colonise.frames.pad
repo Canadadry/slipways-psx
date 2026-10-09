@@ -1,5 +1,5 @@
 # pad_probe's frames up to its label, then escape hatches: regenerates tests/e2e/pad_colonise.json.
-include pad_probe.pad folded
+include pad_probe.frames.pad folded
 hold down+right 2
 hold down 14
 idle 1
@@ -69,8 +69,7 @@ tap cross
 idle 3
 tap circle
 idle 1
-tap circle
-idle 1
+back --required  # f293: circle at the root on the last object, the locked no-op
 tap square
 idle 1
 hold down 26

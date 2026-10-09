@@ -1,0 +1,4 @@
+# Closed-loop commands only: reaches tests/e2e/pad_build.json's end state
+# (the processor built at world 256 242) without its frames.
+title 12 reasonable
+build processor 256 242

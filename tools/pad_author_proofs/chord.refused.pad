@@ -1,0 +1,4 @@
+# expect: chord: cross and circle pressed on the same frame
+title 12 reasonable
+idle 4
+tap cross+circle

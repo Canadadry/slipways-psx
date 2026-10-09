@@ -1,0 +1,10 @@
+# Closed-loop commands only: reaches tests/e2e/pad_colonise.json's end state
+# (the same galaxy, probe, folds, colonies, slipway and year) without its frames.
+title 12 reasonable
+probe 256 250
+fold 268 244
+colonise p47
+fold 270 257
+colonise p25
+slipway p25 p47
+year

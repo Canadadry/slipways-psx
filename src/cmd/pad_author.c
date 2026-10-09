@@ -1,11 +1,16 @@
-/* usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>]
+/* usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>] [--no-aim-budget]
  *
  * Plays the script headless and writes the pad frames it pressed to
  * <events.json>, or, when a command fails, to tmp/pad-author/<name>.failed.json
  * with the state in the default place. STATE=<file>: the state of the last frame, as the replay
  * tool's STATE writes it (default tmp/pad-author/<name>.state.txt). Then
  * replays <events.json> with the replay binary (default tmp/replay) and exits
- * 1 unless its state file is byte-identical. */
+ * 1 unless its state file is byte-identical.
+ *
+ * Writes the per-frame mode log and the run's totals to
+ * tmp/pad-author/<name>.modes.txt, the totals also to stdout. A whole run
+ * (no --stop-at) fails when more than 20% of its frames are in aim mode,
+ * unless --no-aim-budget. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -34,7 +39,8 @@
 static pad_author_t author;
 
 static void usage(void) {
-    fprintf(stderr, "usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>]\n");
+    fprintf(stderr, "usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>] "
+                    "[--no-aim-budget]\n");
 }
 
 static void base_name(char *out, size_t size, const char *path) {
@@ -98,9 +104,12 @@ int main(int argc, char **argv) {
     const char *events_path = argv[2];
     const char *stop_label = NULL;
     const char *replay_binary = "tmp/replay";
+    int aim_budget = 1;
     for (int a = 3; a < argc; a++) {
         if (strcmp(argv[a], "--stop-at") == 0 && a + 1 < argc) {
             stop_label = argv[++a];
+        } else if (strcmp(argv[a], "--no-aim-budget") == 0) {
+            aim_budget = 0;
         } else if (strcmp(argv[a], "--replay") == 0 && a + 1 < argc) {
             replay_binary = argv[++a];
         } else {
@@ -113,6 +122,7 @@ int main(int argc, char **argv) {
     static char own_state[PATH_CHARS];
     static char replay_state[PATH_CHARS];
     static char replay_dump[PATH_CHARS];
+    static char mode_log_path[PATH_CHARS];
     base_name(name, sizeof name, events_path);
     mkdir("tmp", 0777);
     mkdir(WORK_DIR, 0777);
@@ -121,6 +131,7 @@ int main(int argc, char **argv) {
     if (state_path == NULL) state_path = own_state;
     snprintf(replay_state, sizeof replay_state, "%s/%s.replay-state.txt", WORK_DIR, name);
     snprintf(replay_dump, sizeof replay_dump, "%s/%s.replay-dump.txt", WORK_DIR, name);
+    snprintf(mode_log_path, sizeof mode_log_path, "%s/%s.modes.txt", WORK_DIR, name);
 
     static p8_vram_t memory;
     static p8_graphics_t graphics;
@@ -130,6 +141,11 @@ int main(int argc, char **argv) {
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
     pad_author_init(&author);
+    author.mode_log = fopen(mode_log_path, "w");
+    if (author.mode_log == NULL) {
+        fprintf(stderr, "pad_author: cannot open the mode log '%s'\n", mode_log_path);
+        return 1;
+    }
     cart_load();
     cart_init();
 
@@ -142,6 +158,9 @@ int main(int argc, char **argv) {
         events_path = failed_events;
         state_path = own_state;
     }
+    pad_author_write_totals(&author, author.mode_log, "total ");
+    fclose(author.mode_log);
+    author.mode_log = NULL;
     if (author.frame_count == 0) {
         state_release();
         fprintf(stderr, "pad_author: %s pressed no frame, '%s' not written\n", script_path, events_path);
@@ -154,7 +173,13 @@ int main(int argc, char **argv) {
     if (!write_state(state_path)) return 1;
     printf("pad_author: %s -> %s, %d frame(s), cheat activations %d\n", script_path, events_path, author.frame_count,
            author.cheat_activations);
+    pad_author_write_totals(&author, stdout, "pad_author: ");
     if (!played) return 1;
+    int aim_frames = author.mode_frames[PAD_AUTHOR_MODE_AIM];
+    if (aim_budget && stop_label == NULL && 5 * aim_frames > author.frame_count) {
+        fprintf(stderr, "pad_author: %d of %d frames in aim mode, over the 20%% budget\n", aim_frames, author.frame_count);
+        return 1;
+    }
 
     if (!replay(replay_binary, events_path, replay_state, replay_dump)) {
         fprintf(stderr, "pad_author: replaying '%s' with %s failed\n", events_path, replay_binary);

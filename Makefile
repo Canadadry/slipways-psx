@@ -99,16 +99,27 @@
 #                       headless and rewrites worst-case/<game>.json from the
 #                       frames it pressed, then replays each JSON with
 #                       tmp/replay and fails unless the two last-frame states
-#                       are byte-identical, outside the suite
+#                       are byte-identical; also fails on a refused input (a
+#                       cross + circle chord, a jump-mode D-pad press into an
+#                       empty cone, a circle that changes nothing unless
+#                       `back --required`), a failed command check, more than
+#                       7200 frames, or more than 20% of the frames in aim
+#                       mode; the per-frame mode log and the totals go to
+#                       tmp/pad-author/<game>.modes.txt, outside the suite
 # make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
 #                       for one script, written to OUT (default
 #                       tmp/pad-author/<name>.json), ending at its first
-#                       `label <STOP_AT>`; a failed command writes the frames
-#                       so far to tmp/pad-author/<name>.failed.json and the
-#                       state to tmp/pad-author/<name>.state.txt
-# make pad-author-proof -> runs each tools/pad_author_proofs/<name>.pad and
-#                       fails unless its output is byte-identical to
-#                       tests/e2e/<name>.json, outside the suite
+#                       `label <STOP_AT>` (no aim budget then); a failed
+#                       command writes the frames so far to
+#                       tmp/pad-author/<name>.failed.json and the state to
+#                       tmp/pad-author/<name>.state.txt
+# make pad-author-proof -> runs tools/pad_author_proofs/: each <e2e>.frames.pad
+#                       must be byte-identical to tests/e2e/<e2e>.json, each
+#                       <e2e>.end-state.pad must pass tools/end_state.sh
+#                       against tests/e2e/<e2e>.json.end-state (both without
+#                       the aim budget), and each <name>.refused.pad must fail
+#                       with the error its `# expect:` first line names,
+#                       outside the suite
 # make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
 #                       as make state does and prints, per line of
 #                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
@@ -1050,7 +1061,6 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/state.c $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
-PAD_AUTHOR_PROOFS := $(wildcard tools/pad_author_proofs/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1063,11 +1073,18 @@ pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
 endif
 
-# Each proof regenerates the tests/e2e/ replay of its name into tmp/ and
-# compares the bytes.
-pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_PROOFS)
+PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
+PAD_AUTHOR_END_STATE_PROOFS := $(wildcard tools/pad_author_proofs/*.end-state.pad)
+PAD_AUTHOR_REFUSAL_PROOFS := $(wildcard tools/pad_author_proofs/*.refused.pad)
+pad_author_proof_json = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=.json))
+pad_author_proof_e2e = $(E2E_DIR)/$(basename $(basename $(notdir $(1)))).json
+
+# A refusal proof's first line is `# expect: <text of the error>`.
+pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) tools/end_state.sh
 	@mkdir -p $(TMP_DIR)/pad-author
-	@$(foreach p,$(PAD_AUTHOR_PROOFS),./$(TMP_DIR)/pad_author $(p) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.json)) || exit 1; cmp $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.json)) $(E2E_DIR)/$(notdir $(p:.pad=.json)) || exit 1; echo "pad-author-proof: $(p) regenerates $(E2E_DIR)/$(notdir $(p:.pad=.json))"; ) true
+	@$(foreach p,$(PAD_AUTHOR_FRAME_PROOFS),./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; cmp $(call pad_author_proof_json,$(p)) $(call pad_author_proof_e2e,$(p)) || exit 1; echo "pad-author-proof: $(p) regenerates $(call pad_author_proof_e2e,$(p))"; ) true
+	@$(foreach p,$(PAD_AUTHOR_END_STATE_PROOFS),STATE=$(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_e2e,$(p)) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) $(call pad_author_proof_e2e,$(p)).end-state || exit 1; echo "pad-author-proof: $(p) reaches $(call pad_author_proof_e2e,$(p)).end-state"; ) true
+	@$(foreach p,$(PAD_AUTHOR_REFUSAL_PROOFS),! ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) > /dev/null 2> $(TMP_DIR)/pad-author/refusal.txt || { echo "pad-author-proof: $(p) was not refused"; exit 1; }; grep -qF "$$(sed -n '1s/^# expect: //p' $(p))" $(TMP_DIR)/pad-author/refusal.txt || { cat $(TMP_DIR)/pad-author/refusal.txt; echo "pad-author-proof: $(p) refused for another reason"; exit 1; }; echo "pad-author-proof: $(p) refused: $$(sed -n '1s/^# expect: //p' $(p))"; ) true
 
 WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
 
