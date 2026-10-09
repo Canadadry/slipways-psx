@@ -30,6 +30,8 @@ src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c
 src/devtools/state_format.c | text state of make state, shared by the PC and PSX adapters
 src/devtools/state_format.h | text state of make state, header of devtools/state_format.c
+src/devtools/vram_digest.c | sprite sheet, screen and map digest lines, shared by the PC and PSX replays
+src/devtools/vram_digest.h | sprite sheet, screen and map digest lines, header of devtools/vram_digest.c
 src/devtools/save_check.c | save comparison harness of the tests, writes the state dump through a FILE stream
 src/devtools/save_check.h | save comparison harness of the tests, header of devtools/save_check.c
 src/platform/keymap.c | raylib backend, keymap.cfg parser

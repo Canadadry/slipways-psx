@@ -19,12 +19,15 @@
 #                       record at the end as one line of hex (the
 #                       initial_save format) and prints its decoded
 #                       "save:" summary; fails when there is no record or
-#                       it does not decode
+#                       it does not decode; with DIGEST=<file>, also writes
+#                       the FNV-1a lines of src/devtools/vram_digest.h
+#                       ("sprite-sheet", "screen <frame>" every 32nd frame
+#                       and the last, "map")
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
 #                       use to tmp/state.txt, outside the suite; takes
-#                       SAVE_HEX=<file> as make replay does
+#                       SAVE_HEX=<file> and DIGEST=<file> as make replay does
 # make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
 #                       every e2e of tests/e2e/, each state in
 #                       tmp/state/<name>.txt, then
@@ -710,7 +713,7 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/vram_digest.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -746,6 +749,9 @@ $(TMP_DIR)/format_self_test: $(call objs,src/cmd/format_self_test.c src/devtools
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_format_self_test: $(call objs,tests/test_format_self_test.c src/devtools/format_self_test.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_vram_digest: $(call objs,tests/test_vram_digest.c src/devtools/vram_digest.c src/devtools/screencast.c src/p8/sprite_sheet.c src/p8/vram.c) $(TMP_DIR)/replay tests/e2e/pad_title.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_format: $(call objs,tests/test_format.c src/p8/format.c) | $(TMP_DIR)
@@ -852,6 +858,7 @@ UNIT_TESTS := \
     test_psx_pad_compare \
     test_format_self_test \
     test_format \
+    test_vram_digest \
     test_e2e_limits \
     test_state_peaks \
     test_float_guard \
@@ -979,7 +986,7 @@ ifneq ($(filter replay,$(MAKECMDGOALS)),)
 endif
 
 replay: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard pointer-guard data-guard p8-guard
 
@@ -1150,7 +1157,7 @@ $(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
 
 ifneq ($(strip $(EVENTS)),)
 state: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 else
 state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))

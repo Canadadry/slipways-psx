@@ -8,6 +8,10 @@
  * STATE=<file>: the devtools/state text of the last frame; after a p8_fatal,
  * "stopped p8_fatal frame <n>" first.
  *
+ * DIGEST=<file>: the devtools/vram_digest lines, "sprite-sheet" once loaded,
+ * "screen" after cart_draw on each sampled frame, "map" after the last frame;
+ * nothing is hashed when unset.
+ *
  * SAVE_HEX=<file>: the stored record as one line of lowercase hex (the
  * initial_save format), then "save: " lines on stdout; exits 1 when the
  * record does not decode, or when there is none (the file is then removed). */
@@ -21,6 +25,7 @@
 #include "devtools/replay_source.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
+#include "devtools/vram_digest.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "game/save_state.h"
@@ -67,6 +72,10 @@ static void write_fill(const char *path) {
     fprintf(out, "load %lu\n", (unsigned long)load_zone_used());
     fprintf(out, "max_bytes load %lu\n", (unsigned long)game_zone_load_zone_max());
     fclose(out);
+}
+
+static void write_digest_line(void *context, const char *line) {
+    fputs(line, (FILE *)context);
 }
 
 /* Returns the replay's exit status. */
@@ -120,6 +129,17 @@ int main(int argc, char **argv) {
 
     p8_sprite_sheet_load(&memory);
 
+    const char *digest_path = getenv("DIGEST");
+    vram_digest_sink_t digest = { write_digest_line, NULL };
+    if (digest_path != NULL) {
+        digest.context = fopen(digest_path, "w");
+        if (digest.context == NULL) {
+            fprintf(stderr, "replay: cannot open the digest file '%s'\n", digest_path);
+            return 1;
+        }
+        vram_digest_write_sprite_sheet(&digest, &memory);
+    }
+
     static replay_source_t source;
     replay_source_status_t source_status = replay_source_open(&source, replay_path);
     assert(source_status == REPLAY_SOURCE_LOADED);
@@ -152,6 +172,9 @@ int main(int argc, char **argv) {
         input_step_run(&step, &input->frames[input->current_frame]);
         cart_update60();
         cart_draw();
+        if (digest_path != NULL && vram_digest_samples_frame(i, frame_count)) {
+            vram_digest_write_screen(&digest, &memory, i);
+        }
         /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
         if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
@@ -169,6 +192,14 @@ int main(int argc, char **argv) {
         fprintf(stderr, "replay: cannot close the capture file '%s'\n",
                 capture_path);
         return 1;
+    }
+
+    if (digest_path != NULL) {
+        vram_digest_write_map(&digest, &memory);
+        if (fclose(digest.context) != 0) {
+            fprintf(stderr, "replay: cannot write the digest file '%s'\n", digest_path);
+            return 1;
+        }
     }
 
     FILE *dump_out = fopen(dump_path, "w");
