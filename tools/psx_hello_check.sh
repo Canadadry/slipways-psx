@@ -69,30 +69,16 @@ distinct_pixels() {
     tail -c +$((${#header} + 2)) "$1" | od -An -v -tx1 -w$size | uniq | head -n 2 | wc -l
 }
 
-# Prints the .bin named by the .cue's FILE line, resolved next to the .cue;
-# prints nothing when there is no FILE line.
-cue_bin() {
-    name=$(sed -n 's/^[[:space:]]*FILE[[:space:]]*"\([^"]*\)".*/\1/p' "$input" | head -n 1)
-    [ -n "$name" ] && echo "$(dirname "$input")/$name"
-}
-
 if [ "$input_flag" = --exe ]; then
     if [ "$(head -c 8 "$input")" = "PS-X EXE" ]; then
         pass magic
     else
         report magic "$input does not start with PS-X EXE (elf2x failed?)"
     fi
+elif bin=$(sh "$script_dir/psx_cue_check.sh" "$input"); then
+    pass cue
 else
-    bin=$(cue_bin)
-    if [ -z "$bin" ]; then
-        report cue "$input has no FILE \"<bin>\" line"
-    elif [ ! -s "$bin" ]; then
-        report cue "$bin, named by $input, is missing or empty"
-    elif [ $(($(wc -c <"$bin") % 2352)) -ne 0 ]; then
-        report cue "$bin is $(wc -c <"$bin") bytes, not a whole number of 2352-byte sectors"
-    else
-        pass cue
-    fi
+    report cue "$bin"
 fi
 
 if detail=$(need run1 run2); then
