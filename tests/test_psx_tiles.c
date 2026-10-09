@@ -104,6 +104,74 @@ static int line_is_sent_as_the_software_shows_it(const p8_graphics_t *gfx, int x
     return count;
 }
 
+enum { CIRCLE_PIXELS_MAX = 4096 };
+static psx_tile_t circle_pixels[CIRCLE_PIXELS_MAX];
+static int circle_pixel_count;
+
+static void collect_pixel(psx_tile_t pixel, void *context) {
+    assert(context == circle_pixels);
+    assert(circle_pixel_count < CIRCLE_PIXELS_MAX);
+    assert(pixel.w == 1 && pixel.h == 1);
+    circle_pixels[circle_pixel_count++] = pixel;
+}
+
+static int circ_pixels_match_software(const p8_graphics_t *gfx, int cx, int cy, int r) {
+    p8_vram_init(&software);
+    p8_circ(gfx, &software, cx, cy, r, 7);
+    circle_pixel_count = 0;
+    int count = psx_tiles_circ(gfx, cx, cy, r, collect_pixel, circle_pixels);
+    assert(count == circle_pixel_count);
+    paint(circle_pixels, count);
+    assert_painted_is_the_software_screen();
+    assert((unsigned long)count * P8_GPU_TILE_1_BYTES <= p8_draw_cost_circ(gfx, cx, cy, r).bytes && "real bytes must fit the metered");
+    return count;
+}
+
+static int circfill_spans_match_software(const p8_graphics_t *gfx, int cx, int cy, int r) {
+    p8_vram_init(&software);
+    p8_circfill(gfx, &software, cx, cy, r, 7);
+    psx_tile_t spans[PSX_TILES_CIRCFILL_MAX];
+    int count = psx_tiles_circfill(gfx, cx, cy, r, spans);
+    assert(count >= 0 && count <= PSX_TILES_CIRCFILL_MAX);
+    for (int s = 0; s < count; s++) {
+        assert(spans[s].h == 1);
+    }
+    paint(spans, count);
+    assert_painted_is_the_software_screen();
+    p8_draw_cost_window_t window;
+    p8_draw_cost_frame_begin(&window);
+    assert((unsigned long)count * P8_GPU_TILE_BYTES <= p8_draw_cost_circfill(&window, gfx, cx, cy, r, 7).bytes &&
+           "real bytes must fit the metered");
+    return count;
+}
+
+static void test_a_circ_is_the_software_midpoint_circle_one_pixel_each(void) {
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    assert(circ_pixels_match_software(&gfx, 80, 60, 0) == 1);
+    assert(circ_pixels_match_software(&gfx, 80, 60, 1) == 4);
+    assert(circ_pixels_match_software(&gfx, 80, 60, 9) > 0);
+    assert(circ_pixels_match_software(&gfx, 80, 60, 59) > 0);
+    assert(circ_pixels_match_software(&gfx, 80, 60, -1) == 0);
+    p8_camera(&gfx, 300, -50);
+    assert(circ_pixels_match_software(&gfx, 302, -48, 6) > 0 && "clipped by the screen's corner");
+    assert(circ_pixels_match_software(&gfx, 380, 160, 150) > 0 && "only arcs show");
+    assert(circ_pixels_match_software(&gfx, 280, 10, 19) == 0);
+}
+
+static void test_a_circfill_is_one_span_per_row_of_the_software_disc(void) {
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    assert(circfill_spans_match_software(&gfx, 80, 60, 0) == 1);
+    assert(circfill_spans_match_software(&gfx, 80, 60, 1) == 3);
+    assert(circfill_spans_match_software(&gfx, 80, 60, 9) == 19);
+    assert(circfill_spans_match_software(&gfx, 80, 60, 61) == P8_SCREEN_HEIGHT);
+    assert(circfill_spans_match_software(&gfx, 80, 60, -1) == 0);
+    p8_camera(&gfx, -20, 400);
+    assert(circfill_spans_match_software(&gfx, -18, 515, 7) == 12 && "clipped by the screen's corner");
+    assert(circfill_spans_match_software(&gfx, 60, 380, 19) == 0);
+}
+
 static void test_a_line_is_one_segment_between_its_endpoints_after_the_camera(void) {
     p8_graphics_t gfx;
     p8_gfx_init(&gfx);
@@ -209,6 +277,8 @@ int main(void) {
     test_random_boxes_draw_as_the_software_does();
     test_a_line_is_one_segment_between_its_endpoints_after_the_camera();
     test_random_lines_are_sent_when_the_software_shows_them();
+    test_a_circ_is_the_software_midpoint_circle_one_pixel_each();
+    test_a_circfill_is_one_span_per_row_of_the_software_disc();
     printf("test_psx_tiles: ok\n");
     return 0;
 }

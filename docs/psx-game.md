@@ -37,7 +37,9 @@ build at once.
 It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
 in, as in the PC `-O0` binary. `snprintf`/`vsnprintf` are wrapped onto
 `src/p8/format.c`, and `_assert_abort` onto the PSX assert handler. A missing
-SDK fails naming `make psn00bsdk-toolchain-setup`.
+SDK fails naming `make psn00bsdk-toolchain-setup`. `psx_tty_write` masks
+IRQs around each BIOS `putchar`: an IRQ taken on the jump into it makes
+PCSX-Redux log that character twice, which broke a state line.
 
 ## Embedded assets
 
@@ -167,8 +169,12 @@ point, no `malloc`):
   `P8_PALETTE_RGB[col & 0x0F]`; `line` is one `LINE_F2` between its
   endpoints after the camera, unclipped (the GPU clips to the draw area),
   sent when its box meets the screen, so its stepping is the GPU's, not
-  PICO-8's (the plan's accepted divergence, measured by its capture); a
-  patterned `rectfill` and the four other entries draw nothing yet;
+  PICO-8's (the plan's accepted divergence, measured by its capture);
+  `circ` is one `TILE_1` per on-screen pixel and a plain `circfill` one
+  `TILE` span per screen row, both from the software backend's midpoint
+  loop (`psx_tiles.c`, host-tested pixel for pixel), so circles match the
+  PC exactly; a patterned `rectfill` or `circfill`, `spr` and `print` draw
+  nothing yet;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -342,8 +348,7 @@ None of these targets is in `make test-all`, and none runs a setup.
 ## Still to do
 
 - Step 4 of plan 10: the GPU families, one at a time, each with its capture
-  line in `psx/gpu_captures.txt`: `circ` and `circfill`, `spr`
-  and `map` (with the draw-palette CLUT cache), `print` (with the font texture
+  line in `psx/gpu_captures.txt`: `spr` and `map` (with the draw-palette CLUT cache), `print` (with the font texture
   and its 16 CLUTs), the fill patterns of `rectfill` and `circfill` (with the
   pattern slots), then the `all` captures.
 
@@ -360,8 +365,16 @@ None of these targets is in `make test-all`, and none runs a setup.
     near2 0 far 0 bbox 72,119-73,119 offpalette 0 nonuniform 0`, ceiling 2:
     two bottom-row pixels the PC lights stay black on the PSX, where the
     dragged slipway enters from below the screen (GPU stepping).
+  - `circfill` f217: `circfill f217 mask cls,line,circfill calls 17 differ 0
+    (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling
+    0. Every plain `circfill` of the game is the colour-0 disc behind a
+    planet, invisible on a cleared screen: the mask keeps `line` so the
+    discs show as the 14 pixels they cut from the slipways.
   - `rect` f322: `rect f322 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
+  - `circ` f394: `circ f394 mask cls,circ calls 2 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
+    colour-7 radius-9 pad circle round p61 and a colour-2 planet ring.
 
 - `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
   (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778

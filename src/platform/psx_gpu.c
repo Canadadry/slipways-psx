@@ -137,17 +137,21 @@ static void add_tile(psx_tile_t tile, int col) {
     setWH(primitive, tile.w, tile.h);
 }
 
+static void add_pixel(psx_tile_t pixel, void *context) {
+    const p8_rgb_t *rgb = context;
+    TILE_1 *primitive = packet(sizeof *primitive);
+    setTile1(primitive);
+    setRGB0(primitive, rgb->red, rgb->green, rgb->blue);
+    setXY0(primitive, pixel.x, pixel.y);
+}
+
 static void gpu_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
     (void)mem;
     psx_tile_t pixel;
-    if (!psx_tiles_pset(gfx, x, y, &pixel)) {
-        return;
+    if (psx_tiles_pset(gfx, x, y, &pixel)) {
+        p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
+        add_pixel(pixel, &rgb);
     }
-    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
-    TILE_1 *primitive = packet(sizeof *primitive);
-    setTile1(primitive);
-    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
-    setXY0(primitive, pixel.x, pixel.y);
 }
 
 static void gpu_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
@@ -170,14 +174,22 @@ static void gpu_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y
     }
 }
 
-/* TODO step 4: TILE_1 per midpoint pixel. */
 static void gpu_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
-    (void)gfx, (void)mem, (void)cx, (void)cy, (void)r, (void)col;
+    (void)mem;
+    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
+    psx_tiles_circ(gfx, cx, cy, r, add_pixel, &rgb);
 }
 
-/* TODO step 4: TILE spans, or pattern-slot SPRT spans under fillp. */
 static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
-    (void)gfx, (void)mem, (void)cx, (void)cy, (void)r, (void)col;
+    (void)mem;
+    if ((gfx->fillp_pattern & 0xFFFFu) != 0) {
+        return; /* TODO step 4: pattern-slot SPRT spans. */
+    }
+    psx_tile_t spans[PSX_TILES_CIRCFILL_MAX];
+    int count = psx_tiles_circfill(gfx, cx, cy, r, spans);
+    for (int s = 0; s < count; s++) {
+        add_tile(spans[s], col);
+    }
 }
 
 /* TODO step 4: SPRT through the draw-palette CLUT cache. */

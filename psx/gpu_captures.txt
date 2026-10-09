@@ -5,4 +5,6 @@ cls 1 cls
 rectfill 11 cls,rectfill
 pset 131 cls,pset
 line 194 cls,line
+circfill 217 cls,line,circfill
 rect 322 cls,rect
+circ 394 cls,circ

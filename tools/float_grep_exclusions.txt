@@ -60,8 +60,8 @@ src/platform/psx_gpu.c | PSX GPU drawing backend, PSX only
 src/platform/psx_gpu.h | PSX GPU drawing backend, header of platform/psx_gpu.c
 src/platform/psx_vram_layout.c | VRAM layout of the PSX GPU backend, PSX build and its host test
 src/platform/psx_vram_layout.h | VRAM layout of the PSX GPU backend, header of platform/psx_vram_layout.c
-src/platform/psx_tiles.c | pset, rect and rectfill as clipped GPU tiles and line as a GPU segment, PSX build and its host test
-src/platform/psx_tiles.h | pset, rect and rectfill as clipped GPU tiles and line as a GPU segment, header of platform/psx_tiles.c
+src/platform/psx_tiles.c | pset, rect, rectfill, circ and circfill as clipped GPU tiles and line as a GPU segment, PSX build and its host test
+src/platform/psx_tiles.h | pset, rect, rectfill, circ and circfill as clipped GPU tiles and line as a GPU segment, header of platform/psx_tiles.c
 src/devtools/draw_filter.c | family filter of the GPU captures, shared by the PC replay and the PSX GPU replay
 src/devtools/draw_filter.h | family filter of the GPU captures, header of devtools/draw_filter.c
 src/devtools/capture_list.c | GPU capture list parser, host tool
