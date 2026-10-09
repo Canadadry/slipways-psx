@@ -12,15 +12,25 @@
 #define PAD_JUMP_SCROLL_MARGIN_BOTTOM 31
 #define PAD_JUMP_SCROLL_SPEED 8
 
+/* A game stays unseeded until its first hovered object: pad_jump_reseed then takes the first colony, later the
+ * nearest. */
 typedef struct {
     entity_id_t hovered;
-    entity_id_t game;
     int seeded;
     int repeat_direction;
     int repeat_frames;
 } pad_jump_t;
 
 void pad_jump_init(pad_jump_t *jump);
+
+/* NULL hovers nothing. Seeds nothing. */
+void pad_jump_hover(pad_jump_t *jump, const entity_t *e);
+/* The hovered object while it is a pad_target_is_candidate; NULL otherwise. */
+entity_t *pad_jump_hovered(const pad_jump_t *jump);
+/* Hovers e, and seeds when e is not NULL. */
+void pad_jump_hover_seeded(pad_jump_t *jump, const entity_t *e);
+/* Hovers, and returns, pad_jump_seed's pick while unseeded, else pad_jump_nearest's; seeds when it is not NULL. */
+entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int centre_x, int centre_y);
 
 /* pad_buttons are the bits held this frame, pressed the bits newly down. Returns the single direction bit to jump
  * this frame, or 0. */

@@ -1,5 +1,7 @@
 #include "game/pad_jump.h"
 
+#include "engine/entity_id.h"
+#include "engine/entity_registry.h"
 #include "game/galaxy.h"
 #include "game/pad_target.h"
 #include "game/planet.h"
@@ -10,7 +12,28 @@
 #include <assert.h>
 
 void pad_jump_init(pad_jump_t *jump) {
-    *jump = (pad_jump_t){.hovered = ENTITY_ID_NONE, .game = ENTITY_ID_NONE};
+    *jump = (pad_jump_t){.hovered = ENTITY_ID_NONE};
+}
+
+void pad_jump_hover(pad_jump_t *jump, const entity_t *e) {
+    jump->hovered = entity_id_link(e);
+}
+
+entity_t *pad_jump_hovered(const pad_jump_t *jump) {
+    entity_t *hovered = entity_get(jump->hovered);
+    return pad_target_is_candidate(hovered) ? hovered : NULL;
+}
+
+void pad_jump_hover_seeded(pad_jump_t *jump, const entity_t *e) {
+    pad_jump_hover(jump, e);
+    jump->seeded |= e != NULL;
+}
+
+entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int centre_x, int centre_y) {
+    entity_t *picked = jump->seeded ? pad_jump_nearest(centre_x, centre_y, candidates)
+                                    : pad_jump_seed(candidates, centre_x, centre_y);
+    pad_jump_hover_seeded(jump, picked);
+    return picked;
 }
 
 static const int directions_by_priority[] = {P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT};

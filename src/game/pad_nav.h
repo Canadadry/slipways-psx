@@ -39,6 +39,7 @@ typedef struct {
     int cursor_y;
     int held_frames[4];
     int cross_engaged;
+    entity_id_t game;
     pad_jump_t jump;
     pad_slipway_t slipway;
     pad_back_t back;

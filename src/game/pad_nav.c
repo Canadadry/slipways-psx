@@ -64,13 +64,8 @@ int pad_nav_jump_mode(const pad_nav_t *nav) {
            nav->map_mode == PAD_NAV_MAP_JUMP;
 }
 
-static entity_t *hovered_object(const pad_nav_t *nav) {
-    entity_t *hovered = entity_get(nav->jump.hovered);
-    return pad_target_is_candidate(hovered) ? hovered : NULL;
-}
-
 entity_t *pad_nav_hovered(const pad_nav_t *nav) {
-    return nav->map_mode == PAD_NAV_MAP_JUMP ? hovered_object(nav) : NULL;
+    return nav->map_mode == PAD_NAV_MAP_JUMP ? pad_jump_hovered(&nav->jump) : NULL;
 }
 
 entity_t *pad_nav_slipway_start(const pad_nav_t *nav) {
@@ -172,10 +167,11 @@ static void aim_pan(pad_nav_t *nav, int pad_buttons) {
     }
 }
 
-/* Keeps the jump state's game and seeded flag: a reset within a game reseeds from the centre, never on the first colony. */
+/* Keeps the game and the jump state's seeded flag: a reset within a game reseeds from the centre, never on the first
+ * colony. */
 static void reset_map_mode(pad_nav_t *nav) {
     nav->map_mode = PAD_NAV_MAP_JUMP;
-    nav->jump.hovered = ENTITY_ID_NONE;
+    pad_jump_hover(&nav->jump, NULL);
     pad_jump_repeat_clear(&nav->jump);
     nav->marker_frames = 0;
     nav->placement = PAD_NAV_PLACEMENT_NONE;
@@ -193,6 +189,7 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->focus = ENTITY_ID_NONE;
     pad_build_init(&nav->build);
     pad_cycle_init(&nav->cycle);
+    nav->game = ENTITY_ID_NONE;
     pad_jump_init(&nav->jump);
     pad_back_init(&nav->back);
     reset_map_mode(nav);
@@ -308,7 +305,7 @@ static entity_list_t live_candidates(void) {
 /* Jump mode hovering e, or nothing when e is no candidate: the jump mode reseed then runs. */
 static void back_to_jump_mode(pad_nav_t *nav, const entity_t *e) {
     nav->map_mode = PAD_NAV_MAP_JUMP;
-    nav->jump.hovered = pad_target_is_candidate(e) ? entity_id_link(e) : ENTITY_ID_NONE;
+    pad_jump_hover(&nav->jump, pad_target_is_candidate(e) ? e : NULL);
     pad_slipway_init(&nav->slipway);
 }
 
@@ -320,8 +317,7 @@ static void leave_aim_mode(pad_nav_t *nav) {
     centre_world_point(&x, &y);
     entity_t *nearest = pad_jump_nearest(x, y, &candidates);
     nav->map_mode = PAD_NAV_MAP_JUMP;
-    nav->jump.hovered = entity_id_link(nearest);
-    nav->jump.seeded |= nearest != NULL;
+    pad_jump_hover_seeded(&nav->jump, nearest);
     pad_jump_repeat_clear(&nav->jump);
 }
 
@@ -343,7 +339,7 @@ static int select_tap(pad_nav_t *nav, const entity_t *current, const entity_t **
     int jumps = next != NULL && next != current;
     if (jumps) {
         back_to_jump_mode(nav, next);
-        nav->jump.seeded = 1;
+        pad_jump_hover_seeded(&nav->jump, next);
         pad_jump_repeat_clear(&nav->jump);
         edge_scroll(next);
         *shown = next;
@@ -384,12 +380,12 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
  * to NULL: no title frame is needed in between. */
 static void reset_on_new_game(pad_nav_t *nav) {
     entity_t *economy = main_economy_typed() != NULL ? &main_economy_typed()->header : NULL;
-    if (economy == NULL || entity_get(nav->jump.game) == economy) {
+    if (economy == NULL || entity_get(nav->game) == economy) {
         return;
     }
     pad_jump_init(&nav->jump);
     pad_back_init(&nav->back);
-    nav->jump.game = entity_id_link(economy);
+    nav->game = entity_id_link(economy);
     reset_map_mode(nav);
 }
 
@@ -597,17 +593,14 @@ static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_inpu
     played->mouse_buttons = P8_MOUSE_LEFT;
 }
 
-/* A game stays unseeded until its first candidate: the first colony then, else the nearest; later, the nearest. */
 static void seed_hovered(pad_nav_t *nav) {
-    if (hovered_object(nav) != NULL) {
+    if (pad_jump_hovered(&nav->jump) != NULL) {
         return;
     }
     entity_list_t candidates = live_candidates();
     int x, y;
     centre_world_point(&x, &y);
-    entity_t *hovered = nav->jump.seeded ? pad_jump_nearest(x, y, &candidates) : pad_jump_seed(&candidates, x, y);
-    nav->jump.hovered = entity_id_link(hovered);
-    nav->jump.seeded |= hovered != NULL;
+    (void)pad_jump_reseed(&nav->jump, &candidates, x, y);
 }
 
 /* The rest point and the camera before shake: what the edge scroll and △ read, so neither follows the bob or a shake. */
@@ -677,7 +670,7 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
     entity_list_t candidates = live_candidates();
     entity_t *target = pad_target_pick(hovered, direction, &candidates);
     if (target != NULL) {
-        nav->jump.hovered = entity_id_link(target);
+        pad_jump_hover(&nav->jump, target);
     }
 }
 
@@ -693,11 +686,11 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         return;
     }
     int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
-    entity_t *hovered = hovered_object(nav);
+    entity_t *hovered = pad_jump_hovered(&nav->jump);
     int clicking = release || nav->release_pending;
     entity_t *back = circle_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
     if (back != NULL) {
-        nav->jump.hovered = entity_id_link(back);
+        pad_jump_hover(&nav->jump, back);
         edge_scroll(back);
         *shown = back;
         screen_point(back, &nav->cursor_x, &nav->cursor_y);
@@ -726,7 +719,7 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     }
     if (direction != 0 && !clicking) {
         jump_from(nav, hovered, direction);
-        hovered = hovered_object(nav);
+        hovered = pad_jump_hovered(&nav->jump);
     }
     if (!clicking) {
         edge_scroll(hovered);

@@ -1,7 +1,9 @@
 #include "game/pad_jump.h"
 
+#include "engine/entity_id.h"
 #include "engine/frame_zone.h"
 #include "game/planet.h"
+#include "heap_allocator.h"
 
 #include "p8/fixed.h"
 #include "p8/input.h"
@@ -12,7 +14,7 @@
 static void test_init_hovers_nothing_unseeded_without_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    assert(entity_id_is_none(jump.hovered) && entity_id_is_none(jump.game) && !jump.seeded);
+    assert(pad_jump_hovered(&jump) == NULL && !jump.seeded);
     assert(pad_jump_repeat_step(&jump, P8_PAD_RIGHT, 0) == 0);
 }
 
@@ -217,6 +219,56 @@ static void test_seed_of_nothing_is_null(void) {
     assert(pad_jump_seed(NULL, 80, 60) == NULL);
 }
 
+/* With an id, as entity_get needs. */
+static void place_live(entity_t *e, state_t state, int x, int y) {
+    place_in_state(e, planet_class(), state, x, y);
+    entity_id_take(e);
+}
+
+static void test_hovered_is_the_hovered_object_while_it_is_a_candidate(void) {
+    entity_t known, unknown;
+    place_live(&known, ENTITY_STATE_KNOWN, 0, 0);
+    place_live(&unknown, ENTITY_STATE_UNKNOWN, 1, 0);
+    pad_jump_t jump;
+    pad_jump_init(&jump);
+    pad_jump_hover(&jump, &known);
+    assert(pad_jump_hovered(&jump) == &known && !jump.seeded);
+    known.is_dead = 1;
+    assert(pad_jump_hovered(&jump) == NULL);
+    pad_jump_hover(&jump, &unknown);
+    assert(pad_jump_hovered(&jump) == NULL);
+    pad_jump_hover(&jump, NULL);
+    assert(pad_jump_hovered(&jump) == NULL && !jump.seeded);
+}
+
+static void test_hover_seeded_seeds_only_on_an_object(void) {
+    entity_t known;
+    place_live(&known, ENTITY_STATE_KNOWN, 0, 0);
+    pad_jump_t jump;
+    pad_jump_init(&jump);
+    pad_jump_hover_seeded(&jump, NULL);
+    assert(pad_jump_hovered(&jump) == NULL && !jump.seeded);
+    pad_jump_hover_seeded(&jump, &known);
+    assert(pad_jump_hovered(&jump) == &known && jump.seeded);
+    pad_jump_hover_seeded(&jump, NULL);
+    assert(pad_jump_hovered(&jump) == NULL && jump.seeded);
+}
+
+static void test_reseed_takes_the_first_colony_once_then_the_nearest(void) {
+    entity_t near_known, colony;
+    place_live(&near_known, ENTITY_STATE_KNOWN, 0, 0);
+    place_live(&colony, ENTITY_STATE_SETTLED, 20, 20);
+    entity_t *all[] = {&near_known, &colony};
+    layout_t layout;
+    pad_jump_t jump;
+    pad_jump_init(&jump);
+    assert(pad_jump_reseed(&jump, gather(&layout, NULL, 0), 0, 0) == NULL && !jump.seeded);
+    assert(pad_jump_reseed(&jump, gather(&layout, all, 2), 0, 0) == &colony && jump.seeded);
+    assert(pad_jump_hovered(&jump) == &colony);
+    assert(pad_jump_reseed(&jump, gather(&layout, all, 2), 0, 0) == &near_known);
+    assert(pad_jump_hovered(&jump) == &near_known && jump.seeded);
+}
+
 static void test_candidates_keep_known_and_settled_in_order(void) {
     entity_t unknown, colony, probe, known, dead, structure, vanishing;
     place_in_state(&unknown, planet_class(), ENTITY_STATE_UNKNOWN, 0, 0);
@@ -241,10 +293,14 @@ static void test_candidates_of_nothing_are_empty(void) {
 }
 
 int main(void) {
+    entity_id_table_init(&heap_allocator);
     test_init_hovers_nothing_unseeded_without_repeat();
     test_seed_prefers_the_first_colony();
     test_seed_without_colony_takes_the_nearest();
     test_seed_of_nothing_is_null();
+    test_hovered_is_the_hovered_object_while_it_is_a_candidate();
+    test_hover_seeded_seeds_only_on_an_object();
+    test_reseed_takes_the_first_colony_once_then_the_nearest();
     test_candidates_keep_known_and_settled_in_order();
     test_candidates_of_nothing_are_empty();
     test_world_point_floors_map_pos_and_ignores_pos();
