@@ -249,7 +249,10 @@
 #                       test_keymap compiles keymap.default.cfg; a game built
 #                       with bindings.cfg writes "bindings": "personal" in
 #                       every recording, which replay refuses; also links
-#                       pico8/demo.json, compiled into tmp/demo/demo.c
+#                       pico8/demo.json, compiled into tmp/demo/demo.c;
+#                       every binary, game included, also links
+#                       bindings.default.cfg as the default table the demo
+#                       plays on
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
@@ -375,13 +378,17 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
+BINDINGS_CORE_UNIT := $(TMP_DIR)/bindings/core.c
+
 # The whole engine closure: all of src/ except the three entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c`, `src/platform/keymap.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, replay_control, replay_source, screencast,
-# session_recorder, state). Used by the
+# session_recorder, state), plus the default bindings table generated into
+# tmp/bindings/core.c. Used by the
 # targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
+    $(BINDINGS_CORE_UNIT) \
     src/p8/assets.c \
     src/game/background.c \
     src/game/bindings.c \
@@ -474,7 +481,7 @@ ENGINE_SRCS := \
 # The ported core, free of floating point: the engine closure minus the host
 # tools, which keep the libc. constants-check, float-guard, alloc-guard and
 # float-grep all read this list.
-CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
+CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
 
 # A narrower closure: what data_init() reaches to build a real game state,
 # without calling cart_load().
@@ -562,7 +569,11 @@ $(BINDINGS_DEFAULT_UNIT): bindings.default.cfg $(TMP_DIR)/bindings_generate
 	@mkdir -p $(@D)
 	$(TMP_DIR)/bindings_generate $< $@
 
-$(TMP_DIR)/test_bindings: $(call objs,tests/test_bindings.c src/game/bindings.c $(BINDINGS_DEFAULT_UNIT)) bindings.default.cfg | $(TMP_DIR)
+$(BINDINGS_CORE_UNIT): bindings.default.cfg $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate --default $< $@
+
+$(TMP_DIR)/test_bindings: $(call objs,tests/test_bindings.c src/game/bindings.c $(BINDINGS_DEFAULT_UNIT) $(BINDINGS_CORE_UNIT)) bindings.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)

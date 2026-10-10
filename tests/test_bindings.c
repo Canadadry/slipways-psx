@@ -238,14 +238,28 @@ static void test_the_default_file_binds_plan_12_buttons(void) {
     }
 }
 
-static void test_the_compiled_default_table_is_the_parse_of_the_default_file(void) {
-    bindings_t bindings = parse_default_file();
+static void assert_same_masks(const bindings_t *got, const bindings_t *want) {
     for (int mode = 0; mode < BINDINGS_MODE_COUNT; mode++) {
         for (int action = 0; action < BINDINGS_ACTION_COUNT; action++) {
-            assert(bindings_mask(&bindings_compiled, (bindings_mode_t)mode, (bindings_action_t)action) ==
-                   bindings_mask(&bindings, (bindings_mode_t)mode, (bindings_action_t)action));
+            assert(bindings_mask(got, (bindings_mode_t)mode, (bindings_action_t)action) ==
+                   bindings_mask(want, (bindings_mode_t)mode, (bindings_action_t)action));
         }
     }
+}
+
+static void test_the_compiled_default_table_is_the_parse_of_the_default_file(void) {
+    bindings_t bindings = parse_default_file();
+    assert_same_masks(&bindings_compiled, &bindings);
+}
+
+static void test_the_core_default_table_is_the_parse_of_the_default_file(void) {
+    bindings_t bindings = parse_default_file();
+    assert_same_masks(&bindings_default, &bindings);
+}
+
+static void test_the_core_and_compiled_tables_link_side_by_side(void) {
+    assert(bindings_compiled_personal == 0);
+    assert_same_masks(&bindings_default, &bindings_compiled);
 }
 
 static void test_a_swap_table_leaves_every_other_mode_unbound(void) {
@@ -411,6 +425,8 @@ int main(void) {
     test_an_action_the_mode_does_not_have_is_unbound();
     test_the_default_file_binds_plan_12_buttons();
     test_the_compiled_default_table_is_the_parse_of_the_default_file();
+    test_the_core_default_table_is_the_parse_of_the_default_file();
+    test_the_core_and_compiled_tables_link_side_by_side();
     test_a_swap_table_leaves_every_other_mode_unbound();
     test_a_button_bound_twice_in_one_mode_is_a_conflict();
     test_an_unknown_mode_is_quoted();

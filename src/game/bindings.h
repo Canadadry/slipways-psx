@@ -61,6 +61,8 @@ extern const bindings_t bindings_compiled;
 
 extern const int bindings_compiled_personal;
 
+extern const bindings_t bindings_default;
+
 typedef struct {
     int line;
     char text[256];
