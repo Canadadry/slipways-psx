@@ -51,6 +51,7 @@
 #define YEARS_TO_END_MAX 200
 #define REVEAL_FRAMES_MAX 30
 #define MENU_DWELL_MAX 60
+#define CAPTION_COMMAND "caption"
 
 typedef struct {
     char text[LINE_MAX_CHARS];
@@ -155,6 +156,7 @@ void pad_author_init(pad_author_t *author) {
     bump_zone_init(&scratch, "pad_author scratch", scratch_cells, SCRATCH_BYTES);
     scratch_zone = allocator_from_bump_zone(&scratch);
     pad_metrics_init(&author->metrics, &scratch);
+    pad_caption_track_init(&author->caption_track, author->captions, PAD_AUTHOR_CAPTIONS_MAX);
     memset(&boot_frame, 0, sizeof boot_frame);
     boot_input.frames = &boot_frame;
     boot_input.frame_count = 1;
@@ -264,6 +266,10 @@ static int settle_back(pad_author_t *author, const script_t *script, const pad_m
 static int emit(pad_author_t *author, const script_t *script, int buttons) {
     if (author->frame_count == PAD_AUTHOR_FRAME_BUDGET) {
         return fail(author, script, "over the frame budget of %d", PAD_AUTHOR_FRAME_BUDGET);
+    }
+    char reason[PAD_AUTHOR_ERROR_MAX / 4];
+    if (!pad_caption_track_frame(&author->caption_track, author->frame_count, buttons, reason, sizeof reason)) {
+        return fail(author, script, "%s", reason);
     }
     const int face = P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6;
     int pressed = pad_metrics_pressed(&author->metrics, buttons);
@@ -1321,6 +1327,33 @@ static int run_goal(pad_author_t *author, const script_t *script) {
     return fail(author, script, "unknown command '%s'", command);
 }
 
+/* A caption shown too briefly is the fault of the line that opened it, at the frame it appeared. */
+static int fail_at_caption(pad_author_t *author, const char *reason) {
+    const pad_caption_track_t *track = &author->caption_track;
+    assert(track->shown && "a failed close leaves the caption shown");
+    snprintf(author->error, sizeof author->error, "%.200s:%d: frame %d: %s", author->caption_path, author->caption_line,
+             track->captions[track->count - 1].from, reason);
+    return 0;
+}
+
+static int run_caption(pad_author_t *author, const script_t *script) {
+    if (script->current->token_count < 2) return fail(author, script, "caption: needs a text or -");
+    pad_caption_track_t *track = &author->caption_track;
+    char reason[PAD_AUTHOR_ERROR_MAX / 4];
+    if (strcmp(script->current->tokens[1], "-") == 0) {
+        if (!track->shown) return fail(author, script, "caption -: no caption shown");
+        return pad_caption_track_clear(track, author->frame_count, reason, sizeof reason) || fail_at_caption(author, reason);
+    }
+    char text[PAD_CAPTION_TEXT_SIZE];
+    if (!pad_caption_parse(script->current->tokens[1], text, sizeof text, reason, sizeof reason)) {
+        return fail(author, script, "%s", reason);
+    }
+    if (!pad_caption_track_show(track, author->frame_count, text, reason, sizeof reason)) return fail_at_caption(author, reason);
+    snprintf(author->caption_path, sizeof author->caption_path, "%s", script->path);
+    author->caption_line = script->current->number;
+    return 1;
+}
+
 static int run_line(pad_author_t *author, const script_t *script, int depth) {
     char *const *tokens = script->current->tokens;
     const char *command = tokens[0];
@@ -1378,11 +1411,31 @@ static int run_line(pad_author_t *author, const script_t *script, int depth) {
     if (strcmp(command, "label") == 0) {
         return expect_tokens(author, script, 2, 2);
     }
+    if (strcmp(command, CAPTION_COMMAND) == 0) return run_caption(author, script);
     return run_goal(author, script);
+}
+
+/* `caption` takes the rest of its line as one raw argument, so a caption is not cut into words. */
+static int tokenize_caption(script_line_t *line) {
+    char *command = line->text + strspn(line->text, " \t");
+    size_t length = strlen(CAPTION_COMMAND);
+    if (strncmp(command, CAPTION_COMMAND, length) != 0 || (command[length] != '\0' && !strchr(" \t", command[length]))) {
+        return 0;
+    }
+    char *text = command + length;
+    text += strspn(text, " \t");
+    command[length] = '\0';
+    size_t end = strlen(text);
+    while (end > 0 && strchr(" \t", text[end - 1])) text[--end] = '\0';
+    line->tokens[0] = command;
+    line->tokens[1] = text;
+    line->token_count = end > 0 ? 2 : 1;
+    return 1;
 }
 
 static int tokenize(pad_author_t *author, const script_t *script, script_line_t *line) {
     line->token_count = 0;
+    if (tokenize_caption(line)) return 1;
     for (char *token = strtok(line->text, " \t"); token != NULL; token = strtok(NULL, " \t")) {
         if (line->token_count == TOKENS_MAX) {
             snprintf(author->error, sizeof author->error, "%s:%d: more than %d words", script->path, line->number,
@@ -1467,6 +1520,20 @@ static int run_file(pad_author_t *author, const char *path, const char *until_la
     return ok;
 }
 
+/* Closes a copy: the author's track stays open, so --try lines continue the shown caption. */
+static int check_captions_end(pad_author_t *author) {
+    pad_caption_track_t closed = author->caption_track;
+    char reason[PAD_AUTHOR_ERROR_MAX / 4];
+    return pad_caption_track_end(&closed, author->frame_count, 1, reason, sizeof reason) || fail_at_caption(author, reason);
+}
+
+int pad_author_captions_member(pad_author_t *author, char *out, size_t out_size) {
+    pad_caption_track_t closed = author->caption_track;
+    char reason[PAD_AUTHOR_ERROR_MAX / 4];
+    pad_caption_track_end(&closed, author->frame_count, 0, reason, sizeof reason);
+    return pad_caption_write_member(&closed, out, out_size);
+}
+
 int pad_author_run(pad_author_t *author, const char *script_path, const char *stop_label) {
     assert(author != NULL && script_path != NULL);
     author->stop_label = stop_label;
@@ -1478,7 +1545,8 @@ int pad_author_run(pad_author_t *author, const char *script_path, const char *st
                  author->frame_count, author->stop_label);
         return 0;
     }
-    return 1;
+    /* A caption cut by the stop label was not shown short: the output is only a prefix. */
+    return author->stopped || check_captions_end(author);
 }
 
 int pad_author_run_line(pad_author_t *author, const char *commands) {
@@ -1497,5 +1565,5 @@ int pad_author_run_line(pad_author_t *author, const char *commands) {
         if (line.token_count > 0 && !run_line(author, &script, 0)) return 0;
     }
     pad_metrics_view_t now = pad_metrics_view_read(&author->step);
-    return settle_back(author, &script, &now, 1);
+    return settle_back(author, &script, &now, 1) && check_captions_end(author);
 }

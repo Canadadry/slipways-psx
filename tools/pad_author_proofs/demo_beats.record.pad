@@ -1,20 +1,27 @@
-# Section 2's beats from pico8/demo_record.hex, without captions: an opening of
-# 150 frames, each beat 90 frames before its press and padded to 150 frames at
-# least, a closing of 180.
+# Section 2's beats and captions from pico8/demo_record.hex: an opening of 150
+# frames, each beat's caption 90 frames before its press and shown 150 frames
+# at least, a closing of 180.
 from-record ../../pico8/demo_record.hex
+caption build a trading empire/across the stars
 idle 150
+caption probe the dark/to find new planets
 idle 90
 fold 118 307
+caption colonize planets:/each one needs and makes goods
 idle 90
 colonise p32
 idle 40
+caption link colonies with slipways/so goods can flow
 idle 90
 slipway p32 p55
 idle 50
+caption end the year:/trade earns money and science
 idle 90
 year
 idle 15
+caption spend science on new tech
 idle 90
 research xenofoods
 idle 44
+caption slipways/press any button
 idle 180

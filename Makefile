@@ -116,7 +116,13 @@
 #                       bindings) that changes nothing unless
 #                       `back --required`), a failed command check, more than
 #                       7200 frames, or 25% or more of the frames in aim
-#                       mode; the per-frame mode log and the totals go to
+#                       mode; a `caption` (`/` breaks the line, `caption -`
+#                       clears; written as a "captions" header member) is
+#                       refused with a line over 32 characters, more than 2
+#                       lines, the letter v, a character with no font glyph,
+#                       fewer than 150 frames shown, or a button down fewer
+#                       than 90 frames after it appears; the per-frame mode
+#                       log and the totals go to
 #                       tmp/pad-author/<game>.modes.txt, outside the suite
 # make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
 #                       for one script, written to OUT (default
@@ -1202,7 +1208,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_caption.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)

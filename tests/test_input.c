@@ -454,6 +454,22 @@ static void test_unknown_header_members_are_ignored(void) {
     p8_input_free(&input);
 }
 
+static void test_captions_member_is_ignored(void) {
+    const char *path = "tmp/test_input_captions.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n  \"start\": \"resume\",\n  \"initial_save\": \"00a1\",\n"
+                     "  \"captions\": [\n"
+                     "    { \"from\": 0, \"to\": 150, \"text\": \"build a trading empire\\nacross the stars\" },\n"
+                     "    { \"from\": 150, \"to\": 330, \"text\": \"spend science on new tech\" }\n"
+                     "  ],\n" PAD_FRAMES_TEXT "}\n");
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, path));
+    assert(input.frame_count == 2);
+    assert(input.frames[0].pad_buttons == P8_PAD_BUTTON_1 && input.frames[1].pad_buttons == 0);
+    p8_input_free(&input);
+    remove(path);
+}
+
 static void test_append_writes_a_header_member_into_a_fresh_file_only(void) {
     const char *path = "tmp/test_input_append_header_member.json";
     const char *member = "\"initial_save\": \"00ff\"";
@@ -540,6 +556,7 @@ int main(void) {
     test_input_after_the_frames_is_not_a_header();
     test_old_mouse_recording_fails();
     test_unknown_header_members_are_ignored();
+    test_captions_member_is_ignored();
     test_append_does_not_rewrite_already_recorded_frames();
     test_append_with_zero_tail_offset_starts_a_fresh_recording();
     test_append_writes_a_header_member_into_a_fresh_file_only();
