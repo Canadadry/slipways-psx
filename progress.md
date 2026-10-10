@@ -56,7 +56,7 @@
   - [ ] 16. Fixtures in replay
     - [x] Chunk 1: fixture reading in replay_source
     - [x] Chunk 2: replay reads the fixture, Make learns it
-    - [ ] Chunk 3: in-process replayers
+    - [x] Chunk 3: in-process replayers
   - [ ] 17. Personal recordings flagged
   - [ ] 18. Swap twin
   - [ ] 19. Unbound action
