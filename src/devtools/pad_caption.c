@@ -3,6 +3,7 @@
 #include "p8/gfx.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -208,4 +209,125 @@ int pad_caption_write_member(const pad_caption_track_t *track, char *out, size_t
     }
     member_append_string(&writer, "  ]");
     return (int)writer.used;
+}
+
+typedef struct {
+    const char *p;
+    char *error;
+    size_t error_size;
+} member_reader_t;
+
+static void reader_skip_spaces(member_reader_t *reader) {
+    while (*reader->p == ' ' || *reader->p == '\t' || *reader->p == '\n' || *reader->p == '\r') {
+        reader->p++;
+    }
+}
+
+static int reader_expect(member_reader_t *reader, const char *token, int caption) {
+    reader_skip_spaces(reader);
+    size_t length = strlen(token);
+    if (strncmp(reader->p, token, length) != 0) {
+        if (caption == 0) {
+            snprintf(reader->error, reader->error_size, "\"captions\": expected %s", token);
+        } else {
+            snprintf(reader->error, reader->error_size, "\"captions\": caption %d: expected %s", caption, token);
+        }
+        return 0;
+    }
+    reader->p += length;
+    return 1;
+}
+
+static int reader_frame(member_reader_t *reader, const char *key, int caption, int *out) {
+    if (!reader_expect(reader, key, caption) || !reader_expect(reader, ":", caption)) {
+        return 0;
+    }
+    reader_skip_spaces(reader);
+    int value = 0;
+    int digits = 0;
+    while (*reader->p >= '0' && *reader->p <= '9') {
+        if (value > (INT_MAX - (*reader->p - '0')) / 10) {
+            digits = 0;
+            break;
+        }
+        value = value * 10 + (*reader->p++ - '0');
+        digits++;
+    }
+    if (digits == 0) {
+        snprintf(reader->error, reader->error_size, "\"captions\": caption %d: %s is not a frame number", caption, key);
+        return 0;
+    }
+    *out = value;
+    return 1;
+}
+
+static int reader_text(member_reader_t *reader, int caption, char *out) {
+    if (!reader_expect(reader, "\"text\"", caption) || !reader_expect(reader, ":", caption) ||
+        !reader_expect(reader, "\"", caption)) {
+        return 0;
+    }
+    size_t used = 0;
+    while (*reader->p != '"') {
+        char c = *reader->p;
+        if (c == '\0' || c == '\n') {
+            snprintf(reader->error, reader->error_size, "\"captions\": caption %d: unterminated text", caption);
+            return 0;
+        }
+        if (c == '\\') {
+            if (reader->p[1] != 'n') {
+                snprintf(reader->error, reader->error_size, "\"captions\": caption %d: escape \\%c, only \\n is read",
+                         caption, reader->p[1] ? reader->p[1] : ' ');
+                return 0;
+            }
+            c = '\n';
+            reader->p++;
+        }
+        if (used + 1 >= PAD_CAPTION_TEXT_SIZE) {
+            snprintf(reader->error, reader->error_size, "\"captions\": caption %d: text longer than %d bytes", caption,
+                     PAD_CAPTION_TEXT_SIZE - 1);
+            return 0;
+        }
+        out[used++] = c;
+        reader->p++;
+    }
+    reader->p++;
+    out[used] = '\0';
+    return 1;
+}
+
+int pad_caption_read_member(const char *json, pad_caption_t *captions, int capacity, char *error, size_t error_size) {
+    assert(json && captions && capacity > 0 && error && error_size > 0);
+    static const char key[] = "\"captions\":";
+    const char *header_end = strstr(json, "\"frames\":");
+    const char *start = strstr(json, key);
+    if (!start || (header_end && start > header_end)) {
+        return 0;
+    }
+    member_reader_t reader = {start + strlen(key), error, error_size};
+    if (!reader_expect(&reader, "[", 0)) {
+        return -1;
+    }
+    int count = 0;
+    for (;;) {
+        int caption = count + 1;
+        if (count == capacity) {
+            snprintf(error, error_size, "\"captions\": more than %d captions", capacity);
+            return -1;
+        }
+        pad_caption_t *out = &captions[count];
+        if (!reader_expect(&reader, "{", caption) || !reader_frame(&reader, "\"from\"", caption, &out->from) ||
+            !reader_expect(&reader, ",", caption) || !reader_frame(&reader, "\"to\"", caption, &out->to) ||
+            !reader_expect(&reader, ",", caption) || !reader_text(&reader, caption, out->text) ||
+            !reader_expect(&reader, "}", caption)) {
+            return -1;
+        }
+        count++;
+        reader_skip_spaces(&reader);
+        if (*reader.p == ']') {
+            return count;
+        }
+        if (!reader_expect(&reader, ",", caption)) {
+            return -1;
+        }
+    }
 }

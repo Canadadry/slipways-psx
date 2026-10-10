@@ -20,6 +20,9 @@
     - [x] Chunk 2: make demo-check
     - [x] Chunk 3: pico8/demo.txt
   - [ ] 8. Compiled demo
+    - [x] Chunk 1: captions reader
+    - [ ] Chunk 2: demo_source loader
+    - [ ] Chunk 3: demo_generate and compiled data
 - [ ] Phase 2 — Attract mode in the core
   - [ ] 9. Default table beside the compiled one
   - [ ] 10. Attract state machine

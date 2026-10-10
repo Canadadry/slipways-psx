@@ -37,4 +37,8 @@ int pad_caption_track_end(pad_caption_track_t *track, int frame, int checked, ch
 /* The bare "captions" member for p8_input_save's header; its length, or 0 and "" when there is no caption. */
 int pad_caption_write_member(const pad_caption_track_t *track, char *out, size_t out_size);
 
+/* The "captions" member of a pad file's header (before "frames"): its caption count, 0 when it is absent, or -1
+ * and the reason in `error`. Tolerates any spacing; only the writer's escape, \n, is decoded. */
+int pad_caption_read_member(const char *json, pad_caption_t *captions, int capacity, char *error, size_t error_size);
+
 #endif

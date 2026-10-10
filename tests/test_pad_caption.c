@@ -266,6 +266,97 @@ static void test_no_caption_writes_no_member(void) {
     assert(member[0] == '\0');
 }
 
+static void assert_reads_back(const tracker_t *written) {
+    char json[1024];
+    int length = snprintf(json, sizeof json, "{\n  \"input\": \"pad\",\n  ");
+    length += pad_caption_write_member(&written->track, json + length, sizeof json - (size_t)length);
+    snprintf(json + length, sizeof json - (size_t)length, ",\n  \"frames\": [\n  ]\n}\n");
+
+    pad_caption_t captions[CAPACITY];
+    char error[128] = "";
+    int count = pad_caption_read_member(json, captions, CAPACITY, error, sizeof error);
+    if (count != written->track.count) {
+        fprintf(stderr, "read %d captions, error '%s', from:\n%s\n", count, error, json);
+    }
+    assert(count == written->track.count);
+    for (int i = 0; i < count; i++) {
+        assert(captions[i].from == written->track.captions[i].from);
+        assert(captions[i].to == written->track.captions[i].to);
+        assert(strcmp(captions[i].text, written->track.captions[i].text) == 0);
+    }
+}
+
+static void test_the_reader_gives_back_what_the_writer_wrote(void) {
+    tracker_t tracker;
+    tracker_init(&tracker);
+    assert(show(&tracker, 0, "probe the dark"));
+    assert(end(&tracker, 150, 1));
+    assert_reads_back(&tracker);
+
+    tracker_init(&tracker);
+    assert(show(&tracker, 1, "build a trading empire\nacross the stars"));
+    assert(show(&tracker, 300, "probe the dark"));
+    assert(clear(&tracker, 450));
+    assert(show(&tracker, 2000, "END THE YEAR:\nScore"));
+    assert(end(&tracker, 2180, 1));
+    assert_reads_back(&tracker);
+}
+
+static int read_member(const char *json, char *error) {
+    pad_caption_t captions[2];
+    return pad_caption_read_member(json, captions, 2, error, 128);
+}
+
+static void assert_member_refused(const char *json, const char *expected_error) {
+    char error[128] = "";
+    int count = read_member(json, error);
+    if (count != -1 || strcmp(error, expected_error) != 0) {
+        fprintf(stderr, "read %d, error '%s', expected '%s'\n", count, error, expected_error);
+    }
+    assert(count == -1);
+    assert(strcmp(error, expected_error) == 0);
+}
+
+static void test_no_captions_member_reads_0(void) {
+    char error[128] = "";
+    assert(read_member("{\n  \"input\": \"pad\",\n  \"frames\": [\n  ]\n}\n", error) == 0);
+    assert(read_member("{ \"input\": \"pad\", \"frames\": [ ], \"captions\": [ ] }", error) == 0);
+}
+
+static void test_an_escape_other_than_the_line_break_is_refused(void) {
+    assert_member_refused("{ \"captions\": [ { \"from\": 0, \"to\": 150, \"text\": \"a\\tb\" } ], \"frames\": [ ] }",
+                          "\"captions\": caption 1: escape \\t, only \\n is read");
+    assert_member_refused("{ \"captions\": [ { \"from\": 0, \"to\": 150, \"text\": \"a\\\"b\" } ], \"frames\": [ ] }",
+                          "\"captions\": caption 1: escape \\\", only \\n is read");
+}
+
+static void test_a_malformed_caption_is_refused(void) {
+    assert_member_refused("{ \"captions\": [ { \"from\": 0, \"to\": 150, \"text\": \"ab }\n  ],\n  \"frames\": [ ] }",
+                          "\"captions\": caption 1: unterminated text");
+    assert_member_refused("{ \"captions\": [ { \"from\": 0, \"to\": 150, \"text\": \"a\" },\n"
+                          "{ \"from\": 150, \"text\": \"b\" } ], \"frames\": [ ] }",
+                          "\"captions\": caption 2: expected \"to\"");
+    assert_member_refused("{ \"captions\": [ { \"from\": -1, \"to\": 150, \"text\": \"a\" } ], \"frames\": [ ] }",
+                          "\"captions\": caption 1: \"from\" is not a frame number");
+    assert_member_refused("{ \"captions\": { }, \"frames\": [ ] }", "\"captions\": expected [");
+    assert_member_refused("{ \"captions\": [ ], \"frames\": [ ] }", "\"captions\": caption 1: expected {");
+    assert_member_refused("{ \"captions\": [ { \"from\": 0, \"to\": 150, \"text\": \"a\" } \"frames\": [ ] }",
+                          "\"captions\": caption 1: expected ,");
+}
+
+static void test_more_captions_than_the_capacity_are_refused(void) {
+    assert_member_refused("{ \"captions\": [ { \"from\": 0, \"to\": 150, \"text\": \"a\" },"
+                          " { \"from\": 150, \"to\": 300, \"text\": \"b\" },"
+                          " { \"from\": 300, \"to\": 450, \"text\": \"c\" } ], \"frames\": [ ] }",
+                          "\"captions\": more than 2 captions");
+}
+
+static void test_a_text_longer_than_two_lines_is_refused(void) {
+    char json[256];
+    snprintf(json, sizeof json, "{ \"captions\": [ { \"from\": 0, \"to\": 150, \"text\": \"%066d\" } ], \"frames\": [ ] }", 0);
+    assert_member_refused(json, "\"captions\": caption 1: text longer than 65 bytes");
+}
+
 int main(void) {
     test_a_slash_breaks_the_line_and_spaces_around_it_are_dropped();
     test_a_line_holds_32_characters_not_33();
@@ -287,6 +378,12 @@ int main(void) {
     test_any_frame_passes_with_no_caption_shown();
     test_the_member_has_one_caption_per_line_and_escapes_the_line_break();
     test_no_caption_writes_no_member();
+    test_the_reader_gives_back_what_the_writer_wrote();
+    test_no_captions_member_reads_0();
+    test_an_escape_other_than_the_line_break_is_refused();
+    test_a_malformed_caption_is_refused();
+    test_more_captions_than_the_capacity_are_refused();
+    test_a_text_longer_than_two_lines_is_refused();
 
     printf("test_pad_caption: all tests passed\n");
     return 0;
