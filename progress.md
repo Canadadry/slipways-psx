@@ -32,7 +32,7 @@
     - [x] Chunk 2: attract state machine module
     - [x] Chunk 3: the hook in input_step
     - [x] Chunk 4: full checks and ATTRACT_STATE
-  - [ ] 11. Captions and label
+  - [x] 11. Captions and label
     - [x] Chunk 1: demo_overlay module
     - [x] Chunk 2: the overlay drawn in cart_draw
   - [ ] 12. The attract e2e
