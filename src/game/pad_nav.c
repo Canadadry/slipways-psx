@@ -493,7 +493,7 @@ static void shoulder_switch(pad_nav_t *nav, int pressed, p8_input_frame_t *playe
     }
 }
 
-/* Off screen, so × finds no left_press under the cursor. */
+/* Off screen, so a press finds no left_press under the cursor. */
 enum { PARKED_X = -16, PARKED_Y = -16 };
 
 enum { YEAR_SKIP_BUTTON = 1, PAUSE_BUTTON = 4 };
@@ -503,14 +503,21 @@ static entity_t *cycle_button(const pad_nav_t *nav) {
     return index != 0 ? (entity_t *)galaxy_menu_find_button(index) : NULL;
 }
 
-static void build_step(pad_nav_t *nav, int pressed, pad_direction_t direction, int release, p8_input_frame_t *played) {
+static void build_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t *played) {
     entity_t *icon = pad_build_focus(&nav->build);
-    if (icon != NULL && (pressed & P8_PAD_BUTTON_5) && !release) {
+    if (icon != NULL && action_pressed(nav, pressed, BINDINGS_MODE_BUILD_BAR, BINDINGS_ACTION_TAKE_STRUCTURE) && !release) {
         played->mouse_buttons = P8_MOUSE_LEFT;
         nav->placement = PAD_NAV_PLACEMENT_PRESSED;
     }
-    if (direction == PAD_DIRECTION_LEFT || direction == PAD_DIRECTION_RIGHT) {
-        pad_build_pick(&nav->build, direction == PAD_DIRECTION_LEFT ? -1 : 1);
+    /* The bar has no up or down: it borrows the panels' pair, which ranks before left and right as on plan 12. */
+    if (action_pressed(nav, pressed, BINDINGS_MODE_PANELS, BINDINGS_ACTION_MOVE_UP) ||
+        action_pressed(nav, pressed, BINDINGS_MODE_PANELS, BINDINGS_ACTION_MOVE_DOWN)) {
+        return;
+    }
+    if (action_pressed(nav, pressed, BINDINGS_MODE_BUILD_BAR, BINDINGS_ACTION_PICK_LEFT)) {
+        pad_build_pick(&nav->build, -1);
+    } else if (action_pressed(nav, pressed, BINDINGS_MODE_BUILD_BAR, BINDINGS_ACTION_PICK_RIGHT)) {
+        pad_build_pick(&nav->build, 1);
     }
 }
 
@@ -543,7 +550,7 @@ static void bar_or_cycle_step(pad_nav_t *nav, int pad_buttons, int pressed, pad_
     }
     nav->focus = ENTITY_ID_NONE;
     if (pad_build_is_open(&nav->build)) {
-        build_step(nav, pressed, direction, release, played);
+        build_step(nav, pressed, release, played);
     }
     place_cursor(nav);
 }

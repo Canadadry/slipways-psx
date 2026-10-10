@@ -35,6 +35,8 @@
     - [x] Chunk 2: aim mode reads the table
     - [x] Chunk 3: slipway mode reads the table
   - [ ] 11. Build bar and placement read their bindings
+    - [x] Chunk 1: the bar reads the table
+    - [ ] Chunk 2: placement reads the table
   - [ ] 12. Menu, panels, pause and title read their bindings
   - [ ] 13. Cross-mode tests read their bindings
   - [ ] 14. Guard closed
