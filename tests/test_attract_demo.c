@@ -1,7 +1,4 @@
-/* The whole compiled demo fed through the attract mode, over a player's save: two complete
- * playbacks, then one interruption inside each command range of pico8/demo.txt. Writes the
- * full cycle at the default threshold that make demo-check compares with
- * worst-case/attract_cycle.json. Run by make demo-check only: thousands of frames. */
+/* Run by make demo-check only: thousands of frames. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -65,10 +62,8 @@ static char g_state_text[STATE_TEXT_CAP];
 static save_check_snapshot_t g_last_frames[2];
 static int g_demo_cheats;
 static p8_vram_t g_overlay_reference;
-/* The band and tag regions of the first playback at each caption's first frame. */
 static unsigned char g_caption_screens[OVERLAY_CAPTION_CAP][P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
 
-/* Returns the frame's cheat activations. */
 static int play_frame(int buttons) {
     p8_input_frame_t raw;
     memset(&raw, 0, sizeof raw);
@@ -140,7 +135,6 @@ static void check_caption_start(int playback) {
     assert(0 && "the captions do not depend on the visual stream");
 }
 
-/* A count of 0 boots over an empty storage. */
 static void boot_storing(const uint8_t *bytes, int count) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -183,7 +177,6 @@ static void boot_over_a_player_save(void) {
     g_player_writes = save_storage_memory_write_count();
 }
 
-/* NULL when no live button has that name. */
 static const button_t *title_button(const char *name) {
     const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (int i = 0; i < bucket->count; i++) {
@@ -234,7 +227,6 @@ static counts_t live_counts(void) {
                       state_value("count techs ")};
 }
 
-/* Idle title frames until the demo starts; returns the record's counts at its first frame. */
 static counts_t play_title_until_the_demo_starts(void) {
     for (int frame = 0; input_step_attract_phase(&g_step) != ATTRACT_PHASE_PLAYING; frame++) {
         assert(frame <= ATTRACT_AFTER && input_step_attract_phase(&g_step) == ATTRACT_PHASE_IDLE && cart_title_shown() &&

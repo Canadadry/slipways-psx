@@ -61,7 +61,6 @@ static void play_frames(int count) {
     }
 }
 
-/* A count of 0 builds the title over an empty storage. */
 static void load_cart_to_title_storing(const uint8_t *bytes, int count) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -94,7 +93,6 @@ static int stored_count(void) {
     return save_storage_read(g_bytes, (int)sizeof g_bytes);
 }
 
-/* Returns the stored record's byte count; asserts that it decodes into g_decoded. */
 static int read_stored_record(void) {
     int count = stored_count();
     assert(count > 0 && "a record is stored");
@@ -318,7 +316,6 @@ static void test_an_action_held_back_when_restart_is_pressed_is_lost(void) {
     assert(stored_record_equals_earlier(earlier_count) && "the new game has no pending action");
 }
 
-/* NULL when no live button has that name. */
 static button_t *title_button(const char *name) {
     const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (int i = 0; i < bucket->count; i++) {
@@ -632,7 +629,6 @@ static void capture_title(title_snapshot_t *out) {
     out->has_resume = title_button("resume") != NULL;
 }
 
-/* Returns 1 when equal; otherwise prints the first differing dump line or pixel. */
 static int titles_equal(const title_snapshot_t *a, const title_snapshot_t *b) {
     const char *left = a->dump;
     const char *right = b->dump;
@@ -706,7 +702,6 @@ static void test_the_core_start_plays_the_default_table_and_the_return_gives_the
     assert(pad_nav_is_on(&swap) && "the session's table is back");
 }
 
-/* first_frame_buttons: held on the first played frame only. */
 static void play_the_demo_record(int start, int first_frame_buttons) {
     start_the_demo_record();
     save_check_capture(&g_resumed[start]);
@@ -717,7 +712,6 @@ static void play_the_demo_record(int start, int first_frame_buttons) {
     g_played[start].has_screen = 1;
 }
 
-/* Boots over a player's save, then plays the record twice, each time back to the title. */
 static void run_two_attract_cycles(int first_frame_buttons) {
     int player_count;
     int writes;
@@ -780,7 +774,6 @@ enum { HOOK_THRESHOLD = 3, HOOK_HELD_THRESHOLD = 40, HOOK_SHORT_DEMO_FRAMES = 30
 
 static int g_attract_writes;
 
-/* Returns the stored count: 0 builds the title over an empty storage, else over a player's save kept in g_earlier. */
 static int boot_attract(int with_a_save, const bindings_t *session_table, int attract_after) {
     int count = 0;
 

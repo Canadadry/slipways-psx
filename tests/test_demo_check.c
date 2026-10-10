@@ -1,6 +1,3 @@
-/* tools/demo_check.sh, the content check of the attract demo, on hand-written
- * demo and state files: no replay. Runs from make demo-check, not make test. */
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +70,6 @@ static const char *read_file(const char *path) {
     return buf;
 }
 
-/* 0 when `demo_check.sh <arguments>` exits 0, 1 otherwise; stdout and stderr go to OUT. */
 static int run(const char *arguments) {
     char command[1024];
     snprintf(command, sizeof command, SCRIPT " %s > " OUT " 2>&1", arguments);
@@ -111,7 +107,6 @@ static int good_captions(caption_t *captions) {
     return captions[CAPTIONS - 1].to;
 }
 
-/* END with `from` replaced by `to` (first occurrence), written to `path`. */
 static void write_end_with(const char *path, const char *from, const char *to) {
     static char text[1 << 12];
     const char *at = strstr(END, from);
@@ -137,7 +132,6 @@ static void test_a_demo_one_of_each_past_the_record_passes(void) {
                                   "slipway and tech past the record, no cheat\n") == 0);
 }
 
-/* The good captions with the closing card moved to end at `frames`, lasting 180. */
 static void write_demo_of(const char *path, int frames) {
     caption_t captions[CAPTIONS];
     good_captions(captions);
