@@ -77,3 +77,4 @@
     - [x] rework-comments: input_json assert
     - [x] rework-comments: pad_author and pad_metrics
     - [x] rework-comments: replay tests
+    - [x] Done when: all six items checked
