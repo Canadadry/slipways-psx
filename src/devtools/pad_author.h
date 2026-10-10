@@ -2,6 +2,7 @@
 #define DEVTOOLS_PAD_AUTHOR_H
 
 #include "devtools/pad_metrics.h"
+#include "game/bindings.h"
 #include "game/input_step.h"
 #include "p8/input.h"
 
@@ -18,10 +19,11 @@ typedef struct {
     int stopped;
     char error[PAD_AUTHOR_ERROR_MAX];
     pad_metrics_t metrics;
-    int circle_pending;
-    int circle_required;
-    int next_circle_required;
-    pad_metrics_view_t circle_before;
+    int back_pending;
+    int back_required;
+    int next_back_required;
+    pad_metrics_view_t back_before;
+    bindings_mode_t back_mode;
     FILE *mode_log;
 } pad_author_t;
 

@@ -43,7 +43,7 @@
 #define INCLUDE_DEPTH_MAX 4
 #define FOLD_HOLD_FRAMES 16
 #define AIM_FRAME_WEIGHT 6
-#define CIRCLE_EFFECT_FRAMES 2
+#define BACK_EFFECT_FRAMES 2
 #define TITLE_ROWS_FRAMES 7
 #define PAN_ROUNDS_MAX 32
 #define PATH_STEPS_MAX 64
@@ -246,20 +246,21 @@ static int mask_in_mode(pad_author_t *author, bindings_mode_t mode, bindings_act
     return bindings_mask(bindings_of(author), mode, action);
 }
 
-static int settle_circle(pad_author_t *author, const script_t *script, const pad_metrics_view_t *now, int final) {
-    if (author->circle_pending == 0) return 1;
-    if (pad_metrics_navigation_changed(&author->circle_before, now)) {
-        author->circle_pending = 0;
+static int settle_back(pad_author_t *author, const script_t *script, const pad_metrics_view_t *now, int final) {
+    if (author->back_pending == 0) return 1;
+    if (pad_metrics_navigation_changed(&author->back_before, now)) {
+        author->back_pending = 0;
         return 1;
     }
-    author->circle_pending--;
-    if (author->circle_pending > 0 && !final) return 1;
-    author->circle_pending = 0;
-    if (author->circle_required) {
+    author->back_pending--;
+    if (author->back_pending > 0 && !final) return 1;
+    author->back_pending = 0;
+    if (author->back_required) {
         pad_metrics_count_required_noop(&author->metrics);
         return 1;
     }
-    return fail(author, script, "dead circle: it changed no mode, object, camera, box or panel (mark it `back --required`)");
+    return fail(author, script, "dead %s.%s: it changed no mode, object, camera, box or panel (mark it `back --required`)",
+                bindings_mode_name(author->back_mode), bindings_action_name(back_action(author->back_mode)));
 }
 
 /* Keep in step with src/cmd/replay.c's loop, or the self-check fails. */
@@ -285,12 +286,13 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
     pad_metrics_observe(&author->metrics, &author->step);
     pad_metrics_view_t before = *pad_metrics_view(&author->metrics);
     if (pressed & mask_in_mode(author, bindings_mode, back_action(bindings_mode))) {
-        if (!settle_circle(author, script, &before, 1)) return 0;
-        author->circle_before = before;
-        author->circle_pending = CIRCLE_EFFECT_FRAMES;
-        author->circle_required = author->next_circle_required;
+        if (!settle_back(author, script, &before, 1)) return 0;
+        author->back_before = before;
+        author->back_mode = bindings_mode;
+        author->back_pending = BACK_EFFECT_FRAMES;
+        author->back_required = author->next_back_required;
     }
-    author->next_circle_required = 0;
+    author->next_back_required = 0;
 
     p8_input_frame_t *frame = &author->frames[author->frame_count];
     memset(frame, 0, sizeof *frame);
@@ -312,7 +314,7 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
         fputc('\n', author->mode_log);
     }
     author->frame_count++;
-    return settle_circle(author, script, after, 0);
+    return settle_back(author, script, after, 0);
 }
 
 static int emit_repeated(pad_author_t *author, const script_t *script, int buttons, int count) {
@@ -426,10 +428,11 @@ static int difficulty_index(const char *name) {
     return -1;
 }
 
-static int run_title(pad_author_t *author, const script_t *script, int cross_frame, int difficulty) {
-    int first_down = cross_frame - 2 * difficulty;
-    if (first_down < author->frame_count || cross_frame < author->frame_count) {
-        return fail(author, script, "title: the cross at f%d needs its first Down at f%d", cross_frame, first_down);
+static int run_title(pad_author_t *author, const script_t *script, int choose_row_frame, int difficulty) {
+    int first_down = choose_row_frame - 2 * difficulty;
+    if (first_down < author->frame_count || choose_row_frame < author->frame_count) {
+        return fail(author, script, "title: the title.choose_row press at f%d needs its first title.move_down at f%d",
+                    choose_row_frame, first_down);
     }
     if (main_economy_typed() != NULL) return fail(author, script, "title: a game is already running");
     if (!emit_repeated(author, script, 0, first_down - author->frame_count)) return 0;
@@ -440,7 +443,7 @@ static int run_title(pad_author_t *author, const script_t *script, int cross_fra
     const button_t *chosen = economy_score_difficulty();
     if (main_economy_typed() == NULL || chosen == NULL || chosen->name == NULL ||
         strcmp(chosen->name, difficulty_options_table[difficulty].name) != 0) {
-        return fail(author, script, "title: no %s game started on the cross", difficulty_options_table[difficulty].name);
+        return fail(author, script, "title: no %s game started on title.choose_row", difficulty_options_table[difficulty].name);
     }
     return 1;
 }
@@ -694,7 +697,7 @@ static int enter_aim(pad_author_t *author, const script_t *script, int x, int y,
         if (jumps[k] != NULL && !run_jump(author, script, ids[k])) return 0;
     }
     if (!emit_action(author, script, BINDINGS_ACTION_ENTER_AIM)) return 0;
-    if (current_mode(author) != PAD_METRICS_MODE_AIM) return fail(author, script, "square: no aim mode");
+    if (current_mode(author) != PAD_METRICS_MODE_AIM) return fail(author, script, "jump.enter_aim: no aim mode");
     return 1;
 }
 
@@ -709,15 +712,15 @@ static int has_candidate(pad_author_t *author, const void *context) {
 }
 
 static int leave_aim(pad_author_t *author, const script_t *script) {
-    if (!wait_until(author, script, has_candidate, NULL, REVEAL_FRAMES_MAX, "square: a known object to jump back to")) {
+    if (!wait_until(author, script, has_candidate, NULL, REVEAL_FRAMES_MAX, "aim.leave_aim: a known object to jump back to")) {
         return 0;
     }
     if (!press_action(author, script, BINDINGS_ACTION_LEAVE_AIM)) return 0;
-    if (current_mode(author) != PAD_METRICS_MODE_JUMP) return fail(author, script, "square: no jump mode after aim mode");
+    if (current_mode(author) != PAD_METRICS_MODE_JUMP) return fail(author, script, "aim.leave_aim: no jump mode after aim mode");
     return 1;
 }
 
-/* With nothing known, □ in aim mode is a dead press: stay in aim mode. */
+/* With nothing known, aim.leave_aim is a dead press: stay in aim mode. */
 static int leave_aim_if_able(pad_author_t *author, const script_t *script) {
     return current_mode(author) == PAD_METRICS_MODE_AIM && any_candidate() ? leave_aim(author, script) : 1;
 }
@@ -1171,7 +1174,7 @@ static int run_menu(pad_author_t *author, const script_t *script, const char *id
     }
     if (dwell > 0 && !emit_repeated(author, script, 0, dwell)) return 0;
     return press_action(author, script, BINDINGS_ACTION_CLOSE_MENU) &&
-           wait_until(author, script, panel_closed_on_map, NULL, 6, "menu: closed by circle");
+           wait_until(author, script, panel_closed_on_map, NULL, 6, "menu: closed by menu.close_menu");
 }
 
 static int run_bar(pad_author_t *author, const script_t *script) {
@@ -1190,7 +1193,7 @@ static int run_bar(pad_author_t *author, const script_t *script) {
         if (pad_nav_build_icon(nav) == focused) return fail(author, script, "bar: Left did not move");
     }
     return press_action(author, script, BINDINGS_ACTION_CLOSE_BAR) &&
-           wait_until(author, script, on_the_map, NULL, 4, "bar: closed by circle");
+           wait_until(author, script, on_the_map, NULL, 4, "bar: closed by build_bar.close_bar");
 }
 
 static int run_attention(pad_author_t *author, const script_t *script) {
@@ -1201,7 +1204,7 @@ static int run_attention(pad_author_t *author, const script_t *script) {
 }
 
 static int run_back(pad_author_t *author, const script_t *script, int required) {
-    author->next_circle_required = required;
+    author->next_back_required = required;
     return emit_back(author, script) && emit(author, script, 0);
 }
 
@@ -1449,7 +1452,7 @@ static int run_file(pad_author_t *author, const char *path, const char *until_la
     }
     if (ok && depth == 0) {
         pad_metrics_view_t now = pad_metrics_view_read(&author->step);
-        ok = settle_circle(author, &script, &now, 1);
+        ok = settle_back(author, &script, &now, 1);
     }
     free(script.lines);
     return ok;
@@ -1485,5 +1488,5 @@ int pad_author_run_line(pad_author_t *author, const char *commands) {
         if (line.token_count > 0 && !run_line(author, &script, 0)) return 0;
     }
     pad_metrics_view_t now = pad_metrics_view_read(&author->step);
-    return settle_circle(author, &script, &now, 1);
+    return settle_back(author, &script, &now, 1);
 }

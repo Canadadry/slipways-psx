@@ -26,7 +26,7 @@
     - [x] Chunk 1: one button reader and count in the devtools
     - [x] Chunk 2: pad_metrics off pad_jump's conversions
     - [x] Chunk 3: high-level presses through the table
-    - [ ] Chunk 4: PSX words out of the generator
+    - [x] Chunk 4: PSX words out of the generator
   - [ ] 9. Jump mode reads its bindings
   - [ ] 10. Aim and slipway modes read their bindings
   - [ ] 11. Build bar and placement read their bindings
