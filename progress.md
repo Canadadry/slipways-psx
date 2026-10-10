@@ -27,7 +27,7 @@
   - [x] 9. Default table beside the compiled one
     - [x] Chunk 1: bindings_default core unit
     - [x] Chunk 2: input_step switches tables
-  - [ ] 10. Attract state machine
+  - [x] 10. Attract state machine
     - [x] Chunk 1: core plumbing, one start and return
     - [x] Chunk 2: attract state machine module
     - [x] Chunk 3: the hook in input_step
