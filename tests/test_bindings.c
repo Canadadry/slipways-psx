@@ -115,93 +115,6 @@ static void test_an_action_the_mode_does_not_have_is_unbound(void) {
     assert(bindings_mode_has_action(BINDINGS_MODE_JUMP, BINDINGS_ACTION_PAUSE));
 }
 
-static const char full_table_text[] =
-    "# title\n"
-    "title.move_up = 1\n"
-    "title.move_down = 2\n"
-    "title.move_left = 3\n"
-    "title.move_right = 4\n"
-    "title.choose_row = 5\n"
-    "# jump\n"
-    "jump.jump_up = 1\n"
-    "jump.jump_down = 2\n"
-    "jump.jump_left = 3\n"
-    "jump.jump_right = 4\n"
-    "jump.act_on_hovered = 5\n"
-    "jump.back = 6\n"
-    "jump.enter_aim = 7\n"
-    "jump.open_menu = 8\n"
-    "jump.open_build_bar = 9\n"
-    "jump.open_tech_panel = 10\n"
-    "jump.pause = 11\n"
-    "jump.select_tap_or_year = 12\n"
-    "# aim\n"
-    "aim.pan_up = 1\n"
-    "aim.pan_down = 2\n"
-    "aim.pan_left = 3\n"
-    "aim.pan_right = 4\n"
-    "aim.probe_or_fold = 5\n"
-    "aim.back = 6\n"
-    "aim.leave_aim = 7\n"
-    "aim.open_build_bar = 9\n"
-    "aim.open_tech_panel = 10\n"
-    "aim.pause = 11\n"
-    "aim.select_tap_or_year = 12\n"
-    "# slipway\n"
-    "slipway.jump_up = 1\n"
-    "slipway.jump_down = 2\n"
-    "slipway.jump_left = 3\n"
-    "slipway.jump_right = 4\n"
-    "slipway.build_on_target = 5\n"
-    "slipway.cancel_slipway = 6\n"
-    "slipway.open_build_bar = 9\n"
-    "slipway.open_tech_panel = 10\n"
-    "slipway.pause = 11\n"
-    "# menu\n"
-    "menu.move_up = 1\n"
-    "menu.move_down = 2\n"
-    "menu.move_left = 3\n"
-    "menu.move_right = 4\n"
-    "menu.choose_row = 5\n"
-    "menu.close_menu = 6\n"
-    "menu.open_menu = 8\n"
-    "menu.open_build_bar = 9\n"
-    "menu.open_tech_panel = 10\n"
-    "# pause\n"
-    "pause.move_up = 1\n"
-    "pause.move_down = 2\n"
-    "pause.move_left = 3\n"
-    "pause.move_right = 4\n"
-    "pause.choose_row = 5\n"
-    "pause.close_pause = 6, 11\n"
-    "# build_bar\n"
-    "build_bar.pick_left = 3\n"
-    "build_bar.pick_right = 4\n"
-    "build_bar.take_structure = 5\n"
-    "build_bar.close_bar = 6\n"
-    "build_bar.open_build_bar = 9\n"
-    "build_bar.open_tech_panel = 10\n"
-    "build_bar.pause = 11\n"
-    "# placement\n"
-    "placement.pan_up = 1\n"
-    "placement.pan_down = 2\n"
-    "placement.pan_left = 3\n"
-    "placement.pan_right = 4\n"
-    "placement.place_structure = 5\n"
-    "placement.cancel_placement = 6\n"
-    "placement.open_build_bar = 9\n"
-    "placement.open_tech_panel = 10\n"
-    "placement.pause = 11\n"
-    "# panels\n"
-    "panels.move_up = 1\n"
-    "panels.move_down = 2\n"
-    "panels.move_left = 3\n"
-    "panels.move_right = 4\n"
-    "panels.choose_row = 5\n"
-    "panels.close_panel = 6\n"
-    "panels.open_build_bar = 9\n"
-    "panels.next_panel = 10\n";
-
 typedef struct {
     bindings_mode_t mode;
     bindings_action_t action;
@@ -296,13 +209,41 @@ static int expected_mask(int mode, int action) {
     return 0;
 }
 
-static void test_the_reconciled_table_parses_with_plan_12_buttons(void) {
-    bindings_t bindings = parse_ok(full_table_text);
+static bindings_t parse_default_file(void) {
+    static char text[65536];
+    FILE *file = fopen("bindings.default.cfg", "rb");
+    assert(file != NULL);
+    size_t length = fread(text, 1, sizeof text - 1, file);
+    assert(length < sizeof text - 1);
+    text[length] = '\0';
+    fclose(file);
+    bindings_t bindings;
+    bindings_error_t error;
+    int parsed = bindings_parse("bindings.default.cfg", text, &bindings, &error);
+    if (!parsed) {
+        fprintf(stderr, "unexpected error: %s\n", error.text);
+    }
+    assert(parsed);
+    return bindings;
+}
+
+static void test_the_default_file_binds_plan_12_buttons(void) {
+    bindings_t bindings = parse_default_file();
     for (int mode = 0; mode < BINDINGS_MODE_COUNT; mode++) {
         for (int action = 0; action < BINDINGS_ACTION_COUNT; action++) {
             int mask = bindings_mask(&bindings, (bindings_mode_t)mode, (bindings_action_t)action);
             assert(mask == expected_mask(mode, action));
             assert((mask != 0) == bindings_mode_has_action((bindings_mode_t)mode, (bindings_action_t)action));
+        }
+    }
+}
+
+static void test_the_compiled_default_table_is_the_parse_of_the_default_file(void) {
+    bindings_t bindings = parse_default_file();
+    for (int mode = 0; mode < BINDINGS_MODE_COUNT; mode++) {
+        for (int action = 0; action < BINDINGS_ACTION_COUNT; action++) {
+            assert(bindings_mask(&bindings_compiled, (bindings_mode_t)mode, (bindings_action_t)action) ==
+                   bindings_mask(&bindings, (bindings_mode_t)mode, (bindings_action_t)action));
         }
     }
 }
@@ -468,7 +409,8 @@ int main(void) {
     test_an_action_without_a_line_is_unbound();
     test_the_same_button_in_two_modes_is_accepted();
     test_an_action_the_mode_does_not_have_is_unbound();
-    test_the_reconciled_table_parses_with_plan_12_buttons();
+    test_the_default_file_binds_plan_12_buttons();
+    test_the_compiled_default_table_is_the_parse_of_the_default_file();
     test_a_swap_table_leaves_every_other_mode_unbound();
     test_a_button_bound_twice_in_one_mode_is_a_conflict();
     test_an_unknown_mode_is_quoted();

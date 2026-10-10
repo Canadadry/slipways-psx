@@ -19,6 +19,9 @@
     - [x] Chunk 1: button count and reader
     - [x] Chunk 2: enums, table and parser
   - [ ] 7. Compile-time bindings
+    - [x] Chunk 1: default file and generator
+    - [ ] Chunk 2: table handed to pad_nav
+    - [ ] Chunk 3: personal file for game
   - [ ] 8. Generator high level reads the default bindings
   - [ ] 9. Jump mode reads its bindings
   - [ ] 10. Aim and slipway modes read their bindings

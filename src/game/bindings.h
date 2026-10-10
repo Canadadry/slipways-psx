@@ -58,6 +58,10 @@ typedef struct {
     int masks[BINDINGS_MODE_COUNT][BINDINGS_ACTION_COUNT];
 } bindings_t;
 
+/* Defined by the generated unit each binary links: the chosen file for game, bindings.default.cfg for every other
+ * binary. Game code never names it: it receives the table through input_step_init. */
+extern const bindings_t bindings_compiled;
+
 /* text is the whole "file:line: message", ready to print. */
 typedef struct {
     int line;
