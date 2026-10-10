@@ -5,7 +5,7 @@
     - [x] Chunk 1: loader accepts numbers
     - [x] Chunk 2: writer and data in numbers
     - [x] Chunk 3: loader refuses names
-  - [ ] 3. Generator low level in numbers
+  - [x] 3. Generator low level in numbers
     - [x] Chunk 1: generator and scripts
     - [x] Chunk 2: report, unit test and Makefile
   - [ ] 4. Rename the constants

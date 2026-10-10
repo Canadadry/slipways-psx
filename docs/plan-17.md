@@ -184,3 +184,12 @@ If a step finds plan 12's code doing something this table does not list, it foll
 - Loader grammar: digits only, 1–12, no leading zero or sign, no fraction or exponent, nothing glued to the number, no repeats, any order. The writer emits buttons in ascending order with `, `.
 - Every `.sha256` and end state unchanged. `pad-author-proof`, `pad-metrics-check` and `pad-metrics-worst-case` unchanged. After `git add`, `make pad-author` regenerates `worst-case/` with no diff. `make test` 4.22–4.41 s, `make e2e` 0.23–0.25 s.
 - The generator's mode log (`[cross+up]`) is not a `"pad"` array and keeps names until step 3.
+
+### Step 1.3
+
+- Two commits: generator and scripts, then report, unit test and Makefile.
+- `tap`/`hold` take `+`-joined numbers 1–12 (digits only, no leading zero, no empty element, no repeat). A name gets the existing `unknown buttons '<token>'` message. A repeated button such as `5+5` is now refused; the old name parser accepted it, and no script used it. New refusal proofs: `button_name.refused.pad` (`tap cross`) and `button_range.refused.pad` (`hold 13 4`).
+- Only 6 of the 18 `.pad` files had `tap`/`hold` lines, converted by a one-off script. Button names in `.pad` comments were rewritten by hand.
+- Mode log `[5]`/`[2+4]`. Messages now `chord: buttons 5 and 6 …` and `empty cone: no candidate for button N …`. Messages inside high-level commands (`dead circle`, …) stay for step 8.
+- `pad_metrics` lost its name table and `pad_metrics_button_name`. `PAD_METRICS_PROOF_REQUIRED` = `dead f16 press 7 aim required;dead f17 press 6 aim required;dead f293 press 6 jump required`. `pad-metrics-worst-case` console output is byte-identical. Its report files differ only in the button field (checked by substitution).
+- Every `.sha256` unchanged, `worst-case/*.json` regenerated with no diff. `make test` 4.17–4.69 s, `make e2e` 0.23–0.24 s.
