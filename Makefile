@@ -379,16 +379,18 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 BINDINGS_CORE_UNIT := $(TMP_DIR)/bindings/core.c
+DEMO_UNIT := $(TMP_DIR)/demo/demo.c
 
 # The whole engine closure: all of src/ except the three entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c`, `src/platform/keymap.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, replay_control, replay_source, screencast,
 # session_recorder, state), plus the default bindings table generated into
-# tmp/bindings/core.c. Used by the
+# tmp/bindings/core.c and the demo compiled into tmp/demo/demo.c. Used by the
 # targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
     $(BINDINGS_CORE_UNIT) \
+    $(DEMO_UNIT) \
     src/p8/assets.c \
     src/game/background.c \
     src/game/bindings.c \
@@ -481,11 +483,12 @@ ENGINE_SRCS := \
 # The ported core, free of floating point: the engine closure minus the host
 # tools, which keep the libc. constants-check, float-guard, alloc-guard and
 # float-grep all read this list.
-CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
+CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) $(DEMO_UNIT) src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
 
 # A narrower closure: what data_init() reaches to build a real game state,
 # without calling cart_load().
 CART_ONLY_SRCS := \
+    $(DEMO_UNIT) \
     src/game/cart.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -868,8 +871,6 @@ $(TMP_DIR)/test_pad_caption: $(call objs,tests/test_pad_caption.c src/devtools/p
 $(TMP_DIR)/test_demo_source: $(call objs,tests/test_demo_source.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-DEMO_UNIT := $(TMP_DIR)/demo/demo.c
-
 $(TMP_DIR)/demo_generate: $(call objs,src/cmd/demo_generate.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -877,7 +878,7 @@ $(DEMO_UNIT): pico8/demo.json $(TMP_DIR)/demo_generate
 	@mkdir -p $(@D)
 	$(TMP_DIR)/demo_generate $< $@
 
-$(TMP_DIR)/test_demo_data: $(call objs,tests/test_demo_data.c src/devtools/replay_source.c src/devtools/pad_caption.c $(DEMO_UNIT) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/demo.json | $(TMP_DIR)
+$(TMP_DIR)/test_demo_data: $(call objs,tests/test_demo_data.c src/devtools/replay_source.c src/devtools/pad_caption.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/demo.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -1625,7 +1626,6 @@ GAME_SRCS := \
     src/platform/save_storage_file.c \
     $(BINDINGS_GAME_UNIT) \
     $(KEYMAP_GAME_UNIT) \
-    $(DEMO_UNIT) \
     $(filter-out src/devtools/save_storage_memory.c,$(ENGINE_SRCS))
 
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
@@ -1638,8 +1638,8 @@ raylib: $(TMP_DIR)/game
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.
 -include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d $(OBJ_DIR)/tmp/keymap/*.d $(OBJ_DIR)/tmp/demo/*.d)
--include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d)
+-include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d $(OBJ_ASAN_DIR)/tmp/demo/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d)
--include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d)
+-include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d $(OBJ_SANITIZE_DIR)/tmp/demo/*.d)
+-include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d $(OBJ_COVERAGE_DIR)/tmp/demo/*.d)
 

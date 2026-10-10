@@ -1,7 +1,5 @@
 #include "devtools/record_start.h"
 
-#include "game/bindings.h"
-#include "game/cart.h"
 #include "game/save_state.h"
 
 #include <assert.h>
@@ -55,15 +53,12 @@ int record_start_read_hex(const char *path, uint8_t *bytes, int capacity, char *
 
 int record_start_resume(input_step_t *step, const uint8_t *bytes, int count) {
     assert(step != NULL && bytes != NULL);
-    assert(!bindings_compiled_personal && "record_start: the tools link the default bindings table");
     if (!save_state_decode(bytes, count, &g_state)) return 0;
-    cart_resume_game(&g_state);
-    input_step_init(step, &bindings_compiled);
+    input_step_start_record(step, &g_state);
     return 1;
 }
 
 void record_start_return(input_step_t *step) {
     assert(step != NULL);
-    cart_return_to_title();
-    input_step_init(step, &bindings_compiled);
+    input_step_return_to_title(step);
 }

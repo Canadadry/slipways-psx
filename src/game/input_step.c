@@ -1,6 +1,7 @@
 #include "game/input_step.h"
 
 #include "engine/dispatch_context.h"
+#include "game/cart.h"
 
 #include <assert.h>
 #include <string.h>
@@ -18,6 +19,18 @@ void input_step_switch_bindings(input_step_t *step, input_step_bindings_t which)
     bindings_t session = step->session_bindings;
     input_step_init(step, which == INPUT_STEP_BINDINGS_DEFAULT ? &bindings_default : &session);
     step->session_bindings = session;
+}
+
+void input_step_start_record(input_step_t *step, const save_state_t *state) {
+    assert(step != NULL && state != NULL);
+    input_step_switch_bindings(step, INPUT_STEP_BINDINGS_DEFAULT);
+    cart_resume_game(state);
+}
+
+void input_step_return_to_title(input_step_t *step) {
+    assert(step != NULL);
+    cart_return_to_title();
+    input_step_switch_bindings(step, INPUT_STEP_BINDINGS_SESSION);
 }
 
 int input_step_run(input_step_t *step, const p8_input_frame_t *raw) {

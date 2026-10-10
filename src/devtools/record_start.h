@@ -11,12 +11,10 @@
    also when the bytes do not decode. */
 int record_start_read_hex(const char *path, uint8_t *bytes, int capacity, char *error, size_t error_size);
 
-/* At the top of a frame only: right after boot's cart_init, or after at least one cart_update60
-   since the last record_start_return. Resumes the record, then re-inits step on the default
-   table. Returns 0 and touches nothing when the bytes do not decode. */
+/* input_step_start_record on the decoded bytes; same contract, and step was initialised by
+   input_step_init. Returns 0 and touches nothing when the bytes do not decode. Never cuts the save. */
 int record_start_resume(input_step_t *step, const uint8_t *bytes, int count);
 
-/* Between frames only: back to the title, then step re-inited on the compiled table. */
 void record_start_return(input_step_t *step);
 
 #endif

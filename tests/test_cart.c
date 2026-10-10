@@ -14,11 +14,14 @@
 #include "game/game_data.h"
 #include "game/input_step.h"
 #include "game/main_economy.h"
+#include "game/message_box.h"
 #include "game/pad_nav.h"
 #include "game/probe.h"
 #include "game/save_state.h"
 #include "game/save_storage.h"
+#include "game/score_panel_display.h"
 #include "game/ui_button.h"
+#include "game/visual_random.h"
 #include "game/wormhole.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
@@ -403,6 +406,78 @@ static void test_a_game_with_no_difficulty_is_never_written(void) {
     assert(stored_count() == 0);
 }
 
+static void test_the_title_is_shown_from_cart_init_until_a_game_starts(void) {
+    load_cart_to_title();
+    play_frames(IDLE_FRAMES);
+    assert(cart_title_shown() && "the boot title is shown");
+    start_game(1);
+    assert(!cart_title_shown() && "a started game hides the title");
+    play_frames(IDLE_FRAMES);
+    cart_init();
+    assert(cart_title_shown() && "a restart shows the title again");
+    cart_load();
+    assert(!cart_title_shown() && "a loaded cart has no title before cart_init");
+}
+
+static void test_a_resumed_game_hides_the_title(void) {
+    int count;
+    button_t *resume;
+
+    load_cart_to_title();
+    count = start_game_with_a_save(1);
+    load_cart_to_title_storing(g_bytes, count);
+    resume = title_button("resume");
+    assert(resume != NULL && resume->has_on_click);
+    resume->on_click(resume);
+    assert(!cart_title_shown());
+}
+
+static void test_a_box_open_over_the_title_hides_it(void) {
+    load_cart_to_title();
+    score_panel_new_year(p8_fixed_from_int(LAST_YEAR - 1));
+    assert(shown_message_box() != NULL && "a year box is open over the title");
+    assert(!cart_title_shown());
+}
+
+static void test_a_cut_save_is_neither_written_nor_erased_until_the_return_to_the_title(void) {
+    int earlier_count;
+    int writes;
+
+    load_cart_to_title();
+    earlier_count = start_game_with_a_save(1);
+    (void)remember_stored_record();
+    writes = save_storage_memory_write_count();
+    cart_cut_save();
+    act();
+    play_frames(IDLE_FRAMES);
+    set_last_year_eve();
+    economy_new_year(main_economy_typed());
+    play_frames(IDLE_FRAMES);
+    assert(stored_record_equals_earlier(earlier_count) && save_storage_memory_write_count() == writes &&
+           "an action and a game end write and erase nothing while the save is cut");
+    cart_init();
+    play_frame();
+    start_game(1);
+    act();
+    play_frame();
+    assert(stored_record_equals_earlier(earlier_count) && "cart_init alone keeps the cut");
+    cart_return_to_title();
+    play_frame();
+    start_game(1);
+    act();
+    assert(play_frame_writing_the_live_game() && "the return to the title ends the cut");
+}
+
+static void test_cart_load_ends_a_cut(void) {
+    load_cart_to_title();
+    cart_cut_save();
+    load_cart_to_title();
+    start_game(1);
+    play_frame();
+    act();
+    assert(play_frame_writing_the_live_game());
+}
+
 enum { ATTRACT_IDLE_FRAMES = 30, ATTRACT_SECOND_START_EXTRA_IDLE = 7, ATTRACT_PLAYED_FRAMES = 30, TITLE_DUMP_CAP = 65536 };
 
 static const char DEMO_RECORD_PATH[] = "pico8/demo_record.hex";
@@ -529,16 +604,45 @@ static void assert_starts_equal(const save_check_snapshot_t *first, const save_c
     }
 }
 
-/* Neither cart_resume_game nor cart_init touches the input step: without these re-inits, the pad
-   navigation of one phase leaks into the next. */
 static void start_the_demo_record(void) {
-    input_step_init(&g_step, &bindings_compiled);
-    save_check_resume(&g_demo_record);
+    assert(save_state_decode(g_demo_record.bytes, g_demo_record.byte_count, &g_decoded));
+    input_step_start_record(&g_step, &g_decoded);
+    visual_random_set_state(g_demo_record.visual_random_state);
 }
 
 static void return_to_the_title(void) {
-    cart_return_to_title();
-    input_step_init(&g_step, &bindings_compiled);
+    input_step_return_to_title(&g_step);
+}
+
+static int pad_nav_is_on(const bindings_t *table) {
+    return memcmp(pad_nav_bindings(&g_step.pad_nav), table, sizeof *table) == 0;
+}
+
+static void test_the_core_start_plays_the_default_table_and_the_return_gives_the_session_table_back(void) {
+    bindings_t swap;
+    bindings_error_t error;
+    int count;
+
+    assert(bindings_parse("swap.cfg", "jump.enter_aim = 8\njump.open_menu = 7\n", &swap, &error));
+    assert(memcmp(&swap, &bindings_default, sizeof swap) != 0);
+    read_demo_record(&g_demo_record);
+    load_cart_to_title();
+    count = start_game_with_a_save(1);
+    load_cart_to_title_storing(g_bytes, count);
+    input_step_init(&g_step, &swap);
+    play_empty_frames(ATTRACT_IDLE_FRAMES);
+
+    start_the_demo_record();
+    assert(title_button("forgiving") == NULL && !cart_title_shown() && "the title is gone");
+    save_state_capture(&g_captured);
+    assert(save_state_encode(&g_captured, g_encoded) == g_demo_record.byte_count &&
+           memcmp(g_encoded, g_demo_record.bytes, (size_t)g_demo_record.byte_count) == 0 && "the live game is the record");
+    assert(pad_nav_is_on(&bindings_default) && "the record plays on the default table");
+    play_empty_frames(ATTRACT_PLAYED_FRAMES);
+
+    return_to_the_title();
+    assert(title_button("forgiving") != NULL && title_button("resume") != NULL && cart_title_shown() && "the title is back with its resume row");
+    assert(pad_nav_is_on(&swap) && "the session's table is back");
 }
 
 /* first_frame_buttons: held on the first played frame only. */
@@ -623,9 +727,15 @@ int main(void) {
     test_garbage_in_the_storage_hides_resume_and_is_left_alone();
     test_a_record_with_one_byte_flipped_hides_resume_and_is_left_alone();
     test_resume_brings_back_the_saved_game_and_writes_nothing();
+    test_the_title_is_shown_from_cart_init_until_a_game_starts();
+    test_a_resumed_game_hides_the_title();
+    test_a_box_open_over_the_title_hides_it();
+    test_a_cut_save_is_neither_written_nor_erased_until_the_return_to_the_title();
+    test_cart_load_ends_a_cut();
     test_two_attract_starts_play_the_same_game_and_return_to_the_boot_title();
     test_a_return_with_the_tech_panel_open_builds_the_boot_title();
     test_over_an_empty_storage_the_returned_title_has_no_resume_row();
+    test_the_core_start_plays_the_default_table_and_the_return_gives_the_session_table_back();
     printf("test_cart: all tests passed\n");
     return 0;
 }

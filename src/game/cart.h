@@ -18,6 +18,13 @@ void cart_init(void);
    first, or flip_zone_flip's assert stops it. */
 void cart_return_to_title(void);
 
+/* 1 from cart_init until a game starts or cart_load runs, and only while no box is open. */
+int cart_title_shown(void);
+
+/* cart_update60 then neither writes nor erases the stored save, until cart_return_to_title or
+   cart_load; cart_init alone keeps the cut. */
+void cart_cut_save(void);
+
 void cart_init_method(button_t *self);
 
 extern const entity_registry_reserve_t cart_game_registry_reserve;

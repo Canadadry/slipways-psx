@@ -136,9 +136,14 @@ static int live_game_is_the_record(int count) {
     return save_state_encode(&g_captured, g_encoded) == count && memcmp(g_encoded, g_record, (size_t)count) == 0;
 }
 
-static int step_is_fresh(void) {
+static int step_is_fresh_on(input_step_bindings_t which) {
     input_step_init(&g_fresh_step, &bindings_compiled);
+    input_step_switch_bindings(&g_fresh_step, which);
     return memcmp(&g_step, &g_fresh_step, sizeof g_step) == 0;
+}
+
+static int step_is_fresh(void) {
+    return step_is_fresh_on(INPUT_STEP_BINDINGS_SESSION);
 }
 
 static void play_title_frames_pressing_down(void) {
@@ -158,7 +163,7 @@ static void test_a_resume_runs_the_record_on_a_fresh_input_step(void) {
     assert(record_start_resume(&g_step, g_record, count) == 1);
     assert(title_button("forgiving") == NULL && "the title is gone");
     assert(live_game_is_the_record(count) && "the live game is the record");
-    assert(step_is_fresh() && "the input step is what input_step_init gives on the default table");
+    assert(step_is_fresh_on(INPUT_STEP_BINDINGS_DEFAULT) && "the input step is a fresh one switched to the default table");
 }
 
 static void test_a_return_builds_the_title_and_a_second_resume_gives_the_record_again(void) {
@@ -169,10 +174,25 @@ static void test_a_return_builds_the_title_and_a_second_resume_gives_the_record_
     play_frame(0);
     record_start_return(&g_step);
     assert(title_button("forgiving") != NULL && "the title is back");
-    assert(step_is_fresh() && "the input step is re-inited on the compiled table");
+    assert(step_is_fresh() && "the input step is a fresh one back on the session's table");
     play_frame(0);
     assert(record_start_resume(&g_step, g_record, count) == 1);
     assert(live_game_is_the_record(count) && "the second start is the record again");
+}
+
+static void test_the_session_table_comes_back_after_a_return(void) {
+    bindings_t swap;
+    bindings_error_t error;
+    int count = read_demo_record();
+
+    assert(bindings_parse("swap.cfg", "jump.enter_aim = 8\njump.open_menu = 7\n", &swap, &error));
+    boot_to_title();
+    input_step_init(&g_step, &swap);
+    assert(record_start_resume(&g_step, g_record, count) == 1);
+    assert(memcmp(pad_nav_bindings(&g_step.pad_nav), &bindings_default, sizeof swap) == 0 && "the record plays on the default table");
+    play_frame(0);
+    record_start_return(&g_step);
+    assert(memcmp(pad_nav_bindings(&g_step.pad_nav), &swap, sizeof swap) == 0 && "the session's table is back");
 }
 
 static void test_undecodable_bytes_leave_the_title_alone(void) {
@@ -192,6 +212,7 @@ int main(void) {
     test_more_bytes_than_a_save_holds_are_refused();
     test_a_resume_runs_the_record_on_a_fresh_input_step();
     test_a_return_builds_the_title_and_a_second_resume_gives_the_record_again();
+    test_the_session_table_comes_back_after_a_return();
     test_undecodable_bytes_leave_the_title_alone();
     printf("test_record_start: all tests passed\n");
     return 0;

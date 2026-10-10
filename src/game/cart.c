@@ -44,6 +44,9 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
+static int g_title_built;
+static int g_save_cut;
+
 static void quit_game_zone(void) {
     entity_registry_abandon_live_entities();
     cart_flush_exit_queue();
@@ -57,6 +60,8 @@ void cart_load(void) {
     p8_vram_t *memory;
 
     quit_game_zone();
+    g_title_built = 0;
+    g_save_cut = 0;
     entity_init();
     assert(entity_ready() && "cart_load: entity_init() must run before every class that extends entity_t");
     camera_init();
@@ -181,6 +186,11 @@ void cart_init(void) {
 
     help_set_resume_game(title_resume_handler());
     (void)help_screen_new();
+    g_title_built = 1;
+}
+
+int cart_title_shown(void) {
+    return g_title_built && shown_message_box() == NULL && entity_registry_count_tagged(TAG_MESSAGE_BOX) == 0;
 }
 
 void cart_return_to_title(void) {
@@ -188,7 +198,12 @@ void cart_return_to_title(void) {
     cart_flush_exit_queue();
     /* After the flush: reset_world's own abandon would walk the released entries. */
     entity_registry_forget_registries();
+    g_save_cut = 0;
     cart_init();
+}
+
+void cart_cut_save(void) {
+    g_save_cut = 1;
 }
 
 void cart_init_method(button_t *self) {
@@ -222,6 +237,7 @@ static void start_world(const button_t *difficulty) {
     assert(economy_ready() && structure_ready() && "game start: cart_load() must run first");
 
     economy_score_set_difficulty(difficulty);
+    g_title_built = 0;
     game_zone_flip();
 
     /* Not redundant with cart_init()'s call: the registries, camera, mouse and UI must be rebuilt. */
@@ -310,7 +326,7 @@ void cart_update60(void) {
     cart_flush_exit_queue();
     update_entities();
     ui_update(dispatch_context_mem(), main_ui());
-    save_at_frame_end();
+    if (!g_save_cut) save_at_frame_end();
 }
 
 void cart_draw(void) {

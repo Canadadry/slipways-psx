@@ -238,9 +238,8 @@ int main(int argc, char **argv) {
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
-    if (!resume_start) {
-        input_step_init(&step, &bindings);
-    } else if (!record_start_resume(&step, source.initial_save, source.initial_save_count)) {
+    input_step_init(&step, &bindings);
+    if (resume_start && !record_start_resume(&step, source.initial_save, source.initial_save_count)) {
         fprintf(stderr, "replay: %s: the initial_save does not decode\n", replay_path);
         return 1;
     }
