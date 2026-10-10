@@ -135,7 +135,7 @@ static void reset_aim_mode(pad_nav_t *nav) {
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
         nav->held_frames[i] = 0;
     }
-    nav->cross_engaged = 0;
+    nav->probe_or_fold_engaged = 0;
 }
 
 static int pan_speed(int held_frames) {
@@ -217,6 +217,10 @@ const bindings_t *pad_nav_bindings(const pad_nav_t *nav) {
 
 static int action_pressed(const pad_nav_t *nav, int pressed, bindings_mode_t mode, bindings_action_t action) {
     return (pressed & bindings_mask(&nav->bindings, mode, action)) != 0;
+}
+
+static int action_held(const pad_nav_t *nav, int pad_buttons, bindings_mode_t mode, bindings_action_t action) {
+    return (pad_buttons & bindings_mask(&nav->bindings, mode, action)) != 0;
 }
 
 entity_t *pad_nav_focus(const pad_nav_t *nav) {
@@ -356,7 +360,7 @@ static int select_tap(pad_nav_t *nav, const entity_t *current, const entity_t **
     return jumps;
 }
 
-/* On a click's release frame × starts nothing: finish_step forces its press up. */
+/* On a click's release frame probe_or_fold starts nothing: finish_step forces its press up. */
 static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release, int still,
                           int select_tapped, p8_input_frame_t *played, const entity_t **shown) {
     nav->focus = ENTITY_ID_NONE;
@@ -365,19 +369,19 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
     if (!still) {
         aim_pan(nav, BINDINGS_MODE_AIM, pad_buttons);
     }
-    if (select_tapped && !nav->cross_engaged && select_tap(nav, NULL, shown)) {
+    if (select_tapped && !nav->probe_or_fold_engaged && select_tap(nav, NULL, shown)) {
         return;
     }
-    if ((pressed & P8_PAD_BUTTON_7) && !nav->cross_engaged) {
+    if (action_pressed(nav, pressed, BINDINGS_MODE_AIM, BINDINGS_ACTION_LEAVE_AIM) && !nav->probe_or_fold_engaged) {
         leave_aim_mode(nav);
         return;
     }
-    if (!(pad_buttons & P8_PAD_BUTTON_5)) {
-        nav->cross_engaged = 0;
-    } else if ((pressed & P8_PAD_BUTTON_5) && !release) {
-        nav->cross_engaged = entity_under(nav->cursor_x, nav->cursor_y, presses_off_background) == NULL;
+    if (!action_held(nav, pad_buttons, BINDINGS_MODE_AIM, BINDINGS_ACTION_PROBE_OR_FOLD)) {
+        nav->probe_or_fold_engaged = 0;
+    } else if (action_pressed(nav, pressed, BINDINGS_MODE_AIM, BINDINGS_ACTION_PROBE_OR_FOLD) && !release) {
+        nav->probe_or_fold_engaged = entity_under(nav->cursor_x, nav->cursor_y, presses_off_background) == NULL;
     }
-    if (nav->cross_engaged) {
+    if (nav->probe_or_fold_engaged) {
         played->mouse_buttons = P8_MOUSE_LEFT;
     } else if (circle_returns) {
         leave_aim_mode(nav);
@@ -578,7 +582,7 @@ static void cancel_point(pad_nav_t *nav) {
 
 static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
-    nav->cross_engaged = 0;
+    nav->probe_or_fold_engaged = 0;
     if ((pressed & P8_PAD_BUTTON_6) || pad_nav_panel_open()) {
         cancel_point(nav);
         return;
@@ -850,7 +854,7 @@ static int switch_panels(pad_nav_t *nav, int pressed, int release, int foreign_w
 
 static entity_t *pause_button_free(const pad_nav_t *nav, int release) {
     if (main_economy_typed() == NULL || pad_nav_panel_open() || release || map_action_due(nav) ||
-        nav->cross_engaged || cycle_open(nav)) {
+        nav->probe_or_fold_engaged || cycle_open(nav)) {
         return NULL;
     }
     return (entity_t *)galaxy_menu_find_button(PAUSE_BUTTON);
@@ -936,7 +940,7 @@ static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_i
 static int select_allowed(const pad_nav_t *nav, int panels_changing, int release) {
     return main_economy_typed() != NULL && on_the_map(nav) && !panels_changing && !pause_menu_shown() &&
            !pad_nav_panel_open() && (nav->map_mode == PAD_NAV_MAP_JUMP || nav->map_mode == PAD_NAV_MAP_AIM) &&
-           nav->placement == PAD_NAV_PLACEMENT_NONE && !nav->cross_engaged && !release && !nav->release_pending;
+           nav->placement == PAD_NAV_PLACEMENT_NONE && !nav->probe_or_fold_engaged && !release && !nav->release_pending;
 }
 
 static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {

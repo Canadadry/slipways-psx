@@ -4224,6 +4224,54 @@ static void assert_no_button_pans(input_step_t *step, const entity_t *carried) {
     }
 }
 
+/* The table puts aim.probe_or_fold on 8 and aim.leave_aim on 5. */
+static void assert_rotated_probe_fold_and_leave_aim(input_step_t *step) {
+    if (in_forked_copy()) {
+        pan_to_empty_space(step);
+        if (in_forked_copy()) {
+            tap(step, P8_PAD_BUTTON_5);
+            assert(tagged_count(TAG_PROBE) == 0 && tagged_count(TAG_WORMHOLE) == 0);
+            assert(pad_nav_aim_mode(&step->pad_nav));
+            end_forked_copy();
+        }
+        tap(step, P8_PAD_BUTTON_8);
+        assert(tagged_count(TAG_PROBE) == 1 && tagged_count(TAG_WORMHOLE) == 0);
+        assert(pad_nav_aim_mode(&step->pad_nav));
+        settle(step);
+        if (in_forked_copy()) {
+            for (int i = 0; i < 10; i++) {
+                run_frame(step, P8_PAD_BUTTON_8 | (i == 9 ? P8_PAD_BUTTON_5 : 0));
+                assert(input_step_played_frame(step)->mouse_buttons == P8_MOUSE_LEFT);
+                assert(pad_nav_aim_mode(&step->pad_nav));
+            }
+            end_forked_copy();
+        }
+        for (int i = 0; i < 10; i++) {
+            run_frame(step, P8_PAD_BUTTON_8);
+            assert(input_step_played_frame(step)->mouse_buttons == P8_MOUSE_LEFT);
+            entity_t *held = ui_left_held(main_ui());
+            assert(held != NULL && held->class == wormhole_class());
+        }
+        run_frame(step, P8_PAD_BUTTON_7);
+        assert(input_step_played_frame(step)->mouse_buttons == 0);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        planet_t *far = planet_farthest_outside();
+        assert(far != NULL);
+        make_known(far);
+        planet_t *near = known_planet_closest_to_centre();
+        if (in_forked_copy()) {
+            tap(step, P8_PAD_BUTTON_7);
+            assert(pad_nav_aim_mode(&step->pad_nav));
+            end_forked_copy();
+        }
+        tap(step, P8_PAD_BUTTON_5);
+        assert(pad_nav_jump_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == &near->header);
+        end_forked_copy();
+    }
+}
+
 static void test_aim_mode_pans_on_a_rotated_table_and_placement_stays_unbound(void) {
     bindings_t table = parsed_table("aim.pan_up = 2\naim.pan_down = 1\naim.pan_left = 4\naim.pan_right = 3\n"
                                     "aim.probe_or_fold = 8\naim.leave_aim = 5\n"
@@ -4244,6 +4292,7 @@ static void test_aim_mode_pans_on_a_rotated_table_and_placement_stays_unbound(vo
         assert_moved(from, 0, 0);
         end_forked_copy();
     }
+    assert_rotated_probe_fold_and_leave_aim(&step);
     open_build_bar(&step);
     entity_t *structure = take_structure(&step);
     assert_no_button_pans(&step, structure);

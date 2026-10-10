@@ -39,7 +39,7 @@ typedef struct {
     int cursor_x;
     int cursor_y;
     int held_frames[PAD_JUMP_DIRECTIONS];
-    int cross_engaged;
+    int probe_or_fold_engaged;
     entity_id_t game;
     pad_jump_t jump;
     pad_slipway_t slipway;
