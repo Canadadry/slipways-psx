@@ -22,7 +22,7 @@
     - [x] Chunk 1: default file and generator
     - [x] Chunk 2: table handed to pad_nav
     - [x] Chunk 3: personal file for game
-  - [ ] 8. Generator high level reads the default bindings
+  - [x] 8. Generator high level reads the default bindings
     - [x] Chunk 1: one button reader and count in the devtools
     - [x] Chunk 2: pad_metrics off pad_jump's conversions
     - [x] Chunk 3: high-level presses through the table
