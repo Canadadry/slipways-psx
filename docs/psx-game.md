@@ -287,7 +287,7 @@ at compile time. No `keymap.cfg` is read on PSX.
 | hardware bit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | button | SELECT | L3 | R3 | START | UP | RIGHT | DOWN | LEFT | L2 | R2 | L1 | R1 | TRIANGLE | CIRCLE | CROSS | SQUARE |
-| `pad_buttons` | - | - | - | `START` | `UP` | `RIGHT` | `DOWN` | `LEFT` | - | - | `L1` | `R1` | `TRIANGLE` | `CIRCLE` | `CROSS` | `SQUARE` |
+| `pad_buttons` | `SELECT` | - | - | `START` | `UP` | `RIGHT` | `DOWN` | `LEFT` | - | - | `L1` | `R1` | `TRIANGLE` | `CIRCLE` | `CROSS` | `SQUARE` |
 
 **Pad log.** Its TTY is `psx-game: ready` once the handshake is raised, then
 `psx-game: pad <frame> <pad_buttons as %03x>` on frame 0 and on every frame
@@ -296,7 +296,7 @@ line carrying its frame so a lost line is detected.
 `tmp/psx_pad_log <tty> <pad-script> <events.json>` (`src/cmd/psx_pad_log.c`,
 parser `src/devtools/pad_log.c`, tested by `test_pad_log`) refuses a malformed
 log naming its line (no frame 0, a frame not increasing, bad hex, a bit outside
-the eleven `P8_PAD_*`, no done line or two, a pad line at or after the done
+the twelve `P8_PAD_*`, no done line or two, a pad line at or after the done
 frame count), writes the log as an `events.json` through `p8_input_save` with
 no `initial_save`, and compares its ordered distinct states with the script's,
 mapped by the same table:

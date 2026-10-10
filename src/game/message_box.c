@@ -28,6 +28,14 @@ void message_box_set_shown(message_box_t *mh) {
     g_shown_message_box = entity_id_link(mh != NULL ? &mh->header : NULL);
 }
 
+void message_box_close_shown(void) {
+    message_box_t *shown = shown_message_box();
+    if (shown != NULL) {
+        shown->header.is_dead = 1;
+        message_box_set_shown(NULL);
+    }
+}
+
 void message_box_construct(message_box_t *self) {
     message_box_t *previous;
 

@@ -1,0 +1,4 @@
+# expect: frames in aim mode, 25% or more
+title 12 reasonable
+idle 1
+idle 20

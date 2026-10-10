@@ -91,3 +91,8 @@ src/devtools/pad_log.h | PSX game pad log and pad script reader, header of devto
 src/cmd/psx_pad_log.c | entry point of psx_pad_log, which turns the PSX game's pad log into an events.json, host tool
 src/cmd/psx_game.c | entry point of the PSX game read from the pad, PSX only
 src/platform/psx_pad_protocol.h | scratchpad words of the pad script handshake, PSX only
+src/cmd/pad_author.c | entry point of the worst-case game generator, host tool
+src/devtools/pad_author.c | worst-case game generator, plays a pad script headless, host tool
+src/devtools/pad_author.h | worst-case game generator, header of devtools/pad_author.c
+src/devtools/pad_metrics.c | pad metrics of the generator, writes its totals through a FILE stream, host tool
+src/devtools/pad_metrics.h | pad metrics of the generator, header of devtools/pad_metrics.c

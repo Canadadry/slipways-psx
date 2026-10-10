@@ -1,0 +1,12 @@
+# The whole of pad_probe, then escape hatches: regenerates tests/e2e/pad_restart_resume.json.
+include pad_probe.frames.pad
+idle 35
+tap start
+idle 5
+tap cross
+idle 11
+tap up
+idle 1
+tap cross
+tap square
+idle 21

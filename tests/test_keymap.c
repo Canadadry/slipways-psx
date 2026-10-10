@@ -60,7 +60,7 @@ static void test_defaults_hold_the_plan_table_in_pad_bit_order(void) {
         { "X", "RIGHT_FACE_DOWN" }, { "C", "RIGHT_FACE_RIGHT" },
         { "Z", "RIGHT_FACE_LEFT" }, { "V", "RIGHT_FACE_UP" },
         { "A", "LEFT_TRIGGER_1" }, { "S", "RIGHT_TRIGGER_1" },
-        { "ENTER", "MIDDLE_RIGHT" },
+        { "ENTER", "MIDDLE_RIGHT" }, { "RIGHT_SHIFT", "MIDDLE_LEFT" },
     };
     keymap_t keymap;
     keymap_defaults(&keymap);
@@ -130,7 +130,7 @@ static void test_line_without_equal_is_reported_with_its_number(void) {
 }
 
 static void test_unknown_psx_button_is_reported_with_its_number(void) {
-    assert_parse_error(PREAMBLE "select = DOWN\n", 4, "select");
+    assert_parse_error(PREAMBLE "l2 = DOWN\n", 4, "l2");
     assert_parse_error(PREAMBLE "Down = DOWN\n", 4, "Down");
 }
 
@@ -198,6 +198,12 @@ static void test_psx_button_without_a_line_is_reported_with_line_zero(void) {
     assert(triangle != NULL);
     triangle[0] = '#';
     assert_parse_error(text, 0, "triangle");
+
+    snprintf(text, sizeof text, "%s", keymap_default_text());
+    char *select = strstr(text, "select = ");
+    assert(select != NULL);
+    select[0] = '#';
+    assert_parse_error(text, 0, "select");
 }
 
 static void test_invalid_file_reports_the_line_through_load(void) {
@@ -220,7 +226,8 @@ static const char plain_text[] =
     "triangle = V, RIGHT_FACE_UP\n"
     "l1 = A, LEFT_TRIGGER_1\n"
     "r1 = S, RIGHT_TRIGGER_1\n"
-    "start = ENTER, MIDDLE_RIGHT\n";
+    "start = ENTER, MIDDLE_RIGHT\n"
+    "select = RIGHT_SHIFT, MIDDLE_LEFT\n";
 
 static void assert_parses_as_the_plain_form(const char *text) {
     keymap_t keymap;
@@ -250,7 +257,8 @@ static void test_blanks_comments_crlf_and_last_line_without_newline_parse(void) 
         "triangle = V, RIGHT_FACE_UP\n"
         "l1 = A, LEFT_TRIGGER_1\n"
         "r1 = S, RIGHT_TRIGGER_1\n"
-        "start = ENTER, MIDDLE_RIGHT");
+        "start = ENTER, MIDDLE_RIGHT\n"
+        "select = RIGHT_SHIFT, MIDDLE_LEFT");
 }
 
 #define NAME_STRING(name, code) #name,
@@ -283,12 +291,14 @@ static void test_name_table_is_unique_and_holds_raylib_codes(void) {
 
 static void test_psx_button_names_follow_the_pad_bits(void) {
     static const char *const names[KEYMAP_BUTTON_COUNT] = {
-        "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start"
+        "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select"
     };
     static const int bits[KEYMAP_BUTTON_COUNT] = {
         P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT, P8_PAD_CROSS, P8_PAD_CIRCLE,
-        P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START
+        P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START, P8_PAD_SELECT
     };
+    assert(KEYMAP_BUTTON_COUNT == 12);
+    assert(strcmp(keymap_button_name(11), "select") == 0 && P8_PAD_SELECT == 2048);
     for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {
         assert(strcmp(keymap_button_name(i), names[i]) == 0);
         assert(bits[i] == 1 << i);
@@ -331,12 +341,20 @@ static void test_pad_buttons_or_the_held_bindings(void) {
     assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_CROSS);
 
     held.count = 0;
+    hold(&held, "RIGHT_SHIFT");
+    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_SELECT);
+
+    held.count = 0;
+    hold(&held, "MIDDLE_LEFT");
+    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_SELECT);
+
+    held.count = 0;
     for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {
         for (int j = 0; j < keymap.buttons[i].count; j++) {
             held.held[held.count++] = keymap.buttons[i].bindings[j];
         }
     }
-    assert(held.count == 22);
+    assert(held.count == 24);
     assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == (1 << KEYMAP_BUTTON_COUNT) - 1);
 }
 

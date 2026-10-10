@@ -1,0 +1,5 @@
+# Closed-loop commands only: reaches tests/e2e/pad_game_end.json's end state
+# (years to the final score panel, then "again?" back to the title).
+title 12 reasonable
+until-game-end
+again

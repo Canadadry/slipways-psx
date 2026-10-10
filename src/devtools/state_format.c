@@ -80,12 +80,14 @@ static vec_t ra_of(const entity_t *e) {
     return e != NULL ? entity_pos(e) : vec_make(0, 0);
 }
 
+/* World y is printed at rest, without the bob: it moves with frame timing alone. */
 static void add_position(line_t *line, const entity_t *e, vec_t camera) {
     vec_t ra = ra_of(e);
+    p8_fixed_t rest_y = planet_family_bobs(e) ? p8_fixed_sub(ra.y, planet_bob_total(e->state_time)) : ra.y;
     line_add(line, " world ");
     add_fixed(line, ra.x);
     line_add(line, " ");
-    add_fixed(line, ra.y);
+    add_fixed(line, rest_y);
     line_add(line, " screen ");
     add_fixed(line, p8_fixed_sub(ra.x, camera.x));
     line_add(line, " ");

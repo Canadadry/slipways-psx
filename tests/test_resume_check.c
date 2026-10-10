@@ -117,7 +117,6 @@ static int run_side(side_t side, const char *path, int before, int after, side_r
             snprintf(result->report, sizeof result->report, "the storage changed before the resume");
             return 1;
         }
-        /* The resumed side's bytes are taken before the draw: drawing a probe's emitter moves rnd_state. */
         play_recorded_frame(frame, side == SIDE_RESUMED && frame == after ? &result->snapshot : NULL);
         if (frame > before && frame < after && !game_is_running()) {
             title_seen = 1;
@@ -145,8 +144,7 @@ static int run_side(side_t side, const char *path, int before, int after, side_r
     }
     if (side == SIDE_ORIGINAL) {
         save_check_capture(&result->snapshot);
-        /* A probe's emitter draws from the RNG every drawn frame, so a capture frames after
-           the save point differs from the record in rnd_state; the record is what resume loads. */
+        /* The record is what resume loads. */
         memcpy(result->snapshot.bytes, record, (size_t)count);
         result->snapshot.byte_count = count;
     }

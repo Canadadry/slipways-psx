@@ -39,6 +39,7 @@
 #include "game/slipway.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
+#include "game/visual_random.h"
 #include "engine/vec.h"
 #include "engine/game_zone.h"
 
@@ -63,8 +64,8 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 #define BUILT_HASH 0xA539DD6Du
-#define LIFE_HASH 0xFBDF0BB0u
-#define BURST_FRAMES 86
+#define LIFE_HASH 0x6BB38879u
+#define BURST_FRAMES 84
 
 /* The tag a layout row's placed items carried as a tagged list, which the
  * frozen hashes fold: any other value moves every *_HASH. */
@@ -814,6 +815,27 @@ static held_t held_now(void) {
     return h;
 }
 
+/* A burst's particles are visual only: its spawn loop and each particle
+ * draw from the visual stream and leave the game stream where it was. */
+static void test_burst_particles_draw_from_the_visual_stream(void) {
+    planet_t *e;
+    uint32_t game;
+    uint32_t visual;
+
+    start_game();
+    e = as_burst(harvest(40, 40, "s74"));
+    game = p8_fixed_rnd_state();
+    visual = visual_random_state();
+    emitter_spawn(&e->header, p8_fixed_from_int(3));
+    assert(p8_fixed_rnd_state() == game && "a burst's spawn loop draws no game number");
+    assert(visual_random_state() != visual);
+
+    visual = visual_random_state();
+    (void)burst_spawn_particle(&e->header);
+    assert(p8_fixed_rnd_state() == game && "a burst particle draws no game number");
+    assert(visual_random_state() != visual);
+}
+
 /* A burst that leaves (entity_unregister, then the exit queue's flush)
  * gives back the particles it still holds, its particle list, then its own
  * slot. */
@@ -915,6 +937,7 @@ int main(void) {
     in_fresh_child(test_a_burst_draws_its_circles_in_its_own_ramp);
     in_fresh_child(test_burst_is_a_struct);
     in_fresh_child(test_leaving_gives_back_its_particles);
+    in_fresh_child(test_burst_particles_draw_from_the_visual_stream);
     in_fresh_child(test_the_largest_bursts_fit_their_slot);
     in_fresh_child(test_leaving_lets_go_of_a_dragged_slipway);
     in_fresh_child(test_burst_copies_its_keys);

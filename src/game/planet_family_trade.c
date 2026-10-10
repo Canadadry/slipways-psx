@@ -19,9 +19,12 @@ static const int_seq_t synthesizer_synthesizable_resources_spent = {0, NULL};
 
 static int g_family_trade_up = 0;
 
+int slipgate_takes_slipway(const planet_t *self) {
+    return self->slipways.count < 3;
+}
+
 down_t slipgate_accept_drop(const planet_t *self, const entity_t *s) {
     int start_not_self;
-    int slipways_count = 0;
     down_t out = {0, ENTITY_ID_NONE};
 
     if (self == NULL) {
@@ -31,9 +34,7 @@ down_t slipgate_accept_drop(const planet_t *self, const entity_t *s) {
     start_not_self = !(s != NULL && s->class == slipway_class() &&
                     slipway_start((const slipway_t *)s) == &self->header);
 
-    slipways_count = self->slipways.count;
-
-    out.stop = start_not_self && slipways_count < 3;
+    out.stop = start_not_self && slipgate_takes_slipway(self);
     return out;
 }
 

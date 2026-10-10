@@ -193,19 +193,20 @@ static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     p8_input_free(&input);
 }
 
-#define PAD_FRAME_COUNT 13
+#define PAD_BUTTON_TOTAL 12
+#define PAD_FRAME_COUNT (PAD_BUTTON_TOTAL + 2)
 
-static const int every_pad_button[11] = {
+static const int every_pad_button[PAD_BUTTON_TOTAL] = {
     P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT, P8_PAD_CROSS, P8_PAD_CIRCLE,
-    P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START,
+    P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START, P8_PAD_SELECT,
 };
 
-/* Every button alone, then all eleven together, then none. */
+/* Every button alone, then all twelve together, then none. */
 static void fill_pad_frames(p8_input_frame_t frames[PAD_FRAME_COUNT]) {
     memset(frames, 0, sizeof(p8_input_frame_t) * PAD_FRAME_COUNT);
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < PAD_BUTTON_TOTAL; i++) {
         frames[i].pad_buttons = every_pad_button[i];
-        frames[11].pad_buttons |= every_pad_button[i];
+        frames[PAD_BUTTON_TOTAL].pad_buttons |= every_pad_button[i];
     }
 }
 
@@ -225,7 +226,8 @@ static void test_pad_save_then_load_round_trips_every_button(void) {
         assert(got->pad_buttons == written[i].pad_buttons);
         assert(got->mouse_x == 0 && got->mouse_y == 0 && got->mouse_buttons == 0);
     }
-    assert(written[11].pad_buttons != 0 && written[12].pad_buttons == 0);
+    assert(written[PAD_BUTTON_TOTAL].pad_buttons == (1 << PAD_BUTTON_TOTAL) - 1);
+    assert(written[PAD_BUTTON_TOTAL + 1].pad_buttons == 0);
     p8_input_free(&input);
 }
 
@@ -251,18 +253,19 @@ static void test_pad_append_is_byte_identical_to_pad_save_every_frame(void) {
     p8_input_init(&input);
     assert(p8_input_load(&input, appended_path));
     assert(input.frame_count == PAD_FRAME_COUNT);
-    assert(input.frames[11].pad_buttons == frames[11].pad_buttons);
+    assert(input.frames[PAD_BUTTON_TOTAL].pad_buttons == frames[PAD_BUTTON_TOTAL].pad_buttons);
     p8_input_free(&input);
 }
 
 static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(void) {
-    p8_input_frame_t written[2] = {
+    p8_input_frame_t written[3] = {
         {0, 0, 0, P8_PAD_START | P8_PAD_CROSS | P8_PAD_UP},
+        {0, 0, 0, P8_PAD_SELECT | P8_PAD_START | P8_PAD_R1},
         {0, 0, 0, 0},
     };
     const char *path = "tmp/test_input_pad_shape.json";
 
-    assert(p8_input_save(written, 2, path));
+    assert(p8_input_save(written, 3, path));
 
     char *saved = read_file_raw(path);
     assert(strcmp(saved,
@@ -270,6 +273,7 @@ static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(
                   "  \"input\": \"pad\",\n"
                   "  \"frames\": [\n"
                   "    { \"pad\": [\"up\", \"cross\", \"start\"] },\n"
+                  "    { \"pad\": [\"r1\", \"start\", \"select\"] },\n"
                   "    { \"pad\": [] }\n"
                   "  ]\n"
                   "}\n") == 0);
@@ -336,6 +340,14 @@ static void write_text(const char *path, const char *text) {
 }
 
 #define PAD_FRAMES_TEXT "  \"frames\": [\n    { \"pad\": [\"up\"] },\n    { \"pad\": [] }\n  ]\n"
+
+static void test_select_named_twice_in_a_frame_fails(void) {
+    const char *path = "tmp/test_input_select_twice.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n  \"frames\": [\n"
+                     "    { \"pad\": [\"select\", \"up\", \"select\"] }\n  ]\n}\n");
+    assert_load_fails_and_leaves_input_untouched(path);
+    remove(path);
+}
 
 static void test_recording_without_the_pad_header_fails(void) {
     const char *path = "tmp/test_input_no_header.json";
@@ -428,6 +440,7 @@ int main(void) {
     test_pad_save_writes_the_declaration_and_buttons_in_canonical_order();
     test_pad_buttons_load_in_any_order();
     test_malformed_pad_frames_fail_and_leave_input_untouched();
+    test_select_named_twice_in_a_frame_fails();
     test_recording_without_the_pad_header_fails();
     test_input_other_than_pad_fails();
     test_input_after_the_frames_is_not_a_header();

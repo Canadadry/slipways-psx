@@ -19,6 +19,7 @@
 #include "game/slipway.h"
 #include "game/ui.h"
 #include "game/wormhole.h"
+#include "game/visual_random.h"
 #include "p8/str.h"
 #include "engine/frame_zone.h"
 
@@ -186,7 +187,7 @@ void targeting_track(entity_t *self, mouse_pos_t mouse) {
     entity_set_map_pos(self, p_vec);
 
     candidate = NULL;
-    distance = entity_geom_nearest(p_vec, entities_by_tag(TAG_NODE), &candidate);
+    distance = entity_geom_nearest_except(p_vec, entities_by_tag(TAG_NODE), self, &candidate);
 
     target = NULL;
 
@@ -352,13 +353,13 @@ particle_t *probe_spawn_particle(entity_t *self) {
     }
 
     /* Two statements: C leaves argument order unspecified, and rnd(angle_slices) must come first. */
-    rnd_angle_slices = p8_fixed_rnd(angle_slices);
-    rnd_half = p8_fixed_rnd(P8_FIXED_LIT(0x00008000, 0.5));
+    rnd_angle_slices = visual_random_draw(angle_slices);
+    rnd_half = visual_random_draw(P8_FIXED_LIT(0x00008000, 0.5));
     a = p8_fixed_add(
         p8_fixed_div(p8_fixed_add(p8_fixed_flr(rnd_angle_slices), rnd_half), angle_slices),
         p8_fixed_mul(state_time, P8_FIXED_LIT(0x00000041, 0.001)));
 
-    p = vec_from_polar(p8_fixed_add(base_radius, p8_fixed_rnd_default()), a);
+    p = vec_from_polar(p8_fixed_add(base_radius, visual_random_draw_one()), a);
     v = vec_mul(p, speed_factor);
 
     if (pk) {

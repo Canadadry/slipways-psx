@@ -357,11 +357,24 @@ void planet_new_year(const planet_t *self) {
     }
 }
 
+static p8_fixed_t bob_delta(p8_fixed_t t) {
+    return p8_fixed_mul(p8_fixed_sin(p8_fixed_mul(t, P8_FIXED_LIT(0x00000147, 0.005))), P8_FIXED_LIT(0x00000f5c, 0.06));
+}
+
 void planet_bob(entity_t *self, p8_fixed_t t) {
     assert((self == NULL || planet_is_family(self)) && "planet_bob: self is a planet (structure and trading hub settled updates) -- stop");
     if (self != NULL && entity_has_pos(self)) {
-        p8_fixed_t delta = p8_fixed_mul(p8_fixed_sin(p8_fixed_mul(t, P8_FIXED_LIT(0x00000147, 0.005))),
-                                               P8_FIXED_LIT(0x00000f5c, 0.06));
-        self->pos.y = p8_fixed_add(self->pos.y, delta);
+        self->pos.y = p8_fixed_add(self->pos.y, bob_delta(t));
     }
+}
+
+p8_fixed_t planet_bob_total(p8_fixed_t state_time) {
+    uint32_t frames = (uint32_t)state_time >> 16;
+    p8_fixed_t total = 0;
+    p8_fixed_t t = 0;
+    for (uint32_t i = 0; i < frames; i++) {
+        total = p8_fixed_add(total, bob_delta(t));
+        t = p8_fixed_add(t, p8_fixed_from_int(1));
+    }
+    return total;
 }

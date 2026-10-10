@@ -14,6 +14,7 @@
 #include "game/planet.h"
 #include "game/planet_display.h"
 #include "game/probe.h"
+#include "game/visual_random.h"
 
 static int g_family_up = 0;
 
@@ -83,6 +84,14 @@ void trading_hub_update_settled(planet_t *self, p8_fixed_t t) {
 
 static void trading_hub_update_settled_method(entity_t *self, p8_fixed_t t) {
     trading_hub_update_settled((planet_t *)self, t);
+}
+
+int planet_family_bobs(const entity_t *e) {
+    if (e == NULL || e->state != ENTITY_STATE_SETTLED || e->class == NULL) {
+        return 0;
+    }
+    state_fn_t settled = e->class->states[ENTITY_STATE_SETTLED];
+    return settled == structure_update_settled_method || settled == trading_hub_update_settled_method;
 }
 
 static const entity_class_t trading_hub_class_def = {
@@ -310,12 +319,12 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
     vec_t a;
     particle_t *particle;
 
-    qd = p8_fixed_add(p8_fixed_rnd(P8_FIXED_LIT(0x00018000, 1.5)), P8_FIXED_LIT(0x00008000, 0.5));
-    if (p8_fixed_rnd_default() < P8_FIXED_LIT(0x00009999, 0.6)) {
+    qd = p8_fixed_add(visual_random_draw(P8_FIXED_LIT(0x00018000, 1.5)), P8_FIXED_LIT(0x00008000, 0.5));
+    if (visual_random_draw_one() < P8_FIXED_LIT(0x00009999, 0.6)) {
         qd = p8_fixed_mul(p8_fixed_flr(p8_fixed_div(qd, P8_FIXED_LIT(0x00008000, 0.5))),
                               P8_FIXED_LIT(0x00008000, 0.5));
     }
-    p = vec_from_polar(qd, p8_fixed_rnd_default());
+    p = vec_from_polar(qd, visual_random_draw_one());
 
     ms = self->speed;
     iu = self->acceleration_factor;
@@ -329,7 +338,7 @@ particle_t *burst_spawn_particle(entity_t *self_ptr) {
     particle->velocity = v;
     particle->has_acceleration = 1;
     particle->acceleration = a;
-    particle->life = p8_fixed_add(p8_fixed_rnd(py), py);
+    particle->life = p8_fixed_add(visual_random_draw(py), py);
 
     return particle;
 }

@@ -11,7 +11,7 @@ typedef struct {
 } psx_pad_map_entry_t;
 
 static const psx_pad_map_entry_t entries[] = {
-    { "SELECT", PSX_PAD_HARDWARE_SELECT, 0 },
+    { "SELECT", PSX_PAD_HARDWARE_SELECT, P8_PAD_SELECT },
     { "L3", PSX_PAD_HARDWARE_L3, 0 },
     { "R3", PSX_PAD_HARDWARE_R3, 0 },
     { "START", PSX_PAD_HARDWARE_START, P8_PAD_START },

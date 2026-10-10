@@ -141,8 +141,7 @@ entity_t *pad_panel_first_item(void) {
 }
 
 /* The hit box where the hit test reads it: layers under 10 are hit-tested in world space. */
-static box_t screen_box(const entity_t *e) {
-    vec_t origin = entity_pos(e);
+static box_t box_at(const entity_t *e, vec_t origin) {
     if (p8_fixed_flr_int(e->layer) < SCREEN_SPACE_LAYER) {
         const camera_t *camera = main_camera_typed();
         if (camera != NULL) {
@@ -154,14 +153,27 @@ static box_t screen_box(const entity_t *e) {
     return box;
 }
 
+static box_t screen_box(const entity_t *e) {
+    return box_at(e, entity_pos(e));
+}
+
+/* A box row still sliding in is judged where it comes to rest, or a Down on its first frames skips a row. */
+static box_t rest_box(const entity_t *e) {
+    const button_t *button = e->class == button_class() ? (const button_t *)e : NULL;
+    return box_at(e, button != NULL && (button->has & BUTTON_HAS_SLIDE_TARGET) ? button->slide_target : entity_pos(e));
+}
+
 static p8_fixed_t middle(p8_fixed_t low, p8_fixed_t high) {
     return p8_fixed_flr(p8_fixed_div(p8_fixed_add(low, high), p8_fixed_from_int(2)));
 }
 
-void pad_panel_focus_point(const entity_t *e, int *x, int *y) {
-    box_t box = screen_box(e);
+static void box_middle(box_t box, int *x, int *y) {
     *x = p8_fixed_flr_int(middle(box.left, box.right));
     *y = p8_fixed_flr_int(middle(box.top, box.bottom));
+}
+
+void pad_panel_focus_point(const entity_t *e, int *x, int *y) {
+    box_middle(screen_box(e), x, y);
 }
 
 static int is_direction(int direction) {
@@ -185,11 +197,11 @@ static int span_gap(p8_fixed_t low_a, p8_fixed_t high_a, p8_fixed_t low_b, p8_fi
 
 /* -1 when the candidate does not lie strictly beyond the item's box in that direction. */
 static int neighbor_score(const entity_t *item, const entity_t *candidate, int direction) {
-    box_t from = screen_box(item);
-    box_t to = screen_box(candidate);
+    box_t from = rest_box(item);
+    box_t to = rest_box(candidate);
     int from_x, from_y, to_x, to_y;
-    pad_panel_focus_point(item, &from_x, &from_y);
-    pad_panel_focus_point(candidate, &to_x, &to_y);
+    box_middle(from, &from_x, &from_y);
+    box_middle(to, &to_x, &to_y);
     switch (direction) {
     case P8_PAD_UP:
         if (p8_fixed_from_int(to_y) >= from.top) return -1;

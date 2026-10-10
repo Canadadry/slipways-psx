@@ -98,8 +98,8 @@ static void test_a_broken_log_is_refused_naming_its_line(void) {
                    "line 3: frame 2 does not increase past 2");
     assert_refused("psx-game: pad 0 00g\npsx-replay: done game 4 vsyncs 1\n", "line 1: malformed pad line");
     assert_refused("psx-game: pad 0\npsx-replay: done game 4 vsyncs 1\n", "line 1: malformed pad line");
-    assert_refused("psx-game: pad 0 800\npsx-replay: done game 4 vsyncs 1\n",
-                   "line 1: pad 800 has bits outside the eleven pad buttons");
+    assert_refused("psx-game: pad 0 1000\npsx-replay: done game 4 vsyncs 1\n",
+                   "line 1: pad 1000 has bits outside the twelve pad buttons");
     assert_refused("psx-game: pad 0 000\n", "no psx-replay: done line");
     assert_refused("psx-game: pad 0 000\npsx-replay: done game 4 vsyncs 1\npsx-replay: done game 4 vsyncs 1\n",
                    "line 3: second done line (the first is line 2)");
@@ -119,10 +119,10 @@ static void test_the_game_script_walks_the_title_screen_states(void) {
     for (int i = 0; i < script.count; i++) assert(script.states[i] == expected[i]);
 }
 
-static void test_a_step_holding_only_select_adds_no_state(void) {
+static void test_a_step_holding_only_l2_adds_no_state(void) {
     pad_script_t script;
     char error[PAD_LOG_ERROR_CAP];
-    assert(pad_log_parse_script("# select is no pad button\n\n10 SELECT\n20 CROSS SELECT\n30 -\n", &script, error));
+    assert(pad_log_parse_script("# l2 is no pad button\n\n10 L2\n20 CROSS L2\n30 -\n", &script, error));
     assert(script.count == 3);
     assert(script.states[0] == 0 && script.states[1] == P8_PAD_CROSS && script.states[2] == 0);
 }
@@ -184,7 +184,7 @@ int main(void) {
     test_values_hold_between_lines_and_foreign_lines_are_ignored();
     test_a_broken_log_is_refused_naming_its_line();
     test_the_game_script_walks_the_title_screen_states();
-    test_a_step_holding_only_select_adds_no_state();
+    test_a_step_holding_only_l2_adds_no_state();
     test_a_broken_script_is_refused_naming_its_line();
     test_log_states_are_compared_with_the_script_states();
     printf("test_pad_log: ok\n");

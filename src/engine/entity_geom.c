@@ -87,6 +87,24 @@ p8_fixed_t entity_geom_nearest(vec_t p, const entity_list_t *j_, entity_t **out_
     return mk;
 }
 
+p8_fixed_t entity_geom_nearest_except(vec_t p, const entity_list_t *j_, const entity_t *excluded, entity_t **out_nearest) {
+    p8_fixed_t best = p8_fixed_from_int(32767);
+    entity_list_iter_t it;
+    entity_t *o;
+
+    *out_nearest = NULL;
+    if (j_ == NULL) return best;
+    it = entity_list_all(j_);
+    while (entity_list_iter_next(&it, &o)) {
+        p8_fixed_t d = vec_length_squared(vec_sub(p, map_pos_of(o)));
+        if (o != excluded && d < best) {
+            *out_nearest = o;
+            best = d;
+        }
+    }
+    return best;
+}
+
 p8_fixed_t entity_geom_nearest_in_ids(vec_t p, const entity_id_list_t *ids, entity_t **out_nearest) {
     p8_fixed_t best = p8_fixed_from_int(32767);
     entity_t *o;

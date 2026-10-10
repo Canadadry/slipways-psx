@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { LINE_CAP = 256, MAX_WORDS = 7, PAD_BUTTONS_MASK = (1 << 11) - 1, PAD_SCRIPT_LINE_WORDS = 17 };
+enum { LINE_CAP = 256, MAX_WORDS = 7, PAD_BUTTONS_MASK = (P8_PAD_SELECT << 1) - 1, PAD_SCRIPT_LINE_WORDS = 17 };
 
 typedef struct {
     const char *at;
@@ -133,7 +133,7 @@ static int read_pad_lines(const char *text, pad_log_t *log, char *error) {
             return refuse(error, reader.number, reason);
         }
         if (value & ~PAD_BUTTONS_MASK) {
-            snprintf(reason, sizeof reason, "pad %s has bits outside the eleven pad buttons", words[3]);
+            snprintf(reason, sizeof reason, "pad %s has bits outside the twelve pad buttons", words[3]);
             return refuse(error, reader.number, reason);
         }
         if (frame >= log->frame_count) {

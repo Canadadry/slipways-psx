@@ -20,6 +20,7 @@
 #include "game/slipway.h"
 #include "game/ui.h"
 #include "game/ui_zone.h"
+#include "game/visual_random.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -74,6 +75,7 @@ void save_check_capture(save_check_snapshot_t *out) {
     assert_save_frame_conditions();
     save_state_capture(&g_state);
     out->byte_count = save_state_encode(&g_state, out->bytes);
+    out->visual_random_state = visual_random_state();
     write_dump(out->dump);
     out->has_screen = 0;
 }
@@ -157,6 +159,8 @@ void save_check_drop_unsaved_state(void) {
     reset_slipways();
     if (main_ui() != NULL) {
         ui_set_pad_crosshair(main_ui(), 0);
+        ui_set_pad_selection(main_ui(), NULL, 0);
+        ui_set_pad_tab(main_ui(), NULL);
     }
 }
 
@@ -169,7 +173,7 @@ void save_check_capture_screen(save_check_snapshot_t *out) {
     assert(save_check_screen_comparable() && "compared screen: a message box, panel, menu or the pause menu is open");
     assert(particle_pixels_hidden() && "save_check: the frame was drawn with particles shown; call save_check_hide_particles(1) before it");
     assert(particle_zone_live(PARTICLE_SLOT_BURST) == 0 &&
-           "save_check: a burst is live and draws from the RNG every frame, so the compared frames desync");
+           "save_check: a burst is live and the save never holds one, so the compared frames differ");
     memcpy(out->screen, dispatch_context_mem()->screen, sizeof out->screen);
     out->has_screen = 1;
 }
@@ -181,6 +185,7 @@ void save_check_resume(const save_check_snapshot_t *saved) {
     assert(valid && "save_check_resume: the saved bytes do not decode");
     (void)valid;
     cart_resume_game(&g_state);
+    visual_random_set_state(saved->visual_random_state);
 }
 
 static int line_length(const char *line) {

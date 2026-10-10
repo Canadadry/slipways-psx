@@ -1,0 +1,4 @@
+# expect: dead circle: it changed no mode, object, camera, box or panel
+title 12 reasonable
+idle 4
+back

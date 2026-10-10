@@ -30,12 +30,14 @@ It reports `VERIFIED:`, or `FAILED:` plus detail — which stops the loop and go
 ### 4. Commit
 On `VERIFIED:`, run the `git-commit` skill in place for this chunk (or the whole PRD). You are the gate: accept when the verifier's checks hold.
 
+With `progress.md` at the root: the PRD's first commit adds, under the current step's item, one `- [ ]` child per chunk (one for a PRD without chunks), and stages the PRD file itself; every chunk's commit ticks its child.
+
 More chunks remain → back to step 2 for the next one; the PRD stays in triage until its last chunk lands.
 
 ### 5. Check the e2e net, push, graduate
 Once the last (or only) chunk is committed, invoke the `check-e2e` skill in place.
 
-- `E2E-GREEN:` → `git rm` the PRD from triage and commit that deletion (`docs:`, naming the file), then `git push -u origin <current branch>`. This is the only push of the cycle: the remote only ever receives states where `make e2e` is green.
+- `E2E-GREEN:` → `git rm` the PRD from triage and commit that deletion (`docs:`, naming the file; folded into `HEAD` when `progress.md` exists, see `git-commit`), then `git push -u origin <current branch>`. This is the only push of the cycle: the remote only ever receives states where `make e2e` is green.
 - `E2E-FAILED:` → stop the loop and report to the user. Don't push, and leave the PRD in triage.
 
 ### 6. Loop

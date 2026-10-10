@@ -4,3 +4,4 @@ third_party/
 psx-hello/build/
 .claude/worktrees/
 save/slipways.sav
+.claude/skills/plan-progress/.claude-plugin/types/

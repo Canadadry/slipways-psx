@@ -136,6 +136,9 @@ weighted_picker_t *planet_type_picker(void);
 random_walk_t *planet_vanish_roll(void);
 
 void planet_bob(entity_t *self, p8_fixed_t t);
+/* The sum of what planet_bob adds at state times 0 up to state_time - 1;
+ * wrong once state_time has wrapped past 65535 frames. */
+p8_fixed_t planet_bob_total(p8_fixed_t state_time);
 
 const entity_kind_t *planet_kind_named(const char *fz);
 

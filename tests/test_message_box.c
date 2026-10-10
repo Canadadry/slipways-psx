@@ -394,6 +394,24 @@ static void test_message_box_nil_keep_open_key_reads_absent(void) {
 }
 
 
+/* Closed the way its own timeout closes it; with no box shown it does nothing. */
+static void test_close_shown_kills_the_shown_box_only(void) {
+    message_box_keys_t keys = {0};
+    message_box_t *first, *second;
+
+    reset_world(NULL);
+    cart_flush_exit_queue();
+    message_box_close_shown();
+    assert(shown_message_box() == NULL);
+    first = message_box_new(&keys);
+    second = message_box_new(&keys);
+    assert(first->header.is_dead && shown_message_box() == second);
+    message_box_close_shown();
+    assert(second->header.is_dead && shown_message_box() == NULL);
+    message_box_close_shown();
+    assert(shown_message_box() == NULL);
+}
+
 /* A box takes a slot; once update_entities() takes it out at the end of its
  * run, emptying the exit queue gives the slot back. */
 static void test_box_gives_its_slot_back(void) {
@@ -614,6 +632,7 @@ int main(void) {
     test_defaults_match_the_parsed_spec();
     test_message_box_is_a_struct_registered_under_draw_overlay();
     test_message_box_nil_keep_open_key_reads_absent();
+    test_close_shown_kills_the_shown_box_only();
     test_scores_box_keeps_its_articles();
     test_box_gives_its_slot_back();
     test_year_box_keeps_its_label();

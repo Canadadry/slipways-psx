@@ -48,6 +48,10 @@ p8_fixed_t p8_fixed_pow075(p8_fixed_t x);
 
 p8_fixed_t p8_fixed_rnd(p8_fixed_t x);
 
+/* The LCG and scaling of p8_fixed_rnd, on the caller's state: advances
+ * *state, never the global one. rnd(0) returns 0 and leaves *state as is. */
+p8_fixed_t p8_fixed_rnd_from_state(uint32_t *state, p8_fixed_t x);
+
 p8_fixed_t p8_fixed_rnd_default(void);
 
 uint32_t p8_fixed_rnd_state(void);

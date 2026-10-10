@@ -72,7 +72,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 #define FUNCTIONS_INVENTED_HASH 0xD71074AAu
 #define INSTALL_HASH 0x45B1D201u
 #define BUILT_WORLD_HASH 0x41A39EBCu
-#define HARVESTED_WORLD_HASH 0x091FA6C2u
+#define HARVESTED_WORLD_HASH 0x8209C037u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;

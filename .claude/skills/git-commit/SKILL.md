@@ -44,6 +44,12 @@ Message: fix: keep planet links alive after a slipway is removed
 ### 6. Commit
 On acceptance: `git add <files>`, then commit with the agreed message. No `Co-Authored-By` trailer.
 
+### `progress.md` at the root — every commit ticks
+While it exists (a `plan-pilot` run), the hook installed by `tools/progress_check.sh --install` refuses any commit that ticks no new `[x]` in it, even under `--no-verify`. So:
+- The unit has its own item (a chunk, a step, a module) → stage `progress.md` with that item ticked.
+- It has none (a `fix:`, a PRD removal) → fold it into `HEAD` if `HEAD` is not pushed (`git branch -r --contains HEAD` prints nothing): `git commit --amend`, this message appended to `HEAD`'s body. `HEAD` pushed → don't commit: leave it in the working tree, the next commit that ticks carries it and its message.
+- A refusal is never bypassed: fix `progress.md` per the hook's message.
+
 ## Commit message format
 
 ```
