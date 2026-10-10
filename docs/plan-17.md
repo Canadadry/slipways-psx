@@ -152,7 +152,7 @@ If a step finds plan 12's code doing something this table does not list, it foll
 ### Phase 5 — Docs and cleanup
 
 20. **Docs.** The README's Controls section becomes the pointer of section 2. Delete `docs/pad-modes-and-actions.md`. Verified by reading: no README line names a PSX symbol as a control, and every mode of section 2 is explained in `bindings.default.cfg`.
-21. skill: rework-comments — the files this plan created or rewrote (`src/game/bindings.*`, the two generators, `src/devtools/input_json.c`, `src/platform/keymap.*`).
+21. skill: rework-comments — the files this plan created or rewrote, computed when the step runs against step 1's base 9f0ac80: created = `git diff --diff-filter=A --name-only 9f0ac80..HEAD -- src tests tools`; rewrote = every source, test or script file where this plan's diff adds a comment line. The command and the resulting list go in the step note, with the files in scope that no runnable target builds (such as `src/cmd/game.c`, compiled only by `make raylib`).
 
 ## 4. Done when
 
@@ -350,3 +350,4 @@ If a step finds plan 12's code doing something this table does not list, it foll
 - Checks: with `keymap.cfg` present, `make raylib` printed `keymap: keymap.cfg (personal)` and linked. A no-change rerun compiled nothing. Broken files failed and relinked nothing: `keymap.cfg:22: bad button "13": expected a number from 1 to 12`, old format `keymap.cfg:7: bad button "up": …`, oversize `keymap.cfg: larger than 4096 bytes`. With the file removed (fresh clone), `make test-all` passed and `make raylib` printed `keymap: keymap.default.cfg`. Putting it back with an old date regenerated through the stamp. Binary proof: `keymap_compiled` (0x1b0 bytes) dumps identical with and without a default-equal personal file; a 7/8 swap changes exactly two words. `nm` over the replay objects finds no `keymap_compiled`. `tmp/bindings/default.c` is byte-identical across the comment edit.
 - Trap: a clone with local edits to `keymap.cfg` will have the pull refused until the copy is moved aside, converted to button numbers and put back.
 - `make test` 4.31–4.51 s, `make e2e` 0.24–0.27 s (neither slower than before the step).
+- End of phase 3: `warn-review` flagged the two generators duplicating input reading, temp-then-rename and usage handling; their different input limits (4096 against 65536); `keymap.c` depending on `game/bindings.h` for the reader; `test_keymap` reading the default file twice. None touches a remaining step. Accepted `plan-review` proposal: step 21 computes its file list from git against 9f0ac80 instead of the hand-written list, which had drifted from "files this plan created or rewrote".
