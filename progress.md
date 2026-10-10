@@ -72,3 +72,4 @@
     - [x] rework-comments: bindings
     - [x] rework-comments: replay
     - [x] rework-comments: pad navigation
+    - [x] rework-comments: test_pad_nav

@@ -53,7 +53,6 @@ static p8_graphics_t graphics;
 
 enum { SETTLE_FRAMES = 20 };
 
-/* NULL when no live button has that name. */
 static entity_t *title_button(const char *name) {
     const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (int i = 0; i < bucket->count; i++) {
@@ -73,13 +72,11 @@ static void run_frame(input_step_t *step, int pad_buttons) {
     cart_update60();
 }
 
-/* Press on one frame, release on the next: the focus moves on the press. */
 static void tap(input_step_t *step, int pad_buttons) {
     run_frame(step, pad_buttons);
     run_frame(step, 0);
 }
 
-/* The bar closed and no cycle panel open: what every map mode needs. */
 static int on_the_map(const pad_nav_t *nav) {
     return !pad_nav_build_bar_open(nav) && !pad_nav_tech_open(nav) && !pad_nav_score_open(nav);
 }
@@ -91,7 +88,7 @@ static void open_tech(input_step_t *step) {
     assert(pad_nav_tech_open(&step->pad_nav));
 }
 
-/* □ from jump mode: the plain aim mode every game started in before jump mode. */
+/* □ from jump mode. */
 static void leave_jump_mode(input_step_t *step) {
     tap(step, P8_PAD_BUTTON_7);
     assert(pad_nav_aim_mode(&step->pad_nav));
@@ -186,7 +183,6 @@ static void test_title_cross_starts_the_focused_difficulty(void) {
 
 static save_state_t g_saved;
 
-/* A reasonable game saved at its first end turn, then the title again: g_saved holds the record. */
 static void start_title_with_a_save(input_step_t *step) {
     static uint8_t bytes[SAVE_STATE_MAX_BYTES];
     int count;
@@ -281,7 +277,6 @@ static void test_aim_mode_holds_the_cursor_at_the_centre(void) {
     }
 }
 
-/* Plan 12's D-pad on the default table: 1 up, 2 down, 3 left, 4 right; 0 for PAD_DIRECTION_NONE. */
 static int default_direction_button(pad_direction_t direction) {
     switch (direction) {
     case PAD_DIRECTION_UP:
@@ -298,7 +293,6 @@ static int default_direction_button(pad_direction_t direction) {
     return 0;
 }
 
-/* The first of up, down, left, right whose default button is in buttons. */
 static pad_direction_t default_first_direction(int buttons) {
     static const pad_direction_t ranked[4] = { PAD_DIRECTION_UP, PAD_DIRECTION_DOWN, PAD_DIRECTION_LEFT,
                                                PAD_DIRECTION_RIGHT };
@@ -318,7 +312,6 @@ typedef struct {
     int moves[PATH_CAP];
 } reached_t;
 
-/* Breadth first over pad_nav_neighbor from the first item; returns how many items were reached. */
 static int reach_all(reached_t reached[ITEMS_CAP]) {
     static const pad_direction_t directions[4] = { PAD_DIRECTION_UP, PAD_DIRECTION_DOWN, PAD_DIRECTION_LEFT,
                                                    PAD_DIRECTION_RIGHT };
@@ -348,7 +341,6 @@ static int reach_all(reached_t reached[ITEMS_CAP]) {
     return count;
 }
 
-/* Every expected item is reached from the first, and each, once focused through the input step, is the hovered entity. */
 static void assert_reachable_and_hovered(input_step_t *step, entity_t *const expected[], int expected_count) {
     reached_t reached[ITEMS_CAP];
     int count = reach_all(reached);
@@ -372,7 +364,6 @@ static void assert_reachable_and_hovered(input_step_t *step, entity_t *const exp
     }
 }
 
-/* Returns how many entries the open box holds. */
 static int box_entries(entity_t *entries[ITEMS_CAP]) {
     const entity_id_list_t *ephemerals = &main_ui()->ephemerals;
     assert(ephemerals->count <= ITEMS_CAP);
@@ -455,7 +446,6 @@ static vec_t camera_at(void) {
     return camera_pos_before_shake(main_camera_typed());
 }
 
-/* Holds the direction for the given frames, then releases it; returns the camera's move along its axis. */
 static int hold_and_measure(input_step_t *step, int direction, int frames) {
     vec_t from = camera_at();
     for (int i = 0; i < frames; i++) {
@@ -527,7 +517,6 @@ static void test_aim_mode_diagonal_cancel_and_reset(void) {
     assert_moved(from, 10 + 2 * 10, 1);
 }
 
-/* Holds the direction until the camera stops; returns where it stopped. */
 static vec_t pan_to_bound(input_step_t *step, int direction) {
     vec_t last = camera_at();
     for (int i = 0; i < 200; i++) {
@@ -581,7 +570,6 @@ static int planet_near_centre(int pixels) {
     return 0;
 }
 
-/* Pans right, then down, until no planet lies within 24 px of the centre on both axes. */
 static void pan_to_empty_space(input_step_t *step) {
     for (int i = 0; i < 400 && planet_near_centre(24); i++) {
         tap(step, i % 2 ? P8_PAD_BUTTON_4 : P8_PAD_BUTTON_2);
@@ -764,7 +752,6 @@ static int has_text(const entity_t *e, const char *text) {
     return 0;
 }
 
-/* NULL when no live entity has that class. */
 static entity_t *live_of_class(const entity_class_t *class) {
     const entity_list_t *live = live_entities();
     for (int i = 0; i < live->count; i++) {
@@ -859,7 +846,6 @@ static void end_game(input_step_t *step) {
     settle(step);
 }
 
-/* NULL when no planet-family entity is live. */
 static planet_t *planet_closest_to_centre(void) {
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     vec_t centre = centre_world();
@@ -995,7 +981,6 @@ static void test_planet_menu_is_reachable(void) {
     assert_reachable_and_hovered(&step, entries, count);
 }
 
-/* Keeps held_buttons down across the frame it runs. */
 static void pan_planet_under_centre(input_step_t *step, const planet_t *planet, int held_buttons) {
     vec_t gap = vec_sub(entity_pos(&planet->header), centre_world());
     camera_pan(main_camera_typed(), p8_fixed_flr_int(gap.x), p8_fixed_flr_int(gap.y));
@@ -1131,7 +1116,6 @@ static void settle_planet(input_step_t *step, planet_t *planet) {
 
 typedef int (*pair_accept_t)(int dx, int dy, p8_fixed_t squared);
 
-/* The two planets' pixel gap and squared map distance pass accept, and no other planet lies near the segment between them. */
 static void find_pair(pair_accept_t accept, planet_t **start, planet_t **target) {
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     for (int a = 0; a < planets->count; a++) {
@@ -1271,7 +1255,6 @@ static int off_screen(int x, int y) {
     return x < 0 || x >= P8_SCREEN_WIDTH || y < 0 || y >= P8_SCREEN_HEIGHT;
 }
 
-/* NULL when no slipway joins the two planets. */
 static entity_t *slipway_between(const entity_t *start, const entity_t *target) {
     entity_id_list_iter_t it = entity_id_list_all(&((const planet_t *)start)->slipways);
     entity_t *slipway;
@@ -1283,7 +1266,6 @@ static entity_t *slipway_between(const entity_t *start, const entity_t *target) 
     return NULL;
 }
 
-/* Moves the icon so its hit box centre sits on the planet's screen point. */
 static void cover_with_icon(entity_t *icon, const planet_t *planet) {
     vec_t at = vec_sub(entity_pos(&planet->header), entity_pos(&main_camera_typed()->header));
     vec_t middle = vec_make(p8_fixed_div(p8_fixed_add(icon->hit_box.left, icon->hit_box.right), p8_fixed_from_int(2)),
@@ -1371,7 +1353,6 @@ enum { PAD_CIRCLE_RADIUS = 9, PAD_CIRCLE_COLOUR = 7 };
 
 enum { CROSSHAIR_COLOUR = 7, CROSSHAIR_ARM = 2 };
 
-/* How many of the crosshair's arm pixels around the screen centre show its colour, out of 4 * CROSSHAIR_ARM. */
 static int crosshair_pixels_lit(void) {
     int x = P8_SCREEN_WIDTH / 2;
     int y = P8_SCREEN_HEIGHT / 2;
@@ -1510,7 +1491,6 @@ static void assert_clicked(const input_step_t *step, int index) {
     assert_played(step, x, y, P8_MOUSE_LEFT);
 }
 
-/* NULL when no revealed icon sits at that screen x. */
 static entity_t *revealed_icon_at(int x) {
     const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (int i = 0; i < bucket->count; i++) {
@@ -1663,7 +1643,6 @@ static void assert_carrying(const input_step_t *step, const entity_t *structure)
     assert_played(step, P8_SCREEN_WIDTH / 2, P8_SCREEN_HEIGHT / 2, P8_MOUSE_LEFT);
 }
 
-/* × tapped on build: pressed at the icon on that frame, carried on the map from the next. */
 static entity_t *take_structure(input_step_t *step) {
     entity_t *icon = pad_nav_build_icon(&step->pad_nav);
     assert(icon != NULL);
@@ -1897,7 +1876,6 @@ static void assert_years_ended(year_facts_t before, int years) {
     assert(now.credits == p8_fixed_add(before.credits, p8_fixed_mul(before.income, p8_fixed_from_int(years))));
 }
 
-/* Select held for frames, each of which must press nothing. */
 static void hold_select_pressing_nothing_on(input_step_t *step, int button, int frames) {
     for (int i = 0; i < frames; i++) {
         run_frame(step, button);
@@ -2066,7 +2044,6 @@ static int invented_count(void) {
     return main_economy_typed()->invented.count;
 }
 
-/* Stops on the first row with an action below the header the focus starts on, tapping down to move. */
 static const entity_t *focus_affordable_row_tapping(input_step_t *step, int down) {
     for (int i = 0; i < ITEMS_CAP; i++) {
         const entity_t *focus = pad_nav_focus(&step->pad_nav);
@@ -2120,7 +2097,6 @@ static int score_panel_shown(void) {
     return panel->has_is_shown && panel->is_shown;
 }
 
-/* NULL once the score panel's backdrop is gone. */
 static entity_t *backdrop(void) {
     return live_of_class(modal_backdrop_class());
 }
@@ -2972,7 +2948,6 @@ static void test_jump_mode_seeds_on_the_first_object_that_appears(void) {
     assert_moved(from, 0, 0);
 }
 
-/* NULL when no planet's rest point lies outside the inner rectangle. */
 static planet_t *planet_farthest_outside(void) {
     const entity_list_t *planets = entities_by_tag(TAG_PLANET);
     planet_t *chosen = NULL;
@@ -3345,7 +3320,6 @@ static void test_taking_a_structure_from_jump_mode_enters_plain_aim_mode_where_t
     assert_moved(from, 0, 0);
 }
 
-/* The live set jump mode searches: the TAG_NODE bucket filtered by pad_target_is_candidate. */
 static entity_t *expected_jump(const entity_t *origin, int button) {
     frame_zone_mark_t mark = frame_zone_mark();
     entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
@@ -3551,7 +3525,6 @@ static void test_down_while_the_planet_menu_slides_in_moves_one_row(void) {
     assert(pad_nav_focus(&step.pad_nav) == rows[1]);
 }
 
-/* △ then a release frame; returns the hovered object after both. */
 static entity_t *triangle_click(input_step_t *step, int with_press, int with_release) {
     run_frame(step, P8_PAD_BUTTON_8 | with_press);
     assert(input_step_played_frame(step)->mouse_buttons == P8_MOUSE_LEFT);
@@ -3758,7 +3731,6 @@ static void test_cross_and_triangle_on_one_frame_give_one_click(void) {
     assert(pad_nav_hovered(&step.pad_nav) == &planet->header);
 }
 
-/* The closing frame presses nothing, and the marker is back on the next. */
 static void assert_triangle_closes_the_menu_of(input_step_t *step, const planet_t *planet) {
     assert(pad_nav_panel_open() && main_ui()->ephemerals.count > 0);
     world_count_t before = world_count();
@@ -3833,7 +3805,6 @@ static void test_triangle_under_the_year_box_closes_only_a_planet_menu(void) {
 
 #define CHORD (P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6)
 
-/* Four chords, one every 2 frames; returns how often the cheat fired and asserts the mouse buttons played. */
 static int type_chords_playing(input_step_t *step, int mouse_buttons) {
     int fired = cheats_fired;
     for (int i = 0; i < 2 * CHEAT_CHORDS; i++) {
@@ -4020,7 +3991,6 @@ static void test_probing_and_leaving_aim_mode_never_types_the_cheat(void) {
     assert(main_economy_typed()->credits != p8_fixed_from_int(200));
 }
 
-/* The slipway mode's targets: the jump candidates minus the start. */
 static entity_t *slipway_pick(const entity_t *start, const entity_t *origin, int button) {
     frame_zone_mark_t mark = frame_zone_mark();
     entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
@@ -4032,8 +4002,7 @@ static entity_t *slipway_pick(const entity_t *start, const entity_t *origin, int
 
 enum { JUMP_PATH_CAP = 128 };
 
-/* The shortest D-pad path from origin to target, through slipway_pick from start, or expected_jump when start is NULL;
- * returns its length, -1 when none exists. */
+/* The shortest D-pad path from origin to target, through slipway_pick from start, or expected_jump when start is NULL. */
 static int path_to(const entity_t *start, const entity_t *origin, const entity_t *target, int directions[JUMP_PATH_CAP]) {
     static const int all[] = { P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4 };
     const entity_t *seen[JUMP_PATH_CAP];
@@ -4099,7 +4068,6 @@ static void aim_at(input_step_t *step, const entity_t *target) {
     assert(pad_nav_slipway_target(&step->pad_nav) == target);
 }
 
-/* The ui holds a slipway out of start, the pad holds the left button on the aimed object. */
 static void assert_slipway_mode(const input_step_t *step, const entity_t *start, const entity_t *target) {
     assert(!pad_nav_jump_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == NULL);
     assert(pad_nav_slipway_start(&step->pad_nav) == start && pad_nav_slipway_target(&step->pad_nav) == target);
@@ -4110,7 +4078,6 @@ static void assert_slipway_mode(const input_step_t *step, const entity_t *start,
     assert(!pad_nav_aim_mode(&step->pad_nav));
 }
 
-/* × on the hovered object: its press on this frame, the slipway held from the next. */
 static void start_slipway(input_step_t *step, const entity_t *start) {
     assert_hovering(step, start);
     run_frame(step, P8_PAD_BUTTON_5);
@@ -4170,7 +4137,7 @@ static bindings_t rotated_jump_table(void) {
     return table;
 }
 
-/* Reached with no button pressed, so it stays valid once the other modes read the table. */
+/* Reached with no button pressed, so it holds under any table. */
 static entity_t *jump_mode_on_a_colony_with(input_step_t *step, const bindings_t *bindings) {
     start_title_with(step, bindings);
     cart_start_game((button_t *)title_button("forgiving"));
@@ -4316,8 +4283,8 @@ static void assert_rotated_probe_fold_and_leave_aim(input_step_t *step) {
 static void test_aim_mode_pans_on_a_rotated_table_and_placement_stays_unbound(void) {
     bindings_t table = parsed_table("aim.pan_up = 2\naim.pan_down = 1\naim.pan_left = 4\naim.pan_right = 3\n"
                                     "aim.probe_or_fold = 8\naim.leave_aim = 5\n"
-                                    "aim.open_build_bar = 9\n"        /* reach-only (step 13) */
-                                    "build_bar.take_structure = 5\n"); /* reach-only (step 11) */
+                                    "aim.open_build_bar = 9\n"        /* reach-only */
+                                    "build_bar.take_structure = 5\n"); /* reach-only */
     input_step_t step;
     start_game_with(&step, &table);
     for (int d = 0; d < 4; d++) {
@@ -4342,8 +4309,8 @@ static void test_aim_mode_pans_on_a_rotated_table_and_placement_stays_unbound(vo
 static void test_placement_pans_on_its_table_and_aim_mode_stays_unbound(void) {
     bindings_t table = parsed_table("placement.pan_up = 2\nplacement.pan_down = 1\n"
                                     "placement.pan_left = 4\nplacement.pan_right = 3\n"
-                                    "aim.open_build_bar = 9\n"        /* reach-only (step 13) */
-                                    "build_bar.take_structure = 5\n"); /* reach-only (step 11) */
+                                    "aim.open_build_bar = 9\n"        /* reach-only */
+                                    "build_bar.take_structure = 5\n"); /* reach-only */
     input_step_t step;
     start_game_with(&step, &table);
     assert_no_button_pans(&step, NULL);
@@ -4360,12 +4327,12 @@ static void test_placement_pans_on_its_table_and_aim_mode_stays_unbound(void) {
 
 static bindings_t moved_bar_and_placement_table(void) {
     return parsed_table("aim.pan_up = 1\naim.pan_down = 2\naim.pan_left = 3\naim.pan_right = 4\n" /* reach-only */
-                        "aim.open_build_bar = 9\n" /* reach-only (step 13) */
+                        "aim.open_build_bar = 9\n" /* reach-only */
                         "build_bar.pick_left = 4\nbuild_bar.pick_right = 3\nbuild_bar.take_structure = 8\n"
                         "placement.pan_up = 1\nplacement.pan_down = 2\n" /* reach-only */
                         "placement.pan_left = 3\nplacement.pan_right = 4\n"
                         "placement.place_structure = 7\nplacement.cancel_placement = 5\n"
-                        "panels.move_up = 1\npanels.move_down = 2\n"); /* reach-only (step 12): the bar's pick block */
+                        "panels.move_up = 1\npanels.move_down = 2\n"); /* reach-only: the bar's pick block */
 }
 
 static void test_the_bar_and_placement_follow_a_moved_table(void) {
@@ -4495,7 +4462,6 @@ static void test_the_default_dpad_ranks_up_down_left_right_in_a_box(void) {
     assert(pad_nav_focus(&step.pad_nav) == (left != NULL ? left : focus));
 }
 
-/* Taps the first count of buttons 1 to 4. */
 static void assert_taps_keep_the_focus(input_step_t *step, int count) {
     static const int buttons[4] = { P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4 };
     entity_t *focus = pad_nav_focus(&step->pad_nav);
@@ -5010,7 +4976,6 @@ static entity_t *year_box_with_the_last_object_elsewhere(input_step_t *step, pla
     return year_box_with_the_last_object_elsewhere_with(step, &bindings_compiled, P8_PAD_BUTTON_6, a, b);
 }
 
-/* button closes the year box; on that frame and the next the buttons are only the held ones. */
 static void button_closes_the_year_box(input_step_t *step, entity_t *year_box, int button, int held_buttons) {
     assert(shown_message_box() == (message_box_t *)year_box);
     run_frame(step, button);
@@ -5038,7 +5003,6 @@ static void test_circle_closes_the_year_box_over_jump_mode_and_moves_nothing(voi
     assert(pad_nav_last_acted(&step.pad_nav) == &a->header);
 }
 
-/* The year box's companion of test_circle_in_aim_mode_closes_a_box_before_leaving. */
 static void test_circle_in_aim_mode_closes_the_year_box_before_leaving(void) {
     input_step_t step;
     planet_t *a, *b;
@@ -5387,7 +5351,6 @@ static void test_cross_with_nothing_hovered_presses_nothing(void) {
     assert_cross_starts_nothing(&step, NULL);
 }
 
-/* start settled and hovered, then × on it. */
 static void slipway_from(input_step_t *step, planet_t *start) {
     settle_planet(step, start);
     hover_object(step, &start->header);
@@ -5754,7 +5717,6 @@ static void test_circle_at_the_root_jumps_back_and_edge_scrolls_at_8_px_a_frame(
     assert(ui_pad_selection(main_ui()) == &colony->header);
 }
 
-/* A resumed game starts with nothing to go back to. */
 static void resume_from_the_title(input_step_t *step) {
     tap(step, P8_PAD_BUTTON_1);
     assert_focused_and_hovered(step, "resume");
@@ -6166,7 +6128,6 @@ static void test_pause_from_jump_mode_gives_back_the_hovered_object_and_camera(v
     assert_moved(from, 0, 0);
 }
 
-/* Of the radius-9 circle's pixels around the point, how many show colour 7; *total gets their number. */
 static int circle_pixels_lit(int x, int y, int *total) {
     static p8_vram_t pattern;
     p8_graphics_t pattern_graphics;
