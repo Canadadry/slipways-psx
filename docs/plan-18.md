@@ -146,3 +146,9 @@ Goals that justify every rule below:
 (none)
 
 ## 6. Step notes
+
+### Step 1
+
+- Plan 17 is in `master` (#67, then #69 and c92cfc5); this branch fast-forwarded to `origin/master` (c92cfc5). `bindings.default.cfg`, `src/game/bindings.{c,h}`, `src/cmd/bindings_generate.c` and button-number replays are present.
+- `make test-all` passes: 19 e2e green.
+- Baseline timings (4 cores, wall clock, three runs, a background read-only agent running at the same time): `make test` with nothing to rebuild 8.2 / 8.8 / 9.2 s; `make e2e` after `rm -rf tmp/frames` (every replay re-run, binaries built) 1.78 / 1.46 / 1.39 s. Later "not slower" checks use the same method and compare with the minimum (8.2 s, 1.39 s).

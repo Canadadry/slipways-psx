@@ -1,5 +1,5 @@
-- [ ] Phase 0 — Base
-  - [ ] 1. Base check
+- [x] Phase 0 — Base
+  - [x] 1. Base check
 - [ ] Phase 1 — Demo data
   - [ ] 2. The starting record
   - [ ] 3. attract_after header member
