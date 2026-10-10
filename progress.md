@@ -1,0 +1,19 @@
+- [ ] Phase 0 — Base
+  - [ ] 1. Base check
+- [ ] Phase 1 — Demo data
+  - [ ] 2. The starting record
+  - [ ] 3. attract_after header member
+  - [ ] 4. Core proof: two attract starts in one process
+  - [ ] 5. pad_author starts from a record
+  - [ ] 6. caption command
+  - [ ] 7. The demo script
+  - [ ] 8. Compiled demo
+- [ ] Phase 2 — Attract mode in the core
+  - [ ] 9. Default table beside the compiled one
+  - [ ] 10. Attract state machine
+  - [ ] 11. Captions and label
+  - [ ] 12. The attract e2e
+- [ ] Phase 3 — Full check and docs
+  - [ ] 13. make demo-check, full cycle
+  - [ ] 14. Docs
+  - [ ] 15. skill: rework-comments
