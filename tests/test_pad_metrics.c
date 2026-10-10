@@ -491,7 +491,7 @@ static void test_the_verdict_fails_on_a_required_dead_dpad_press_in_jump_mode(vo
     run_idle(4);
     pad_metrics_finish(&metrics);
     write_report();
-    assert(report_has("dead f0 press down jump required\n"));
+    assert(report_has("dead f0 press 2 jump required\n"));
     assert(report_has("section4 dead d-pad presses in jump mode 1 fail (lenient, other group only: 0)\n"));
     assert(report_has("section4 verdict fail\n"));
 }
@@ -504,10 +504,10 @@ static void test_the_verdict_passes_with_required_circles_and_dead_repeats_only(
     run_idle(4);
     pad_metrics_finish(&metrics);
     write_report();
-    assert(report_has("dead f0 press circle jump required\n"));
-    assert(report_has("repeat f23 left jump dead-other\n"));
-    assert(report_has("presses jump circle 1 chords 0 live 0 dead-required 1 dead-other 0\n"));
-    assert(report_has("repeats jump left 1 live 0 dead-required 0 dead-other 1\n"));
+    assert(report_has("dead f0 press 6 jump required\n"));
+    assert(report_has("repeat f23 3 jump dead-other\n"));
+    assert(report_has("presses jump 6 1 chords 0 live 0 dead-required 1 dead-other 0\n"));
+    assert(report_has("repeats jump 3 1 live 0 dead-required 0 dead-other 1\n"));
     assert(report_has("section4 dead hold repeats required 0 other 1 (not deciding)\n"));
     assert(report_has("total required no-ops 1\n"));
     assert(report_has("section4 verdict ok\n"));
@@ -526,8 +526,8 @@ static void test_the_verdict_passes_with_a_required_circle_in_aim_mode(void) {
     run_idle(30);
     pad_metrics_finish(&metrics);
     write_report();
-    assert(report_has("dead f0 press circle aim required\n"));
-    assert(report_has("dead f1 press square aim required\n"));
+    assert(report_has("dead f0 press 6 aim required\n"));
+    assert(report_has("dead f1 press 7 aim required\n"));
     assert(report_has("total required no-ops 1\n"));
     assert(report_has("section4 verdict ok\n"));
 }
@@ -541,6 +541,20 @@ static void test_the_lenient_count_leaves_out_the_required_group(void) {
     pad_metrics_finish(&metrics);
     pad_metrics_section4_t section4 = pad_metrics_section4(&metrics);
     assert(section4.jump_dpad_dead_strict == 2 && section4.jump_dpad_dead_lenient == 1 && !section4.ok);
+}
+
+static void test_the_report_numbers_buttons_from_1_for_the_lowest_bit_to_12_for_the_highest(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    run(P8_PAD_UP, 1);
+    run_idle(4);
+    run(P8_PAD_SELECT, 1);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    write_report();
+    assert(report_has("presses jump 1 1 chords 0 live 1 dead-required 0 dead-other 0\n"));
+    assert(report_has("presses jump 12 1 chords 0 live 1 dead-required 0 dead-other 0\n"));
+    assert(report_has("total presses jump 1 1\n"));
+    assert(report_has("total presses jump 12 1\n"));
 }
 
 static void test_cheat_activations_fail_the_verdict(void) {
@@ -620,6 +634,7 @@ int main(void) {
     test_the_verdict_passes_with_required_circles_and_dead_repeats_only();
     test_the_verdict_passes_with_a_required_circle_in_aim_mode();
     test_the_lenient_count_leaves_out_the_required_group();
+    test_the_report_numbers_buttons_from_1_for_the_lowest_bit_to_12_for_the_highest();
     test_cheat_activations_fail_the_verdict();
     test_a_later_separate_press_cuts_a_released_press_window();
     test_a_press_on_the_release_frame_is_a_roll_and_does_not_cut();

@@ -138,7 +138,6 @@ pad_metrics_flags_t pad_metrics_flags_read(const input_step_t *step);
 pad_metrics_mode_t pad_metrics_classify(const pad_metrics_flags_t *flags);
 pad_metrics_mode_t pad_metrics_mode(const input_step_t *step);
 const char *pad_metrics_mode_name(pad_metrics_mode_t mode);
-const char *pad_metrics_button_name(int index);
 
 pad_metrics_view_t pad_metrics_view_read(const input_step_t *step);
 int pad_metrics_navigation_changed(const pad_metrics_view_t *a, const pad_metrics_view_t *b);

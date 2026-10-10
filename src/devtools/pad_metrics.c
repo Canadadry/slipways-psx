@@ -17,10 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *const BUTTON_NAMES[PAD_METRICS_BUTTON_COUNT] = {
-    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select",
-};
-
 static const char *const MODE_NAMES[PAD_METRICS_MODE_COUNT] = {
     "title", "pause", "placement", "bar", "tech", "score", "menu", "jump", "aim", "slipway",
 };
@@ -72,11 +68,6 @@ pad_metrics_mode_t pad_metrics_mode(const input_step_t *step) {
 const char *pad_metrics_mode_name(pad_metrics_mode_t mode) {
     assert(mode >= 0 && mode < PAD_METRICS_MODE_COUNT);
     return MODE_NAMES[mode];
-}
-
-const char *pad_metrics_button_name(int index) {
-    assert(index >= 0 && index < PAD_METRICS_BUTTON_COUNT);
-    return BUTTON_NAMES[index];
 }
 
 static void camera_point(int *x, int *y) {
@@ -383,7 +374,7 @@ void pad_metrics_write_totals(const pad_metrics_t *metrics, FILE *out, const cha
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
         for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
             if (metrics->presses[m][b] > 0) {
-                fprintf(out, "%spresses %s %s %d\n", prefix, MODE_NAMES[m], BUTTON_NAMES[b], metrics->presses[m][b]);
+                fprintf(out, "%spresses %s %d %d\n", prefix, MODE_NAMES[m], b + 1, metrics->presses[m][b]);
             }
         }
     }
@@ -445,8 +436,8 @@ static void write_event_counts(const pad_metrics_t *metrics, FILE *out) {
         for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
             const int *press = metrics->verdicts[PAD_METRICS_PRESS][m][b];
             if (metrics->presses[m][b] > 0) {
-                fprintf(out, "presses %s %s %d chords %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
-                        BUTTON_NAMES[b], metrics->presses[m][b], metrics->chords[m][b], press[PAD_METRICS_LIVE],
+                fprintf(out, "presses %s %d %d chords %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
+                        b + 1, metrics->presses[m][b], metrics->chords[m][b], press[PAD_METRICS_LIVE],
                         press[PAD_METRICS_DEAD_REQUIRED], press[PAD_METRICS_DEAD_OTHER]);
             }
         }
@@ -455,8 +446,8 @@ static void write_event_counts(const pad_metrics_t *metrics, FILE *out) {
         for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
             const int *repeat = metrics->verdicts[PAD_METRICS_REPEAT][m][b];
             if (metrics->repeats[m][b] > 0) {
-                fprintf(out, "repeats %s %s %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
-                        BUTTON_NAMES[b], metrics->repeats[m][b], repeat[PAD_METRICS_LIVE],
+                fprintf(out, "repeats %s %d %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
+                        b + 1, metrics->repeats[m][b], repeat[PAD_METRICS_LIVE],
                         repeat[PAD_METRICS_DEAD_REQUIRED], repeat[PAD_METRICS_DEAD_OTHER]);
             }
         }
@@ -467,10 +458,10 @@ static void write_listed(const pad_metrics_t *metrics, FILE *out) {
     for (int i = 0; i < metrics->listed_count; i++) {
         const pad_metrics_listed_t *row = &metrics->listed[i];
         if (row->kind == PAD_METRICS_PRESS) {
-            fprintf(out, "dead f%d press %s %s %s\n", row->frame, BUTTON_NAMES[row->button], MODE_NAMES[row->mode],
+            fprintf(out, "dead f%d press %d %s %s\n", row->frame, row->button + 1, MODE_NAMES[row->mode],
                     row->verdict == PAD_METRICS_DEAD_REQUIRED ? "required" : "other");
         } else {
-            fprintf(out, "repeat f%d %s %s %s\n", row->frame, BUTTON_NAMES[row->button], MODE_NAMES[row->mode],
+            fprintf(out, "repeat f%d %d %s %s\n", row->frame, row->button + 1, MODE_NAMES[row->mode],
                     VERDICT_NAMES[row->verdict]);
         }
     }

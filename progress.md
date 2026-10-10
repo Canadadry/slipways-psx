@@ -7,7 +7,7 @@
     - [x] Chunk 3: loader refuses names
   - [ ] 3. Generator low level in numbers
     - [x] Chunk 1: generator and scripts
-    - [ ] Chunk 2: report, unit test and Makefile
+    - [x] Chunk 2: report, unit test and Makefile
   - [ ] 4. Rename the constants
 - [ ] Phase 2 — Bindings in the game
   - [ ] 5. Inventory of button reads
