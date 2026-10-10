@@ -1,6 +1,4 @@
 #!/bin/sh
-# usage: demo_check.sh <demo.json> <record state> <end state>...
-# Prints `demo-check: <file>: <reason>` for each failure, exit 1 if any.
 
 set -u
 LC_ALL=C
@@ -17,9 +15,6 @@ exec awk '
         failed = 1
     }
 
-    # Reads the counted lines of a state file into values[] and reports a cheat;
-    # returns 0 after reporting a missing file, a `stopped` state or a missing
-    # line, 1 otherwise.
     function read_state(path, values,    line, f, n, status, stopped, key, read) {
         split("", values)
         stopped = 0
@@ -48,7 +43,7 @@ exec awk '
         line_of["techs"] = "count techs"
         line_of["cheat activations"] = "cheat activations"
         split("year colonies slipways techs", counted, " ")
-        # Section 2 of docs/plan-18.md, pinned on purpose: the spec the script is checked against.
+        # The spec the demo is checked against: never read it from the demo under check.
         expected_n = split("build a trading empire\\nacross the stars|" \
                            "probe the dark\\nto find new planets|" \
                            "colonize planets:\\neach one needs and makes goods|" \

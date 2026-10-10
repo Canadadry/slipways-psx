@@ -53,3 +53,4 @@
     - [x] assert: a failed caption close leaves it shown
     - [x] comments: record_start, replay_source, session_recorder, input_json
     - [x] comments: pad_author
+    - [x] comments: replay, demo_check scripts

@@ -152,8 +152,6 @@ static int write_attract_return(const attract_state_t *attract) {
     return write_save_hex(path) == 0;
 }
 
-/* After a frame's cart_draw: writes <path>.<n> when the frame played the demo's last frame,
-   and <path>.<n>.return and <path>.<n>.return.hex on the frame after it. */
 static int write_attract_state_after_frame(attract_state_t *attract, const input_step_t *step, int cheat) {
     if (attract->return_pending) {
         attract->return_pending = 0;
@@ -173,7 +171,6 @@ static int write_attract_state_after_frame(attract_state_t *attract, const input
 
 enum { TITLE_FRAMES_BETWEEN_STARTS = 30 };
 
-/* A start after a return needs at least one cart_update60 in between, else flip_zone_flip asserts. */
 static void play_title_between_starts(input_step_t *step) {
     static const p8_input_frame_t empty_frame = {0, 0, 0, 0};
     record_start_return(step);
@@ -184,7 +181,6 @@ static void play_title_between_starts(input_step_t *step) {
     }
 }
 
-/* 1 when REPLAY_STARTS is unset; 0 after printing the refusal. */
 static int read_starts(void) {
     const char *value = getenv("REPLAY_STARTS");
     if (value == NULL || strcmp(value, "1") == 0) return 1;

@@ -1,9 +1,4 @@
 #!/bin/sh
-# usage: demo_check_run.sh <dir> <test_demo_check> <test_attract_demo> <pad_author> <replay> <replay_sanitize>
-#                          <demo.pad> <demo.json> <cycle.json> <save source.json> <title end-state> <sha256 command>
-# Clears <dir>, runs every make demo-check job with its files in <dir>, then
-# every check; prints `demo-check: <file>: <reason>` per failure, exit 1 if any.
-# The hash is compared with <cycle.json>.sha256 only after the content checks pass.
 
 set -u
 
