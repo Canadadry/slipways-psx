@@ -46,3 +46,4 @@
   - [x] 14. Docs
     - [x] README paragraph and Makefile legend
   - [ ] 15. skill: rework-comments
+    - [x] comments: attract, demo_data, demo_overlay
