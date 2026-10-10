@@ -51,3 +51,4 @@
     - [x] comments: gfx, input.h, bindings_generate, game.c
     - [x] comments: pad_caption, demo_source, demo_generate
     - [x] assert: a failed caption close leaves it shown
+    - [x] comments: record_start, replay_source, session_recorder, input_json

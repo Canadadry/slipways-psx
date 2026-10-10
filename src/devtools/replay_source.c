@@ -46,7 +46,6 @@ static int hex_digit_value(char digit) {
     return -1;
 }
 
-/* Past `key` and its spaces; NULL when `key` is missing or only after "frames". */
 static const char *find_header_value(const char *json, const char *key) {
     const char *header_end = strstr(json, "\"frames\":");
     const char *p = strstr(json, key);

@@ -52,7 +52,6 @@ static int is_json_separator(char c) {
     return c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t';
 }
 
-/* Fills only out->pad_buttons, which must start at 0. */
 static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
     static const char *const mouse_keys[] = {"\"mouse_x\"", "\"mouse_y\"", "\"mouse_buttons\"", "\"dpad\""};
     for (size_t i = 0; i < sizeof(mouse_keys) / sizeof(mouse_keys[0]); i++) {

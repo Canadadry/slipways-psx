@@ -41,16 +41,12 @@ int replay_source_frames_served(const replay_source_t *source);
 
 int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_frame);
 
-/* REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT when there is no recording, it failed to load, or its header has no member. */
 int replay_source_attract_after(const replay_source_t *source);
 
-/* Writes the header member with no comma around it; returns its length and asserts it fits in size. */
 int replay_source_format_attract_after(char *out, size_t size, int frames);
 
-/* REPLAY_SOURCE_START_TITLE when there is no recording, it failed to load, or its header has no "start". */
 replay_source_start_t replay_source_start(const replay_source_t *source);
 
-/* Erases the storage for a resume start: the record is the run's start, not a player's save. */
 int replay_source_seed_storage(const replay_source_t *source);
 
 void replay_source_close(replay_source_t *source);
