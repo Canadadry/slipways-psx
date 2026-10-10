@@ -672,7 +672,8 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         return;
     }
     /* Before the click check: the hold-repeat count keeps running through a click's frames. */
-    pad_direction_t direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
+    pad_direction_t direction =
+        pad_jump_repeat_step(&nav->jump, &nav->bindings, BINDINGS_MODE_JUMP, pad_buttons, pressed);
     entity_t *hovered = pad_jump_hovered(&nav->jump);
     int clicking = release || nav->release_pending;
     entity_t *back = circle_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
@@ -765,7 +766,8 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
         screen_point(start, &nav->cursor_x, &nav->cursor_y);
         return;
     }
-    pad_direction_t direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
+    pad_direction_t direction =
+        pad_jump_repeat_step(&nav->jump, &nav->bindings, BINDINGS_MODE_SLIPWAY, pad_buttons, pressed);
     entity_t *target = pad_nav_slipway_target(nav);
     nav->slipway.target = entity_id_link(target);
     if ((pressed & P8_PAD_BUTTON_5) && !release && target != NULL && pressable(target)) {

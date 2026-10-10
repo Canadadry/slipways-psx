@@ -69,14 +69,42 @@ int pad_jump_direction_button(pad_direction_t direction) {
     return 0;
 }
 
-pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, int pad_buttons, int pressed) {
-    pad_direction_t direction = pad_jump_first_direction(pressed);
+static int direction_mask(const bindings_t *bindings, bindings_mode_t mode, pad_direction_t direction) {
+    switch (direction) {
+    case PAD_DIRECTION_UP:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_UP);
+    case PAD_DIRECTION_DOWN:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_DOWN);
+    case PAD_DIRECTION_LEFT:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_LEFT);
+    case PAD_DIRECTION_RIGHT:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_RIGHT);
+    case PAD_DIRECTION_NONE:
+        break;
+    }
+    return 0;
+}
+
+static pad_direction_t first_pressed_direction(const bindings_t *bindings, bindings_mode_t mode, int pressed) {
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
+        if (pressed & direction_mask(bindings, mode, directions_by_priority[i])) {
+            return directions_by_priority[i];
+        }
+    }
+    return PAD_DIRECTION_NONE;
+}
+
+pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, const bindings_t *bindings, bindings_mode_t mode,
+                                     int pad_buttons, int pressed) {
+    assert(bindings != NULL && bindings_mode_has_action(mode, BINDINGS_ACTION_JUMP_UP) &&
+           "pad_jump_repeat_step: a mode with jump_* actions (jump or slipway)");
+    pad_direction_t direction = first_pressed_direction(bindings, mode, pressed);
     if (direction != PAD_DIRECTION_NONE) {
         jump->repeat_direction = direction;
         jump->repeat_frames = 0;
         return jump->repeat_direction;
     }
-    if (!(pad_buttons & pad_jump_direction_button(jump->repeat_direction))) {
+    if (!(pad_buttons & direction_mask(bindings, mode, jump->repeat_direction))) {
         pad_jump_repeat_clear(jump);
         return PAD_DIRECTION_NONE;
     }

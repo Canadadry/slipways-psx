@@ -4,6 +4,7 @@
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
 #include "engine/entity_list.h"
+#include "game/bindings.h"
 #include "game/pad_direction.h"
 
 #define PAD_JUMP_REPEAT_DELAY 18
@@ -33,7 +34,8 @@ pad_direction_t pad_jump_first_direction(int buttons);
 /* 0 for PAD_DIRECTION_NONE. */
 int pad_jump_direction_button(pad_direction_t direction);
 
-pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, int pad_buttons, int pressed);
+pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, const bindings_t *bindings, bindings_mode_t mode,
+                                     int pad_buttons, int pressed);
 void pad_jump_repeat_clear(pad_jump_t *jump);
 
 int pad_jump_inside(int x, int y);

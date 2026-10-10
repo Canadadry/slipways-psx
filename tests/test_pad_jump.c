@@ -2,6 +2,7 @@
 
 #include "engine/entity_id.h"
 #include "engine/frame_zone.h"
+#include "game/bindings.h"
 #include "game/planet.h"
 #include "heap_allocator.h"
 
@@ -15,63 +16,72 @@ static void test_init_hovers_nothing_unseeded_without_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
     assert(pad_jump_hovered(&jump) == NULL && !jump.seeded);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, 0) == PAD_DIRECTION_NONE);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_4, 0) ==
+           PAD_DIRECTION_NONE);
 }
 
 static void test_a_press_jumps_then_repeats_at_18_26_34(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, P8_PAD_BUTTON_4) == PAD_DIRECTION_RIGHT);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_4, P8_PAD_BUTTON_4) ==
+           PAD_DIRECTION_RIGHT);
     for (int frame = 1; frame <= 60; frame++) {
         pad_direction_t expected =
             (frame == 18 || frame == 26 || frame == 34 || frame == 42 || frame == 50 || frame == 58)
                 ? PAD_DIRECTION_RIGHT
                 : PAD_DIRECTION_NONE;
-        assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, 0) == expected);
+        assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_4, 0) == expected);
     }
 }
 
 static void hold_frames(pad_jump_t *jump, int pad_buttons, int frames) {
     for (int i = 0; i < frames; i++) {
-        assert(pad_jump_repeat_step(jump, pad_buttons, 0) == PAD_DIRECTION_NONE);
+        assert(pad_jump_repeat_step(jump, &bindings_compiled, BINDINGS_MODE_JUMP, pad_buttons, 0) ==
+               PAD_DIRECTION_NONE);
     }
 }
 
 static void test_a_release_clears_and_a_new_press_restarts(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3);
+    pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3);
     hold_frames(&jump, P8_PAD_BUTTON_3, 10);
-    assert(pad_jump_repeat_step(&jump, 0, 0) == PAD_DIRECTION_NONE);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, 0, 0) == PAD_DIRECTION_NONE);
     hold_frames(&jump, P8_PAD_BUTTON_3, 30);
 
-    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3) == PAD_DIRECTION_LEFT);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3) ==
+           PAD_DIRECTION_LEFT);
     hold_frames(&jump, P8_PAD_BUTTON_3, 10);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3) == PAD_DIRECTION_LEFT);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3) ==
+           PAD_DIRECTION_LEFT);
     hold_frames(&jump, P8_PAD_BUTTON_3, 17);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, 0) == PAD_DIRECTION_LEFT);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_3, 0) ==
+           PAD_DIRECTION_LEFT);
 }
 
 static void test_a_second_direction_takes_over_at_once(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, P8_PAD_BUTTON_4);
+    pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_4, P8_PAD_BUTTON_4);
     hold_frames(&jump, P8_PAD_BUTTON_4, 10);
     int both = P8_PAD_BUTTON_4 | P8_PAD_BUTTON_2;
-    assert(pad_jump_repeat_step(&jump, both, P8_PAD_BUTTON_2) == PAD_DIRECTION_DOWN);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, both, P8_PAD_BUTTON_2) ==
+           PAD_DIRECTION_DOWN);
     hold_frames(&jump, both, 17);
-    assert(pad_jump_repeat_step(&jump, both, 0) == PAD_DIRECTION_DOWN);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, both, 0) == PAD_DIRECTION_DOWN);
 }
 
 static void test_simultaneous_presses_go_up_down_left_right(void) {
     pad_jump_t jump;
     int all = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, all, all) == PAD_DIRECTION_UP);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, all, all) == PAD_DIRECTION_UP);
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, all, P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == PAD_DIRECTION_DOWN);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, all,
+                                P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == PAD_DIRECTION_DOWN);
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, all, P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == PAD_DIRECTION_LEFT);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, all,
+                                P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == PAD_DIRECTION_LEFT);
 }
 
 static void test_the_first_pressed_direction_goes_up_down_left_right(void) {
@@ -107,7 +117,7 @@ static void test_each_direction_is_played_by_buttons_1_to_4(void) {
 static void test_clear_stops_the_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    pad_jump_repeat_step(&jump, P8_PAD_BUTTON_1, P8_PAD_BUTTON_1);
+    pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_1, P8_PAD_BUTTON_1);
     hold_frames(&jump, P8_PAD_BUTTON_1, 10);
     pad_jump_repeat_clear(&jump);
     hold_frames(&jump, P8_PAD_BUTTON_1, 40);
@@ -116,9 +126,71 @@ static void test_clear_stops_the_repeat(void) {
 static void test_other_buttons_neither_jump_nor_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6) ==
-           PAD_DIRECTION_NONE);
+    assert(pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6,
+                                P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6) == PAD_DIRECTION_NONE);
     hold_frames(&jump, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6, 30);
+}
+
+static bindings_t jump_directions_swapped(void) {
+    bindings_t swapped;
+    bindings_error_t error;
+    assert(bindings_parse("swapped.cfg",
+                          "jump.jump_up = 2\njump.jump_down = 1\njump.jump_left = 4\njump.jump_right = 3\n", &swapped,
+                          &error));
+    return swapped;
+}
+
+static void test_a_swapped_table_moves_the_jump_directions(void) {
+    bindings_t swapped = jump_directions_swapped();
+    static const int buttons[PAD_JUMP_DIRECTIONS] = {P8_PAD_BUTTON_2, P8_PAD_BUTTON_1, P8_PAD_BUTTON_4,
+                                                     P8_PAD_BUTTON_3};
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
+        pad_jump_t jump;
+        pad_jump_init(&jump);
+        assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_JUMP, buttons[i], buttons[i]) ==
+               pad_jump_direction(i));
+    }
+    pad_jump_t jump;
+    pad_jump_init(&jump);
+    int left_and_right = P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
+    assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_JUMP, left_and_right, left_and_right) ==
+           PAD_DIRECTION_LEFT);
+}
+
+static void test_a_swapped_direction_repeats_on_its_own_button_only(void) {
+    bindings_t swapped = jump_directions_swapped();
+    pad_jump_t jump;
+    pad_jump_init(&jump);
+    assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_2, P8_PAD_BUTTON_2) ==
+           PAD_DIRECTION_UP);
+    for (int frame = 1; frame <= PAD_JUMP_REPEAT_DELAY + 2 * PAD_JUMP_REPEAT_PERIOD; frame++) {
+        int repeats = frame >= PAD_JUMP_REPEAT_DELAY && (frame - PAD_JUMP_REPEAT_DELAY) % PAD_JUMP_REPEAT_PERIOD == 0;
+        pad_direction_t expected = repeats ? PAD_DIRECTION_UP : PAD_DIRECTION_NONE;
+        assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_2, 0) == expected);
+    }
+
+    pad_jump_init(&jump);
+    pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_2, P8_PAD_BUTTON_2);
+    assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_1, 0) == PAD_DIRECTION_NONE);
+    for (int frame = 0; frame < PAD_JUMP_REPEAT_DELAY + PAD_JUMP_REPEAT_PERIOD; frame++) {
+        assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_JUMP, P8_PAD_BUTTON_2, 0) == PAD_DIRECTION_NONE);
+    }
+}
+
+static void test_a_mode_left_unbound_neither_jumps_nor_repeats(void) {
+    bindings_t swapped = jump_directions_swapped();
+    int all = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
+    for (int button = P8_PAD_BUTTON_1; button <= P8_PAD_BUTTON_4; button <<= 1) {
+        pad_jump_t jump;
+        pad_jump_init(&jump);
+        assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_SLIPWAY, button, button) == PAD_DIRECTION_NONE);
+        for (int frame = 0; frame < PAD_JUMP_REPEAT_DELAY + 2 * PAD_JUMP_REPEAT_PERIOD; frame++) {
+            assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_SLIPWAY, button, 0) == PAD_DIRECTION_NONE);
+        }
+    }
+    pad_jump_t jump;
+    pad_jump_init(&jump);
+    assert(pad_jump_repeat_step(&jump, &swapped, BINDINGS_MODE_SLIPWAY, all, all) == PAD_DIRECTION_NONE);
 }
 
 static void assert_scroll(int x, int y, int expected_dx, int expected_dy) {
@@ -374,6 +446,9 @@ int main(void) {
     test_the_directions_by_index_are_up_down_left_right();
     test_each_direction_is_played_by_buttons_1_to_4();
     test_other_buttons_neither_jump_nor_repeat();
+    test_a_swapped_table_moves_the_jump_directions();
+    test_a_swapped_direction_repeats_on_its_own_button_only();
+    test_a_mode_left_unbound_neither_jumps_nor_repeats();
     printf("test_pad_jump: ok\n");
     return 0;
 }

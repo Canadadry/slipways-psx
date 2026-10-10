@@ -158,7 +158,8 @@ static int repeats_against_pad_jump(const int *buttons, int frame_count, pad_met
     for (int f = 0; f < frame_count; f++) {
         int pressed = buttons[f] & ~previous;
         int counted = pad_metrics_hold_step(&hold, mode, buttons[f]);
-        pad_direction_t jumped = pad_jump_repeat_step(&jump, buttons[f], pressed);
+        pad_direction_t jumped =
+            pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, buttons[f], pressed);
         if (pressed != 0) {
             assert(counted == 0);
         } else {
