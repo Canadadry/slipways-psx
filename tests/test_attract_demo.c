@@ -15,6 +15,7 @@
 #include "game/bindings.h"
 #include "game/cart.h"
 #include "game/demo_data.h"
+#include "game/demo_overlay.h"
 #include "game/economy.h"
 #include "game/game_data.h"
 #include "game/input_step.h"
@@ -32,6 +33,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+enum { OVERLAY_BAND_TOP = 96, OVERLAY_BAND_BOTTOM = 108, OVERLAY_TAG_LEFT = 143, OVERLAY_TAG_TOP = 11,
+       OVERLAY_TAG_BOTTOM = 17, OVERLAY_CAPTION_CAP = 16 };
 
 enum { ATTRACT_AFTER = 3, TITLE_FRAMES_AFTER_THE_RELEASE = 2, FIXTURE_TITLE_FRAMES = 10, STATE_TEXT_CAP = 65536 };
 
@@ -60,6 +64,9 @@ static uint8_t g_bytes[SAVE_STATE_MAX_BYTES];
 static char g_state_text[STATE_TEXT_CAP];
 static save_check_snapshot_t g_last_frames[2];
 static int g_demo_cheats;
+static p8_vram_t g_overlay_reference;
+/* The band and tag regions of the first playback at each caption's first frame. */
+static unsigned char g_caption_screens[OVERLAY_CAPTION_CAP][P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
 
 /* Returns the frame's cheat activations. */
 static int play_frame(int buttons) {
@@ -70,6 +77,67 @@ static int play_frame(int buttons) {
     cart_update60();
     cart_draw();
     return cheat;
+}
+
+/* test_demo_overlay pins this reference pixel by pixel; the band and the tag box overwrite their whole regions. */
+static void draw_overlay_reference(int demo_frame) {
+    static int drawn_frame = CART_NO_DEMO_FRAME;
+    if (demo_frame == drawn_frame) return;
+    drawn_frame = demo_frame;
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    p8_vram_init(&g_overlay_reference);
+    demo_overlay_draw(&gfx, &g_overlay_reference, demo_frame);
+}
+
+static int regions_equal(const unsigned char (*a)[P8_SCREEN_WIDTH], const unsigned char (*b)[P8_SCREEN_WIDTH], int left,
+                         int top, int right, int bottom) {
+    for (int y = top; y <= bottom; y++) {
+        if (memcmp(&a[y][left], &b[y][left], (size_t)(right - left + 1)) != 0) return 0;
+    }
+    return 1;
+}
+
+static int band_equal(const unsigned char (*a)[P8_SCREEN_WIDTH], const unsigned char (*b)[P8_SCREEN_WIDTH]) {
+    return regions_equal(a, b, 0, OVERLAY_BAND_TOP, P8_SCREEN_WIDTH - 1, OVERLAY_BAND_BOTTOM);
+}
+
+static int tag_equal(const unsigned char (*a)[P8_SCREEN_WIDTH], const unsigned char (*b)[P8_SCREEN_WIDTH]) {
+    return regions_equal(a, b, OVERLAY_TAG_LEFT, OVERLAY_TAG_TOP, P8_SCREEN_WIDTH - 1, OVERLAY_TAG_BOTTOM);
+}
+
+static int overlay_shows_demo_frame(int demo_frame) {
+    draw_overlay_reference(demo_frame);
+    return band_equal(memory.screen, g_overlay_reference.screen) && tag_equal(memory.screen, g_overlay_reference.screen);
+}
+
+static int band_rows_hold_only_band_colours(void) {
+    for (int y = OVERLAY_BAND_TOP; y <= OVERLAY_BAND_BOTTOM; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (memory.screen[y][x] != 1 && memory.screen[y][x] != 7) return 0;
+        }
+    }
+    return 1;
+}
+
+static int overlay_absent(void) {
+    draw_overlay_reference(0);
+    return !band_rows_hold_only_band_colours() && !tag_equal(memory.screen, g_overlay_reference.screen);
+}
+
+/* The first playback keeps each caption's first frame; the second must show the same band and tag there. */
+static void check_caption_start(int playback) {
+    int played = input_step_attract_demo_frame(&g_step) - 1;
+    int caption = demo_overlay_find_caption(demo_data_captions, demo_data_caption_count, played);
+    if (caption < 0 || demo_data_captions[caption].from != played) return;
+    assert(overlay_shows_demo_frame(played) && "a caption's first frame shows it");
+    if (playback == 0) {
+        memcpy(g_caption_screens[caption], memory.screen, sizeof memory.screen);
+        return;
+    }
+    if (band_equal(memory.screen, g_caption_screens[caption]) && tag_equal(memory.screen, g_caption_screens[caption])) return;
+    fprintf(stderr, "test_attract_demo: caption %d at demo frame %d differs between the playbacks\n", caption, played);
+    assert(0 && "the captions do not depend on the visual stream");
 }
 
 /* A count of 0 boots over an empty storage. */
@@ -178,12 +246,18 @@ static counts_t play_title_until_the_demo_starts(void) {
 }
 
 static void test_two_complete_playbacks_reach_the_demo_end_state_and_leave_the_save(void) {
+    assert(demo_data_caption_count <= OVERLAY_CAPTION_CAP);
     for (int playback = 0; playback < 2; playback++) {
         counts_t record = play_title_until_the_demo_starts();
+        check_caption_start(playback);
         while (input_step_attract_demo_frame(&g_step) < demo_data_frame_count) {
             g_demo_cheats += play_frame(0);
             assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_PLAYING);
+            check_caption_start(playback);
         }
+        int closing = demo_data_caption_count - 1;
+        assert(demo_overlay_find_caption(demo_data_captions, demo_data_caption_count, demo_data_frame_count - 1) == closing);
+        assert(overlay_shows_demo_frame(demo_data_frame_count - 1) && "the last frame shows the closing caption and the tag");
         counts_t end = live_counts();
         printf("test_attract_demo: playback %d: year %d -> %d, colonies %d -> %d, slipways %d -> %d, techs %d -> %d, "
                "cheat activations %d\n", playback + 1, record.year, end.year, record.colonies, end.colonies,
@@ -195,6 +269,7 @@ static void test_two_complete_playbacks_reach_the_demo_end_state_and_leave_the_s
 
         play_frame(0);
         assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_IDLE && "the frame after the last one returns");
+        assert(overlay_absent() && "the return frame shows the title only");
         assert_the_title_is_back("after a complete demo");
     }
     char report[512];
@@ -215,6 +290,7 @@ static void test_an_interruption_inside_each_command_range_leaves_the_title_and_
         snprintf(when, sizeof when, "%s, demo frame %d", INTERRUPTIONS[i].command, INTERRUPTIONS[i].frame);
         play_frame(press);
         assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_SWALLOWING);
+        assert(overlay_absent() && "the interrupting frame shows the title only");
         assert_the_title_is_back(when);
         for (int frame = 0; frame <= TITLE_FRAMES_AFTER_THE_RELEASE; frame++) {
             play_frame(0);

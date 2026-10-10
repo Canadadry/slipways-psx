@@ -8,6 +8,7 @@
 #include "game/main_economy.h"
 #include "engine/entity_class.h"
 #include "game/data_init.h"
+#include "game/demo_overlay.h"
 #include "engine/dispatch_context.h"
 #include "game/economy.h"
 #include "game/economy_score.h"
@@ -46,6 +47,7 @@
 
 static int g_title_built;
 static int g_save_cut;
+static int g_demo_frame = CART_NO_DEMO_FRAME;
 
 static void quit_game_zone(void) {
     entity_registry_abandon_live_entities();
@@ -62,6 +64,7 @@ void cart_load(void) {
     quit_game_zone();
     g_title_built = 0;
     g_save_cut = 0;
+    g_demo_frame = CART_NO_DEMO_FRAME;
     entity_init();
     assert(entity_ready() && "cart_load: entity_init() must run before every class that extends entity_t");
     camera_init();
@@ -199,11 +202,16 @@ void cart_return_to_title(void) {
     /* After the flush: reset_world's own abandon would walk the released entries. */
     entity_registry_forget_registries();
     g_save_cut = 0;
+    g_demo_frame = CART_NO_DEMO_FRAME;
     cart_init();
 }
 
 void cart_cut_save(void) {
     g_save_cut = 1;
+}
+
+void cart_set_demo_frame(int frame) {
+    g_demo_frame = frame;
 }
 
 void cart_init_method(button_t *self) {
@@ -336,4 +344,5 @@ void cart_draw(void) {
     hud_select_palette_block_default(mem);
     draw_layers(ENTITY_MESSAGE_DRAW);
     draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
+    demo_overlay_draw(dispatch_context_gfx(), mem, g_demo_frame);
 }

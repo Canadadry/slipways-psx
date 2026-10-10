@@ -34,7 +34,7 @@
     - [x] Chunk 4: full checks and ATTRACT_STATE
   - [ ] 11. Captions and label
     - [x] Chunk 1: demo_overlay module
-    - [ ] Chunk 2: the overlay drawn in cart_draw
+    - [x] Chunk 2: the overlay drawn in cart_draw
   - [ ] 12. The attract e2e
 - [ ] Phase 3 — Full check and docs
   - [ ] 13. make demo-check, full cycle

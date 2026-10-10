@@ -25,6 +25,13 @@ int cart_title_shown(void);
    cart_load; cart_init alone keeps the cut. */
 void cart_cut_save(void);
 
+#define CART_NO_DEMO_FRAME (-1)
+
+/* frame: the index into demo_data_pad_buttons of the demo frame the core played this frame, or
+   CART_NO_DEMO_FRAME. cart_draw draws its caption and the demo tag; cart_load and cart_return_to_title
+   reset it. */
+void cart_set_demo_frame(int frame);
+
 void cart_init_method(button_t *self);
 
 extern const entity_registry_reserve_t cart_game_registry_reserve;

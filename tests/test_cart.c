@@ -10,6 +10,7 @@
 #include "game/background.h"
 #include "game/cart.h"
 #include "game/demo_data.h"
+#include "game/demo_overlay.h"
 #include "game/economy.h"
 #include "game/bindings.h"
 #include "game/game_data.h"
@@ -540,9 +541,59 @@ static void finish_frame(void) {
     save_check_hide_particles(0);
 }
 
+enum { OVERLAY_BAND_TOP = 96, OVERLAY_BAND_BOTTOM = 108, OVERLAY_TAG_LEFT = 143, OVERLAY_TAG_TOP = 11,
+       OVERLAY_TAG_BOTTOM = 17 };
+
+static p8_vram_t g_overlay_reference;
+static int g_overlay_forbidden;
+
+/* test_demo_overlay pins this reference pixel by pixel; the band and the tag box overwrite their whole regions. */
+static void draw_overlay_reference(int demo_frame) {
+    static int drawn_frame = CART_NO_DEMO_FRAME;
+    if (demo_frame == drawn_frame) return;
+    drawn_frame = demo_frame;
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    p8_vram_init(&g_overlay_reference);
+    demo_overlay_draw(&gfx, &g_overlay_reference, demo_frame);
+}
+
+static int screen_region_is_reference(int left, int top, int right, int bottom) {
+    for (int y = top; y <= bottom; y++) {
+        if (memcmp(&memory.screen[y][left], &g_overlay_reference.screen[y][left], (size_t)(right - left + 1)) != 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int tag_shown(void) {
+    return screen_region_is_reference(OVERLAY_TAG_LEFT, OVERLAY_TAG_TOP, P8_SCREEN_WIDTH - 1, OVERLAY_TAG_BOTTOM);
+}
+
+static int overlay_shows_demo_frame(int demo_frame) {
+    draw_overlay_reference(demo_frame);
+    return screen_region_is_reference(0, OVERLAY_BAND_TOP, P8_SCREEN_WIDTH - 1, OVERLAY_BAND_BOTTOM) && tag_shown();
+}
+
+static int band_rows_hold_only_band_colours(void) {
+    for (int y = OVERLAY_BAND_TOP; y <= OVERLAY_BAND_BOTTOM; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (memory.screen[y][x] != 1 && memory.screen[y][x] != 7) return 0;
+        }
+    }
+    return 1;
+}
+
+static int overlay_absent(void) {
+    draw_overlay_reference(0);
+    return !band_rows_hold_only_band_colours() && !tag_shown();
+}
+
 static void play_attract_frame(int buttons) {
     run_input_step(buttons);
     finish_frame();
+    assert((!g_overlay_forbidden || overlay_absent()) && "no band and no tag outside the attract mode");
 }
 
 static void play_empty_frames(int count) {
@@ -679,6 +730,7 @@ static void run_two_attract_cycles(int first_frame_buttons) {
     load_cart_to_title_storing(g_earlier, player_count);
     input_step_init(&g_step, &bindings_compiled);
     writes = save_storage_memory_write_count();
+    g_overlay_forbidden = 1;
 
     play_empty_frames(ATTRACT_IDLE_FRAMES);
     capture_title(&g_titles[0]);
@@ -696,6 +748,7 @@ static void run_two_attract_cycles(int first_frame_buttons) {
     assert_starts_equal(&g_played[0], &g_played[1]);
     assert(stored_record_equals_earlier(player_count) && "the player's save is untouched");
     assert(save_storage_memory_write_count() == writes && "the attract cycle writes nothing");
+    g_overlay_forbidden = 0;
 }
 
 static void test_two_attract_starts_play_the_same_game_and_return_to_the_boot_title(void) {
@@ -744,11 +797,15 @@ static int boot_attract(int with_a_save, const bindings_t *session_table, int at
 }
 
 static void play_idle_title_up_to_the_start(int attract_after) {
-    play_empty_frames(attract_after);
+    for (int i = 0; i < attract_after; i++) {
+        play_attract_frame(0);
+        assert(overlay_absent() && "no overlay on the idle title");
+    }
     assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_IDLE && cart_title_shown() && "no demo before the threshold");
     run_input_step(0);
     assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_PLAYING && "the demo starts on the threshold's frame");
     finish_frame();
+    assert(overlay_shows_demo_frame(0) && "the start frame shows demo frame 0's caption and the tag");
 }
 
 static uint8_t g_first_demo_frame[SAVE_STATE_MAX_BYTES];
@@ -791,7 +848,12 @@ static void test_a_demo_past_the_fold_interrupted_gives_the_title_back_with_the_
     assert(live_game_is_the_record_after_its_first_input_step() && "the live game is the compiled record");
     assert(pad_nav_is_on(&bindings_default) && "the demo plays on the default table");
     finish_frame();
-    play_empty_frames(DEMO_FRAMES_PAST_THE_FOLD);
+    int caption_change = demo_data_captions[1].from;
+    play_empty_frames(caption_change - 1);
+    assert(overlay_shows_demo_frame(caption_change - 1) && "the first caption up to its last frame");
+    play_empty_frames(1);
+    assert(overlay_shows_demo_frame(caption_change) && "the second caption from its first frame");
+    play_empty_frames(DEMO_FRAMES_PAST_THE_FOLD - caption_change);
     assert(input_step_attract_demo_frame(&g_step) == DEMO_FRAMES_PAST_THE_FOLD + 1);
     assert(pad_nav_is_on(&bindings_default));
     assert(stored_record_equals_earlier(count) && save_storage_memory_write_count() == g_attract_writes &&
@@ -799,6 +861,7 @@ static void test_a_demo_past_the_fold_interrupted_gives_the_title_back_with_the_
 
     play_attract_frame(title_buttons_down());
     assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_SWALLOWING);
+    assert(overlay_absent() && "the interrupting frame shows the title only");
     assert(title_button("forgiving") != NULL && title_button("resume") != NULL && cart_title_shown() &&
            "the title is back with its resume row");
     assert(pad_nav_is_on(&swap) && "the session's table is back");
@@ -816,9 +879,11 @@ static void test_a_press_held_from_the_demo_neither_moves_nor_picks_a_title_row(
     for (int i = 0; i <= HOOK_HELD_FRAMES; i++) {
         play_attract_frame(title_buttons_down());
         assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_SWALLOWING && cart_title_shown());
+        assert(overlay_absent() && "no overlay while the press is swallowed");
     }
     play_empty_frames(HOOK_TITLE_FRAMES_AFTER_RETURN - HOOK_HELD_FRAMES - 1);
     assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_IDLE && cart_title_shown() && "no game started");
+    assert(overlay_absent() && "no overlay on the idle title after the demo");
     capture_title(&g_titles[1]);
     assert(titles_equal(&g_titles[0], &g_titles[1]) && "the held press moved or picked nothing");
 }

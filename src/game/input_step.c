@@ -58,6 +58,8 @@ int input_step_run(input_step_t *step, const p8_input_frame_t *raw) {
     step->played.current_frame = 0;
     int fired = cheat_step(&step->cheat, buttons);
     dispatch_context_set_input(&step->played);
+    int playing = input_step_attract_phase(step) == ATTRACT_PHASE_PLAYING;
+    cart_set_demo_frame(playing ? input_step_attract_demo_frame(step) - 1 : CART_NO_DEMO_FRAME);
     return fired;
 }
 
