@@ -183,6 +183,14 @@ void cart_init(void) {
     (void)help_screen_new();
 }
 
+void cart_return_to_title(void) {
+    entity_registry_abandon_live_entities();
+    cart_flush_exit_queue();
+    /* After the flush: reset_world's own abandon would walk the released entries. */
+    entity_registry_forget_registries();
+    cart_init();
+}
+
 void cart_init_method(button_t *self) {
     (void)self;
     cart_init();

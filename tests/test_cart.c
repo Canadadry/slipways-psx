@@ -1,3 +1,8 @@
+#define _POSIX_C_SOURCE 200809L
+
+#include "devtools/save_check.h"
+#include "devtools/save_storage_memory.h"
+#include "devtools/state.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity.h"
 #include "engine/entity_id.h"
@@ -5,8 +10,11 @@
 #include "game/background.h"
 #include "game/cart.h"
 #include "game/economy.h"
+#include "game/bindings.h"
 #include "game/game_data.h"
+#include "game/input_step.h"
 #include "game/main_economy.h"
+#include "game/pad_nav.h"
 #include "game/probe.h"
 #include "game/save_state.h"
 #include "game/save_storage.h"
@@ -395,6 +403,211 @@ static void test_a_game_with_no_difficulty_is_never_written(void) {
     assert(stored_count() == 0);
 }
 
+enum { ATTRACT_IDLE_FRAMES = 30, ATTRACT_SECOND_START_EXTRA_IDLE = 7, ATTRACT_PLAYED_FRAMES = 30, TITLE_DUMP_CAP = 65536 };
+
+static const char DEMO_RECORD_PATH[] = "pico8/demo_record.hex";
+static const uint32_t ATTRACT_VISUAL_RANDOM_STATE = 0x0BADF00Du;
+
+typedef struct {
+    char dump[TITLE_DUMP_CAP];
+    unsigned char screen[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
+    int has_resume;
+} title_snapshot_t;
+
+static input_step_t g_step;
+static save_check_snapshot_t g_demo_record;
+static save_check_snapshot_t g_resumed[2];
+static save_check_snapshot_t g_played[2];
+static title_snapshot_t g_titles[3];
+static char g_raw_title_dump[2 * TITLE_DUMP_CAP];
+
+static int hex_digit(int c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+}
+
+/* The visual stream is set to a constant: a record never holds it, and the vanishing planet's
+   flicker draws from it, so two starts would draw differently. */
+static void read_demo_record(save_check_snapshot_t *out) {
+    FILE *file = fopen(DEMO_RECORD_PATH, "r");
+    int count = 0;
+    int high;
+
+    assert(file != NULL && "pico8/demo_record.hex: the demo record is missing");
+    while ((high = fgetc(file)) != '\n') {
+        int low = fgetc(file);
+        assert(hex_digit(high) >= 0 && hex_digit(low) >= 0 && "pico8/demo_record.hex: not one line of lowercase hex pairs and a newline");
+        assert(count < SAVE_STATE_MAX_BYTES && "pico8/demo_record.hex: more than SAVE_STATE_MAX_BYTES bytes");
+        out->bytes[count++] = (uint8_t)(hex_digit(high) << 4 | hex_digit(low));
+    }
+    assert(fgetc(file) == EOF && "pico8/demo_record.hex: something follows the newline");
+    fclose(file);
+    out->byte_count = count;
+    out->visual_random_state = ATTRACT_VISUAL_RANDOM_STATE;
+    assert(save_state_decode(out->bytes, count, &g_decoded) && "pico8/demo_record.hex: the record does not decode");
+}
+
+static void play_attract_frame(int buttons) {
+    p8_input_frame_t raw;
+
+    memset(&raw, 0, sizeof raw);
+    raw.pad_buttons = buttons;
+    input_step_run(&g_step, &raw);
+    save_check_hide_particles(1);
+    cart_update60();
+    cart_draw();
+    save_check_hide_particles(0);
+}
+
+static void play_empty_frames(int count) {
+    for (int i = 0; i < count; i++) {
+        play_attract_frame(0);
+    }
+}
+
+static int is_session_line(const char *line) {
+    return strncmp(line, "zone ", 5) == 0 || strncmp(line, "cap ", 4) == 0 || strncmp(line, "budget ", 7) == 0;
+}
+
+static void capture_title(title_snapshot_t *out) {
+    FILE *stream = fmemopen(g_raw_title_dump, sizeof g_raw_title_dump, "w");
+    size_t written;
+    size_t kept = 0;
+
+    assert(stream != NULL);
+    state_write(stream);
+    written = (size_t)ftell(stream);
+    fclose(stream);
+    assert(written < sizeof g_raw_title_dump - 1 && "test_cart: the title's state dump outgrew its buffer");
+    g_raw_title_dump[written] = '\0';
+    for (const char *line = g_raw_title_dump; *line != '\0';) {
+        const char *end = strchr(line, '\n');
+        size_t length = end != NULL ? (size_t)(end - line) + 1 : strlen(line);
+        if (!is_session_line(line)) {
+            assert(kept + length < TITLE_DUMP_CAP);
+            memcpy(out->dump + kept, line, length);
+            kept += length;
+        }
+        line += length;
+    }
+    out->dump[kept] = '\0';
+    memcpy(out->screen, memory.screen, sizeof out->screen);
+    out->has_resume = title_button("resume") != NULL;
+}
+
+/* Returns 1 when equal; otherwise prints the first differing dump line or pixel. */
+static int titles_equal(const title_snapshot_t *a, const title_snapshot_t *b) {
+    const char *left = a->dump;
+    const char *right = b->dump;
+    for (int line = 1; *left != '\0' || *right != '\0'; line++) {
+        int left_length = (int)strcspn(left, "\n");
+        int right_length = (int)strcspn(right, "\n");
+        if (left_length != right_length || memcmp(left, right, (size_t)left_length) != 0) {
+            fprintf(stderr, "test_cart: title dump line %d: \"%.*s\" != \"%.*s\"\n", line, left_length, left, right_length, right);
+            return 0;
+        }
+        left += left_length + (left[left_length] == '\n');
+        right += right_length + (right[right_length] == '\n');
+    }
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (a->screen[y][x] != b->screen[y][x]) {
+                fprintf(stderr, "test_cart: title pixel %d %d: color %d != %d\n", x, y, a->screen[y][x], b->screen[y][x]);
+                return 0;
+            }
+        }
+    }
+    return a->has_resume == b->has_resume;
+}
+
+static void assert_starts_equal(const save_check_snapshot_t *first, const save_check_snapshot_t *second) {
+    char report[512];
+    if (save_check_compare(first, second, report, sizeof report)) {
+        fprintf(stderr, "test_cart: the second start differs from the first: %s\n", report);
+        assert(0 && "two attract starts from the record give the same game");
+    }
+}
+
+/* Neither cart_resume_game nor cart_init touches the input step: without these re-inits, the pad
+   navigation of one phase leaks into the next. */
+static void start_the_demo_record(void) {
+    input_step_init(&g_step, &bindings_compiled);
+    save_check_resume(&g_demo_record);
+}
+
+static void return_to_the_title(void) {
+    cart_return_to_title();
+    input_step_init(&g_step, &bindings_compiled);
+}
+
+/* first_frame_buttons: held on the first played frame only. */
+static void play_the_demo_record(int start, int first_frame_buttons) {
+    start_the_demo_record();
+    save_check_capture(&g_resumed[start]);
+    play_attract_frame(first_frame_buttons);
+    play_empty_frames(ATTRACT_PLAYED_FRAMES - 1);
+    save_check_capture(&g_played[start]);
+    memcpy(g_played[start].screen, memory.screen, sizeof g_played[start].screen);
+    g_played[start].has_screen = 1;
+}
+
+/* Boots over a player's save, then plays the record twice, each time back to the title. */
+static void run_two_attract_cycles(int first_frame_buttons) {
+    int player_count;
+    int writes;
+
+    assert(!bindings_compiled_personal && "the test binaries link the default bindings table");
+    read_demo_record(&g_demo_record);
+    load_cart_to_title();
+    player_count = start_game_with_a_save(1);
+    (void)remember_stored_record();
+    load_cart_to_title_storing(g_earlier, player_count);
+    input_step_init(&g_step, &bindings_compiled);
+    writes = save_storage_memory_write_count();
+
+    play_empty_frames(ATTRACT_IDLE_FRAMES);
+    capture_title(&g_titles[0]);
+    assert(g_titles[0].has_resume && "the boot title offers the player's game");
+    for (int start = 0; start < 2; start++) {
+        if (start > 0) play_empty_frames(ATTRACT_SECOND_START_EXTRA_IDLE);
+        play_the_demo_record(start, first_frame_buttons);
+        if (first_frame_buttons != 0) assert(pad_nav_tech_open(&g_step.pad_nav) && "the press opened the tech panel");
+        return_to_the_title();
+        play_empty_frames(ATTRACT_IDLE_FRAMES);
+        capture_title(&g_titles[start + 1]);
+        assert(titles_equal(&g_titles[0], &g_titles[start + 1]) && "the title after a return is the boot title");
+    }
+    assert_starts_equal(&g_resumed[0], &g_resumed[1]);
+    assert_starts_equal(&g_played[0], &g_played[1]);
+    assert(stored_record_equals_earlier(player_count) && "the player's save is untouched");
+    assert(save_storage_memory_write_count() == writes && "the attract cycle writes nothing");
+}
+
+static void test_two_attract_starts_play_the_same_game_and_return_to_the_boot_title(void) {
+    run_two_attract_cycles(0);
+}
+
+static void test_a_return_with_the_tech_panel_open_builds_the_boot_title(void) {
+    int open_tech_panel = bindings_mask(&bindings_compiled, BINDINGS_MODE_JUMP, BINDINGS_ACTION_OPEN_TECH_PANEL);
+    assert(open_tech_panel != 0 && "the default table binds open_tech_panel in jump mode");
+    run_two_attract_cycles(open_tech_panel);
+}
+
+static void test_over_an_empty_storage_the_returned_title_has_no_resume_row(void) {
+    read_demo_record(&g_demo_record);
+    load_cart_to_title();
+    input_step_init(&g_step, &bindings_compiled);
+    play_empty_frames(ATTRACT_IDLE_FRAMES);
+    capture_title(&g_titles[0]);
+    play_the_demo_record(0, 0);
+    return_to_the_title();
+    play_empty_frames(ATTRACT_IDLE_FRAMES);
+    capture_title(&g_titles[1]);
+    assert(!g_titles[1].has_resume && titles_equal(&g_titles[0], &g_titles[1]) && "the title after a return is the boot title");
+    assert(stored_count() == 0 && "the demo record is never stored");
+}
+
 int main(void) {
     test_a_started_game_with_no_action_writes_nothing();
     test_an_action_writes_the_game_at_the_end_of_its_frame();
@@ -410,6 +623,9 @@ int main(void) {
     test_garbage_in_the_storage_hides_resume_and_is_left_alone();
     test_a_record_with_one_byte_flipped_hides_resume_and_is_left_alone();
     test_resume_brings_back_the_saved_game_and_writes_nothing();
+    test_two_attract_starts_play_the_same_game_and_return_to_the_boot_title();
+    test_a_return_with_the_tech_panel_open_builds_the_boot_title();
+    test_over_an_empty_storage_the_returned_title_has_no_resume_row();
     printf("test_cart: all tests passed\n");
     return 0;
 }

@@ -843,7 +843,7 @@ $(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/sav
 $(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
