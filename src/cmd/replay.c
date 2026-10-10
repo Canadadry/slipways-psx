@@ -1,29 +1,3 @@
-/* A header member "bindings": "<name>.cfg" names a bindings fixture in the
- * recording's directory, which replaces the compiled default; "personal", or
- * a missing, bad or invalid fixture, exits 1 before the capture is opened.
- *
- * REPLAY_DEPS=<file>, needs a capture path: the make rule "<capture>:
- * <fixture>" then "<fixture>:", or the file removed when there is no fixture.
- *
- * REPLAY_FILL=<file>, read by the tools/ scripts: one "<sort> <count>" line of live
- * places per interface sort, then per particle sort; "max_live <sort> <count>"
- * per particle sort; "max_bytes <sort> <bytes>", then "max_elements <sort>
- * <count>", for the list sorts only, burst without max_elements; then
- * "game <bytes>", "max_bytes game <bytes>", "load <bytes>",
- * "max_bytes load <bytes>".
- *
- * STATE=<file>: the devtools/state text of the last frame, then "cheat
- * activations <n>"; after a p8_fatal, "stopped p8_fatal frame <n>" first and
- * no cheat line.
- *
- * SAVE_HEX=<file>: the stored record as one line of lowercase hex (the
- * initial_save format), then "save: " lines on stdout; exits 1 when the
- * record does not decode, or when there is none (the file is then removed).
- *
- * PAD_METRICS=<file>: the devtools/pad_metrics report of the run (time per
- * mode, dead presses by group, hold repeats, the section 4 verdict); exits 1
- * when the file cannot be written. The verdict never changes the exit status. */
-
 #include "p8/vram.h"
 #include "p8/assets.h"
 #include "p8/gfx.h"
@@ -55,7 +29,6 @@ BUMP_ZONE_STORAGE(pad_metrics_cells, PAD_METRICS_SCRATCH_BYTES);
 static bump_zone_t pad_metrics_scratch;
 static pad_metrics_t pad_metrics;
 
-/* Returns 1 when the report was written. */
 static int write_pad_metrics(const char *path) {
     pad_metrics_finish(&pad_metrics);
     FILE *out = fopen(path, "w");
@@ -104,7 +77,6 @@ static void write_fill(const char *path) {
     fclose(out);
 }
 
-/* Returns 1 when the dependency file was written, or removed for a replay without a fixture. */
 static int write_dependencies(const char *path, const char *capture_path, const char *fixture_path) {
     if (fixture_path[0] == '\0') {
         remove(path);
@@ -117,7 +89,6 @@ static int write_dependencies(const char *path, const char *capture_path, const 
     return written;
 }
 
-/* Returns the replay's exit status. */
 static int write_save_hex(const char *path) {
     static uint8_t bytes[SAVE_STATE_MAX_BYTES];
     static save_state_t decoded;
@@ -225,7 +196,6 @@ int main(int argc, char **argv) {
         cart_update60();
         cart_draw();
         if (pad_metrics_path != NULL) pad_metrics_record(&pad_metrics, &step, frame->pad_buttons, cheat);
-        /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
         if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                     i, capture_path);

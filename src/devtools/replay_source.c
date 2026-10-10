@@ -8,8 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Caller frees; NULL when the file cannot be read. *byte_count, when not NULL, gets the bytes read, which a NUL in
- * the file makes larger than strlen. */
 static char *read_whole_file(const char *path, size_t *byte_count) {
     FILE *file = fopen(path, "rb");
     if (!file) {
@@ -47,8 +45,6 @@ static int hex_digit_value(char digit) {
     return -1;
 }
 
-/* Returns 0 when the header's initial_save is present but malformed; on 1,
- * source->initial_save_count is 0 when the header has none. */
 static int parse_initial_save(replay_source_t *source, const char *json) {
     static const char key[] = "\"initial_save\":";
     source->initial_save_count = 0;
@@ -158,8 +154,6 @@ void replay_source_close(replay_source_t *source) {
     source->initial_save_count = 0;
 }
 
-/* Returns NULL when the header has no "bindings" member; otherwise *value_length is the length of the quoted text, or
- * -1 when the value is not a quoted string or the header holds a second member. */
 static const char *find_bindings_value(const char *json, int *value_length) {
     static const char key[] = "\"bindings\":";
     const char *header_end = strstr(json, "\"frames\":");

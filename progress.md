@@ -70,3 +70,4 @@
   - [ ] 21. skill: rework-comments
     - [x] rework-comments: button guard
     - [x] rework-comments: bindings
+    - [x] rework-comments: replay

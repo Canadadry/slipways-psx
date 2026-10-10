@@ -39,14 +39,12 @@ void session_recorder_set_personal_bindings(session_recorder_t *recorder, int pe
     recorder->personal_bindings = personal;
 }
 
-/* Returns the end of the copied text, without a terminator. */
 static char *append_text(char *end, const char *text) {
     size_t length = strlen(text);
     memcpy(end, text, length);
     return end + length;
 }
 
-/* Caller frees; NULL when there is nothing to write or no memory. */
 static char *format_header_members(const session_recorder_t *recorder) {
     static const char bindings_member[] = "\"bindings\": \"personal\"";
     static const char separator[] = ",\n  ";
