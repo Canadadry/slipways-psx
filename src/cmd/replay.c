@@ -1,4 +1,11 @@
-/* REPLAY_FILL=<file>, read by the tools/ scripts: one "<sort> <count>" line of live
+/* A header member "bindings": "<name>.cfg" names a bindings fixture in the
+ * recording's directory, which replaces the compiled default; "personal", or
+ * a missing, bad or invalid fixture, exits 1 before the capture is opened.
+ *
+ * REPLAY_DEPS=<file>, needs a capture path: the make rule "<capture>:
+ * <fixture>" then "<fixture>:", or the file removed when there is no fixture.
+ *
+ * REPLAY_FILL=<file>, read by the tools/ scripts: one "<sort> <count>" line of live
  * places per interface sort, then per particle sort; "max_live <sort> <count>"
  * per particle sort; "max_bytes <sort> <bytes>", then "max_elements <sort>
  * <count>", for the list sorts only, burst without max_elements; then
@@ -97,6 +104,19 @@ static void write_fill(const char *path) {
     fclose(out);
 }
 
+/* Returns 1 when the dependency file was written, or removed for a replay without a fixture. */
+static int write_dependencies(const char *path, const char *capture_path, const char *fixture_path) {
+    if (fixture_path[0] == '\0') {
+        remove(path);
+        return 1;
+    }
+    FILE *out = fopen(path, "w");
+    int written = out != NULL && fprintf(out, "%s: %s\n%s:\n", capture_path, fixture_path, fixture_path) > 0;
+    if (out != NULL && fclose(out) != 0) written = 0;
+    if (!written) fprintf(stderr, "replay: cannot write the dependency file '%s'\n", path);
+    return written;
+}
+
 /* Returns the replay's exit status. */
 static int write_save_hex(const char *path) {
     static uint8_t bytes[SAVE_STATE_MAX_BYTES];
@@ -139,6 +159,11 @@ int main(int argc, char **argv) {
     const char *replay_path = argv[1];
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/replay_dump.txt";
+    const char *dependencies_path = getenv("REPLAY_DEPS");
+    if (dependencies_path != NULL && capture_path == NULL) {
+        fprintf(stderr, "usage: REPLAY_DEPS=<file> replay <events.json> <capture.bin> [<dump.txt>]\n");
+        return 2;
+    }
 
     p8_vram_t memory;
     p8_vram_init(&memory);
@@ -153,6 +178,16 @@ int main(int argc, char **argv) {
     assert(source_status == REPLAY_SOURCE_LOADED);
     int seeded = replay_source_seed_storage(&source);
     assert(seeded);
+    static bindings_t bindings;
+    static replay_source_bindings_report_t bindings_report;
+    replay_source_bindings_status_t bindings_status =
+        replay_source_read_bindings(&source, &bindings_compiled, &bindings, &bindings_report);
+    if (bindings_status != REPLAY_SOURCE_BINDINGS_DEFAULT && bindings_status != REPLAY_SOURCE_BINDINGS_FIXTURE) {
+        fprintf(stderr, "replay: %s\n", bindings_report.message);
+        return 1;
+    }
+    if (dependencies_path != NULL &&
+        !write_dependencies(dependencies_path, capture_path, bindings_report.fixture_path)) return 1;
     p8_input_t *input = &source.recording;
 
     dispatch_context_set_gfx(&graphics);
@@ -175,7 +210,7 @@ int main(int argc, char **argv) {
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
-    input_step_init(&step, &bindings_compiled);
+    input_step_init(&step, &bindings);
     const char *pad_metrics_path = getenv("PAD_METRICS");
     if (pad_metrics_path != NULL) {
         bump_zone_init(&pad_metrics_scratch, "pad metrics scratch", pad_metrics_cells, PAD_METRICS_SCRATCH_BYTES);

@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <sys/wait.h>
 
 #define FIXTURE "tests/fixtures/screencast_capture_events.json"
@@ -38,6 +40,15 @@
  * reached without depending on file system permissions or on a full
  * disk. */
 #define BAD_CAPTURE "tmp/no_such_directory_for_capture/capture.bin"
+#define TITLE_E2E "tests/e2e/pad_title.json"
+#define DEFAULT_BINDINGS "bindings.default.cfg"
+#define FIXTURE_DIR "tmp/test_headless_capture_fixture"
+#define FIXTURE_REPLAY FIXTURE_DIR "/title.json"
+#define FIXTURE_CFG FIXTURE_DIR "/same.cfg"
+#define FIXTURE_CAPTURE FIXTURE_DIR "/title.bin"
+#define FIXTURE_DEPS FIXTURE_DIR "/title.bin.d"
+#define FIXTURE_STDERR FIXTURE_DIR "/stderr.txt"
+#define TITLE_CAPTURE FIXTURE_DIR "/original.bin"
 
 /* The whole content of `path`, with one more NUL byte at the end so that
  * strstr() can be used on text outputs. `*out_len` is the real size,
@@ -267,12 +278,154 @@ static void test_third_argument_redirects_the_text_dump(void) {
     remove(DRIVER_DUMP);
 }
 
+static void write_text(const char *path, const char *text, size_t length) {
+    FILE *out = fopen(path, "wb");
+    assert(out != NULL);
+    assert(fwrite(text, 1, length, out) == length);
+    assert(fclose(out) == 0);
+}
+
+/* FIXTURE_REPLAY becomes TITLE_E2E with `member` as a header line after "input". */
+static void write_title_naming(const char *member) {
+    size_t length;
+    char *text = read_whole_file(TITLE_E2E, &length);
+    const char *input = "\"input\": \"pad\",\n";
+    char *after = strstr(text, input);
+    assert(after != NULL && "pad_title.json starts with the input member");
+    after += strlen(input);
+    FILE *out = fopen(FIXTURE_REPLAY, "wb");
+    assert(out != NULL);
+    assert(fwrite(text, 1, (size_t)(after - text), out) == (size_t)(after - text));
+    assert(fprintf(out, "  \"bindings\": \"%s\",\n", member) > 0);
+    size_t rest = length - (size_t)(after - text);
+    assert(fwrite(after, 1, rest, out) == rest);
+    assert(fclose(out) == 0);
+    free(text);
+}
+
+/* FIXTURE_CFG becomes the default bindings with `from` replaced by `to`, or a plain copy when from is NULL. */
+static void write_fixture_cfg(const char *from, const char *to) {
+    size_t length;
+    char *text = read_whole_file(DEFAULT_BINDINGS, &length);
+    char *found = from != NULL ? strstr(text, from) : NULL;
+    assert(from == NULL || (found != NULL && strlen(from) == strlen(to)));
+    if (found != NULL) memcpy(found, to, strlen(to));
+    write_text(FIXTURE_CFG, text, length);
+    free(text);
+}
+
+static int files_equal(const char *a, const char *b) {
+    size_t a_length, b_length;
+    char *a_text = read_whole_file(a, &a_length);
+    char *b_text = read_whole_file(b, &b_length);
+    int equal = a_length == b_length && memcmp(a_text, b_text, a_length) == 0;
+    free(a_text);
+    free(b_text);
+    return equal;
+}
+
+static void capture_the_original_title(void) {
+    mkdir(FIXTURE_DIR, 0777);
+    remove(TITLE_CAPTURE);
+    assert(system(DRIVER " " TITLE_E2E " " TITLE_CAPTURE " " FIXTURE_DIR "/original.dump.txt > /dev/null") == 0);
+}
+
+static void run_fixture_replay(void) {
+    remove(FIXTURE_CAPTURE);
+    assert(system(DRIVER " " FIXTURE_REPLAY " " FIXTURE_CAPTURE " " FIXTURE_DIR "/title.dump.txt > /dev/null") == 0);
+}
+
+/* pad_title chooses its row with button 5: bound to 8, the title picks nothing. */
+static void test_a_changed_fixture_reaches_the_game(void) {
+    write_title_naming("same.cfg");
+    write_fixture_cfg("title.choose_row = 5", "title.choose_row = 8");
+    run_fixture_replay();
+    assert(!files_equal(FIXTURE_CAPTURE, TITLE_CAPTURE));
+}
+
+static void test_a_default_identical_fixture_plays_the_same_game(void) {
+    write_title_naming("same.cfg");
+    write_fixture_cfg(NULL, NULL);
+    run_fixture_replay();
+    assert(files_equal(FIXTURE_CAPTURE, TITLE_CAPTURE));
+}
+
+/* Returns the driver's exit status after a run that must fail before the capture opens. */
+static int run_refused_fixture_replay(const char *expected_in_stderr) {
+    remove(FIXTURE_CAPTURE);
+    remove(FIXTURE_STDERR);
+    int status = system(DRIVER " " FIXTURE_REPLAY " " FIXTURE_CAPTURE " " FIXTURE_DIR "/title.dump.txt > /dev/null 2> "
+                        FIXTURE_STDERR);
+    assert(fopen(FIXTURE_CAPTURE, "r") == NULL && "a refused replay never opens its capture");
+    size_t length;
+    char *log = read_whole_file(FIXTURE_STDERR, &length);
+    assert(strstr(log, expected_in_stderr) != NULL);
+    free(log);
+    return status;
+}
+
+static void test_a_personal_recording_is_refused(void) {
+    write_title_naming("personal");
+    int status = run_refused_fixture_replay("recorded with a personal bindings.cfg");
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 1);
+}
+
+static void test_a_missing_fixture_is_refused_naming_its_path(void) {
+    write_title_naming("absent.cfg");
+    int status = run_refused_fixture_replay(FIXTURE_DIR "/absent.cfg");
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 1);
+}
+
+static void test_replay_deps_names_the_fixture_of_the_capture(void) {
+    write_title_naming("same.cfg");
+    write_fixture_cfg(NULL, NULL);
+    remove(FIXTURE_DEPS);
+    remove(FIXTURE_CAPTURE);
+    assert(system("REPLAY_DEPS=" FIXTURE_DEPS " " DRIVER " " FIXTURE_REPLAY " " FIXTURE_CAPTURE " " FIXTURE_DIR
+                  "/title.dump.txt > /dev/null") == 0);
+    static const char expected[] = FIXTURE_CAPTURE ": " FIXTURE_CFG "\n" FIXTURE_CFG ":\n";
+    size_t length;
+    char *deps = read_whole_file(FIXTURE_DEPS, &length);
+    assert(length == strlen(expected) && memcmp(deps, expected, length) == 0);
+    free(deps);
+}
+
+static void test_replay_deps_without_a_fixture_removes_a_stale_file(void) {
+    write_title_naming("same.cfg");
+    write_fixture_cfg(NULL, NULL);
+    write_text(FIXTURE_DEPS, "stale:\n", 7);
+    assert(system("REPLAY_DEPS=" FIXTURE_DEPS " " DRIVER " " TITLE_E2E " " FIXTURE_CAPTURE " " FIXTURE_DIR
+                  "/title.dump.txt > /dev/null") == 0);
+    assert(fopen(FIXTURE_DEPS, "r") == NULL && "a replay without a fixture leaves no prerequisite");
+}
+
+static void test_replay_deps_requires_a_capture_path(void) {
+    int status = system("REPLAY_DEPS=" FIXTURE_DEPS " " DRIVER " " TITLE_E2E " > /dev/null 2>&1");
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 2);
+}
+
+static void remove_fixture_files(void) {
+    static const char *const files[] = {FIXTURE_REPLAY, FIXTURE_CFG, FIXTURE_CAPTURE, FIXTURE_DEPS, FIXTURE_STDERR,
+                                        TITLE_CAPTURE, FIXTURE_DIR "/title.dump.txt", FIXTURE_DIR "/original.dump.txt"};
+    for (size_t i = 0; i < sizeof files / sizeof files[0]; i++) remove(files[i]);
+    rmdir(FIXTURE_DIR);
+}
+
 int main(void) {
     test_capture_holds_exactly_the_replayed_frames();
     test_last_captured_frame_matches_the_text_dump();
     test_capturing_changes_nothing_the_replay_produces();
     test_unopenable_capture_path_is_fatal_and_names_the_path();
     test_third_argument_redirects_the_text_dump();
+    capture_the_original_title();
+    test_a_changed_fixture_reaches_the_game();
+    test_a_default_identical_fixture_plays_the_same_game();
+    test_a_personal_recording_is_refused();
+    test_a_missing_fixture_is_refused_naming_its_path();
+    test_replay_deps_names_the_fixture_of_the_capture();
+    test_replay_deps_without_a_fixture_removes_a_stale_file();
+    test_replay_deps_requires_a_capture_path();
+    remove_fixture_files();
     printf("test_headless_capture: all tests passed\n");
     return 0;
 }

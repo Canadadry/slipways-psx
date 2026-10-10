@@ -11,7 +11,11 @@
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt, whose "N frames:"
 #                       must match and exceed 180), or if an e2e does
-#                       not declare "input": "pad" or carries a mouse field
+#                       not declare "input": "pad" or carries a mouse field;
+#                       an e2e whose header names a fixture ("bindings":
+#                       "<file>.cfg", read from its directory) reruns when
+#                       that fixture changes, through the .d file replay
+#                       writes next to the capture
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
@@ -20,7 +24,8 @@
 #                       record at the end as one line of hex (the
 #                       initial_save format) and prints its decoded
 #                       "save:" summary; fails when there is no record or
-#                       it does not decode
+#                       it does not decode; refuses a recording whose header
+#                       says "bindings": "personal"
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
@@ -549,7 +554,7 @@ $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/scr
 # prerequisite: it replays the same fixture with and without a capture and
 # compares the two dumps, so that the capture argument has no effect on the
 # rest.
-$(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json tests/e2e/pad_title.json bindings.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
@@ -1101,7 +1106,9 @@ frames_reference = $(1).sha256
 # is read by two tests that run in parallel.
 $(FRAMES_DIR)/%.bin: % $(TMP_DIR)/replay
 	@mkdir -p $(@D)
-	./$(TMP_DIR)/replay $< $@ $(@:.bin=.dump.txt) > /dev/null
+	REPLAY_DEPS=$(@:.bin=.d) ./$(TMP_DIR)/replay $< $@ $(@:.bin=.dump.txt) > /dev/null
+
+-include $(wildcard $(FRAMES_DIR)/$(E2E_DIR)/*.json.d)
 
 # The assignment keeps the exit status of sha256, which a pipe into cut would
 # lose.
