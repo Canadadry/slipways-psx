@@ -38,14 +38,14 @@
   - [x] 12. The attract e2e
     - [x] Chunk 1: tests/e2e/attract.json
     - [x] Chunk 2: test_live_slots follows the header
-- [ ] Phase 3 — Full check and docs
+- [x] Phase 3 — Full check and docs
   - [x] 13. make demo-check, full cycle
     - [x] Chunk 1: replay return files and explicit dump
     - [x] Chunk 2: the committed full cycle
     - [x] Chunk 3: the demo-check target
   - [x] 14. Docs
     - [x] README paragraph and Makefile legend
-  - [ ] 15. skill: rework-comments
+  - [x] 15. skill: rework-comments
     - [x] comments: attract, demo_data, demo_overlay
     - [x] comments: cart, input_step, bindings.h
     - [x] comments: gfx, input.h, bindings_generate, game.c
