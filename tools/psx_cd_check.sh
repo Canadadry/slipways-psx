@@ -74,7 +74,7 @@ else
     if [ -n "$problem" ]; then
         report cd-exe "$problem"
     else
-        pass cd-exe "$disc_name, $(wc -c <"$exe") bytes"
+        pass cd-exe "$disc_name, $(wc -c <"$exe" | tr -d ' ') bytes"
     fi
 fi
 

@@ -9,3 +9,4 @@
   - [x] The .bin/.cue boots, shows the title screen and passes it through scripted pad input
   - [x] The PSX check target is green
   - [ ] The human has reviewed the step 4 captures and they are frozen as references
+- [x] PSX setups on macOS without admin rights

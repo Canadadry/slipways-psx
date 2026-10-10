@@ -28,13 +28,14 @@ breaks them.
 |---|---|
 | Emulator | PCSX-Redux built from source at its pinned commit, plus the upstream headless fix applied on top |
 | BIOS | OpenBIOS from the same PCSX-Redux tree; no Sony BIOS |
-| Toolchain, SDK, CD tool | the PSn00bSDK 0.24 Linux release: prebuilt `mipsel-none-elf` GCC 12.3.0, binutils, `elf2x`, libpsn00b, mkpsxiso 2.03 |
+| Toolchain, SDK, CD tool | Linux: the PSn00bSDK 0.24 release (prebuilt `mipsel-none-elf` GCC 12.3.0, binutils 2.40, `elf2x`, libpsn00b, mkpsxiso 2.03). macOS: the same versions built from source (GNU tarballs, the PSn00bSDK 0.24 commit) |
 | CD license data | none: PSn00bSDK ships none and OpenBIOS does not check it |
 | Emulator test media | a ps1-tests PS-EXE and the BuzzyBee homebrew CD image, used by `psx-emulator-check` only |
 
 Hosts reached: `github.com` (git clones and release downloads, the latter
 redirected through `release-assets.githubusercontent.com`), `psx.arthus.net`,
-and the Ubuntu noble archive and security hosts. `make psx-net-check` probes
+the Ubuntu noble archive and security hosts, `ftp.gnu.org` and `gcc.gnu.org`
+(the macOS toolchain build). `make psx-net-check` probes
 every one of them without downloading and names each unreachable host, in
 seconds; both setups run it first.
 
@@ -51,10 +52,18 @@ Run once each, in either order, before any build or check:
   emulator finds OpenBIOS next to its own binary: no BIOS to place.
 - `make psn00bsdk-toolchain-setup` installs the sha256-checked PSn00bSDK
   release into `PSN00BSDK_DIR` (default `third_party/psn00bsdk`), a few
-  seconds plus the download. No GCC is compiled.
+  seconds plus the download. On macOS, which has no release, or with
+  `PSN00BSDK_FROM_SOURCE` set, it builds binutils, GCC and PSn00bSDK from
+  source into the same layout (`tools/build_psn00bsdk.sh`), 30 to 60 min.
 
-Both install their build dependencies with `sudo apt` unless
-`PSX_EMULATOR_SKIP_APT` or `PSN00BSDK_SKIP_APT` is set. Both exit 0 at once
+On Linux both install their build dependencies with `sudo apt` unless
+`PSX_EMULATOR_SKIP_APT` or `PSN00BSDK_SKIP_APT` is set. On macOS nothing
+needs sudo: the toolchain build needs only the Command Line Tools, `cmake`,
+`git` and `curl`; the emulator takes its libraries from the user's Homebrew
+and builds OpenBIOS with the `mipsel-none-elf` GCC of `PSN00BSDK_DIR`, so the
+toolchain setup comes first. That OpenBIOS differs from the Linux one, built
+with `mipsel-linux-gnu`, yet gives the same captures (`psx-hello-e2e` and
+`psx-check` green with it). Both exit 0 at once
 when the directory holds the stamp of a complete install for the same pins,
 and refuse, deleting nothing, a non-empty directory without that stamp: look
 at what is there before removing it.

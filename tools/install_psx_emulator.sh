@@ -1,7 +1,9 @@
 #!/bin/sh
 # usage: install_psx_emulator.sh <install-dir> <sources>
 # Builds PCSX-Redux and its OpenBIOS into <install-dir>, from the pins of
-# <sources>. Exit 0 at once when <install-dir> holds a stamp for the same
+# <sources>. Linux: build dependencies through apt (sudo). macOS: through the
+# user's Homebrew, no sudo; the OpenBIOS is built with the mipsel-none-elf GCC
+# of PSN00BSDK_DIR (make psn00bsdk-toolchain-setup first). Exit 0 at once when <install-dir> holds a stamp for the same
 # pins; exit 1, deleting nothing, when it is non-empty without that stamp.
 
 set -eu
@@ -10,6 +12,9 @@ install_dir=$1
 sources=$2
 BUILD_TIMEOUT=2700
 STAMP=psx-emulator.stamp
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/psx_portable.sh"
 
 fail() {
     echo "psx-emulator-setup: $*" >&2
@@ -43,7 +48,16 @@ if [ -d "$install_dir" ] && [ -n "$(ls -A "$install_dir")" ]; then
     fail "$install_dir is not empty and holds no stamp for these pins; remove it and re-run"
 fi
 
-if [ -n "${PSX_EMULATOR_SKIP_APT:-}" ]; then
+if [ "$(uname -s)" = Darwin ]; then
+    command -v brew >/dev/null 2>&1 || fail "Homebrew not found: the macOS build takes its libraries from it"
+    sdk_bin=$(cd "${PSN00BSDK_DIR:-third_party/psn00bsdk}" 2>/dev/null && pwd)/bin
+    [ -x "$sdk_bin/mipsel-none-elf-gcc" ] || fail "no mipsel-none-elf-gcc in $sdk_bin: run make psn00bsdk-toolchain-setup first"
+    PATH=$sdk_bin:$PATH
+    export PATH
+    brew install pkg-config capstone freetype glfw libuv ffmpeg curl zlib
+    PKG_CONFIG_PATH=$(brew --prefix)/lib/pkgconfig:$(brew --prefix zlib)/lib/pkgconfig:$(brew --prefix curl)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+    export PKG_CONFIG_PATH
+elif [ -n "${PSX_EMULATOR_SKIP_APT:-}" ]; then
     echo "psx-emulator-setup: PSX_EMULATOR_SKIP_APT set, skipping apt"
 else
     sudo apt-get update
@@ -74,8 +88,8 @@ if ! git apply "$patch"; then
 fi
 rm -f "$patch"
 
-timeout "$BUILD_TIMEOUT" make -j "$(nproc)" pcsx-redux
-timeout "$BUILD_TIMEOUT" make -j "$(nproc)" -C src/mips/openbios
+run_with_timeout "$BUILD_TIMEOUT" make -j "$(cpu_count)" pcsx-redux
+run_with_timeout "$BUILD_TIMEOUT" make -j "$(cpu_count)" -C src/mips/openbios
 
 # The emulator finds its BIOS at src/mips/openbios/openbios.bin next to the
 # binary when none is configured (System::findResource).

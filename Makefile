@@ -221,8 +221,10 @@
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
-#                       (default third_party/psn00bsdk); apt via sudo unless
-#                       PSN00BSDK_SKIP_APT is set; exits 0 at once on a
+#                       (default third_party/psn00bsdk); on macOS or with
+#                       PSN00BSDK_FROM_SOURCE, builds the same versions from
+#                       source instead (30-60 min, no sudo); apt via sudo
+#                       on Linux unless PSN00BSDK_SKIP_APT is set; exits 0 at once on a
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
 # make psx-build [EVENTS=<events>] -> builds, in tmp/psx/build, the game's
@@ -358,8 +360,9 @@
 # make psx-emulator-setup -> runs psx-net-check, then builds the pinned
 #                       PCSX-Redux and its OpenBIOS from PSX_SOURCES into
 #                       PSX_EMULATOR_DIR (default third_party/pcsx-redux),
-#                       ~10 min; apt via sudo unless PSX_EMULATOR_SKIP_APT is
-#                       set; exits 0 at once on a complete install, fails on
+#                       ~10 min; apt via sudo on Linux unless
+#                       PSX_EMULATOR_SKIP_APT is set, the user's Homebrew on
+#                       macOS (after psn00bsdk-toolchain-setup); exits 0 at once on a complete install, fails on
 #                       a non-empty directory without its stamp, outside the
 #                       suite
 # make psx-boot [PSX_EXE=<exe> | PSX_ISO=<cue>] -> boots that input (or
@@ -1751,7 +1754,7 @@ psx-net-check:
 PSX_EMULATOR_DIR ?= third_party/pcsx-redux
 
 psx-emulator-setup: psx-net-check
-	sh tools/install_psx_emulator.sh $(PSX_EMULATOR_DIR) $(PSX_SOURCES)
+	PSN00BSDK_DIR=$(PSN00BSDK_DIR) sh tools/install_psx_emulator.sh $(PSX_EMULATOR_DIR) $(PSX_SOURCES)
 
 PSX_FRAMES ?= 600
 PSX_OUT ?= $(TMP_DIR)/psx/boot

@@ -1,6 +1,8 @@
 #!/bin/sh
 # usage: install_psn00bsdk_toolchain.sh <install-dir> <sources>
-# Installs the pinned PSn00bSDK release of <sources> into <install-dir>.
+# Installs the pinned PSn00bSDK release of <sources> into <install-dir>. On
+# macOS, which has no release, or with PSN00BSDK_FROM_SOURCE set, builds it
+# instead (tools/build_psn00bsdk.sh).
 # Exit 0 at once when <install-dir> holds a stamp for the same sha256;
 # exit 1, deleting nothing, when it is non-empty without that stamp.
 
@@ -10,6 +12,12 @@ install_dir=$1
 sources=$2
 STAMP=psn00bsdk.stamp
 GCC_VERSION=12.3.0
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+if [ "$(uname -s)" = Darwin ] || [ -n "${PSN00BSDK_FROM_SOURCE:-}" ]; then
+    exec sh "$script_dir/build_psn00bsdk.sh" "$install_dir" "$sources"
+fi
+. "$script_dir/psx_portable.sh"
 
 fail() {
     echo "psn00bsdk-toolchain-setup: $*" >&2
@@ -47,7 +55,7 @@ trap 'rm -rf "$download_dir" "$unpack_dir"' EXIT
 
 archive=$download_dir/psn00bsdk.zip
 curl -fsSL --retry 2 -o "$archive" "$url" || fail "psn00bsdk: download failed: $url"
-actual=$(sha256sum "$archive" | cut -d ' ' -f 1)
+actual=$(sha256_of "$archive")
 [ "$actual" = "$sha256" ] || fail "psn00bsdk: sha256 $actual, expected $sha256"
 
 unzip -q "$archive" -d "$unpack_dir"

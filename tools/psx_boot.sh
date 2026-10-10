@@ -83,6 +83,7 @@ esac
     || fail "no complete install in $install_dir; run make psx-emulator-setup"
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/psx_portable.sh"
 mkdir -p "$(dirname "$prefix")"
 rm -f "$prefix.vram" "$prefix.tty.txt" "$prefix.log" "$prefix.result" "$prefix".f*.vram
 
@@ -109,7 +110,7 @@ status=0
     PSX_PAD_SCRIPT=$pad_script PSX_PAD_PLAYER=$script_dir/psx_pad_play.lua \
     PSX_CAPTURE_SCRIPT=$capture_script PSX_CAPTURE_PLAYER=$script_dir/psx_capture_frames.lua \
     PSX_CAPTURE_PREFIX=$prefix \
-        timeout "${PSX_BOOT_TIMEOUT:-120}" "$install_dir/pcsx-redux" \
+        run_with_timeout "${PSX_BOOT_TIMEOUT:-120}" "$install_dir/pcsx-redux" \
         "$@" -dofile "$script_dir/$lua" \
         > "$prefix.tty.txt" 2> "$prefix.log"
 ) || status=$?
