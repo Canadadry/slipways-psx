@@ -140,7 +140,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
 
     char *before = read_file_raw(path);
     long history_len = history_region_length(before);
-    char *victim = strstr(before, "\"up\"");
+    char *victim = strstr(before, "[1]");
     assert(victim != NULL);
     long victim_offset = (long)(victim - before) + 1;
     assert(victim_offset < history_len);
@@ -272,8 +272,8 @@ static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(
                   "{\n"
                   "  \"input\": \"pad\",\n"
                   "  \"frames\": [\n"
-                  "    { \"pad\": [\"up\", \"cross\", \"start\"] },\n"
-                  "    { \"pad\": [\"r1\", \"start\", \"select\"] },\n"
+                  "    { \"pad\": [1, 5, 11] },\n"
+                  "    { \"pad\": [10, 11, 12] },\n"
                   "    { \"pad\": [] }\n"
                   "  ]\n"
                   "}\n") == 0);
@@ -285,7 +285,7 @@ static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(
     char *committed = read_file_raw("tests/fixtures/demo_events.json");
     assert(strncmp(committed, "{\n  \"input\": \"pad\",\n  \"frames\": [\n",
                    strlen("{\n  \"input\": \"pad\",\n  \"frames\": [\n")) == 0);
-    assert(strstr(committed, "    { \"pad\": [\"right\", \"cross\"] },\n") != NULL);
+    assert(strstr(committed, "    { \"pad\": [4, 5] },\n") != NULL);
     assert(strstr(committed, "    { \"pad\": [] }\n  ]\n}\n") != NULL);
     free(committed);
 
@@ -339,12 +339,12 @@ static void write_text(const char *path, const char *text) {
     assert(fclose(f) == 0);
 }
 
-#define PAD_FRAMES_TEXT "  \"frames\": [\n    { \"pad\": [\"up\"] },\n    { \"pad\": [] }\n  ]\n"
+#define PAD_FRAMES_TEXT "  \"frames\": [\n    { \"pad\": [1] },\n    { \"pad\": [] }\n  ]\n"
 
 static void test_select_named_twice_in_a_frame_fails(void) {
     const char *path = "tmp/test_input_select_twice.json";
     write_text(path, "{\n  \"input\": \"pad\",\n  \"frames\": [\n"
-                     "    { \"pad\": [\"select\", \"up\", \"select\"] }\n  ]\n}\n");
+                     "    { \"pad\": [12, 1, 12] }\n  ]\n}\n");
     assert_load_fails_and_leaves_input_untouched(path);
     remove(path);
 }

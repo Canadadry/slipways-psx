@@ -3,7 +3,7 @@
 - [ ] Phase 1 — Abstract buttons
   - [ ] 2. Replays in numbers
     - [x] Chunk 1: loader accepts numbers
-    - [ ] Chunk 2: writer and data in numbers
+    - [x] Chunk 2: writer and data in numbers
     - [ ] Chunk 3: loader refuses names
   - [ ] 3. Generator low level in numbers
   - [ ] 4. Rename the constants

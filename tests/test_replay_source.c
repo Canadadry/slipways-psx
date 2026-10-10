@@ -208,7 +208,7 @@ static void test_old_mouse_recording_reports_load_failure(void) {
     replay_source_close(&source);
 }
 
-#define SAVE_FRAMES_TEXT "  \"frames\": [\n    { \"pad\": [\"up\"] },\n    { \"pad\": [] }\n  ]\n"
+#define SAVE_FRAMES_TEXT "  \"frames\": [\n    { \"pad\": [1] },\n    { \"pad\": [] }\n  ]\n"
 
 static void write_text(const char *path, const char *text) {
     FILE *file = fopen(path, "wb");
@@ -229,8 +229,8 @@ static void write_recording_with_member(const char *path, const char *member) {
 static void test_hand_written_select_is_served_as_its_bit(void) {
     const char *path = "tmp/test_replay_source_select.json";
     write_text(path, "{\n  \"input\": \"pad\",\n  \"frames\": [\n"
-                     "    { \"pad\": [\"select\"] },\n"
-                     "    { \"pad\": [\"start\", \"select\", \"up\"] },\n"
+                     "    { \"pad\": [12] },\n"
+                     "    { \"pad\": [11, 12, 1] },\n"
                      "    { \"pad\": [] }\n  ]\n}\n");
     static const int expected[3] = { P8_PAD_SELECT, P8_PAD_SELECT | P8_PAD_UP | P8_PAD_START, 0 };
 
