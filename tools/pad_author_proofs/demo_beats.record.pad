@@ -1,0 +1,20 @@
+# Section 2's beats from pico8/demo_record.hex, without captions: an opening of
+# 150 frames, each beat 90 frames before its press and padded to 150 frames at
+# least, a closing of 180.
+from-record ../../pico8/demo_record.hex
+idle 150
+idle 90
+fold 118 307
+idle 90
+colonise p32
+idle 40
+idle 90
+slipway p32 p55
+idle 50
+idle 90
+year
+idle 15
+idle 90
+research xenofoods
+idle 44
+idle 180

@@ -25,13 +25,19 @@
 #                       initial_save format) and prints its decoded
 #                       "save:" summary; fails when there is no record or
 #                       it does not decode; refuses a recording whose header
-#                       says "bindings": "personal"
+#                       says "bindings": "personal"; a file whose header says
+#                       "start": "resume" (pad_author's from-record) starts
+#                       from its initial_save at the first frame, not on the
+#                       title; with REPLAY_STARTS=2, plays it, returns to the
+#                       title, idles 30 frames and plays it again
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
 #                       use, then the cheat activation count, to
 #                       tmp/state.txt, outside the suite; takes
-#                       SAVE_HEX=<file> as make replay does
+#                       SAVE_HEX=<file> as make replay does; with
+#                       REPLAY_STARTS=2, the first playback's state goes to
+#                       tmp/state.txt.start1
 # make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
 #                       every e2e of tests/e2e/, each state in
 #                       tmp/state/<name>.txt, then
@@ -124,8 +130,11 @@
 #                       <e2e>.end-state.pad must pass tools/end_state.sh
 #                       against tests/e2e/<e2e>.json.end-state (both without
 #                       the aim budget), and each <name>.refused.pad must fail
-#                       with the error its `# expect:` first line names,
-#                       outside the suite
+#                       with the error its `# expect:` first line names;
+#                       each <name>.record.pad (a script that starts with
+#                       from-record) must pass pad_author's self-check, then
+#                       replay with REPLAY_STARTS=2 to pad_author's normalized
+#                       end state at both ends, outside the suite
 # make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
 #                       PAD_METRICS and prints its report (time per mode, dead
 #                       presses by group, hold repeats, section 4 verdict),
@@ -1074,7 +1083,7 @@ ifneq ($(filter replay,$(MAKECMDGOALS)),)
 endif
 
 replay: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
 
@@ -1189,7 +1198,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
@@ -1206,15 +1215,18 @@ endif
 PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
 PAD_AUTHOR_END_STATE_PROOFS := $(wildcard tools/pad_author_proofs/*.end-state.pad)
 PAD_AUTHOR_REFUSAL_PROOFS := $(wildcard tools/pad_author_proofs/*.refused.pad)
+PAD_AUTHOR_RECORD_PROOFS := $(wildcard tools/pad_author_proofs/*.record.pad)
 pad_author_proof_json = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=.json))
+pad_author_proof_stem = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=))
 pad_author_proof_e2e = $(E2E_DIR)/$(basename $(basename $(notdir $(1)))).json
 
 # A refusal proof's first line is `# expect: <text of the error>`.
-pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) tools/end_state.sh
+pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) $(PAD_AUTHOR_RECORD_PROOFS) tools/end_state.sh
 	@mkdir -p $(TMP_DIR)/pad-author
 	@$(foreach p,$(PAD_AUTHOR_FRAME_PROOFS),./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; cmp $(call pad_author_proof_json,$(p)) $(call pad_author_proof_e2e,$(p)) || exit 1; echo "pad-author-proof: $(p) regenerates $(call pad_author_proof_e2e,$(p))"; ) true
 	@$(foreach p,$(PAD_AUTHOR_END_STATE_PROOFS),STATE=$(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_e2e,$(p)) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) $(call pad_author_proof_e2e,$(p)).end-state || exit 1; echo "pad-author-proof: $(p) reaches $(call pad_author_proof_e2e,$(p)).end-state"; ) true
 	@$(foreach p,$(PAD_AUTHOR_REFUSAL_PROOFS),! ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) > /dev/null 2> $(TMP_DIR)/pad-author/refusal.txt || { echo "pad-author-proof: $(p) was not refused"; exit 1; }; grep -qF "$$(sed -n '1s/^# expect: //p' $(p))" $(TMP_DIR)/pad-author/refusal.txt || { cat $(TMP_DIR)/pad-author/refusal.txt; echo "pad-author-proof: $(p) refused for another reason"; exit 1; }; echo "pad-author-proof: $(p) refused: $$(sed -n '1s/^# expect: //p' $(p))"; ) true
+	@$(foreach p,$(PAD_AUTHOR_RECORD_PROOFS),STATE=$(call pad_author_proof_stem,$(p)).state.txt ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh normalize $(call pad_author_proof_stem,$(p)).state.txt > $(call pad_author_proof_stem,$(p)).reference.txt || exit 1; REPLAY_STARTS=2 STATE=$(call pad_author_proof_stem,$(p)).starts.txt ./$(TMP_DIR)/replay $(call pad_author_proof_json,$(p)) > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_json,$(p)) $(call pad_author_proof_stem,$(p)).starts.txt.start1 $(call pad_author_proof_stem,$(p)).reference.txt $(call pad_author_proof_json,$(p)) $(call pad_author_proof_stem,$(p)).starts.txt $(call pad_author_proof_stem,$(p)).reference.txt || exit 1; echo "pad-author-proof: $(p) replays from the record, twice, to pad_author's end state"; ) true
 
 PAD_METRICS_DIR := $(TMP_DIR)/pad-metrics
 PAD_METRICS_GAMES := $(filter-out worst-case/title_idle.json,$(FULL_GAME_EVENTS))
@@ -1330,7 +1342,7 @@ $(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
 
 ifneq ($(strip $(EVENTS)),)
 state: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 else
 state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))

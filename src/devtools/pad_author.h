@@ -4,12 +4,14 @@
 #include "devtools/pad_metrics.h"
 #include "game/bindings.h"
 #include "game/input_step.h"
+#include "game/save_state.h"
 #include "p8/input.h"
 
 #include <stdio.h>
 
 #define PAD_AUTHOR_FRAME_BUDGET 7200
 #define PAD_AUTHOR_ERROR_MAX 512
+#define PAD_AUTHOR_PATH_MAX 256
 
 typedef struct {
     p8_input_frame_t frames[PAD_AUTHOR_FRAME_BUDGET];
@@ -25,6 +27,10 @@ typedef struct {
     pad_metrics_view_t back_before;
     bindings_mode_t back_mode;
     FILE *mode_log;
+    /* 0 unless from-record resumed record[0..record_count) before the first frame. */
+    uint8_t record[SAVE_STATE_MAX_BYTES];
+    int record_count;
+    char record_path[PAD_AUTHOR_PATH_MAX];
 } pad_author_t;
 
 void pad_author_init(pad_author_t *author);

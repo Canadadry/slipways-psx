@@ -1,0 +1,3 @@
+# expect: from-record: tools/pad_author_proofs/no_such_record.hex: cannot open the file
+from-record no_such_record.hex
+idle 1

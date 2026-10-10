@@ -1,0 +1,3 @@
+# expect: from-record: before the first frame only
+idle 1
+from-record ../../pico8/demo_record.hex

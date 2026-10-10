@@ -1,6 +1,7 @@
 #include "devtools/pad_author.h"
 
 #include "devtools/pad_metrics.h"
+#include "devtools/record_start.h"
 
 #include "engine/allocator.h"
 #include "engine/dispatch_context.h"
@@ -39,7 +40,7 @@
 
 #define LINE_MAX_CHARS 256
 #define TOKENS_MAX 8
-#define PATH_MAX_CHARS 256
+#define PATH_MAX_CHARS PAD_AUTHOR_PATH_MAX
 #define INCLUDE_DEPTH_MAX 4
 #define FOLD_HOLD_FRAMES 16
 #define AIM_FRAME_WEIGHT 6
@@ -1352,6 +1353,20 @@ static int run_line(pad_author_t *author, const script_t *script, int depth) {
         char path[PATH_MAX_CHARS];
         include_path(path, sizeof path, script->path, tokens[1]);
         return run_file(author, path, script->current->token_count == 3 ? tokens[2] : NULL, depth + 1);
+    }
+    if (strcmp(command, "from-record") == 0) {
+        if (!expect_tokens(author, script, 2, 2)) return 0;
+        if (author->frame_count > 0) return fail(author, script, "from-record: before the first frame only");
+        if (author->record_count > 0) return fail(author, script, "from-record: already starting from '%s'", author->record_path);
+        char path[PATH_MAX_CHARS];
+        char error[PAD_AUTHOR_ERROR_MAX / 4];
+        include_path(path, sizeof path, script->path, tokens[1]);
+        int count = record_start_read_hex(path, author->record, (int)sizeof author->record, error, sizeof error);
+        if (count == 0) return fail(author, script, "from-record: %s", error);
+        if (!record_start_resume(&author->step, author->record, count)) return fail(author, script, "from-record: '%s' does not resume", path);
+        author->record_count = count;
+        snprintf(author->record_path, sizeof author->record_path, "%s", path);
+        return 1;
     }
     if (strcmp(command, "stop-at") == 0) {
         if (!expect_tokens(author, script, 2, 2)) return 0;
