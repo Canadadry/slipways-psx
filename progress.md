@@ -41,7 +41,7 @@
 - [ ] Phase 3 — Full check and docs
   - [ ] 13. make demo-check, full cycle
     - [x] Chunk 1: replay return files and explicit dump
-    - [ ] Chunk 2: the committed full cycle
-    - [ ] Chunk 3: the demo-check target
+    - [x] Chunk 2: the committed full cycle
+    - [x] Chunk 3: the demo-check target
   - [ ] 14. Docs
   - [ ] 15. skill: rework-comments

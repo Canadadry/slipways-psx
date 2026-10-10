@@ -1,7 +1,7 @@
 /* The whole compiled demo fed through the attract mode, over a player's save: two complete
  * playbacks, then one interruption inside each command range of pico8/demo.txt. Writes the
- * full-cycle fixture that make demo-check replays with ATTRACT_STATE. Run by make demo-check
- * only: thousands of frames. */
+ * full cycle at the default threshold that make demo-check compares with
+ * worst-case/attract_cycle.json. Run by make demo-check only: thousands of frames. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -37,7 +37,7 @@
 enum { OVERLAY_BAND_TOP = 96, OVERLAY_BAND_BOTTOM = 108, OVERLAY_TAG_LEFT = 143, OVERLAY_TAG_TOP = 11,
        OVERLAY_TAG_BOTTOM = 17, OVERLAY_CAPTION_CAP = 16 };
 
-enum { ATTRACT_AFTER = 3, TITLE_FRAMES_AFTER_THE_RELEASE = 2, FIXTURE_TITLE_FRAMES = 10, STATE_TEXT_CAP = 65536 };
+enum { ATTRACT_AFTER = 3, TITLE_FRAMES_AFTER_THE_RELEASE = 2, CYCLE_TITLE_FRAMES = 120, STATE_TEXT_CAP = 65536 };
 
 typedef struct {
     const char *command;
@@ -301,24 +301,50 @@ static void test_an_interruption_inside_each_command_range_leaves_the_title_and_
     }
 }
 
-/* Empty frames for two complete playbacks from the title, then a few title frames. */
-static void write_full_cycle_fixture(const char *path) {
-    int count = 2 * (ATTRACT_AFTER + demo_data_frame_count + 1) + FIXTURE_TITLE_FRAMES;
+/* <path>.save.hex: the initial_save as SAVE_HEX writes a stored record. */
+static void write_save_hex(const char *path, const uint8_t *bytes, int count) {
+    char hex_path[1024];
+    assert(snprintf(hex_path, sizeof hex_path, "%s.save.hex", path) < (int)sizeof hex_path);
+    FILE *out = fopen(hex_path, "w");
+    assert(out != NULL && "test_attract_demo: cannot open the save hex file");
+    for (int i = 0; i < count; i++) fprintf(out, "%02x", bytes[i]);
+    fputc('\n', out);
+    assert(fclose(out) == 0 && "test_attract_demo: cannot write the save hex file");
+}
+
+/* Empty frames at the default threshold, over save_source's initial_save: two complete playbacks from
+   the title, each return, then title frames under the threshold. */
+static void write_full_cycle(const char *path, const char *save_source) {
+    static replay_source_t source;
+    if (replay_source_open(&source, save_source) != REPLAY_SOURCE_LOADED || source.initial_save_count == 0) {
+        fprintf(stderr, "test_attract_demo: %s: no initial_save to start the cycle from\n", save_source);
+        exit(1);
+    }
+    int attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
+    int count = 2 * (attract_after + demo_data_frame_count + 1) + CYCLE_TITLE_FRAMES;
     p8_input_frame_t *frames = calloc((size_t)count, sizeof *frames);
-    char member[64];
-    assert(frames != NULL);
-    assert(replay_source_format_attract_after(member, sizeof member, ATTRACT_AFTER) > 0);
-    assert(p8_input_save(frames, count, path, member) && "test_attract_demo: cannot write the full-cycle fixture");
+    char *members = malloc(2 * SAVE_STATE_MAX_BYTES + 128);
+    assert(frames != NULL && members != NULL);
+    int used = replay_source_format_attract_after(members, 64, attract_after);
+    used += sprintf(members + used, ",\n  \"initial_save\": \"");
+    for (int i = 0; i < source.initial_save_count; i++) {
+        used += sprintf(members + used, "%02x", source.initial_save[i]);
+    }
+    strcpy(members + used, "\"");
+    assert(p8_input_save(frames, count, path, members) && "test_attract_demo: cannot write the full cycle");
+    write_save_hex(path, source.initial_save, source.initial_save_count);
+    replay_source_close(&source);
+    free(members);
     free(frames);
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        fprintf(stderr, "usage: test_attract_demo <full-cycle fixture.json>\n");
+    if (argc != 3) {
+        fprintf(stderr, "usage: test_attract_demo <full cycle.json> <save source events.json>\n");
         return 2;
     }
     setvbuf(stdout, NULL, _IONBF, 0);
-    write_full_cycle_fixture(argv[1]);
+    write_full_cycle(argv[1], argv[2]);
     boot_over_a_player_save();
     test_two_complete_playbacks_reach_the_demo_end_state_and_leave_the_save();
     test_an_interruption_inside_each_command_range_leaves_the_title_and_the_save();

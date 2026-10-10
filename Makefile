@@ -29,10 +29,14 @@
 #                       "start": "resume" (pad_author's from-record) starts
 #                       from its initial_save at the first frame, not on the
 #                       title; with REPLAY_STARTS=2, plays it, returns to the
-#                       title, idles 30 frames and plays it again; with
-#                       ATTRACT_STATE=<file> on a title-start file, writes the
-#                       state on the last frame of each complete demo
-#                       playback to <file>.1, <file>.2, ...
+#                       title, idles 30 frames and plays it again, and takes
+#                       no capture but /dev/null, so a dump path can follow
+#                       it; with ATTRACT_STATE=<file> on a title-start file,
+#                       writes the state on the last frame of each complete
+#                       demo playback to <file>.1, <file>.2, ..., then, on the
+#                       frame of its return to the title, the state to
+#                       <file>.<n>.return and the stored record (SAVE_HEX's
+#                       format and failures) to <file>.<n>.return.hex
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
@@ -146,22 +150,38 @@
 #                       from-record) must pass pad_author's self-check, then
 #                       replay with REPLAY_STARTS=2 to pad_author's normalized
 #                       end state at both ends, outside the suite
-# make demo-check    -> runs tests/test_demo_check, then tests/test_attract_demo
-#                       (the whole demo through the attract mode twice, and
-#                       one interruption per command range, the player's save
-#                       untouched), which writes a full-cycle fixture, then
-#                       three checks, all always run: the fixture replayed
-#                       with ATTRACT_STATE passes tools/demo_check.sh and
-#                       tools/end_state.sh against the resumed replay's end
-#                       state at both playbacks; pico8/demo.pad regenerates pico8/demo.json
-#                       byte for byte (no aim budget), and pico8/demo.json,
-#                       replayed with REPLAY_STARTS=2, passes
-#                       tools/demo_check.sh at both ends (at most 3600 frames,
-#                       section 2's captions in order tiling the demo, a
-#                       180-frame closing card, exactly one more year,
-#                       colony, slipway and tech than the state at the
-#                       `probe` label, no cheat); files in tmp/demo-check/,
-#                       outside the suite
+# make demo-check    -> tools/demo_check_run.sh, files and dumps in
+#                       tmp/demo-check/, every check always run, outside the
+#                       suite: tests/test_demo_check; tests/test_attract_demo
+#                       (the whole demo through the attract mode twice, one
+#                       interruption per command range, the player's save
+#                       untouched) also writes the full cycle at the default
+#                       threshold over tests/e2e/pad_tech_costs.json's
+#                       initial_save, which must equal
+#                       worst-case/attract_cycle.json byte for byte; that
+#                       file is replayed to its end by the `-O0` replay (with
+#                       ATTRACT_STATE, capture hashed) and by replay_sanitize
+#                       (clean exit): each playback passes
+#                       tools/demo_check.sh and ends at the resumed replay's
+#                       normalized end state, no third playback, each return
+#                       and the file's end equal
+#                       worst-case/title_idle.json.end-state with the stored
+#                       record equal to the initial_save; pico8/demo.pad
+#                       regenerates pico8/demo.json byte for byte (no aim
+#                       budget), and pico8/demo.json, replayed with
+#                       REPLAY_STARTS=2, passes tools/demo_check.sh at both
+#                       ends (at most 3600 frames, section 2's captions in
+#                       order tiling the demo, a 180-frame closing card,
+#                       exactly one more year, colony, slipway and tech than
+#                       the state at the `probe` label, no cheat); last, and
+#                       only when the content checks above pass, the capture
+#                       hash is compared with
+#                       worst-case/attract_cycle.json.sha256, a missing one
+#                       failing; to rebaseline after reading the checks:
+#                       cp tmp/demo-check/attract_cycle.json worst-case/ and
+#                       cp tmp/demo-check/attract_cycle.sha256
+#                       worst-case/attract_cycle.json.sha256; never alongside
+#                       make pad-author (both write tmp/pad-author/)
 # make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
 #                       PAD_METRICS and prints its report (time per mode, dead
 #                       presses by group, hold repeats, section 4 verdict),
@@ -1347,31 +1367,8 @@ worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_p
 
 DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
 
-# The regeneration and the full-cycle replay run in the background while the content check plays.
-demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay pico8/demo.pad pico8/demo.json pico8/demo_record.hex tools/demo_check.sh tools/end_state.sh
-	@./$(TMP_DIR)/test_demo_check
-	@rm -rf $(DEMO_CHECK_DIR) && mkdir -p $(DEMO_CHECK_DIR)
-	@./$(TMP_DIR)/test_attract_demo $(DEMO_CHECK_DIR)/attract_cycle.json
-	@failed=0; \
-	./$(TMP_DIR)/pad_author pico8/demo.pad $(DEMO_CHECK_DIR)/demo.json --no-aim-budget > $(DEMO_CHECK_DIR)/regenerate.log 2>&1 & regenerate=$$!; \
-	ATTRACT_STATE=$(DEMO_CHECK_DIR)/attract.txt ./$(TMP_DIR)/replay $(DEMO_CHECK_DIR)/attract_cycle.json /dev/null $(DEMO_CHECK_DIR)/attract_cycle.dump.txt > $(DEMO_CHECK_DIR)/attract.log 2>&1 & attract=$$!; \
-	STATE=$(DEMO_CHECK_DIR)/record.txt ./$(TMP_DIR)/pad_author pico8/demo.pad $(DEMO_CHECK_DIR)/record.json --stop-at probe --no-aim-budget > $(DEMO_CHECK_DIR)/record.log 2>&1 || cat $(DEMO_CHECK_DIR)/record.log; \
-	REPLAY_STARTS=2 STATE=$(DEMO_CHECK_DIR)/end.txt ./$(TMP_DIR)/replay pico8/demo.json > $(DEMO_CHECK_DIR)/end.log 2>&1 || cat $(DEMO_CHECK_DIR)/end.log; \
-	sh tools/demo_check.sh pico8/demo.json $(DEMO_CHECK_DIR)/record.txt $(DEMO_CHECK_DIR)/end.txt.start1 $(DEMO_CHECK_DIR)/end.txt || failed=1; \
-	wait $$attract || { cat $(DEMO_CHECK_DIR)/attract.log; failed=1; }; \
-	sh tools/demo_check.sh pico8/demo.json $(DEMO_CHECK_DIR)/record.txt $(DEMO_CHECK_DIR)/attract.txt.1 $(DEMO_CHECK_DIR)/attract.txt.2 || failed=1; \
-	if [ -e $(DEMO_CHECK_DIR)/attract.txt.3 ]; then echo "demo-check: $(DEMO_CHECK_DIR)/attract_cycle.json: a third playback"; failed=1; fi; \
-	sh tools/end_state.sh normalize $(DEMO_CHECK_DIR)/end.txt > $(DEMO_CHECK_DIR)/end.reference.txt && \
-	sh tools/end_state.sh check $(DEMO_CHECK_DIR)/attract_cycle.json $(DEMO_CHECK_DIR)/attract.txt.1 $(DEMO_CHECK_DIR)/end.reference.txt \
-	    $(DEMO_CHECK_DIR)/attract_cycle.json $(DEMO_CHECK_DIR)/attract.txt.2 $(DEMO_CHECK_DIR)/end.reference.txt && \
-	echo "demo-check: both attract playbacks end where the resumed replay of pico8/demo.json ends" || failed=1; \
-	wait $$regenerate || cat $(DEMO_CHECK_DIR)/regenerate.log; \
-	if cmp -s $(DEMO_CHECK_DIR)/demo.json pico8/demo.json; then \
-	    echo "demo-check: pico8/demo.pad regenerates pico8/demo.json byte for byte"; \
-	else \
-	    echo "demo-check: pico8/demo.json is not what pico8/demo.pad generates (make pad-author)"; failed=1; \
-	fi; \
-	exit $$failed
+demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json pico8/demo_record.hex worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state tools/demo_check_run.sh tools/demo_check.sh tools/end_state.sh
+	@sh tools/demo_check_run.sh $(DEMO_CHECK_DIR) ./$(TMP_DIR)/test_demo_check ./$(TMP_DIR)/test_attract_demo ./$(TMP_DIR)/pad_author ./$(TMP_DIR)/replay ./$(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state '$(SHA256_CMD)'
 
 .PHONY: demo-check
 
