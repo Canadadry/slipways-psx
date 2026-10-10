@@ -1,5 +1,3 @@
-/* tmp/replay plays a "start": "resume" file from the resume of its initial_save, with no title frame. */
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +53,6 @@ static int run(const char *command) {
     return WEXITSTATUS(status);
 }
 
-/* Returns the driver's exit status. */
 static int assert_refused(const char *command, const char *reason) {
     char full[512];
     remove(STDERR_LOG);

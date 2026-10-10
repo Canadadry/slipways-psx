@@ -119,7 +119,6 @@ static void play_frame(int buttons) {
     cart_draw();
 }
 
-/* NULL when no live button has that name. */
 static button_t *title_button(const char *name) {
     const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
     for (int i = 0; i < bucket->count; i++) {

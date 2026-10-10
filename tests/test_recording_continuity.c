@@ -36,7 +36,6 @@ static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
     { 96, 97, 6, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6 },
 };
 
-/* `want` is the raw frame; `got` is what the recording gives back. */
 static void assert_recorded_as(const p8_input_frame_t *got, const p8_input_frame_t *want) {
     assert(got->mouse_x == 0 && got->mouse_y == 0 && got->mouse_buttons == 0);
     assert(got->pad_buttons == want->pad_buttons);
@@ -109,7 +108,6 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *source_path = "tmp/test_recording_continuity_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
-    /* Written by `p8_input_save`, not by the recorder under test. */
     assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, NULL));
 
     run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT, 0);
@@ -273,8 +271,6 @@ static void test_initial_save_of_the_full_size_round_trips(void) {
     assert_initial_save_round_trips(save, SAVE_STATE_MAX_BYTES, 0);
 }
 
-/* No save, no flag: the file is what p8_input_save would write plus the
- * attract_after line, and it seeds an empty storage. */
 static void assert_recording_without_save_or_flag_writes_only_attract_after(int set_flag_explicitly) {
     const char *path = "tmp/test_recording_continuity_no_initial_save.json";
     const char *reference_path = "tmp/test_recording_continuity_no_initial_save_reference.json";
@@ -354,8 +350,6 @@ static void test_flagged_recording_without_save_names_personal_bindings(void) {
     remove(path);
 }
 
-/* The flag never costs the save: both members in one header, and the
- * shared loader still serves the frames and seeds the save. */
 static void test_flagged_recording_with_save_carries_both_members(void) {
     const uint8_t save[3] = { 0x00, 0xa5, 0xff };
     assert_initial_save_round_trips(save, 3, 1);
@@ -423,7 +417,6 @@ static void test_flagged_resume_writes_the_header_once(void) {
     remove(resumed_path);
 }
 
-/* The writer and replay_source_read_bindings must agree on the spelling. */
 static replay_source_bindings_status_t read_recorded_bindings(int personal) {
     const char *path = "tmp/test_recording_continuity_read_bindings.json";
     record_source_frames(path, personal, NULL, 0);

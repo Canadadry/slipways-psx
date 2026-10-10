@@ -207,7 +207,6 @@ static void write_text(const char *path, const char *text) {
     assert(fclose(file) == 0);
 }
 
-/* Writes a recording whose header carries `member` (NULL for none) after "input". */
 static void write_recording_with_member(const char *path, const char *member) {
     char text[4 * SAVE_STATE_MAX_BYTES];
     int used = snprintf(text, sizeof(text), "{\n  \"input\": \"pad\",\n%s%s%s" SAVE_FRAMES_TEXT "}\n",
@@ -279,7 +278,6 @@ static void test_recording_without_initial_save_empties_the_storage(void) {
     remove(path);
 }
 
-/* Live play reads whatever the storage holds: the player's own save. */
 static void test_live_play_leaves_the_storage_untouched(void) {
     store_a_record();
 
@@ -335,7 +333,6 @@ static void assert_member_fails_to_load(const char *member) {
     remove(path);
 }
 
-/* `digit_count` hex digits "ab" repeated, as an initial_save member. */
 static void format_long_member(char *member, size_t size, int digit_count) {
     int used = snprintf(member, size, "\"initial_save\": \"");
     assert(used > 0 && (size_t)(used + digit_count + 2) < size);
@@ -448,7 +445,6 @@ static void make_bindings_dir(void) {
     assert(mkdir(BINDINGS_DIR, 0777) == 0 || errno == EEXIST);
 }
 
-/* Opens the recording at `path`, which must load, and resolves its bindings against fallback_table(). */
 static replay_source_bindings_status_t read_bindings_of(const char *path, bindings_t *out,
                                                         replay_source_bindings_report_t *report) {
     replay_source_t source;
@@ -789,7 +785,6 @@ static replay_source_bindings_status_t read_bindings_with_member(const char *mem
     return status;
 }
 
-/* `name_length` characters: 'a's then ".cfg", as a "bindings" member. */
 static void format_long_name_member(char *member, size_t size, int name_length) {
     int used = snprintf(member, size, "\"bindings\": \"%.*s.cfg\"", name_length - 4,
                         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");

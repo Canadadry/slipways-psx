@@ -1,5 +1,3 @@
-/* make state: replay with STATE set writes the text state of the last frame. */
-
 #define _POSIX_C_SOURCE 200809L
 
 #include <assert.h>
@@ -59,7 +57,6 @@ static const char *const MEMORY_LINES[] = {
     "cap elements_transit_dots", "cap elements_ephemerals", "cap bytes_particles", "cap bytes_particles_help_screen", "cap bytes_burst",
 };
 
-/* "-" reads as -1. */
 static long memory_value(const char *line, int column) {
     char prefix[16], name[64], v[3][32];
     assert(sscanf(line, "%15s %63s %31s %31s %31s", prefix, name, v[0], v[1], v[2]) == 5);
@@ -79,7 +76,6 @@ static const char *memory_line(const char *name) {
     return line;
 }
 
-/* Every zone and cap line: "<zone|cap> <name> <current> <peak> <limit>". */
 static void memory_lines_have_peak_and_limit(void) {
     for (size_t i = 0; i < sizeof MEMORY_LINES / sizeof MEMORY_LINES[0]; i++) {
         const char *line = memory_line(MEMORY_LINES[i]);
@@ -111,7 +107,6 @@ static int hex_value(char digit) {
     return -1;
 }
 
-/* The state line `name ...` of the dump, printed with the "save: " prefix by SAVE_HEX. */
 static void save_line_matches_state(const char *name) {
     size_t length = strlen(name);
     const char *at = text;
@@ -231,7 +226,6 @@ static void bobbing_structure_world_ignores_idle_frames(void) {
     assert(strcmp(placed_structure_world(), before) == 0);
 }
 
-/* A p8_fatal still writes the state, with the stop frame first. */
 static void fatal_writes_the_stop_frame(void) {
     remove(STATE);
     fflush(stdout);
