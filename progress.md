@@ -69,3 +69,4 @@
     - [x] Chunk 2: README points to the two files, pad-modes doc deleted
   - [ ] 21. skill: rework-comments
     - [x] rework-comments: button guard
+    - [x] rework-comments: bindings

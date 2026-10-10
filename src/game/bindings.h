@@ -53,41 +53,28 @@ typedef enum {
     BINDINGS_ACTION_COUNT
 } bindings_action_t;
 
-/* Bit 1 << (N-1) is button N, as in p8_input_frame_t.pad_buttons. An action the mode does not have is always 0. */
 typedef struct {
     int masks[BINDINGS_MODE_COUNT][BINDINGS_ACTION_COUNT];
 } bindings_t;
 
-/* Defined by the generated unit each binary links: the chosen file for game, bindings.default.cfg for every other
- * binary. Game code never names it: it receives the table through input_step_init. */
 extern const bindings_t bindings_compiled;
 
-/* 1 only in the unit generated from a personal bindings.cfg, which only game links; 0 in every other unit. Read
- * only by src/cmd/game.c, which hands it to the session recorder. */
 extern const int bindings_compiled_personal;
 
-/* text is the whole "file:line: message", ready to print. */
 typedef struct {
     int line;
     char text[256];
 } bindings_error_t;
 
-/* Returns the button number 1..P8_PAD_BUTTON_COUNT that text starts with (digits only, no leading zero), 0 otherwise.
- * On success *end points just past the last digit; on failure *end is text. What follows the digits is the caller's
- * to check. end must not be NULL. */
 int bindings_read_button_number(const char *text, const char **end);
 
-/* Returns 0 for an action the mode does not have: it is unbound there. */
 int bindings_mask(const bindings_t *bindings, bindings_mode_t mode, bindings_action_t action);
 
 int bindings_mode_has_action(bindings_mode_t mode, bindings_action_t action);
 
-/* Both return the file spelling, in static storage the caller never frees. */
 const char *bindings_mode_name(bindings_mode_t mode);
 const char *bindings_action_name(bindings_action_t action);
 
-/* Returns 1 and fills *out, or 0 on the first invalid line with *error filled and *out unusable. Clears both first.
- * file_name only appears in the message. No I/O, no allocation. */
 int bindings_parse(const char *file_name, const char *text, bindings_t *out, bindings_error_t *error);
 
 #endif
