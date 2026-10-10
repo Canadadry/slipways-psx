@@ -843,7 +843,8 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, 
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
         reset_aim_mode(nav);
-        if ((pressed & P8_PAD_BUTTON_8) && !release && !nav->release_pending && planet_menu_open(nav)) {
+        if (action_pressed(nav, pressed, BINDINGS_MODE_MENU, BINDINGS_ACTION_OPEN_MENU) && !release &&
+            !nav->release_pending && planet_menu_open(nav)) {
             ui_clear_ephemerals(main_ui());
         } else {
             panel_step(nav, pad_buttons, pressed, played);
@@ -919,7 +920,7 @@ static int resume_placement(pad_nav_t *nav) {
 
 static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t *played) {
     if (pause_menu_shown()) {
-        if (!(pressed & (P8_PAD_BUTTON_11 | P8_PAD_BUTTON_6)) || release) {
+        if (!action_pressed(nav, pressed, BINDINGS_MODE_PAUSE, BINDINGS_ACTION_CLOSE_PAUSE) || release) {
             return 0;
         }
         nav->cursor_x = P8_SCREEN_WIDTH / 2;

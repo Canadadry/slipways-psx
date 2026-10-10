@@ -4539,6 +4539,8 @@ static void test_the_title_follows_a_rotated_table_and_pause_stays_unbound(void)
         assert_taps_keep_the_focus(&step, 4);
         assert_taps_play_nothing(&step, 2, (const int[]){ P8_PAD_BUTTON_7, P8_PAD_BUTTON_5 });
         assert(pause_menu_shown());
+        assert_taps_play_nothing(&step, 3, (const int[]){ P8_PAD_BUTTON_6, P8_PAD_BUTTON_11, P8_PAD_BUTTON_8 });
+        assert(pause_menu_shown());
         end_forked_copy();
     }
     assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_5 });
@@ -4563,7 +4565,7 @@ static void test_pause_follows_a_rotated_table_and_a_planet_box_stays_unbound(vo
     if (in_forked_copy()) {
         open_known_planet_box(&step);
         assert_taps_keep_the_focus(&step, 2);
-        assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_7 });
+        assert_taps_play_nothing(&step, 2, (const int[]){ P8_PAD_BUTTON_7, P8_PAD_BUTTON_8 });
         assert(pad_nav_panel_open());
         end_forked_copy();
     }
@@ -4595,6 +4597,13 @@ static void test_pause_follows_a_rotated_table_and_a_planet_box_stays_unbound(vo
     run_frame(&step, 0);
     assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_5 });
     assert(pause_menu_shown() && pad_nav_focus(&step.pad_nav) == up);
+    p8_fixed_t credits = main_economy_typed()->credits;
+    assert_taps_play_nothing(&step, 2, (const int[]){ P8_PAD_BUTTON_6, P8_PAD_BUTTON_11 });
+    assert(pause_menu_shown());
+    close_pause(&step, P8_PAD_BUTTON_8);
+    settle(&step);
+    assert(pad_nav_aim_mode(&step.pad_nav) && !pad_nav_panel_open() && main_economy_typed()->credits == credits);
+    assert_cursor_at_centre(&step);
 }
 
 static void open_tech_on_its_shoulder(input_step_t *step) {
@@ -4633,7 +4642,14 @@ static void test_a_planet_box_follows_a_rotated_table_and_the_tech_panel_stays_u
     assert(pad_nav_focus(&step.pad_nav) == down);
     tap(&step, P8_PAD_BUTTON_2);
     assert(pad_nav_focus(&step.pad_nav) == first);
-    assert_press_clicks_the_focus(&step, P8_PAD_BUTTON_7);
+    if (in_forked_copy()) {
+        assert_press_clicks_the_focus(&step, P8_PAD_BUTTON_7);
+        end_forked_copy();
+    }
+    tap(&step, P8_PAD_BUTTON_8);
+    assert(pad_nav_panel_open() && pad_nav_focus(&step.pad_nav) == first);
+    tap(&step, P8_PAD_BUTTON_5);
+    assert(!pad_nav_panel_open() && main_ui()->ephemerals.count == 0 && on_the_map(&step.pad_nav));
 }
 
 static void test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_the_map_stays_unbound(void) {

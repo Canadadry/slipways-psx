@@ -2,7 +2,6 @@
 # make button-guard. One line `<path> <owner> <count> | <reason>`, strict
 # counts summed per path. Each of steps 9-13 of plan 17 deletes its own
 # lines; `fixed` lines stay.
-src/game/pad_nav.c step-12 3 | map_step: menu.open_menu; pause_step: pause.close_pause (2)
 src/game/pad_nav.c step-13 11 | one_shoulder (2), shoulder_switch, switch_panels, pause_step opening, select_down, circle_returns, the box and message-box close (2), without_chord (2)
 src/game/cheat.c fixed 2 | cheat_step: the cheat chord, below the bindings
 src/game/bindings.c fixed 3 | bindings module: button count
