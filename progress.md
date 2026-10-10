@@ -43,6 +43,6 @@
     - [x] Chunk 1: replay return files and explicit dump
     - [x] Chunk 2: the committed full cycle
     - [x] Chunk 3: the demo-check target
-  - [ ] 14. Docs
+  - [x] 14. Docs
     - [x] README paragraph and Makefile legend
   - [ ] 15. skill: rework-comments

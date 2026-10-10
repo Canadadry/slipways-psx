@@ -262,3 +262,11 @@ Goals that justify every rule below:
 - Three runs: no reference (fails only on it), with it (passes), after `rm -rf tmp/demo-check` (same hash). Deliberate failures in scratch copies: demo frame 2700 → `[4]`: every count passes, the hash differs (`c7e2916d…`), and the regeneration fails; frame 943 blanked: the counts fail, `test_attract_demo` aborts, and the target prints `hash not compared: the content checks failed` with no `cp`.
 - Commits: chunk 1 alone; chunks 2 and 3 together (the Makefile's intermediate recipe no longer existed to split). Phase 2's warn-review warnings were judged by plan-review and left (off the remaining steps' path; `input_step.c:56` predates the plan); five method proposals accepted and applied in chunk 1's commit.
 - Checks: `make test-all`, `end-state` (25), `full-game`, `pad-author` (no diff), `pad-author-proof`, `sanitize-net` (20), `raylib`; `make test` 7.48–7.72 s, `make e2e` 1.31–1.41 s.
+
+### Step 14
+
+- README: "Left alone on the title for 20 seconds, the game plays a short captioned demo of itself, then comes back to the title. Any button stops it at once; that press does nothing on the title, and the demo never touches your save." (in "Running the game", after the save paragraph; no button name; 1200 frames at 60 fps).
+- Makefile legend (`#` lines only): the `demo-check` entry matches `tools/demo_check_run.sh` both ways, names the captions pinned in `tools/demo_check.sh` instead of the plan, and says the target never runs alongside `make test-all` or `make pad-author`. The `make replay` entry was already true.
+- `docs/` judged file by file, nothing deleted: `plan-10.md`, `plan-11.md` (PSX, paused: still to do), `plan-18.md` (active until "Done when" holds and the human accepts the demo — delete it then), `psx-hello-world.md`, `raylib-vendoring.md`, `save-format.md` (still true).
+- Plan references left in files for step 15: `tools/demo_check.sh:51`, `tools/pad_author_proofs/demo_beats.record.pad:1` (excluded from step 15's scope: `.pad` data), `tests/test_rng_sync.c:128` (older plan).
+- `make test-all` passes; no hash, end-state, `worst-case/` or `pico8/` change.
