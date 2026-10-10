@@ -30,7 +30,7 @@
   - [ ] 10. Attract state machine
     - [x] Chunk 1: core plumbing, one start and return
     - [x] Chunk 2: attract state machine module
-    - [ ] Chunk 3: the hook in input_step
+    - [x] Chunk 3: the hook in input_step
     - [ ] Chunk 4: full checks and ATTRACT_STATE
   - [ ] 11. Captions and label
   - [ ] 12. The attract e2e

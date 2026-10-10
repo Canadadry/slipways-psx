@@ -136,8 +136,10 @@ static int live_game_is_the_record(int count) {
     return save_state_encode(&g_captured, g_encoded) == count && memcmp(g_encoded, g_record, (size_t)count) == 0;
 }
 
+/* The start and the return keep the attract state: the fresh step is given g_step's. */
 static int step_is_fresh_on(input_step_bindings_t which) {
     input_step_init(&g_fresh_step, &bindings_compiled);
+    g_fresh_step.attract = g_step.attract;
     input_step_switch_bindings(&g_fresh_step, which);
     return memcmp(&g_step, &g_fresh_step, sizeof g_step) == 0;
 }

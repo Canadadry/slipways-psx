@@ -1,6 +1,7 @@
 #ifndef GAME_INPUT_STEP_H
 #define GAME_INPUT_STEP_H
 
+#include "game/attract.h"
 #include "game/cheat.h"
 #include "game/pad_nav.h"
 #include "game/save_state.h"
@@ -12,12 +13,18 @@ typedef struct {
     p8_input_frame_t played_frame;
     p8_input_t played;
     bindings_t session_bindings;
+    attract_t attract;
 } input_step_t;
 
 typedef enum { INPUT_STEP_BINDINGS_SESSION, INPUT_STEP_BINDINGS_DEFAULT } input_step_bindings_t;
 
+/* The attract mode starts on ATTRACT_AFTER_DEFAULT idle title frames. */
 void input_step_init(input_step_t *step, const bindings_t *bindings);
 
+/* frames >= 1. Restarts the attract mode idle, with a zero count. */
+void input_step_set_attract_after(input_step_t *step, int frames);
+
+/* Keeps the session's table and the attract state. */
 void input_step_switch_bindings(input_step_t *step, input_step_bindings_t which);
 
 /* At the top of a frame only, before its input_step_run: right after boot's cart_init, or after
@@ -31,5 +38,9 @@ void input_step_return_to_title(input_step_t *step);
 int input_step_run(input_step_t *step, const p8_input_frame_t *raw);
 
 const p8_input_frame_t *input_step_played_frame(const input_step_t *step);
+
+attract_phase_t input_step_attract_phase(const input_step_t *step);
+
+int input_step_attract_demo_frame(const input_step_t *step);
 
 #endif

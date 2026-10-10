@@ -1,13 +1,15 @@
 #ifndef DEVTOOLS_REPLAY_SOURCE_H
 #define DEVTOOLS_REPLAY_SOURCE_H
 
+#include "game/attract.h"
 #include "game/bindings.h"
 #include "game/save_state.h"
 #include "p8/input.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
-#define REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT 1200
+#define REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT ATTRACT_AFTER_DEFAULT
 
 typedef enum {
     REPLAY_SOURCE_NONE = 0,
@@ -41,6 +43,9 @@ int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_fram
 
 /* REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT when there is no recording, it failed to load, or its header has no member. */
 int replay_source_attract_after(const replay_source_t *source);
+
+/* Writes the header member with no comma around it; returns its length and asserts it fits in size. */
+int replay_source_format_attract_after(char *out, size_t size, int frames);
 
 /* REPLAY_SOURCE_START_TITLE when there is no recording, it failed to load, or its header has no "start". */
 replay_source_start_t replay_source_start(const replay_source_t *source);

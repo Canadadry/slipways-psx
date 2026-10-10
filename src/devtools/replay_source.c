@@ -204,6 +204,13 @@ int replay_source_attract_after(const replay_source_t *source) {
     return source->attract_after;
 }
 
+int replay_source_format_attract_after(char *out, size_t size, int frames) {
+    assert(out && size > 0);
+    int length = snprintf(out, size, "\"attract_after\": %d", frames);
+    assert(length > 0 && (size_t)length < size && "replay_source_format_attract_after: the member outgrew its buffer");
+    return length;
+}
+
 replay_source_start_t replay_source_start(const replay_source_t *source) {
     assert(source);
 

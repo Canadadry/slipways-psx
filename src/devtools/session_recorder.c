@@ -53,8 +53,7 @@ static char *format_header_members(const session_recorder_t *recorder) {
     static const char hex_digits[] = "0123456789abcdef";
     char attract_member[64];
     int attract_length =
-        snprintf(attract_member, sizeof(attract_member), "\"attract_after\": %d", REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
-    assert(attract_length > 0 && (size_t)attract_length < sizeof(attract_member));
+        replay_source_format_attract_after(attract_member, sizeof(attract_member), REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
 
     size_t length = (size_t)attract_length;
     if (recorder->personal_bindings) {

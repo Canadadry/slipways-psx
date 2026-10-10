@@ -295,6 +295,7 @@ static void run_some_frames(input_step_t *step) {
     }
 }
 
+/* Everything but the attract state, which the switch keeps. */
 static void assert_switch_resets_as_init_does(input_step_bindings_t which) {
     bindings_t swap = swap_table();
     input_step_t played;
@@ -303,6 +304,7 @@ static void assert_switch_resets_as_init_does(input_step_bindings_t which) {
     input_step_init(&fresh, &swap);
     run_some_frames(&played);
     assert(memcmp(&played, &fresh, sizeof played) != 0);
+    fresh.attract = played.attract;
     input_step_switch_bindings(&played, which);
     input_step_switch_bindings(&fresh, which);
     assert(memcmp(&played, &fresh, sizeof played) == 0);
@@ -314,6 +316,72 @@ static void test_switch_to_the_default_after_some_frames_resets_as_init_does(voi
 
 static void test_switch_to_the_table_in_use_resets_as_init_does(void) {
     assert_switch_resets_as_init_does(INPUT_STEP_BINDINGS_SESSION);
+}
+
+static void test_init_alone_leaves_the_attract_mode_idle(void) {
+    input_step_t step;
+    input_step_init(&step, &bindings_compiled);
+    assert(input_step_attract_phase(&step) == ATTRACT_PHASE_IDLE);
+}
+
+/* Returns the frame on which the demo started, or -1 when none started within frame_cap frames. */
+static int empty_title_frames_until_the_demo(input_step_t *step, int frame_cap) {
+    static const p8_input_frame_t empty = { 0, 0, 0, 0 };
+    for (int frame = 0; frame < frame_cap; frame++) {
+        input_step_run(step, &empty);
+        if (input_step_attract_phase(step) == ATTRACT_PHASE_PLAYING) return frame;
+    }
+    return -1;
+}
+
+static void test_the_threshold_of_a_replayed_file_starts_the_demo_on_its_frame(void) {
+    const char *path = "tmp/test_input_step_attract_after.json";
+    char member[64];
+    char text[256];
+    FILE *file;
+    replay_source_t source;
+    input_step_t step;
+
+    assert(replay_source_format_attract_after(member, sizeof member, 3) > 0);
+    snprintf(text, sizeof text, "{\n  \"input\": \"pad\",\n  %s,\n  \"frames\": [ { \"pad\": [] } ]\n}\n", member);
+    file = fopen(path, "wb");
+    assert(file != NULL && fputs(text, file) >= 0 && fclose(file) == 0);
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    input_step_init(&step, &bindings_compiled);
+    input_step_set_attract_after(&step, replay_source_attract_after(&source));
+    replay_source_close(&source);
+    assert(cart_title_shown());
+    assert(empty_title_frames_until_the_demo(&step, 10) == 3);
+    assert(!cart_title_shown() && "the demo's game replaced the title");
+    assert(memcmp(pad_nav_bindings(&step.pad_nav), &bindings_default, sizeof bindings_default) == 0);
+}
+
+static void assert_switch_keeps_the_attract_count_and_threshold(input_step_bindings_t which) {
+    static const p8_input_frame_t empty = { 0, 0, 0, 0 };
+    input_step_t step;
+    input_step_init(&step, &bindings_compiled);
+    input_step_set_attract_after(&step, 3);
+    input_step_run(&step, &empty);
+    input_step_run(&step, &empty);
+    input_step_switch_bindings(&step, which);
+    assert(empty_title_frames_until_the_demo(&step, 10) == 1 && "two idle frames counted before the switch");
+}
+
+static void test_switch_to_the_default_keeps_the_attract_count_and_threshold(void) {
+    assert_switch_keeps_the_attract_count_and_threshold(INPUT_STEP_BINDINGS_DEFAULT);
+}
+
+static void test_switch_to_the_session_table_keeps_the_attract_count_and_threshold(void) {
+    assert_switch_keeps_the_attract_count_and_threshold(INPUT_STEP_BINDINGS_SESSION);
+}
+
+static void test_switch_keeps_a_playing_demo(void) {
+    input_step_t step;
+    input_step_init(&step, &bindings_compiled);
+    input_step_set_attract_after(&step, 1);
+    assert(empty_title_frames_until_the_demo(&step, 10) == 1);
+    input_step_switch_bindings(&step, INPUT_STEP_BINDINGS_SESSION);
+    assert(input_step_attract_phase(&step) == ATTRACT_PHASE_PLAYING && input_step_attract_demo_frame(&step) == 1);
 }
 
 static void in_fresh_child(void (*test)(void)) {
@@ -346,6 +414,11 @@ int main(void) {
     test_init_with_the_compiled_default();
     test_switch_to_the_default_puts_the_default_table_in_pad_nav();
     test_switch_back_restores_the_session_table_from_its_own_copy();
+    test_init_alone_leaves_the_attract_mode_idle();
+    in_fresh_child(test_the_threshold_of_a_replayed_file_starts_the_demo_on_its_frame);
+    in_fresh_child(test_switch_to_the_default_keeps_the_attract_count_and_threshold);
+    in_fresh_child(test_switch_to_the_session_table_keeps_the_attract_count_and_threshold);
+    in_fresh_child(test_switch_keeps_a_playing_demo);
     in_fresh_child(test_switch_to_the_default_after_some_frames_resets_as_init_does);
     in_fresh_child(test_switch_to_the_table_in_use_resets_as_init_does);
     in_fresh_child(test_pad_keeps_only_the_pad_mask);

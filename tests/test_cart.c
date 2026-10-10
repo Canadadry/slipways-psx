@@ -9,6 +9,7 @@
 #include "engine/entity_registry.h"
 #include "game/background.h"
 #include "game/cart.h"
+#include "game/demo_data.h"
 #include "game/economy.h"
 #include "game/bindings.h"
 #include "game/game_data.h"
@@ -523,16 +524,25 @@ static void read_demo_record(save_check_snapshot_t *out) {
     assert(save_state_decode(out->bytes, count, &g_decoded) && "pico8/demo_record.hex: the record does not decode");
 }
 
-static void play_attract_frame(int buttons) {
+/* The first half of a frame: a start or a return it runs is seen before the frame's cart_update60. */
+static void run_input_step(int buttons) {
     p8_input_frame_t raw;
 
     memset(&raw, 0, sizeof raw);
     raw.pad_buttons = buttons;
     input_step_run(&g_step, &raw);
+}
+
+static void finish_frame(void) {
     save_check_hide_particles(1);
     cart_update60();
     cart_draw();
     save_check_hide_particles(0);
+}
+
+static void play_attract_frame(int buttons) {
+    run_input_step(buttons);
+    finish_frame();
 }
 
 static void play_empty_frames(int count) {
@@ -712,6 +722,117 @@ static void test_over_an_empty_storage_the_returned_title_has_no_resume_row(void
     assert(stored_count() == 0 && "the demo record is never stored");
 }
 
+enum { HOOK_THRESHOLD = 3, HOOK_HELD_THRESHOLD = 40, HOOK_SHORT_DEMO_FRAMES = 30, HOOK_HELD_FRAMES = 20,
+       HOOK_TITLE_FRAMES_AFTER_RETURN = 31, DEMO_FRAMES_PAST_THE_FOLD = 550 };
+
+static int g_attract_writes;
+
+/* Returns the stored count: 0 builds the title over an empty storage, else over a player's save kept in g_earlier. */
+static int boot_attract(int with_a_save, const bindings_t *session_table, int attract_after) {
+    int count = 0;
+
+    load_cart_to_title();
+    if (with_a_save) {
+        count = start_game_with_a_save(1);
+        (void)remember_stored_record();
+    }
+    load_cart_to_title_storing(g_earlier, count);
+    input_step_init(&g_step, session_table);
+    input_step_set_attract_after(&g_step, attract_after);
+    g_attract_writes = save_storage_memory_write_count();
+    return count;
+}
+
+static void play_idle_title_up_to_the_start(int attract_after) {
+    play_empty_frames(attract_after);
+    assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_IDLE && cart_title_shown() && "no demo before the threshold");
+    run_input_step(0);
+    assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_PLAYING && "the demo starts on the threshold's frame");
+    finish_frame();
+}
+
+static uint8_t g_first_demo_frame[SAVE_STATE_MAX_BYTES];
+static int g_first_demo_frame_count;
+
+/* What a "start": "resume" replay of the demo plays on its frame 0: pad navigation's first frame moves
+   the camera, so the live game after the start frame's input step is not the bare record. */
+static void remember_the_record_after_its_first_input_step(void) {
+    load_cart_to_title();
+    input_step_init(&g_step, &bindings_compiled);
+    input_step_start_record(&g_step, attract_demo_record());
+    run_input_step(demo_data_pad_buttons[0]);
+    save_state_capture(&g_captured);
+    g_first_demo_frame_count = save_state_encode(&g_captured, g_first_demo_frame);
+}
+
+static int live_game_is_the_record_after_its_first_input_step(void) {
+    save_state_capture(&g_captured);
+    return save_state_encode(&g_captured, g_encoded) == g_first_demo_frame_count &&
+           memcmp(g_encoded, g_first_demo_frame, (size_t)g_first_demo_frame_count) == 0;
+}
+
+static int title_buttons_down(void) {
+    return bindings_mask(&bindings_compiled, BINDINGS_MODE_TITLE, BINDINGS_ACTION_MOVE_DOWN) |
+           bindings_mask(&bindings_compiled, BINDINGS_MODE_TITLE, BINDINGS_ACTION_CHOOSE_ROW);
+}
+
+/* The fold's write would land on demo frame 540, once its wormhole is gone. */
+static void test_a_demo_past_the_fold_interrupted_gives_the_title_back_with_the_save_untouched(void) {
+    bindings_t swap;
+    bindings_error_t error;
+    int count;
+
+    assert(bindings_parse("swap.cfg", "jump.enter_aim = 8\njump.open_menu = 7\n", &swap, &error));
+    remember_the_record_after_its_first_input_step();
+    count = boot_attract(1, &swap, HOOK_THRESHOLD);
+    play_empty_frames(HOOK_THRESHOLD);
+    run_input_step(0);
+    assert(title_button("forgiving") == NULL && !cart_title_shown() && "the title is gone");
+    assert(live_game_is_the_record_after_its_first_input_step() && "the live game is the compiled record");
+    assert(pad_nav_is_on(&bindings_default) && "the demo plays on the default table");
+    finish_frame();
+    play_empty_frames(DEMO_FRAMES_PAST_THE_FOLD);
+    assert(input_step_attract_demo_frame(&g_step) == DEMO_FRAMES_PAST_THE_FOLD + 1);
+    assert(pad_nav_is_on(&bindings_default));
+    assert(stored_record_equals_earlier(count) && save_storage_memory_write_count() == g_attract_writes &&
+           "the fold's save is never written");
+
+    play_attract_frame(title_buttons_down());
+    assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_SWALLOWING);
+    assert(title_button("forgiving") != NULL && title_button("resume") != NULL && cart_title_shown() &&
+           "the title is back with its resume row");
+    assert(pad_nav_is_on(&swap) && "the session's table is back");
+    assert(stored_record_equals_earlier(count) && save_storage_memory_write_count() == g_attract_writes &&
+           "the player's save is untouched");
+}
+
+static void test_a_press_held_from_the_demo_neither_moves_nor_picks_a_title_row(void) {
+    (void)boot_attract(1, &bindings_compiled, HOOK_HELD_THRESHOLD);
+    play_empty_frames(HOOK_TITLE_FRAMES_AFTER_RETURN);
+    capture_title(&g_titles[0]);
+    play_idle_title_up_to_the_start(HOOK_HELD_THRESHOLD - HOOK_TITLE_FRAMES_AFTER_RETURN);
+    play_empty_frames(HOOK_SHORT_DEMO_FRAMES);
+
+    for (int i = 0; i <= HOOK_HELD_FRAMES; i++) {
+        play_attract_frame(title_buttons_down());
+        assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_SWALLOWING && cart_title_shown());
+    }
+    play_empty_frames(HOOK_TITLE_FRAMES_AFTER_RETURN - HOOK_HELD_FRAMES - 1);
+    assert(input_step_attract_phase(&g_step) == ATTRACT_PHASE_IDLE && cart_title_shown() && "no game started");
+    capture_title(&g_titles[1]);
+    assert(titles_equal(&g_titles[0], &g_titles[1]) && "the held press moved or picked nothing");
+}
+
+static void test_over_an_empty_storage_an_interrupted_demo_leaves_no_resume_row(void) {
+    (void)boot_attract(0, &bindings_compiled, HOOK_THRESHOLD);
+    play_idle_title_up_to_the_start(HOOK_THRESHOLD);
+    play_empty_frames(HOOK_SHORT_DEMO_FRAMES);
+    play_attract_frame(title_buttons_down());
+    play_attract_frame(0);
+    assert(title_button("forgiving") != NULL && title_button("resume") == NULL && "no resume row");
+    assert(stored_count() == 0 && save_storage_memory_write_count() == g_attract_writes && "the storage stays empty");
+}
+
 int main(void) {
     test_a_started_game_with_no_action_writes_nothing();
     test_an_action_writes_the_game_at_the_end_of_its_frame();
@@ -736,6 +857,9 @@ int main(void) {
     test_a_return_with_the_tech_panel_open_builds_the_boot_title();
     test_over_an_empty_storage_the_returned_title_has_no_resume_row();
     test_the_core_start_plays_the_default_table_and_the_return_gives_the_session_table_back();
+    test_a_demo_past_the_fold_interrupted_gives_the_title_back_with_the_save_untouched();
+    test_a_press_held_from_the_demo_neither_moves_nor_picks_a_title_row();
+    test_over_an_empty_storage_an_interrupted_demo_leaves_no_resume_row();
     printf("test_cart: all tests passed\n");
     return 0;
 }
