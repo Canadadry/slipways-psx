@@ -49,7 +49,7 @@ When `fix-bug` proposes its commit, check each point yourself, with commands you
 3. It **fails on the pre-fix code**: in a throwaway `git worktree` of `HEAD` under `tmp/`, apply only the diff's `tests/` and `Makefile` changes, build and run the test — it must fail. Then it passes on the working tree.
 4. `make test` and `make e2e` are green, and the failure you handed over no longer appears.
 
-All four hold → accept: `fix-bug` commits. Remove the worktree.
+All four hold → accept: `fix-bug` commits (folded into `HEAD` when `progress.md` exists, see `git-commit`). Remove the worktree.
 Any one fails → refuse, with the reason. Nothing is committed; restore the working tree to `HEAD` before the next attempt.
 
 ### 5. Count the attempt
@@ -63,7 +63,7 @@ After an accepted commit, back to step 1: `make e2e` from the top.
 
 ## Output
 
-- `E2E-GREEN:` + the `fix:` commits made (possibly none).
+- `E2E-GREEN:` + the `fix:` commits made, or folded into `HEAD` (possibly none).
 - `E2E-FAILED:` + the report of step 5. The working tree is back at `HEAD`, nothing half-fixed is left behind.
 
 Never push: the caller decides.

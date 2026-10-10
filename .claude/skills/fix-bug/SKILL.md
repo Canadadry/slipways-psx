@@ -101,7 +101,7 @@ What the commit message must NOT absorb, because it belongs in the working tree 
 
 - a trap a future reader could reintroduce → an `assert` carrying a message at the exact spot, or, when the invariant isn't checkable at runtime, a comment of at most 40 words there.
 
-Scope the commit to the code fix and its test (`fix:`).
+Scope the commit to the code fix and its test (`fix:`). With `progress.md` at the root, `git-commit` folds it into `HEAD` instead (§ `progress.md`): the message above goes into `HEAD`'s body.
 
 ## Stopping conditions
 
