@@ -7,7 +7,7 @@
     - [x] Reader and recorder carry attract_after
   - [x] 4. Core proof: two attract starts in one process
     - [x] cart_return_to_title and the two-start proof
-  - [ ] 5. pad_author starts from a record
+  - [x] 5. pad_author starts from a record
     - [x] Chunk 1: start header member and writer
     - [x] Chunk 2: record_start module
     - [x] Chunk 3: replay from the resume
