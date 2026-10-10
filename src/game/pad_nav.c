@@ -5,6 +5,7 @@
 #include "engine/frame_zone.h"
 #include "engine/geom.h"
 #include "game/background.h"
+#include "game/cheat.h"
 #include "game/main_economy.h"
 #include "game/menu.h"
 #include "game/message_box.h"
@@ -986,7 +987,7 @@ static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {
 }
 
 static int without_chord(pad_nav_t *nav, int raw_buttons) {
-    const int face = P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6;
+    const int face = cheat_chord_buttons();
     if ((raw_buttons & ~nav->previous_pad & face) == face) {
         nav->chord_held = 1;
     } else if (!(raw_buttons & face)) {

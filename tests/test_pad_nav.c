@@ -4692,6 +4692,30 @@ static void test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_th
     assert(invented_count() == 1);
 }
 
+static void test_the_chord_hides_5_and_6_whatever_the_table_binds_on_them(void) {
+    bindings_t table = parsed_table("aim.pan_up = 5\naim.pan_down = 6\n");
+    input_step_t step;
+    start_game_with(&step, &table);
+    if (in_forked_copy()) {
+        assert(hold_and_measure(&step, P8_PAD_BUTTON_5, 11) == -12);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        assert(hold_and_measure(&step, P8_PAD_BUTTON_6, 11) == 12);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        vec_t from = camera_at();
+        hold(&step, CHORD, 11);
+        hold(&step, P8_PAD_BUTTON_5, 11);
+        run_frame(&step, 0);
+        assert_moved(from, 0, 0);
+        assert(hold_and_measure(&step, P8_PAD_BUTTON_6, 11) == 12);
+        end_forked_copy();
+    }
+    assert(type_chords(&step) == 1);
+}
+
 static void test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes(void) {
     bindings_t table = parsed_table("jump.jump_up = 1\njump.jump_down = 2\njump.jump_left = 3\njump.jump_right = 4\n"
                                     "jump.act_on_hovered = 5\n" /* reach-only: starts the slipway */
@@ -6882,6 +6906,7 @@ int main(void) {
     in_fresh_child(test_pause_follows_a_rotated_table_and_a_planet_box_stays_unbound);
     in_fresh_child(test_a_planet_box_follows_a_rotated_table_and_the_tech_panel_stays_unbound);
     in_fresh_child(test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_the_map_stays_unbound);
+    in_fresh_child(test_the_chord_hides_5_and_6_whatever_the_table_binds_on_them);
     in_fresh_child(test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);
