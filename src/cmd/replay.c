@@ -5,6 +5,7 @@
 #include "game/input_step.h"
 #include "devtools/dump.h"
 #include "devtools/pad_metrics.h"
+#include "devtools/record_start.h"
 #include "devtools/replay_source.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
@@ -19,6 +20,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "row", "ephemerals"};
 static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particle", "particles", "particles_help_screen", "burst", "transit_dots"};
@@ -122,6 +124,40 @@ static int write_save_hex(const char *path) {
     return 0;
 }
 
+static int write_state(const char *path, int cheat_activations) {
+    FILE *out = fopen(path, "w");
+    if (out == NULL) {
+        fprintf(stderr, "replay: cannot open the state file '%s'\n", path);
+        return 0;
+    }
+    state_write(out);
+    fprintf(out, "cheat activations %d\n", cheat_activations);
+    fclose(out);
+    return 1;
+}
+
+enum { TITLE_FRAMES_BETWEEN_STARTS = 30 };
+
+/* A start after a return needs at least one cart_update60 in between, else flip_zone_flip asserts. */
+static void play_title_between_starts(input_step_t *step) {
+    static const p8_input_frame_t empty_frame = {0, 0, 0, 0};
+    record_start_return(step);
+    for (int frame = 0; frame < TITLE_FRAMES_BETWEEN_STARTS; frame++) {
+        input_step_run(step, &empty_frame);
+        cart_update60();
+        cart_draw();
+    }
+}
+
+/* 1 when REPLAY_STARTS is unset; 0 after printing the refusal. */
+static int read_starts(void) {
+    const char *value = getenv("REPLAY_STARTS");
+    if (value == NULL || strcmp(value, "1") == 0) return 1;
+    if (strcmp(value, "2") == 0) return 2;
+    fprintf(stderr, "replay: REPLAY_STARTS is 1 or 2, not '%s'\n", value);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 2 || argv[1][0] == '-') {
         fprintf(stderr, "usage: replay <events.json> [<capture.bin> [<dump.txt>]]\n");
@@ -133,6 +169,16 @@ int main(int argc, char **argv) {
     const char *dependencies_path = getenv("REPLAY_DEPS");
     if (dependencies_path != NULL && capture_path == NULL) {
         fprintf(stderr, "usage: REPLAY_DEPS=<file> replay <events.json> <capture.bin> [<dump.txt>]\n");
+        return 2;
+    }
+    int starts = read_starts();
+    if (starts == 0) return 2;
+    if (starts == 2 && capture_path != NULL) {
+        fprintf(stderr, "replay: REPLAY_STARTS=2 checks states only, it takes no capture file\n");
+        return 2;
+    }
+    if (starts == 2 && getenv("PAD_METRICS") != NULL) {
+        fprintf(stderr, "replay: REPLAY_STARTS=2 checks states only, it takes no PAD_METRICS\n");
         return 2;
     }
 
@@ -149,10 +195,21 @@ int main(int argc, char **argv) {
     assert(source_status == REPLAY_SOURCE_LOADED);
     int seeded = replay_source_seed_storage(&source);
     assert(seeded);
+    int resume_start = replay_source_start(&source) == REPLAY_SOURCE_START_RESUME;
+    if (starts == 2 && !resume_start) {
+        fprintf(stderr, "replay: %s: REPLAY_STARTS=2 needs a \"start\": \"resume\" file, this one starts on the title\n",
+                replay_path);
+        return 1;
+    }
     static bindings_t bindings;
     static replay_source_bindings_report_t bindings_report;
     replay_source_bindings_status_t bindings_status =
         replay_source_read_bindings(&source, &bindings_compiled, &bindings, &bindings_report);
+    if (resume_start && bindings_status != REPLAY_SOURCE_BINDINGS_DEFAULT) {
+        fprintf(stderr, "replay: %s: a \"start\": \"resume\" file plays on the default bindings, it takes no \"bindings\" member\n",
+                replay_path);
+        return 1;
+    }
     if (bindings_status != REPLAY_SOURCE_BINDINGS_DEFAULT && bindings_status != REPLAY_SOURCE_BINDINGS_FIXTURE) {
         fprintf(stderr, "replay: %s\n", bindings_report.message);
         return 1;
@@ -181,7 +238,12 @@ int main(int argc, char **argv) {
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
-    input_step_init(&step, &bindings);
+    if (!resume_start) {
+        input_step_init(&step, &bindings);
+    } else if (!record_start_resume(&step, source.initial_save, source.initial_save_count)) {
+        fprintf(stderr, "replay: %s: the initial_save does not decode\n", replay_path);
+        return 1;
+    }
     const char *pad_metrics_path = getenv("PAD_METRICS");
     if (pad_metrics_path != NULL) {
         bump_zone_init(&pad_metrics_scratch, "pad metrics scratch", pad_metrics_cells, PAD_METRICS_SCRATCH_BYTES);
@@ -189,21 +251,36 @@ int main(int argc, char **argv) {
         pad_metrics_observe(&pad_metrics, &step);
     }
     int cheat_activations = 0;
-    for (i = 0; i < frame_count; i++) {
-        const p8_input_frame_t *frame = &input->frames[input->current_frame];
-        int cheat = input_step_run(&step, frame);
-        cheat_activations += cheat;
-        cart_update60();
-        cart_draw();
-        if (pad_metrics_path != NULL) pad_metrics_record(&pad_metrics, &step, frame->pad_buttons, cheat);
-        if (capture_path && !screencast_write_frame(&capture, &memory)) {
-            fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
-                    i, capture_path);
-            screencast_writer_close(&capture);
-            return 1;
+    for (int start = 1; start <= starts; start++) {
+        if (start > 1) {
+            play_title_between_starts(&step);
+            input->current_frame = 0;
+            int resumed = record_start_resume(&step, source.initial_save, source.initial_save_count);
+            assert(resumed);
+            (void)resumed;
+            cheat_activations = 0;
         }
-        if (i < frame_count - 1) {
-            p8_input_step(input);
+        for (i = 0; i < frame_count; i++) {
+            const p8_input_frame_t *frame = &input->frames[input->current_frame];
+            int cheat = input_step_run(&step, frame);
+            cheat_activations += cheat;
+            cart_update60();
+            cart_draw();
+            if (pad_metrics_path != NULL) pad_metrics_record(&pad_metrics, &step, frame->pad_buttons, cheat);
+            if (capture_path && !screencast_write_frame(&capture, &memory)) {
+                fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
+                        i, capture_path);
+                screencast_writer_close(&capture);
+                return 1;
+            }
+            if (i < frame_count - 1) {
+                p8_input_step(input);
+            }
+        }
+        if (start < starts && state_path != NULL) {
+            char first_state_path[1024];
+            snprintf(first_state_path, sizeof first_state_path, "%s.start1", state_path);
+            if (!write_state(first_state_path, cheat_activations)) return 1;
         }
     }
 
@@ -222,14 +299,7 @@ int main(int argc, char **argv) {
 
     if (state_path != NULL) {
         state_release();
-        FILE *state_out = fopen(state_path, "w");
-        if (state_out == NULL) {
-            fprintf(stderr, "replay: cannot open the state file '%s'\n", state_path);
-            return 1;
-        }
-        state_write(state_out);
-        fprintf(state_out, "cheat activations %d\n", cheat_activations);
-        fclose(state_out);
+        if (!write_state(state_path, cheat_activations)) return 1;
     }
 
     if (pad_metrics_path != NULL && !write_pad_metrics(pad_metrics_path)) return 1;

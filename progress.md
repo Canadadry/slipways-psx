@@ -10,7 +10,7 @@
   - [ ] 5. pad_author starts from a record
     - [x] Chunk 1: start header member and writer
     - [x] Chunk 2: record_start module
-    - [ ] Chunk 3: replay from the resume
+    - [x] Chunk 3: replay from the resume
     - [ ] Chunk 4: pad_author from-record
   - [ ] 6. caption command
   - [ ] 7. The demo script

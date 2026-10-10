@@ -565,6 +565,9 @@ $(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $
 $(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_replay_from_resume: $(call objs,tests/test_replay_from_resume.c) $(TMP_DIR)/replay pico8/demo_record.hex bindings.default.cfg tools/end_state.sh tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/frames_tool: $(call objs,src/cmd/frames.c src/devtools/screencast.c src/devtools/dump.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -829,7 +832,7 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -925,6 +928,7 @@ UNIT_TESTS := \
     test_headless_capture \
     test_replay_from_title \
     test_replay_usage \
+    test_replay_from_resume \
     test_palette \
     test_hud \
     test_frames_tool \
@@ -1055,9 +1059,10 @@ unit-run-test_live_slots: $(TMP_DIR)/test_live_slots
 unit-run-test_trade: $(TMP_DIR)/test_trade
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-# These two tests read tmp/replay_dump.txt, the default dump of tmp/replay:
-# under `-j`, never at the same time.
+# These two tests read tmp/replay_dump.txt, the default dump of tmp/replay,
+# and test_replay_from_resume writes it: under `-j`, never at the same time.
 unit-run-test_frames_tool: | unit-run-test_headless_capture
+unit-run-test_replay_from_resume: | unit-run-test_frames_tool
 
 .PHONY: $(UNIT_RUNS)
 
