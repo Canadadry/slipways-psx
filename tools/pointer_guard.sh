@@ -1,8 +1,9 @@
 #!/bin/sh
 # usage: pointer_guard.sh <exception list> <source file>...
 # Counts, per source file, the data pointers declared in struct fields and
-# file-scope variables, and the declarations of type entity_list_t, and
-# requires strict equality with the list. Exit 1 on any difference, 2 with
+# file-scope variables, the declarations of type entity_list_t, and the local
+# arrays of entity pointers (entity_t *name[...], const and static included),
+# and requires strict equality with the list. Exit 1 on any difference, 2 with
 # no source file or an unreadable list: a guard over nothing would pass for
 # green.
 
@@ -87,11 +88,22 @@ function examine(statement,    count, decls, i, type, is_list) {
     }
 }
 
+function examine_local(statement,    count, decls, i) {
+    if (statement !~ /^[ \t]*((static|const|volatile)[ \t]+)*entity_t[^A-Za-z0-9_]/) return
+    gsub(/\[[^]]*\]/, "[]", statement)
+    sub(/^[ \t]*((static|const|volatile)[ \t]+)*entity_t/, "", statement)
+    count = split_declarators(statement, decls)
+    for (i = 1; i <= count; i++) {
+        sub(/=.*/, "", decls[i])
+        if (decls[i] ~ /^[ \t]*\*[ \t]*(const[ \t]+)?[A-Za-z_][A-Za-z0-9_]*[ \t]*\[\]/) arrays[FILENAME]++
+    }
+}
+
 function open_brace() {
     depth++
     if (pending ~ /(^|[^A-Za-z0-9_])(struct|union)([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*$/) kind[depth] = "struct"
     else if (pending ~ /(^|[^A-Za-z0-9_])enum([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*$/) kind[depth] = "enum"
-    else if (pending ~ /=/) kind[depth] = "init"
+    else if (pending ~ /(^|[^=!<>])=([^=]|$)/) kind[depth] = "init"
     else kind[depth] = "other"
     head[depth] = pending
     pending = ""
@@ -122,6 +134,7 @@ FNR == 1 { reset_file() }
         line = substr(line, RSTART + 1)
         if (c == ";") {
             if (depth == 0 || kind[depth] == "struct") examine(pending)
+            else if (kind[depth] == "other") examine_local(pending)
             pending = ""
         } else if (c == "{") {
             open_brace()
@@ -153,15 +166,19 @@ END {
         fields = split(entry, field, " ")
         if (fields == 2) listed_pointers[field[1]] = field[2]
         else if (fields == 3 && field[1] == "entity-lists") listed_lists[field[2]] = field[3]
+        else if (fields == 3 && field[1] == "entity-arrays") listed_arrays[field[2]] = field[3]
     }
     compare("pointer(s)", "", pointers, listed_pointers, seen)
     compare("entity list(s)", "entity-lists ", lists, listed_lists, seen)
+    compare("local entity array(s)", "entity-arrays ", arrays, listed_arrays, seen)
     for (f in seen) {
         files++
         pointers_total += pointers[f]
         lists_total += lists[f]
+        arrays_total += arrays[f]
     }
-    printf "pointer-guard files %d pointers %d entity-lists %d\n", files, pointers_total, lists_total > summary
+    printf "pointer-guard files %d pointers %d entity-lists %d entity-arrays %d\n", files, pointers_total, lists_total,
+        arrays_total > summary
 }' "$@" | LC_ALL=C sort > "$report"
 cat "$report" "$summary"
 [ ! -s "$report" ]

@@ -39,6 +39,7 @@
 #include "engine/entity_id.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
+#include "game/visual_random.h"
 #include "engine/vec.h"
 
 /* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
@@ -61,7 +62,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 #define BUILT_HASH 0xB7038702u
-#define LIFE_HASH 0xB4AFA291u
+#define LIFE_HASH 0xA3D935BFu
 #define HOVER_HASH 0x56A42FA7u
 
 static p8_vram_t memory;
@@ -712,6 +713,22 @@ static void test_start_game_gives_back_the_help_particles(void) {
     assert(particles_of(&fv->emitter) == NULL);
 }
 
+/* A drawn title frame takes exactly one game-stream draw, whatever its
+ * particles do, so a new game's galaxy depends on the title's frame count
+ * only; the particles draw from the visual stream. */
+static void test_a_drawn_title_frame_takes_one_game_draw(void) {
+    start_title();
+    for (int i = 0; i < 40; i++) {
+        uint32_t want = p8_fixed_rnd_state();
+        uint32_t visual = visual_random_state();
+        (void)p8_fixed_rnd_from_state(&want, P8_FIXED_INT(1));
+        cart_update60();
+        cart_draw();
+        assert(p8_fixed_rnd_state() == want && "a drawn title frame takes one game draw");
+        assert(visual_random_state() != visual && "the title's particles draw from the visual stream");
+    }
+}
+
 enum { TITLE_SETTLE_FRAMES = 30, RESUME_TOP = 41, RESUME_BOTTOM = 51, FORGIVING_TOP = 52 };
 
 typedef unsigned char screen_t[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
@@ -801,6 +818,7 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
+    in_fresh_child(test_a_drawn_title_frame_takes_one_game_draw);
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_hover);

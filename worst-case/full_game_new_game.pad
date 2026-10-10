@@ -1,0 +1,5 @@
+# worst-case/full_game_new_game: full_game verbatim, then "again?" on its final score panel and
+# a new game from the title, so the reset of a crowded game runs (plan 12 step 13).
+include full_game.pad
+again
+new-game reasonable

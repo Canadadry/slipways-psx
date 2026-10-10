@@ -9,11 +9,13 @@ The module has four entry points (`src/game/save_state.h`):
 - `save_state_decode` reads bytes back into a `save_state_t` and returns 1 for a valid record, 0 otherwise, never asserting on the bytes;
 - `save_state_crc32` is the trailer checksum.
 
-`make save-worst-case` replays every `worst-case/` game, and at every frame of a running game with no wormhole captures, encodes, decodes and re-encodes. The largest record today is 4471 bytes (`worst-case/full_game.json`, frame 4360), 3721 bytes under the limit. If the size assert ever fires, the encoding gets more compact; the limit never moves.
+`make save-worst-case` replays every `worst-case/` game, and at every frame of a running game with no wormhole captures, encodes, decodes and re-encodes. The largest record today is 4519 bytes (`worst-case/full_game.json`, frame 5964), 3673 bytes under the limit. If the size assert ever fires, the encoding gets more compact; the limit never moves.
 
 When the record format changes (a version bump, a new field), `tests/e2e/pad_resume_at_start.json`'s `initial_save` stops decoding and its hash changes: re-cut the fixture with the two commands in `tests/e2e/pad_resume_at_start.txt`, rerun its checks and rebaseline that one hash.
 
 `make save-fuzz` resumes every save `full_game.json` writes and compares the resumed game with the original at that frame.
+
+Visual-only effects (particles, the probe and title emitters, harvest bursts, transit dots, the flicker of a vanishing planet) draw from a second random stream, `src/game/visual_random.c`, that the record does not hold. Particles restart from nothing after a resume, but a vanishing planet's flicker is on the compared screen: `save_check_capture` keeps the stream's state beside the record and `save_check_resume` restores it, so both runs draw the same flicker.
 
 ## Encoding rules
 
@@ -46,7 +48,7 @@ In this order.
 | year_ticks | i32 | any |
 | invented count | u8 | 0–19 |
 | invented tech, × invented count | u8 each | 0–18, a `technologies_table` index; no duplicate; in invention order |
-| `rnd_state` | u32 | any |
+| `rnd_state` | u32 | any; the game stream, which only game decisions draw from |
 | `background_seed` | u32 | any; the `rnd_state` the galaxy background drew its tile map from |
 | type picker tickets count | u8 | 0–66 (`WEIGHTED_PICKER_TICKETS_CAP`) |
 | ticket, × tickets count | u8 each | 0–10, a `planet_types_table` index |

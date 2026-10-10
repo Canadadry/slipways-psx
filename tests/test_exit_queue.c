@@ -165,10 +165,9 @@ static int case_reset_world_enqueues_registered(void) {
     return 0;
 }
 
-/* Live entities at the "again?" that ends worst-case/full_game.json, in
- * full_game_new_game.json, and at the restart of full_game_pause_restart.json
- * (119 of them have a release): reset_world queues them all in one burst. */
-#define FULL_GAME_LIVE_ENTITIES 130
+/* The largest reset_world burst a worst-case/ game has reached (136 with a
+ * release), with margin: keep it when those games are re-authored lower. */
+#define FULL_GAME_LIVE_ENTITIES 150
 
 static int case_reset_world_after_a_full_game(void) {
     load_cart_and_start();

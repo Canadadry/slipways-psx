@@ -598,11 +598,9 @@ static void test_invent(void) {
     check("invent", h, INVENT_HASH);
 }
 
-/* The full × × ○ ○ × × ○ ○ on the title screen writes the provisional; the
+/* The four × + ○ chords on the title screen write the provisional; the
  * economy of the game then starts from its own spec. */
 static void test_cheat_on_provisional(void) {
-    static const int presses[] = {P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE,
-                                  P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE};
     int frames[16];
     const main_economy_placeholder_t *provisional;
     int fired = 0;
@@ -613,8 +611,8 @@ static void test_cheat_on_provisional(void) {
     assert(provisional != NULL && !provisional->has_research_points && !provisional->has_credits);
 
     memset(frames, 0, sizeof frames);
-    for (i = 0; i < 8; i++) {
-        frames[2 * i] = presses[i];
+    for (i = 0; i < CHEAT_CHORDS; i++) {
+        frames[2 * i] = P8_PAD_CROSS | P8_PAD_CIRCLE;
     }
     cheat_init(&cheat);
     for (i = 0; i < 16; i++) {

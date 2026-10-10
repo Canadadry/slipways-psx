@@ -99,7 +99,7 @@ static int stored_record_equals_earlier(int earlier_count) {
     return stored_count() == earlier_count && memcmp(g_bytes, g_earlier, (size_t)earlier_count) == 0;
 }
 
-/* Valid between cart_update60 and cart_draw only: cart_draw moves the RNG, which the record holds. */
+/* Called between cart_update60, whose end writes the record, and cart_draw. */
 static int stored_record_is_the_live_game(void) {
     int count = stored_count();
     save_state_capture(&g_captured);

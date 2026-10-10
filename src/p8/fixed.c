@@ -112,20 +112,19 @@ p8_fixed_t p8_fixed_pow075(p8_fixed_t x) {
 
 static uint32_t rnd_state = P8_RND_DEFAULT_SEED;
 
-static uint32_t rnd_next_u32(void) {
-    rnd_state = rnd_state * P8_RND_LCG_MULTIPLIER + P8_RND_LCG_INCREMENT;
-    return rnd_state;
-}
-
-p8_fixed_t p8_fixed_rnd(p8_fixed_t x) {
+p8_fixed_t p8_fixed_rnd_from_state(uint32_t *state, p8_fixed_t x) {
     if (x == 0) {
         return 0;
     }
     uint32_t magnitude = (x < 0) ? (uint32_t)(-(int64_t)x) : (uint32_t)x;
-    uint32_t draw = rnd_next_u32();
-    uint64_t scaled = ((uint64_t)magnitude * (uint64_t)draw) >> 32;
+    *state = *state * P8_RND_LCG_MULTIPLIER + P8_RND_LCG_INCREMENT;
+    uint64_t scaled = ((uint64_t)magnitude * (uint64_t)*state) >> 32;
     p8_fixed_t result = (p8_fixed_t)(uint32_t)scaled;
     return (x < 0) ? p8_fixed_neg(result) : result;
+}
+
+p8_fixed_t p8_fixed_rnd(p8_fixed_t x) {
+    return p8_fixed_rnd_from_state(&rnd_state, x);
 }
 
 uint32_t p8_fixed_rnd_state(void) {

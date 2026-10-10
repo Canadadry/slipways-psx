@@ -19,6 +19,7 @@ typedef struct {
 #define P8_PAD_L1 256
 #define P8_PAD_R1 512
 #define P8_PAD_START 1024
+#define P8_PAD_SELECT 2048
 
 #define P8_MOUSE_LEFT 1
 

@@ -44,12 +44,14 @@ static vec_t ra_of(const entity_t *e) {
     return e != NULL ? entity_pos(e) : vec_make(0, 0);
 }
 
+/* World y is printed at rest, without the bob: it moves with frame timing alone. */
 static void write_position(FILE *out, const entity_t *e, vec_t camera) {
     vec_t ra = ra_of(e);
+    p8_fixed_t rest_y = planet_family_bobs(e) ? p8_fixed_sub(ra.y, planet_bob_total(e->state_time)) : ra.y;
     fputs(" world ", out);
     write_fixed(out, ra.x);
     fputc(' ', out);
-    write_fixed(out, ra.y);
+    write_fixed(out, rest_y);
     fputs(" screen ", out);
     write_fixed(out, p8_fixed_sub(ra.x, camera.x));
     fputc(' ', out);

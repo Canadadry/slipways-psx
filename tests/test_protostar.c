@@ -54,7 +54,7 @@ static const vec_t *map_pos_ref(const entity_t *e) {
 
 
 #define BUILT_HASH 0x3C0EE132u
-#define LIFE_HASH 0x915BB932u
+#define LIFE_HASH 0x833D22EDu
 
 /* The tag planet_rebuild_trades's list carried as a tagged list, which the
  * frozen hashes fold: any other value moves every *_HASH. */

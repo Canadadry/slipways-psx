@@ -1,5 +1,9 @@
 Pick "reasonable" on the title screen with the D-pad and X. 30 frames.
 
+A new game knows no object, so it starts in plain aim mode (plan 12
+step 17): f19 is idle (it was square out of jump mode until then).
+Every capture frame is unchanged.
+
 Each press lasts one frame and is followed by a release frame: a held
 direction moves the focus once. Row colours below are read in the
 framebuffer dump (make replay on the file cut after that frame), at
@@ -14,7 +18,7 @@ y75-83, tough y86-94.
 - f16: Up. After f16 and f17: reasonable 12, the others 13.
 - f18: X on "reasonable": the title rows are gone from f18, the game
   starts.
-- f19-29: idle into the first month, in free mode: the cursor is the
+- f19-29: idle into the first month, in aim mode: the cursor is the
   screen centre (80, 60), marked by the colour-7 crosshair (x78-82 on
   y=60, y58-62 on x=80, the centre pixel undrawn). Pad mode draws no
   cursor sprite on any frame.

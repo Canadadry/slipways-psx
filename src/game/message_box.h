@@ -66,6 +66,8 @@ struct message_box {
 
 message_box_t *shown_message_box(void);
 void message_box_set_shown(message_box_t *mh);
+/* Closes the shown box as its timeout does: marked dead, no box shown. Does nothing when none is shown. */
+void message_box_close_shown(void);
 
 void message_box_init(void);
 

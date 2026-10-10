@@ -38,6 +38,7 @@
 #include "game/wormhole.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
+#include "game/visual_random.h"
 #include "engine/vec.h"
 
 /* The emitter's particle list, NULL without EMITTER_HAS_PARTICLES. */
@@ -64,10 +65,10 @@ static int pos_copies(const vec_t *ra, vec_t mp) {
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
 
 #define BUILT_HASH 0xD2BD6AF7u
-#define LIFE_HASH 0x338111F6u
+#define LIFE_HASH 0x61934B9Du
 #define DROP_ON_HASH 0x49056D9Bu
 #define DROP_OFF_HASH 0x3EA86A53u
-#define HELP_SCREEN_HASH 0x8CEFE468u
+#define HELP_SCREEN_HASH 0x32425337u
 
 static p8_vram_t memory;
 static p8_graphics_t graphics;
@@ -902,6 +903,29 @@ static void test_leaving_gives_back_its_particles(void) {
     assert(particles_of(&a->emitter) == NULL);
 }
 
+/* A probe's particles are visual only: emitting them, through the spawn
+ * loop or one particle at a time, draws from the visual stream and leaves
+ * the game stream where it was. */
+static void test_particles_draw_from_the_visual_stream(void) {
+    probe_t *a;
+    uint32_t game;
+    uint32_t visual;
+
+    start_game();
+    a = left_press();
+    game = p8_fixed_rnd_state();
+    visual = visual_random_state();
+    emitter_spawn(&a->header, p8_fixed_from_int(5));
+    assert(particles_of(&a->emitter)->count == 5);
+    assert(p8_fixed_rnd_state() == game && "the emitter's spawn loop draws no game number");
+    assert(visual_random_state() != visual);
+
+    visual = visual_random_state();
+    (void)probe_spawn_particle(&a->header);
+    assert(p8_fixed_rnd_state() == game && "a probe particle draws no game number");
+    assert(visual_random_state() != visual);
+}
+
 static void test_target_links_resolve_until_the_flush(void) {
     probe_t *first;
     probe_t *second;
@@ -981,6 +1005,7 @@ int main(void) {
     in_fresh_child(test_targeting_track_target_is_a_struct);
     in_fresh_child(test_drop_near_an_edge_cancels);
     in_fresh_child(test_leaving_gives_back_its_particles);
+    in_fresh_child(test_particles_draw_from_the_visual_stream);
     in_fresh_child(test_drag_writes_the_host_header);
 
     printf("test_probe: all tests passed\n");

@@ -25,6 +25,7 @@
 #include "game/ui_button.h"
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
+#include "game/visual_random.h"
 
 static layout_row_cell_t planet_production_cell(const production_t *kw) {
     layout_row_tuple_t tuple = {0};
@@ -363,7 +364,7 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
 
     if (self->header.state == ENTITY_STATE_VANISHING) {
         p8_fixed_t t = self->header.state_time;
-        if (p8_fixed_rnd(p8_fixed_from_int(30)) < p8_fixed_sub(t, p8_fixed_from_int(30))) {
+        if (visual_random_draw(p8_fixed_from_int(30)) < p8_fixed_sub(t, p8_fixed_from_int(30))) {
             return;
         }
     }

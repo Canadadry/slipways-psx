@@ -12,6 +12,7 @@
 #include "game/probe.h"
 #include "engine/entity_class.h"
 #include "engine/game_zone.h"
+#include "p8/fixed.h"
 
 static int g_help_screen_up = 0;
 
@@ -93,6 +94,8 @@ enum { HELP_SCREEN_ROWS_CAP = 4 };
 void help_screen_draw(p8_graphics_t *gfx, p8_vram_t *mem, probe_t *self, vec_t p) {
     (void)p;
 
+    /* The seed tick, result unused: without it every game started from boot gets the same galaxy. */
+    (void)p8_fixed_rnd_default();
     emitter_update(gfx, mem, (entity_t *)self);
 
     if (gfx != NULL && mem != NULL) {

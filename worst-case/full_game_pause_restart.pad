@@ -1,0 +1,9 @@
+# worst-case/full_game_pause_restart: full_game up to its pause-branch label, then Start, restart
+# and a new game; the button, ui and ephemerals lines it holds are reached after the restart
+# (plan 12 step 13).
+include full_game.pad pause-branch
+pause
+restart
+new-game challenging
+bar
+score

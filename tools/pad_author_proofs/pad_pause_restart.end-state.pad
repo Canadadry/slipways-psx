@@ -1,0 +1,9 @@
+# Closed-loop commands: reaches tests/e2e/pad_pause_restart.json's end state.
+# The new galaxy depends on the restart frame as well as the title cross, so
+# the idle frames put Start on f16 and restart's cross on f26, as the replay.
+title 12 reasonable
+idle 3
+pause
+idle 7
+restart
+title 38 challenging

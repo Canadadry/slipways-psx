@@ -35,6 +35,8 @@
 #include "game/research.h"
 #include "game/scroll.h"
 #include "game/slipway.h"
+#include "game/slipway_display.h"
+#include "game/visual_random.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
 #include "engine/vec.h"
@@ -505,6 +507,27 @@ static void test_construction(void) {
     assert(as_slipway(by_left_press)->archetype == as_slipway(by_lookup)->archetype);
     assert(as_slipway(by_left_press)->header.class->tags == as_slipway(by_lookup)->header.class->tags);
     assert(as_slipway(by_left_press)->transit_dots.zone != as_slipway(by_lookup)->transit_dots.zone);
+}
+
+/* The transit-dot roll is visual only: it draws from the visual stream,
+ * dot or no dot, and leaves the game stream where it was. */
+static void test_transit_dot_roll_draws_from_the_visual_stream(void) {
+    void *ly;
+    slipway_t *jc;
+    uint32_t game;
+    uint32_t visual;
+
+    world();
+    ly = first_with_state(TAG_PLANET, ENTITY_STATE_SETTLED);
+    assert(ly != NULL);
+    jc = as_slipway(build_slipway(ly));
+    game = p8_fixed_rnd_state();
+    visual = visual_random_state();
+    for (int i = 0; i < 20; i++) {
+        slipway_spawn_transit_dot(jc, ly, NULL);
+    }
+    assert(p8_fixed_rnd_state() == game && "the transit-dot roll draws no game number");
+    assert(visual_random_state() != visual);
 }
 
 /* Without an end, slipway_drop only sets is_dead; with one, the slipway
@@ -1213,6 +1236,7 @@ int main(void) {
     dispatch_context_set_input(&input);
 
     cart_load();
+    in_fresh_child(test_transit_dot_roll_draws_from_the_visual_stream);
     in_fresh_child(test_construction);
     in_fresh_child(test_drop);
     in_fresh_child(test_drag);

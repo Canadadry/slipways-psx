@@ -40,24 +40,49 @@ static void assert_at_rest(void) {
     assert(!fm->has_research_points && !fm->has_credits);
 }
 
-/* × × ○ ○ × × ○ ○, one press every other frame; returns how often it fired. */
-static int type_cheat(void) {
-    static const int presses[] = {P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE,
-                                  P8_PAD_CROSS, P8_PAD_CROSS, P8_PAD_CIRCLE, P8_PAD_CIRCLE};
-    int frames[16];
+#define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
+
+/* Feeds frames to a fresh matcher; returns a bitmask of the frames it fired on. */
+static int fired_on(const int *frames, int count) {
     cheat_t cheat;
     int fired = 0;
     int i;
 
-    memset(frames, 0, sizeof frames);
-    for (i = 0; i < 8; i++) {
-        frames[2 * i] = presses[i];
-    }
+    assert(count <= 30);
     cheat_init(&cheat);
-    for (i = 0; i < 16; i++) {
-        fired += cheat_step(&cheat, frames[i]);
+    for (i = 0; i < count; i++) {
+        if (cheat_step(&cheat, frames[i])) {
+            fired |= 1 << i;
+        }
     }
     return fired;
+}
+
+/* Four × + ○ chords, one every other frame; returns how often it fired. */
+static int type_cheat(void) {
+    static const int frames[] = {CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0};
+    int fired = fired_on(frames, 8);
+    return fired == 0 ? 0 : fired == 1 << 6 ? 1 : 2;
+}
+
+static void test_cheat_matcher(void) {
+    static const int four_chords[] = {CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0};
+    static const int held_chords[] = {CHORD, P8_PAD_CROSS, P8_PAD_UP, CHORD, P8_PAD_CIRCLE, 0, CHORD, CHORD | P8_PAD_LEFT, 0, CHORD};
+    static const int lone_cross[] = {CHORD, 0, CHORD, 0, P8_PAD_CROSS, 0, CHORD, 0, CHORD, 0};
+    static const int lone_circle[] = {CHORD, 0, CHORD, 0, CHORD, 0, P8_PAD_CIRCLE, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD};
+    static const int staggered[] = {P8_PAD_CROSS, CHORD, 0, P8_PAD_CROSS, CHORD, 0, P8_PAD_CIRCLE, CHORD, 0,
+                                    P8_PAD_CIRCLE, CHORD, 0};
+    static const int old_sequence[] = {P8_PAD_CROSS, 0, P8_PAD_CROSS, 0, P8_PAD_CIRCLE, 0, P8_PAD_CIRCLE, 0,
+                                       P8_PAD_CROSS, 0, P8_PAD_CROSS, 0, P8_PAD_CIRCLE, 0, P8_PAD_CIRCLE, 0};
+    static const int eight_chords[] = {CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD};
+
+    assert(fired_on(four_chords, 8) == 1 << 6);
+    assert(fired_on(held_chords, 10) == 1 << 9);
+    assert(fired_on(lone_cross, 10) == 0);
+    assert(fired_on(lone_circle, 15) == 1 << 14);
+    assert(fired_on(staggered, 12) == 0);
+    assert(fired_on(old_sequence, 16) == 0);
+    assert(fired_on(eight_chords, 15) == (1 << 6 | 1 << 14));
 }
 
 static void assert_cheated(void) {
@@ -215,6 +240,7 @@ int main(void) {
 
     cart_load();
     in_fresh_child(test_at_rest);
+    in_fresh_child(test_cheat_matcher);
     in_fresh_child(test_cheat_on_title);
     in_fresh_child(test_new_init);
     in_fresh_child(test_cycle);

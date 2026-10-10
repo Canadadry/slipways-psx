@@ -5,12 +5,17 @@
  * "game <bytes>", "max_bytes game <bytes>", "load <bytes>",
  * "max_bytes load <bytes>".
  *
- * STATE=<file>: the devtools/state text of the last frame; after a p8_fatal,
- * "stopped p8_fatal frame <n>" first.
+ * STATE=<file>: the devtools/state text of the last frame, then "cheat
+ * activations <n>"; after a p8_fatal, "stopped p8_fatal frame <n>" first and
+ * no cheat line.
  *
  * SAVE_HEX=<file>: the stored record as one line of lowercase hex (the
  * initial_save format), then "save: " lines on stdout; exits 1 when the
- * record does not decode, or when there is none (the file is then removed). */
+ * record does not decode, or when there is none (the file is then removed).
+ *
+ * PAD_METRICS=<file>: the devtools/pad_metrics report of the run (time per
+ * mode, dead presses by group, hold repeats, the section 4 verdict); exits 1
+ * when the file cannot be written. The verdict never changes the exit status. */
 
 #include "p8/vram.h"
 #include "p8/assets.h"
@@ -18,6 +23,7 @@
 #include "p8/input.h"
 #include "game/input_step.h"
 #include "devtools/dump.h"
+#include "devtools/pad_metrics.h"
 #include "devtools/replay_source.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
@@ -35,6 +41,28 @@
 
 static const char *const SLOT_KIND_NAMES[SLOT_KIND_COUNT] = {"button", "modal_backdrop", "message_box", "toast", "row", "ephemerals"};
 static const char *const PARTICLE_NAMES[PARTICLE_SLOT_COUNT] = {"particle", "particles", "particles_help_screen", "burst", "transit_dots"};
+
+#define PAD_METRICS_SCRATCH_BYTES (1 << 16)
+/* Candidate lists of the pad metrics: never frame_zone(), or make state would see the hook in its peaks. */
+BUMP_ZONE_STORAGE(pad_metrics_cells, PAD_METRICS_SCRATCH_BYTES);
+static bump_zone_t pad_metrics_scratch;
+static pad_metrics_t pad_metrics;
+
+/* Returns 1 when the report was written. */
+static int write_pad_metrics(const char *path) {
+    pad_metrics_finish(&pad_metrics);
+    FILE *out = fopen(path, "w");
+    if (out == NULL) {
+        fprintf(stderr, "replay: cannot open the pad metrics file '%s'\n", path);
+        return 0;
+    }
+    pad_metrics_write_report(&pad_metrics, out);
+    if (fclose(out) != 0) {
+        fprintf(stderr, "replay: cannot write the pad metrics file '%s'\n", path);
+        return 0;
+    }
+    return 1;
+}
 
 static void write_fill(const char *path) {
     FILE *out = fopen(path, "w");
@@ -148,10 +176,20 @@ int main(int argc, char **argv) {
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
     input_step_init(&step);
+    const char *pad_metrics_path = getenv("PAD_METRICS");
+    if (pad_metrics_path != NULL) {
+        bump_zone_init(&pad_metrics_scratch, "pad metrics scratch", pad_metrics_cells, PAD_METRICS_SCRATCH_BYTES);
+        pad_metrics_init_judging(&pad_metrics, &pad_metrics_scratch);
+        pad_metrics_observe(&pad_metrics, &step);
+    }
+    int cheat_activations = 0;
     for (i = 0; i < frame_count; i++) {
-        input_step_run(&step, &input->frames[input->current_frame]);
+        const p8_input_frame_t *frame = &input->frames[input->current_frame];
+        int cheat = input_step_run(&step, frame);
+        cheat_activations += cheat;
         cart_update60();
         cart_draw();
+        if (pad_metrics_path != NULL) pad_metrics_record(&pad_metrics, &step, frame->pad_buttons, cheat);
         /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
         if (capture_path && !screencast_write_frame(&capture, &memory)) {
             fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
@@ -185,8 +223,11 @@ int main(int argc, char **argv) {
             return 1;
         }
         state_write(state_out);
+        fprintf(state_out, "cheat activations %d\n", cheat_activations);
         fclose(state_out);
     }
+
+    if (pad_metrics_path != NULL && !write_pad_metrics(pad_metrics_path)) return 1;
 
     const char *fill_path = getenv("REPLAY_FILL");
     if (fill_path != NULL) {

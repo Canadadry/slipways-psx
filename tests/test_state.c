@@ -156,20 +156,21 @@ static void save_hex_writes_the_stored_record(void) {
 static void pad_tech_costs_rich_mine(void) {
     remove(SAVE_HEX);
     replay("SAVE_HEX=" SAVE_HEX " " REPLAY_TO("tests/e2e/pad_tech_costs.json", SAVE_OUT));
-    assert(has("difficulty reasonable") && "pad_title's prefix: Down, X on reasonable");
-    assert(has("count nodes 91") && "91 planets, no structure, no protostar");
+    assert(has("difficulty reasonable") && "the saved game is reasonable");
+    assert(has("count nodes 90") && "90 planets, no structure, no protostar");
     save_hex_writes_the_stored_record();
-    assert(has("count planets 91"));
+    assert(has("count planets 90"));
     assert(has("count slipways 6"));
-    assert(has("count colonies 6") && "p7, p12, p14, p39 and the two labs");
+    assert(has("count colonies 6") && "p1, p31, p37, p54 and the two labs");
     assert(has("count structures 0"));
-    assert(has("planet p12 colonized planet e world 233.44 221.10 screen 79.44 39.10 visible 1"));
-    assert(has("planet p2 unknown planet - world 25.45 343.24 screen -128.54 161.24 visible 0"));
-    assert(has("slipway p39 p12 normal"));
-    assert(has("slipway s2 p12 normal"));
-    assert(has("camera world 154 182"));
+    assert(has("planet p31 colonized planet e world 223.89 276.36 screen 122.89 34.36 visible 1"));
+    assert(has("planet p2 unknown planet - world 159.28 30.36 screen 58.28 -211.63 visible 0"));
+    assert(has("slipway p54 p31 normal"));
+    assert(has("slipway s2 p31 normal"));
+    assert(has("camera world 101 242"));
     assert(has("techs space folding"));
     assert(has("techs xenofoods"));
+    assert(has("cheat activations 1"));
     assert(strstr(text, "stopped") == NULL && "a replay that runs to the end writes no stop line");
     memory_lines_have_peak_and_limit();
     assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
@@ -178,19 +179,56 @@ static void pad_tech_costs_rich_mine(void) {
 
 #define CHEAT_CUT "tmp/test_state_cheat.json"
 
-/* pad_research cut after f32, the frame its cheat fires: 99 science, $200 at
+/* pad_research cut after f44, the frame its cheat fires: 99 science, $200 at
  * the last frame. */
 static void pad_research_cheat(void) {
     p8_input_t input;
     p8_input_init(&input);
     assert(p8_input_load(&input, "tests/e2e/pad_research.json"));
-    assert(input.frame_count > 33);
-    assert(p8_input_save(input.frames, 33, CHEAT_CUT));
+    assert(input.frame_count > 45);
+    assert(p8_input_save(input.frames, 45, CHEAT_CUT));
     p8_input_free(&input);
     replay(REPLAY(CHEAT_CUT));
     assert(strstr(text, "\nresources credits 200\n") != NULL);
     assert(strstr(text, "\nresources science 99\n") != NULL);
+    assert(has("cheat activations 1"));
     memory_lines_have_peak_and_limit();
+}
+
+#define IDLE_TAIL "tmp/test_state_idle_tail.json"
+
+/* Returns the "planet s1 ... world <x> <y>" prefix of the state just read; static buffer. */
+static const char *placed_structure_world(void) {
+    static char line[128];
+    const char *at = strstr(text, "\nplanet s1 ");
+    assert(at != NULL && "pad_build places s1");
+    const char *screen = strstr(at, " screen ");
+    assert(screen != NULL);
+    snprintf(line, sizeof line, "%.*s", (int)(screen - at - 1), at + 1);
+    return line;
+}
+
+/* A settled structure bobs every frame: its world y is printed at rest, so
+ * idle frames at the end leave it unchanged. */
+static void bobbing_structure_world_ignores_idle_frames(void) {
+    replay(REPLAY("tests/e2e/pad_build.json"));
+    static char before[128];
+    snprintf(before, sizeof before, "%s", placed_structure_world());
+    assert(strstr(before, "colonized processor") != NULL && "s1 is settled and bobs");
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, "tests/e2e/pad_build.json"));
+    static p8_input_frame_t frames[1024];
+    int count = input.frame_count;
+    assert(count + 60 <= (int)(sizeof frames / sizeof frames[0]));
+    memcpy(frames, input.frames, (size_t)count * sizeof frames[0]);
+    for (int i = 0; i < 60; i++) {
+        memset(&frames[count + i], 0, sizeof frames[0]);
+    }
+    p8_input_free(&input);
+    assert(p8_input_save(frames, count + 60, IDLE_TAIL));
+    replay(REPLAY(IDLE_TAIL));
+    assert(strcmp(placed_structure_world(), before) == 0);
 }
 
 /* A p8_fatal still writes the state, with the stop frame first. */
@@ -221,9 +259,11 @@ static void fatal_writes_the_stop_frame(void) {
 int main(void) {
     pad_tech_costs_rich_mine();
     pad_research_cheat();
+    bobbing_structure_world_ignores_idle_frames();
     fatal_writes_the_stop_frame();
     remove(STATE);
     remove(CHEAT_CUT);
+    remove(IDLE_TAIL);
     remove(SAVE_HEX);
     remove(SAVE_OUT);
     remove("tmp/test_state.bin");

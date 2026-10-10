@@ -1,144 +1,99 @@
-A second fold and colony, the slipway drag in free mode with everything
-it draws (partial line and cost, snap on a known planet, a crossed
-planet, too far, an already linked planet), a slipway built from an
-off-screen starting planet, travel along it in network mode with X, a
-cancelled drag, and square selecting the colony under the centre from
-plain free mode. It is the regression guard for the drag the pad once
-lacked (a blind press-release gesture drew nothing while aiming). 401
-frames.
+A second fold and colony from aim mode; then the slipway built the
+cross way, with its cost label and snap, a refused known planet, an
+already linked planet and too far; square leaving aim mode for jump
+mode on the colony under the centre. It is the regression guard for
+the line the pad once failed to draw while aiming (a blind
+press-release gesture). 318 frames.
+
+A new game knows no object, so it starts in aim mode (plan 12 step 17):
+f13 is idle. pad_probe's f16-17 (square and O doing nothing in aim mode
+while nothing is known) are shared.
 
 f0-98 are pad_colonise's frames verbatim (f0-68 being pad_probe's), so
-the galaxy and pad_probe.txt's planet list apply, and p14 (type o) is
-colony A. In free mode the cursor is the screen centre (80, 60), marked
+the galaxy and pad_probe.txt's planet list apply, and p47 (type r) is
+colony A. In aim mode the cursor is the screen centre (80, 60), marked
 by the colour-7 crosshair (x78-82 on y=60, y58-62 on x=80, the centre
-pixel undrawn). While dragging, the centre pixel shows the slipway's
-end. The dragged line is the slipway's core, two pixels thick: colour 1
-once faded in, colour 2 when refused (a target set, slipway_display.c).
-Labels are colour 8 (targeting_tooltip_show, probe.c). Each drag state
-is read on the first frame after its pan: the camera has no velocity in
-pad mode, so it stops there. Readings below come from the framebuffer of
-each frame (the capture, or the dump and `make state` of the file cut
-after that frame).
+pixel undrawn). The aimed line is the slipway's core, two pixels
+thick: colour 1 once faded in, colour 2 when refused (a target set,
+slipway_display.c). Labels are colour 8 (targeting_tooltip_show,
+probe.c). Readings below
+come from the framebuffer of each frame (the capture, or the dump and
+`make state` of the file cut after that frame).
 
-- f0-98: as pad_colonise up to its X on the colonise row. After f98:
-  camera (164, 210), $87, month 5, network mode on p14.
-- f100: square: free mode, p14 is the starting planet. The camera
-  centres on it, (164, 210) -> (162, 209), p14 at screen (80.70, 60.68).
-  The circle is gone and the crosshair is back at the centre. This frame
-  presses p14 (the cursor point on p14's screen point), and from f101
-  the ui holds the slipway dragged out of it with the left button held
-  at the centre: the slipway's line is drawn from p14 to the crosshair.
-- f102-110: Up+Left, f111-130: Up. Camera (153, 161): p12 (type
-  e, known, not colonised) under the centre at screen (80.44, 60.10).
-  f131: the dragged slipway, a two-pixel colour-1 line, runs from p14
-  at screen (89, 108) up to p12 under the crosshair (x82-89, y66-101),
-  its end snapped on p12, with the colour-8 cost label above the
-  crosshair (x76-82, y52-56).
-- f132: X on p12, the refused target: the left button goes up at the
-  centre and the ui drops the slipway on p12, which refuses it (known,
-  not colonised). f133: the pad presses p14 again (the cursor point on
-  p14's screen point), and from f134 the drag holds once more: the
-  line and the label stay drawn on every frame. $87, month 5, slipways
-  0 throughout.
-- f133-136: four idle frames, then f137: Up+Right, f138-150: Up.
-  Camera (154, 143), centre world (234, 203): 18 to 21 px from p12, p27
-  and p61, 52 px from the probe (its anchor).
-- f152-167: X held 16 frames on empty space, released at f168. f152
-  lets the drag go at the centre on empty space (dropped on nothing:
-  nothing built or charged); f153-167 hold the press on the background
-  that the probe and its fold take, 15 frames. The fold is confirmed at
-  f168, $87 -> $84, month 5 -> 6. From f169 the drag from p14 is back.
-  p61 turns known at f176 (type f), p27 at f177 (type m). The drag's
-  slipway draws each frame and spends random draws, so these reveals
-  are a frame later than before the drag and p27's type changed (x
-  before).
-- f169-172: Right+Up, f173-183: Right. Camera (174, 139): p61 at
-  screen (79.75, 59.84).
-- f185: triangle on p61: the drag is dropped on nothing; f186 clicks
-  p61, whose menu slides open over f186-190, focus on the header.
-- f189: Down: the colonise row turns colour 12.
-  f191: X on it: p61 colonised, $84 -> $76, month 6 -> 9. The menu
-  closes; from f192 free mode is back with p14 as the starting planet
-  and the camera still on p61 (the triangle's planet). f193 presses p14
-  at its off-screen point (68, 130).
-- f194, aimed at B: the colour-1 line runs from the bottom edge up to
-  p61 under the crosshair (x72-81, y73-117), the label "14$" above it
-  (x75-85, y52-56). $76, month 9.
-- f195-217: Down 26 px, Left 3 px. f217, empty space within reach:
-  camera (171, 165), centre world (251, 225), 45 px from p14 at screen
-  (71.70, 104.68). The colour-1 line runs from p14 to the crosshair
-  (x73-80, y63-97) and the centre pixel (80, 60) is colour 1, the end on
-  the cursor point. Label "7$" at x76-82, y52-56. No colour-2 pixel.
-- f218-234: Left 16 px, Up 2 px. f234, a known planet: p12 (type e,
-  known, not colonised) at screen (78.44, 58.10), 2 px off the centre.
-  The end snaps to p12: slipway_drag hangs the end on any hovered
-  entity with an accept_drop, and every planet class has one, so there
-  is no unsnapped line over a planet. The colour-1 line runs from p14
-  at (87.70, 106.68) up to p12's sprite (x80-87, y65-98); the centre
-  pixel is p12's colour 3. Label "8$" at x76-82, y52-56. No red: the
-  end planet is no obstruction. A X here would be refused on the drop
-  (planet_accept_drop stops only on a settled planet).
-- f235-257: Left 5 px, Up 22 px. f257, a planet on the segment: camera
-  (150, 141), p12 at screen (83.44, 80.10) between the centre and p14
-  (92.70, 128.68, off screen). slipway_obstruction makes p12 the
-  target: the line is colour 2 (x80-90, y63-117), p12 gets the
-  dithered colour-2 disc (x76-91, y72-87, planet_display.c), and the
-  label is sprite 31, the colour-8 forbidden sign (x78-83, y53-56).
-- f258-299: Right 24 px, Up 36 px. f299, too far: camera (174, 105),
-  centre world (254, 165), 105 px from p14 (squared map length over
-  0.5). "-too far-" in colour 8 across x62-96, y52-56; the line is
-  colour 2 from the bottom edge through p61 at (79.75, 93.84) to the
-  crosshair (x73-79, y61-117). No disc: the too-far target is tested
-  first.
-- f300-322: Down 34 px. f322, back on B: camera (174, 139), p61 at
-  (79.75, 59.84) under the crosshair, the colour-1 line from the bottom
-  edge (x72-79, y72-117), "14$" at x74-84, y52-56. No colour-2 pixel.
-- f323: X on p61: the button goes up at the centre and the ui drops the
-  slipway on p61, built from the off-screen p14: `slipway p14 p61`,
-  $76 -> $62, month 9 -> 10.
-- f324, landing: network mode on p61, the camera centres on it, (174,
-  139) -> (173, 138), p61 at (80.75, 60.84); no crosshair from here.
-  f325: the colour-7 circle of radius 9 round p61 shows (15 pixels on
-  the ring); the new slipway is fading in.
-- f326: X: travel to p14, camera (173, 138) -> (162, 209), the
-  circle round p14. f328: X: back to p61, camera (173, 138). X travels
-  in network mode, Up and Down do nothing there: Down and Up at f326
-  and f328 under the code before X took over gave the same 395 frames
-  byte for byte.
-- f330: Right, f332: Left. p61 has one slipway: it stays selected and
-  the camera stays (173, 138).
-- f334: square on p61: free mode, the drag starts from p61.
-  f335-391: Left 11 px, Down 71 px.
-- f391, a planet already linked: camera (162, 209), p14 at (80.70,
-  60.68) under the crosshair, p61 off screen at (91.75, -10.15).
-  slipway_obstruction returns the slipway p14-p61 that p61 already
-  holds: the dragged line and that slipway, its targeted_by set, are
-  both colour 2 along the same path (x81-89, y2-51); the label is the
-  colour-8 forbidden sign (x78-82, y53-56).
-- f392: circle: the drag is dropped on nothing, network mode back on
-  p61, camera (162, 209) -> (173, 138). f393: no colour-2 pixel; the
-  selected slipway, faded in, is colour 12 (107 colour-12 pixels on
-  screen against 6 at f392). f393-394: idle; still one slipway, $62,
-  month 10.
-- f395: square on p61: free mode, the drag from p61 starts, the
-  crosshair is back (its 8 colour-7 pixels) and the circle is gone.
-  f397: square again: plain free mode, the camera still on p61, so p61
-  (settled) is under the crosshair.
-- f399: square in plain free mode over p61, the settled planet under
-  the centre: network mode on it, camera still (173, 138). On f399 the
-  crosshair is gone: of its 8 pixels only (79, 60) is colour 7, p61's
-  own pixel, as at f393-394. f400: the colour-7 circle of radius 9
-  round p61 is back (42 colour-7 pixels more than at f398, x71-89,
-  y51-68), its blink restarted, and the selected slipway is colour 12
-  again (107 colour-12 pixels, 6 at f398). Under the code before this
-  square, f399-400 keep the crosshair and show no circle: square did
-  nothing in plain free mode.
+- f0-98: as pad_colonise up to its X on the colonise row, p47's menu
+  opened by f88's X on the hovered known planet (plan 12 step 8; it was
+  triangle, the same click, every frame identical). After f98:
+  camera (190, 206), $92, month 5, jump mode on p47.
+- f100: square: aim mode, the camera unmoved (190, 206); nothing is
+  pressed. The circle is gone and the crosshair is back at the centre.
+- f102-124: Up+Right 10, Up 13, f126: Up 1. Camera (200, 169): p25
+  (type f, known, not colonised) under the centre. f131-142: Up 12, camera
+  (200, 155). f144-192: Down+Right 12, Down 35, Right 1: camera (215,
+  253), centre world (295, 313), on empty space 53 px from p47 (its
+  colony, a fold anchor), 14 px from p7, 22 px from p13 and 24 px from
+  p28, all three unknown.
+- f194: idle. f195-209: X held 15 frames on empty space, the probe's
+  fold, released at f210: confirmed, $92 -> $89, month 5 -> 6. p7 turns
+  known at f214 and p13 at f219, both revealed empty (vanishing); p28
+  turns known at f221 (type x).
+- f211-228: Down+Right 3, Down 14, then one more Down. Camera (218,
+  276): p28 at screen (79.98, 60.29).
+- f229: square: jump mode on p28, the target nearest the centre.
+  f231: triangle on the hovered p28: its menu. f235: Down: the
+  colonise row turns colour 12. f237: X on it ("colony"): p28
+  colonised, $89 -> $79, month 6 -> 9; jump mode stays on p28 (before
+  plan 12 step 7 the menu came from triangle on the centre, network
+  mode, and f241's circle left it). f243: Up onto
+  p47; the edge scroll takes the camera (218, 276) -> (218, 245) by
+  f246.
 
-`make state` at f400 (the file's end), identical to f394: clock year
-3401 month 10, credits 62, income -2, camera world 173 138, `slipway p14 p61 normal`, planets 90, colonies
-2, slipways 1, structures 0, techs 0. p14 colonized type o, p61
-colonized type f, p12 known type e, p27 known type m; every other
-planet unknown.
+Dropped by plan 12 step 7 with the old drag (f100-241 of the step 6
+file): the slipway pressed out of p47 by f100's square and following the
+crosshair, its partial line and cost to empty space, its snap and
+refusal on p25 (f125-127), the crossed planet (f131-142, now shown in
+slipway mode by pad_research), its drop on empty space and the fold
+under it (f194), triangle during the drag and the drag resumed from the
+off-screen p47 (f229-238), circle dropping it back into network mode
+(f239). The cost label, the snap and the refused known planet are
+slipway mode's own, below; the fold, the colony and too far stay.
+
+- f247: X on p47: the pad presses it, the ui holds the slipway from
+  f248. f249: Up: the aim on p25 (known, not colonised), the line
+  snapped on it, the colour-8 label "5$" above it, the blinking marker
+  round it. f251: X: refused, $79, month 9. f252: the pad presses p47
+  again.
+- f254: Down: the aim on p28; the edge scroll takes the camera (218,
+  209) -> (218, 248), 8 px a frame. f260: X on p28: `slipway p47 p28`,
+  $79 -> $64, month 9 -> 10. f261: the pad presses p28, the new start:
+  slipway mode continues from it.
+- f263: Up: the aim on p47, already linked: the aimed line and the
+  slipway p47-p28 are colour 2, the forbidden sign above p47. f266: X:
+  refused, slipways 1. f267: p28 pressed again.
+- f269, f271: Up, Up: the aim on p47, then on p25, 107 px from p28:
+  "-too far-" in colour 8 above p25, the line colour 2; the edge scroll
+  takes the camera to (218, 209). f277: X: refused. f278: the pad
+  presses p28 again.
+- f280: circle: the slipway dropped with no target, jump mode on p28,
+  the edge scroll back to (218, 248) by f284.
+- f285: square: aim mode, the camera unmoved. f287-305: Down 19: camera
+  (218, 276), p28 under the centre. f312: square: aim mode left for jump
+  mode on p28, the target nearest the centre; the crosshair is gone,
+  the blinking hovered circle round p28. f313-317: idle.
+
+Dropped by plan 12 step 7 with their mechanics (the step 6 file's
+f302-361): square selecting p28 into network mode, network travel with
+X to p47 and back, Left/Right on a planet with one slipway, the
+selected slipway drawn in colour 12 (network mode); square from network
+mode into the drag, the already linked p47 seen from the drag, the
+drag's drop refused on it, circle dropping the drag into network mode
+(the drag). The already linked planet is still refused the cross way at
+f263-267.
+
+`make state` at f317 (the file's end): clock year 3401 month 10,
+credits 64, income 0, camera world 218 276, `slipway p47 p28 normal`,
+planets 88, colonies 2, slipways 1, structures 0, techs 0. p47
+colonized type r, p28 colonized type x, p25 known type f; every other
+planet unknown (p7 and p13 vanished).
 
 keyboard_slipway at its end (f161): clock year 3401 month 9, credits
 80, income 3, `slipway p88 p30 normal`, planets 89, colonies 2,
@@ -148,19 +103,19 @@ $92 -> $84, month 5 -> 8; its slipway: $84 -> $80, month 8 -> 9.
 The galaxies differ: the galaxy depends on the frame the game starts,
 keyboard_slipway clicks the title at f1 and a pad title needs the rows
 first (X at f12). The pairing compares the shape, not planet ids: two
-colonies and one slipway between them. Both second colonies are type f,
-charged $8 and three months by the menu's colonise row; both slipways
-cost a route price and one month ($14 here for 72 px, $4 there for
-32 px). This replay needs a second fold ($3, one month), since its two
-colonies are 71 px apart vertically so that the starting planet is off
-screen when X is pressed.
+colonies and one slipway between them. Both second colonies are
+charged by the menu's colonise row and take three months ($10 for this
+type x, $8 for keyboard_slipway's type f); both slipways cost a route
+price and one month ($15 here for 76 px, $4 there for 32 px). This
+replay needs a second fold ($3, one month), since its two colonies are
+71 px apart vertically.
 
 Covers the second colony and the slipway of keyboard_slipway
 (f94-159). With pad_probe (its probe and fold, f27-69) and pad_colonise
 (its first colony, f77-92), the whole of keyboard_slipway is covered.
 
-Length: 401 frames, listed in tools/e2e_long_exceptions.txt: the
-shared prefix alone is 99 frames, the two colonies 192.
+Length: 318 frames, listed in tools/e2e_long_exceptions.txt: the
+shared prefix alone is 99 frames.
 
 Cost: cold `make e2e` (tmp/frames removed), 5 runs each against the
 tree before the drag, median about 1044 ms before and 1188 ms after

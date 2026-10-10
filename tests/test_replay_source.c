@@ -173,11 +173,12 @@ static void test_frames_served_tracks_the_replay_position(void) {
     replay_source_close(&source);
 }
 
-#define PAD_FRAME_COUNT 3
+#define PAD_FRAME_COUNT 4
 static const p8_input_frame_t pad_frames[PAD_FRAME_COUNT] = {
     { 0, 0, 0, P8_PAD_CROSS },
     { 0, 0, 0, 0 },
     { 0, 0, 0, P8_PAD_UP | P8_PAD_CIRCLE | P8_PAD_START },
+    { 0, 0, 0, P8_PAD_SELECT | P8_PAD_LEFT },
 };
 
 static void test_pad_recording_serves_its_masks_in_order(void) {
@@ -223,6 +224,27 @@ static void write_recording_with_member(const char *path, const char *member) {
                         member ? "  " : "", member ? member : "", member ? ",\n" : "");
     assert(used > 0 && (size_t)used < sizeof(text));
     write_text(path, text);
+}
+
+static void test_hand_written_select_is_served_as_its_bit(void) {
+    const char *path = "tmp/test_replay_source_select.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n  \"frames\": [\n"
+                     "    { \"pad\": [\"select\"] },\n"
+                     "    { \"pad\": [\"start\", \"select\", \"up\"] },\n"
+                     "    { \"pad\": [] }\n  ]\n}\n");
+    static const int expected[3] = { P8_PAD_SELECT, P8_PAD_SELECT | P8_PAD_UP | P8_PAD_START, 0 };
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&source) == 3);
+    for (int i = 0; i < 3; i++) {
+        p8_input_frame_t frame;
+        assert(replay_source_next_frame(&source, &frame) == 1);
+        assert(frame.pad_buttons == expected[i]);
+    }
+
+    replay_source_close(&source);
+    remove(path);
 }
 
 static void store_a_record(void) {
@@ -390,6 +412,7 @@ int main(void) {
     test_frames_served_tracks_the_replay_position();
     test_pad_recording_serves_its_masks_in_order();
     test_old_mouse_recording_reports_load_failure();
+    test_hand_written_select_is_served_as_its_bit();
     test_initial_save_seeds_the_storage_with_its_bytes();
     test_recording_without_initial_save_empties_the_storage();
     test_live_play_leaves_the_storage_untouched();

@@ -36,10 +36,11 @@ static const char builtin_text[] =
     "triangle = V, RIGHT_FACE_UP\n"
     "l1 = A, LEFT_TRIGGER_1\n"
     "r1 = S, RIGHT_TRIGGER_1\n"
-    "start = ENTER, MIDDLE_RIGHT\n";
+    "start = ENTER, MIDDLE_RIGHT\n"
+    "select = RIGHT_SHIFT, MIDDLE_LEFT\n";
 
 static const char *const button_names[KEYMAP_BUTTON_COUNT] = {
-    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start"
+    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select"
 };
 
 /* Space drops a marker, the page keys and End set the replay speed, Escape
@@ -48,7 +49,7 @@ static const char *const reserved_names[] = { "SPACE", "PAGE_UP", "PAGE_DOWN", "
 
 static const int button_bits[KEYMAP_BUTTON_COUNT] = {
     P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT, P8_PAD_CROSS, P8_PAD_CIRCLE,
-    P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START
+    P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START, P8_PAD_SELECT
 };
 
 typedef struct {

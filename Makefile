@@ -2,14 +2,15 @@
 # per target).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + pointer-guard + data-guard + p8-guard,
-#                       the fast loop
+#                       alloc-guard + pointer-guard + random-guard +
+#                       data-guard + p8-guard, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
 #                       if an e2e lacks its .txt or its .json.sha256, or runs
 #                       past 180 frames (600 if listed in
-#                       tools/e2e_long_exceptions.txt), or if an e2e does
+#                       tools/e2e_long_exceptions.txt, whose "N frames:"
+#                       must match and exceed 180), or if an e2e does
 #                       not declare "input": "pad" or carries a mouse field
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
@@ -23,7 +24,8 @@
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
-#                       use to tmp/state.txt, outside the suite; takes
+#                       use, then the cheat activation count, to
+#                       tmp/state.txt, outside the suite; takes
 #                       SAVE_HEX=<file> as make replay does
 # make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
 #                       every e2e of tests/e2e/, each state in
@@ -33,6 +35,21 @@
 #                       and prints the bytes left under ZONE_BUDGET_BYTES;
 #                       fails if a replay stops or a peak eats its 1/8
 #                       margin (9 x peak > 8 x limit), outside the suite
+# make end-state     -> replays every file make state replays, normalizes
+#                       each last-frame state with tools/end_state.sh (game
+#                       fields and cheat activations kept; camera, screen,
+#                       visible, zone, budget and cap dropped; sorted) and
+#                       compares it with the committed <events>.end-state;
+#                       fails on any difference, a stopped replay, a missing
+#                       reference or a state line the script does not know,
+#                       after examining every replay, outside the suite
+# make end-state EVENTS=<events> [REFERENCE=<reference>] -> the same check
+#                       for that file alone, against <events>.end-state or
+#                       REFERENCE, state in tmp/end-state/, outside the suite
+# make end-state-baseline -> same replays, writes each missing
+#                       <events>.end-state and never overwrites one (delete a
+#                       reference to re-baseline it); refuses a stopped
+#                       replay or an unknown line, outside the suite
 # make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
 #                       current code, never run by make test
 # make e2e-ref       -> for each diverging e2e, replays the commit that set its
@@ -56,6 +73,18 @@
 #                       (`<path>:<line> <0|1>` per executable line of
 #                       src/game/ and src/engine/, headers included) and
 #                       prints the totals, outside the suite
+# make coverage-compare -> make coverage, then maps each line hit at
+#                       COVERAGE_BASELINE_COMMIT (default 6346485) to the
+#                       current tree through `git diff -U0 -M --histogram`
+#                       of src/game/ and src/engine/ (the default algorithm
+#                       pairs a closing brace with another function's) and
+#                       tools/coverage_compare.sh: prints the unhit and
+#                       deleted ones (a rewritten line is deleted) and the
+#                       totals, full report in
+#                       tmp/coverage-compare/report.txt; fails if a line is
+#                       unhit; the baseline's lines are built once from a
+#                       worktree of that commit and kept in
+#                       tmp/coverage-baseline-<commit>/, outside the suite
 # make full-game     -> replays each worst-case/ game (FULL_GAME_EVENTS:
 #                       full_game.json, then the same game followed by a new
 #                       game from the title, cut short by pause ->
@@ -65,6 +94,50 @@
 #                       frame with the `-O0`
 #                       binary of make test; passes when every replay exits
 #                       cleanly (fails on any p8_fatal, a full zone or cap),
+#                       outside the suite
+# make pad-author    -> builds tmp/pad_author, plays each worst-case/<game>.pad
+#                       headless and rewrites worst-case/<game>.json from the
+#                       frames it pressed, then replays each JSON with
+#                       tmp/replay and fails unless the two last-frame states
+#                       are byte-identical; also fails on a refused input (a
+#                       cross + circle chord, a jump-mode D-pad press into an
+#                       empty cone, a circle that changes nothing unless
+#                       `back --required`), a failed command check, more than
+#                       7200 frames, or 25% or more of the frames in aim
+#                       mode; the per-frame mode log and the totals go to
+#                       tmp/pad-author/<game>.modes.txt, outside the suite
+# make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
+#                       for one script, written to OUT (default
+#                       tmp/pad-author/<name>.json), ending at its first
+#                       `label <STOP_AT>` (no aim budget then); a failed
+#                       command writes the frames so far to
+#                       tmp/pad-author/<name>.failed.json and the state to
+#                       tmp/pad-author/<name>.state.txt
+# make pad-author-proof -> runs tools/pad_author_proofs/: each <e2e>.frames.pad
+#                       must be byte-identical to tests/e2e/<e2e>.json, each
+#                       <e2e>.end-state.pad must pass tools/end_state.sh
+#                       against tests/e2e/<e2e>.json.end-state (both without
+#                       the aim budget), and each <name>.refused.pad must fail
+#                       with the error its `# expect:` first line names,
+#                       outside the suite
+# make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
+#                       PAD_METRICS and prints its report (time per mode, dead
+#                       presses by group, hold repeats, section 4 verdict),
+#                       kept in tmp/pad-metrics/<name>.txt; with CHECK=1, fails
+#                       when the verdict reads fail; outside the suite
+# make pad-metrics-worst-case -> the same with CHECK=1 for the four
+#                       re-authored worst-case/ games, printing each section 4
+#                       block, outside the suite
+# make pad-metrics-check -> regenerates tests/e2e/pad_colonise.json from its
+#                       proof script, then fails unless the report's `total `
+#                       lines equal the generator's and its required group is
+#                       exactly f16's square, f17's circle (aim mode, nothing
+#                       known) and f293's circle, outside the suite
+# make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
+#                       as make state does and prints, per line of
+#                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
+#                       highest peak over those games and its holder, and ok
+#                       or short; fails on any short line or a stopped game,
 #                       outside the suite
 # make rng-sync-probe -> builds and runs tests/test_rng_sync (pad_colonise
 #                       replayed to a save frame, forked, rnd_state compared
@@ -108,7 +181,8 @@
 #                       ratchet, updated by hand), in make test
 # make pointer-guard -> counts the data pointers and entity_list_t
 #                       declarations in the struct fields and file-scope
-#                       variables of src/game/ and entity_class.h; fails on
+#                       variables of src/game/ and entity_class.h, and the
+#                       local entity_t *name[...] arrays; fails on
 #                       any difference, higher or lower, from
 #                       tools/pointer_guard_exceptions.txt (a ratchet,
 #                       updated by hand), in make test
@@ -116,6 +190,14 @@
 #                       finds for them) for any floating-point type or call,
 #                       the rest of src/ excluded by
 #                       tools/float_grep_exclusions.txt, in make test
+# make random-guard  -> counts, per file of src/, the names of the game
+#                       stream (p8_fixed_rnd*, p8_fixed_set_rnd_state), of
+#                       the generator on a caller's state
+#                       (p8_fixed_rnd_from_state) and of the visual stream
+#                       (visual_random_draw*), comments and strings left
+#                       out; fails on any difference from
+#                       tools/random_guard_exceptions.txt (strict counts,
+#                       updated by hand), in make test
 # make float-link    -> links the objects of tmp/replay without `-lm` into a
 #                       throwaway binary, never run; outside the suite: make
 #                       test already builds tmp/replay, with the same link
@@ -263,6 +345,13 @@ ENGINE_SRCS := \
     src/game/input_step.c \
     src/game/pad_nav.c \
     src/game/pad_panel.c \
+    src/game/pad_jump.c \
+    src/game/pad_slipway.c \
+    src/game/pad_target.c \
+    src/game/pad_back.c \
+    src/game/pad_select.c \
+    src/game/pad_build.c \
+    src/game/pad_cycle.c \
     src/game/cart.c \
     src/engine/collect.c \
     src/game/data_init.c \
@@ -282,6 +371,7 @@ ENGINE_SRCS := \
     src/game/galaxy.c \
     src/game/game_data.c \
     src/game/gen.c \
+    src/game/visual_random.c \
     src/engine/geom.c \
     src/p8/gfx.c \
     src/game/help.c \
@@ -349,6 +439,13 @@ CART_ONLY_SRCS := \
     src/game/input_step.c \
     src/game/pad_nav.c \
     src/game/pad_panel.c \
+    src/game/pad_jump.c \
+    src/game/pad_slipway.c \
+    src/game/pad_target.c \
+    src/game/pad_back.c \
+    src/game/pad_select.c \
+    src/game/pad_build.c \
+    src/game/pad_cycle.c \
     src/game/galaxy.c \
     src/game/help.c \
     src/game/menu.c \
@@ -446,6 +543,12 @@ $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limit
 $(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_peaks.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_end_state: $(call objs,tests/test_end_state.c) tools/end_state.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_coverage_compare: $(call objs,tests/test_coverage_compare.c) tools/coverage_compare.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -456,6 +559,9 @@ $(TMP_DIR)/test_pointer_guard: $(call objs,tests/test_pointer_guard.c) tools/poi
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_grep.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_random_guard: $(call objs,tests/test_random_guard.c) tools/random_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
@@ -517,7 +623,7 @@ $(TMP_DIR)/test_toast: $(call asan_objs,tests/test_toast.c $(ENGINE_SRCS)) | $(T
 $(TMP_DIR)/test_message_box: $(call asan_objs,tests/test_message_box.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
+$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c src/devtools/replay_source.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_modal_backdrop: $(call objs,tests/test_modal_backdrop.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -551,6 +657,9 @@ $(TMP_DIR)/test_button: $(call objs,tests/test_button.c tests/heap_allocator.c $
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_planet: $(call objs,tests/test_planet.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_visual_random: $(call objs,tests/test_visual_random.c src/game/visual_random.c src/p8/fixed.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_gen: $(call objs,tests/test_gen.c tests/heap_allocator.c src/game/gen.c src/game/game_data.c src/p8/fixed.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
@@ -649,13 +758,37 @@ $(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/rep
 $(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pad_target: $(call objs,tests/test_pad_target.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_jump: $(call objs,tests/test_pad_jump.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_slipway: $(call objs,tests/test_pad_slipway.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_back: $(call objs,tests/test_pad_back.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_select: $(call objs,tests/test_pad_select.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/pad_metrics.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_cycle: $(call objs,tests/test_pad_cycle.c src/game/pad_cycle.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -753,10 +886,13 @@ UNIT_TESTS := \
     test_frames_check \
     test_e2e_limits \
     test_state_peaks \
+    test_end_state \
+    test_coverage_compare \
     test_float_guard \
     test_alloc_guard \
     test_pointer_guard \
     test_float_grep \
+    test_random_guard \
     test_float_link \
     test_constants_check \
     test_background_draw \
@@ -789,6 +925,7 @@ UNIT_TESTS := \
     test_button \
     test_planet \
     test_gen \
+    test_visual_random \
     test_save_state \
     test_save_storage_memory \
     test_save_storage_file \
@@ -818,7 +955,15 @@ UNIT_TESTS := \
     test_economy \
     test_main_economy \
     test_input_step \
-    test_pad_nav
+    test_pad_nav \
+    test_pad_target \
+    test_pad_jump \
+    test_pad_slipway \
+    test_pad_back \
+    test_pad_select \
+    test_pad_build \
+    test_pad_cycle \
+    test_pad_metrics
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
@@ -879,7 +1024,7 @@ endif
 replay: $(TMP_DIR)/replay
 	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -990,6 +1135,70 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(ENGINE_SRCS)
+PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
+
+$(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+ifneq ($(strip $(SCRIPT)),)
+pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
+	./$(TMP_DIR)/pad_author $(SCRIPT) $(or $(OUT),$(TMP_DIR)/pad-author/$(basename $(notdir $(SCRIPT))).json)$(if $(STOP_AT), --stop-at $(STOP_AT))
+else
+pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
+	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
+endif
+
+PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
+PAD_AUTHOR_END_STATE_PROOFS := $(wildcard tools/pad_author_proofs/*.end-state.pad)
+PAD_AUTHOR_REFUSAL_PROOFS := $(wildcard tools/pad_author_proofs/*.refused.pad)
+pad_author_proof_json = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=.json))
+pad_author_proof_e2e = $(E2E_DIR)/$(basename $(basename $(notdir $(1)))).json
+
+# A refusal proof's first line is `# expect: <text of the error>`.
+pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) tools/end_state.sh
+	@mkdir -p $(TMP_DIR)/pad-author
+	@$(foreach p,$(PAD_AUTHOR_FRAME_PROOFS),./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; cmp $(call pad_author_proof_json,$(p)) $(call pad_author_proof_e2e,$(p)) || exit 1; echo "pad-author-proof: $(p) regenerates $(call pad_author_proof_e2e,$(p))"; ) true
+	@$(foreach p,$(PAD_AUTHOR_END_STATE_PROOFS),STATE=$(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_e2e,$(p)) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) $(call pad_author_proof_e2e,$(p)).end-state || exit 1; echo "pad-author-proof: $(p) reaches $(call pad_author_proof_e2e,$(p)).end-state"; ) true
+	@$(foreach p,$(PAD_AUTHOR_REFUSAL_PROOFS),! ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) > /dev/null 2> $(TMP_DIR)/pad-author/refusal.txt || { echo "pad-author-proof: $(p) was not refused"; exit 1; }; grep -qF "$$(sed -n '1s/^# expect: //p' $(p))" $(TMP_DIR)/pad-author/refusal.txt || { cat $(TMP_DIR)/pad-author/refusal.txt; echo "pad-author-proof: $(p) refused for another reason"; exit 1; }; echo "pad-author-proof: $(p) refused: $$(sed -n '1s/^# expect: //p' $(p))"; ) true
+
+PAD_METRICS_DIR := $(TMP_DIR)/pad-metrics
+PAD_METRICS_GAMES := $(filter-out worst-case/title_idle.json,$(FULL_GAME_EVENTS))
+pad_metrics_name = $(PAD_METRICS_DIR)/$(basename $(notdir $(1)))
+# $(1) the events, $(2) 1 to fail on a section 4 miss, $(3) the lines to print from the report.
+pad_metrics_run = PAD_METRICS=$(call pad_metrics_name,$(1)).txt ./$(TMP_DIR)/replay $(1) /dev/null $(call pad_metrics_name,$(1)).dump.txt > /dev/null || exit 1; echo "pad-metrics: $(1) -> $(call pad_metrics_name,$(1)).txt"; grep '$(3)' $(call pad_metrics_name,$(1)).txt; $(if $(filter 1,$(2)),grep -qx 'section4 verdict ok' $(call pad_metrics_name,$(1)).txt || { echo "pad-metrics: $(1) misses section 4"; exit 1; };)
+PAD_METRICS_PROOF := tools/pad_author_proofs/pad_colonise.frames.pad
+PAD_METRICS_PROOF_E2E := $(E2E_DIR)/pad_colonise.json
+PAD_METRICS_PROOF_REQUIRED := dead f16 press square aim required;dead f17 press circle aim required;dead f293 press circle jump required
+
+pad-metrics: $(TMP_DIR)/replay
+	@test -n "$(EVENTS)" || { echo "pad-metrics: EVENTS=<events.json> is required"; exit 2; }
+	@mkdir -p $(PAD_METRICS_DIR)
+	@$(call pad_metrics_run,$(EVENTS),$(CHECK),)
+
+pad-metrics-worst-case: $(TMP_DIR)/replay $(PAD_METRICS_GAMES)
+	@mkdir -p $(PAD_METRICS_DIR)
+	@$(foreach e,$(PAD_METRICS_GAMES),$(call pad_metrics_run,$(e),1,^section4 )) true
+
+pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) $(PAD_METRICS_PROOF_E2E)
+	@mkdir -p $(PAD_METRICS_DIR)
+	@./$(TMP_DIR)/pad_author $(PAD_METRICS_PROOF) $(PAD_METRICS_DIR)/pad_colonise.frames.json --no-aim-budget > /dev/null
+	@cmp $(PAD_METRICS_DIR)/pad_colonise.frames.json $(PAD_METRICS_PROOF_E2E)
+	@$(call pad_metrics_run,$(PAD_METRICS_PROOF_E2E),,^section4 verdict)
+	@grep '^total ' $(TMP_DIR)/pad-author/pad_colonise.modes.txt > $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt
+	@grep '^total ' $(PAD_METRICS_DIR)/pad_colonise.txt | diff $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt - || { echo "pad-metrics-check: the totals differ from the generator's"; exit 1; }
+	@required=$$(grep -E ' (required|dead-required)$$' $(PAD_METRICS_DIR)/pad_colonise.txt | paste -sd ';' -); test "$$required" = "$(PAD_METRICS_PROOF_REQUIRED)" || { echo "pad-metrics-check: required group is '$$required', not '$(PAD_METRICS_PROOF_REQUIRED)'"; exit 1; }
+	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's square, f17's circle and f293's circle"
+
+.PHONY: pad-metrics pad-metrics-worst-case pad-metrics-check
+
+WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
+
+worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE)
+	@sh tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) $(TMP_DIR)/worst-case-peaks.txt $(foreach e,$(FULL_GAME_EVENTS),$(e) $(call state_file,$(e)))
+
+.PHONY: pad-author pad-author-proof worst-case-peaks
+
 rng-sync-probe: $(TMP_DIR)/test_rng_sync
 	./$<
 
@@ -1032,6 +1241,25 @@ coverage: $(TMP_DIR)/replay_coverage tools/coverage.sh $(COVERAGE_EVENTS)
 
 .PHONY: coverage
 
+COVERAGE_BASELINE_COMMIT ?= 6346485
+COVERAGE_BASELINE_DIR := $(TMP_DIR)/coverage-baseline-$(COVERAGE_BASELINE_COMMIT)
+COVERAGE_COMPARE_DIR := $(TMP_DIR)/coverage-compare
+
+$(COVERAGE_BASELINE_DIR)/lines.txt:
+	rm -rf $(COVERAGE_BASELINE_DIR)/tree
+	git worktree prune
+	git worktree add --detach $(COVERAGE_BASELINE_DIR)/tree $(COVERAGE_BASELINE_COMMIT)
+	env -u MAKEFLAGS -u MFLAGS -u MAKELEVEL $(MAKE) -C $(COVERAGE_BASELINE_DIR)/tree coverage
+	cp $(COVERAGE_BASELINE_DIR)/tree/$(TMP_DIR)/coverage/lines.txt $@
+	git worktree remove --force $(COVERAGE_BASELINE_DIR)/tree
+
+coverage-compare: coverage $(COVERAGE_BASELINE_DIR)/lines.txt tools/coverage_compare.sh
+	@mkdir -p $(COVERAGE_COMPARE_DIR)
+	@git diff --no-ext-diff --no-color --no-relative -U0 -M --histogram --src-prefix=a/ --dst-prefix=b/ $(COVERAGE_BASELINE_COMMIT) -- src/game src/engine > $(COVERAGE_COMPARE_DIR)/diff.txt
+	@sh tools/coverage_compare.sh $(COVERAGE_BASELINE_DIR)/lines.txt $(TMP_DIR)/coverage/lines.txt $(COVERAGE_COMPARE_DIR)/diff.txt > $(COVERAGE_COMPARE_DIR)/report.txt; status=$$?; grep -v '^hit ' $(COVERAGE_COMPARE_DIR)/report.txt; echo "coverage-compare: report in $(COVERAGE_COMPARE_DIR)/report.txt"; exit $$status
+
+.PHONY: coverage-compare
+
 STATE_DIR := $(TMP_DIR)/state
 STATE_EVENTS := $(FULL_GAME_EVENTS) $(E2E_EVENTS)
 STATE_RUNS := $(addprefix state-run-,$(STATE_EVENTS))
@@ -1054,6 +1282,25 @@ state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
 	@echo "state: $(words $(STATE_EVENTS)) replays, peaks in $(TMP_DIR)/state.txt"
 endif
+
+END_STATE_DIR := $(TMP_DIR)/end-state
+end_state_triples = $(foreach e,$(1),$(e) $(call state_file,$(e)) $(e).end-state)
+
+ifneq ($(strip $(EVENTS)),)
+end-state: $(TMP_DIR)/replay tools/end_state.sh
+	@mkdir -p $(END_STATE_DIR)
+	@rm -f $(END_STATE_DIR)/state.txt
+	@STATE=$(END_STATE_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS) /dev/null $(END_STATE_DIR)/dump.txt > $(END_STATE_DIR)/log.txt 2>&1 || true
+	@sh tools/end_state.sh check $(EVENTS) $(END_STATE_DIR)/state.txt $(or $(REFERENCE),$(EVENTS).end-state)
+else
+end-state: $(STATE_RUNS) tools/end_state.sh
+	@sh tools/end_state.sh check $(call end_state_triples,$(STATE_EVENTS))
+endif
+
+end-state-baseline: $(STATE_RUNS) tools/end_state.sh
+	@sh tools/end_state.sh baseline $(call end_state_triples,$(STATE_EVENTS))
+
+.PHONY: end-state end-state-baseline
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
@@ -1095,6 +1342,13 @@ float-grep: tools/float_grep.sh $(FLOAT_GREP_EXCLUSIONS)
 	@sh tools/float_grep.sh "$(CC)" "$(CFLAGS)" $(FLOAT_GREP_EXCLUSIONS) src $(CORE_SRCS)
 
 .PHONY: float-grep
+
+RANDOM_GUARD_EXCEPTIONS := tools/random_guard_exceptions.txt
+
+random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS)
+	@sh tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS) src
+
+.PHONY: random-guard
 
 float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh
 	@sh tools/float_link.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-link/replay $(call objs,$(REPLAY_SRCS))

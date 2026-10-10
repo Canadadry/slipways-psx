@@ -49,16 +49,22 @@ static struct {
     char path[128];
     int pointers;
     int lists;
+    int arrays;
 } count_cases[MAX_CASES];
 static int count_case_total;
 
-static void add_count_case(const char *name, const char *text, int pointers, int lists) {
+static void add_count_case_with_arrays(const char *name, const char *text, int pointers, int lists, int arrays) {
     assert(count_case_total < MAX_CASES);
     snprintf(count_cases[count_case_total].path, sizeof count_cases[0].path, SRC "/%s", name);
     write_file(count_cases[count_case_total].path, text);
     count_cases[count_case_total].pointers = pointers;
     count_cases[count_case_total].lists = lists;
+    count_cases[count_case_total].arrays = arrays;
     count_case_total++;
+}
+
+static void add_count_case(const char *name, const char *text, int pointers, int lists) {
+    add_count_case_with_arrays(name, text, pointers, lists, 0);
 }
 
 static void write_count_list(int excess) {
@@ -69,6 +75,8 @@ static void write_count_list(int excess) {
             fprintf(file, "%s %d\n", count_cases[i].path, count_cases[i].pointers + excess);
         if (count_cases[i].lists + excess > 0)
             fprintf(file, "entity-lists %s %d\n", count_cases[i].path, count_cases[i].lists + excess);
+        if (count_cases[i].arrays + excess > 0)
+            fprintf(file, "entity-arrays %s %d\n", count_cases[i].path, count_cases[i].arrays + excess);
     }
     fclose(file);
 }
@@ -98,9 +106,10 @@ static void check_count_cases(void) {
     assert(run_guard(sources) == 1);
     const char *out = read_file(OUT);
     for (int i = 0; i < count_case_total; i++) {
-        int pointers = count_cases[i].pointers, lists = count_cases[i].lists;
+        int pointers = count_cases[i].pointers, lists = count_cases[i].lists, arrays = count_cases[i].arrays;
         assert_line(out, pointers > 0 ? "write" : "remove", "", count_cases[i].path, pointers > 0 ? pointers : 1);
         assert_line(out, lists > 0 ? "write" : "remove", "entity-lists ", count_cases[i].path, lists > 0 ? lists : 1);
+        assert_line(out, arrays > 0 ? "write" : "remove", "entity-arrays ", count_cases[i].path, arrays > 0 ? arrays : 1);
     }
 }
 
@@ -125,7 +134,7 @@ static void write_comparison_sources(void) {
 static void test_exact_counts_pass_and_print_the_summary(void) {
     write_file(LIST, "# comment\n" HELD " 2\n" LISTS " 1  # trailing comment\nentity-lists " LISTS " 2\n");
     assert(run_guard(CMP_SOURCES) == 0);
-    assert(strcmp(read_file(OUT), "pointer-guard files 4 pointers 3 entity-lists 2\n") == 0);
+    assert(strcmp(read_file(OUT), "pointer-guard files 4 pointers 3 entity-lists 2 entity-arrays 0\n") == 0);
 }
 
 static void test_every_difference_fails_with_its_line(void) {
@@ -148,6 +157,18 @@ static void test_listed_count_below_actual_fails(void) {
     write_file(LIST, HELD " 1\n" LISTS " 1\nentity-lists " LISTS " 2\n");
     assert(run_guard(CMP_SOURCES) == 1);
     assert_line(read_file(OUT), "write", "", HELD, 2);
+}
+
+#define ARRAYS CMP "/arrays.c"
+
+static void test_entity_arrays_listed_below_actual_or_missing_fail(void) {
+    write_file(ARRAYS, "void run(void) {\n    entity_t *storage[8];\n    entity_t *others[8];\n}\n");
+    write_file(LIST, "entity-arrays " ARRAYS " 1\n");
+    assert(run_guard(ARRAYS) == 1);
+    assert_line(read_file(OUT), "write", "entity-arrays ", ARRAYS, 2);
+    write_file(LIST, "");
+    assert(run_guard(ARRAYS) == 1);
+    assert_line(read_file(OUT), "add", "entity-arrays ", ARRAYS, 2);
 }
 
 static void test_no_source_file_is_an_error_not_a_pass(void) {
@@ -221,6 +242,29 @@ static void case_file_scope_entity_lists_are_counted(void) {
  * that the parse survived it. */
 #define KEPT "struct kept {\n    int *kept;\n};\n"
 
+static void case_local_entity_arrays_are_counted_const_and_static_included(void) {
+    add_count_case_with_arrays("local_arrays.c",
+                               "void run(int n) {\n    entity_t *storage[CAP];\n    if (n) {\n"
+                               "        const entity_t *seen[4], *more[2];\n        static entity_t *cache[3];\n    }\n"
+                               "    if (n != 0 && n <= 2) {\n        return;\n    }\n    entity_t *after[2];\n}\n",
+                               0, 0, 5);
+}
+
+static void case_local_entity_pointers_that_are_no_arrays_are_left_out(void) {
+    add_count_case_with_arrays("local_pointers.c",
+                               "void run(entity_list_t *list) {\n    entity_t *e = list->items[2];\n"
+                               "    entity_t *f;\n    const entity_t *g = (const entity_t *)list->items[0];\n"
+                               "    planet_t *rows[4];\n    entity_kind_t *kinds[2];\n}\n" KEPT,
+                               1, 0, 0);
+}
+
+static void case_entity_arrays_outside_a_function_are_no_local_arrays(void) {
+    add_count_case_with_arrays("scoped_arrays.c",
+                               "static entity_t *g_table[4];\nstruct slots {\n    entity_t *slots[2];\n};\n"
+                               "void run(entity_t *params[]);\n",
+                               2, 0, 0);
+}
+
 static void case_function_pointer_fields_and_typedefs_are_left_out(void) {
     add_count_case("function_pointers.h",
                   "typedef void (*state_fn_t)(entity_t *self, p8_fixed_t t);\n"
@@ -285,6 +329,7 @@ int main(void) {
     test_exact_counts_pass_and_print_the_summary();
     test_every_difference_fails_with_its_line();
     test_listed_count_below_actual_fails();
+    test_entity_arrays_listed_below_actual_or_missing_fail();
     test_no_source_file_is_an_error_not_a_pass();
     test_unreadable_list_is_an_error_not_a_pass();
     case_plain_pointer_field_is_counted();
@@ -306,6 +351,9 @@ int main(void) {
     case_struct_variable_that_is_not_a_pointer_is_left_out();
     case_typedefs_outside_a_struct_body_are_left_out();
     case_entity_list_fields_are_counted_by_value_by_pointer_and_as_array();
+    case_local_entity_arrays_are_counted_const_and_static_included();
+    case_local_entity_pointers_that_are_no_arrays_are_left_out();
+    case_entity_arrays_outside_a_function_are_no_local_arrays();
     check_count_cases();
     assert(system("rm -rf " DIR) == 0);
     printf("test_pointer_guard: all tests passed\n");
