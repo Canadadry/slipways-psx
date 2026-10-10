@@ -292,3 +292,14 @@ If a step finds plan 12's code doing something this table does not list, it foll
 - Tests: in `test_pad_jump.c`, a swapped table moves directions and repeat, and an unbound mode neither jumps nor repeats. In `test_pad_nav.c`, `start_title_with(step, bindings)` (existing `start_title` passes the default) and `jump_mode_on_a_colony_with()`, which reaches jump mode on a colony with no button pressed so it survives later steps. The new test rotates jump's actions and directions and leaves slipway unbound: jump follows the table, slipway's target never moves.
 - One-off proofs (not committed): tagging `slipway_step`'s repeat with the jump mode fails `assert_slipway_mode` (`test_pad_nav.c:4053`). Leaving button 7 hardcoded fails the aim-mode assertion (`test_pad_nav.c:4142`), and the guard reports `pad_nav.c names 27 button(s), listed 26`.
 - Every `.sha256`, end state and generator/metrics output unchanged. `make raylib` links. `make test` 4.27–4.34 s, `make e2e` 0.23–0.24 s.
+
+### Step 2.10
+
+- Three commits: the pan takes the mode; aim mode reads the table; slipway mode reads the table.
+- `aim_pan(nav, mode, pad_buttons)` reads `mode`'s `pan_*` masks and asserts the mode has them. Aim passes aim, `placement_step` passes placement. `pad_nav.c` no longer calls `pad_jump_direction_button`.
+- `aim_mode_step`: `aim.leave_aim` (pressed, still waits for an engaged fold) and `aim.probe_or_fold` (held through a new `action_held`, pressed with `&& !release`). `cross_engaged` → `probe_or_fold_engaged` at all uses. The `×` in its comment became the action name.
+- `slipway_step` reads `slipway.build_on_target` once into a local used by both the release and the re-aim gate. Deviation from the PRD's two calls: this keeps the line short and the two reads can't drift.
+- Guard 36 → 31: the step-10 line was lowered to 2 after the aim commit, then removed.
+- Tests (`test_pad_nav.c`): new helpers `begin_game_with`, `start_game_with`, `parsed_table`. Aim follows a rotated table (pans, probe, fold, leave-aim waiting on the fold) while placement stays unbound. The mirror: placement pans on its table while aim stays unbound. Slipway builds on 8, not on 5, also with a direction pressed, and 8 does nothing in jump mode. Tables bind other modes' actions only on their default buttons, marked reach-only.
+- Mutation proofs (not committed): placement's pan tagged with the aim mode fails both pan tests (`assert_moved`, line 474, and line 4265). The probe/fold held read left on button 5 fails at the probe tap (line 4238), one check earlier than the PRD predicted, and the guard reports `names 24 button(s), listed 23`. The build read left on 5 fails test 3 (line 4345) and the guard reports `22`/`21`.
+- Every `.sha256`, end state and generator/metrics output unchanged. `make raylib` links. `make test` 4.23–4.50 s, `make e2e` 0.24–0.26 s.

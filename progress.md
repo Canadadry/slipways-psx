@@ -30,7 +30,7 @@
   - [x] 9. Jump mode reads its bindings
     - [x] Chunk 1: the hold repeat takes the table and the mode
     - [x] Chunk 2: jump_step reads the table
-  - [ ] 10. Aim and slipway modes read their bindings
+  - [x] 10. Aim and slipway modes read their bindings
     - [x] Chunk 1: the pan takes the mode
     - [x] Chunk 2: aim mode reads the table
     - [x] Chunk 3: slipway mode reads the table
