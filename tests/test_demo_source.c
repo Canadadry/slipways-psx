@@ -9,7 +9,7 @@
 
 #define WORK_DIR "tmp/test_demo_source_work"
 #define DEMO_PATH WORK_DIR "/demo.json"
-#define FRAMES_MAX (DEMO_SOURCE_FRAME_LIMIT + 1)
+#define FRAMES_MAX (DEMO_DATA_FRAME_LIMIT + 1)
 
 static const unsigned char RECORD[] = {0x53, 0x4c, 0x57, 0x59, 0x01, 0xab};
 
@@ -166,8 +166,8 @@ static void test_a_bindings_member_is_refused(void) {
 }
 
 static void test_3601_frames_are_refused(void) {
-    fixture_init(DEMO_SOURCE_FRAME_LIMIT + 1);
-    fixture_caption(0, DEMO_SOURCE_FRAME_LIMIT + 1, "probe the dark");
+    fixture_init(DEMO_DATA_FRAME_LIMIT + 1);
+    fixture_caption(0, DEMO_DATA_FRAME_LIMIT + 1, "probe the dark");
     fixture_write();
     assert_refused("3601 frames, at most 3600");
 }

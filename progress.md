@@ -22,7 +22,7 @@
   - [ ] 8. Compiled demo
     - [x] Chunk 1: captions reader
     - [x] Chunk 2: demo_source loader
-    - [ ] Chunk 3: demo_generate and compiled data
+    - [x] Chunk 3: demo_generate and compiled data
 - [ ] Phase 2 — Attract mode in the core
   - [ ] 9. Default table beside the compiled one
   - [ ] 10. Attract state machine

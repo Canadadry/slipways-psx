@@ -36,8 +36,8 @@ static int check_header(const demo_source_t *source, char *reason, size_t reason
         return 0;
     }
     int frame_count = replay_source_frame_count(&source->replay);
-    if (frame_count > DEMO_SOURCE_FRAME_LIMIT) {
-        snprintf(reason, reason_size, "%d frames, at most %d", frame_count, DEMO_SOURCE_FRAME_LIMIT);
+    if (frame_count > DEMO_DATA_FRAME_LIMIT) {
+        snprintf(reason, reason_size, "%d frames, at most %d", frame_count, DEMO_DATA_FRAME_LIMIT);
         return 0;
     }
     return 1;

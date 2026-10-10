@@ -3,11 +3,11 @@
 
 #include "devtools/pad_caption.h"
 #include "devtools/replay_source.h"
+#include "game/demo_data.h"
 
 #include <stddef.h>
 
-#define DEMO_SOURCE_FRAME_LIMIT 3600
-#define DEMO_SOURCE_CAPTIONS_MAX (DEMO_SOURCE_FRAME_LIMIT / PAD_CAPTION_SHOWN_MIN + 1)
+#define DEMO_SOURCE_CAPTIONS_MAX (DEMO_DATA_FRAME_LIMIT / PAD_CAPTION_SHOWN_MIN + 1)
 
 typedef struct {
     replay_source_t replay; /* the frames and the record, as `replay` reads them */
