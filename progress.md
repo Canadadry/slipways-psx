@@ -12,7 +12,7 @@
     - [x] Chunk 2: record_start module
     - [x] Chunk 3: replay from the resume
     - [x] Chunk 4: pad_author from-record
-  - [ ] 6. caption command
+  - [x] 6. caption command
     - [x] Chunk 1: caption rules module
     - [x] Chunk 2: pad_author caption command and output
   - [ ] 7. The demo script
