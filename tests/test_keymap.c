@@ -16,28 +16,32 @@ static void read_file(const char *path, char *buffer, size_t size) {
     fclose(file);
 }
 
+static void parse_default_file(keymap_t *out) {
+    char text[8192];
+    read_file("keymap.default.cfg", text, sizeof text);
+    keymap_error_t error;
+    int parsed = keymap_parse(text, out, &error);
+    if (!parsed) {
+        fprintf(stderr, "keymap.default.cfg:%d: %s\n", error.line, error.message);
+        assert(0);
+    }
+}
+
+static void test_the_compiled_default_keymap_is_the_parse_of_the_default_file(void) {
+    keymap_t parsed;
+    parse_default_file(&parsed);
+    assert(memcmp(&keymap_compiled, &parsed, sizeof parsed) == 0);
+}
+
 static void test_defaults_bind_button_5_to_x_and_right_face_down(void) {
     keymap_t keymap;
-    keymap_defaults(&keymap);
+    parse_default_file(&keymap);
     const keymap_button_t *button_5 = &keymap.buttons[4];
     assert(button_5->count == 2);
     assert(button_5->bindings[0].device == KEYMAP_KEYBOARD);
     assert(button_5->bindings[0].code == 88);
     assert(button_5->bindings[1].device == KEYMAP_GAMEPAD);
     assert(button_5->bindings[1].code == 7);
-}
-
-static void test_versioned_file_is_the_default_text_and_loads_as_the_defaults(void) {
-    char text[8192];
-    read_file("keymap.cfg", text, sizeof text);
-    assert(strcmp(text, keymap_default_text()) == 0);
-
-    keymap_t loaded;
-    keymap_t defaults;
-    keymap_error_t error;
-    assert(keymap_load("keymap.cfg", &loaded, &error) == KEYMAP_LOADED);
-    keymap_defaults(&defaults);
-    assert(memcmp(&loaded, &defaults, sizeof loaded) == 0);
 }
 
 static keymap_binding_t binding_named(const char *name) {
@@ -63,7 +67,7 @@ static void test_defaults_hold_the_plan_table_in_pad_bit_order(void) {
         { "ENTER", "MIDDLE_RIGHT" }, { "RIGHT_SHIFT", "MIDDLE_LEFT" },
     };
     keymap_t keymap;
-    keymap_defaults(&keymap);
+    parse_default_file(&keymap);
     for (int i = 0; i < P8_PAD_BUTTON_COUNT; i++) {
         assert(keymap.buttons[i].count == 2);
         assert(keymap.buttons[i].bindings[0].device == KEYMAP_KEYBOARD);
@@ -71,46 +75,6 @@ static void test_defaults_hold_the_plan_table_in_pad_bit_order(void) {
         assert_binding(&keymap.buttons[i].bindings[0], expected[i][0]);
         assert_binding(&keymap.buttons[i].bindings[1], expected[i][1]);
     }
-}
-
-static void test_missing_file_loads_the_defaults(void) {
-    keymap_t loaded;
-    keymap_t defaults;
-    keymap_error_t error;
-    remove("tmp/test_keymap_missing.cfg");
-    assert(keymap_load("tmp/test_keymap_missing.cfg", &loaded, &error) == KEYMAP_MISSING);
-    keymap_defaults(&defaults);
-    assert(memcmp(&loaded, &defaults, sizeof loaded) == 0);
-    const keymap_button_t *start = &loaded.buttons[10];
-    assert(start->bindings[0].device == KEYMAP_KEYBOARD && start->bindings[0].code == 257);
-    assert(start->bindings[1].device == KEYMAP_GAMEPAD && start->bindings[1].code == 15);
-}
-
-static void test_unreadable_path_is_invalid_not_the_defaults(void) {
-    keymap_t keymap;
-    keymap_error_t error;
-    assert(keymap_load("tmp", &keymap, &error) == KEYMAP_INVALID);
-    assert(error.line == 0);
-    assert(strstr(error.message, "read") != NULL);
-}
-
-static void write_file(const char *path, const char *text) {
-    FILE *file = fopen(path, "wb");
-    assert(file != NULL);
-    fputs(text, file);
-    fclose(file);
-}
-
-static void test_file_over_four_kib_is_invalid(void) {
-    char text[4200];
-    memset(text, '#', sizeof text - 1);
-    text[sizeof text - 1] = '\0';
-    write_file("tmp/test_keymap_large.cfg", text);
-    keymap_t keymap;
-    keymap_error_t error;
-    assert(keymap_load("tmp/test_keymap_large.cfg", &keymap, &error) == KEYMAP_INVALID);
-    assert(error.line == 0);
-    assert(strstr(error.message, "4096") != NULL);
 }
 
 #define PREAMBLE "# a comment\n\n1 = UP, LEFT_FACE_UP\n"
@@ -198,27 +162,20 @@ static void test_line_over_127_characters_is_reported_with_its_number(void) {
 }
 
 static void test_button_without_a_line_is_reported_with_line_zero(void) {
-    char text[4096];
-    snprintf(text, sizeof text, "%s", keymap_default_text());
+    char file_text[8192];
+    read_file("keymap.default.cfg", file_text, sizeof file_text);
+    char text[8192];
+    snprintf(text, sizeof text, "%s", file_text);
     char *button_8 = strstr(text, "\n8 = ");
     assert(button_8 != NULL);
     button_8[1] = '#';
     assert_parse_error(text, 0, "no line for button 8");
 
-    snprintf(text, sizeof text, "%s", keymap_default_text());
+    snprintf(text, sizeof text, "%s", file_text);
     char *button_12 = strstr(text, "\n12 = ");
     assert(button_12 != NULL);
     button_12[1] = '#';
     assert_parse_error(text, 0, "no line for button 12");
-}
-
-static void test_invalid_file_reports_the_line_through_load(void) {
-    write_file("tmp/test_keymap_invalid.cfg", PREAMBLE "2 = DOWN\n3 = LEFT_KEY\n");
-    keymap_t keymap;
-    keymap_error_t error;
-    assert(keymap_load("tmp/test_keymap_invalid.cfg", &keymap, &error) == KEYMAP_INVALID);
-    assert(error.line == 5);
-    assert(strstr(error.message, "LEFT_KEY") != NULL);
 }
 
 static const char plain_text[] =
@@ -317,7 +274,7 @@ static void hold(held_set_t *held, const char *name) {
 static void test_holding_button_n_sets_bit_n_minus_1(void) {
     assert(P8_PAD_BUTTON_12 == 1 << (P8_PAD_BUTTON_COUNT - 1));
     keymap_t keymap;
-    keymap_defaults(&keymap);
+    parse_default_file(&keymap);
     for (int number = 1; number <= P8_PAD_BUTTON_COUNT; number++) {
         held_set_t held = { .count = 1 };
         held.held[0] = keymap.buttons[number - 1].bindings[0];
@@ -346,7 +303,7 @@ static void test_lines_in_reverse_order_parse_as_the_plain_form(void) {
 
 static void test_pad_buttons_or_the_held_bindings(void) {
     keymap_t keymap;
-    keymap_defaults(&keymap);
+    parse_default_file(&keymap);
     held_set_t held = { .count = 0 };
     assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == 0);
 
@@ -379,12 +336,9 @@ static void test_pad_buttons_or_the_held_bindings(void) {
 }
 
 int main(void) {
+    test_the_compiled_default_keymap_is_the_parse_of_the_default_file();
     test_defaults_bind_button_5_to_x_and_right_face_down();
-    test_versioned_file_is_the_default_text_and_loads_as_the_defaults();
     test_defaults_hold_the_plan_table_in_pad_bit_order();
-    test_missing_file_loads_the_defaults();
-    test_unreadable_path_is_invalid_not_the_defaults();
-    test_file_over_four_kib_is_invalid();
     test_line_without_equal_is_reported_with_its_number();
     test_bad_button_is_reported_with_its_number();
     test_empty_item_is_reported_with_its_number();
@@ -395,7 +349,6 @@ int main(void) {
     test_more_than_four_bindings_is_reported_with_its_number();
     test_line_over_127_characters_is_reported_with_its_number();
     test_button_without_a_line_is_reported_with_line_zero();
-    test_invalid_file_reports_the_line_through_load();
     test_blanks_comments_crlf_and_last_line_without_newline_parse();
     test_name_table_is_unique_and_holds_raylib_codes();
     test_holding_button_n_sets_bit_n_minus_1();

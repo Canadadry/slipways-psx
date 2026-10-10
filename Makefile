@@ -211,9 +211,10 @@
 #                       outside the suite
 # make raylib        -> compiles and LINKS the interactive binary, never runs
 #                       it (needs make raylib-vendor-setup first); prints the
-#                       bindings file it compiled: bindings.cfg when present,
-#                       else bindings.default.cfg, which every other target
-#                       compiles
+#                       bindings and keymap files it compiled: <name>.cfg
+#                       when present, else <name>.default.cfg; every other
+#                       target compiles bindings.default.cfg, and only
+#                       test_keymap compiles keymap.default.cfg
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
@@ -505,7 +506,16 @@ $(TMP_DIR)/test_fixed: $(call objs,tests/test_fixed.c src/p8/fixed.c src/devtool
 $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c src/game/bindings.c) keymap.cfg | $(TMP_DIR)
+KEYMAP_DEFAULT_UNIT := $(TMP_DIR)/keymap/default.c
+
+$(TMP_DIR)/keymap_generate: $(call objs,src/cmd/keymap_generate.c src/platform/keymap.c src/game/bindings.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(KEYMAP_DEFAULT_UNIT): keymap.default.cfg $(TMP_DIR)/keymap_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/keymap_generate $< $@
+
+$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c src/game/bindings.c $(KEYMAP_DEFAULT_UNIT)) keymap.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 BINDINGS_DEFAULT_UNIT := $(TMP_DIR)/bindings/default.c
@@ -1487,6 +1497,16 @@ $(BINDINGS_GAME_UNIT): $(BINDINGS_CHOSEN) $(TMP_DIR)/bindings.source $(TMP_DIR)/
 	@mkdir -p $(@D)
 	$(TMP_DIR)/bindings_generate $(BINDINGS_CHOSEN) $@
 
+KEYMAP_GAME_UNIT := $(TMP_DIR)/keymap/game.c
+KEYMAP_CHOSEN := $(if $(wildcard keymap.cfg),keymap.cfg,keymap.default.cfg)
+
+$(TMP_DIR)/keymap.source: FORCE | $(TMP_DIR)
+	@echo '$(KEYMAP_CHOSEN)' | cmp -s - $@ || echo '$(KEYMAP_CHOSEN)' > $@
+
+$(KEYMAP_GAME_UNIT): $(KEYMAP_CHOSEN) $(TMP_DIR)/keymap.source $(TMP_DIR)/keymap_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/keymap_generate $(KEYMAP_CHOSEN) $@
+
 GAME_SRCS := \
     src/cmd/game.c \
     src/platform/raylib_backend.c \
@@ -1497,6 +1517,7 @@ GAME_SRCS := \
     src/devtools/session_recorder.c \
     src/platform/save_storage_file.c \
     $(BINDINGS_GAME_UNIT) \
+    $(KEYMAP_GAME_UNIT) \
     $(filter-out src/devtools/save_storage_memory.c,$(ENGINE_SRCS))
 
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
@@ -1504,10 +1525,11 @@ $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libra
 
 raylib: $(TMP_DIR)/game
 	@echo "bindings: $(BINDINGS_CHOSEN)$(if $(wildcard bindings.cfg), (personal))"
+	@echo "keymap: $(KEYMAP_CHOSEN)$(if $(wildcard keymap.cfg), (personal))"
 
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.
--include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d)
+-include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d $(OBJ_DIR)/tmp/keymap/*.d)
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d)

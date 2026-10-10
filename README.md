@@ -27,7 +27,7 @@ The game saves after every action, and the title's `resume` row brings that game
 | Start pause | Enter | Enter | right middle |
 | Select attention / end year | Right Shift | Right Shift | left middle |
 
-Keys can be changed in `keymap.cfg`.
+Keys are set in `keymap.default.cfg`; to change them, copy it to `keymap.cfg`, edit it, then run `make raylib`.
 
 Point at a thing, × acts on it, ○ backs out.
 

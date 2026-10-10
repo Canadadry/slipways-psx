@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-static const char KEYMAP_PATH[] = "keymap.cfg";
 static const char SAVE_PATH[] = "save/slipways.sav";
 static const char USAGE[] = "usage: game [<recording.json>]\n";
 
@@ -41,23 +40,6 @@ int main(int argc, char **argv) {
                 replay_path);
         replay_source_close(&replay);
         return 1;
-    }
-
-    keymap_t keymap;
-    keymap_error_t keymap_error;
-    keymap_load_status_t keymap_status = keymap_load(KEYMAP_PATH, &keymap, &keymap_error);
-    if (keymap_status == KEYMAP_INVALID) {
-        assert(!IsWindowReady() && "an invalid keymap.cfg must fail before the window opens");
-        if (keymap_error.line > 0) {
-            fprintf(stderr, "game: %s:%d: %s\n", KEYMAP_PATH, keymap_error.line, keymap_error.message);
-        } else {
-            fprintf(stderr, "game: %s: %s\n", KEYMAP_PATH, keymap_error.message);
-        }
-        replay_source_close(&replay);
-        return 1;
-    }
-    if (keymap_status == KEYMAP_MISSING) {
-        fprintf(stderr, "game: %s not found, using the built-in defaults.\n", KEYMAP_PATH);
     }
 
     if (!replay_source_seed_storage(&replay)) {
@@ -98,7 +80,7 @@ int main(int argc, char **argv) {
     dispatch_context_set_mem(&memory);
 
     raylib_backend_t backend;
-    raylib_backend_init(&backend, &keymap);
+    raylib_backend_init(&backend, &keymap_compiled);
 
     static uint8_t startup_save[SAVE_STATE_MAX_BYTES];
     int startup_save_count = save_storage_read(startup_save, (int)sizeof startup_save);

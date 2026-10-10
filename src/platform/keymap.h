@@ -29,23 +29,15 @@ typedef struct {
     char message[192];
 } keymap_error_t;
 
-typedef enum {
-    KEYMAP_LOADED,
-    KEYMAP_MISSING,
-    KEYMAP_INVALID
-} keymap_load_status_t;
-
 typedef int (*keymap_is_down_fn)(keymap_device_t device, int code, void *context);
 
-const char *keymap_default_text(void);
-
-void keymap_defaults(keymap_t *out);
+/* Defined by the generated unit each linking binary carries (the chosen
+ * keymap file for game, keymap.default.cfg for test_keymap), never by a
+ * source file. */
+extern const keymap_t keymap_compiled;
 
 /* Returns 0 and fills *error on the first invalid line; *out is then unusable. */
 int keymap_parse(const char *text, keymap_t *out, keymap_error_t *error);
-
-/* KEYMAP_MISSING fills *out with the defaults; KEYMAP_INVALID fills *error. */
-keymap_load_status_t keymap_load(const char *path, keymap_t *out, keymap_error_t *error);
 
 int keymap_pad_buttons(const keymap_t *keymap, keymap_is_down_fn is_down, void *context);
 

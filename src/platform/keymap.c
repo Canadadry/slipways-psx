@@ -4,13 +4,9 @@
 #include "p8/input.h"
 #include "platform/keymap_names.h"
 
-#include <assert.h>
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-
-#define KEYMAP_MAX_FILE_SIZE 4096
 
 static void set_error(keymap_error_t *error, int line, const char *format, ...) {
     va_list arguments;
@@ -19,26 +15,6 @@ static void set_error(keymap_error_t *error, int line, const char *format, ...) 
     vsnprintf(error->message, sizeof error->message, format, arguments);
     va_end(arguments);
 }
-
-static const char builtin_text[] =
-    "# Which keyboard keys and gamepad 0 buttons press each of the 12 buttons.\n"
-    "# One line per button: N = name[, name...], N from 1 to 12.\n"
-    "# Names are raylib's KeyboardKey and GamepadButton names without their\n"
-    "# KEY_ / GAMEPAD_BUTTON_ prefix (see raylib.h). Letter keys are key\n"
-    "# positions named after the US layout. # starts a comment.\n"
-    "\n"
-    "1 = UP, LEFT_FACE_UP\n"
-    "2 = DOWN, LEFT_FACE_DOWN\n"
-    "3 = LEFT, LEFT_FACE_LEFT\n"
-    "4 = RIGHT, LEFT_FACE_RIGHT\n"
-    "5 = X, RIGHT_FACE_DOWN\n"
-    "6 = C, RIGHT_FACE_RIGHT\n"
-    "7 = Z, RIGHT_FACE_LEFT\n"
-    "8 = V, RIGHT_FACE_UP\n"
-    "9 = A, LEFT_TRIGGER_1\n"
-    "10 = S, RIGHT_TRIGGER_1\n"
-    "11 = ENTER, MIDDLE_RIGHT\n"
-    "12 = RIGHT_SHIFT, MIDDLE_LEFT\n";
 
 /* Space drops a marker, the page keys and End set the replay speed, Escape
  * closes the raylib window. */
@@ -59,10 +35,6 @@ static const name_entry_t name_entries[] = {
 };
 
 #define NAME_ENTRY_COUNT ((int)(sizeof name_entries / sizeof name_entries[0]))
-
-const char *keymap_default_text(void) {
-    return builtin_text;
-}
 
 int keymap_find_binding(const char *name, keymap_binding_t *out) {
     for (int i = 0; i < NAME_ENTRY_COUNT; i++) {
@@ -209,40 +181,6 @@ int keymap_parse(const char *text, keymap_t *out, keymap_error_t *error) {
         }
     }
     return 1;
-}
-
-void keymap_defaults(keymap_t *out) {
-    keymap_error_t error;
-    int parsed = keymap_parse(builtin_text, out, &error);
-    assert(parsed && "keymap_defaults: the built-in keymap text must parse");
-    (void)parsed;
-}
-
-keymap_load_status_t keymap_load(const char *path, keymap_t *out, keymap_error_t *error) {
-    char text[KEYMAP_MAX_FILE_SIZE + 2];
-    errno = 0;
-    FILE *file = fopen(path, "rb");
-    if (file == NULL && errno == ENOENT) {
-        keymap_defaults(out);
-        return KEYMAP_MISSING;
-    }
-    if (file == NULL) {
-        set_error(error, 0, "cannot be read");
-        return KEYMAP_INVALID;
-    }
-    size_t length = fread(text, 1, KEYMAP_MAX_FILE_SIZE + 1, file);
-    int read_failed = ferror(file);
-    fclose(file);
-    if (read_failed) {
-        set_error(error, 0, "cannot be read");
-        return KEYMAP_INVALID;
-    }
-    if (length > KEYMAP_MAX_FILE_SIZE) {
-        set_error(error, 0, "larger than %d bytes", KEYMAP_MAX_FILE_SIZE);
-        return KEYMAP_INVALID;
-    }
-    text[length] = '\0';
-    return keymap_parse(text, out, error) ? KEYMAP_LOADED : KEYMAP_INVALID;
 }
 
 int keymap_pad_buttons(const keymap_t *keymap, keymap_is_down_fn is_down, void *context) {
