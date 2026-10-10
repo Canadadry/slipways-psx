@@ -40,8 +40,8 @@ Goals that justify every rule below:
 - **Bindings format.** One line per `mode.action = N[, N…]`. `#` starts a comment. Same style as today's `keymap.cfg`.
 - **A missing line means the action is unbound in that mode.** It never falls back to the default. What the file says is what the game does. The doc's `nothing` entries disappear.
 - **Conflicts are errors.** The same button on two actions of one mode makes the file invalid (`bindings.cfg:12: button 7 already bound in mode jump`). The same button in different modes is normal. Unknown mode, unknown action, a button outside 1–12, or a mode.action given twice are also errors.
-- **The cheat chord stays fixed on buttons 5 + 6**, below the bindings: `cheat.c` and `pad_nav.c`'s `without_chord` keep hiding buttons 5 and 6 from every mode from a chord frame until both are up, whatever the bindings say. It is a dev tool. The default bindings file documents that 5 + 6 together is reserved.
-- **`back` first closes a shown message box** (the year box) in jump and aim mode, as ○ does on plan 12. There is no separate message-box mode.
+- **The cheat chord stays fixed on buttons 5 + 6**, below the bindings: `cheat.c` and `pad_nav.c`'s `without_chord` keep hiding buttons 5 and 6 from every mode from a chord frame until both are up, whatever the bindings say. `without_chord` takes the chord mask from the cheat module, so no button name is left in `pad_nav.c`. It is a dev tool. The default bindings file documents that 5 + 6 together is reserved.
+- **On the map, the mode's ○ action** (`jump.back`, `aim.back`, `slipway.cancel_slipway`, `placement.cancel_placement`) **first closes a shown message box** (the year box) and does nothing else, as ○ does on plan 12. There is no separate message-box mode.
 
 **When and how the files are read**
 
@@ -77,9 +77,9 @@ The default reproduces plan 12's controls exactly. Each line gives `action = but
 - **jump**: jump_up 1, jump_down 2, jump_left 3, jump_right 4, act_on_hovered 5, back 6, enter_aim 7, open_menu 8, open_build_bar 9, open_tech_panel 10, pause 11, select_tap_or_year 12.
 - **aim**: pan_up 1, pan_down 2, pan_left 3, pan_right 4, probe_or_fold 5, back 6, leave_aim 7, open_build_bar 9, open_tech_panel 10, pause 11, select_tap_or_year 12.
 - **slipway**: jump_up 1, jump_down 2, jump_left 3, jump_right 4, build_on_target 5, cancel_slipway 6, open_build_bar 9, open_tech_panel 10, pause 11.
-- **menu** (the box of a hovered object): move_up 1, move_down 2, move_left 3, move_right 4, choose_row 5, close_menu 6 and 8, open_build_bar 9, open_tech_panel 10.
+- **menu** (the box of a hovered object): move_up 1, move_down 2, move_left 3, move_right 4, choose_row 5, close_menu 6, open_menu 8 (pressed again, closes the box), open_build_bar 9, open_tech_panel 10.
 - **pause**: move_up 1, move_down 2, move_left 3, move_right 4, choose_row 5, close_pause 6 and 11.
-- **build_bar**: pick_left 3, pick_right 4, take_structure 5, close_bar 6 and 9, open_tech_panel 10, pause 11.
+- **build_bar**: pick_left 3, pick_right 4, take_structure 5, close_bar 6, open_build_bar 9 (pressed again, closes the bar), open_tech_panel 10, pause 11.
 - **placement**: pan_up 1, pan_down 2, pan_left 3, pan_right 4, place_structure 5, cancel_placement 6, open_build_bar 9, open_tech_panel 10, pause 11.
 - **panels** (tech and score): move_up 1, move_down 2, move_left 3, move_right 4, choose_row 5, close_panel 6, open_build_bar 9, next_panel 10.
 
@@ -201,3 +201,57 @@ If a step finds plan 12's code doing something this table does not list, it foll
 - Pad tests changed only mechanically; one new conversion test in `test_pad_jump.c`.
 - Every `.sha256` and end state unchanged; generator and metrics outputs byte-identical. `make raylib` links (raylib vendored in this container during the step). `make test` 4.18–4.27 s, `make e2e` 0.23 s.
 - End of phase 1: `warn-review` flagged duplicated button parsing and counts, devtools depending on `pad_jump` for directions, and leftover PSX words. Accepted `plan-review` proposals: step 8 takes the devtools off the `pad_jump` direction helpers and renames the deferred PSX words, stating the `dead_circle.refused.pad` expectation change; steps 9–13 rename PSX-named locals on the lines they convert, and step 14 greps for PSX words; step 6 owns one button count and button-number reader, reused by step 8 and step 15. Not taken: the repeated chord mask (fixed on 5 + 6, can't drift), the duplicated `is_direction`, a unit test for `pad_author.c` (covered by the proofs).
+
+### Step 2.5
+
+- Two commits: the guard (`tools/button_guard.sh`, `tools/button_guard_allowance.txt`, `make button-guard` in `make test`, `tests/test_button_guard.c`), then this note and section 2's amendments. No file of `src/` changed.
+- The inventory was read at 6b5b753 and re-checked on 52e00fb (no `src/` change between them): `git grep -o P8_PAD_BUTTON_ -- src/game` gives 37 names in 4 files, none in a comment or a string, and `make button-guard` prints `button-guard files 4 reads 37`. Count names, not lines: `git grep -c` gives 27 for `pad_nav.c`, because lines 461, 869 and 935 name two buttons each.
+- Inventory. Lines are `pad_nav.c`'s unless a file is named. "Indirect" rows reach the buttons through a `pad_jump` helper or the shared pressed direction; the guard does not count them and their line is the call site. Buttons: 1–4 D-pad, 5 ×, 6 ○, 7 □, 8 △, 9 L1, 10 R1, 11 Start, 12 Select.
+
+| # | Function | Line | Read | Mode(s) today | Becomes | Step |
+|---|---|---|---|---|---|---|
+| 1 | `jump_step` | 664 | pressed 7 | jump | `jump.enter_aim` | 9 |
+| 2 | `jump_step` | 685 | pressed 8 | jump | `jump.open_menu` | 9 |
+| 3 | `jump_step` | 688 | pressed 5, known object (click) | jump | `jump.act_on_hovered` | 9 |
+| 4 | `jump_step` | 694 | pressed 5, slipway start | jump | `jump.act_on_hovered` | 9 |
+| 5 | `pad_jump_repeat_step` from `jump_step` | 669 | indirect: pressed and held 1–4 (`pad_jump.c` 49, 79) | jump | `jump.jump_*` | 9 |
+| 6 | `pad_jump_repeat_step` from `slipway_step` | 762 | indirect: pressed and held 1–4 | slipway | `slipway.jump_*` | 9 (shared helper) |
+| 7 | `aim_mode_step` | 356 | pressed 7 | aim | `aim.leave_aim` | 10 |
+| 8 | `aim_mode_step` | 360 | held 5 (fold release) | aim | `aim.probe_or_fold` | 10 |
+| 9 | `aim_mode_step` | 362 | pressed 5 (engage) | aim | `aim.probe_or_fold` | 10 |
+| 10 | `aim_pan` from `aim_mode_step` | 351 | indirect: held 1–4 (`aim_pan` 154) | aim | `aim.pan_*` | 10 |
+| 11 | `aim_pan` from `placement_step` | 573 | indirect: held 1–4 | placement | `placement.pan_*` | 10 (shared helper) |
+| 12 | `slipway_step` | 765 | pressed 5 (release on target) | slipway | `slipway.build_on_target` | 10 |
+| 13 | `slipway_step` | 770 | not pressed 5 (gate on the re-aim) | slipway | `slipway.build_on_target` | 10 |
+| 14 | `build_step` | 489 | pressed 5 | build_bar | `build_bar.take_structure` | 11 |
+| 15 | `build_step` | 493–494 | indirect: shared direction LEFT/RIGHT | build_bar | `build_bar.pick_left`, `pick_right` | 11 |
+| 16 | `placement_step` | 567 | pressed 6 | placement | `placement.cancel_placement` | 11 |
+| 17 | `placement_step` | 575 | pressed 5 | placement | `placement.place_structure` | 11 |
+| 18 | `panel_step` | 223, 225 | pressed 5 arms pause; held 5 masked until armed (2 names) | pause | `pause.choose_row` | 12 |
+| 19 | `panel_step` | 228, 230 | pressed 5 arms menu; held 5 masked until armed (2 names) | title, menu, panels | `<mode>.choose_row` | 12 |
+| 20 | `pad_panel_step` | `pad_panel.c` 260 | held 5 → left mouse button | title, menu, pause, panels | `<mode>.choose_row` | 12 |
+| 21 | `panel_step` → `pad_panel_step` | 233 | indirect: shared direction | title, menu, pause, panels | `<mode>.move_*` | 12 |
+| 22 | `map_step` | 793 | pressed 8, planet menu open | menu | `menu.open_menu` (closes the box) | 12 |
+| 23 | `pause_step` | 869 | pressed 11 or 6 while pause is shown (2 names) | pause | `pause.close_pause` | 12 |
+| 24 | `pad_nav_step` | 947 | indirect: `pad_jump_first_direction(pressed)` | all (rows 15, 21) | dissolved into rows 15 and 21 | 12 |
+| 25 | `pad_jump_direction_button` | `pad_jump.c` 59, 61, 63, 65 | conversion naming 1–4 (4 names) | all | removed from `src/game/` | 12 |
+| 26 | `one_shoulder` | 461 | pressed 10 xor pressed 9 (2 names) | jump, aim, slipway, menu, build_bar, placement, panels | `open_tech_panel` (`panels.next_panel`) xor `open_build_bar` | 13 |
+| 27 | `shoulder_switch` | 466 | pressed 10 | same | `open_tech_panel` / `panels.next_panel` | 13 |
+| 28 | `switch_panels` | 824 | pressed 6, off the map | build_bar, panels | `build_bar.close_bar`, `panels.close_panel` | 13 |
+| 29 | `pause_step` | 879 | pressed 11 opens pause | jump, aim, slipway, build_bar, placement | `<mode>.pause` | 13 |
+| 30 | `pad_nav_step` | 964 | held 12 (`select_down`) | every mode (tracker); acts in jump, aim | `jump/aim.select_tap_or_year` | 13 |
+| 31 | `pad_nav_step` | 974 | pressed 6 → `circle_returns` | jump, aim, slipway | `jump.back`, `aim.back`, `slipway.cancel_slipway` | 13 |
+| 32 | `pad_nav_step` | 975 | pressed 6 → closes a box, or the message box on the map | menu, panels; jump, aim, slipway, placement | `menu.close_menu`, `panels.close_panel`; the map mode's ○ action | 13 |
+| 33 | `pad_nav_step` | 980 | clears 6 from `pressed` after closing the message box | same as 32 | same as 32 | 13 |
+| 34 | `without_chord` | 935 | chord mask 5 + 6 (2 names) | all | cheat module mask, not a binding | 13 |
+| 35 | `cheat_step` | `cheat.c` 34, 35 | held 5, held 6 (2 names) | all | stays | fixed |
+
+- Per file, as the allowance lists it: `pad_nav.c` 30 = 4 (step 9: rows 1–4) + 5 (step 10: rows 7–9, 12–13) + 3 (step 11: rows 14, 16–17) + 7 (step 12: rows 18, 19, 22, 23) + 11 (step 13: rows 26–34); `pad_panel.c` 1 (step 12: row 20); `pad_jump.c` 4 (step 12: row 25); `cheat.c` 2 (fixed: row 35).
+- Assignment rules: a read inside one mode goes to that mode's step; a helper shared by modes of different steps goes to the earliest one, which gives it a mode argument (hold-repeat → 9, `aim_pan` → 10); a pre-dispatch read serving several steps goes to 13; the shared pressed direction and `pad_jump.c`'s conversions go to their last game-side consumer, 12 (step 8 has moved the devtools off them by then).
+- Mode of the pre-dispatch reads (step 13). Rows 31–33: `menu`, `panels` or `build_bar` with a non-pause box open; otherwise the map mode (`placement` when carrying, else from `map_mode`), even under pause, because the message-box close tests `on_the_map`, which stays true while pause is shown. Row 30: the union of `jump.select_tap_or_year` and `aim.select_tap_or_year` in every mode, so `pad_select_step`'s latch still stops a Select held from another mode from firing on return. Rows 26–27, 29: the current mode, with `shoulders_can_switch` and `pause_button_free` kept. Row 28: `build_bar` when the bar is open, else `panels`.
+- Mode of `panel_step` (step 12): `pause` when shown; `title` with no game; `panels` over a tech or score panel; `menu` otherwise, which covers any box over the map (an aim-mode click too) and any panel over the build bar.
+- Section 2 amended, following the code: menu's `close_menu 6 and 8` split into `close_menu 6` (○ before the dispatch, any non-pause box) and `open_menu 8` (`map_step`, planet menu only, no click releasing or pending); build_bar's `close_bar 6 and 9` split into `close_bar 6` (`switch_panels`) and `open_build_bar 9` (`one_shoulder`, exactly one of L1 and R1), so L1 + R1 together cannot close the bar through the ○ path; the message-box rule covers every map mode's ○ action, slipway and placement included (`pad_nav_step` closes it whenever the nav is on the map with no box); `without_chord` takes the chord mask from the cheat module. Not split: `pause.close_pause 6 and 11`, both read in one test with one condition. No new action name.
+- Traps: step 11's build bar picks from the shared direction (first pressed of up, down, left, right), so up or down pressed with left or right does not move it today, and a plain `pick_left` binding would. The panels' `move_*` keep that priority. `jump.act_on_hovered` stays two reads with their own conditions.
+- One-off red runs, not committed: a planted `P8_PAD_BUTTON_5` read in `pad_nav.c` gives `button_guard: src/game/pad_nav.c names 31 button(s), listed 30`; deleting the step-11 allowance line gives `names 30 button(s), listed 27`.
+- Every `.sha256` unchanged. `make test` 4.46, 4.27, 4.31 s; `make e2e` 0.232, 0.236, 0.233 s.
+- Pilot: the amendments to the message-box and cheat-chord sentences sit in section 2's Locked decisions, not the table, because the old wording would contradict the reconciled table. Step 6's PRD hypotheses (H-5-1…6) hold against this note.
