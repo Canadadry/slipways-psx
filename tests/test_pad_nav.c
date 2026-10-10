@@ -1898,23 +1898,31 @@ static void assert_years_ended(year_facts_t before, int years) {
 }
 
 /* Select held for frames, each of which must press nothing. */
-static void hold_select_pressing_nothing(input_step_t *step, int frames) {
+static void hold_select_pressing_nothing_on(input_step_t *step, int button, int frames) {
     for (int i = 0; i < frames; i++) {
-        run_frame(step, P8_PAD_BUTTON_12);
+        run_frame(step, button);
         assert(input_step_played_frame(step)->mouse_buttons == 0);
     }
 }
 
+static void hold_select_pressing_nothing(input_step_t *step, int frames) {
+    hold_select_pressing_nothing_on(step, P8_PAD_BUTTON_12, frames);
+}
+
 /* Holds Select up to its 30th frame, which presses the year-skip button, then one more frame, its release. */
-static void hold_select_to_the_year(input_step_t *step) {
+static void hold_select_to_the_year_on(input_step_t *step, int button) {
     int x, y;
     year_skip_point(&x, &y);
-    hold_select_pressing_nothing(step, PAD_SELECT_HOLD_FRAMES - 1);
-    run_frame(step, P8_PAD_BUTTON_12);
+    hold_select_pressing_nothing_on(step, button, PAD_SELECT_HOLD_FRAMES - 1);
+    run_frame(step, button);
     assert_played(step, x, y, P8_MOUSE_LEFT);
     assert(pad_nav_year_chain_open(&step->pad_nav));
-    run_frame(step, P8_PAD_BUTTON_12);
+    run_frame(step, button);
     assert(input_step_played_frame(step)->mouse_buttons == 0);
+}
+
+static void hold_select_to_the_year(input_step_t *step) {
+    hold_select_to_the_year_on(step, P8_PAD_BUTTON_12);
 }
 
 static void test_a_new_game_starts_on_the_map(void) {
@@ -4788,6 +4796,54 @@ static void test_the_shoulders_follow_the_current_modes_table_and_placement_stay
     }
 }
 
+static void assert_no_pause_opens(input_step_t *step, int count, const int *buttons) {
+    for (int i = 0; i < count; i++) {
+        tap(step, buttons[i]);
+        settle(step);
+        assert(!pause_menu_shown());
+    }
+}
+
+static void test_pause_opens_on_the_current_modes_table_and_neighbours_stay_unbound(void) {
+    bindings_t table = parsed_table("aim.pause = 7\nbuild_bar.pause = 8\nplacement.pause = 12\n"
+                                    "aim.open_build_bar = 9\n"         /* reach-only */
+                                    "build_bar.take_structure = 5\n"); /* reach-only */
+    input_step_t step;
+    start_game_with(&step, &table);
+    vec_t from = camera_at();
+    assert_no_pause_opens(&step, 3, (const int[]){ P8_PAD_BUTTON_11, P8_PAD_BUTTON_8, P8_PAD_BUTTON_12 });
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_BUTTON_7);
+        settle(&step);
+        assert(pause_menu_shown());
+        assert_moved(from, 0, 0);
+        end_forked_copy();
+    }
+    tap(&step, P8_PAD_BUTTON_9);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    assert_no_pause_opens(&step, 3, (const int[]){ P8_PAD_BUTTON_11, P8_PAD_BUTTON_7, P8_PAD_BUTTON_12 });
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_BUTTON_8);
+        settle(&step);
+        assert(pause_menu_shown() && pad_nav_build_bar_open(&step.pad_nav));
+        end_forked_copy();
+    }
+    entity_t *structure = take_structure(&step);
+    const int others[3] = { P8_PAD_BUTTON_11, P8_PAD_BUTTON_7, P8_PAD_BUTTON_8 };
+    for (int i = 0; i < 3; i++) {
+        run_frame(&step, others[i]);
+        assert_carrying(&step, structure);
+        run_frame(&step, 0);
+        assert_carrying(&step, structure);
+        assert(!pause_menu_shown());
+    }
+    tap(&step, P8_PAD_BUTTON_12);
+    settle(&step);
+    assert(pause_menu_shown() && ui_left_held(main_ui()) == NULL && pad_nav_placing(&step.pad_nav) == NULL);
+    assert(!structure->is_dead && structure->state == ENTITY_STATE_PLACING);
+}
+
 static void test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes(void) {
     bindings_t table = parsed_table("jump.jump_up = 1\njump.jump_down = 2\njump.jump_left = 3\njump.jump_right = 4\n"
                                     "jump.act_on_hovered = 5\n" /* reach-only: starts the slipway */
@@ -6094,10 +6150,14 @@ static void attention_row(input_step_t *step, planet_t **first, planet_t **middl
 }
 
 /* A Select tap: its press, then its release frame, where the tap acts. */
-static void select_tap(input_step_t *step) {
-    run_frame(step, P8_PAD_BUTTON_12);
+static void select_tap_on(input_step_t *step, int button) {
+    run_frame(step, button);
     assert(input_step_played_frame(step)->mouse_buttons == 0);
     run_frame(step, 0);
+}
+
+static void select_tap(input_step_t *step) {
+    select_tap_on(step, P8_PAD_BUTTON_12);
 }
 
 static void assert_select_tap_lands_on(input_step_t *step, const entity_t *target) {
@@ -6426,6 +6486,65 @@ static void test_select_is_no_part_of_the_cheat_chord(void) {
         tap(&step, P8_PAD_BUTTON_12);
     }
     assert(cheats_fired == fired);
+}
+
+static void test_select_reads_the_jump_and_aim_union_in_every_mode(void) {
+    bindings_t table = parsed_table("jump.select_tap_or_year = 10\naim.select_tap_or_year = 9\n"
+                                    "aim.leave_aim = 7\njump.jump_up = 1\njump.jump_down = 2\n" /* reach-only */
+                                    "jump.jump_left = 3\njump.jump_right = 4\npause.close_pause = 11\n"
+                                    "aim.open_build_bar = 8\nbuild_bar.open_build_bar = 8\n");
+    input_step_t step;
+    start_game_with(&step, &table);
+    year_facts_t before = year_facts();
+    if (in_forked_copy()) {
+        hold_select_pressing_nothing_on(&step, P8_PAD_BUTTON_12, PAD_SELECT_HOLD_FRAMES + 1);
+        run_frame(&step, 0);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert_years_ended(before, 0);
+        end_forked_copy();
+    }
+    const int unions[2] = { P8_PAD_BUTTON_9, P8_PAD_BUTTON_10 };
+    for (int i = 0; i < 2; i++) {
+        if (in_forked_copy()) {
+            hold_select_to_the_year_on(&step, unions[i]);
+            assert_years_ended(before, 1);
+            end_forked_copy();
+        }
+    }
+    if (in_forked_copy()) {
+        hold(&step, P8_PAD_BUTTON_9, 5);
+        galaxy_menu_on_click(4)(NULL);
+        hold(&step, P8_PAD_BUTTON_9, SETTLE_FRAMES);
+        assert(pause_menu_shown());
+        run_frame(&step, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_11);
+        assert(!pause_menu_shown());
+        hold_select_pressing_nothing_on(&step, P8_PAD_BUTTON_9, PAD_SELECT_HOLD_FRAMES + 5);
+        assert_years_ended(before, 0);
+        run_frame(&step, 0);
+        hold_select_to_the_year_on(&step, P8_PAD_BUTTON_9);
+        assert_years_ended(before, 1);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        hold(&step, P8_PAD_BUTTON_9, 5);
+        run_frame(&step, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_8);
+        hold(&step, P8_PAD_BUTTON_9, SETTLE_FRAMES);
+        assert(pad_nav_build_bar_open(&step.pad_nav));
+        run_frame(&step, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_8);
+        assert(on_the_map(&step.pad_nav) && pad_nav_aim_mode(&step.pad_nav));
+        hold_select_pressing_nothing_on(&step, P8_PAD_BUTTON_9, PAD_SELECT_HOLD_FRAMES + 5);
+        assert_years_ended(before, 0);
+        end_forked_copy();
+    }
+    planet_t *first, *middle, *last;
+    attention_row(&step, &first, &middle, &last);
+    hover_object(&step, &first->header);
+    tap(&step, P8_PAD_BUTTON_12);
+    assert_hovering(&step, &first->header);
+    select_tap_on(&step, P8_PAD_BUTTON_10);
+    assert_hovering(&step, &last->header);
+    select_tap_on(&step, P8_PAD_BUTTON_9);
+    assert_hovering(&step, &first->header);
 }
 
 static void test_l1_opens_the_bar_from_jump_mode_and_l1_closes_it_on_the_same_hovered_object(void) {
@@ -6980,6 +7099,7 @@ int main(void) {
     in_fresh_child(test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_the_map_stays_unbound);
     in_fresh_child(test_the_chord_hides_5_and_6_whatever_the_table_binds_on_them);
     in_fresh_child(test_the_shoulders_follow_the_current_modes_table_and_placement_stays_unbound);
+    in_fresh_child(test_pause_opens_on_the_current_modes_table_and_neighbours_stay_unbound);
     in_fresh_child(test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);
@@ -7027,6 +7147,7 @@ int main(void) {
     in_fresh_child(test_a_refused_year_press_presses_nothing_and_is_not_retried);
     in_fresh_child(test_a_new_game_restarts_the_select_count);
     in_fresh_child(test_select_is_no_part_of_the_cheat_chord);
+    in_fresh_child(test_select_reads_the_jump_and_aim_union_in_every_mode);
     in_fresh_child(test_l1_opens_the_bar_from_jump_mode_and_l1_closes_it_on_the_same_hovered_object);
     in_fresh_child(test_circle_closes_the_bar_on_the_same_hovered_object);
     in_fresh_child(test_l1_twice_in_aim_mode_comes_back_to_aim_mode_with_the_pan_slow_again);

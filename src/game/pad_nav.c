@@ -968,7 +968,8 @@ static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t
     }
     int due = nav->pause_due;
     nav->pause_due = 0;
-    entity_t *button = due || (pressed & P8_PAD_BUTTON_11) ? pause_button_free(nav, release) : NULL;
+    int opening = due || action_pressed(nav, pressed, nav_mode(nav), BINDINGS_ACTION_PAUSE);
+    entity_t *button = opening ? pause_button_free(nav, release) : NULL;
     if (button == NULL) {
         return 0;
     }
@@ -1012,6 +1013,12 @@ static int select_allowed(const pad_nav_t *nav, int panels_changing, int release
            nav->placement == PAD_NAV_PLACEMENT_NONE && !nav->probe_or_fold_engaged && !release && !nav->release_pending;
 }
 
+/* Read in every mode, so the latch sees a Select held from elsewhere. Jump's and aim's buttons both count in either. */
+static int select_held(const pad_nav_t *nav, int pad_buttons) {
+    return action_held(nav, pad_buttons, BINDINGS_MODE_JUMP, BINDINGS_ACTION_SELECT_TAP_OR_YEAR) ||
+           action_held(nav, pad_buttons, BINDINGS_MODE_AIM, BINDINGS_ACTION_SELECT_TAP_OR_YEAR);
+}
+
 static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {
     entity_t *button = (entity_t *)galaxy_menu_find_button(YEAR_SKIP_BUTTON);
     if (button == NULL || nav->left_was_down) {
@@ -1052,7 +1059,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     if (resume_placement(nav)) {
         release = 0;
     }
-    int select_down = (pad_buttons & P8_PAD_BUTTON_12) != 0;
+    int select_down = select_held(nav, pad_buttons);
     if (!panels_changed && pause_step(nav, pressed, release, played)) {
         (void)pad_select_step(&nav->select, select_down, 0);
         pad_jump_repeat_clear(&nav->jump);
