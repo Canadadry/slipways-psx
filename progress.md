@@ -24,7 +24,7 @@
     - [x] Chunk 2: demo_source loader
     - [x] Chunk 3: demo_generate and compiled data
 - [ ] Phase 2 — Attract mode in the core
-  - [ ] 9. Default table beside the compiled one
+  - [x] 9. Default table beside the compiled one
     - [x] Chunk 1: bindings_default core unit
     - [x] Chunk 2: input_step switches tables
   - [ ] 10. Attract state machine
