@@ -349,6 +349,61 @@ static void test_select_named_twice_in_a_frame_fails(void) {
     remove(path);
 }
 
+#define ONE_PAD_FRAME_TEXT(buttons) "{\n  \"input\": \"pad\",\n  \"frames\": [\n    { \"pad\": " buttons " }\n  ]\n}\n"
+
+static int load_one_pad_frame(const char *buttons_text) {
+    const char *path = "tmp/test_input_one_frame.json";
+    char text[256];
+    snprintf(text, sizeof(text), ONE_PAD_FRAME_TEXT("%s"), buttons_text);
+    write_text(path, text);
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, path));
+    assert(input.frame_count == 1);
+    int buttons = input.frames[0].pad_buttons;
+    p8_input_free(&input);
+    remove(path);
+    return buttons;
+}
+
+static void test_pad_button_numbers_load(void) {
+    assert(load_one_pad_frame("[1, 5, 11]") == (P8_PAD_UP | P8_PAD_CROSS | P8_PAD_START));
+    assert(load_one_pad_frame("[4, 5]") == (P8_PAD_RIGHT | P8_PAD_CROSS));
+    assert(load_one_pad_frame("[12]") == P8_PAD_SELECT);
+}
+
+static void test_pad_button_numbers_load_in_any_order(void) {
+    assert(load_one_pad_frame("[11, 1, 5]") == (P8_PAD_UP | P8_PAD_CROSS | P8_PAD_START));
+    assert(load_one_pad_frame("[10,9]") == (P8_PAD_L1 | P8_PAD_R1));
+}
+
+static void assert_pad_frame_fails_and_leaves_input_untouched(const char *buttons_text) {
+    const char *path = "tmp/test_input_refused_frame.json";
+    char text[256];
+    snprintf(text, sizeof(text), ONE_PAD_FRAME_TEXT("%s"), buttons_text);
+    write_text(path, text);
+    assert_load_fails_and_leaves_input_untouched(path);
+    remove(path);
+}
+
+static void test_pad_button_number_forms_outside_the_grammar_fail(void) {
+    assert_pad_frame_fails_and_leaves_input_untouched("[0]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[13]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[120]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[05]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[-1]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[5.0]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[5e0]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[5x]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[1, 5x]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[5\"up\"]");
+}
+
+static void test_pad_button_number_repeated_in_a_frame_fails(void) {
+    assert_pad_frame_fails_and_leaves_input_untouched("[12, 1, 12]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[5, 5]");
+}
+
 static void test_recording_without_the_pad_header_fails(void) {
     const char *path = "tmp/test_input_no_header.json";
     write_text(path, "{\n" PAD_FRAMES_TEXT "}\n");
@@ -441,6 +496,10 @@ int main(void) {
     test_pad_buttons_load_in_any_order();
     test_malformed_pad_frames_fail_and_leave_input_untouched();
     test_select_named_twice_in_a_frame_fails();
+    test_pad_button_numbers_load();
+    test_pad_button_numbers_load_in_any_order();
+    test_pad_button_number_forms_outside_the_grammar_fail();
+    test_pad_button_number_repeated_in_a_frame_fails();
     test_recording_without_the_pad_header_fails();
     test_input_other_than_pad_fails();
     test_input_after_the_frames_is_not_a_header();

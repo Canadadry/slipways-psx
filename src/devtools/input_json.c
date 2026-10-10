@@ -61,6 +61,10 @@ static int pad_button_from_name(const char *name, size_t length) {
     return 0;
 }
 
+static int is_json_separator(char c) {
+    return c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t';
+}
+
 /* Fills only out->pad_buttons, which must start at 0. */
 static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
     static const char *const mouse_keys[] = {"\"mouse_x\"", "\"mouse_y\"", "\"mouse_buttons\"", "\"dpad\""};
@@ -80,11 +84,24 @@ static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
     p++;
 
     for (;;) {
-        while (*p == ' ' || *p == ',' || *p == '\n' || *p == '\r' || *p == '\t') {
+        while (is_json_separator(*p)) {
             p++;
         }
         if (*p == ']') {
             return 1;
+        }
+        if (*p >= '1' && *p <= '9') {
+            int number = 0;
+            while (*p >= '0' && *p <= '9' && number <= PAD_BUTTON_COUNT) {
+                number = number * 10 + (*p - '0');
+                p++;
+            }
+            int ends_element = is_json_separator(*p) || *p == ']';
+            if (!ends_element || number > PAD_BUTTON_COUNT || (out->pad_buttons & (1 << (number - 1)))) {
+                return 0;
+            }
+            out->pad_buttons |= 1 << (number - 1);
+            continue;
         }
         if (*p != '"') {
             return 0;
@@ -142,7 +159,7 @@ int p8_input_load(p8_input_t *input, const char *path) {
     }
 
     while (*cursor) {
-        while (*cursor == ' ' || *cursor == ',' || *cursor == '\n' || *cursor == '\r' || *cursor == '\t') {
+        while (is_json_separator(*cursor)) {
             cursor++;
         }
         if (*cursor == ']') {
