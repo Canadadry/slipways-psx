@@ -255,3 +255,11 @@ If a step finds plan 12's code doing something this table does not list, it foll
 - One-off red runs, not committed: a planted `P8_PAD_BUTTON_5` read in `pad_nav.c` gives `button_guard: src/game/pad_nav.c names 31 button(s), listed 30`; deleting the step-11 allowance line gives `names 30 button(s), listed 27`.
 - Every `.sha256` unchanged. `make test` 4.46, 4.27, 4.31 s; `make e2e` 0.232, 0.236, 0.233 s.
 - Pilot: the amendments to the message-box and cheat-chord sentences sit in section 2's Locked decisions, not the table, because the old wording would contradict the reconciled table. Step 6's PRD hypotheses (H-5-1…6) hold against this note.
+
+### Step 2.6
+
+- Two commits: the button count and reader, then the enums, table and parser. `src/game/bindings.{c,h}` are not linked into any binary yet. Only `tmp/test_bindings` builds them.
+- `P8_PAD_BUTTON_COUNT` (12) is in `src/p8/input.h` next to `P8_PAD_BUTTON_12`, with a compile check. `bindings_read_button_number(text, &end)` returns 1–12 or 0 (digits only, no leading zero, every leading digit consumed, no overflow, `*end` restored on failure), and the caller checks what follows. The older copies in `input_json.c`, `pad_metrics.h` and `keymap.h` stay for steps 8 and 15.
+- API: `bindings_mode_t` (9 modes, section 2's order), `bindings_action_t` (35 actions), `bindings_t { int masks[mode][action]; }` (no pointer), `bindings_mask` (0 for an unbound action or one the mode lacks, never an assert), `bindings_mode_has_action`, `bindings_mode_name`, `bindings_action_name`, `bindings_error_t { int line; char text[256]; }`, and `bindings_parse(file_name, text, out, error)`. The parser follows keymap's line rules. Choices the plan left open: an empty button list is an error, a button repeated on one line is an error, and the parser does not reserve buttons 5 and 6.
+- Deviation: `float-grep` requires every `src/` file to be in the core or excluded, so `bindings.{c,h}` sit in `tools/float_grep_exclusions.txt` as temporary lines. Step 7 must delete them when it links the module into the core. Button guard: `src/game/bindings.c fixed 3` (the count appears in the parser's message too).
+- `make test-all` green, every `.sha256` unchanged, generator and metrics commands unchanged. `make test` 4.20–4.49 s, `make e2e` 0.24–0.25 s.

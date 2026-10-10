@@ -15,7 +15,7 @@
   - [x] 5. Inventory of button reads
     - [x] Chunk 1: the guard
     - [x] Chunk 2: inventory and reconciled table
-  - [ ] 6. Bindings module
+  - [x] 6. Bindings module
     - [x] Chunk 1: button count and reader
     - [x] Chunk 2: enums, table and parser
   - [ ] 7. Compile-time bindings
