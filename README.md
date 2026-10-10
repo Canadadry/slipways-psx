@@ -13,6 +13,8 @@ Run it from the repository root. Each session is recorded in `tmp/`; pass a reco
 
 The game saves after every action, and the title's `resume` row brings that game back; a finished game is erased.
 
+Left alone on the title for 20 seconds, the game plays a short captioned demo of itself, then comes back to the title. Any button stops it at once; that press does nothing on the title, and the demo never touches your save.
+
 ## Controls
 
 The game reads 12 numbered buttons. `keymap.default.cfg` says which keyboard keys and gamepad buttons press each one; `bindings.default.cfg` says what each button does in each mode, and explains every mode and action.

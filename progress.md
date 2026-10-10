@@ -44,4 +44,5 @@
     - [x] Chunk 2: the committed full cycle
     - [x] Chunk 3: the demo-check target
   - [ ] 14. Docs
+    - [x] README paragraph and Makefile legend
   - [ ] 15. skill: rework-comments

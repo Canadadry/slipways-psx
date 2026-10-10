@@ -166,21 +166,24 @@
 #                       normalized end state, no third playback, each return
 #                       and the file's end equal
 #                       worst-case/title_idle.json.end-state with the stored
-#                       record equal to the initial_save; pico8/demo.pad
+#                       record equal to the initial_save; pico8/demo.json,
+#                       replayed with REPLAY_STARTS=2, passes
+#                       tools/demo_check.sh at both ends (at most 3600
+#                       frames, the seven captions pinned in
+#                       tools/demo_check.sh, in order, tiling the demo, a
+#                       180-frame closing card, exactly one more year,
+#                       colony, slipway and tech than the state at the
+#                       `probe` label, no cheat); pico8/demo.pad
 #                       regenerates pico8/demo.json byte for byte (no aim
-#                       budget), and pico8/demo.json, replayed with
-#                       REPLAY_STARTS=2, passes tools/demo_check.sh at both
-#                       ends (at most 3600 frames, section 2's captions in
-#                       order tiling the demo, a 180-frame closing card,
-#                       exactly one more year, colony, slipway and tech than
-#                       the state at the `probe` label, no cheat); last, and
-#                       only when the content checks above pass, the capture
-#                       hash is compared with
-#                       worst-case/attract_cycle.json.sha256, a missing one
-#                       failing; to rebaseline after reading the checks:
-#                       cp tmp/demo-check/attract_cycle.json worst-case/ and
-#                       cp tmp/demo-check/attract_cycle.sha256
+#                       budget), a failure that fails the target but does
+#                       not hold back the hash; last, and only when the
+#                       content checks above pass, the capture hash is
+#                       compared with worst-case/attract_cycle.json.sha256,
+#                       a missing one failing; to rebaseline after reading
+#                       the checks: cp tmp/demo-check/attract_cycle.json
+#                       worst-case/ and cp tmp/demo-check/attract_cycle.sha256
 #                       worst-case/attract_cycle.json.sha256; never alongside
+#                       make test-all (both rebuild binaries in tmp/) or
 #                       make pad-author (both write tmp/pad-author/)
 # make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
 #                       PAD_METRICS and prints its report (time per mode, dead
