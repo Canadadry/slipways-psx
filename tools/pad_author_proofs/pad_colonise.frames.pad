@@ -1,98 +1,98 @@
 # pad_probe's frames up to its label, then escape hatches: regenerates tests/e2e/pad_colonise.json.
 include pad_probe.frames.pad folded
-hold down+right 2
-hold down 14
+hold 2+4 2
+hold 2 14
 idle 1
-tap square
+tap 7
 idle 1
-tap cross
+tap 5
 idle 3
-tap down
+tap 2
 idle 1
-tap down
+tap 2
 idle 1
-tap up
+tap 1
 idle 1
-tap cross
+tap 5
 idle 36
-tap triangle
+tap 8
 idle 3
-tap circle
+tap 6
 idle 1
-tap triangle
+tap 8
 idle 2
-tap triangle
+tap 8
 idle 1
-tap square
-hold up 9
-hold cross 16
+tap 7
+hold 1 9
+hold 5 16
 idle 1
-tap circle
+tap 6
 idle 1
-tap square
+tap 7
 idle 3
-hold up+right 10
-hold up 9
+hold 1+4 10
+hold 1 9
 idle 8
-tap square
+tap 7
 idle 1
-tap triangle
+tap 8
 idle 2
-tap down
+tap 2
 idle 1
-tap cross
+tap 5
 idle 1
-tap square
+tap 7
 idle 1
-hold down+left 13
-hold down 22
+hold 2+3 13
+hold 2 22
 idle 6
-tap cross
+tap 5
 idle 3
-tap square
+tap 7
 idle 3
-tap up
+tap 1
 idle 1
-tap circle
+tap 6
 idle 1
-tap up
+tap 1
 idle 2
-tap cross
+tap 5
 idle 1
-tap down
+tap 2
 idle 3
-tap cross
+tap 5
 idle 3
-tap up
+tap 1
 idle 3
-tap cross
+tap 5
 idle 3
-tap circle
+tap 6
 idle 1
-back --required  # f293: circle at the root on the last object, the locked no-op
-tap square
+back --required  # f293: button 6 at the root on the last object, the locked no-op
+tap 7
 idle 1
-hold down 26
+hold 2 26
 idle 1
-hold right 18
+hold 4 18
 idle 1
-tap square
+tap 7
 idle 1
-tap cross
+tap 5
 idle 23
-tap up
+tap 1
 idle 8
-tap circle
+tap 6
 idle 1
-tap square
-hold up+left 10
+tap 7
+hold 1+3 10
 idle 1
-hold up+left 5
-hold up 6
+hold 1+3 5
+hold 1 6
 idle 3
-hold cross 3
+hold 5 3
 idle 1
-tap square
+tap 7
 idle 1
-hold select 30
+hold 12 30
 idle 3

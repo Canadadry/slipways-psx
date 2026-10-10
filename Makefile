@@ -100,8 +100,8 @@
 #                       frames it pressed, then replays each JSON with
 #                       tmp/replay and fails unless the two last-frame states
 #                       are byte-identical; also fails on a refused input (a
-#                       cross + circle chord, a jump-mode D-pad press into an
-#                       empty cone, a circle that changes nothing unless
+#                       button 5 + 6 chord, a jump-mode D-pad press into an
+#                       empty cone, a button 6 that changes nothing unless
 #                       `back --required`), a failed command check, more than
 #                       7200 frames, or 25% or more of the frames in aim
 #                       mode; the per-frame mode log and the totals go to

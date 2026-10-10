@@ -159,12 +159,12 @@ void pad_author_init(pad_author_t *author) {
     dispatch_context_set_input(&boot_input);
 }
 
-static const char *button_name(int buttons) {
-    assert(buttons != 0 && "button_name: no button set, the scan would never end");
+static int first_button_number(int buttons) {
+    assert(buttons != 0 && "first_button_number: no button set, the scan would never end");
     int b = 0;
     while (!(buttons & (1 << b))) b++;
     assert(b < PAD_METRICS_BUTTON_COUNT);
-    return pad_metrics_button_name(b);
+    return b + 1;
 }
 
 static void write_buttons(FILE *out, int buttons) {
@@ -172,7 +172,7 @@ static void write_buttons(FILE *out, int buttons) {
     fputc('[', out);
     for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
         if (buttons & (1 << b)) {
-            fprintf(out, "%s%s", separator, pad_metrics_button_name(b));
+            fprintf(out, "%s%d", separator, b + 1);
             separator = "+";
         }
     }
@@ -202,13 +202,13 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
     }
     const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
     int pressed = pad_metrics_pressed(&author->metrics, buttons);
-    if ((pressed & face) == face) return fail(author, script, "chord: cross and circle pressed on the same frame");
+    if ((pressed & face) == face) return fail(author, script, "chord: buttons 5 and 6 pressed on the same frame");
     pad_metrics_mode_t mode = current_mode(author);
     int direction = pad_jump_first_direction(pressed);
     if (mode == PAD_METRICS_MODE_JUMP && direction != 0 &&
         pad_metrics_cone_empty(&author->metrics, pad_nav_hovered(nav_of(author)), direction)) {
-        return fail(author, script, "empty cone: no candidate %s of the hovered object in jump mode",
-                    button_name(direction));
+        return fail(author, script, "empty cone: no candidate for button %d of the hovered object in jump mode",
+                    first_button_number(direction));
     }
     pad_metrics_observe(&author->metrics, &author->step);
     pad_metrics_view_t before = *pad_metrics_view(&author->metrics);
@@ -268,19 +268,15 @@ static int wait_until(pad_author_t *author, const script_t *script, condition_t 
 static int parse_buttons(const char *text) {
     int mask = 0;
     const char *p = text;
-    while (*p != '\0') {
-        size_t length = strcspn(p, "+");
-        int bit = -1;
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
-            const char *name = pad_metrics_button_name(b);
-            if (strlen(name) == length && strncmp(name, p, length) == 0) bit = b;
-        }
-        if (bit < 0) return 0;
-        mask |= 1 << bit;
-        p += length;
-        if (*p == '+') p++;
+    for (;;) {
+        if (*p < '1' || *p > '9') return 0;
+        int number = 0;
+        while (*p >= '0' && *p <= '9' && number <= PAD_METRICS_BUTTON_COUNT) number = number * 10 + (*p++ - '0');
+        if (number > PAD_METRICS_BUTTON_COUNT || (mask & (1 << (number - 1)))) return 0;
+        mask |= 1 << (number - 1);
+        if (*p == '\0') return mask;
+        if (*p++ != '+') return 0;
     }
-    return mask;
 }
 
 static int parse_count(const char *text) {
