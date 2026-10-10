@@ -15,6 +15,11 @@ typedef enum {
     REPLAY_SOURCE_LOAD_FAILED = 2
 } replay_source_status_t;
 
+typedef enum {
+    REPLAY_SOURCE_START_TITLE = 0,
+    REPLAY_SOURCE_START_RESUME = 1
+} replay_source_start_t;
+
 typedef struct {
     replay_source_status_t status;
     const char *path;
@@ -23,6 +28,7 @@ typedef struct {
     uint8_t initial_save[SAVE_STATE_MAX_BYTES];
     int initial_save_count;
     int attract_after;
+    replay_source_start_t start;
 } replay_source_t;
 
 replay_source_status_t replay_source_open(replay_source_t *source, const char *path);
@@ -36,6 +42,10 @@ int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_fram
 /* REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT when there is no recording, it failed to load, or its header has no member. */
 int replay_source_attract_after(const replay_source_t *source);
 
+/* REPLAY_SOURCE_START_TITLE when there is no recording, it failed to load, or its header has no "start". */
+replay_source_start_t replay_source_start(const replay_source_t *source);
+
+/* Erases the storage for a resume start: the record is the run's start, not a player's save. */
 int replay_source_seed_storage(const replay_source_t *source);
 
 void replay_source_close(replay_source_t *source);

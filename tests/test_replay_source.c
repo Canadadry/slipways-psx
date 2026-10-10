@@ -173,7 +173,7 @@ static const p8_input_frame_t pad_frames[PAD_FRAME_COUNT] = {
 
 static void test_pad_recording_serves_its_masks_in_order(void) {
     const char *path = "tmp/test_replay_source_pad.json";
-    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path));
+    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path, NULL));
 
     replay_source_t source;
     assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
@@ -517,6 +517,87 @@ static void test_attract_after_returns_to_the_default(void) {
     remove(path);
 }
 
+static void test_start_defaults_to_the_title_without_the_member(void) {
+    replay_source_t source;
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    replay_source_close(&source);
+
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    replay_source_close(&source);
+}
+
+#define RESUME_MEMBERS "\"start\": \"resume\",\n  \"initial_save\": \"00a1\""
+
+/* The record is the demo's start, not a player's save: storage is erased, never seeded with it. */
+static void test_resume_start_is_read_and_erases_the_storage(void) {
+    const char *path = "tmp/test_replay_source_resume.json";
+    write_recording_with_member(path, RESUME_MEMBERS);
+    store_a_record();
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_RESUME);
+    assert(replay_source_frame_count(&source) == 2);
+    assert(replay_source_seed_storage(&source) == 1);
+    static uint8_t got[SAVE_STATE_MAX_BYTES];
+    assert(save_storage_read(got, SAVE_STATE_MAX_BYTES) == 0);
+    const uint8_t expected[2] = { 0x00, 0xa1 };
+    assert(source.initial_save_count == 2 && memcmp(source.initial_save, expected, 2) == 0);
+
+    replay_source_close(&source);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    remove(path);
+}
+
+static void test_resume_start_written_by_the_writer_is_read(void) {
+    const char *path = "tmp/test_replay_source_resume_written.json";
+    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path, RESUME_MEMBERS));
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_RESUME);
+    assert(replay_source_frame_count(&source) == PAD_FRAME_COUNT);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void assert_start_fails_to_load(const char *member) {
+    const char *path = "tmp/test_replay_source_bad_start.json";
+    write_recording_with_member(path, member);
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    assert(replay_source_frame_count(&source) == 0);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void test_invalid_start_fails_to_load(void) {
+    assert_start_fails_to_load("\"start\": \"title\",\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": \"resumed\",\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": \"\",\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": 1,\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": \"resume\"");
+    assert_start_fails_to_load("\"start\": \"resume\",\n  \"start\": \"resume\",\n  \"initial_save\": \"00a1\"");
+}
+
+static void test_start_after_the_frames_is_ignored(void) {
+    const char *path = "tmp/test_replay_source_start_late.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n" SAVE_FRAMES_TEXT "  ,\"start\": \"resume\"\n}\n");
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
 static void test_recording_without_bindings_member_uses_the_fallback(void) {
     make_bindings_dir();
     const char *path = BINDINGS_DIR "/no_member.json";
@@ -750,6 +831,11 @@ int main(void) {
     test_attract_after_beside_the_other_members_is_read();
     test_attract_after_after_the_frames_is_ignored();
     test_attract_after_returns_to_the_default();
+    test_start_defaults_to_the_title_without_the_member();
+    test_resume_start_is_read_and_erases_the_storage();
+    test_resume_start_written_by_the_writer_is_read();
+    test_invalid_start_fails_to_load();
+    test_start_after_the_frames_is_ignored();
     test_recording_without_bindings_member_uses_the_fallback();
     test_fixture_next_to_the_recording_drives_the_table();
     test_missing_fixture_names_the_path_and_the_recording();

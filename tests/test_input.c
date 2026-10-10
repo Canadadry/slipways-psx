@@ -215,7 +215,7 @@ static void test_pad_save_then_load_round_trips_every_button(void) {
     fill_pad_frames(written);
     const char *path = "tmp/test_input_pad_roundtrip.json";
 
-    assert(p8_input_save(written, PAD_FRAME_COUNT, path));
+    assert(p8_input_save(written, PAD_FRAME_COUNT, path, NULL));
 
     p8_input_t input;
     p8_input_init(&input);
@@ -240,7 +240,7 @@ static void test_pad_append_is_byte_identical_to_pad_save_every_frame(void) {
 
     for (int i = 0; i < PAD_FRAME_COUNT; i++) {
         assert(p8_input_append(&frames[i], appended_path, &tail_offset, NULL));
-        assert(p8_input_save(frames, i + 1, reference_path));
+        assert(p8_input_save(frames, i + 1, reference_path, NULL));
 
         char *appended = read_file_raw(appended_path);
         char *reference = read_file_raw(reference_path);
@@ -265,7 +265,7 @@ static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(
     };
     const char *path = "tmp/test_input_pad_shape.json";
 
-    assert(p8_input_save(written, 3, path));
+    assert(p8_input_save(written, 3, path, NULL));
 
     char *saved = read_file_raw(path);
     assert(strcmp(saved,
@@ -483,9 +483,36 @@ static void test_append_writes_a_header_member_into_a_fresh_file_only(void) {
     remove(path);
 }
 
+static void test_save_writes_header_members_after_the_input_declaration(void) {
+    const char *path = "tmp/test_input_save_header_members.json";
+    p8_input_frame_t frames[2] = {{0, 0, 0, P8_PAD_BUTTON_5}, {0, 0, 0, 0}};
+
+    assert(p8_input_save(frames, 2, path, "\"start\": \"resume\",\n  \"initial_save\": \"00ff\""));
+
+    char *text = read_file_raw(path);
+    assert(strcmp(text, "{\n"
+                        "  \"input\": \"pad\",\n"
+                        "  \"start\": \"resume\",\n"
+                        "  \"initial_save\": \"00ff\",\n"
+                        "  \"frames\": [\n"
+                        "    { \"pad\": [5] },\n"
+                        "    { \"pad\": [] }\n"
+                        "  ]\n"
+                        "}\n") == 0);
+    free(text);
+
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, path));
+    assert(input.frame_count == 2);
+    assert(input.frames[0].pad_buttons == P8_PAD_BUTTON_5 && input.frames[1].pad_buttons == 0);
+    p8_input_free(&input);
+    remove(path);
+}
+
 static void test_save_rejects_empty_frame_list(void) {
     const char *path = "tmp/test_input_save_empty.json";
-    int saved = p8_input_save(NULL, 0, path);
+    int saved = p8_input_save(NULL, 0, path, NULL);
     assert(!saved);
 }
 
@@ -516,6 +543,7 @@ int main(void) {
     test_append_does_not_rewrite_already_recorded_frames();
     test_append_with_zero_tail_offset_starts_a_fresh_recording();
     test_append_writes_a_header_member_into_a_fresh_file_only();
+    test_save_writes_header_members_after_the_input_declaration();
 
     printf("test_input: all tests passed\n");
     return 0;

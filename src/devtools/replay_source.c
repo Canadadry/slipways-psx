@@ -125,13 +125,33 @@ static int parse_attract_after(replay_source_t *source, const char *json) {
     return 1;
 }
 
+static int parse_start(replay_source_t *source, const char *json) {
+    static const char key[] = "\"start\":";
+    static const char resume[] = "\"resume\"";
+    const char *p = find_header_value(json, key);
+    if (!p) {
+        return 1;
+    }
+    if (is_repeated_in_header(json, p, key) || strncmp(p, resume, strlen(resume)) != 0 ||
+        source->initial_save_count == 0) {
+        return 0;
+    }
+    source->start = REPLAY_SOURCE_START_RESUME;
+    return 1;
+}
+
+static void reset_header(replay_source_t *source) {
+    source->initial_save_count = 0;
+    source->attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
+    source->start = REPLAY_SOURCE_START_TITLE;
+}
+
 replay_source_status_t replay_source_open(replay_source_t *source, const char *path) {
     assert(source);
 
     source->path = path;
     source->next_frame_index = 0;
-    source->initial_save_count = 0;
-    source->attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
+    reset_header(source);
     p8_input_init(&source->recording);
 
     if (!path) {
@@ -140,11 +160,11 @@ replay_source_status_t replay_source_open(replay_source_t *source, const char *p
     }
 
     char *json = read_whole_file(path, NULL);
-    int header_ok = json && parse_initial_save(source, json) && parse_attract_after(source, json);
+    int header_ok =
+        json && parse_initial_save(source, json) && parse_attract_after(source, json) && parse_start(source, json);
     free(json);
     if (!header_ok || !p8_input_load(&source->recording, path)) {
-        source->initial_save_count = 0;
-        source->attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
+        reset_header(source);
         source->status = REPLAY_SOURCE_LOAD_FAILED;
         return source->status;
     }
@@ -184,13 +204,19 @@ int replay_source_attract_after(const replay_source_t *source) {
     return source->attract_after;
 }
 
+replay_source_start_t replay_source_start(const replay_source_t *source) {
+    assert(source);
+
+    return source->start;
+}
+
 int replay_source_seed_storage(const replay_source_t *source) {
     assert(source);
 
     if (source->status != REPLAY_SOURCE_LOADED) {
         return 1;
     }
-    if (source->initial_save_count == 0) {
+    if (source->initial_save_count == 0 || source->start == REPLAY_SOURCE_START_RESUME) {
         return save_storage_erase();
     }
     return save_storage_write(source->initial_save, source->initial_save_count);
@@ -203,8 +229,7 @@ void replay_source_close(replay_source_t *source) {
     source->status = REPLAY_SOURCE_NONE;
     source->path = NULL;
     source->next_frame_index = 0;
-    source->initial_save_count = 0;
-    source->attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
+    reset_header(source);
 }
 
 static const char *find_bindings_value(const char *json, int *value_length) {

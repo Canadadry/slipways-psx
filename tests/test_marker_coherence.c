@@ -79,7 +79,7 @@ static void test_marker_index_counts_the_replayed_frames_too(void) {
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, NULL));
 
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
@@ -102,7 +102,7 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     const char *resumed_path = "tmp/test_marker_coherence_resolve_resumed.json";
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, NULL));
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
     p8_input_t resumed;

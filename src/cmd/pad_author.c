@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "pad_author: %s pressed no frame, '%s' not written\n", script_path, events_path);
         return 1;
     }
-    if (!p8_input_save(author.frames, author.frame_count, events_path)) {
+    if (!p8_input_save(author.frames, author.frame_count, events_path, NULL)) {
         fprintf(stderr, "pad_author: cannot write '%s'\n", events_path);
         return 1;
     }

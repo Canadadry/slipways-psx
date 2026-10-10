@@ -220,7 +220,13 @@ static int format_pad_frame_line(char *buf, size_t size, const p8_input_frame_t 
     return rc > 0 && (size_t)(used + rc) < size;
 }
 
-int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path) {
+static void assert_bare_header_members(const char *members) {
+    assert((!members || (members[0] == '"' && !strchr(", \t\n\r", members[strlen(members) - 1]))) &&
+           "header members are bare JSON members: no leading indent, no trailing comma");
+}
+
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, const char *header_members) {
+    assert_bare_header_members(header_members);
     if (!frames || frame_count <= 0) {
         return 0;
     }
@@ -239,8 +245,11 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
         return 0;
     }
 
-    int ok = 1;
-    if (fputs(JSON_PREFIX, f) < 0) {
+    int ok = fputs(JSON_HEADER, f) >= 0;
+    if (ok && header_members) {
+        ok = fputs(HEADER_MEMBER_INDENT, f) >= 0 && fputs(header_members, f) >= 0 && fputs(HEADER_MEMBER_END, f) >= 0;
+    }
+    if (ok && fputs(JSON_FRAMES_OPEN, f) < 0) {
         ok = 0;
     }
     for (int i = 0; ok && i < frame_count; i++) {
@@ -286,8 +295,7 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
 
     int fresh = (*tail_offset <= 0);
     const char *member = (fresh && header_member) ? header_member : NULL;
-    assert((!member || (member[0] == '"' && !strchr(", \t\n\r", member[strlen(member) - 1]))) &&
-           "header_member is bare JSON members: no leading indent, no trailing comma");
+    assert_bare_header_members(member);
     long start = fresh ? 0 : *tail_offset;
 
     char fixed_tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];

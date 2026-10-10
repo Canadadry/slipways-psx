@@ -186,7 +186,7 @@ static void pad_research_cheat(void) {
     p8_input_init(&input);
     assert(p8_input_load(&input, "tests/e2e/pad_research.json"));
     assert(input.frame_count > 45);
-    assert(p8_input_save(input.frames, 45, CHEAT_CUT));
+    assert(p8_input_save(input.frames, 45, CHEAT_CUT, NULL));
     p8_input_free(&input);
     replay(REPLAY(CHEAT_CUT));
     assert(strstr(text, "\nresources credits 200\n") != NULL);
@@ -226,7 +226,7 @@ static void bobbing_structure_world_ignores_idle_frames(void) {
         memset(&frames[count + i], 0, sizeof frames[0]);
     }
     p8_input_free(&input);
-    assert(p8_input_save(frames, count + 60, IDLE_TAIL));
+    assert(p8_input_save(frames, count + 60, IDLE_TAIL, NULL));
     replay(REPLAY(IDLE_TAIL));
     assert(strcmp(placed_structure_world(), before) == 0);
 }
