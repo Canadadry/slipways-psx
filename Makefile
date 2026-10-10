@@ -123,7 +123,9 @@
 #                       fewer than 150 frames shown, or a button down fewer
 #                       than 90 frames after it appears; the per-frame mode
 #                       log and the totals go to
-#                       tmp/pad-author/<game>.modes.txt, outside the suite
+#                       tmp/pad-author/<game>.modes.txt, outside the suite;
+#                       then the same for pico8/demo.pad -> pico8/demo.json,
+#                       without the aim budget
 # make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
 #                       for one script, written to OUT (default
 #                       tmp/pad-author/<name>.json), ending at its first
@@ -1220,6 +1222,7 @@ pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 else
 pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
+	@./$(TMP_DIR)/pad_author pico8/demo.pad pico8/demo.json --no-aim-budget
 endif
 
 PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
