@@ -57,6 +57,7 @@
     - [x] Chunk 1: fixture reading in replay_source
     - [x] Chunk 2: replay reads the fixture, Make learns it
     - [x] Chunk 3: in-process replayers
+    - [x] fix: stale resume-check command in pad_restart_resume.txt
   - [ ] 17. Personal recordings flagged
   - [ ] 18. Swap twin
   - [ ] 19. Unbound action
