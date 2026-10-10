@@ -143,6 +143,16 @@
 #                       from-record) must pass pad_author's self-check, then
 #                       replay with REPLAY_STARTS=2 to pad_author's normalized
 #                       end state at both ends, outside the suite
+# make demo-check    -> runs tests/test_demo_check, then two checks, both
+#                       always run: pico8/demo.pad regenerates pico8/demo.json
+#                       byte for byte (no aim budget), and pico8/demo.json,
+#                       replayed with REPLAY_STARTS=2, passes
+#                       tools/demo_check.sh at both ends (at most 3600 frames,
+#                       section 2's captions in order tiling the demo, a
+#                       180-frame closing card, exactly one more year,
+#                       colony, slipway and tech than the state at the
+#                       `probe` label, no cheat); files in tmp/demo-check/,
+#                       outside the suite
 # make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
 #                       PAD_METRICS and prints its report (time per mode, dead
 #                       presses by group, hold repeats, section 4 verdict),
@@ -602,6 +612,9 @@ $(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_p
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_end_state: $(call objs,tests/test_end_state.c) tools/end_state.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_demo_check: $(call objs,tests/test_demo_check.c) tools/demo_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_coverage_compare: $(call objs,tests/test_coverage_compare.c) tools/coverage_compare.sh | $(TMP_DIR)
@@ -1277,6 +1290,27 @@ worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_p
 	@sh tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) $(TMP_DIR)/worst-case-peaks.txt $(foreach e,$(FULL_GAME_EVENTS),$(e) $(call state_file,$(e)))
 
 .PHONY: pad-author pad-author-proof worst-case-peaks
+
+DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
+
+# The regeneration runs in the background while the content check plays.
+demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/pad_author $(TMP_DIR)/replay pico8/demo.pad pico8/demo.json pico8/demo_record.hex tools/demo_check.sh
+	@./$(TMP_DIR)/test_demo_check
+	@rm -rf $(DEMO_CHECK_DIR) && mkdir -p $(DEMO_CHECK_DIR)
+	@failed=0; \
+	./$(TMP_DIR)/pad_author pico8/demo.pad $(DEMO_CHECK_DIR)/demo.json --no-aim-budget > $(DEMO_CHECK_DIR)/regenerate.log 2>&1 & regenerate=$$!; \
+	STATE=$(DEMO_CHECK_DIR)/record.txt ./$(TMP_DIR)/pad_author pico8/demo.pad $(DEMO_CHECK_DIR)/record.json --stop-at probe --no-aim-budget > $(DEMO_CHECK_DIR)/record.log 2>&1 || cat $(DEMO_CHECK_DIR)/record.log; \
+	REPLAY_STARTS=2 STATE=$(DEMO_CHECK_DIR)/end.txt ./$(TMP_DIR)/replay pico8/demo.json > $(DEMO_CHECK_DIR)/end.log 2>&1 || cat $(DEMO_CHECK_DIR)/end.log; \
+	sh tools/demo_check.sh pico8/demo.json $(DEMO_CHECK_DIR)/record.txt $(DEMO_CHECK_DIR)/end.txt.start1 $(DEMO_CHECK_DIR)/end.txt || failed=1; \
+	wait $$regenerate || cat $(DEMO_CHECK_DIR)/regenerate.log; \
+	if cmp -s $(DEMO_CHECK_DIR)/demo.json pico8/demo.json; then \
+	    echo "demo-check: pico8/demo.pad regenerates pico8/demo.json byte for byte"; \
+	else \
+	    echo "demo-check: pico8/demo.json is not what pico8/demo.pad generates (make pad-author)"; failed=1; \
+	fi; \
+	exit $$failed
+
+.PHONY: demo-check
 
 rng-sync-probe: $(TMP_DIR)/test_rng_sync
 	./$<
