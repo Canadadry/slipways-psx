@@ -404,6 +404,12 @@ static void test_pad_button_number_repeated_in_a_frame_fails(void) {
     assert_pad_frame_fails_and_leaves_input_untouched("[5, 5]");
 }
 
+static void test_pad_button_names_are_refused(void) {
+    assert_pad_frame_fails_and_leaves_input_untouched("[\"cross\"]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[4, \"cross\"]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[13]");
+}
+
 static void test_recording_without_the_pad_header_fails(void) {
     const char *path = "tmp/test_input_no_header.json";
     write_text(path, "{\n" PAD_FRAMES_TEXT "}\n");
@@ -500,6 +506,7 @@ int main(void) {
     test_pad_button_numbers_load_in_any_order();
     test_pad_button_number_forms_outside_the_grammar_fail();
     test_pad_button_number_repeated_in_a_frame_fails();
+    test_pad_button_names_are_refused();
     test_recording_without_the_pad_header_fails();
     test_input_other_than_pad_fails();
     test_input_after_the_frames_is_not_a_header();

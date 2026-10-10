@@ -4,7 +4,7 @@
   - [ ] 2. Replays in numbers
     - [x] Chunk 1: loader accepts numbers
     - [x] Chunk 2: writer and data in numbers
-    - [ ] Chunk 3: loader refuses names
+    - [x] Chunk 3: loader refuses names
   - [ ] 3. Generator low level in numbers
   - [ ] 4. Rename the constants
 - [ ] Phase 2 — Bindings in the game

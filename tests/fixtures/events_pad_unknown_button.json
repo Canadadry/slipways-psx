@@ -2,6 +2,6 @@
   "input": "pad",
   "frames": [
     { "pad": [] },
-    { "pad": ["l2"] }
+    { "pad": [13] }
   ]
 }

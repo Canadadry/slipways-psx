@@ -46,19 +46,8 @@ static int has_pad_header(const char *json, const char *head_end) {
     return strncmp(p, "\"pad\"", 5) == 0;
 }
 
-static const char *const pad_button_names[] = {
-    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select",
-};
-#define PAD_BUTTON_COUNT ((int)(sizeof(pad_button_names) / sizeof(pad_button_names[0])))
-
-static int pad_button_from_name(const char *name, size_t length) {
-    for (int bit = 0; bit < PAD_BUTTON_COUNT; bit++) {
-        if (strlen(pad_button_names[bit]) == length && strncmp(pad_button_names[bit], name, length) == 0) {
-            return 1 << bit;
-        }
-    }
-    return 0;
-}
+#define PAD_BUTTON_COUNT 12
+typedef char pad_button_count_ends_at_select[(1 << (PAD_BUTTON_COUNT - 1)) == P8_PAD_SELECT ? 1 : -1];
 
 static int is_json_separator(char c) {
     return c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t';
@@ -102,20 +91,7 @@ static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
             out->pad_buttons |= 1 << (number - 1);
             continue;
         }
-        if (*p != '"') {
-            return 0;
-        }
-        const char *name = p + 1;
-        const char *name_end = strchr(name, '"');
-        if (!name_end) {
-            return 0;
-        }
-        int button = pad_button_from_name(name, (size_t)(name_end - name));
-        if (!button || (out->pad_buttons & button)) {
-            return 0;
-        }
-        out->pad_buttons |= button;
-        p = name_end + 1;
+        return 0;
     }
 }
 
