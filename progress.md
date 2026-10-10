@@ -1,0 +1,27 @@
+- [ ] Phase 0 — Base
+  - [ ] 1. Base check
+- [ ] Phase 1 — Abstract buttons
+  - [ ] 2. Replays in numbers
+  - [ ] 3. Generator low level in numbers
+  - [ ] 4. Rename the constants
+- [ ] Phase 2 — Bindings in the game
+  - [ ] 5. Inventory of button reads
+  - [ ] 6. Bindings module
+  - [ ] 7. Compile-time bindings
+  - [ ] 8. Generator high level reads the default bindings
+  - [ ] 9. Jump mode reads its bindings
+  - [ ] 10. Aim and slipway modes read their bindings
+  - [ ] 11. Build bar and placement read their bindings
+  - [ ] 12. Menu, panels, pause and title read their bindings
+  - [ ] 13. Cross-mode tests read their bindings
+  - [ ] 14. Guard closed
+- [ ] Phase 3 — Compile-time keymap
+  - [ ] 15. Keymap compiled in
+- [ ] Phase 4 — Replays that prove the remap
+  - [ ] 16. Fixtures in replay
+  - [ ] 17. Personal recordings flagged
+  - [ ] 18. Swap twin
+  - [ ] 19. Unbound action
+- [ ] Phase 5 — Docs and cleanup
+  - [ ] 20. Docs
+  - [ ] 21. skill: rework-comments
