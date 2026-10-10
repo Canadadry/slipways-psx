@@ -47,4 +47,3 @@ src/devtools/pad_caption.h | caption rules of the generator, header of devtools/
 src/devtools/demo_source.c | demo loader of the demo generator, reads pico8/demo.json through the libc, host tool
 src/devtools/demo_source.h | demo loader of the demo generator, header of devtools/demo_source.c
 src/cmd/demo_generate.c | entry point of the demo generator, writes tmp/demo/demo.c through the libc, host tool
-src/game/demo_data.h | compiled demo, included by no core file yet: once one includes it, delete this line or float-grep fails on "both"

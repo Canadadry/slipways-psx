@@ -392,6 +392,7 @@ ENGINE_SRCS := \
     $(BINDINGS_CORE_UNIT) \
     $(DEMO_UNIT) \
     src/p8/assets.c \
+    src/game/attract.c \
     src/game/background.c \
     src/game/bindings.c \
     src/engine/bootstrap.c \
@@ -489,6 +490,7 @@ CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) $(DEMO_UNIT) src/p8/assets.c src
 # without calling cart_load().
 CART_ONLY_SRCS := \
     $(DEMO_UNIT) \
+    src/game/attract.c \
     src/game/cart.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -887,6 +889,9 @@ $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | 
 $(TMP_DIR)/test_pad_cycle: $(call objs,tests/test_pad_cycle.c src/game/pad_cycle.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_attract: $(call objs,tests/test_attract.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1078,7 +1083,8 @@ UNIT_TESTS := \
     test_pad_metrics \
     test_pad_caption \
     test_demo_source \
-    test_demo_data
+    test_demo_data \
+    test_attract
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
