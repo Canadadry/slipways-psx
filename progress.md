@@ -50,3 +50,4 @@
     - [x] comments: cart, input_step, bindings.h
     - [x] comments: gfx, input.h, bindings_generate, game.c
     - [x] comments: pad_caption, demo_source, demo_generate
+    - [x] assert: a failed caption close leaves it shown

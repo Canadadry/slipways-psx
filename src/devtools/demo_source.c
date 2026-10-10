@@ -109,6 +109,7 @@ static int check_texts(const demo_source_t *source, char *reason, size_t reason_
 }
 
 static int refuse_close(const pad_caption_track_t *track, const char *rule, char *reason, size_t reason_size) {
+    assert(track->shown && "a failed close leaves the caption shown");
     snprintf(reason, reason_size, "frame %d: %s", track->captions[track->count - 1].from, rule);
     return 0;
 }
