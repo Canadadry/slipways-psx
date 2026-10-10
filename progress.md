@@ -73,3 +73,4 @@
     - [x] rework-comments: replay
     - [x] rework-comments: pad navigation
     - [x] rework-comments: test_pad_nav
+    - [x] rework-comments: pad_panel assert

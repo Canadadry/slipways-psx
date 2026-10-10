@@ -52,6 +52,8 @@ int pad_panel_open(void) {
     if (main_ui() == NULL) {
         return 0;
     }
+    assert(modal_backdrop_class()->hit_test == entity_registry_hit_test_always &&
+           "pad_panel_open: the backdrop is found at (0, 0) only because its hit test always holds");
     return main_economy_typed() == NULL || pad_panel_box_open() ||
            pad_panel_entity_under(0, 0, PAD_PANEL_ANY_LAYER, is_modal_backdrop) != NULL;
 }
