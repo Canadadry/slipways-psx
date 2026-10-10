@@ -11,7 +11,7 @@
   - [x] 4. Rename the constants
     - [x] Chunk 1: rename the constants
     - [x] Chunk 2: directions as their own enum
-- [ ] Phase 2 — Bindings in the game
+- [x] Phase 2 — Bindings in the game
   - [x] 5. Inventory of button reads
     - [x] Chunk 1: the guard
     - [x] Chunk 2: inventory and reconciled table
@@ -46,7 +46,7 @@
     - [x] Chunk 2: shoulders through the table
     - [x] Chunk 3: pause opening and Select through the table
     - [x] Chunk 4: the circle family through the table
-  - [ ] 14. Guard closed
+  - [x] 14. Guard closed
     - [x] Chunk 1: guard closed
 - [ ] Phase 3 — Compile-time keymap
   - [ ] 15. Keymap compiled in
