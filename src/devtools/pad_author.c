@@ -203,7 +203,6 @@ static bindings_mode_t bindings_mode_of(pad_metrics_mode_t mode) {
     return BINDINGS_MODE_TITLE;
 }
 
-/* Returns BINDINGS_ACTION_COUNT when the mode has no action for that direction. */
 static bindings_action_t direction_action(bindings_mode_t mode, pad_direction_t direction) {
     static const bindings_action_t jump[] = {BINDINGS_ACTION_JUMP_UP, BINDINGS_ACTION_JUMP_DOWN,
                                              BINDINGS_ACTION_JUMP_LEFT, BINDINGS_ACTION_JUMP_RIGHT};
@@ -225,7 +224,6 @@ static bindings_action_t direction_action(bindings_mode_t mode, pad_direction_t 
     }
 }
 
-/* Returns BINDINGS_ACTION_COUNT for title, which has no back action. */
 static bindings_action_t back_action(bindings_mode_t mode) {
     switch (mode) {
     case BINDINGS_MODE_JUMP:
@@ -240,7 +238,6 @@ static bindings_action_t back_action(bindings_mode_t mode) {
     }
 }
 
-/* 0 when the mode lacks the action, including BINDINGS_ACTION_COUNT. */
 static int mask_in_mode(pad_author_t *author, bindings_mode_t mode, bindings_action_t action) {
     if (action == BINDINGS_ACTION_COUNT || !bindings_mode_has_action(mode, action)) return 0;
     return bindings_mask(bindings_of(author), mode, action);
@@ -263,7 +260,6 @@ static int settle_back(pad_author_t *author, const script_t *script, const pad_m
                 bindings_mode_name(author->back_mode), bindings_action_name(back_action(author->back_mode)));
 }
 
-/* Keep in step with src/cmd/replay.c's loop, or the self-check fails. */
 static int emit(pad_author_t *author, const script_t *script, int buttons) {
     if (author->frame_count == PAD_AUTHOR_FRAME_BUDGET) {
         return fail(author, script, "over the frame budget of %d", PAD_AUTHOR_FRAME_BUDGET);
@@ -328,8 +324,6 @@ static int tap(pad_author_t *author, const script_t *script, int buttons) {
     return emit(author, script, buttons) && emit(author, script, 0);
 }
 
-/* Fills *button with the lowest button of the action in the current mode, or fails. role names a
- * BINDINGS_ACTION_COUNT action in the message. */
 static int mode_action_button(pad_author_t *author, const script_t *script, bindings_action_t action, const char *role,
                               int *button) {
     bindings_mode_t mode = bindings_mode_of(current_mode(author));
