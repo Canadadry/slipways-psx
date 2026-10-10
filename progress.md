@@ -24,7 +24,7 @@
     - [x] Chunk 3: personal file for game
   - [ ] 8. Generator high level reads the default bindings
     - [x] Chunk 1: one button reader and count in the devtools
-    - [ ] Chunk 2: pad_metrics off pad_jump's conversions
+    - [x] Chunk 2: pad_metrics off pad_jump's conversions
     - [ ] Chunk 3: high-level presses through the table
     - [ ] Chunk 4: PSX words out of the generator
   - [ ] 9. Jump mode reads its bindings

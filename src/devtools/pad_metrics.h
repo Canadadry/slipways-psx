@@ -97,7 +97,7 @@ typedef struct {
     int cheat_activations;
     int jump_dpad_dead_strict;
     int jump_dpad_dead_lenient;
-    int circle_dead_other;
+    int button_6_dead_other;
     int repeats_dead_required;
     int repeats_dead_other;
     int aim_ok;
@@ -142,6 +142,10 @@ const char *pad_metrics_mode_name(pad_metrics_mode_t mode);
 pad_metrics_view_t pad_metrics_view_read(const input_step_t *step);
 int pad_metrics_navigation_changed(const pad_metrics_view_t *a, const pad_metrics_view_t *b);
 int pad_metrics_view_changed(const pad_metrics_view_t *a, const pad_metrics_view_t *b);
+
+/* Buttons 1-4 are the physical D-pad (up, down, left, right), independent of any bindings table. */
+int pad_metrics_direction_button(pad_direction_t direction);
+int pad_metrics_first_direction_button(int buttons);
 
 int pad_metrics_hold_step(pad_metrics_hold_t *hold, pad_metrics_mode_t mode, int buttons);
 

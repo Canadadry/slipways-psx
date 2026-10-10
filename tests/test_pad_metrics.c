@@ -124,6 +124,28 @@ static void test_each_game_field_moves_only_the_view_change_test(void) {
     }
 }
 
+static void test_each_direction_maps_to_its_dpad_button(void) {
+    assert(pad_metrics_direction_button(PAD_DIRECTION_UP) == P8_PAD_BUTTON_1);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_DOWN) == P8_PAD_BUTTON_2);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_LEFT) == P8_PAD_BUTTON_3);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_RIGHT) == P8_PAD_BUTTON_4);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_NONE) == 0);
+}
+
+static void test_the_first_direction_button_follows_up_down_left_right(void) {
+    const int dpad = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
+    assert(pad_metrics_first_direction_button(dpad) == P8_PAD_BUTTON_1);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_2);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_3);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_4) == P8_PAD_BUTTON_4);
+}
+
+static void test_the_first_direction_button_ignores_other_buttons(void) {
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_7) == 0);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_3) == P8_PAD_BUTTON_3);
+    assert(pad_metrics_first_direction_button(0) == 0);
+}
+
 /* Feeds the same pad frames to the counter in mode and to pad_jump; returns how many frames of frame_count both
  * report a repeat on, and asserts they never disagree past a press frame. */
 static int repeats_against_pad_jump(const int *buttons, int frame_count, pad_metrics_mode_t mode) {
@@ -140,7 +162,7 @@ static int repeats_against_pad_jump(const int *buttons, int frame_count, pad_met
         if (pressed != 0) {
             assert(counted == 0);
         } else {
-            assert(counted == pad_jump_direction_button(jumped));
+            assert(counted == pad_metrics_direction_button(jumped));
         }
         repeats += counted != 0;
         previous = buttons[f];
@@ -337,7 +359,7 @@ static void test_any_other_dead_circle_is_in_the_other_group(void) {
     assert(dead_circle_group(PAD_METRICS_MODE_JUMP, message_box_shown) == PAD_METRICS_DEAD_OTHER);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_recorded) == PAD_METRICS_DEAD_OTHER);
     assert(!pad_metrics_section4(&metrics).ok);
-    assert(pad_metrics_section4(&metrics).circle_dead_other == 1);
+    assert(pad_metrics_section4(&metrics).button_6_dead_other == 1);
 }
 
 static void nothing_to_jump_to(pad_metrics_view_t *view) {
@@ -366,7 +388,7 @@ static void nothing_to_jump_to_with_a_box(pad_metrics_view_t *view) {
 
 static void test_a_dead_circle_in_aim_mode_with_nothing_to_jump_to_is_required(void) {
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to) == PAD_METRICS_DEAD_REQUIRED);
-    assert(pad_metrics_section4(&metrics).circle_dead_other == 0);
+    assert(pad_metrics_section4(&metrics).button_6_dead_other == 0);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to_with_a_message_box) == PAD_METRICS_DEAD_OTHER);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to_with_a_box) == PAD_METRICS_DEAD_OTHER);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, something_to_jump_to) == PAD_METRICS_DEAD_OTHER);
@@ -611,6 +633,9 @@ int main(void) {
     test_a_view_against_itself_changes_nothing();
     test_each_navigation_field_moves_both_change_tests();
     test_each_game_field_moves_only_the_view_change_test();
+    test_each_direction_maps_to_its_dpad_button();
+    test_the_first_direction_button_follows_up_down_left_right();
+    test_the_first_direction_button_ignores_other_buttons();
     test_a_held_direction_repeats_on_the_frames_pad_jump_does();
     test_a_fresh_press_restarts_the_count();
     test_holds_repeat_in_slipway_mode_and_nowhere_else();
