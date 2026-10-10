@@ -4,6 +4,7 @@
   - [x] 2. The starting record
     - [x] Label demo-record and cut pico8/demo_record.hex
   - [ ] 3. attract_after header member
+    - [x] Reader and recorder carry attract_after
   - [ ] 4. Core proof: two attract starts in one process
   - [ ] 5. pad_author starts from a record
   - [ ] 6. caption command

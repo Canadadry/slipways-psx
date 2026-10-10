@@ -3,6 +3,7 @@
 #include "game/save_storage.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,18 +46,33 @@ static int hex_digit_value(char digit) {
     return -1;
 }
 
-static int parse_initial_save(replay_source_t *source, const char *json) {
-    static const char key[] = "\"initial_save\":";
-    source->initial_save_count = 0;
-
+/* Past `key` and its spaces; NULL when `key` is missing or only after "frames". */
+static const char *find_header_value(const char *json, const char *key) {
     const char *header_end = strstr(json, "\"frames\":");
     const char *p = strstr(json, key);
     if (!p || !header_end || p >= header_end) {
-        return 1;
+        return NULL;
     }
     p += strlen(key);
     while (*p == ' ' || *p == '\t') {
         p++;
+    }
+    return p;
+}
+
+static int is_repeated_in_header(const char *json, const char *value, const char *key) {
+    const char *second = strstr(value, key);
+    const char *header_end = strstr(json, "\"frames\":");
+    return second && second < header_end;
+}
+
+static int parse_initial_save(replay_source_t *source, const char *json) {
+    static const char key[] = "\"initial_save\":";
+    source->initial_save_count = 0;
+
+    const char *p = find_header_value(json, key);
+    if (!p) {
+        return 1;
     }
     if (*p != '"') {
         return 0;
@@ -81,12 +97,41 @@ static int parse_initial_save(replay_source_t *source, const char *json) {
     return 1;
 }
 
+static int parse_attract_after(replay_source_t *source, const char *json) {
+    static const char key[] = "\"attract_after\":";
+    const char *p = find_header_value(json, key);
+    if (!p) {
+        return 1;
+    }
+    if (is_repeated_in_header(json, p, key)) {
+        return 0;
+    }
+    if (*p < '1' || *p > '9') {
+        return 0;
+    }
+    int value = 0;
+    while (*p >= '0' && *p <= '9') {
+        int digit = *p - '0';
+        if (value > (INT_MAX - digit) / 10) {
+            return 0;
+        }
+        value = value * 10 + digit;
+        p++;
+    }
+    if (*p == '\0' || !strchr(",} \t\n\r", *p)) {
+        return 0;
+    }
+    source->attract_after = value;
+    return 1;
+}
+
 replay_source_status_t replay_source_open(replay_source_t *source, const char *path) {
     assert(source);
 
     source->path = path;
     source->next_frame_index = 0;
     source->initial_save_count = 0;
+    source->attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
     p8_input_init(&source->recording);
 
     if (!path) {
@@ -95,10 +140,11 @@ replay_source_status_t replay_source_open(replay_source_t *source, const char *p
     }
 
     char *json = read_whole_file(path, NULL);
-    int header_ok = json && parse_initial_save(source, json);
+    int header_ok = json && parse_initial_save(source, json) && parse_attract_after(source, json);
     free(json);
     if (!header_ok || !p8_input_load(&source->recording, path)) {
         source->initial_save_count = 0;
+        source->attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
         source->status = REPLAY_SOURCE_LOAD_FAILED;
         return source->status;
     }
@@ -132,6 +178,12 @@ int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_fram
     return 1;
 }
 
+int replay_source_attract_after(const replay_source_t *source) {
+    assert(source);
+
+    return source->attract_after;
+}
+
 int replay_source_seed_storage(const replay_source_t *source) {
     assert(source);
 
@@ -152,22 +204,17 @@ void replay_source_close(replay_source_t *source) {
     source->path = NULL;
     source->next_frame_index = 0;
     source->initial_save_count = 0;
+    source->attract_after = REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT;
 }
 
 static const char *find_bindings_value(const char *json, int *value_length) {
     static const char key[] = "\"bindings\":";
-    const char *header_end = strstr(json, "\"frames\":");
-    const char *p = strstr(json, key);
-    if (!p || !header_end || p >= header_end) {
+    const char *p = find_header_value(json, key);
+    if (!p) {
         return NULL;
     }
-    p += strlen(key);
-    while (*p == ' ' || *p == '\t') {
-        p++;
-    }
-    const char *second = strstr(p, key);
     const char *close = *p == '"' ? strchr(p + 1, '"') : NULL;
-    *value_length = close && (!second || second >= header_end) ? (int)(close - p - 1) : -1;
+    *value_length = close && !is_repeated_in_header(json, p, key) ? (int)(close - p - 1) : -1;
     return p + 1;
 }
 

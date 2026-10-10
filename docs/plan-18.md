@@ -152,3 +152,13 @@ Goals that justify every rule below:
 - Plan 17 is in `master` (#67, then #69 and c92cfc5); this branch fast-forwarded to `origin/master` (c92cfc5). `bindings.default.cfg`, `src/game/bindings.{c,h}`, `src/cmd/bindings_generate.c` and button-number replays are present.
 - `make test-all` passes: 19 e2e green.
 - Baseline timings (4 cores, wall clock, three runs, a background read-only agent running at the same time): `make test` with nothing to rebuild 8.2 / 8.8 / 9.2 s; `make e2e` after `rm -rf tmp/frames` (every replay re-run, binaries built) 1.78 / 1.46 / 1.39 s. Later "not slower" checks use the same method and compare with the minimum (8.2 s, 1.39 s).
+
+### Step 2
+
+- Label `demo-record` added to `worst-case/full_game.pad` after the 7th `bar` (year 3411's end browsing), before `research slipgates`; `make pad-author` regenerates `worst-case/` with no diff.
+- Cut: `make pad-author SCRIPT=worst-case/full_game.pad STOP_AT=demo-record OUT=tmp/demo_record.json` then `make replay EVENTS=tmp/demo_record.json SAVE_HEX=pico8/demo_record.hex`. 3852 bytes, sha256 `61c39e56…83ae`, re-cut byte-identical.
+- `make state` on the record: year 3412 month 1, credits 86, science 12 (+5/year), techs space folding and geneseeds, 16 colonies (14 colonized planets), 18 slipways, 49 unknown and 9 known planets, a live probe, p46 still `vanishing` (gone one frame later; accepted).
+- The four conditions, each checked with `pad_author --try` from the label, no cheat: tech affordable — `research xenofoods` (10) and `research slipgates` (12) succeed; unexplored space — `fold 118 307` costs 3 and reveals 3 planets (49 → 46 unknown); planet to colonize — `colonise p32` succeeds (6 of 9 known planets work); two colonies to link — `slipway p23 p33` succeeds (17 unlinked pairs possible).
+- The whole beat line `fold 118 307; idle 120; colonise p32; slipway p32 p55; year; research xenofoods` succeeds: year 3413, 17 colonies, 19 slipways, 3 techs.
+- PRD decisions: the probe beat is a `fold` (a probe is already live and `pad_author` refuses a second); "two colonies can be linked" counts colonies already in the record. 3410, 3414, 3419, 3420, 3422, 3424 and 3425 also met all four conditions; 3412 has more science margin than 3410 and is less crowded than the later years.
+- Bookkeeping: this note landed one commit late (in step 3's first commit), after a refused amend broke the command chain.

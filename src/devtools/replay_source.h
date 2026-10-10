@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 
+#define REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT 1200
+
 typedef enum {
     REPLAY_SOURCE_NONE = 0,
     REPLAY_SOURCE_LOADED = 1,
@@ -20,6 +22,7 @@ typedef struct {
     int next_frame_index;
     uint8_t initial_save[SAVE_STATE_MAX_BYTES];
     int initial_save_count;
+    int attract_after;
 } replay_source_t;
 
 replay_source_status_t replay_source_open(replay_source_t *source, const char *path);
@@ -29,6 +32,9 @@ int replay_source_frame_count(const replay_source_t *source);
 int replay_source_frames_served(const replay_source_t *source);
 
 int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_frame);
+
+/* REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT when there is no recording, it failed to load, or its header has no member. */
+int replay_source_attract_after(const replay_source_t *source);
 
 int replay_source_seed_storage(const replay_source_t *source);
 

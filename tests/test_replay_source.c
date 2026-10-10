@@ -390,6 +390,50 @@ static void test_initial_save_after_the_frames_is_ignored(void) {
     remove(path);
 }
 
+static void test_attract_after_defaults_without_the_member(void) {
+    replay_source_t source;
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+    replay_source_close(&source);
+
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
+    assert(replay_source_attract_after(&source) == 1200);
+    replay_source_close(&source);
+}
+
+static int attract_after_of(const char *member) {
+    const char *path = "tmp/test_replay_source_attract_after.json";
+    write_recording_with_member(path, member);
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&source) == 2);
+    int attract_after = replay_source_attract_after(&source);
+
+    replay_source_close(&source);
+    remove(path);
+    return attract_after;
+}
+
+static void test_attract_after_in_the_header_is_read(void) {
+    assert(attract_after_of("\"attract_after\": 3") == 3);
+    assert(attract_after_of("\"attract_after\": 1200") == 1200);
+    assert(attract_after_of("\"attract_after\":\t2147483647") == 2147483647);
+    assert(attract_after_of("\"attract_after\":45") == 45);
+}
+
+static void test_invalid_attract_after_fails_to_load(void) {
+    static const char *const values[] = { "0", "-3", "+3", "03", "3.5", "3e2", "\"3\"", "null", "true", "", "12abc",
+                                          "2147483648", "99999999999999999999" };
+    for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+        char member[64];
+        int used = snprintf(member, sizeof(member), "\"attract_after\": %s", values[i]);
+        assert(used > 0 && (size_t)used < sizeof(member));
+        assert_member_fails_to_load(member);
+    }
+    assert_member_fails_to_load("\"attract_after\": 3,\n  \"attract_after\": 3");
+}
+
 #define BINDINGS_DIR "tmp/test_replay_source_bindings"
 
 /* Distinct from every fixture these tests write, so a copied fallback is never mistaken for a parsed fixture. */
@@ -413,6 +457,64 @@ static replay_source_bindings_status_t read_bindings_of(const char *path, bindin
     replay_source_bindings_status_t status = replay_source_read_bindings(&source, &fallback, out, report);
     replay_source_close(&source);
     return status;
+}
+
+static void test_attract_after_beside_the_other_members_is_read(void) {
+    const char *path = "tmp/test_replay_source_attract_after_members.json";
+    static const char *const headers[] = {
+        "\"attract_after\": 3,\n  \"bindings\": \"personal\",\n  \"initial_save\": \"00a1\"",
+        "\"initial_save\": \"00a1\",\n  \"attract_after\": 3,\n  \"bindings\": \"personal\"",
+        "\"bindings\": \"personal\",\n  \"initial_save\": \"00a1\",\n  \"attract_after\": 3",
+    };
+    for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
+        write_recording_with_member(path, headers[i]);
+        replay_source_t source;
+        assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+        assert(replay_source_attract_after(&source) == 3);
+        assert(replay_source_frame_count(&source) == 2);
+        assert(replay_source_seed_storage(&source) == 1);
+        const uint8_t expected[2] = { 0x00, 0xa1 };
+        assert_storage_holds(expected, 2);
+        bindings_t fallback = fallback_table();
+        bindings_t table;
+        replay_source_bindings_report_t report;
+        assert(replay_source_read_bindings(&source, &fallback, &table, &report) == REPLAY_SOURCE_BINDINGS_PERSONAL);
+        replay_source_close(&source);
+    }
+    remove(path);
+}
+
+static void test_attract_after_after_the_frames_is_ignored(void) {
+    const char *path = "tmp/test_replay_source_attract_after_late.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n" SAVE_FRAMES_TEXT "  ,\"attract_after\": 0\n}\n");
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void test_attract_after_returns_to_the_default(void) {
+    const char *path = "tmp/test_replay_source_attract_after_reset.json";
+    write_recording_with_member(path, "\"attract_after\": 3");
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_attract_after(&source) == 3);
+    replay_source_close(&source);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+
+    write_text(path, "{\n  \"input\": \"pad\",\n  \"attract_after\": 3,\n  \"frames\": [ { \"pad\": [1] }\n}\n");
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+    replay_source_close(&source);
+
+    write_recording_with_member(path, "\"attract_after\": 0");
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+    replay_source_close(&source);
+    remove(path);
 }
 
 static void test_recording_without_bindings_member_uses_the_fallback(void) {
@@ -642,6 +744,12 @@ int main(void) {
     test_malformed_initial_save_fails_to_load();
     test_initial_save_of_the_full_size_loads();
     test_initial_save_after_the_frames_is_ignored();
+    test_attract_after_defaults_without_the_member();
+    test_attract_after_in_the_header_is_read();
+    test_invalid_attract_after_fails_to_load();
+    test_attract_after_beside_the_other_members_is_read();
+    test_attract_after_after_the_frames_is_ignored();
+    test_attract_after_returns_to_the_default();
     test_recording_without_bindings_member_uses_the_fallback();
     test_fixture_next_to_the_recording_drives_the_table();
     test_missing_fixture_names_the_path_and_the_recording();
