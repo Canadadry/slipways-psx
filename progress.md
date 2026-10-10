@@ -37,7 +37,7 @@
     - [x] Chunk 2: the overlay drawn in cart_draw
   - [ ] 12. The attract e2e
     - [x] Chunk 1: tests/e2e/attract.json
-    - [ ] Chunk 2: test_live_slots follows the header
+    - [x] Chunk 2: test_live_slots follows the header
 - [ ] Phase 3 — Full check and docs
   - [ ] 13. make demo-check, full cycle
   - [ ] 14. Docs
