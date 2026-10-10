@@ -54,6 +54,9 @@
     - [x] Chunk 2: the keymap is compiled in
 - [ ] Phase 4 — Replays that prove the remap
   - [ ] 16. Fixtures in replay
+    - [x] Chunk 1: fixture reading in replay_source
+    - [ ] Chunk 2: replay reads the fixture, Make learns it
+    - [ ] Chunk 3: in-process replayers
   - [ ] 17. Personal recordings flagged
   - [ ] 18. Swap twin
   - [ ] 19. Unbound action

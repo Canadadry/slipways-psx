@@ -1,6 +1,7 @@
 #ifndef DEVTOOLS_REPLAY_SOURCE_H
 #define DEVTOOLS_REPLAY_SOURCE_H
 
+#include "game/bindings.h"
 #include "game/save_state.h"
 #include "p8/input.h"
 
@@ -35,5 +36,27 @@ int replay_source_next_frame(replay_source_t *source, p8_input_frame_t *out_fram
 int replay_source_seed_storage(const replay_source_t *source);
 
 void replay_source_close(replay_source_t *source);
+
+typedef enum {
+    REPLAY_SOURCE_BINDINGS_DEFAULT,
+    REPLAY_SOURCE_BINDINGS_FIXTURE,
+    REPLAY_SOURCE_BINDINGS_PERSONAL,
+    REPLAY_SOURCE_BINDINGS_BAD_MEMBER,
+    REPLAY_SOURCE_BINDINGS_MISSING,
+    REPLAY_SOURCE_BINDINGS_INVALID
+} replay_source_bindings_status_t;
+
+#define REPLAY_SOURCE_PATH_SIZE 1024
+
+typedef struct {
+    char fixture_path[REPLAY_SOURCE_PATH_SIZE];
+    char message[2 * REPLAY_SOURCE_PATH_SIZE + 256];
+} replay_source_bindings_report_t;
+
+/* source must be loaded. DEFAULT copies *fallback to *out; on any status but DEFAULT and FIXTURE, *out is unusable.
+ * report->fixture_path is filled for FIXTURE, MISSING and INVALID, empty otherwise and for a MISSING recording that
+ * can no longer be read; report->message is empty for DEFAULT and FIXTURE, otherwise a ready-to-print line. */
+replay_source_bindings_status_t replay_source_read_bindings(const replay_source_t *source, const bindings_t *fallback,
+                                                            bindings_t *out, replay_source_bindings_report_t *report);
 
 #endif

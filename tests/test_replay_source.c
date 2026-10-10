@@ -17,7 +17,9 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <errno.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <string.h>
 
 static void test_no_path_requests_no_recording(void) {
@@ -400,6 +402,237 @@ static void test_initial_save_after_the_frames_is_ignored(void) {
     remove(path);
 }
 
+#define BINDINGS_DIR "tmp/test_replay_source_bindings"
+
+/* Distinct from every fixture these tests write, so a copied fallback is never mistaken for a parsed fixture. */
+static bindings_t fallback_table(void) {
+    bindings_t table;
+    memset(&table, 0, sizeof(table));
+    table.masks[BINDINGS_MODE_TITLE][BINDINGS_ACTION_CHOOSE_ROW] = P8_PAD_BUTTON_12;
+    return table;
+}
+
+static void make_bindings_dir(void) {
+    assert(mkdir(BINDINGS_DIR, 0777) == 0 || errno == EEXIST);
+}
+
+/* Opens the recording at `path`, which must load, and resolves its bindings against fallback_table(). */
+static replay_source_bindings_status_t read_bindings_of(const char *path, bindings_t *out,
+                                                        replay_source_bindings_report_t *report) {
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    bindings_t fallback = fallback_table();
+    replay_source_bindings_status_t status = replay_source_read_bindings(&source, &fallback, out, report);
+    replay_source_close(&source);
+    return status;
+}
+
+static void test_recording_without_bindings_member_uses_the_fallback(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/no_member.json";
+    write_recording_with_member(path, NULL);
+
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(read_bindings_of(path, &got, &report) == REPLAY_SOURCE_BINDINGS_DEFAULT);
+    bindings_t fallback = fallback_table();
+    assert(memcmp(&got, &fallback, sizeof(got)) == 0);
+    assert(report.fixture_path[0] == '\0');
+    assert(report.message[0] == '\0');
+
+    remove(path);
+}
+
+#define SWAP_FIXTURE_TEXT "# swapped\ntitle.choose_row = 6\ntitle.move_up = 2\ntitle.move_down = 1\n"
+
+/* The fixture sits only in the recording's directory, so finding it proves resolution against that directory and
+ * not the working directory. */
+static void test_fixture_next_to_the_recording_drives_the_table(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/swap.json";
+    const char *fixture = BINDINGS_DIR "/swap.cfg";
+    write_recording_with_member(path, "\"bindings\": \"swap.cfg\"");
+    write_text(fixture, SWAP_FIXTURE_TEXT);
+
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(read_bindings_of(path, &got, &report) == REPLAY_SOURCE_BINDINGS_FIXTURE);
+    bindings_t expected;
+    bindings_error_t error;
+    assert(bindings_parse(fixture, SWAP_FIXTURE_TEXT, &expected, &error));
+    assert(memcmp(&got, &expected, sizeof(got)) == 0);
+    bindings_t fallback = fallback_table();
+    assert(memcmp(&got, &fallback, sizeof(got)) != 0);
+    assert(strcmp(report.fixture_path, fixture) == 0);
+    assert(report.message[0] == '\0');
+
+    remove(path);
+    remove(fixture);
+}
+
+static void test_missing_fixture_names_the_path_and_the_recording(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/missing.json";
+    write_recording_with_member(path, "\"bindings\": \"absent.cfg\"");
+    remove(BINDINGS_DIR "/absent.cfg");
+
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(read_bindings_of(path, &got, &report) == REPLAY_SOURCE_BINDINGS_MISSING);
+    assert(strcmp(report.fixture_path, BINDINGS_DIR "/absent.cfg") == 0);
+    assert(strcmp(report.message, BINDINGS_DIR "/absent.cfg: cannot read the bindings fixture named by " BINDINGS_DIR
+                                  "/missing.json") == 0);
+
+    remove(path);
+}
+
+/* The refusal belongs to the replayers: replay_source_open, which game.c calls, still loads the recording. */
+static void test_personal_recording_is_refused_but_still_opens(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/personal.json";
+    write_recording_with_member(path, "\"bindings\": \"personal\"");
+
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(read_bindings_of(path, &got, &report) == REPLAY_SOURCE_BINDINGS_PERSONAL);
+    assert(report.fixture_path[0] == '\0');
+    assert(strcmp(report.message, BINDINGS_DIR "/personal.json: recorded with a personal bindings.cfg (\"bindings\": "
+                                  "\"personal\"); replay runs only the default bindings or a fixture next to the "
+                                  "recording") == 0);
+
+    remove(path);
+}
+
+static void test_invalid_fixture_reports_the_parser_line(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/bad.json";
+    const char *fixture = BINDINGS_DIR "/bad.cfg";
+    write_recording_with_member(path, "\"bindings\": \"bad.cfg\"");
+    write_text(fixture, "jump.jump_up = 7\njump.jump_down = 7\n");
+
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(read_bindings_of(path, &got, &report) == REPLAY_SOURCE_BINDINGS_INVALID);
+    assert(strcmp(report.fixture_path, fixture) == 0);
+    assert(strcmp(report.message, BINDINGS_DIR "/bad.cfg:2: button 7 already bound in mode jump") == 0);
+
+    remove(path);
+    remove(fixture);
+}
+
+/* 65536 bytes is bindings_generate's limit, so a fixture the build would refuse is refused here too. */
+static void test_oversized_fixture_is_invalid(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/big.json";
+    const char *fixture = BINDINGS_DIR "/big.cfg";
+    write_recording_with_member(path, "\"bindings\": \"big.cfg\"");
+    FILE *file = fopen(fixture, "wb");
+    assert(file);
+    for (int i = 0; i < 65536 / 16; i++) {
+        assert(fputs("# fifteen bytes\n", file) >= 0);
+    }
+    assert(fputc('#', file) == '#');
+    assert(fclose(file) == 0);
+
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(read_bindings_of(path, &got, &report) == REPLAY_SOURCE_BINDINGS_INVALID);
+    assert(strcmp(report.message, BINDINGS_DIR "/big.cfg: larger than 65536 bytes") == 0);
+
+    remove(path);
+    remove(fixture);
+}
+
+static replay_source_bindings_status_t read_bindings_with_member(const char *member,
+                                                                 replay_source_bindings_report_t *report) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/member.json";
+    write_recording_with_member(path, member);
+    bindings_t got;
+    replay_source_bindings_status_t status = read_bindings_of(path, &got, report);
+    remove(path);
+    return status;
+}
+
+/* `name_length` characters: 'a's then ".cfg", as a "bindings" member. */
+static void format_long_name_member(char *member, size_t size, int name_length) {
+    int used = snprintf(member, size, "\"bindings\": \"%.*s.cfg\"", name_length - 4,
+                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    assert(used > 0 && (size_t)used < size);
+}
+
+/* A fixture can only be a plain file next to its replay, never a player's bindings.cfg. */
+static void test_bad_bindings_members_are_refused(void) {
+    static char too_long[128];
+    format_long_name_member(too_long, sizeof(too_long), 65);
+    const char *members[] = {
+        "\"bindings\": \"sub/x.cfg\"",
+        "\"bindings\": \"../x.cfg\"",
+        "\"bindings\": \"x.txt\"",
+        "\"bindings\": \"\"",
+        "\"bindings\": \".cfg\"",
+        "\"bindings\": \"bindings.cfg\"",
+        too_long,
+        "\"bindings\": \"a\\\"b.cfg\"",
+        "\"bindings\": 3",
+        "\"bindings\": \"x.cfg\",\n  \"bindings\": \"y.cfg\"",
+    };
+    for (size_t i = 0; i < sizeof(members) / sizeof(members[0]); i++) {
+        replay_source_bindings_report_t report;
+        assert(read_bindings_with_member(members[i], &report) == REPLAY_SOURCE_BINDINGS_BAD_MEMBER);
+        assert(report.fixture_path[0] == '\0');
+        assert(strcmp(report.message, BINDINGS_DIR "/member.json: bad \"bindings\" member: expected \"personal\" or a "
+                                      "file name ending in .cfg in the recording's directory") == 0);
+    }
+
+    static char longest[128];
+    format_long_name_member(longest, sizeof(longest), 64);
+    replay_source_bindings_report_t report;
+    assert(read_bindings_with_member(longest, &report) == REPLAY_SOURCE_BINDINGS_MISSING);
+}
+
+/* A recording that vanished after its open must not fall back to the default table and replay a different game. */
+static void test_recording_removed_after_open_is_not_read_as_default(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/removed.json";
+    write_recording_with_member(path, "\"bindings\": \"personal\"");
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(remove(path) == 0);
+    bindings_t fallback = fallback_table();
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(replay_source_read_bindings(&source, &fallback, &got, &report) == REPLAY_SOURCE_BINDINGS_MISSING);
+    assert(report.fixture_path[0] == '\0');
+    assert(strcmp(report.message, BINDINGS_DIR "/removed.json: cannot re-read the recording") == 0);
+
+    replay_source_close(&source);
+}
+
+/* The size is the bytes read, not the text up to a NUL: a NUL early in an oversized fixture must not hide its size. */
+static void test_oversized_fixture_with_a_nul_is_invalid(void) {
+    make_bindings_dir();
+    const char *path = BINDINGS_DIR "/nul.json";
+    const char *fixture = BINDINGS_DIR "/nul.cfg";
+    write_recording_with_member(path, "\"bindings\": \"nul.cfg\"");
+    FILE *file = fopen(fixture, "wb");
+    assert(file);
+    assert(fputc('\0', file) == 0);
+    for (int i = 0; i < 65536; i++) {
+        assert(fputc('#', file) == '#');
+    }
+    assert(fclose(file) == 0);
+
+    bindings_t got;
+    replay_source_bindings_report_t report;
+    assert(read_bindings_of(path, &got, &report) == REPLAY_SOURCE_BINDINGS_INVALID);
+    assert(strcmp(report.message, BINDINGS_DIR "/nul.cfg: larger than 65536 bytes") == 0);
+
+    remove(path);
+    remove(fixture);
+}
+
 int main(void) {
     test_no_path_requests_no_recording();
     test_valid_recording_loads_with_its_frame_count();
@@ -421,6 +654,15 @@ int main(void) {
     test_malformed_initial_save_fails_to_load();
     test_initial_save_of_the_full_size_loads();
     test_initial_save_after_the_frames_is_ignored();
+    test_recording_without_bindings_member_uses_the_fallback();
+    test_fixture_next_to_the_recording_drives_the_table();
+    test_missing_fixture_names_the_path_and_the_recording();
+    test_personal_recording_is_refused_but_still_opens();
+    test_invalid_fixture_reports_the_parser_line();
+    test_oversized_fixture_is_invalid();
+    test_bad_bindings_members_are_refused();
+    test_recording_removed_after_open_is_not_read_as_default();
+    test_oversized_fixture_with_a_nul_is_invalid();
 
     printf("test_replay_source: all tests passed\n");
     return 0;
