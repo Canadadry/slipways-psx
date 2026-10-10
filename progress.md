@@ -1,6 +1,6 @@
 - [x] Phase 0 — Base
   - [x] 1. Base check
-- [ ] Phase 1 — Abstract buttons
+- [x] Phase 1 — Abstract buttons
   - [x] 2. Replays in numbers
     - [x] Chunk 1: loader accepts numbers
     - [x] Chunk 2: writer and data in numbers
@@ -8,7 +8,7 @@
   - [x] 3. Generator low level in numbers
     - [x] Chunk 1: generator and scripts
     - [x] Chunk 2: report, unit test and Makefile
-  - [ ] 4. Rename the constants
+  - [x] 4. Rename the constants
     - [x] Chunk 1: rename the constants
     - [x] Chunk 2: directions as their own enum
 - [ ] Phase 2 — Bindings in the game
