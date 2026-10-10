@@ -829,6 +829,9 @@ $(TMP_DIR)/test_pad_select: $(call objs,tests/test_pad_select.c $(ENGINE_SRCS)) 
 $(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pad_caption: $(call objs,tests/test_pad_caption.c src/devtools/pad_caption.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1023,7 +1026,8 @@ UNIT_TESTS := \
     test_pad_select \
     test_pad_build \
     test_pad_cycle \
-    test_pad_metrics
+    test_pad_metrics \
+    test_pad_caption
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))

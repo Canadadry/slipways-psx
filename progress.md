@@ -13,6 +13,8 @@
     - [x] Chunk 3: replay from the resume
     - [x] Chunk 4: pad_author from-record
   - [ ] 6. caption command
+    - [x] Chunk 1: caption rules module
+    - [ ] Chunk 2: pad_author caption command and output
   - [ ] 7. The demo script
   - [ ] 8. Compiled demo
 - [ ] Phase 2 — Attract mode in the core

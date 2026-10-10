@@ -42,3 +42,5 @@ src/devtools/pad_author.c | worst-case game generator, plays a pad script headle
 src/devtools/pad_author.h | worst-case game generator, header of devtools/pad_author.c
 src/devtools/pad_metrics.c | pad metrics of the generator, writes its totals through a FILE stream, host tool
 src/devtools/pad_metrics.h | pad metrics of the generator, header of devtools/pad_metrics.c
+src/devtools/pad_caption.c | caption rules of the generator, formats its refusals and JSON member, host tool
+src/devtools/pad_caption.h | caption rules of the generator, header of devtools/pad_caption.c

@@ -715,6 +715,24 @@ static void test_print_digit_and_punctuation_glyphs(void) {
     }
 }
 
+static void test_font_has_glyph_is_one_only_for_a_drawn_glyph(void) {
+    assert(p8_font_has_glyph('a'));
+    assert(p8_font_has_glyph('A'));
+    assert(p8_font_has_glyph('0'));
+    assert(p8_font_has_glyph(' '));
+    assert(p8_font_has_glyph(':'));
+    assert(p8_font_has_glyph('?'));
+    assert(p8_font_has_glyph('v') && "v has a glyph, the wrong one: a separate rule refuses it");
+
+    assert(!p8_font_has_glyph('&'));
+    assert(!p8_font_has_glyph('"'));
+    assert(!p8_font_has_glyph('\\'));
+    assert(!p8_font_has_glyph('#'));
+    assert(!p8_font_has_glyph('\t'));
+    assert(!p8_font_has_glyph('\n'));
+    assert(!p8_font_has_glyph((char)0xc3));
+}
+
 int main(void) {
     test_cls_clears_whole_screen_to_zero();
     test_pset_plots_pixel_at_coordinate();
@@ -754,6 +772,7 @@ int main(void) {
     test_print_space_is_blank();
     test_print_respects_camera_offset();
     test_print_digit_and_punctuation_glyphs();
+    test_font_has_glyph_is_one_only_for_a_drawn_glyph();
 
     printf("test_gfx: all tests passed\n");
     return 0;

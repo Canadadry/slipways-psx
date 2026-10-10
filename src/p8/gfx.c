@@ -374,6 +374,10 @@ static const unsigned char *font_glyph_rows(char character) {
     }
 }
 
+int p8_font_has_glyph(char character) {
+    return font_glyph_rows(character) != FONT_ROWS_PLACEHOLDER;
+}
+
 void p8_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
     int cx = x;
     for (const char *p = str; *p != '\0'; p++) {
