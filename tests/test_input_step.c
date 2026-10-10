@@ -7,6 +7,7 @@
 #include "devtools/state.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_id.h"
+#include "game/bindings.h"
 #include "game/cart.h"
 #include "game/main_economy.h"
 #include "game/scroll.h"
@@ -45,11 +46,11 @@ static void assert_installed(const input_step_t *step) {
 
 #define NOISY_FRAME_COUNT 6
 static const p8_input_frame_t noisy_frames[NOISY_FRAME_COUNT] = {
-    { 10, 20, P8_MOUSE_LEFT, P8_PAD_CROSS },
-    { 64, 64, 2, P8_PAD_UP | P8_PAD_LEFT },
-    { 127, 0, 4, P8_PAD_DOWN | P8_PAD_RIGHT | P8_PAD_CIRCLE },
+    { 10, 20, P8_MOUSE_LEFT, P8_PAD_BUTTON_5 },
+    { 64, 64, 2, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3 },
+    { 127, 0, 4, P8_PAD_BUTTON_2 | P8_PAD_BUTTON_4 | P8_PAD_BUTTON_6 },
     { 0, 127, 7, 2047 },
-    { 33, 44, 0, P8_PAD_START | P8_PAD_L1 | P8_PAD_R1 },
+    { 33, 44, 0, P8_PAD_BUTTON_11 | P8_PAD_BUTTON_9 | P8_PAD_BUTTON_10 },
     { 5, 6, 0, 0 },
 };
 
@@ -58,8 +59,8 @@ static const p8_input_frame_t noisy_frames[NOISY_FRAME_COUNT] = {
 static void test_pad_keeps_only_the_pad_mask(void) {
     input_step_t step;
     input_step_t quiet_step;
-    input_step_init(&step);
-    input_step_init(&quiet_step);
+    input_step_init(&step, &bindings_compiled);
+    input_step_init(&quiet_step, &bindings_compiled);
     for (int i = 0; i < NOISY_FRAME_COUNT; i++) {
         p8_input_frame_t quiet = { 0, 0, 0, noisy_frames[i].pad_buttons };
         input_step_run(&quiet_step, &quiet);
@@ -72,7 +73,7 @@ static void test_pad_keeps_only_the_pad_mask(void) {
     }
 }
 
-#define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
+#define CHORD (P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6)
 
 /* Each chord followed by a release frame; returns a bitmask of the chords on which the step reported the cheat. */
 static int type_cheat(input_step_t *step) {
@@ -96,7 +97,7 @@ static int economy_cheated(void) {
 static void test_pad_cheat_fires_on_cross_and_circle(void) {
     input_step_t step;
     cart_start_game(NULL);
-    input_step_init(&step);
+    input_step_init(&step, &bindings_compiled);
     assert(!economy_cheated());
     assert(type_cheat(&step) == 1 << (CHEAT_CHORDS - 1));
     assert(economy_cheated());
@@ -112,9 +113,9 @@ static void test_live_and_replayed_pad_frames_play_alike(void) {
         p8_input_frame_t frame = noisy_frames[i % NOISY_FRAME_COUNT];
         frame.mouse_x = (frame.mouse_x + 7 * i) % 128;
         if (i >= 10 && i < 10 + 2 * CHEAT_CHORDS) {
-            frame.pad_buttons = (i % 2 == 0) ? CHORD | P8_PAD_UP : P8_PAD_LEFT;
+            frame.pad_buttons = (i % 2 == 0) ? CHORD | P8_PAD_BUTTON_1 : P8_PAD_BUTTON_3;
         } else if (i < 10) {
-            frame.pad_buttons &= ~(P8_PAD_CROSS | P8_PAD_CIRCLE);
+            frame.pad_buttons &= ~(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6);
         }
         live[i] = frame;
     }
@@ -125,7 +126,7 @@ static void test_live_and_replayed_pad_frames_play_alike(void) {
     int live_fired[LIVE_FRAME_COUNT];
     p8_input_frame_t live_played[LIVE_FRAME_COUNT];
     int cheat_count = 0;
-    input_step_init(&live_step);
+    input_step_init(&live_step, &bindings_compiled);
     session_recorder_open(&recorder, path);
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
         assert(session_recorder_record_frame(&recorder, &live[i]) == 1);
@@ -139,7 +140,7 @@ static void test_live_and_replayed_pad_frames_play_alike(void) {
     replay_source_t replay;
     input_step_t replay_step;
     assert(replay_source_open(&replay, path) == REPLAY_SOURCE_LOADED);
-    input_step_init(&replay_step);
+    input_step_init(&replay_step, &bindings_compiled);
     for (int i = 0; i < LIVE_FRAME_COUNT; i++) {
         p8_input_frame_t raw;
         assert(replay_source_next_frame(&replay, &raw) == 1);
@@ -154,7 +155,7 @@ enum { HEADLESS_FRAME_COUNT = 120 };
 static p8_input_frame_t noisy_pad_session_frame(int i) {
     int first_half = i < HEADLESS_FRAME_COUNT / 2;
     p8_input_frame_t frame = { (i * 5) % 128, (i * 3) % 128, (i / 4) % 8, 0 };
-    frame.pad_buttons = first_half ? P8_PAD_UP | P8_PAD_LEFT : P8_PAD_DOWN | P8_PAD_RIGHT;
+    frame.pad_buttons = first_half ? P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3 : P8_PAD_BUTTON_2 | P8_PAD_BUTTON_4;
     return frame;
 }
 
@@ -177,7 +178,7 @@ static void write_snapshot(const char *path) {
 
 static void run_pad_session(const char *snapshot_path, int noisy) {
     input_step_t step;
-    input_step_init(&step);
+    input_step_init(&step, &bindings_compiled);
     for (int i = 0; i < HEADLESS_FRAME_COUNT; i++) {
         p8_input_frame_t raw = noisy_pad_session_frame(i);
         if (!noisy) {
@@ -230,6 +231,39 @@ static void test_pad_session_ignores_mouse_noise(void) {
     assert_files_identical(paths[0], paths[1]);
 }
 
+static bindings_t swap_table(void) {
+    bindings_t swap;
+    bindings_error_t error;
+    assert(bindings_parse("swap.cfg", "jump.enter_aim = 8\njump.open_menu = 7\n", &swap, &error));
+    return swap;
+}
+
+static void test_init_hands_the_table_to_pad_nav(void) {
+    bindings_t swap = swap_table();
+    input_step_t step;
+    input_step_init(&step, &swap);
+    const bindings_t *handed = pad_nav_bindings(&step.pad_nav);
+    assert(bindings_mask(handed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ENTER_AIM) == P8_PAD_BUTTON_8);
+    assert(bindings_mask(handed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_OPEN_MENU) == P8_PAD_BUTTON_7);
+    assert(bindings_mask(handed, BINDINGS_MODE_AIM, BINDINGS_ACTION_BACK) == 0);
+}
+
+static void test_init_keeps_its_own_copy_of_the_table(void) {
+    bindings_t swap = swap_table();
+    input_step_t step;
+    input_step_init(&step, &swap);
+    memset(&swap, 0, sizeof swap);
+    assert(bindings_mask(pad_nav_bindings(&step.pad_nav), BINDINGS_MODE_JUMP, BINDINGS_ACTION_ENTER_AIM)
+           == P8_PAD_BUTTON_8);
+}
+
+static void test_init_with_the_compiled_default(void) {
+    input_step_t step;
+    input_step_init(&step, &bindings_compiled);
+    assert(bindings_mask(pad_nav_bindings(&step.pad_nav), BINDINGS_MODE_JUMP, BINDINGS_ACTION_ENTER_AIM)
+           == P8_PAD_BUTTON_7);
+}
+
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -255,6 +289,9 @@ int main(void) {
     dispatch_context_set_mem(&memory);
     cart_load();
     cart_init();
+    test_init_hands_the_table_to_pad_nav();
+    test_init_keeps_its_own_copy_of_the_table();
+    test_init_with_the_compiled_default();
     in_fresh_child(test_pad_keeps_only_the_pad_mask);
     in_fresh_child(test_pad_cheat_fires_on_cross_and_circle);
     in_fresh_child(test_live_and_replayed_pad_frames_play_alike);

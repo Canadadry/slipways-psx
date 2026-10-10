@@ -5,9 +5,11 @@
 
 #include <stddef.h>
 
+enum { CHORD_FIRST = P8_PAD_BUTTON_5, CHORD_SECOND = P8_PAD_BUTTON_6 };
+
 void cheat_init(cheat_t *cheat) {
-    cheat->previous_cross = 0;
-    cheat->previous_circle = 0;
+    cheat->previous_first = 0;
+    cheat->previous_second = 0;
     cheat->chords = 0;
 }
 
@@ -30,19 +32,23 @@ static void apply(void) {
     hy->credits = p8_fixed_from_int(200);
 }
 
+int cheat_chord_buttons(void) {
+    return CHORD_FIRST | CHORD_SECOND;
+}
+
 int cheat_step(cheat_t *cheat, int pad_buttons) {
-    int cross = (pad_buttons & P8_PAD_CROSS) != 0;
-    int circle = (pad_buttons & P8_PAD_CIRCLE) != 0;
-    int cross_edge = cross && !cheat->previous_cross;
-    int circle_edge = circle && !cheat->previous_circle;
+    int first = (pad_buttons & CHORD_FIRST) != 0;
+    int second = (pad_buttons & CHORD_SECOND) != 0;
+    int first_edge = first && !cheat->previous_first;
+    int second_edge = second && !cheat->previous_second;
 
-    cheat->previous_cross = cross;
-    cheat->previous_circle = circle;
+    cheat->previous_first = first;
+    cheat->previous_second = second;
 
-    if (!cross_edge && !circle_edge) {
+    if (!first_edge && !second_edge) {
         return 0;
     }
-    if (!(cross_edge && circle_edge)) {
+    if (!(first_edge && second_edge)) {
         cheat->chords = 0;
         return 0;
     }

@@ -2,7 +2,6 @@
 
 #include "game/planet.h"
 #include "p8/fixed.h"
-#include "p8/input.h"
 
 #include <assert.h>
 
@@ -11,8 +10,9 @@ int pad_target_is_candidate(const entity_t *e) {
            (e->state == ENTITY_STATE_KNOWN || e->state == ENTITY_STATE_SETTLED);
 }
 
-static int is_direction(int direction) {
-    return direction == P8_PAD_UP || direction == P8_PAD_DOWN || direction == P8_PAD_LEFT || direction == P8_PAD_RIGHT;
+static int is_direction(pad_direction_t direction) {
+    return direction == PAD_DIRECTION_UP || direction == PAD_DIRECTION_DOWN || direction == PAD_DIRECTION_LEFT ||
+           direction == PAD_DIRECTION_RIGHT;
 }
 
 typedef struct {
@@ -20,24 +20,24 @@ typedef struct {
     p8_fixed_t perpendicular;
 } offset_t;
 
-static offset_t offset_in(int direction, vec_t from, vec_t to) {
+static offset_t offset_in(pad_direction_t direction, vec_t from, vec_t to) {
     p8_fixed_t dx = p8_fixed_sub(to.x, from.x);
     p8_fixed_t dy = p8_fixed_sub(to.y, from.y);
     switch (direction) {
-    case P8_PAD_RIGHT:
+    case PAD_DIRECTION_RIGHT:
         return (offset_t){dx, p8_fixed_abs(dy)};
-    case P8_PAD_LEFT:
+    case PAD_DIRECTION_LEFT:
         return (offset_t){-dx, p8_fixed_abs(dy)};
-    case P8_PAD_DOWN:
+    case PAD_DIRECTION_DOWN:
         return (offset_t){dy, p8_fixed_abs(dx)};
     default:
         return (offset_t){-dy, p8_fixed_abs(dx)};
     }
 }
 
-entity_t *pad_target_pick(const entity_t *origin, int direction, const entity_list_t *candidates) {
+entity_t *pad_target_pick(const entity_t *origin, pad_direction_t direction, const entity_list_t *candidates) {
     assert(is_direction(direction) &&
-           "pad_target_pick: the direction is exactly one of P8_PAD_UP, DOWN, LEFT or RIGHT");
+           "pad_target_pick: the direction is exactly one of PAD_DIRECTION_UP, DOWN, LEFT or RIGHT");
     assert(origin != NULL && entity_has_map_pos(origin) && "pad_target_pick: the origin is an entity with a map position");
     if (candidates == NULL) {
         return NULL;

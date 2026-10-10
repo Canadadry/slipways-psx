@@ -155,19 +155,26 @@ static p8_input_t *load_e2e(const char *e2e) {
     p8_vram_init(&mem);
     p8_gfx_init(&gfx);
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    static bindings_t bindings;
     p8_input_init(&input);
+    bindings = bindings_compiled;
     if (e2e != NULL) {
         snprintf(path, sizeof path, strchr(e2e, '/') != NULL ? "%s" : "tests/e2e/%s.json", e2e);
         assert(p8_input_load(&input, path));
         static replay_source_t source;
+        static replay_source_bindings_report_t report;
         assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
         assert(replay_source_seed_storage(&source) && "the header's initial_save is seeded as the replay tool seeds it");
+        replay_source_bindings_status_t status = replay_source_read_bindings(&source, &bindings_compiled, &bindings, &report);
+        if (status != REPLAY_SOURCE_BINDINGS_DEFAULT && status != REPLAY_SOURCE_BINDINGS_FIXTURE) fprintf(stderr, "%s\n", report.message);
+        assert((status == REPLAY_SOURCE_BINDINGS_DEFAULT || status == REPLAY_SOURCE_BINDINGS_FIXTURE) &&
+               "an e2e plays with its bindings fixture, as the replay tool plays it");
         replay_source_close(&source);
     }
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
-    input_step_init(&g_step);
+    input_step_init(&g_step, &bindings);
     cart_load();
     cart_init();
     return &input;

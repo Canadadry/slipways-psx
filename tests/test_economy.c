@@ -612,7 +612,7 @@ static void test_cheat_on_provisional(void) {
 
     memset(frames, 0, sizeof frames);
     for (i = 0; i < CHEAT_CHORDS; i++) {
-        frames[2 * i] = P8_PAD_CROSS | P8_PAD_CIRCLE;
+        frames[2 * i] = P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6;
     }
     cheat_init(&cheat);
     for (i = 0; i < 16; i++) {

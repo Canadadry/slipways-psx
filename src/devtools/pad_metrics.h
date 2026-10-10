@@ -7,10 +7,10 @@
 #include "game/input_step.h"
 #include "game/pad_jump.h"
 #include "p8/fixed.h"
+#include "p8/input.h"
 
 #include <stdio.h>
 
-#define PAD_METRICS_BUTTON_COUNT 12
 #define PAD_METRICS_RELEASE_FRAMES 2
 #define PAD_METRICS_PENDING_MAX 64
 #define PAD_METRICS_LISTED_MAX 8192
@@ -97,7 +97,7 @@ typedef struct {
     int cheat_activations;
     int jump_dpad_dead_strict;
     int jump_dpad_dead_lenient;
-    int circle_dead_other;
+    int button_6_dead_other;
     int repeats_dead_required;
     int repeats_dead_other;
     int aim_ok;
@@ -115,15 +115,15 @@ typedef struct {
     int previous_buttons;
     pad_metrics_hold_t hold;
     int mode_frames[PAD_METRICS_MODE_COUNT];
-    int presses[PAD_METRICS_MODE_COUNT][PAD_METRICS_BUTTON_COUNT];
+    int presses[PAD_METRICS_MODE_COUNT][P8_PAD_BUTTON_COUNT];
     int hold_repeats;
     int required_noops;
     int cheat_activations;
     int judging;
-    int repeats[PAD_METRICS_MODE_COUNT][PAD_METRICS_BUTTON_COUNT];
-    int chords[PAD_METRICS_MODE_COUNT][PAD_METRICS_BUTTON_COUNT];
+    int repeats[PAD_METRICS_MODE_COUNT][P8_PAD_BUTTON_COUNT];
+    int chords[PAD_METRICS_MODE_COUNT][P8_PAD_BUTTON_COUNT];
     int chord_frames;
-    int verdicts[PAD_METRICS_KIND_COUNT][PAD_METRICS_MODE_COUNT][PAD_METRICS_BUTTON_COUNT][PAD_METRICS_VERDICT_COUNT];
+    int verdicts[PAD_METRICS_KIND_COUNT][PAD_METRICS_MODE_COUNT][P8_PAD_BUTTON_COUNT][PAD_METRICS_VERDICT_COUNT];
     pad_metrics_pending_t pending[PAD_METRICS_PENDING_MAX];
     int pending_count;
     pad_metrics_listed_t listed[PAD_METRICS_LISTED_MAX];
@@ -138,15 +138,17 @@ pad_metrics_flags_t pad_metrics_flags_read(const input_step_t *step);
 pad_metrics_mode_t pad_metrics_classify(const pad_metrics_flags_t *flags);
 pad_metrics_mode_t pad_metrics_mode(const input_step_t *step);
 const char *pad_metrics_mode_name(pad_metrics_mode_t mode);
-const char *pad_metrics_button_name(int index);
 
 pad_metrics_view_t pad_metrics_view_read(const input_step_t *step);
 int pad_metrics_navigation_changed(const pad_metrics_view_t *a, const pad_metrics_view_t *b);
 int pad_metrics_view_changed(const pad_metrics_view_t *a, const pad_metrics_view_t *b);
 
+int pad_metrics_direction_button(pad_direction_t direction);
+int pad_metrics_first_direction_button(int buttons);
+
 int pad_metrics_hold_step(pad_metrics_hold_t *hold, pad_metrics_mode_t mode, int buttons);
 
-int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, int direction);
+int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, pad_direction_t direction);
 
 void pad_metrics_observe(pad_metrics_t *metrics, const input_step_t *step);
 const pad_metrics_view_t *pad_metrics_view(const pad_metrics_t *metrics);

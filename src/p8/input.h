@@ -8,18 +8,20 @@ typedef struct {
     int pad_buttons;
 } p8_input_frame_t;
 
-#define P8_PAD_UP 1
-#define P8_PAD_DOWN 2
-#define P8_PAD_LEFT 4
-#define P8_PAD_RIGHT 8
-#define P8_PAD_CROSS 16
-#define P8_PAD_CIRCLE 32
-#define P8_PAD_SQUARE 64
-#define P8_PAD_TRIANGLE 128
-#define P8_PAD_L1 256
-#define P8_PAD_R1 512
-#define P8_PAD_START 1024
-#define P8_PAD_SELECT 2048
+#define P8_PAD_BUTTON_1 1
+#define P8_PAD_BUTTON_2 2
+#define P8_PAD_BUTTON_3 4
+#define P8_PAD_BUTTON_4 8
+#define P8_PAD_BUTTON_5 16
+#define P8_PAD_BUTTON_6 32
+#define P8_PAD_BUTTON_7 64
+#define P8_PAD_BUTTON_8 128
+#define P8_PAD_BUTTON_9 256
+#define P8_PAD_BUTTON_10 512
+#define P8_PAD_BUTTON_11 1024
+#define P8_PAD_BUTTON_12 2048
+#define P8_PAD_BUTTON_COUNT 12
+typedef char p8_pad_button_count_ends_at_button_12[(1 << (P8_PAD_BUTTON_COUNT - 1)) == P8_PAD_BUTTON_12 ? 1 : -1];
 
 #define P8_MOUSE_LEFT 1
 
@@ -41,9 +43,6 @@ int p8_input_load(p8_input_t *input, const char *path);
 
 int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path);
 
-/* header_member: one JSON member such as `"key": "value"`, without indent or
- * comma, written after "input" in a fresh file only; NULL for none, which
- * keeps the file byte-identical to p8_input_save's. */
 int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, const char *header_member);
 
 void p8_input_free(p8_input_t *input);

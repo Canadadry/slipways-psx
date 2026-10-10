@@ -1,0 +1,4 @@
+# expect: hold: unknown buttons '13'
+title 12 reasonable
+idle 4
+hold 13 4

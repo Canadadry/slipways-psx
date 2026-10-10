@@ -229,7 +229,7 @@ static int fuzz_game(const char *path, int cores) {
     dispatch_context_set_input(&recording);
     cart_load();
     cart_init();
-    input_step_init(&step);
+    input_step_init(&step, &bindings_compiled);
     for (int frame = 0; frame < recording.frame_count; frame++) {
         int writes = save_storage_memory_write_count();
         input_step_run(&step, &recording.frames[recording.current_frame]);

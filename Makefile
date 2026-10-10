@@ -3,7 +3,7 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
 #                       alloc-guard + pointer-guard + random-guard +
-#                       data-guard + p8-guard, the fast loop
+#                       button-guard + data-guard + p8-guard, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -11,7 +11,11 @@
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt, whose "N frames:"
 #                       must match and exceed 180), or if an e2e does
-#                       not declare "input": "pad" or carries a mouse field
+#                       not declare "input": "pad" or carries a mouse field;
+#                       an e2e whose header names a fixture ("bindings":
+#                       "<file>.cfg", read from its directory) reruns when
+#                       that fixture changes, through the .d file replay
+#                       writes next to the capture
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
@@ -20,7 +24,8 @@
 #                       record at the end as one line of hex (the
 #                       initial_save format) and prints its decoded
 #                       "save:" summary; fails when there is no record or
-#                       it does not decode
+#                       it does not decode; refuses a recording whose header
+#                       says "bindings": "personal"
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
@@ -100,8 +105,9 @@
 #                       frames it pressed, then replays each JSON with
 #                       tmp/replay and fails unless the two last-frame states
 #                       are byte-identical; also fails on a refused input (a
-#                       cross + circle chord, a jump-mode D-pad press into an
-#                       empty cone, a circle that changes nothing unless
+#                       button 5 + 6 chord, a jump-mode D-pad press into an
+#                       empty cone, a back action (button 6 in the default
+#                       bindings) that changes nothing unless
 #                       `back --required`), a failed command check, more than
 #                       7200 frames, or 25% or more of the frames in aim
 #                       mode; the per-frame mode log and the totals go to
@@ -131,8 +137,8 @@
 # make pad-metrics-check -> regenerates tests/e2e/pad_colonise.json from its
 #                       proof script, then fails unless the report's `total `
 #                       lines equal the generator's and its required group is
-#                       exactly f16's square, f17's circle (aim mode, nothing
-#                       known) and f293's circle, outside the suite
+#                       exactly f16's button 7, f17's button 6 (aim mode,
+#                       nothing known) and f293's button 6, outside the suite
 # make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
 #                       as make state does and prints, per line of
 #                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
@@ -198,6 +204,10 @@
 #                       out; fails on any difference from
 #                       tools/random_guard_exceptions.txt (strict counts,
 #                       updated by hand), in make test
+# make button-guard  -> counts, per file of src/game/, the P8_PAD_BUTTON_*
+#                       names, comments and strings left out; fails when a
+#                       file other than cheat.c and the bindings module
+#                       names one, in make test
 # make float-link    -> links the objects of tmp/replay without `-lm` into a
 #                       throwaway binary, never run; outside the suite: make
 #                       test already builds tmp/replay, with the same link
@@ -205,7 +215,13 @@
 #                       table of the core) from tools/gen_quarter_wave.c,
 #                       outside the suite
 # make raylib        -> compiles and LINKS the interactive binary, never runs
-#                       it (needs make raylib-vendor-setup first)
+#                       it (needs make raylib-vendor-setup first); prints the
+#                       bindings and keymap files it compiled: <name>.cfg
+#                       when present, else <name>.default.cfg; every other
+#                       target compiles bindings.default.cfg, and only
+#                       test_keymap compiles keymap.default.cfg; a game built
+#                       with bindings.cfg writes "bindings": "personal" in
+#                       every recording, which replay refuses
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
@@ -340,6 +356,7 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 ENGINE_SRCS := \
     src/p8/assets.c \
     src/game/background.c \
+    src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -480,7 +497,7 @@ $(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/ass
 $(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_mouse_recording_refused.json $(wildcard tests/fixtures/events_pad_*.json) | $(TMP_DIR)
+$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_mouse_recording_refused.json $(wildcard tests/fixtures/events_pad_*.json) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_dump: $(call objs,tests/test_dump.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c) | $(TMP_DIR)
@@ -496,19 +513,40 @@ $(TMP_DIR)/test_fixed: $(call objs,tests/test_fixed.c src/p8/fixed.c src/devtool
 $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c) keymap.cfg | $(TMP_DIR)
+KEYMAP_DEFAULT_UNIT := $(TMP_DIR)/keymap/default.c
+
+$(TMP_DIR)/keymap_generate: $(call objs,src/cmd/keymap_generate.c src/platform/keymap.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+$(KEYMAP_DEFAULT_UNIT): keymap.default.cfg $(TMP_DIR)/keymap_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/keymap_generate $< $@
+
+$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c src/game/bindings.c $(KEYMAP_DEFAULT_UNIT)) keymap.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+BINDINGS_DEFAULT_UNIT := $(TMP_DIR)/bindings/default.c
+
+$(TMP_DIR)/bindings_generate: $(call objs,src/cmd/bindings_generate.c src/game/bindings.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(BINDINGS_DEFAULT_UNIT): bindings.default.cfg $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate $< $@
+
+$(TMP_DIR)/test_bindings: $(call objs,tests/test_bindings.c src/game/bindings.c $(BINDINGS_DEFAULT_UNIT)) bindings.default.cfg | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_control: $(call objs,tests/test_replay_control.c src/devtools/replay_control.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/screencast.c src/p8/vram.c) | $(TMP_DIR)
@@ -518,7 +556,7 @@ $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/scr
 # prerequisite: it replays the same fixture with and without a capture and
 # compares the two dumps, so that the capture argument has no effect on the
 # rest.
-$(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json tests/e2e/pad_title.json bindings.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
@@ -562,6 +600,9 @@ $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_gre
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_random_guard: $(call objs,tests/test_random_guard.c) tools/random_guard.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_button_guard: $(call objs,tests/test_button_guard.c) tools/button_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
@@ -623,7 +664,7 @@ $(TMP_DIR)/test_toast: $(call asan_objs,tests/test_toast.c $(ENGINE_SRCS)) | $(T
 $(TMP_DIR)/test_message_box: $(call asan_objs,tests/test_message_box.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c src/devtools/replay_source.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
+$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_modal_backdrop: $(call objs,tests/test_modal_backdrop.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -713,16 +754,16 @@ $(TMP_DIR)/test_infraspace_gate: $(call objs,tests/test_infraspace_gate.c tests/
 $(TMP_DIR)/test_burst: $(call objs,tests/test_burst.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_probe: $(call objs,tests/test_probe.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -752,16 +793,16 @@ $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c
 $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c src/devtools/state.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_target: $(call objs,tests/test_pad_target.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pad_jump: $(call objs,tests/test_pad_jump.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_jump: $(call objs,tests/test_pad_jump.c tests/heap_allocator.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_slipway: $(call objs,tests/test_pad_slipway.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -773,7 +814,7 @@ $(TMP_DIR)/test_pad_back: $(call objs,tests/test_pad_back.c tests/heap_allocator
 $(TMP_DIR)/test_pad_select: $(call objs,tests/test_pad_select.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/pad_metrics.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -785,10 +826,10 @@ $(TMP_DIR)/test_pad_cycle: $(call objs,tests/test_pad_cycle.c src/game/pad_cycle
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -872,6 +913,7 @@ UNIT_TESTS := \
     test_draw_layers_camera \
     test_demo \
     test_keymap \
+    test_bindings \
     test_replay_source \
     test_recording_continuity \
     test_replay_control \
@@ -893,6 +935,7 @@ UNIT_TESTS := \
     test_pointer_guard \
     test_float_grep \
     test_random_guard \
+    test_button_guard \
     test_float_link \
     test_constants_check \
     test_background_draw \
@@ -1024,7 +1067,7 @@ endif
 replay: $(TMP_DIR)/replay
 	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -1065,7 +1108,9 @@ frames_reference = $(1).sha256
 # is read by two tests that run in parallel.
 $(FRAMES_DIR)/%.bin: % $(TMP_DIR)/replay
 	@mkdir -p $(@D)
-	./$(TMP_DIR)/replay $< $@ $(@:.bin=.dump.txt) > /dev/null
+	REPLAY_DEPS=$(@:.bin=.d) ./$(TMP_DIR)/replay $< $@ $(@:.bin=.dump.txt) > /dev/null
+
+-include $(wildcard $(FRAMES_DIR)/$(E2E_DIR)/*.json.d)
 
 # The assignment keeps the exit status of sha256, which a pipe into cut would
 # lose.
@@ -1135,7 +1180,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
@@ -1169,7 +1214,7 @@ pad_metrics_name = $(PAD_METRICS_DIR)/$(basename $(notdir $(1)))
 pad_metrics_run = PAD_METRICS=$(call pad_metrics_name,$(1)).txt ./$(TMP_DIR)/replay $(1) /dev/null $(call pad_metrics_name,$(1)).dump.txt > /dev/null || exit 1; echo "pad-metrics: $(1) -> $(call pad_metrics_name,$(1)).txt"; grep '$(3)' $(call pad_metrics_name,$(1)).txt; $(if $(filter 1,$(2)),grep -qx 'section4 verdict ok' $(call pad_metrics_name,$(1)).txt || { echo "pad-metrics: $(1) misses section 4"; exit 1; };)
 PAD_METRICS_PROOF := tools/pad_author_proofs/pad_colonise.frames.pad
 PAD_METRICS_PROOF_E2E := $(E2E_DIR)/pad_colonise.json
-PAD_METRICS_PROOF_REQUIRED := dead f16 press square aim required;dead f17 press circle aim required;dead f293 press circle jump required
+PAD_METRICS_PROOF_REQUIRED := dead f16 press 7 aim required;dead f17 press 6 aim required;dead f293 press 6 jump required
 
 pad-metrics: $(TMP_DIR)/replay
 	@test -n "$(EVENTS)" || { echo "pad-metrics: EVENTS=<events.json> is required"; exit 2; }
@@ -1188,7 +1233,7 @@ pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) 
 	@grep '^total ' $(TMP_DIR)/pad-author/pad_colonise.modes.txt > $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt
 	@grep '^total ' $(PAD_METRICS_DIR)/pad_colonise.txt | diff $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt - || { echo "pad-metrics-check: the totals differ from the generator's"; exit 1; }
 	@required=$$(grep -E ' (required|dead-required)$$' $(PAD_METRICS_DIR)/pad_colonise.txt | paste -sd ';' -); test "$$required" = "$(PAD_METRICS_PROOF_REQUIRED)" || { echo "pad-metrics-check: required group is '$$required', not '$(PAD_METRICS_PROOF_REQUIRED)'"; exit 1; }
-	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's square, f17's circle and f293's circle"
+	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's button 7, f17's button 6 and f293's button 6"
 
 .PHONY: pad-metrics pad-metrics-worst-case pad-metrics-check
 
@@ -1350,6 +1395,11 @@ random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS)
 
 .PHONY: random-guard
 
+button-guard: tools/button_guard.sh
+	@sh tools/button_guard.sh src/game
+
+.PHONY: button-guard
+
 float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh
 	@sh tools/float_link.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-link/replay $(call objs,$(REPLAY_SRCS))
 
@@ -1442,6 +1492,31 @@ raylib-vendor-setup:
 # without vendoring fails with "no rule to make target".
 # The raylib target builds straight from the sources to the executable:
 # its files need `-I third_party/raylib/src`, which the others do not have.
+BINDINGS_GAME_UNIT := $(TMP_DIR)/bindings/game.c
+BINDINGS_CHOSEN := $(if $(wildcard bindings.cfg),bindings.cfg,bindings.default.cfg)
+BINDINGS_PERSONAL_OPTION := $(if $(wildcard bindings.cfg),--personal)
+
+# Rewritten only when the chosen file name changes, so that creating or
+# deleting bindings.cfg regenerates the game unit whatever its date.
+$(TMP_DIR)/bindings.source: FORCE | $(TMP_DIR)
+	@echo '$(BINDINGS_CHOSEN)' | cmp -s - $@ || echo '$(BINDINGS_CHOSEN)' > $@
+
+FORCE:
+
+$(BINDINGS_GAME_UNIT): $(BINDINGS_CHOSEN) $(TMP_DIR)/bindings.source $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate $(BINDINGS_PERSONAL_OPTION) $(BINDINGS_CHOSEN) $@
+
+KEYMAP_GAME_UNIT := $(TMP_DIR)/keymap/game.c
+KEYMAP_CHOSEN := $(if $(wildcard keymap.cfg),keymap.cfg,keymap.default.cfg)
+
+$(TMP_DIR)/keymap.source: FORCE | $(TMP_DIR)
+	@echo '$(KEYMAP_CHOSEN)' | cmp -s - $@ || echo '$(KEYMAP_CHOSEN)' > $@
+
+$(KEYMAP_GAME_UNIT): $(KEYMAP_CHOSEN) $(TMP_DIR)/keymap.source $(TMP_DIR)/keymap_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/keymap_generate $(KEYMAP_CHOSEN) $@
+
 GAME_SRCS := \
     src/cmd/game.c \
     src/platform/raylib_backend.c \
@@ -1451,18 +1526,22 @@ GAME_SRCS := \
     src/devtools/replay_source.c \
     src/devtools/session_recorder.c \
     src/platform/save_storage_file.c \
+    $(BINDINGS_GAME_UNIT) \
+    $(KEYMAP_GAME_UNIT) \
     $(filter-out src/devtools/save_storage_memory.c,$(ENGINE_SRCS))
 
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ $(GAME_SRCS) third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/game
+	@echo "bindings: $(BINDINGS_CHOSEN)$(if $(wildcard bindings.cfg), (personal))"
+	@echo "keymap: $(KEYMAP_CHOSEN)$(if $(wildcard keymap.cfg), (personal))"
 
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.
--include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d)
--include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d $(OBJ_DIR)/tmp/keymap/*.d)
+-include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d)
+-include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d)
+-include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d)
 

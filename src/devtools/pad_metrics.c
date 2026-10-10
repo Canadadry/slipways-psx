@@ -17,10 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *const BUTTON_NAMES[PAD_METRICS_BUTTON_COUNT] = {
-    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select",
-};
-
 static const char *const MODE_NAMES[PAD_METRICS_MODE_COUNT] = {
     "title", "pause", "placement", "bar", "tech", "score", "menu", "jump", "aim", "slipway",
 };
@@ -72,11 +68,6 @@ pad_metrics_mode_t pad_metrics_mode(const input_step_t *step) {
 const char *pad_metrics_mode_name(pad_metrics_mode_t mode) {
     assert(mode >= 0 && mode < PAD_METRICS_MODE_COUNT);
     return MODE_NAMES[mode];
-}
-
-const char *pad_metrics_button_name(int index) {
-    assert(index >= 0 && index < PAD_METRICS_BUTTON_COUNT);
-    return BUTTON_NAMES[index];
 }
 
 static void camera_point(int *x, int *y) {
@@ -140,21 +131,45 @@ int pad_metrics_view_changed(const pad_metrics_view_t *a, const pad_metrics_view
            a->year_ticks != b->year_ticks || a->nodes != b->nodes || a->probes != b->probes || a->techs != b->techs;
 }
 
+int pad_metrics_direction_button(pad_direction_t direction) {
+    switch (direction) {
+    case PAD_DIRECTION_UP:
+        return P8_PAD_BUTTON_1;
+    case PAD_DIRECTION_DOWN:
+        return P8_PAD_BUTTON_2;
+    case PAD_DIRECTION_LEFT:
+        return P8_PAD_BUTTON_3;
+    case PAD_DIRECTION_RIGHT:
+        return P8_PAD_BUTTON_4;
+    case PAD_DIRECTION_NONE:
+        break;
+    }
+    return 0;
+}
+
+int pad_metrics_first_direction_button(int buttons) {
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
+        int button = pad_metrics_direction_button(pad_jump_direction(i));
+        if (buttons & button) return button;
+    }
+    return 0;
+}
+
 int pad_metrics_hold_step(pad_metrics_hold_t *hold, pad_metrics_mode_t mode, int buttons) {
     int repeats = 0;
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        int direction = pad_jump_direction(i);
-        hold->held[i] = (buttons & direction) ? hold->held[i] + 1 : 0;
+        int button = pad_metrics_direction_button(pad_jump_direction(i));
+        hold->held[i] = (buttons & button) ? hold->held[i] + 1 : 0;
         int past = hold->held[i] - PAD_JUMP_REPEAT_DELAY;
         if ((mode == PAD_METRICS_MODE_JUMP || mode == PAD_METRICS_MODE_SLIPWAY) && past > 0 &&
             (past - 1) % PAD_JUMP_REPEAT_PERIOD == 0) {
-            repeats |= direction;
+            repeats |= button;
         }
     }
     return repeats;
 }
 
-int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, int direction) {
+int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, pad_direction_t direction) {
     /* Resets the caller's scratch zone: pad_author shares it, so nothing it holds there survives this call. */
     bump_zone_reset(metrics->scratch);
     allocator_t zone = allocator_from_bump_zone(metrics->scratch);
@@ -169,8 +184,10 @@ static int is_moving_mode(pad_metrics_mode_t mode) {
 static int empty_cones(const entity_t *from, const entity_list_t *candidates) {
     int empty = 0;
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        int direction = pad_jump_direction(i);
-        if (from == NULL || pad_target_pick(from, direction, candidates) == NULL) empty |= direction;
+        pad_direction_t direction = pad_jump_direction(i);
+        if (from == NULL || pad_target_pick(from, direction, candidates) == NULL) {
+            empty |= pad_metrics_direction_button(direction);
+        }
     }
     return empty;
 }
@@ -219,20 +236,20 @@ static int bit_count(int bits) {
     return n;
 }
 
-static int is_required(const pad_metrics_view_t *before, int button_bit, int first_direction) {
+static int is_required(const pad_metrics_view_t *before, int button_bit, int first_direction_button) {
     int aim_with_nothing_to_jump_to = before->mode == PAD_METRICS_MODE_AIM && before->no_candidate;
-    if (button_bit == P8_PAD_SQUARE) {
+    if (button_bit == P8_PAD_BUTTON_7) {
         return aim_with_nothing_to_jump_to;
     }
-    if (button_bit == P8_PAD_CIRCLE) {
+    if (button_bit == P8_PAD_BUTTON_6) {
         int at_root = before->mode == PAD_METRICS_MODE_JUMP &&
                       (entity_id_is_none(before->last_acted) || entity_id_equal(before->last_acted, before->hovered));
         return (at_root || aim_with_nothing_to_jump_to) && !before->message_box && !before->box_open;
     }
-    return is_moving_mode(before->mode) && button_bit == first_direction && (before->cone_empty & button_bit);
+    return is_moving_mode(before->mode) && button_bit == first_direction_button && (before->cone_empty & button_bit);
 }
 
-static void open_event(pad_metrics_t *metrics, pad_metrics_kind_t kind, int button, int first_direction) {
+static void open_event(pad_metrics_t *metrics, pad_metrics_kind_t kind, int button, int first_direction_button) {
     assert(metrics->pending_count < PAD_METRICS_PENDING_MAX && "pad_metrics: too many presses open at once");
     pad_metrics_pending_t *event = &metrics->pending[metrics->pending_count++];
     event->frame = metrics->frames;
@@ -240,7 +257,7 @@ static void open_event(pad_metrics_t *metrics, pad_metrics_kind_t kind, int butt
     event->kind = kind;
     event->button = button;
     event->mode = metrics->view.mode;
-    event->required_if_dead = is_required(&metrics->view, 1 << button, first_direction);
+    event->required_if_dead = is_required(&metrics->view, 1 << button, first_direction_button);
     event->moved = 0;
     event->before = metrics->view;
 }
@@ -267,7 +284,7 @@ static void settle(pad_metrics_t *metrics, int index) {
                                                              : PAD_METRICS_DEAD_OTHER;
     metrics->verdicts[event.kind][event.mode][event.button][verdict]++;
     if (verdict != PAD_METRICS_LIVE || event.kind == PAD_METRICS_REPEAT) list_event(metrics, &event, verdict);
-    if (verdict == PAD_METRICS_DEAD_REQUIRED && event.kind == PAD_METRICS_PRESS && (1 << event.button) == P8_PAD_CIRCLE) {
+    if (verdict == PAD_METRICS_DEAD_REQUIRED && event.kind == PAD_METRICS_PRESS && (1 << event.button) == P8_PAD_BUTTON_6) {
         metrics->required_noops++;
     }
 }
@@ -286,17 +303,19 @@ static void judge_frame(pad_metrics_t *metrics, int buttons, int pressed, int re
         int released_before = event->end >= 0 && event->end - PAD_METRICS_RELEASE_FRAMES < t;
         if (event->kind == PAD_METRICS_PRESS && released_before && (pressed & ~(1 << event->button))) settle(metrics, i);
     }
-    const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
+    const int face = P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6;
     int chord = (pressed & face) == face;
     if (chord) metrics->chord_frames++;
-    for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+    for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
         int bit = 1 << b;
         if ((pressed & bit) && chord && (bit & face)) {
             metrics->chords[metrics->view.mode][b]++;
         } else if (pressed & bit) {
-            open_event(metrics, PAD_METRICS_PRESS, b, pad_jump_first_direction(pressed));
+            open_event(metrics, PAD_METRICS_PRESS, b, pad_metrics_first_direction_button(pressed));
         }
-        if (repeats & bit) open_event(metrics, PAD_METRICS_REPEAT, b, pad_jump_first_direction(repeats));
+        if (repeats & bit) {
+            open_event(metrics, PAD_METRICS_REPEAT, b, pad_metrics_first_direction_button(repeats));
+        }
     }
     for (int i = 0; i < metrics->pending_count; i++) {
         if (pad_metrics_view_changed(&metrics->pending[i].before, after)) metrics->pending[i].moved = 1;
@@ -316,7 +335,7 @@ void pad_metrics_step(pad_metrics_t *metrics, int buttons, int cheat, const pad_
     int repeats = pad_metrics_hold_step(&metrics->hold, mode, buttons);
     metrics->cheat_activations += cheat;
     metrics->mode_frames[mode]++;
-    for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+    for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
         if (pressed & (1 << b)) metrics->presses[mode][b]++;
         if (repeats & (1 << b)) metrics->repeats[mode][b]++;
     }
@@ -347,12 +366,12 @@ void pad_metrics_finish(pad_metrics_t *metrics) {
 int pad_metrics_verdict_count(const pad_metrics_t *metrics, pad_metrics_kind_t kind, pad_metrics_mode_t mode,
                               int button, pad_metrics_verdict_t verdict) {
     assert(kind >= 0 && kind < PAD_METRICS_KIND_COUNT && mode >= 0 && mode < PAD_METRICS_MODE_COUNT);
-    assert(button >= 0 && button < PAD_METRICS_BUTTON_COUNT && verdict >= 0 && verdict < PAD_METRICS_VERDICT_COUNT);
+    assert(button >= 0 && button < P8_PAD_BUTTON_COUNT && verdict >= 0 && verdict < PAD_METRICS_VERDICT_COUNT);
     return metrics->verdicts[kind][mode][button][verdict];
 }
 
 int pad_metrics_chord_count(const pad_metrics_t *metrics, pad_metrics_mode_t mode, int button) {
-    assert(mode >= 0 && mode < PAD_METRICS_MODE_COUNT && button >= 0 && button < PAD_METRICS_BUTTON_COUNT);
+    assert(mode >= 0 && mode < PAD_METRICS_MODE_COUNT && button >= 0 && button < P8_PAD_BUTTON_COUNT);
     return metrics->chords[mode][button];
 }
 
@@ -381,9 +400,9 @@ void pad_metrics_write_totals(const pad_metrics_t *metrics, FILE *out, const cha
     }
     fprintf(out, "%saim share %d.%d%% (%d of %d frames)\n", prefix, per_mille / 10, per_mille % 10, aim, frames);
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             if (metrics->presses[m][b] > 0) {
-                fprintf(out, "%spresses %s %s %d\n", prefix, MODE_NAMES[m], BUTTON_NAMES[b], metrics->presses[m][b]);
+                fprintf(out, "%spresses %s %d %d\n", prefix, MODE_NAMES[m], b + 1, metrics->presses[m][b]);
             }
         }
     }
@@ -405,7 +424,7 @@ static int verdict_sum(const pad_metrics_t *metrics, pad_metrics_kind_t kind, in
                        int buttons, pad_metrics_verdict_t verdict) {
     int sum = 0;
     for (int m = mode_first; m <= mode_last; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             if (buttons & (1 << b)) sum += metrics->verdicts[kind][m][b][verdict];
         }
     }
@@ -413,19 +432,20 @@ static int verdict_sum(const pad_metrics_t *metrics, pad_metrics_kind_t kind, in
 }
 
 pad_metrics_section4_t pad_metrics_section4(const pad_metrics_t *metrics) {
-    const int dpad = P8_PAD_UP | P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT;
-    const int all = (1 << PAD_METRICS_BUTTON_COUNT) - 1;
+    int dpad = 0;
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) dpad |= pad_metrics_direction_button(pad_jump_direction(i));
+    const int all = (1 << P8_PAD_BUTTON_COUNT) - 1;
     const int jump = PAD_METRICS_MODE_JUMP, last = PAD_METRICS_MODE_COUNT - 1;
     pad_metrics_section4_t s;
     s.cheat_activations = metrics->cheat_activations;
     s.jump_dpad_dead_lenient = verdict_sum(metrics, PAD_METRICS_PRESS, jump, jump, dpad, PAD_METRICS_DEAD_OTHER);
     s.jump_dpad_dead_strict =
         s.jump_dpad_dead_lenient + verdict_sum(metrics, PAD_METRICS_PRESS, jump, jump, dpad, PAD_METRICS_DEAD_REQUIRED);
-    s.circle_dead_other = verdict_sum(metrics, PAD_METRICS_PRESS, 0, last, P8_PAD_CIRCLE, PAD_METRICS_DEAD_OTHER);
+    s.button_6_dead_other = verdict_sum(metrics, PAD_METRICS_PRESS, 0, last, P8_PAD_BUTTON_6, PAD_METRICS_DEAD_OTHER);
     s.repeats_dead_required = verdict_sum(metrics, PAD_METRICS_REPEAT, 0, last, all, PAD_METRICS_DEAD_REQUIRED);
     s.repeats_dead_other = verdict_sum(metrics, PAD_METRICS_REPEAT, 0, last, all, PAD_METRICS_DEAD_OTHER);
     s.aim_ok = pad_metrics_aim_ok(metrics);
-    s.ok = s.cheat_activations == 0 && s.jump_dpad_dead_strict == 0 && s.circle_dead_other == 0 && s.aim_ok;
+    s.ok = s.cheat_activations == 0 && s.jump_dpad_dead_strict == 0 && s.button_6_dead_other == 0 && s.aim_ok;
     return s;
 }
 
@@ -442,21 +462,21 @@ static const char *verdict_of(int ok) {
 
 static void write_event_counts(const pad_metrics_t *metrics, FILE *out) {
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             const int *press = metrics->verdicts[PAD_METRICS_PRESS][m][b];
             if (metrics->presses[m][b] > 0) {
-                fprintf(out, "presses %s %s %d chords %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
-                        BUTTON_NAMES[b], metrics->presses[m][b], metrics->chords[m][b], press[PAD_METRICS_LIVE],
+                fprintf(out, "presses %s %d %d chords %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
+                        b + 1, metrics->presses[m][b], metrics->chords[m][b], press[PAD_METRICS_LIVE],
                         press[PAD_METRICS_DEAD_REQUIRED], press[PAD_METRICS_DEAD_OTHER]);
             }
         }
     }
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             const int *repeat = metrics->verdicts[PAD_METRICS_REPEAT][m][b];
             if (metrics->repeats[m][b] > 0) {
-                fprintf(out, "repeats %s %s %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
-                        BUTTON_NAMES[b], metrics->repeats[m][b], repeat[PAD_METRICS_LIVE],
+                fprintf(out, "repeats %s %d %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
+                        b + 1, metrics->repeats[m][b], repeat[PAD_METRICS_LIVE],
                         repeat[PAD_METRICS_DEAD_REQUIRED], repeat[PAD_METRICS_DEAD_OTHER]);
             }
         }
@@ -467,10 +487,10 @@ static void write_listed(const pad_metrics_t *metrics, FILE *out) {
     for (int i = 0; i < metrics->listed_count; i++) {
         const pad_metrics_listed_t *row = &metrics->listed[i];
         if (row->kind == PAD_METRICS_PRESS) {
-            fprintf(out, "dead f%d press %s %s %s\n", row->frame, BUTTON_NAMES[row->button], MODE_NAMES[row->mode],
+            fprintf(out, "dead f%d press %d %s %s\n", row->frame, row->button + 1, MODE_NAMES[row->mode],
                     row->verdict == PAD_METRICS_DEAD_REQUIRED ? "required" : "other");
         } else {
-            fprintf(out, "repeat f%d %s %s %s\n", row->frame, BUTTON_NAMES[row->button], MODE_NAMES[row->mode],
+            fprintf(out, "repeat f%d %d %s %s\n", row->frame, row->button + 1, MODE_NAMES[row->mode],
                     VERDICT_NAMES[row->verdict]);
         }
     }
@@ -483,8 +503,8 @@ static void write_section4(const pad_metrics_t *metrics, FILE *out) {
     fprintf(out, "section4 cheat activations %d %s\n", s.cheat_activations, verdict_of(s.cheat_activations == 0));
     fprintf(out, "section4 dead d-pad presses in jump mode %d %s (lenient, other group only: %d)\n",
             s.jump_dpad_dead_strict, verdict_of(s.jump_dpad_dead_strict == 0), s.jump_dpad_dead_lenient);
-    fprintf(out, "section4 dead circle presses in the other group %d %s\n", s.circle_dead_other,
-            verdict_of(s.circle_dead_other == 0));
+    fprintf(out, "section4 dead circle presses in the other group %d %s\n", s.button_6_dead_other,
+            verdict_of(s.button_6_dead_other == 0));
     fprintf(out, "section4 dead hold repeats required %d other %d (not deciding)\n", s.repeats_dead_required,
             s.repeats_dead_other);
     fprintf(out, "section4 aim share ");

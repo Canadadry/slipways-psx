@@ -1,4 +1,4 @@
-# expect: chord: cross and circle pressed on the same frame
+# expect: chord: buttons 5 and 6 pressed on the same frame
 title 12 reasonable
 idle 4
-tap cross+circle
+tap 5+6

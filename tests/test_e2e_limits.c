@@ -98,7 +98,7 @@ static void test_e2e_over_180_frames_fails_and_is_named(void) {
 
 static void test_frames_are_counted_by_their_pad_key(void) {
     reset();
-    write_e2e_with("pressed", PAD_HEADER, 181, "{ \"pad\": [\"cross\", \"up\"] }", NULL);
+    write_e2e_with("pressed", PAD_HEADER, 181, "{ \"pad\": [5, 1] }", NULL);
     assert(run(DIR "/pressed.json") != 0);
     assert(strstr(read_log(), "181 frames") != NULL);
 }

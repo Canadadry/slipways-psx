@@ -79,7 +79,7 @@ static void replay_game(const char *path, int fd) {
     dispatch_context_set_input(&input);
     cart_load();
     cart_init();
-    input_step_init(&step);
+    input_step_init(&step, &bindings_compiled);
     for (int frame = 0; frame < input.frame_count; frame++) {
         input_step_run(&step, &input.frames[input.current_frame]);
         cart_update60();
