@@ -390,6 +390,7 @@ static void test_pad_button_number_forms_outside_the_grammar_fail(void) {
     assert_pad_frame_fails_and_leaves_input_untouched("[0]");
     assert_pad_frame_fails_and_leaves_input_untouched("[13]");
     assert_pad_frame_fails_and_leaves_input_untouched("[120]");
+    assert_pad_frame_fails_and_leaves_input_untouched("[99999999999]");
     assert_pad_frame_fails_and_leaves_input_untouched("[05]");
     assert_pad_frame_fails_and_leaves_input_untouched("[-1]");
     assert_pad_frame_fails_and_leaves_input_untouched("[5.0]");

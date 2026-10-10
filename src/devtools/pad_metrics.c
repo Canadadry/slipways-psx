@@ -282,7 +282,7 @@ static void judge_frame(pad_metrics_t *metrics, int buttons, int pressed, int re
     const int face = P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6;
     int chord = (pressed & face) == face;
     if (chord) metrics->chord_frames++;
-    for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+    for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
         int bit = 1 << b;
         if ((pressed & bit) && chord && (bit & face)) {
             metrics->chords[metrics->view.mode][b]++;
@@ -311,7 +311,7 @@ void pad_metrics_step(pad_metrics_t *metrics, int buttons, int cheat, const pad_
     int repeats = pad_metrics_hold_step(&metrics->hold, mode, buttons);
     metrics->cheat_activations += cheat;
     metrics->mode_frames[mode]++;
-    for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+    for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
         if (pressed & (1 << b)) metrics->presses[mode][b]++;
         if (repeats & (1 << b)) metrics->repeats[mode][b]++;
     }
@@ -342,12 +342,12 @@ void pad_metrics_finish(pad_metrics_t *metrics) {
 int pad_metrics_verdict_count(const pad_metrics_t *metrics, pad_metrics_kind_t kind, pad_metrics_mode_t mode,
                               int button, pad_metrics_verdict_t verdict) {
     assert(kind >= 0 && kind < PAD_METRICS_KIND_COUNT && mode >= 0 && mode < PAD_METRICS_MODE_COUNT);
-    assert(button >= 0 && button < PAD_METRICS_BUTTON_COUNT && verdict >= 0 && verdict < PAD_METRICS_VERDICT_COUNT);
+    assert(button >= 0 && button < P8_PAD_BUTTON_COUNT && verdict >= 0 && verdict < PAD_METRICS_VERDICT_COUNT);
     return metrics->verdicts[kind][mode][button][verdict];
 }
 
 int pad_metrics_chord_count(const pad_metrics_t *metrics, pad_metrics_mode_t mode, int button) {
-    assert(mode >= 0 && mode < PAD_METRICS_MODE_COUNT && button >= 0 && button < PAD_METRICS_BUTTON_COUNT);
+    assert(mode >= 0 && mode < PAD_METRICS_MODE_COUNT && button >= 0 && button < P8_PAD_BUTTON_COUNT);
     return metrics->chords[mode][button];
 }
 
@@ -376,7 +376,7 @@ void pad_metrics_write_totals(const pad_metrics_t *metrics, FILE *out, const cha
     }
     fprintf(out, "%saim share %d.%d%% (%d of %d frames)\n", prefix, per_mille / 10, per_mille % 10, aim, frames);
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             if (metrics->presses[m][b] > 0) {
                 fprintf(out, "%spresses %s %d %d\n", prefix, MODE_NAMES[m], b + 1, metrics->presses[m][b]);
             }
@@ -400,7 +400,7 @@ static int verdict_sum(const pad_metrics_t *metrics, pad_metrics_kind_t kind, in
                        int buttons, pad_metrics_verdict_t verdict) {
     int sum = 0;
     for (int m = mode_first; m <= mode_last; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             if (buttons & (1 << b)) sum += metrics->verdicts[kind][m][b][verdict];
         }
     }
@@ -409,7 +409,7 @@ static int verdict_sum(const pad_metrics_t *metrics, pad_metrics_kind_t kind, in
 
 pad_metrics_section4_t pad_metrics_section4(const pad_metrics_t *metrics) {
     const int dpad = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
-    const int all = (1 << PAD_METRICS_BUTTON_COUNT) - 1;
+    const int all = (1 << P8_PAD_BUTTON_COUNT) - 1;
     const int jump = PAD_METRICS_MODE_JUMP, last = PAD_METRICS_MODE_COUNT - 1;
     pad_metrics_section4_t s;
     s.cheat_activations = metrics->cheat_activations;
@@ -437,7 +437,7 @@ static const char *verdict_of(int ok) {
 
 static void write_event_counts(const pad_metrics_t *metrics, FILE *out) {
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             const int *press = metrics->verdicts[PAD_METRICS_PRESS][m][b];
             if (metrics->presses[m][b] > 0) {
                 fprintf(out, "presses %s %d %d chords %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],
@@ -447,7 +447,7 @@ static void write_event_counts(const pad_metrics_t *metrics, FILE *out) {
         }
     }
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
-        for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+        for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
             const int *repeat = metrics->verdicts[PAD_METRICS_REPEAT][m][b];
             if (metrics->repeats[m][b] > 0) {
                 fprintf(out, "repeats %s %d %d live %d dead-required %d dead-other %d\n", MODE_NAMES[m],

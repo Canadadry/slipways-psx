@@ -7,6 +7,7 @@
 #include "engine/entity_id.h"
 #include "engine/entity_list.h"
 #include "engine/entity_registry.h"
+#include "game/bindings.h"
 #include "game/cart.h"
 #include "game/economy_score.h"
 #include "game/game_data.h"
@@ -27,6 +28,7 @@
 #include "game/slipway.h"
 #include "game/structure_icon.h"
 #include "game/ui_button.h"
+#include "p8/input.h"
 #include "p8/vram.h"
 
 #include <assert.h>
@@ -163,14 +165,14 @@ static int first_button_number(int buttons) {
     assert(buttons != 0 && "first_button_number: no button set, the scan would never end");
     int b = 0;
     while (!(buttons & (1 << b))) b++;
-    assert(b < PAD_METRICS_BUTTON_COUNT);
+    assert(b < P8_PAD_BUTTON_COUNT);
     return b + 1;
 }
 
 static void write_buttons(FILE *out, int buttons) {
     const char *separator = "";
     fputc('[', out);
-    for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
+    for (int b = 0; b < P8_PAD_BUTTON_COUNT; b++) {
         if (buttons & (1 << b)) {
             fprintf(out, "%s%d", separator, b + 1);
             separator = "+";
@@ -269,10 +271,8 @@ static int parse_buttons(const char *text) {
     int mask = 0;
     const char *p = text;
     for (;;) {
-        if (*p < '1' || *p > '9') return 0;
-        int number = 0;
-        while (*p >= '0' && *p <= '9' && number <= PAD_METRICS_BUTTON_COUNT) number = number * 10 + (*p++ - '0');
-        if (number > PAD_METRICS_BUTTON_COUNT || (mask & (1 << (number - 1)))) return 0;
+        int number = bindings_read_button_number(p, &p);
+        if (number == 0 || (mask & (1 << (number - 1)))) return 0;
         mask |= 1 << (number - 1);
         if (*p == '\0') return mask;
         if (*p++ != '+') return 0;

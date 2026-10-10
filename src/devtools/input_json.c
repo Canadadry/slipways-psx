@@ -1,5 +1,7 @@
 #include "p8/input.h"
 
+#include "game/bindings.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,9 +48,6 @@ static int has_pad_header(const char *json, const char *head_end) {
     return strncmp(p, "\"pad\"", 5) == 0;
 }
 
-#define PAD_BUTTON_COUNT 12
-typedef char pad_button_count_ends_at_select[(1 << (PAD_BUTTON_COUNT - 1)) == P8_PAD_BUTTON_12 ? 1 : -1];
-
 static int is_json_separator(char c) {
     return c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t';
 }
@@ -78,20 +77,14 @@ static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
         if (*p == ']') {
             return 1;
         }
-        if (*p >= '1' && *p <= '9') {
-            int number = 0;
-            while (*p >= '0' && *p <= '9' && number <= PAD_BUTTON_COUNT) {
-                number = number * 10 + (*p - '0');
-                p++;
-            }
-            int ends_element = is_json_separator(*p) || *p == ']';
-            if (!ends_element || number > PAD_BUTTON_COUNT || (out->pad_buttons & (1 << (number - 1)))) {
-                return 0;
-            }
-            out->pad_buttons |= 1 << (number - 1);
-            continue;
+        const char *end = NULL;
+        int number = bindings_read_button_number(p, &end);
+        int ends_element = is_json_separator(*end) || *end == ']';
+        if (number == 0 || !ends_element || (out->pad_buttons & (1 << (number - 1)))) {
+            return 0;
         }
-        return 0;
+        out->pad_buttons |= 1 << (number - 1);
+        p = end;
     }
 }
 
@@ -208,10 +201,10 @@ int p8_input_load(p8_input_t *input, const char *path) {
 #define FRAME_LINE_MAX 160
 
 static int format_pad_frame_line(char *buf, size_t size, const p8_input_frame_t *fr) {
-    assert((fr->pad_buttons & ~((1 << PAD_BUTTON_COUNT) - 1)) == 0 && "a bit past P8_PAD_BUTTON_12 has no button number");
+    assert((fr->pad_buttons & ~((1 << P8_PAD_BUTTON_COUNT) - 1)) == 0 && "a bit past P8_PAD_BUTTON_12 has no button number");
     int used = snprintf(buf, size, "    { \"pad\": [");
     const char *separator = "";
-    for (int bit = 0; bit < PAD_BUTTON_COUNT; bit++) {
+    for (int bit = 0; bit < P8_PAD_BUTTON_COUNT; bit++) {
         if (used < 0 || (size_t)used >= size) {
             return 0;
         }
