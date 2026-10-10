@@ -61,7 +61,7 @@
   - [x] 17. Personal recordings flagged
     - [x] Chunk 1: the recorder writes the flag
     - [x] Chunk 2: the flag comes from the compiled unit
-  - [ ] 18. Swap twin
+  - [x] 18. Swap twin
   - [ ] 19. Unbound action
 - [ ] Phase 5 — Docs and cleanup
   - [ ] 20. Docs
