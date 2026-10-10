@@ -1,5 +1,5 @@
-- [ ] Phase 0 — Base
-  - [ ] 1. Base check
+- [x] Phase 0 — Base
+  - [x] 1. Base check
 - [ ] Phase 1 — Abstract buttons
   - [ ] 2. Replays in numbers
   - [ ] 3. Generator low level in numbers

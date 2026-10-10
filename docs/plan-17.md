@@ -168,3 +168,11 @@ If a step finds plan 12's code doing something this table does not list, it foll
 (none)
 
 ## 6. Step notes
+
+### Step 1.1
+
+- `git merge-base --is-ancestor origin/plan-12 HEAD` fails: plan 12 reached `master` as one squash commit (af39be3, #64), not a merge. `git diff origin/master origin/plan-12 -- src tests worst-case` is empty. `guideline` decided the prerequisite holds, since what it requires is plan 12's code in `master`. The `Makefile` differs only by master's newer PSX targets.
+- The run is on the harness-assigned branch `claude/loving-brahmagupta-ulwvej` (based on origin/master 8ea422e), not `remap`.
+- `docs/pad-modes-and-actions.md` is present. `make test-all` passes (17 e2e match).
+- Baseline on a warm build, 4 cores, three runs: `make test` 4.27–4.58 s, `make e2e` 0.24–0.25 s.
+- No PRD: the step only checks things and changes no code.
