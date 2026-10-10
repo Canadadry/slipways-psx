@@ -4317,6 +4317,63 @@ static void test_placement_pans_on_its_table_and_aim_mode_stays_unbound(void) {
     }
 }
 
+static void test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes(void) {
+    bindings_t table = parsed_table("jump.jump_up = 1\njump.jump_down = 2\njump.jump_left = 3\njump.jump_right = 4\n"
+                                    "jump.act_on_hovered = 5\n" /* reach-only: starts the slipway */
+                                    "aim.leave_aim = 7\n"       /* reach-only: hover_object enters jump mode */
+                                    "slipway.jump_up = 1\nslipway.jump_down = 2\n"
+                                    "slipway.jump_left = 3\nslipway.jump_right = 4\n"
+                                    "slipway.build_on_target = 8\n");
+    input_step_t step;
+    planet_t *a, *b, *c;
+    start_game_with(&step, &table);
+    settled_row(&step, &a, &b, &c);
+    hover_object(&step, &a->header);
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_BUTTON_8);
+        settle(&step);
+        assert(!pad_nav_panel_open() && pad_nav_slipway_start(&step.pad_nav) == NULL);
+        assert_hovering(&step, &a->header);
+        end_forked_copy();
+    }
+    world_count_t before = world_count();
+    start_slipway(&step, &a->header);
+    tap(&step, P8_PAD_BUTTON_4);
+    assert_slipway_mode(&step, &a->header, &b->header);
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_BUTTON_8);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        run_frame(&step, 0);
+        run_frame(&step, 0);
+        assert_slipway_mode(&step, &b->header, NULL);
+        assert(world_count().slipways == before.slipways + 1);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_BUTTON_8 | P8_PAD_BUTTON_4);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        assert_cursor_on(&step, &b->header);
+        run_frame(&step, 0);
+        run_frame(&step, 0);
+        assert_slipway_mode(&step, &b->header, NULL);
+        assert(world_count().slipways == before.slipways + 1);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_BUTTON_5);
+        run_frame(&step, 0);
+        assert_slipway_mode(&step, &a->header, &b->header);
+        assert(world_count().slipways == before.slipways);
+        end_forked_copy();
+    }
+    entity_t *reaimed = slipway_pick(&a->header, &b->header, P8_PAD_BUTTON_4);
+    assert(reaimed == &c->header);
+    run_frame(&step, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_4);
+    run_frame(&step, 0);
+    assert_slipway_mode(&step, &a->header, reaimed);
+    assert(world_count().slipways == before.slipways);
+}
+
 static void test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways(void) {
     input_step_t step;
     planet_t *a, *b, *c;
@@ -6443,6 +6500,7 @@ int main(void) {
     in_fresh_child(test_jump_mode_follows_a_rotated_table_and_slipway_mode_stays_unbound);
     in_fresh_child(test_aim_mode_pans_on_a_rotated_table_and_placement_stays_unbound);
     in_fresh_child(test_placement_pans_on_its_table_and_aim_mode_stays_unbound);
+    in_fresh_child(test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);
     in_fresh_child(test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing);

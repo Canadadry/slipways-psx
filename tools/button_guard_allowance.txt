@@ -2,7 +2,6 @@
 # make button-guard. One line `<path> <owner> <count> | <reason>`, strict
 # counts summed per path. Each of steps 9-13 of plan 17 deletes its own
 # lines; `fixed` lines stay.
-src/game/pad_nav.c step-10 2 | slipway_step: slipway.build_on_target (twice)
 src/game/pad_nav.c step-11 3 | build_step: build_bar.take_structure; placement_step: placement.cancel_placement, placement.place_structure
 src/game/pad_nav.c step-12 7 | panel_step: pause and menu arming of choose_row (4); map_step: menu.open_menu; pause_step: pause.close_pause (2)
 src/game/pad_nav.c step-13 11 | one_shoulder (2), shoulder_switch, switch_panels, pause_step opening, select_down, circle_returns, the box and message-box close (2), without_chord (2)

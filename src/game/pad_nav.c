@@ -785,12 +785,13 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
         pad_jump_repeat_step(&nav->jump, &nav->bindings, BINDINGS_MODE_SLIPWAY, pad_buttons, pressed);
     entity_t *target = pad_nav_slipway_target(nav);
     nav->slipway.target = entity_id_link(target);
-    if ((pressed & P8_PAD_BUTTON_5) && !release && target != NULL && pressable(target)) {
+    int build_on_target = action_pressed(nav, pressed, BINDINGS_MODE_SLIPWAY, BINDINGS_ACTION_BUILD_ON_TARGET);
+    if (build_on_target && !release && target != NULL && pressable(target)) {
         pad_slipway_release(&nav->slipway, pad_slipway_between(start, target) != NULL);
         screen_point(target, &nav->cursor_x, &nav->cursor_y);
         return;
     }
-    if (direction != PAD_DIRECTION_NONE && !(pressed & P8_PAD_BUTTON_5)) {
+    if (direction != PAD_DIRECTION_NONE && !build_on_target) {
         entity_list_t candidates = live_candidates();
         entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
         entity_t *picked = pad_target_pick(target != NULL ? target : start, direction, &targets);
