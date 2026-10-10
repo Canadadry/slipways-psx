@@ -210,7 +210,10 @@
 #                       table of the core) from tools/gen_quarter_wave.c,
 #                       outside the suite
 # make raylib        -> compiles and LINKS the interactive binary, never runs
-#                       it (needs make raylib-vendor-setup first)
+#                       it (needs make raylib-vendor-setup first); prints the
+#                       bindings file it compiled: bindings.cfg when present,
+#                       else bindings.default.cfg, which every other target
+#                       compiles
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
@@ -1472,6 +1475,20 @@ raylib-vendor-setup:
 # without vendoring fails with "no rule to make target".
 # The raylib target builds straight from the sources to the executable:
 # its files need `-I third_party/raylib/src`, which the others do not have.
+BINDINGS_GAME_UNIT := $(TMP_DIR)/bindings/game.c
+BINDINGS_CHOSEN := $(if $(wildcard bindings.cfg),bindings.cfg,bindings.default.cfg)
+
+# Rewritten only when the chosen file name changes, so that creating or
+# deleting bindings.cfg regenerates the game unit whatever its date.
+$(TMP_DIR)/bindings.source: FORCE | $(TMP_DIR)
+	@echo '$(BINDINGS_CHOSEN)' | cmp -s - $@ || echo '$(BINDINGS_CHOSEN)' > $@
+
+FORCE:
+
+$(BINDINGS_GAME_UNIT): $(BINDINGS_CHOSEN) $(TMP_DIR)/bindings.source $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate $(BINDINGS_CHOSEN) $@
+
 GAME_SRCS := \
     src/cmd/game.c \
     src/platform/raylib_backend.c \
@@ -1481,13 +1498,14 @@ GAME_SRCS := \
     src/devtools/replay_source.c \
     src/devtools/session_recorder.c \
     src/platform/save_storage_file.c \
-    $(BINDINGS_DEFAULT_UNIT) \
+    $(BINDINGS_GAME_UNIT) \
     $(filter-out src/devtools/save_storage_memory.c,$(ENGINE_SRCS))
 
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ $(GAME_SRCS) third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/game
+	@echo "bindings: $(BINDINGS_CHOSEN)$(if $(wildcard bindings.cfg), (personal))"
 
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.

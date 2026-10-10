@@ -21,7 +21,7 @@
   - [ ] 7. Compile-time bindings
     - [x] Chunk 1: default file and generator
     - [x] Chunk 2: table handed to pad_nav
-    - [ ] Chunk 3: personal file for game
+    - [x] Chunk 3: personal file for game
   - [ ] 8. Generator high level reads the default bindings
   - [ ] 9. Jump mode reads its bindings
   - [ ] 10. Aim and slipway modes read their bindings
