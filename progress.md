@@ -60,7 +60,7 @@
     - [x] fix: stale resume-check command in pad_restart_resume.txt
   - [ ] 17. Personal recordings flagged
     - [x] Chunk 1: the recorder writes the flag
-    - [ ] Chunk 2: the flag comes from the compiled unit
+    - [x] Chunk 2: the flag comes from the compiled unit
   - [ ] 18. Swap twin
   - [ ] 19. Unbound action
 - [ ] Phase 5 — Docs and cleanup

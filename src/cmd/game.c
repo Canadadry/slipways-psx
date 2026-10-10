@@ -85,6 +85,7 @@ int main(int argc, char **argv) {
     static uint8_t startup_save[SAVE_STATE_MAX_BYTES];
     int startup_save_count = save_storage_read(startup_save, (int)sizeof startup_save);
     session_recorder_set_initial_save(&backend.recorder, startup_save, startup_save_count);
+    session_recorder_set_personal_bindings(&backend.recorder, bindings_compiled_personal);
 
     cart_load();
     /* Never click a difficulty here: a recording starts on the title screen and holds its own click. */

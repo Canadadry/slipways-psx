@@ -62,6 +62,10 @@ typedef struct {
  * binary. Game code never names it: it receives the table through input_step_init. */
 extern const bindings_t bindings_compiled;
 
+/* 1 only in the unit generated from a personal bindings.cfg, which only game links; 0 in every other unit. Read
+ * only by src/cmd/game.c, which hands it to the session recorder. */
+extern const int bindings_compiled_personal;
+
 /* text is the whole "file:line: message", ready to print. */
 typedef struct {
     int line;

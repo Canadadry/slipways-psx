@@ -219,7 +219,9 @@
 #                       bindings and keymap files it compiled: <name>.cfg
 #                       when present, else <name>.default.cfg; every other
 #                       target compiles bindings.default.cfg, and only
-#                       test_keymap compiles keymap.default.cfg
+#                       test_keymap compiles keymap.default.cfg; a game built
+#                       with bindings.cfg writes "bindings": "personal" in
+#                       every recording, which replay refuses
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
@@ -1492,6 +1494,7 @@ raylib-vendor-setup:
 # its files need `-I third_party/raylib/src`, which the others do not have.
 BINDINGS_GAME_UNIT := $(TMP_DIR)/bindings/game.c
 BINDINGS_CHOSEN := $(if $(wildcard bindings.cfg),bindings.cfg,bindings.default.cfg)
+BINDINGS_PERSONAL_OPTION := $(if $(wildcard bindings.cfg),--personal)
 
 # Rewritten only when the chosen file name changes, so that creating or
 # deleting bindings.cfg regenerates the game unit whatever its date.
@@ -1502,7 +1505,7 @@ FORCE:
 
 $(BINDINGS_GAME_UNIT): $(BINDINGS_CHOSEN) $(TMP_DIR)/bindings.source $(TMP_DIR)/bindings_generate
 	@mkdir -p $(@D)
-	$(TMP_DIR)/bindings_generate $(BINDINGS_CHOSEN) $@
+	$(TMP_DIR)/bindings_generate $(BINDINGS_PERSONAL_OPTION) $(BINDINGS_CHOSEN) $@
 
 KEYMAP_GAME_UNIT := $(TMP_DIR)/keymap/game.c
 KEYMAP_CHOSEN := $(if $(wildcard keymap.cfg),keymap.cfg,keymap.default.cfg)
