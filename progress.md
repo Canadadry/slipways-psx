@@ -18,7 +18,7 @@
   - [ ] 7. The demo script
     - [x] Chunk 1: pico8/demo.pad and demo.json
     - [x] Chunk 2: make demo-check
-    - [ ] Chunk 3: pico8/demo.txt
+    - [x] Chunk 3: pico8/demo.txt
   - [ ] 8. Compiled demo
 - [ ] Phase 2 — Attract mode in the core
   - [ ] 9. Default table beside the compiled one
