@@ -37,7 +37,7 @@
   - [x] 11. Build bar and placement read their bindings
     - [x] Chunk 1: the bar reads the table
     - [x] Chunk 2: placement reads the table
-  - [ ] 12. Menu, panels, pause and title read their bindings
+  - [x] 12. Menu, panels, pause and title read their bindings
     - [x] Chunk 1: moves through the table, shared direction and conversions go
     - [x] Chunk 2: choose and arming through the table
     - [x] Chunk 3: close actions through the table
