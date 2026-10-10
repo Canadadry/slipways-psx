@@ -345,6 +345,7 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 ENGINE_SRCS := \
     src/p8/assets.c \
     src/game/background.c \
+    src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -643,7 +644,7 @@ $(TMP_DIR)/test_toast: $(call asan_objs,tests/test_toast.c $(ENGINE_SRCS)) | $(T
 $(TMP_DIR)/test_message_box: $(call asan_objs,tests/test_message_box.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c src/devtools/replay_source.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
+$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_modal_backdrop: $(call objs,tests/test_modal_backdrop.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -733,16 +734,16 @@ $(TMP_DIR)/test_infraspace_gate: $(call objs,tests/test_infraspace_gate.c tests/
 $(TMP_DIR)/test_burst: $(call objs,tests/test_burst.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_probe: $(call objs,tests/test_probe.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -772,10 +773,10 @@ $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c
 $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c src/devtools/state.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_target: $(call objs,tests/test_pad_target.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -808,7 +809,7 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1157,7 +1158,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
@@ -1480,6 +1481,7 @@ GAME_SRCS := \
     src/devtools/replay_source.c \
     src/devtools/session_recorder.c \
     src/platform/save_storage_file.c \
+    $(BINDINGS_DEFAULT_UNIT) \
     $(filter-out src/devtools/save_storage_memory.c,$(ENGINE_SRCS))
 
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
@@ -1490,8 +1492,8 @@ raylib: $(TMP_DIR)/game
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.
 -include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d)
--include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d)
+-include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d)
+-include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d)
 

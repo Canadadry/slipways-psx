@@ -99,7 +99,7 @@ static void leave_jump_mode(input_step_t *step) {
 
 static void start_title(input_step_t *step) {
     cart_init();
-    input_step_init(step);
+    input_step_init(step, &bindings_compiled);
     for (int i = 0; i < SETTLE_FRAMES; i++) {
         run_frame(step, 0);
     }
@@ -329,7 +329,7 @@ static void assert_reachable_and_hovered(input_step_t *step, entity_t *const exp
         assert(found);
     }
     for (int i = 0; i < count; i++) {
-        pad_nav_init(&step->pad_nav);
+        pad_nav_init(&step->pad_nav, &bindings_compiled);
         run_frame(step, 0);
         for (int m = 0; m < reached[i].length; m++) {
             tap(step, reached[i].moves[m]);

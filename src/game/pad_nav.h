@@ -3,6 +3,7 @@
 
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
+#include "game/bindings.h"
 #include "game/pad_back.h"
 #include "game/pad_build.h"
 #include "game/pad_cycle.h"
@@ -44,9 +45,14 @@ typedef struct {
     pad_slipway_t slipway;
     pad_back_t back;
     pad_select_t select;
+    bindings_t bindings;
 } pad_nav_t;
 
-void pad_nav_init(pad_nav_t *nav);
+/* Copies *bindings: the caller's table may go away after the call. */
+void pad_nav_init(pad_nav_t *nav, const bindings_t *bindings);
+
+/* The pointer lives as long as nav; the caller never frees it. */
+const bindings_t *pad_nav_bindings(const pad_nav_t *nav);
 
 void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played);
 

@@ -4,10 +4,10 @@
 
 #include <string.h>
 
-void input_step_init(input_step_t *step) {
+void input_step_init(input_step_t *step, const bindings_t *bindings) {
     memset(step, 0, sizeof *step);
     cheat_init(&step->cheat);
-    pad_nav_init(&step->pad_nav);
+    pad_nav_init(&step->pad_nav, bindings);
 }
 
 int input_step_run(input_step_t *step, const p8_input_frame_t *raw) {

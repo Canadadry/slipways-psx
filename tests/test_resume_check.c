@@ -61,7 +61,7 @@ static void boot(const char *path) {
     dispatch_context_set_input(&source.recording);
     cart_load();
     cart_init();
-    input_step_init(&step);
+    input_step_init(&step, &bindings_compiled);
 }
 
 /* snapshot: when not NULL, captured between the update and the draw. */

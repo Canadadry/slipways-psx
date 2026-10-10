@@ -148,7 +148,7 @@ static int invented_count(void) {
 
 void pad_author_init(pad_author_t *author) {
     memset(author, 0, sizeof *author);
-    input_step_init(&author->step);
+    input_step_init(&author->step, &bindings_compiled);
     bump_zone_init(&scratch, "pad_author scratch", scratch_cells, SCRATCH_BYTES);
     scratch_zone = allocator_from_bump_zone(&scratch);
     pad_metrics_init(&author->metrics, &scratch);

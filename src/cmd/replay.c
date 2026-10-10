@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
-    input_step_init(&step);
+    input_step_init(&step, &bindings_compiled);
     const char *pad_metrics_path = getenv("PAD_METRICS");
     if (pad_metrics_path != NULL) {
         bump_zone_init(&pad_metrics_scratch, "pad metrics scratch", pad_metrics_cells, PAD_METRICS_SCRATCH_BYTES);

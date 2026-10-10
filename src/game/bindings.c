@@ -279,10 +279,13 @@ int bindings_parse(const char *file_name, const char *text, bindings_t *out, bin
         if (end > line && end[-1] == '\r') {
             end--;
         }
-        if (end - line > BINDINGS_MAX_LINE_LENGTH) {
+        /* Not (size_t)(end - line) inline: GCC -O2 with the sanitizers then sees a negative bound and fails
+         * the sanitize-net build with -Wstringop-overread. */
+        size_t length = end > line ? (size_t)(end - line) : 0;
+        if (length > BINDINGS_MAX_LINE_LENGTH) {
             return fail(error, file_name, line_number, "line longer than %d characters", BINDINGS_MAX_LINE_LENGTH);
         }
-        const char *hash = memchr(line, '#', (size_t)(end - line));
+        const char *hash = memchr(line, '#', length);
         const char *content_end = hash != NULL ? hash : end;
         const char *content_start = skip_blanks(line, content_end);
         content_end = trim_end(content_start, content_end);

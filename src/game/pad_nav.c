@@ -184,7 +184,9 @@ static void close_panels(pad_nav_t *nav) {
     pad_cycle_set(&nav->cycle, PAD_CYCLE_CLOSED);
 }
 
-void pad_nav_init(pad_nav_t *nav) {
+void pad_nav_init(pad_nav_t *nav, const bindings_t *bindings) {
+    assert(bindings != NULL && "pad_nav_init: the caller hands its compiled table, never NULL");
+    nav->bindings = *bindings;
     nav->focus = ENTITY_ID_NONE;
     pad_build_init(&nav->build);
     pad_cycle_init(&nav->cycle);
@@ -202,6 +204,10 @@ void pad_nav_init(pad_nav_t *nav) {
     nav->cursor_x = 0;
     nav->cursor_y = 0;
     reset_aim_mode(nav);
+}
+
+const bindings_t *pad_nav_bindings(const pad_nav_t *nav) {
+    return &nav->bindings;
 }
 
 entity_t *pad_nav_focus(const pad_nav_t *nav) {

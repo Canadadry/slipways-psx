@@ -167,7 +167,7 @@ static p8_input_t *load_e2e(const char *e2e) {
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
-    input_step_init(&g_step);
+    input_step_init(&g_step, &bindings_compiled);
     cart_load();
     cart_init();
     return &input;
