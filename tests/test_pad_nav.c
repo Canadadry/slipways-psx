@@ -4716,6 +4716,78 @@ static void test_the_chord_hides_5_and_6_whatever_the_table_binds_on_them(void) 
     assert(type_chords(&step) == 1);
 }
 
+static void assert_nothing_opens(input_step_t *step, int count, const int *buttons) {
+    for (int i = 0; i < count; i++) {
+        tap(step, buttons[i]);
+        assert(on_the_map(&step->pad_nav) && !pad_nav_panel_open());
+    }
+}
+
+static void test_the_shoulders_follow_the_current_modes_table_and_placement_stays_unbound(void) {
+    bindings_t table = parsed_table("aim.open_build_bar = 10\naim.open_tech_panel = 9\n"
+                                    "build_bar.open_build_bar = 7\nbuild_bar.open_tech_panel = 8\n"
+                                    "panels.next_panel = 7\npanels.open_build_bar = 8\nmenu.open_tech_panel = 7\n"
+                                    "build_bar.take_structure = 5\n"); /* reach-only */
+    input_step_t step;
+    start_game_with(&step, &table);
+    assert_nothing_opens(&step, 3, (const int[]){ P8_PAD_BUTTON_9 | P8_PAD_BUTTON_10, P8_PAD_BUTTON_7, P8_PAD_BUTTON_8 });
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_BUTTON_9);
+        settle(&step);
+        assert(pad_nav_tech_open(&step.pad_nav));
+        tap(&step, P8_PAD_BUTTON_9);
+        tap(&step, P8_PAD_BUTTON_10);
+        settle(&step);
+        assert(pad_nav_tech_open(&step.pad_nav) && !pad_nav_build_bar_open(&step.pad_nav));
+        if (in_forked_copy()) {
+            tap(&step, P8_PAD_BUTTON_8);
+            assert(pad_nav_build_bar_open(&step.pad_nav) && !pad_nav_tech_open(&step.pad_nav));
+            end_forked_copy();
+        }
+        tap(&step, P8_PAD_BUTTON_7);
+        settle(&step);
+        assert(pad_nav_score_open(&step.pad_nav));
+        tap(&step, P8_PAD_BUTTON_7);
+        settle(&step);
+        assert(on_the_map(&step.pad_nav) && !pad_nav_panel_open());
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_BUTTON_10);
+        assert(pad_nav_build_bar_open(&step.pad_nav));
+        tap(&step, P8_PAD_BUTTON_9);
+        tap(&step, P8_PAD_BUTTON_10);
+        assert(pad_nav_build_bar_open(&step.pad_nav) && !pad_nav_tech_open(&step.pad_nav));
+        if (in_forked_copy()) {
+            tap(&step, P8_PAD_BUTTON_8);
+            assert(pad_nav_tech_open(&step.pad_nav) && !pad_nav_build_bar_open(&step.pad_nav));
+            end_forked_copy();
+        }
+        tap(&step, P8_PAD_BUTTON_7);
+        assert(on_the_map(&step.pad_nav));
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        open_known_planet_box(&step);
+        tap(&step, P8_PAD_BUTTON_10);
+        tap(&step, P8_PAD_BUTTON_9);
+        assert(pad_nav_panel_open() && on_the_map(&step.pad_nav));
+        tap(&step, P8_PAD_BUTTON_7);
+        assert(pad_nav_tech_open(&step.pad_nav) && !pad_nav_build_bar_open(&step.pad_nav));
+        end_forked_copy();
+    }
+    tap(&step, P8_PAD_BUTTON_10);
+    entity_t *structure = take_structure(&step);
+    const int shoulders[4] = { P8_PAD_BUTTON_9, P8_PAD_BUTTON_10, P8_PAD_BUTTON_7, P8_PAD_BUTTON_8 };
+    for (int i = 0; i < 4; i++) {
+        run_frame(&step, shoulders[i]);
+        assert_carrying(&step, structure);
+        run_frame(&step, 0);
+        assert_carrying(&step, structure);
+        assert(!pad_nav_panel_open());
+    }
+}
+
 static void test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes(void) {
     bindings_t table = parsed_table("jump.jump_up = 1\njump.jump_down = 2\njump.jump_left = 3\njump.jump_right = 4\n"
                                     "jump.act_on_hovered = 5\n" /* reach-only: starts the slipway */
@@ -6907,6 +6979,7 @@ int main(void) {
     in_fresh_child(test_a_planet_box_follows_a_rotated_table_and_the_tech_panel_stays_unbound);
     in_fresh_child(test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_the_map_stays_unbound);
     in_fresh_child(test_the_chord_hides_5_and_6_whatever_the_table_binds_on_them);
+    in_fresh_child(test_the_shoulders_follow_the_current_modes_table_and_placement_stays_unbound);
     in_fresh_child(test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);

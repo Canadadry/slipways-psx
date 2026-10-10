@@ -500,13 +500,49 @@ static void leave_panel(pad_nav_t *nav, p8_input_frame_t *played) {
     }
 }
 
-static int one_shoulder(int pressed) {
-    return ((pressed & P8_PAD_BUTTON_10) != 0) != ((pressed & P8_PAD_BUTTON_9) != 0);
+static bindings_mode_t map_binding_mode(const pad_nav_t *nav) {
+    if (pad_nav_placing(nav) != NULL) {
+        return BINDINGS_MODE_PLACEMENT;
+    }
+    switch (map_mode_now(nav)) {
+    case PAD_NAV_MAP_AIM:
+        return BINDINGS_MODE_AIM;
+    case PAD_NAV_MAP_SLIPWAY:
+        return BINDINGS_MODE_SLIPWAY;
+    default:
+        return BINDINGS_MODE_JUMP;
+    }
 }
 
-static void shoulder_switch(pad_nav_t *nav, int pressed, p8_input_frame_t *played) {
+/* The mode the dispatch would run from the nav state at the call: decide it before anything is unwound. */
+static bindings_mode_t nav_mode(const pad_nav_t *nav) {
+    if (on_the_map(nav) && pad_nav_placing(nav) != NULL) {
+        return BINDINGS_MODE_PLACEMENT;
+    }
+    if (pad_nav_panel_open()) {
+        return panel_mode(nav);
+    }
+    if (cycle_open(nav)) {
+        return BINDINGS_MODE_PANELS;
+    }
+    if (pad_build_is_open(&nav->build)) {
+        return BINDINGS_MODE_BUILD_BAR;
+    }
+    return map_binding_mode(nav);
+}
+
+static bindings_action_t tech_shoulder_action(bindings_mode_t mode) {
+    return mode == BINDINGS_MODE_PANELS ? BINDINGS_ACTION_NEXT_PANEL : BINDINGS_ACTION_OPEN_TECH_PANEL;
+}
+
+static int one_shoulder(const pad_nav_t *nav, int pressed, bindings_mode_t mode) {
+    return action_pressed(nav, pressed, mode, tech_shoulder_action(mode)) !=
+           action_pressed(nav, pressed, mode, BINDINGS_ACTION_OPEN_BUILD_BAR);
+}
+
+static void shoulder_switch(pad_nav_t *nav, int pressed, bindings_mode_t mode, p8_input_frame_t *played) {
     leave_panel(nav, played);
-    if (pressed & P8_PAD_BUTTON_10) {
+    if (action_pressed(nav, pressed, mode, tech_shoulder_action(mode))) {
         pad_build_close(&nav->build);
         pad_cycle_set(&nav->cycle, pad_cycle_next(pad_cycle_panel(&nav->cycle)));
     } else if (pad_build_is_open(&nav->build)) {
@@ -871,9 +907,10 @@ static int switch_panels(pad_nav_t *nav, int pressed, int release, int foreign_w
         close_panels(nav);
         return 0;
     }
-    if (one_shoulder(pressed) && shoulders_can_switch(nav, release)) {
+    bindings_mode_t mode = nav_mode(nav);
+    if (one_shoulder(nav, pressed, mode) && shoulders_can_switch(nav, release)) {
         *cancelled = unwind_sub_modes(nav);
-        shoulder_switch(nav, pressed, played);
+        shoulder_switch(nav, pressed, mode, played);
         return 1;
     }
     if (!on_the_map(nav) && (pressed & P8_PAD_BUTTON_6) && !foreign_was_open && !release) {
