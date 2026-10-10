@@ -84,34 +84,12 @@ static void test_simultaneous_presses_go_up_down_left_right(void) {
                                 P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == PAD_DIRECTION_LEFT);
 }
 
-static void test_the_first_pressed_direction_goes_up_down_left_right(void) {
-    int all = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
-    assert(pad_jump_first_direction(all | P8_PAD_BUTTON_5) == PAD_DIRECTION_UP);
-    assert(pad_jump_first_direction(P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == PAD_DIRECTION_DOWN);
-    assert(pad_jump_first_direction(P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == PAD_DIRECTION_LEFT);
-    assert(pad_jump_first_direction(P8_PAD_BUTTON_4) == PAD_DIRECTION_RIGHT);
-    assert(pad_jump_first_direction(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_7) == PAD_DIRECTION_NONE &&
-           pad_jump_first_direction(0) == PAD_DIRECTION_NONE);
-}
-
 static void test_the_directions_by_index_are_up_down_left_right(void) {
     static const pad_direction_t expected[PAD_JUMP_DIRECTIONS] = {PAD_DIRECTION_UP, PAD_DIRECTION_DOWN,
                                                                    PAD_DIRECTION_LEFT, PAD_DIRECTION_RIGHT};
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
         assert(pad_jump_direction(i) == expected[i]);
     }
-}
-
-static void test_each_direction_is_played_by_buttons_1_to_4(void) {
-    static const pad_direction_t directions[PAD_JUMP_DIRECTIONS] = {PAD_DIRECTION_UP, PAD_DIRECTION_DOWN,
-                                                                     PAD_DIRECTION_LEFT, PAD_DIRECTION_RIGHT};
-    static const int buttons[PAD_JUMP_DIRECTIONS] = {P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3,
-                                                     P8_PAD_BUTTON_4};
-    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        assert(pad_jump_direction_button(directions[i]) == buttons[i]);
-        assert(pad_jump_first_direction(buttons[i]) == directions[i]);
-    }
-    assert(pad_jump_direction_button(PAD_DIRECTION_NONE) == 0);
 }
 
 static void test_clear_stops_the_repeat(void) {
@@ -442,9 +420,7 @@ int main(void) {
     test_a_second_direction_takes_over_at_once();
     test_simultaneous_presses_go_up_down_left_right();
     test_clear_stops_the_repeat();
-    test_the_first_pressed_direction_goes_up_down_left_right();
     test_the_directions_by_index_are_up_down_left_right();
-    test_each_direction_is_played_by_buttons_1_to_4();
     test_other_buttons_neither_jump_nor_repeat();
     test_a_swapped_table_moves_the_jump_directions();
     test_a_swapped_direction_repeats_on_its_own_button_only();

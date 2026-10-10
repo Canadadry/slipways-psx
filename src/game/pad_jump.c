@@ -6,7 +6,6 @@
 #include "game/pad_target.h"
 #include "game/planet.h"
 #include "p8/fixed.h"
-#include "p8/input.h"
 #include "p8/vram.h"
 
 #include <assert.h>
@@ -42,31 +41,6 @@ static const pad_direction_t directions_by_priority[PAD_JUMP_DIRECTIONS] = {PAD_
 pad_direction_t pad_jump_direction(int index) {
     assert(index >= 0 && index < PAD_JUMP_DIRECTIONS && "pad_jump_direction: index 0 to PAD_JUMP_DIRECTIONS - 1");
     return directions_by_priority[index];
-}
-
-pad_direction_t pad_jump_first_direction(int buttons) {
-    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        if (buttons & pad_jump_direction_button(directions_by_priority[i])) {
-            return directions_by_priority[i];
-        }
-    }
-    return PAD_DIRECTION_NONE;
-}
-
-int pad_jump_direction_button(pad_direction_t direction) {
-    switch (direction) {
-    case PAD_DIRECTION_UP:
-        return P8_PAD_BUTTON_1;
-    case PAD_DIRECTION_DOWN:
-        return P8_PAD_BUTTON_2;
-    case PAD_DIRECTION_LEFT:
-        return P8_PAD_BUTTON_3;
-    case PAD_DIRECTION_RIGHT:
-        return P8_PAD_BUTTON_4;
-    case PAD_DIRECTION_NONE:
-        break;
-    }
-    return 0;
 }
 
 static int direction_mask(const bindings_t *bindings, bindings_mode_t mode, pad_direction_t direction) {

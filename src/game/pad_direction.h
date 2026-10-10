@@ -1,7 +1,7 @@
 #ifndef GAME_PAD_DIRECTION_H
 #define GAME_PAD_DIRECTION_H
 
-/* Not button bits: pad_jump_direction_button gives the button that plays a direction. */
+/* Not button bits: the bindings give the buttons that play a direction. */
 typedef enum {
     PAD_DIRECTION_NONE,
     PAD_DIRECTION_UP,

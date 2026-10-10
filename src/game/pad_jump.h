@@ -30,9 +30,6 @@ void pad_jump_hover_seeded(pad_jump_t *jump, const entity_t *e);
 entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int centre_x, int centre_y);
 
 pad_direction_t pad_jump_direction(int index);
-pad_direction_t pad_jump_first_direction(int buttons);
-/* 0 for PAD_DIRECTION_NONE. */
-int pad_jump_direction_button(pad_direction_t direction);
 
 pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, const bindings_t *bindings, bindings_mode_t mode,
                                      int pad_buttons, int pressed);

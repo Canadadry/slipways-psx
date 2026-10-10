@@ -281,6 +281,35 @@ static void test_aim_mode_holds_the_cursor_at_the_centre(void) {
     }
 }
 
+/* Plan 12's D-pad on the default table: 1 up, 2 down, 3 left, 4 right; 0 for PAD_DIRECTION_NONE. */
+static int default_direction_button(pad_direction_t direction) {
+    switch (direction) {
+    case PAD_DIRECTION_UP:
+        return P8_PAD_BUTTON_1;
+    case PAD_DIRECTION_DOWN:
+        return P8_PAD_BUTTON_2;
+    case PAD_DIRECTION_LEFT:
+        return P8_PAD_BUTTON_3;
+    case PAD_DIRECTION_RIGHT:
+        return P8_PAD_BUTTON_4;
+    case PAD_DIRECTION_NONE:
+        break;
+    }
+    return 0;
+}
+
+/* The first of up, down, left, right whose default button is in buttons. */
+static pad_direction_t default_first_direction(int buttons) {
+    static const pad_direction_t ranked[4] = { PAD_DIRECTION_UP, PAD_DIRECTION_DOWN, PAD_DIRECTION_LEFT,
+                                               PAD_DIRECTION_RIGHT };
+    for (int i = 0; i < 4; i++) {
+        if (buttons & default_direction_button(ranked[i])) {
+            return ranked[i];
+        }
+    }
+    return PAD_DIRECTION_NONE;
+}
+
 enum { ITEMS_CAP = 32, PATH_CAP = 32 };
 
 typedef struct {
@@ -312,7 +341,7 @@ static int reach_all(reached_t reached[ITEMS_CAP]) {
             assert(count < ITEMS_CAP && reached[head].length < PATH_CAP);
             reached[count] = reached[head];
             reached[count].item = next;
-            reached[count].moves[reached[count].length++] = pad_jump_direction_button(directions[d]);
+            reached[count].moves[reached[count].length++] = default_direction_button(directions[d]);
             count++;
         }
     }
@@ -3308,7 +3337,7 @@ static void test_taking_a_structure_from_jump_mode_enters_plain_aim_mode_where_t
 static entity_t *expected_jump(const entity_t *origin, int button) {
     frame_zone_mark_t mark = frame_zone_mark();
     entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
-    entity_t *picked = pad_target_pick(origin, pad_jump_first_direction(button), &candidates);
+    entity_t *picked = pad_target_pick(origin, default_first_direction(button), &candidates);
     frame_zone_rewind(mark);
     return picked;
 }
@@ -3984,7 +4013,7 @@ static entity_t *slipway_pick(const entity_t *start, const entity_t *origin, int
     frame_zone_mark_t mark = frame_zone_mark();
     entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
     entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
-    entity_t *picked = pad_target_pick(origin, pad_jump_first_direction(button), &targets);
+    entity_t *picked = pad_target_pick(origin, default_first_direction(button), &targets);
     frame_zone_rewind(mark);
     return picked;
 }
@@ -4432,6 +4461,148 @@ static void test_up_or_down_blocks_a_bar_pick_and_left_beats_right(void) {
     assert_build_focus(&step, basic_structure_icon());
     run_frame(&step, P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4);
     assert_build_focus(&step, processor_icon());
+}
+
+static void test_the_default_dpad_ranks_up_down_left_right_in_a_box(void) {
+    input_step_t step;
+    entity_t *buttons[ITEMS_CAP];
+    end_game(&step);
+    assert(end_buttons(buttons) == 2);
+    entity_t *focus = pad_nav_focus(&step.pad_nav);
+    assert(focus != NULL);
+    entity_t *left = pad_nav_neighbor(focus, PAD_DIRECTION_LEFT);
+    int side = left != NULL ? P8_PAD_BUTTON_3 : P8_PAD_BUTTON_4;
+    assert(pad_nav_neighbor(focus, left != NULL ? PAD_DIRECTION_LEFT : PAD_DIRECTION_RIGHT) != NULL);
+    run_frame(&step, P8_PAD_BUTTON_1 | side);
+    assert(pad_nav_focus(&step.pad_nav) == focus);
+    run_frame(&step, 0);
+    run_frame(&step, P8_PAD_BUTTON_2 | side);
+    assert(pad_nav_focus(&step.pad_nav) == focus);
+    run_frame(&step, 0);
+    run_frame(&step, P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4);
+    assert(pad_nav_focus(&step.pad_nav) == (left != NULL ? left : focus));
+}
+
+/* Taps the first count of buttons 1 to 4. */
+static void assert_taps_keep_the_focus(input_step_t *step, int count) {
+    static const int buttons[4] = { P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4 };
+    entity_t *focus = pad_nav_focus(&step->pad_nav);
+    assert(focus != NULL && count <= 4);
+    for (int b = 0; b < count; b++) {
+        tap(step, buttons[b]);
+        assert(pad_nav_focus(&step->pad_nav) == focus);
+    }
+}
+
+static void test_the_title_follows_a_rotated_table_and_pause_stays_unbound(void) {
+    bindings_t table = parsed_table("title.move_up = 2\ntitle.move_down = 1\ntitle.move_left = 4\n"
+                                    "title.move_right = 3\ntitle.choose_row = 7\n");
+    input_step_t step;
+    start_title_with(&step, &table);
+    assert_focused_and_hovered(&step, "forgiving");
+    tap(&step, P8_PAD_BUTTON_1);
+    assert_focused_and_hovered(&step, "reasonable");
+    tap(&step, P8_PAD_BUTTON_2);
+    assert_focused_and_hovered(&step, "forgiving");
+    tap(&step, P8_PAD_BUTTON_1);
+    run_frame(&step, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2);
+    assert_focused_and_hovered(&step, "forgiving");
+    run_frame(&step, 0);
+    if (in_forked_copy()) {
+        cart_start_game((button_t *)title_button("forgiving"));
+        settle(&step);
+        galaxy_menu_on_click(4)(NULL);
+        settle(&step);
+        assert(pause_menu_shown() && pad_nav_focus(&step.pad_nav) == pad_nav_first_item());
+        assert_taps_keep_the_focus(&step, 4);
+        end_forked_copy();
+    }
+}
+
+static void open_known_planet_box(input_step_t *step) {
+    (void)planet_left_press(known_planet_closest_to_centre());
+    settle(step);
+    assert(pad_nav_panel_open() && !pause_menu_shown() && pad_nav_focus(&step->pad_nav) != NULL);
+}
+
+static void test_pause_follows_a_rotated_table_and_a_planet_box_stays_unbound(void) {
+    bindings_t table = parsed_table("pause.move_up = 2\npause.move_down = 1\npause.move_left = 4\n"
+                                    "pause.move_right = 3\npause.choose_row = 7\npause.close_pause = 8\n");
+    input_step_t step;
+    start_game_with(&step, &table);
+    if (in_forked_copy()) {
+        open_known_planet_box(&step);
+        assert_taps_keep_the_focus(&step, 2);
+        end_forked_copy();
+    }
+    galaxy_menu_on_click(4)(NULL);
+    settle(&step);
+    entity_t *first = pad_nav_first_item();
+    entity_t *up = pad_nav_neighbor(first, PAD_DIRECTION_UP);
+    assert(pause_menu_shown() && pad_nav_focus(&step.pad_nav) == first && up != NULL);
+    tap(&step, P8_PAD_BUTTON_2);
+    assert(pad_nav_focus(&step.pad_nav) == up);
+    tap(&step, P8_PAD_BUTTON_1);
+    assert(pad_nav_focus(&step.pad_nav) == first);
+    run_frame(&step, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2);
+    assert(pad_nav_focus(&step.pad_nav) == up);
+    run_frame(&step, 0);
+}
+
+static void open_tech_on_its_shoulder(input_step_t *step) {
+    main_economy_typed()->research_points = p8_fixed_from_int(5);
+    tap(step, P8_PAD_BUTTON_10);
+    settle(step);
+    assert(pad_nav_tech_open(&step->pad_nav) && pad_nav_focus(&step->pad_nav) == pad_nav_first_item());
+}
+
+static void test_a_planet_box_follows_a_rotated_table_and_the_tech_panel_stays_unbound(void) {
+    bindings_t table = parsed_table("menu.move_up = 2\nmenu.move_down = 1\nmenu.move_left = 4\n"
+                                    "menu.move_right = 3\nmenu.choose_row = 7\nmenu.open_menu = 5\n"
+                                    "aim.open_tech_panel = 10\n"); /* reach-only: opens the tech panel */
+    input_step_t step;
+    start_game_with(&step, &table);
+    if (in_forked_copy()) {
+        open_tech_on_its_shoulder(&step);
+        assert_taps_keep_the_focus(&step, 2);
+        assert(invented_count() == 0);
+        end_forked_copy();
+    }
+    open_known_planet_box(&step);
+    entity_t *first = pad_nav_focus(&step.pad_nav);
+    entity_t *down = pad_nav_neighbor(first, PAD_DIRECTION_DOWN);
+    assert(first == pad_nav_first_item() && down != NULL);
+    tap(&step, P8_PAD_BUTTON_1);
+    assert(pad_nav_focus(&step.pad_nav) == down);
+    tap(&step, P8_PAD_BUTTON_2);
+    assert(pad_nav_focus(&step.pad_nav) == first);
+}
+
+static void test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_the_map_stays_unbound(void) {
+    bindings_t table = parsed_table("panels.move_up = 2\npanels.move_down = 1\npanels.move_left = 4\n"
+                                    "panels.move_right = 3\npanels.choose_row = 7\n"
+                                    "aim.open_tech_panel = 10\n"); /* reach-only: opens the tech panel */
+    input_step_t step;
+    start_game_with(&step, &table);
+    if (in_forked_copy()) {
+        main_economy_typed()->research_points = p8_fixed_from_int(5);
+        galaxy_menu_on_click(2)(NULL);
+        settle(&step);
+        entity_t *header = pad_nav_focus(&step.pad_nav);
+        assert(pad_nav_panel_open() && !pad_nav_tech_open(&step.pad_nav) && header != NULL);
+        assert(pad_nav_neighbor(header, PAD_DIRECTION_DOWN) != NULL);
+        assert_taps_keep_the_focus(&step, 2);
+        assert(invented_count() == 0);
+        end_forked_copy();
+    }
+    open_tech_on_its_shoulder(&step);
+    entity_t *header = pad_nav_focus(&step.pad_nav);
+    entity_t *down = pad_nav_neighbor(header, PAD_DIRECTION_DOWN);
+    assert(down != NULL);
+    tap(&step, P8_PAD_BUTTON_1);
+    assert(pad_nav_focus(&step.pad_nav) == down);
+    tap(&step, P8_PAD_BUTTON_2);
+    assert(pad_nav_focus(&step.pad_nav) == header);
 }
 
 static void test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes(void) {
@@ -6619,6 +6790,11 @@ int main(void) {
     in_fresh_child(test_placement_pans_on_its_table_and_aim_mode_stays_unbound);
     in_fresh_child(test_the_bar_and_placement_follow_a_moved_table);
     in_fresh_child(test_up_or_down_blocks_a_bar_pick_and_left_beats_right);
+    in_fresh_child(test_the_default_dpad_ranks_up_down_left_right_in_a_box);
+    in_fresh_child(test_the_title_follows_a_rotated_table_and_pause_stays_unbound);
+    in_fresh_child(test_pause_follows_a_rotated_table_and_a_planet_box_stays_unbound);
+    in_fresh_child(test_a_planet_box_follows_a_rotated_table_and_the_tech_panel_stays_unbound);
+    in_fresh_child(test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_the_map_stays_unbound);
     in_fresh_child(test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);
