@@ -23,7 +23,7 @@
     - [x] Chunk 1: captions reader
     - [x] Chunk 2: demo_source loader
     - [x] Chunk 3: demo_generate and compiled data
-- [ ] Phase 2 — Attract mode in the core
+- [x] Phase 2 — Attract mode in the core
   - [x] 9. Default table beside the compiled one
     - [x] Chunk 1: bindings_default core unit
     - [x] Chunk 2: input_step switches tables
@@ -35,7 +35,7 @@
   - [x] 11. Captions and label
     - [x] Chunk 1: demo_overlay module
     - [x] Chunk 2: the overlay drawn in cart_draw
-  - [ ] 12. The attract e2e
+  - [x] 12. The attract e2e
     - [x] Chunk 1: tests/e2e/attract.json
     - [x] Chunk 2: test_live_slots follows the header
 - [ ] Phase 3 — Full check and docs
