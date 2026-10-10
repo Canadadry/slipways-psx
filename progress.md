@@ -29,7 +29,7 @@
     - [x] Chunk 4: PSX words out of the generator
   - [ ] 9. Jump mode reads its bindings
     - [x] Chunk 1: the hold repeat takes the table and the mode
-    - [ ] Chunk 2: jump_step reads the table
+    - [x] Chunk 2: jump_step reads the table
   - [ ] 10. Aim and slipway modes read their bindings
   - [ ] 11. Build bar and placement read their bindings
   - [ ] 12. Menu, panels, pause and title read their bindings

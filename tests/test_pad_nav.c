@@ -97,12 +97,16 @@ static void leave_jump_mode(input_step_t *step) {
     assert(pad_nav_aim_mode(&step->pad_nav));
 }
 
-static void start_title(input_step_t *step) {
+static void start_title_with(input_step_t *step, const bindings_t *bindings) {
     cart_init();
-    input_step_init(step, &bindings_compiled);
+    input_step_init(step, bindings);
     for (int i = 0; i < SETTLE_FRAMES; i++) {
         run_frame(step, 0);
     }
+}
+
+static void start_title(input_step_t *step) {
+    start_title_with(step, &bindings_compiled);
 }
 
 static int tagged_count(int tag) {
@@ -4103,6 +4107,88 @@ static void settled_row(input_step_t *step, planet_t **a, planet_t **b, planet_t
     assert(slipway_pick(&(*b)->header, &(*b)->header, P8_PAD_BUTTON_4) == &(*c)->header);
 }
 
+/* Every jump read off its default button, every other mode unbound. */
+static bindings_t rotated_jump_table(void) {
+    bindings_t table;
+    bindings_error_t error;
+    assert(bindings_parse("rotated.cfg",
+                          "jump.jump_up = 2\njump.jump_down = 1\njump.jump_left = 4\njump.jump_right = 3\n"
+                          "jump.act_on_hovered = 7\njump.enter_aim = 8\njump.open_menu = 5\n",
+                          &table, &error));
+    return table;
+}
+
+/* Reached with no button pressed, so it stays valid once the other modes read the table. */
+static entity_t *jump_mode_on_a_colony_with(input_step_t *step, const bindings_t *bindings) {
+    start_title_with(step, bindings);
+    cart_start_game((button_t *)title_button("forgiving"));
+    make_every_planet_known();
+    planet_t *colony = planet_closest_to_centre();
+    assert(colony != NULL);
+    settle_planet(step, colony);
+    hold(step, 0, 40);
+    assert_hovering(step, &colony->header);
+    return &colony->header;
+}
+
+static void test_jump_mode_follows_a_rotated_table_and_slipway_mode_stays_unbound(void) {
+    static const int bound[4] = { P8_PAD_BUTTON_2, P8_PAD_BUTTON_1, P8_PAD_BUTTON_4, P8_PAD_BUTTON_3 };
+    static const int fallback[4] = { P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4 };
+    bindings_t table = rotated_jump_table();
+    input_step_t step;
+    entity_t *colony = jump_mode_on_a_colony_with(&step, &table);
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_BUTTON_8);
+        assert(pad_nav_aim_mode(&step.pad_nav) && pad_nav_hovered(&step.pad_nav) == NULL);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_BUTTON_5);
+        settle(&step);
+        assert(pad_nav_panel_open() && pad_nav_slipway_start(&step.pad_nav) == NULL);
+        end_forked_copy();
+    }
+    int moved = 0, repeated = 0;
+    for (int d = 0; d < 4; d++) {
+        entity_t *first = expected_jump(colony, fallback[d]);
+        moved += first != expected_jump(colony, bound[d]);
+        if (first == NULL) {
+            continue;
+        }
+        if (in_forked_copy()) {
+            run_frame(&step, bound[d]);
+            assert_hovering(&step, first);
+            entity_t *second = expected_jump(first, fallback[d]);
+            for (int frame = 1; frame < PAD_JUMP_REPEAT_DELAY; frame++) {
+                run_frame(&step, bound[d]);
+                assert_hovering(&step, first);
+            }
+            run_frame(&step, bound[d]);
+            assert_hovering(&step, second != NULL ? second : first);
+            end_forked_copy();
+        }
+        repeated += expected_jump(first, fallback[d]) != NULL;
+    }
+    assert(moved > 0 && repeated > 0);
+    run_frame(&step, P8_PAD_BUTTON_7);
+    run_frame(&step, 0);
+    assert_slipway_mode(&step, colony, NULL);
+    int reachable = 0;
+    for (int d = 0; d < 4; d++) {
+        reachable += slipway_pick(colony, colony, fallback[d]) != NULL;
+    }
+    assert(reachable > 0);
+    for (int d = 0; d < 4; d++) {
+        tap(&step, fallback[d]);
+        assert_slipway_mode(&step, colony, NULL);
+        for (int frame = 0; frame < PAD_JUMP_REPEAT_DELAY + PAD_JUMP_REPEAT_PERIOD; frame++) {
+            run_frame(&step, fallback[d]);
+            assert_slipway_mode(&step, colony, NULL);
+        }
+        run_frame(&step, 0);
+    }
+}
+
 static void test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways(void) {
     input_step_t step;
     planet_t *a, *b, *c;
@@ -6226,6 +6312,7 @@ int main(void) {
     in_fresh_child(test_the_pad_hides_cross_and_circle_exactly_from_the_chords_cheat_step_counts);
     in_fresh_child(test_four_chords_in_aim_mode_cheat_and_change_nothing_else);
     in_fresh_child(test_probing_and_leaving_aim_mode_never_types_the_cheat);
+    in_fresh_child(test_jump_mode_follows_a_rotated_table_and_slipway_mode_stays_unbound);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);
     in_fresh_child(test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing);

@@ -210,6 +210,10 @@ const bindings_t *pad_nav_bindings(const pad_nav_t *nav) {
     return &nav->bindings;
 }
 
+static int action_pressed(const pad_nav_t *nav, int pressed, bindings_mode_t mode, bindings_action_t action) {
+    return (pressed & bindings_mask(&nav->bindings, mode, action)) != 0;
+}
+
 entity_t *pad_nav_focus(const pad_nav_t *nav) {
     entity_t *focus = entity_get(nav->focus);
     return pad_nav_is_item(focus) ? focus : NULL;
@@ -642,7 +646,7 @@ static void press_slipway_start(pad_nav_t *nav, const entity_t *start, p8_input_
     played->mouse_buttons = P8_MOUSE_LEFT;
 }
 
-static int cross_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
+static int act_on_hovered_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
     if (!pad_slipway_can_start(hovered) || !pressable(hovered) || nav->left_was_down) {
         return 0;
     }
@@ -667,7 +671,7 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
-    if (pressed & P8_PAD_BUTTON_7) {
+    if (action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ENTER_AIM)) {
         enter_aim_mode(nav);
         return;
     }
@@ -689,16 +693,18 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         nav->cursor_y = P8_SCREEN_HEIGHT / 2;
         return;
     }
-    if (!clicking && (pressed & P8_PAD_BUTTON_8)) {
+    if (!clicking && action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_OPEN_MENU)) {
         clicking = click_hovered(nav, hovered, played);
     }
-    if (!clicking && (pressed & P8_PAD_BUTTON_5) && hovered->state == ENTITY_STATE_KNOWN) {
+    if (!clicking && action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ACT_ON_HOVERED)
+        && hovered->state == ENTITY_STATE_KNOWN) {
         clicking = click_hovered(nav, hovered, played);
         if (clicking) {
             pad_back_record(&nav->back, hovered);
         }
     }
-    if (!clicking && (pressed & P8_PAD_BUTTON_5) && cross_starts_slipway(nav, hovered, played)) {
+    if (!clicking && action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ACT_ON_HOVERED)
+        && act_on_hovered_starts_slipway(nav, hovered, played)) {
         pad_back_record(&nav->back, hovered);
         return;
     }
