@@ -1,6 +1,6 @@
 - [x] Phase 0 — Base
   - [x] 1. Base check
-- [ ] Phase 1 — Demo data
+- [x] Phase 1 — Demo data
   - [x] 2. The starting record
     - [x] Label demo-record and cut pico8/demo_record.hex
   - [x] 3. attract_after header member
@@ -19,7 +19,7 @@
     - [x] Chunk 1: pico8/demo.pad and demo.json
     - [x] Chunk 2: make demo-check
     - [x] Chunk 3: pico8/demo.txt
-  - [ ] 8. Compiled demo
+  - [x] 8. Compiled demo
     - [x] Chunk 1: captions reader
     - [x] Chunk 2: demo_source loader
     - [x] Chunk 3: demo_generate and compiled data
