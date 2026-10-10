@@ -16,6 +16,7 @@ void session_recorder_open(session_recorder_t *recorder, const char *path) {
     recorder->frame_count = 0;
     recorder->tail_offset = 0;
     recorder->initial_save_count = 0;
+    recorder->personal_bindings = 0;
 }
 
 void session_recorder_set_initial_save(session_recorder_t *recorder, const uint8_t *bytes, int count) {
@@ -30,27 +31,62 @@ void session_recorder_set_initial_save(session_recorder_t *recorder, const uint8
     recorder->initial_save_count = count;
 }
 
-/* Caller frees; NULL when there is no save or no memory. */
-static char *format_initial_save_member(const session_recorder_t *recorder) {
-    static const char key[] = "\"initial_save\": \"";
+void session_recorder_set_personal_bindings(session_recorder_t *recorder, int personal) {
+    assert(recorder);
+    assert(recorder->frame_count == 0 && "the bindings flag is written into the header with the first frame");
+    assert(personal == 0 || personal == 1);
+
+    recorder->personal_bindings = personal;
+}
+
+/* Returns the end of the copied text, without a terminator. */
+static char *append_text(char *end, const char *text) {
+    size_t length = strlen(text);
+    memcpy(end, text, length);
+    return end + length;
+}
+
+/* Caller frees; NULL when there is nothing to write or no memory. */
+static char *format_header_members(const session_recorder_t *recorder) {
+    static const char bindings_member[] = "\"bindings\": \"personal\"";
+    static const char separator[] = ",\n  ";
+    static const char save_key[] = "\"initial_save\": \"";
     static const char hex_digits[] = "0123456789abcdef";
-    if (recorder->initial_save_count == 0) {
+    if (!recorder->personal_bindings && recorder->initial_save_count == 0) {
         return NULL;
     }
-    size_t key_length = strlen(key);
-    char *member = malloc(key_length + 2 * (size_t)recorder->initial_save_count + 2);
-    if (!member) {
+    size_t length = 0;
+    if (recorder->personal_bindings) {
+        length += strlen(bindings_member);
+    }
+    if (recorder->personal_bindings && recorder->initial_save_count > 0) {
+        length += strlen(separator);
+    }
+    if (recorder->initial_save_count > 0) {
+        length += strlen(save_key) + 2 * (size_t)recorder->initial_save_count + 1;
+    }
+    char *members = malloc(length + 1);
+    if (!members) {
         return NULL;
     }
-    memcpy(member, key, key_length);
-    char *digit = member + key_length;
-    for (int i = 0; i < recorder->initial_save_count; i++) {
-        *digit++ = hex_digits[recorder->initial_save[i] >> 4];
-        *digit++ = hex_digits[recorder->initial_save[i] & 0x0f];
+    char *end = members;
+    if (recorder->personal_bindings) {
+        end = append_text(end, bindings_member);
     }
-    *digit++ = '"';
-    *digit = '\0';
-    return member;
+    if (recorder->personal_bindings && recorder->initial_save_count > 0) {
+        end = append_text(end, separator);
+    }
+    if (recorder->initial_save_count > 0) {
+        end = append_text(end, save_key);
+        for (int i = 0; i < recorder->initial_save_count; i++) {
+            *end++ = hex_digits[recorder->initial_save[i] >> 4];
+            *end++ = hex_digits[recorder->initial_save[i] & 0x0f];
+        }
+        *end++ = '"';
+    }
+    *end = '\0';
+    assert((size_t)(end - members) == length);
+    return members;
 }
 
 int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_frame_t *frame) {
@@ -58,8 +94,8 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
     assert(frame);
 
     char *member = NULL;
-    if (recorder->frame_count == 0 && recorder->initial_save_count > 0) {
-        member = format_initial_save_member(recorder);
+    if (recorder->frame_count == 0 && (recorder->personal_bindings || recorder->initial_save_count > 0)) {
+        member = format_header_members(recorder);
         if (!member) {
             return 0;
         }
@@ -88,4 +124,5 @@ void session_recorder_close(session_recorder_t *recorder) {
     recorder->frame_count = 0;
     recorder->tail_offset = 0;
     recorder->initial_save_count = 0;
+    recorder->personal_bindings = 0;
 }
