@@ -2058,18 +2058,22 @@ static int invented_count(void) {
     return main_economy_typed()->invented.count;
 }
 
-/* Stops on the first row with an action below the header the focus starts on. */
-static const entity_t *focus_affordable_row(input_step_t *step) {
+/* Stops on the first row with an action below the header the focus starts on, tapping down to move. */
+static const entity_t *focus_affordable_row_tapping(input_step_t *step, int down) {
     for (int i = 0; i < ITEMS_CAP; i++) {
         const entity_t *focus = pad_nav_focus(&step->pad_nav);
         assert(focus != NULL);
         if (((const button_t *)focus)->on_click != NULL) {
             return focus;
         }
-        tap(step, P8_PAD_BUTTON_2);
+        tap(step, down);
     }
     assert(0 && "focus_affordable_row: no affordable row in the tech box");
     return NULL;
+}
+
+static const entity_t *focus_affordable_row(input_step_t *step) {
+    return focus_affordable_row_tapping(step, P8_PAD_BUTTON_2);
 }
 
 static void test_landing_on_tech_opens_its_panel_and_an_invention_returns_to_the_map(void) {
@@ -4494,6 +4498,24 @@ static void assert_taps_keep_the_focus(input_step_t *step, int count) {
     }
 }
 
+static void assert_taps_play_nothing(input_step_t *step, int count, const int *buttons) {
+    for (int b = 0; b < count; b++) {
+        run_frame(step, buttons[b]);
+        assert(input_step_played_frame(step)->mouse_buttons == 0);
+        run_frame(step, 0);
+        assert(input_step_played_frame(step)->mouse_buttons == 0);
+    }
+}
+
+static void assert_press_clicks_the_focus(input_step_t *step, int button) {
+    int x, y;
+    entity_t *focus = pad_nav_focus(&step->pad_nav);
+    assert(focus != NULL);
+    pad_panel_focus_point(focus, &x, &y);
+    run_frame(step, button);
+    assert_played(step, x, y, P8_MOUSE_LEFT);
+}
+
 static void test_the_title_follows_a_rotated_table_and_pause_stays_unbound(void) {
     bindings_t table = parsed_table("title.move_up = 2\ntitle.move_down = 1\ntitle.move_left = 4\n"
                                     "title.move_right = 3\ntitle.choose_row = 7\n");
@@ -4515,8 +4537,16 @@ static void test_the_title_follows_a_rotated_table_and_pause_stays_unbound(void)
         settle(&step);
         assert(pause_menu_shown() && pad_nav_focus(&step.pad_nav) == pad_nav_first_item());
         assert_taps_keep_the_focus(&step, 4);
+        assert_taps_play_nothing(&step, 2, (const int[]){ P8_PAD_BUTTON_7, P8_PAD_BUTTON_5 });
+        assert(pause_menu_shown());
         end_forked_copy();
     }
+    assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_5 });
+    assert(main_economy_typed() == NULL);
+    assert_focused_and_hovered(&step, "forgiving");
+    assert_press_clicks_the_focus(&step, P8_PAD_BUTTON_7);
+    settle(&step);
+    assert(main_economy_typed() != NULL);
 }
 
 static void open_known_planet_box(input_step_t *step) {
@@ -4533,6 +4563,22 @@ static void test_pause_follows_a_rotated_table_and_a_planet_box_stays_unbound(vo
     if (in_forked_copy()) {
         open_known_planet_box(&step);
         assert_taps_keep_the_focus(&step, 2);
+        assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_7 });
+        assert(pad_nav_panel_open());
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        hold(&step, P8_PAD_BUTTON_7, 3);
+        galaxy_menu_on_click(4)(NULL);
+        for (int i = 0; i < SETTLE_FRAMES; i++) {
+            run_frame(&step, P8_PAD_BUTTON_7);
+            assert(input_step_played_frame(&step)->mouse_buttons == 0);
+        }
+        run_frame(&step, 0);
+        assert_restart_focused_and_hovered(&step);
+        assert_press_clicks_the_focus(&step, P8_PAD_BUTTON_7);
+        settle(&step);
+        assert(main_economy_typed() == NULL);
         end_forked_copy();
     }
     galaxy_menu_on_click(4)(NULL);
@@ -4547,6 +4593,8 @@ static void test_pause_follows_a_rotated_table_and_a_planet_box_stays_unbound(vo
     run_frame(&step, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2);
     assert(pad_nav_focus(&step.pad_nav) == up);
     run_frame(&step, 0);
+    assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_5 });
+    assert(pause_menu_shown() && pad_nav_focus(&step.pad_nav) == up);
 }
 
 static void open_tech_on_its_shoulder(input_step_t *step) {
@@ -4565,10 +4613,19 @@ static void test_a_planet_box_follows_a_rotated_table_and_the_tech_panel_stays_u
     if (in_forked_copy()) {
         open_tech_on_its_shoulder(&step);
         assert_taps_keep_the_focus(&step, 2);
-        assert(invented_count() == 0);
+        assert_taps_play_nothing(&step, 2, (const int[]){ P8_PAD_BUTTON_7, P8_PAD_BUTTON_5 });
+        assert(pad_nav_tech_open(&step.pad_nav) && invented_count() == 0);
         end_forked_copy();
     }
-    open_known_planet_box(&step);
+    p8_fixed_t credits = main_economy_typed()->credits;
+    hold(&step, P8_PAD_BUTTON_7, 3);
+    (void)planet_left_press(known_planet_closest_to_centre());
+    for (int i = 0; i < SETTLE_FRAMES; i++) {
+        run_frame(&step, P8_PAD_BUTTON_7);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
+    assert(pad_nav_panel_open() && main_economy_typed()->credits == credits);
+    run_frame(&step, 0);
     entity_t *first = pad_nav_focus(&step.pad_nav);
     entity_t *down = pad_nav_neighbor(first, PAD_DIRECTION_DOWN);
     assert(first == pad_nav_first_item() && down != NULL);
@@ -4576,6 +4633,7 @@ static void test_a_planet_box_follows_a_rotated_table_and_the_tech_panel_stays_u
     assert(pad_nav_focus(&step.pad_nav) == down);
     tap(&step, P8_PAD_BUTTON_2);
     assert(pad_nav_focus(&step.pad_nav) == first);
+    assert_press_clicks_the_focus(&step, P8_PAD_BUTTON_7);
 }
 
 static void test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_the_map_stays_unbound(void) {
@@ -4584,25 +4642,38 @@ static void test_the_tech_panel_follows_a_rotated_table_and_the_same_box_over_th
                                     "aim.open_tech_panel = 10\n"); /* reach-only: opens the tech panel */
     input_step_t step;
     start_game_with(&step, &table);
+    main_economy_typed()->research_points = p8_fixed_from_int(5);
     if (in_forked_copy()) {
-        main_economy_typed()->research_points = p8_fixed_from_int(5);
         galaxy_menu_on_click(2)(NULL);
         settle(&step);
         entity_t *header = pad_nav_focus(&step.pad_nav);
         assert(pad_nav_panel_open() && !pad_nav_tech_open(&step.pad_nav) && header != NULL);
         assert(pad_nav_neighbor(header, PAD_DIRECTION_DOWN) != NULL);
         assert_taps_keep_the_focus(&step, 2);
+        assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_7 });
         assert(invented_count() == 0);
         end_forked_copy();
     }
-    open_tech_on_its_shoulder(&step);
+    run_frame(&step, P8_PAD_BUTTON_7 | P8_PAD_BUTTON_10);
+    assert(pad_nav_tech_open(&step.pad_nav));
+    assert_clicked(&step, 2);
+    for (int i = 0; i < 10; i++) {
+        run_frame(&step, P8_PAD_BUTTON_7);
+        assert(input_step_played_frame(&step)->mouse_buttons == 0);
+    }
+    assert(pad_nav_tech_open(&step.pad_nav) && invented_count() == 0);
+    run_frame(&step, 0);
     entity_t *header = pad_nav_focus(&step.pad_nav);
     entity_t *down = pad_nav_neighbor(header, PAD_DIRECTION_DOWN);
-    assert(down != NULL);
+    assert(header == pad_nav_first_item() && down != NULL);
     tap(&step, P8_PAD_BUTTON_1);
     assert(pad_nav_focus(&step.pad_nav) == down);
     tap(&step, P8_PAD_BUTTON_2);
     assert(pad_nav_focus(&step.pad_nav) == header);
+    assert_taps_play_nothing(&step, 1, (const int[]){ P8_PAD_BUTTON_5 });
+    (void)focus_affordable_row_tapping(&step, P8_PAD_BUTTON_1);
+    run_frame(&step, P8_PAD_BUTTON_7);
+    assert(invented_count() == 1);
 }
 
 static void test_slipway_mode_builds_on_its_own_button_and_not_on_jump_modes(void) {

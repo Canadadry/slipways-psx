@@ -31,8 +31,8 @@ entity_t *pad_panel_neighbor(const entity_t *item, pad_direction_t direction);
 
 /* The focus after a move in direction (PAD_DIRECTION_NONE for none), from focus or, when focus is no longer an item,
  * from the first item. NULL when the panel has no item; otherwise also writes the new focus's centre on screen to x and
- * y. Writes P8_MOUSE_LEFT to mouse_buttons while × is held on a focus, 0 otherwise. */
-entity_t *pad_panel_step(entity_t *focus, int pad_buttons, pad_direction_t direction, int *x, int *y,
+ * y. Writes P8_MOUSE_LEFT to mouse_buttons when choose_held is nonzero and there is a focus, 0 otherwise. */
+entity_t *pad_panel_step(entity_t *focus, int choose_held, pad_direction_t direction, int *x, int *y,
                          int *mouse_buttons);
 
 #endif

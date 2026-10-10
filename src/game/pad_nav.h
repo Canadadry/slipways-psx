@@ -28,8 +28,8 @@ typedef struct {
     pad_nav_placement_t placement;
     entity_id_t suspended_carry;
     int pause_due;
-    int pause_cross_armed;
-    int menu_cross_armed;
+    int pause_choose_row_armed;
+    int menu_choose_row_armed;
     pad_nav_map_mode_t map_mode;
     int marker_frames;
     int release_pending;

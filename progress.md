@@ -39,7 +39,7 @@
     - [x] Chunk 2: placement reads the table
   - [ ] 12. Menu, panels, pause and title read their bindings
     - [x] Chunk 1: moves through the table, shared direction and conversions go
-    - [ ] Chunk 2: choose and arming through the table
+    - [x] Chunk 2: choose and arming through the table
     - [ ] Chunk 3: close actions through the table
   - [ ] 13. Cross-mode tests read their bindings
   - [ ] 14. Guard closed

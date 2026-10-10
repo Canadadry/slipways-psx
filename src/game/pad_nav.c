@@ -201,8 +201,8 @@ void pad_nav_init(pad_nav_t *nav, const bindings_t *bindings) {
     reset_map_mode(nav);
     nav->release_pending = 0;
     nav->pause_due = 0;
-    nav->pause_cross_armed = 0;
-    nav->menu_cross_armed = 0;
+    nav->pause_choose_row_armed = 0;
+    nav->menu_choose_row_armed = 0;
     nav->previous_pad = 0;
     nav->chord_held = 0;
     nav->left_was_down = 0;
@@ -262,19 +262,17 @@ static pad_direction_t first_pressed_move(const pad_nav_t *nav, int pressed, bin
 }
 
 static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
-    pad_direction_t direction = first_pressed_move(nav, pressed, panel_mode(nav));
+    bindings_mode_t mode = panel_mode(nav);
+    pad_direction_t direction = first_pressed_move(nav, pressed, mode);
+    int choose_held = action_held(nav, pad_buttons, mode, BINDINGS_ACTION_CHOOSE_ROW);
     if (pause_menu_shown()) {
-        nav->pause_cross_armed |= (pressed & P8_PAD_BUTTON_5) != 0;
-        if (!nav->pause_cross_armed) {
-            pad_buttons &= ~P8_PAD_BUTTON_5;
-        }
+        nav->pause_choose_row_armed |= action_pressed(nav, pressed, BINDINGS_MODE_PAUSE, BINDINGS_ACTION_CHOOSE_ROW);
+        choose_held &= nav->pause_choose_row_armed;
     } else if (armed_panel_open(nav)) {
-        nav->menu_cross_armed |= (pressed & P8_PAD_BUTTON_5) != 0;
-        if (!nav->menu_cross_armed) {
-            pad_buttons &= ~P8_PAD_BUTTON_5;
-        }
+        nav->menu_choose_row_armed |= action_pressed(nav, pressed, mode, BINDINGS_ACTION_CHOOSE_ROW);
+        choose_held &= nav->menu_choose_row_armed;
     }
-    nav->focus = entity_id_link(pad_panel_step(entity_get(nav->focus), pad_buttons, direction, &nav->cursor_x,
+    nav->focus = entity_id_link(pad_panel_step(entity_get(nav->focus), choose_held, direction, &nav->cursor_x,
                                                &nav->cursor_y, &played->mouse_buttons));
 }
 
@@ -677,7 +675,7 @@ static int click_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame
         return 0;
     }
     click(nav, played);
-    nav->menu_cross_armed = 0;
+    nav->menu_choose_row_armed = 0;
     return 1;
 }
 
@@ -1005,10 +1003,10 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     played->mouse_buttons = 0;
     const entity_t *shown = NULL;
     if (!pause_menu_shown()) {
-        nav->pause_cross_armed = 0;
+        nav->pause_choose_row_armed = 0;
     }
     if (!armed_panel_open(nav)) {
-        nav->menu_cross_armed = 0;
+        nav->menu_choose_row_armed = 0;
     }
     reset_on_new_game(nav);
     int panels_changed = begin_placement(nav);

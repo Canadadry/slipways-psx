@@ -244,7 +244,7 @@ entity_t *pad_panel_neighbor(const entity_t *item, pad_direction_t direction) {
     return best;
 }
 
-entity_t *pad_panel_step(entity_t *focus, int pad_buttons, pad_direction_t direction, int *x, int *y,
+entity_t *pad_panel_step(entity_t *focus, int choose_held, pad_direction_t direction, int *x, int *y,
                          int *mouse_buttons) {
     entity_t *at = pad_panel_is_item(focus) ? focus : pad_panel_first_item();
     if (at != NULL && direction != PAD_DIRECTION_NONE) {
@@ -257,6 +257,6 @@ entity_t *pad_panel_step(entity_t *focus, int pad_buttons, pad_direction_t direc
         pad_panel_focus_point(at, x, y);
     }
     /* With no focus the cursor still sits on the last point: on the score panel a press there closes it. */
-    *mouse_buttons = at != NULL && (pad_buttons & P8_PAD_BUTTON_5) ? P8_MOUSE_LEFT : 0;
+    *mouse_buttons = at != NULL && choose_held ? P8_MOUSE_LEFT : 0;
     return at;
 }
