@@ -31,8 +31,8 @@ static void apply(void) {
 }
 
 int cheat_step(cheat_t *cheat, int pad_buttons) {
-    int cross = (pad_buttons & P8_PAD_CROSS) != 0;
-    int circle = (pad_buttons & P8_PAD_CIRCLE) != 0;
+    int cross = (pad_buttons & P8_PAD_BUTTON_5) != 0;
+    int circle = (pad_buttons & P8_PAD_BUTTON_6) != 0;
     int cross_edge = cross && !cheat->previous_cross;
     int circle_edge = circle && !cheat->previous_circle;
 

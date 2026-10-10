@@ -212,10 +212,10 @@ static int bit_count(int bits) {
 
 static int is_required(const pad_metrics_view_t *before, int button_bit, int first_direction) {
     int aim_with_nothing_to_jump_to = before->mode == PAD_METRICS_MODE_AIM && before->no_candidate;
-    if (button_bit == P8_PAD_SQUARE) {
+    if (button_bit == P8_PAD_BUTTON_7) {
         return aim_with_nothing_to_jump_to;
     }
-    if (button_bit == P8_PAD_CIRCLE) {
+    if (button_bit == P8_PAD_BUTTON_6) {
         int at_root = before->mode == PAD_METRICS_MODE_JUMP &&
                       (entity_id_is_none(before->last_acted) || entity_id_equal(before->last_acted, before->hovered));
         return (at_root || aim_with_nothing_to_jump_to) && !before->message_box && !before->box_open;
@@ -258,7 +258,7 @@ static void settle(pad_metrics_t *metrics, int index) {
                                                              : PAD_METRICS_DEAD_OTHER;
     metrics->verdicts[event.kind][event.mode][event.button][verdict]++;
     if (verdict != PAD_METRICS_LIVE || event.kind == PAD_METRICS_REPEAT) list_event(metrics, &event, verdict);
-    if (verdict == PAD_METRICS_DEAD_REQUIRED && event.kind == PAD_METRICS_PRESS && (1 << event.button) == P8_PAD_CIRCLE) {
+    if (verdict == PAD_METRICS_DEAD_REQUIRED && event.kind == PAD_METRICS_PRESS && (1 << event.button) == P8_PAD_BUTTON_6) {
         metrics->required_noops++;
     }
 }
@@ -277,7 +277,7 @@ static void judge_frame(pad_metrics_t *metrics, int buttons, int pressed, int re
         int released_before = event->end >= 0 && event->end - PAD_METRICS_RELEASE_FRAMES < t;
         if (event->kind == PAD_METRICS_PRESS && released_before && (pressed & ~(1 << event->button))) settle(metrics, i);
     }
-    const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
+    const int face = P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6;
     int chord = (pressed & face) == face;
     if (chord) metrics->chord_frames++;
     for (int b = 0; b < PAD_METRICS_BUTTON_COUNT; b++) {
@@ -404,7 +404,7 @@ static int verdict_sum(const pad_metrics_t *metrics, pad_metrics_kind_t kind, in
 }
 
 pad_metrics_section4_t pad_metrics_section4(const pad_metrics_t *metrics) {
-    const int dpad = P8_PAD_UP | P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT;
+    const int dpad = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
     const int all = (1 << PAD_METRICS_BUTTON_COUNT) - 1;
     const int jump = PAD_METRICS_MODE_JUMP, last = PAD_METRICS_MODE_COUNT - 1;
     pad_metrics_section4_t s;
@@ -412,7 +412,7 @@ pad_metrics_section4_t pad_metrics_section4(const pad_metrics_t *metrics) {
     s.jump_dpad_dead_lenient = verdict_sum(metrics, PAD_METRICS_PRESS, jump, jump, dpad, PAD_METRICS_DEAD_OTHER);
     s.jump_dpad_dead_strict =
         s.jump_dpad_dead_lenient + verdict_sum(metrics, PAD_METRICS_PRESS, jump, jump, dpad, PAD_METRICS_DEAD_REQUIRED);
-    s.circle_dead_other = verdict_sum(metrics, PAD_METRICS_PRESS, 0, last, P8_PAD_CIRCLE, PAD_METRICS_DEAD_OTHER);
+    s.circle_dead_other = verdict_sum(metrics, PAD_METRICS_PRESS, 0, last, P8_PAD_BUTTON_6, PAD_METRICS_DEAD_OTHER);
     s.repeats_dead_required = verdict_sum(metrics, PAD_METRICS_REPEAT, 0, last, all, PAD_METRICS_DEAD_REQUIRED);
     s.repeats_dead_other = verdict_sum(metrics, PAD_METRICS_REPEAT, 0, last, all, PAD_METRICS_DEAD_OTHER);
     s.aim_ok = pad_metrics_aim_ok(metrics);

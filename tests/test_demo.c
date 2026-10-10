@@ -96,13 +96,13 @@ int main(void) {
     assert(p8_input_load(&input, DEMO_EVENTS_PATH));
     assert(input.frame_count == 4);
 
-    assert(input.frames[input.current_frame].pad_buttons == (P8_PAD_RIGHT | P8_PAD_CROSS));
+    assert(input.frames[input.current_frame].pad_buttons == (P8_PAD_BUTTON_4 | P8_PAD_BUTTON_5));
     assert(p8_input_read_mouse(&input).x == 0);
     assert(p8_input_read_mouse(&input).buttons == 0);
 
     p8_input_step(&input);
 
-    assert(input.frames[input.current_frame].pad_buttons == P8_PAD_UP);
+    assert(input.frames[input.current_frame].pad_buttons == P8_PAD_BUTTON_1);
 
     p8_input_step(&input);
 

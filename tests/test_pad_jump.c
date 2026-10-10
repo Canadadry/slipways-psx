@@ -15,18 +15,18 @@ static void test_init_hovers_nothing_unseeded_without_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
     assert(pad_jump_hovered(&jump) == NULL && !jump.seeded);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_RIGHT, 0) == 0);
+    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, 0) == 0);
 }
 
 static void test_a_press_jumps_then_repeats_at_18_26_34(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_RIGHT, P8_PAD_RIGHT) == P8_PAD_RIGHT);
+    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, P8_PAD_BUTTON_4) == P8_PAD_BUTTON_4);
     for (int frame = 1; frame <= 60; frame++) {
         int expected = (frame == 18 || frame == 26 || frame == 34 || frame == 42 || frame == 50 || frame == 58)
-                           ? P8_PAD_RIGHT
+                           ? P8_PAD_BUTTON_4
                            : 0;
-        assert(pad_jump_repeat_step(&jump, P8_PAD_RIGHT, 0) == expected);
+        assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, 0) == expected);
     }
 }
 
@@ -39,51 +39,51 @@ static void hold_frames(pad_jump_t *jump, int pad_buttons, int frames) {
 static void test_a_release_clears_and_a_new_press_restarts(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    pad_jump_repeat_step(&jump, P8_PAD_LEFT, P8_PAD_LEFT);
-    hold_frames(&jump, P8_PAD_LEFT, 10);
+    pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3);
+    hold_frames(&jump, P8_PAD_BUTTON_3, 10);
     assert(pad_jump_repeat_step(&jump, 0, 0) == 0);
-    hold_frames(&jump, P8_PAD_LEFT, 30);
+    hold_frames(&jump, P8_PAD_BUTTON_3, 30);
 
-    assert(pad_jump_repeat_step(&jump, P8_PAD_LEFT, P8_PAD_LEFT) == P8_PAD_LEFT);
-    hold_frames(&jump, P8_PAD_LEFT, 10);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_LEFT, P8_PAD_LEFT) == P8_PAD_LEFT);
-    hold_frames(&jump, P8_PAD_LEFT, 17);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_LEFT, 0) == P8_PAD_LEFT);
+    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3) == P8_PAD_BUTTON_3);
+    hold_frames(&jump, P8_PAD_BUTTON_3, 10);
+    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, P8_PAD_BUTTON_3) == P8_PAD_BUTTON_3);
+    hold_frames(&jump, P8_PAD_BUTTON_3, 17);
+    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_3, 0) == P8_PAD_BUTTON_3);
 }
 
 static void test_a_second_direction_takes_over_at_once(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    pad_jump_repeat_step(&jump, P8_PAD_RIGHT, P8_PAD_RIGHT);
-    hold_frames(&jump, P8_PAD_RIGHT, 10);
-    int both = P8_PAD_RIGHT | P8_PAD_DOWN;
-    assert(pad_jump_repeat_step(&jump, both, P8_PAD_DOWN) == P8_PAD_DOWN);
+    pad_jump_repeat_step(&jump, P8_PAD_BUTTON_4, P8_PAD_BUTTON_4);
+    hold_frames(&jump, P8_PAD_BUTTON_4, 10);
+    int both = P8_PAD_BUTTON_4 | P8_PAD_BUTTON_2;
+    assert(pad_jump_repeat_step(&jump, both, P8_PAD_BUTTON_2) == P8_PAD_BUTTON_2);
     hold_frames(&jump, both, 17);
-    assert(pad_jump_repeat_step(&jump, both, 0) == P8_PAD_DOWN);
+    assert(pad_jump_repeat_step(&jump, both, 0) == P8_PAD_BUTTON_2);
 }
 
 static void test_simultaneous_presses_go_up_down_left_right(void) {
     pad_jump_t jump;
-    int all = P8_PAD_UP | P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT;
+    int all = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, all, all) == P8_PAD_UP);
+    assert(pad_jump_repeat_step(&jump, all, all) == P8_PAD_BUTTON_1);
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, all, P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT) == P8_PAD_DOWN);
+    assert(pad_jump_repeat_step(&jump, all, P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_2);
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, all, P8_PAD_LEFT | P8_PAD_RIGHT) == P8_PAD_LEFT);
+    assert(pad_jump_repeat_step(&jump, all, P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_3);
 }
 
 static void test_the_first_pressed_direction_goes_up_down_left_right(void) {
-    int all = P8_PAD_UP | P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT;
-    assert(pad_jump_first_direction(all | P8_PAD_CROSS) == P8_PAD_UP);
-    assert(pad_jump_first_direction(P8_PAD_DOWN | P8_PAD_LEFT | P8_PAD_RIGHT) == P8_PAD_DOWN);
-    assert(pad_jump_first_direction(P8_PAD_LEFT | P8_PAD_RIGHT) == P8_PAD_LEFT);
-    assert(pad_jump_first_direction(P8_PAD_RIGHT) == P8_PAD_RIGHT);
-    assert(pad_jump_first_direction(P8_PAD_CROSS | P8_PAD_SQUARE) == 0 && pad_jump_first_direction(0) == 0);
+    int all = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
+    assert(pad_jump_first_direction(all | P8_PAD_BUTTON_5) == P8_PAD_BUTTON_1);
+    assert(pad_jump_first_direction(P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_2);
+    assert(pad_jump_first_direction(P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_3);
+    assert(pad_jump_first_direction(P8_PAD_BUTTON_4) == P8_PAD_BUTTON_4);
+    assert(pad_jump_first_direction(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_7) == 0 && pad_jump_first_direction(0) == 0);
 }
 
 static void test_the_directions_by_index_are_up_down_left_right(void) {
-    static const int expected[PAD_JUMP_DIRECTIONS] = {P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT};
+    static const int expected[PAD_JUMP_DIRECTIONS] = {P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4};
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
         assert(pad_jump_direction(i) == expected[i]);
     }
@@ -92,17 +92,17 @@ static void test_the_directions_by_index_are_up_down_left_right(void) {
 static void test_clear_stops_the_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    pad_jump_repeat_step(&jump, P8_PAD_UP, P8_PAD_UP);
-    hold_frames(&jump, P8_PAD_UP, 10);
+    pad_jump_repeat_step(&jump, P8_PAD_BUTTON_1, P8_PAD_BUTTON_1);
+    hold_frames(&jump, P8_PAD_BUTTON_1, 10);
     pad_jump_repeat_clear(&jump);
-    hold_frames(&jump, P8_PAD_UP, 40);
+    hold_frames(&jump, P8_PAD_BUTTON_1, 40);
 }
 
 static void test_other_buttons_neither_jump_nor_repeat(void) {
     pad_jump_t jump;
     pad_jump_init(&jump);
-    assert(pad_jump_repeat_step(&jump, P8_PAD_CROSS | P8_PAD_CIRCLE, P8_PAD_CROSS | P8_PAD_CIRCLE) == 0);
-    hold_frames(&jump, P8_PAD_CROSS | P8_PAD_CIRCLE, 30);
+    assert(pad_jump_repeat_step(&jump, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6) == 0);
+    hold_frames(&jump, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6, 30);
 }
 
 static void assert_scroll(int x, int y, int expected_dx, int expected_dy) {

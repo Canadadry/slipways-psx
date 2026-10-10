@@ -17,7 +17,7 @@ typedef struct {
     int count;
 } keymap_button_t;
 
-/* buttons[i] is the PSX button of bit 1 << i of the P8_PAD_* mask. */
+/* buttons[i] is the PSX button of bit 1 << i of the P8_PAD_BUTTON_* mask. */
 typedef struct {
     keymap_button_t buttons[KEYMAP_BUTTON_COUNT];
 } keymap_t;

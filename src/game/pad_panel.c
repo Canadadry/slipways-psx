@@ -177,7 +177,7 @@ void pad_panel_focus_point(const entity_t *e, int *x, int *y) {
 }
 
 static int is_direction(int direction) {
-    return direction == P8_PAD_UP || direction == P8_PAD_DOWN || direction == P8_PAD_LEFT || direction == P8_PAD_RIGHT;
+    return direction == P8_PAD_BUTTON_1 || direction == P8_PAD_BUTTON_2 || direction == P8_PAD_BUTTON_3 || direction == P8_PAD_BUTTON_4;
 }
 
 static int absolute(int value) {
@@ -203,20 +203,20 @@ static int neighbor_score(const entity_t *item, const entity_t *candidate, int d
     box_middle(from, &from_x, &from_y);
     box_middle(to, &to_x, &to_y);
     switch (direction) {
-    case P8_PAD_UP:
+    case P8_PAD_BUTTON_1:
         if (p8_fixed_from_int(to_y) >= from.top) return -1;
         break;
-    case P8_PAD_DOWN:
+    case P8_PAD_BUTTON_2:
         if (p8_fixed_from_int(to_y) <= from.bottom) return -1;
         break;
-    case P8_PAD_LEFT:
+    case P8_PAD_BUTTON_3:
         if (p8_fixed_from_int(to_x) >= from.left) return -1;
         break;
     default:
         if (p8_fixed_from_int(to_x) <= from.right) return -1;
         break;
     }
-    if (direction == P8_PAD_UP || direction == P8_PAD_DOWN) {
+    if (direction == P8_PAD_BUTTON_1 || direction == P8_PAD_BUTTON_2) {
         return absolute(to_y - from_y) + 2 * span_gap(from.left, from.right, to.left, to.right);
     }
     return absolute(to_x - from_x) + 2 * span_gap(from.top, from.bottom, to.top, to.bottom);
@@ -224,7 +224,7 @@ static int neighbor_score(const entity_t *item, const entity_t *candidate, int d
 
 entity_t *pad_panel_neighbor(const entity_t *item, int direction) {
     assert(is_direction(direction) &&
-           "pad_panel_neighbor: the direction is exactly one of P8_PAD_UP, DOWN, LEFT or RIGHT");
+           "pad_panel_neighbor: the direction is exactly one of P8_PAD_BUTTON_1, DOWN, LEFT or RIGHT");
     int layer = top_layer();
     candidate_iter_t it = candidates_all();
     entity_t *best = NULL;
@@ -255,6 +255,6 @@ entity_t *pad_panel_step(entity_t *focus, int pad_buttons, int direction, int *x
         pad_panel_focus_point(at, x, y);
     }
     /* With no focus the cursor still sits on the last point: on the score panel a press there closes it. */
-    *mouse_buttons = at != NULL && (pad_buttons & P8_PAD_CROSS) ? P8_MOUSE_LEFT : 0;
+    *mouse_buttons = at != NULL && (pad_buttons & P8_PAD_BUTTON_5) ? P8_MOUSE_LEFT : 0;
     return at;
 }

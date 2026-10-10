@@ -63,9 +63,9 @@ static void test_malformed_recording_reports_load_failure(void) {
  * exact values are what catch an off-by-one, a reversed order or a frame
  * served twice. */
 static const p8_input_frame_t events_valid_frames[] = {
-    { 0, 0, 0, P8_PAD_RIGHT },
-    { 0, 0, 0, P8_PAD_UP | P8_PAD_LEFT },
-    { 0, 0, 0, P8_PAD_DOWN }
+    { 0, 0, 0, P8_PAD_BUTTON_4 },
+    { 0, 0, 0, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3 },
+    { 0, 0, 0, P8_PAD_BUTTON_2 }
 };
 static const int events_valid_count = 3;
 
@@ -175,10 +175,10 @@ static void test_frames_served_tracks_the_replay_position(void) {
 
 #define PAD_FRAME_COUNT 4
 static const p8_input_frame_t pad_frames[PAD_FRAME_COUNT] = {
-    { 0, 0, 0, P8_PAD_CROSS },
+    { 0, 0, 0, P8_PAD_BUTTON_5 },
     { 0, 0, 0, 0 },
-    { 0, 0, 0, P8_PAD_UP | P8_PAD_CIRCLE | P8_PAD_START },
-    { 0, 0, 0, P8_PAD_SELECT | P8_PAD_LEFT },
+    { 0, 0, 0, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_6 | P8_PAD_BUTTON_11 },
+    { 0, 0, 0, P8_PAD_BUTTON_12 | P8_PAD_BUTTON_3 },
 };
 
 static void test_pad_recording_serves_its_masks_in_order(void) {
@@ -232,7 +232,7 @@ static void test_hand_written_select_is_served_as_its_bit(void) {
                      "    { \"pad\": [12] },\n"
                      "    { \"pad\": [11, 12, 1] },\n"
                      "    { \"pad\": [] }\n  ]\n}\n");
-    static const int expected[3] = { P8_PAD_SELECT, P8_PAD_SELECT | P8_PAD_UP | P8_PAD_START, 0 };
+    static const int expected[3] = { P8_PAD_BUTTON_12, P8_PAD_BUTTON_12 | P8_PAD_BUTTON_1 | P8_PAD_BUTTON_11, 0 };
 
     replay_source_t source;
     assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);

@@ -47,7 +47,7 @@ static int has_pad_header(const char *json, const char *head_end) {
 }
 
 #define PAD_BUTTON_COUNT 12
-typedef char pad_button_count_ends_at_select[(1 << (PAD_BUTTON_COUNT - 1)) == P8_PAD_SELECT ? 1 : -1];
+typedef char pad_button_count_ends_at_select[(1 << (PAD_BUTTON_COUNT - 1)) == P8_PAD_BUTTON_12 ? 1 : -1];
 
 static int is_json_separator(char c) {
     return c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t';
@@ -208,7 +208,7 @@ int p8_input_load(p8_input_t *input, const char *path) {
 #define FRAME_LINE_MAX 160
 
 static int format_pad_frame_line(char *buf, size_t size, const p8_input_frame_t *fr) {
-    assert((fr->pad_buttons & ~((1 << PAD_BUTTON_COUNT) - 1)) == 0 && "a bit past P8_PAD_SELECT has no button number");
+    assert((fr->pad_buttons & ~((1 << PAD_BUTTON_COUNT) - 1)) == 0 && "a bit past P8_PAD_BUTTON_12 has no button number");
     int used = snprintf(buf, size, "    { \"pad\": [");
     const char *separator = "";
     for (int bit = 0; bit < PAD_BUTTON_COUNT; bit++) {

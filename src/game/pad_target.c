@@ -12,7 +12,7 @@ int pad_target_is_candidate(const entity_t *e) {
 }
 
 static int is_direction(int direction) {
-    return direction == P8_PAD_UP || direction == P8_PAD_DOWN || direction == P8_PAD_LEFT || direction == P8_PAD_RIGHT;
+    return direction == P8_PAD_BUTTON_1 || direction == P8_PAD_BUTTON_2 || direction == P8_PAD_BUTTON_3 || direction == P8_PAD_BUTTON_4;
 }
 
 typedef struct {
@@ -24,11 +24,11 @@ static offset_t offset_in(int direction, vec_t from, vec_t to) {
     p8_fixed_t dx = p8_fixed_sub(to.x, from.x);
     p8_fixed_t dy = p8_fixed_sub(to.y, from.y);
     switch (direction) {
-    case P8_PAD_RIGHT:
+    case P8_PAD_BUTTON_4:
         return (offset_t){dx, p8_fixed_abs(dy)};
-    case P8_PAD_LEFT:
+    case P8_PAD_BUTTON_3:
         return (offset_t){-dx, p8_fixed_abs(dy)};
-    case P8_PAD_DOWN:
+    case P8_PAD_BUTTON_2:
         return (offset_t){dy, p8_fixed_abs(dx)};
     default:
         return (offset_t){-dy, p8_fixed_abs(dx)};
@@ -37,7 +37,7 @@ static offset_t offset_in(int direction, vec_t from, vec_t to) {
 
 entity_t *pad_target_pick(const entity_t *origin, int direction, const entity_list_t *candidates) {
     assert(is_direction(direction) &&
-           "pad_target_pick: the direction is exactly one of P8_PAD_UP, DOWN, LEFT or RIGHT");
+           "pad_target_pick: the direction is exactly one of P8_PAD_BUTTON_1, DOWN, LEFT or RIGHT");
     assert(origin != NULL && entity_has_map_pos(origin) && "pad_target_pick: the origin is an entity with a map position");
     if (candidates == NULL) {
         return NULL;

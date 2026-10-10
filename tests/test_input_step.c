@@ -45,11 +45,11 @@ static void assert_installed(const input_step_t *step) {
 
 #define NOISY_FRAME_COUNT 6
 static const p8_input_frame_t noisy_frames[NOISY_FRAME_COUNT] = {
-    { 10, 20, P8_MOUSE_LEFT, P8_PAD_CROSS },
-    { 64, 64, 2, P8_PAD_UP | P8_PAD_LEFT },
-    { 127, 0, 4, P8_PAD_DOWN | P8_PAD_RIGHT | P8_PAD_CIRCLE },
+    { 10, 20, P8_MOUSE_LEFT, P8_PAD_BUTTON_5 },
+    { 64, 64, 2, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3 },
+    { 127, 0, 4, P8_PAD_BUTTON_2 | P8_PAD_BUTTON_4 | P8_PAD_BUTTON_6 },
     { 0, 127, 7, 2047 },
-    { 33, 44, 0, P8_PAD_START | P8_PAD_L1 | P8_PAD_R1 },
+    { 33, 44, 0, P8_PAD_BUTTON_11 | P8_PAD_BUTTON_9 | P8_PAD_BUTTON_10 },
     { 5, 6, 0, 0 },
 };
 
@@ -72,7 +72,7 @@ static void test_pad_keeps_only_the_pad_mask(void) {
     }
 }
 
-#define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
+#define CHORD (P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6)
 
 /* Each chord followed by a release frame; returns a bitmask of the chords on which the step reported the cheat. */
 static int type_cheat(input_step_t *step) {
@@ -112,9 +112,9 @@ static void test_live_and_replayed_pad_frames_play_alike(void) {
         p8_input_frame_t frame = noisy_frames[i % NOISY_FRAME_COUNT];
         frame.mouse_x = (frame.mouse_x + 7 * i) % 128;
         if (i >= 10 && i < 10 + 2 * CHEAT_CHORDS) {
-            frame.pad_buttons = (i % 2 == 0) ? CHORD | P8_PAD_UP : P8_PAD_LEFT;
+            frame.pad_buttons = (i % 2 == 0) ? CHORD | P8_PAD_BUTTON_1 : P8_PAD_BUTTON_3;
         } else if (i < 10) {
-            frame.pad_buttons &= ~(P8_PAD_CROSS | P8_PAD_CIRCLE);
+            frame.pad_buttons &= ~(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6);
         }
         live[i] = frame;
     }
@@ -154,7 +154,7 @@ enum { HEADLESS_FRAME_COUNT = 120 };
 static p8_input_frame_t noisy_pad_session_frame(int i) {
     int first_half = i < HEADLESS_FRAME_COUNT / 2;
     p8_input_frame_t frame = { (i * 5) % 128, (i * 3) % 128, (i / 4) % 8, 0 };
-    frame.pad_buttons = first_half ? P8_PAD_UP | P8_PAD_LEFT : P8_PAD_DOWN | P8_PAD_RIGHT;
+    frame.pad_buttons = first_half ? P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3 : P8_PAD_BUTTON_2 | P8_PAD_BUTTON_4;
     return frame;
 }
 

@@ -29,21 +29,21 @@
  * must keep the pad mask alone. */
 #define SOURCE_FRAME_COUNT 5
 static const p8_input_frame_t source_frames[SOURCE_FRAME_COUNT] = {
-    { 10, 11, 0, P8_PAD_CROSS },
-    { 12, 13, 1, P8_PAD_CIRCLE },
-    { 14, 15, 2, P8_PAD_UP | P8_PAD_L1 },
-    { 16, 17, 4, P8_PAD_SQUARE },
-    { 18, 19, 3, P8_PAD_TRIANGLE },
+    { 10, 11, 0, P8_PAD_BUTTON_5 },
+    { 12, 13, 1, P8_PAD_BUTTON_6 },
+    { 14, 15, 2, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_9 },
+    { 16, 17, 4, P8_PAD_BUTTON_7 },
+    { 18, 19, 3, P8_PAD_BUTTON_8 },
 };
 
 /* What the player does after getting the controls back, in a value range
  * the replayed frames never reach. */
 #define LIVE_FRAME_COUNT 4
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
-    { 90, 91, 1, P8_PAD_START | P8_PAD_DOWN },
-    { 92, 93, 5, P8_PAD_R1 | P8_PAD_RIGHT },
-    { 94, 95, 7, P8_PAD_LEFT },
-    { 96, 97, 6, P8_PAD_CROSS | P8_PAD_CIRCLE },
+    { 90, 91, 1, P8_PAD_BUTTON_11 | P8_PAD_BUTTON_2 },
+    { 92, 93, 5, P8_PAD_BUTTON_10 | P8_PAD_BUTTON_4 },
+    { 94, 95, 7, P8_PAD_BUTTON_3 },
+    { 96, 97, 6, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6 },
 };
 
 /* `want` is the raw frame; `got` is what the recording gives back. */
@@ -88,8 +88,8 @@ static void run_session(const char *source_path, const char *resumed_path, int i
 static void test_recorder_writes_a_loadable_recording(void) {
     const char *path = "tmp/test_recording_continuity_basic.json";
     p8_input_frame_t frames[2] = {
-        { 11, 22, 1, P8_PAD_LEFT },
-        { 33, 44, 2, P8_PAD_R1 | P8_PAD_SQUARE },
+        { 11, 22, 1, P8_PAD_BUTTON_3 },
+        { 33, 44, 2, P8_PAD_BUTTON_10 | P8_PAD_BUTTON_7 },
     };
 
     session_recorder_t recorder;

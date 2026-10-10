@@ -17,16 +17,16 @@ static void test_load_and_step_multi_frame_matches_fields(void) {
     assert(ok);
     assert(input.frame_count == 3);
 
-    assert(current_pad_buttons(&input) == P8_PAD_RIGHT);
+    assert(current_pad_buttons(&input) == P8_PAD_BUTTON_4);
     assert(p8_input_read_mouse(&input).x == 0);
     assert(p8_input_read_mouse(&input).y == 0);
     assert(p8_input_read_mouse(&input).buttons == 0);
 
     p8_input_step(&input);
-    assert(current_pad_buttons(&input) == (P8_PAD_UP | P8_PAD_LEFT));
+    assert(current_pad_buttons(&input) == (P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3));
 
     p8_input_step(&input);
-    assert(current_pad_buttons(&input) == P8_PAD_DOWN);
+    assert(current_pad_buttons(&input) == P8_PAD_BUTTON_2);
     assert(p8_input_read_mouse(&input).buttons == 0);
 
     p8_input_free(&input);
@@ -38,7 +38,7 @@ static void test_frames_without_cross_or_circle_load_them_released(void) {
     assert(p8_input_load(&input, "tests/fixtures/events_valid.json"));
 
     for (int i = 0; i < input.frame_count; i++) {
-        assert((input.frames[i].pad_buttons & (P8_PAD_CROSS | P8_PAD_CIRCLE)) == 0);
+        assert((input.frames[i].pad_buttons & (P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6)) == 0);
     }
 
     p8_input_free(&input);
@@ -49,9 +49,9 @@ static void test_cross_and_circle_load(void) {
     p8_input_init(&input);
     assert(p8_input_load(&input, "tests/fixtures/events_valid_ox.json"));
 
-    assert(current_pad_buttons(&input) == (P8_PAD_RIGHT | P8_PAD_CROSS));
+    assert(current_pad_buttons(&input) == (P8_PAD_BUTTON_4 | P8_PAD_BUTTON_5));
     p8_input_step(&input);
-    assert(current_pad_buttons(&input) == (P8_PAD_UP | P8_PAD_LEFT | P8_PAD_CIRCLE));
+    assert(current_pad_buttons(&input) == (P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_6));
 
     p8_input_free(&input);
 }
@@ -134,7 +134,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
 
     for (int i = 0; i < 40; i++) {
         p8_input_frame_t fr = {0};
-        fr.pad_buttons = i % 2 ? P8_PAD_UP : P8_PAD_DOWN | P8_PAD_CROSS;
+        fr.pad_buttons = i % 2 ? P8_PAD_BUTTON_1 : P8_PAD_BUTTON_2 | P8_PAD_BUTTON_5;
         assert(p8_input_append(&fr, path, &tail_offset, NULL));
     }
 
@@ -155,7 +155,7 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
     char *marked = read_file_raw(path);
 
     p8_input_frame_t extra = {0};
-    extra.pad_buttons = P8_PAD_START;
+    extra.pad_buttons = P8_PAD_BUTTON_11;
     assert(p8_input_append(&extra, path, &tail_offset, NULL));
 
     char *after = read_file_raw(path);
@@ -172,16 +172,16 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
 static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     const char *path = "tmp/test_input_append_fresh.json";
     p8_input_frame_t first[3] = {{0}, {0}, {0}};
-    first[0].pad_buttons = P8_PAD_UP;
-    first[1].pad_buttons = P8_PAD_DOWN;
-    first[2].pad_buttons = P8_PAD_LEFT;
+    first[0].pad_buttons = P8_PAD_BUTTON_1;
+    first[1].pad_buttons = P8_PAD_BUTTON_2;
+    first[2].pad_buttons = P8_PAD_BUTTON_3;
     long tail_offset = 0;
     for (int i = 0; i < 3; i++) {
         assert(p8_input_append(&first[i], path, &tail_offset, NULL));
     }
 
     p8_input_frame_t only = {0};
-    only.pad_buttons = P8_PAD_START;
+    only.pad_buttons = P8_PAD_BUTTON_11;
     tail_offset = 0;
     assert(p8_input_append(&only, path, &tail_offset, NULL));
 
@@ -189,7 +189,7 @@ static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     p8_input_init(&input);
     assert(p8_input_load(&input, path));
     assert(input.frame_count == 1);
-    assert(input.frames[0].pad_buttons == P8_PAD_START);
+    assert(input.frames[0].pad_buttons == P8_PAD_BUTTON_11);
     p8_input_free(&input);
 }
 
@@ -197,8 +197,8 @@ static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
 #define PAD_FRAME_COUNT (PAD_BUTTON_TOTAL + 2)
 
 static const int every_pad_button[PAD_BUTTON_TOTAL] = {
-    P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT, P8_PAD_CROSS, P8_PAD_CIRCLE,
-    P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START, P8_PAD_SELECT,
+    P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4, P8_PAD_BUTTON_5, P8_PAD_BUTTON_6,
+    P8_PAD_BUTTON_7, P8_PAD_BUTTON_8, P8_PAD_BUTTON_9, P8_PAD_BUTTON_10, P8_PAD_BUTTON_11, P8_PAD_BUTTON_12,
 };
 
 /* Every button alone, then all twelve together, then none. */
@@ -259,8 +259,8 @@ static void test_pad_append_is_byte_identical_to_pad_save_every_frame(void) {
 
 static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(void) {
     p8_input_frame_t written[3] = {
-        {0, 0, 0, P8_PAD_START | P8_PAD_CROSS | P8_PAD_UP},
-        {0, 0, 0, P8_PAD_SELECT | P8_PAD_START | P8_PAD_R1},
+        {0, 0, 0, P8_PAD_BUTTON_11 | P8_PAD_BUTTON_5 | P8_PAD_BUTTON_1},
+        {0, 0, 0, P8_PAD_BUTTON_12 | P8_PAD_BUTTON_11 | P8_PAD_BUTTON_10},
         {0, 0, 0, 0},
     };
     const char *path = "tmp/test_input_pad_shape.json";
@@ -304,8 +304,8 @@ static void test_pad_buttons_load_in_any_order(void) {
 
     assert(p8_input_load(&input, "tests/fixtures/events_pad_unordered.json"));
     assert(input.frame_count == 3);
-    assert(input.frames[0].pad_buttons == (P8_PAD_UP | P8_PAD_CROSS));
-    assert(input.frames[1].pad_buttons == (P8_PAD_L1 | P8_PAD_TRIANGLE | P8_PAD_START));
+    assert(input.frames[0].pad_buttons == (P8_PAD_BUTTON_1 | P8_PAD_BUTTON_5));
+    assert(input.frames[1].pad_buttons == (P8_PAD_BUTTON_9 | P8_PAD_BUTTON_8 | P8_PAD_BUTTON_11));
     assert(input.frames[2].pad_buttons == 0);
 
     p8_input_free(&input);
@@ -367,14 +367,14 @@ static int load_one_pad_frame(const char *buttons_text) {
 }
 
 static void test_pad_button_numbers_load(void) {
-    assert(load_one_pad_frame("[1, 5, 11]") == (P8_PAD_UP | P8_PAD_CROSS | P8_PAD_START));
-    assert(load_one_pad_frame("[4, 5]") == (P8_PAD_RIGHT | P8_PAD_CROSS));
-    assert(load_one_pad_frame("[12]") == P8_PAD_SELECT);
+    assert(load_one_pad_frame("[1, 5, 11]") == (P8_PAD_BUTTON_1 | P8_PAD_BUTTON_5 | P8_PAD_BUTTON_11));
+    assert(load_one_pad_frame("[4, 5]") == (P8_PAD_BUTTON_4 | P8_PAD_BUTTON_5));
+    assert(load_one_pad_frame("[12]") == P8_PAD_BUTTON_12);
 }
 
 static void test_pad_button_numbers_load_in_any_order(void) {
-    assert(load_one_pad_frame("[11, 1, 5]") == (P8_PAD_UP | P8_PAD_CROSS | P8_PAD_START));
-    assert(load_one_pad_frame("[10,9]") == (P8_PAD_L1 | P8_PAD_R1));
+    assert(load_one_pad_frame("[11, 1, 5]") == (P8_PAD_BUTTON_1 | P8_PAD_BUTTON_5 | P8_PAD_BUTTON_11));
+    assert(load_one_pad_frame("[10,9]") == (P8_PAD_BUTTON_9 | P8_PAD_BUTTON_10));
 }
 
 static void assert_pad_frame_fails_and_leaves_input_untouched(const char *buttons_text) {
@@ -449,7 +449,7 @@ static void test_unknown_header_members_are_ignored(void) {
     p8_input_init(&input);
     assert(p8_input_load(&input, path));
     assert(input.frame_count == 2);
-    assert(input.frames[0].pad_buttons == P8_PAD_UP && input.frames[1].pad_buttons == 0);
+    assert(input.frames[0].pad_buttons == P8_PAD_BUTTON_1 && input.frames[1].pad_buttons == 0);
     p8_input_free(&input);
 }
 
@@ -457,8 +457,8 @@ static void test_append_writes_a_header_member_into_a_fresh_file_only(void) {
     const char *path = "tmp/test_input_append_header_member.json";
     const char *member = "\"initial_save\": \"00ff\"";
     p8_input_frame_t frames[3] = {{0}, {0}, {0}};
-    frames[0].pad_buttons = P8_PAD_UP;
-    frames[2].pad_buttons = P8_PAD_CROSS;
+    frames[0].pad_buttons = P8_PAD_BUTTON_1;
+    frames[2].pad_buttons = P8_PAD_BUTTON_5;
     long tail_offset = 0;
     for (int i = 0; i < 3; i++) {
         assert(p8_input_append(&frames[i], path, &tail_offset, member));

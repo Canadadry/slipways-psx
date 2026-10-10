@@ -36,7 +36,7 @@ entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int
     return picked;
 }
 
-static const int directions_by_priority[PAD_JUMP_DIRECTIONS] = {P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT};
+static const int directions_by_priority[PAD_JUMP_DIRECTIONS] = {P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4};
 
 int pad_jump_direction(int index) {
     assert(index >= 0 && index < PAD_JUMP_DIRECTIONS && "pad_jump_direction: index 0 to PAD_JUMP_DIRECTIONS - 1");

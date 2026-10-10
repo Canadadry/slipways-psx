@@ -22,27 +22,27 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* The session being resumed. Every mask stays below P8_PAD_L1, and the live
+/* The session being resumed. Every mask stays below P8_PAD_BUTTON_9, and the live
  * frames below hold it, so a marker pointing into the wrong half names a
  * visibly different frame rather than just an unequal number. */
 #define REPLAYED_FRAME_COUNT 6
 static const p8_input_frame_t replayed_frames[REPLAYED_FRAME_COUNT] = {
-    { 0, 0, 0, P8_PAD_UP },
-    { 0, 0, 0, P8_PAD_DOWN },
-    { 0, 0, 0, P8_PAD_LEFT },
-    { 0, 0, 0, P8_PAD_RIGHT },
-    { 0, 0, 0, P8_PAD_CROSS },
-    { 0, 0, 0, P8_PAD_CIRCLE | P8_PAD_SQUARE },
+    { 0, 0, 0, P8_PAD_BUTTON_1 },
+    { 0, 0, 0, P8_PAD_BUTTON_2 },
+    { 0, 0, 0, P8_PAD_BUTTON_3 },
+    { 0, 0, 0, P8_PAD_BUTTON_4 },
+    { 0, 0, 0, P8_PAD_BUTTON_5 },
+    { 0, 0, 0, P8_PAD_BUTTON_6 | P8_PAD_BUTTON_7 },
 };
 
 /* What the player does once the controls come back. */
 #define LIVE_FRAME_COUNT 5
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
-    { 0, 0, 0, P8_PAD_L1 },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_UP },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_R1 },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_START },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_TRIANGLE },
+    { 0, 0, 0, P8_PAD_BUTTON_9 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_1 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_10 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_11 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_8 },
 };
 
 #define TOTAL_FRAME_COUNT (REPLAYED_FRAME_COUNT + LIVE_FRAME_COUNT)

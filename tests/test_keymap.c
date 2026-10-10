@@ -294,11 +294,11 @@ static void test_psx_button_names_follow_the_pad_bits(void) {
         "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select"
     };
     static const int bits[KEYMAP_BUTTON_COUNT] = {
-        P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT, P8_PAD_CROSS, P8_PAD_CIRCLE,
-        P8_PAD_SQUARE, P8_PAD_TRIANGLE, P8_PAD_L1, P8_PAD_R1, P8_PAD_START, P8_PAD_SELECT
+        P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4, P8_PAD_BUTTON_5, P8_PAD_BUTTON_6,
+        P8_PAD_BUTTON_7, P8_PAD_BUTTON_8, P8_PAD_BUTTON_9, P8_PAD_BUTTON_10, P8_PAD_BUTTON_11, P8_PAD_BUTTON_12
     };
     assert(KEYMAP_BUTTON_COUNT == 12);
-    assert(strcmp(keymap_button_name(11), "select") == 0 && P8_PAD_SELECT == 2048);
+    assert(strcmp(keymap_button_name(11), "select") == 0 && P8_PAD_BUTTON_12 == 2048);
     for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {
         assert(strcmp(keymap_button_name(i), names[i]) == 0);
         assert(bits[i] == 1 << i);
@@ -331,22 +331,22 @@ static void test_pad_buttons_or_the_held_bindings(void) {
     assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == 0);
 
     hold(&held, "X");
-    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_CROSS);
+    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_BUTTON_5);
 
     held.count = 0;
     hold(&held, "RIGHT_FACE_DOWN");
-    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_CROSS);
+    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_BUTTON_5);
 
     hold(&held, "X");
-    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_CROSS);
+    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_BUTTON_5);
 
     held.count = 0;
     hold(&held, "RIGHT_SHIFT");
-    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_SELECT);
+    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_BUTTON_12);
 
     held.count = 0;
     hold(&held, "MIDDLE_LEFT");
-    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_SELECT);
+    assert(keymap_pad_buttons(&keymap, fake_is_down, &held) == P8_PAD_BUTTON_12);
 
     held.count = 0;
     for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {

@@ -8,18 +8,18 @@ typedef struct {
     int pad_buttons;
 } p8_input_frame_t;
 
-#define P8_PAD_UP 1
-#define P8_PAD_DOWN 2
-#define P8_PAD_LEFT 4
-#define P8_PAD_RIGHT 8
-#define P8_PAD_CROSS 16
-#define P8_PAD_CIRCLE 32
-#define P8_PAD_SQUARE 64
-#define P8_PAD_TRIANGLE 128
-#define P8_PAD_L1 256
-#define P8_PAD_R1 512
-#define P8_PAD_START 1024
-#define P8_PAD_SELECT 2048
+#define P8_PAD_BUTTON_1 1
+#define P8_PAD_BUTTON_2 2
+#define P8_PAD_BUTTON_3 4
+#define P8_PAD_BUTTON_4 8
+#define P8_PAD_BUTTON_5 16
+#define P8_PAD_BUTTON_6 32
+#define P8_PAD_BUTTON_7 64
+#define P8_PAD_BUTTON_8 128
+#define P8_PAD_BUTTON_9 256
+#define P8_PAD_BUTTON_10 512
+#define P8_PAD_BUTTON_11 1024
+#define P8_PAD_BUTTON_12 2048
 
 #define P8_MOUSE_LEFT 1
 

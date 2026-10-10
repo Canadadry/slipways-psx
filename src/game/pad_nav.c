@@ -158,8 +158,8 @@ static void aim_pan(pad_nav_t *nav, int pad_buttons) {
         }
         speed[i] = pan_speed(nav->held_frames[i]);
     }
-    assert(pad_jump_direction(0) == P8_PAD_UP && pad_jump_direction(1) == P8_PAD_DOWN &&
-           pad_jump_direction(2) == P8_PAD_LEFT && pad_jump_direction(3) == P8_PAD_RIGHT &&
+    assert(pad_jump_direction(0) == P8_PAD_BUTTON_1 && pad_jump_direction(1) == P8_PAD_BUTTON_2 &&
+           pad_jump_direction(2) == P8_PAD_BUTTON_3 && pad_jump_direction(3) == P8_PAD_BUTTON_4 &&
            "aim_pan: speed[] is indexed Up, Down, Left, Right");
     camera_t *camera = main_camera_typed();
     if (camera != NULL) {
@@ -219,14 +219,14 @@ static int armed_panel_open(const pad_nav_t *nav) {
 
 static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, p8_input_frame_t *played) {
     if (pause_menu_shown()) {
-        nav->pause_cross_armed |= (pressed & P8_PAD_CROSS) != 0;
+        nav->pause_cross_armed |= (pressed & P8_PAD_BUTTON_5) != 0;
         if (!nav->pause_cross_armed) {
-            pad_buttons &= ~P8_PAD_CROSS;
+            pad_buttons &= ~P8_PAD_BUTTON_5;
         }
     } else if (armed_panel_open(nav)) {
-        nav->menu_cross_armed |= (pressed & P8_PAD_CROSS) != 0;
+        nav->menu_cross_armed |= (pressed & P8_PAD_BUTTON_5) != 0;
         if (!nav->menu_cross_armed) {
-            pad_buttons &= ~P8_PAD_CROSS;
+            pad_buttons &= ~P8_PAD_BUTTON_5;
         }
     }
     nav->focus = entity_id_link(pad_panel_step(entity_get(nav->focus), pad_buttons, direction, &nav->cursor_x,
@@ -352,13 +352,13 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
     if (select_tapped && !nav->cross_engaged && select_tap(nav, NULL, shown)) {
         return;
     }
-    if ((pressed & P8_PAD_SQUARE) && !nav->cross_engaged) {
+    if ((pressed & P8_PAD_BUTTON_7) && !nav->cross_engaged) {
         leave_aim_mode(nav);
         return;
     }
-    if (!(pad_buttons & P8_PAD_CROSS)) {
+    if (!(pad_buttons & P8_PAD_BUTTON_5)) {
         nav->cross_engaged = 0;
-    } else if ((pressed & P8_PAD_CROSS) && !release) {
+    } else if ((pressed & P8_PAD_BUTTON_5) && !release) {
         nav->cross_engaged = entity_under(nav->cursor_x, nav->cursor_y, presses_off_background) == NULL;
     }
     if (nav->cross_engaged) {
@@ -457,12 +457,12 @@ static void leave_panel(pad_nav_t *nav, p8_input_frame_t *played) {
 }
 
 static int one_shoulder(int pressed) {
-    return ((pressed & P8_PAD_R1) != 0) != ((pressed & P8_PAD_L1) != 0);
+    return ((pressed & P8_PAD_BUTTON_10) != 0) != ((pressed & P8_PAD_BUTTON_9) != 0);
 }
 
 static void shoulder_switch(pad_nav_t *nav, int pressed, p8_input_frame_t *played) {
     leave_panel(nav, played);
-    if (pressed & P8_PAD_R1) {
+    if (pressed & P8_PAD_BUTTON_10) {
         pad_build_close(&nav->build);
         pad_cycle_set(&nav->cycle, pad_cycle_next(pad_cycle_panel(&nav->cycle)));
     } else if (pad_build_is_open(&nav->build)) {
@@ -485,12 +485,12 @@ static entity_t *cycle_button(const pad_nav_t *nav) {
 
 static void build_step(pad_nav_t *nav, int pressed, int direction, int release, p8_input_frame_t *played) {
     entity_t *icon = pad_build_focus(&nav->build);
-    if (icon != NULL && (pressed & P8_PAD_CROSS) && !release) {
+    if (icon != NULL && (pressed & P8_PAD_BUTTON_5) && !release) {
         played->mouse_buttons = P8_MOUSE_LEFT;
         nav->placement = PAD_NAV_PLACEMENT_PRESSED;
     }
-    if (direction == P8_PAD_LEFT || direction == P8_PAD_RIGHT) {
-        pad_build_pick(&nav->build, direction == P8_PAD_LEFT ? -1 : 1);
+    if (direction == P8_PAD_BUTTON_3 || direction == P8_PAD_BUTTON_4) {
+        pad_build_pick(&nav->build, direction == P8_PAD_BUTTON_3 ? -1 : 1);
     }
 }
 
@@ -563,7 +563,7 @@ static void cancel_point(pad_nav_t *nav) {
 static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
     nav->cross_engaged = 0;
-    if ((pressed & P8_PAD_CIRCLE) || pad_nav_panel_open()) {
+    if ((pressed & P8_PAD_BUTTON_6) || pad_nav_panel_open()) {
         cancel_point(nav);
         return;
     }
@@ -571,7 +571,7 @@ static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_inpu
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     aim_pan(nav, pad_buttons);
     /* × drops by letting the held left button go for one frame: the ui's drop runs the cart's rules. */
-    if (pressed & P8_PAD_CROSS) {
+    if (pressed & P8_PAD_BUTTON_5) {
         return;
     }
     played->mouse_buttons = P8_MOUSE_LEFT;
@@ -660,7 +660,7 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
-    if (pressed & P8_PAD_SQUARE) {
+    if (pressed & P8_PAD_BUTTON_7) {
         enter_aim_mode(nav);
         return;
     }
@@ -681,16 +681,16 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         nav->cursor_y = P8_SCREEN_HEIGHT / 2;
         return;
     }
-    if (!clicking && (pressed & P8_PAD_TRIANGLE)) {
+    if (!clicking && (pressed & P8_PAD_BUTTON_8)) {
         clicking = click_hovered(nav, hovered, played);
     }
-    if (!clicking && (pressed & P8_PAD_CROSS) && hovered->state == ENTITY_STATE_KNOWN) {
+    if (!clicking && (pressed & P8_PAD_BUTTON_5) && hovered->state == ENTITY_STATE_KNOWN) {
         clicking = click_hovered(nav, hovered, played);
         if (clicking) {
             pad_back_record(&nav->back, hovered);
         }
     }
-    if (!clicking && (pressed & P8_PAD_CROSS) && cross_starts_slipway(nav, hovered, played)) {
+    if (!clicking && (pressed & P8_PAD_BUTTON_5) && cross_starts_slipway(nav, hovered, played)) {
         pad_back_record(&nav->back, hovered);
         return;
     }
@@ -761,12 +761,12 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
     int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
     entity_t *target = pad_nav_slipway_target(nav);
     nav->slipway.target = entity_id_link(target);
-    if ((pressed & P8_PAD_CROSS) && !release && target != NULL && pressable(target)) {
+    if ((pressed & P8_PAD_BUTTON_5) && !release && target != NULL && pressable(target)) {
         pad_slipway_release(&nav->slipway, pad_slipway_between(start, target) != NULL);
         screen_point(target, &nav->cursor_x, &nav->cursor_y);
         return;
     }
-    if (direction != 0 && !(pressed & P8_PAD_CROSS)) {
+    if (direction != 0 && !(pressed & P8_PAD_BUTTON_5)) {
         entity_list_t candidates = live_candidates();
         entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
         entity_t *picked = pad_target_pick(target != NULL ? target : start, direction, &targets);
@@ -789,7 +789,7 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
         reset_aim_mode(nav);
-        if ((pressed & P8_PAD_TRIANGLE) && !release && !nav->release_pending && planet_menu_open(nav)) {
+        if ((pressed & P8_PAD_BUTTON_8) && !release && !nav->release_pending && planet_menu_open(nav)) {
             ui_clear_ephemerals(main_ui());
         } else {
             panel_step(nav, pad_buttons, pressed, direction, played);
@@ -820,7 +820,7 @@ static int switch_panels(pad_nav_t *nav, int pressed, int release, int foreign_w
         shoulder_switch(nav, pressed, played);
         return 1;
     }
-    if (!on_the_map(nav) && (pressed & P8_PAD_CIRCLE) && !foreign_was_open && !release) {
+    if (!on_the_map(nav) && (pressed & P8_PAD_BUTTON_6) && !foreign_was_open && !release) {
         leave_panel(nav, played);
         close_panels(nav);
         return 1;
@@ -865,7 +865,7 @@ static int resume_placement(pad_nav_t *nav) {
 
 static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t *played) {
     if (pause_menu_shown()) {
-        if (!(pressed & (P8_PAD_START | P8_PAD_CIRCLE)) || release) {
+        if (!(pressed & (P8_PAD_BUTTON_11 | P8_PAD_BUTTON_6)) || release) {
             return 0;
         }
         nav->cursor_x = P8_SCREEN_WIDTH / 2;
@@ -875,7 +875,7 @@ static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t
     }
     int due = nav->pause_due;
     nav->pause_due = 0;
-    entity_t *button = due || (pressed & P8_PAD_START) ? pause_button_free(nav, release) : NULL;
+    entity_t *button = due || (pressed & P8_PAD_BUTTON_11) ? pause_button_free(nav, release) : NULL;
     if (button == NULL) {
         return 0;
     }
@@ -931,7 +931,7 @@ static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {
 }
 
 static int without_chord(pad_nav_t *nav, int raw_buttons) {
-    const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
+    const int face = P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6;
     if ((raw_buttons & ~nav->previous_pad & face) == face) {
         nav->chord_held = 1;
     } else if (!(raw_buttons & face)) {
@@ -960,7 +960,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     if (resume_placement(nav)) {
         release = 0;
     }
-    int select_down = (pad_buttons & P8_PAD_SELECT) != 0;
+    int select_down = (pad_buttons & P8_PAD_BUTTON_12) != 0;
     if (!panels_changed && pause_step(nav, pressed, release, played)) {
         (void)pad_select_step(&nav->select, select_down, 0);
         pad_jump_repeat_clear(&nav->jump);
@@ -970,13 +970,13 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         return;
     }
     int foreign_was_open = foreign_panel_open(nav);
-    int circle_returns = (pressed & P8_PAD_CIRCLE) && !pad_panel_box_open();
-    if (pressed & P8_PAD_CIRCLE) {
+    int circle_returns = (pressed & P8_PAD_BUTTON_6) && !pad_panel_box_open();
+    if (pressed & P8_PAD_BUTTON_6) {
         circle_closes_the_box();
         if (circle_returns && on_the_map(nav) && shown_message_box() != NULL) {
             message_box_close_shown();
             circle_returns = 0;
-            pressed &= ~P8_PAD_CIRCLE;
+            pressed &= ~P8_PAD_BUTTON_6;
         }
     }
     if (pad_nav_panel_open()) {

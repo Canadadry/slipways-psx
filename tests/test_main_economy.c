@@ -40,7 +40,7 @@ static void assert_at_rest(void) {
     assert(!fm->has_research_points && !fm->has_credits);
 }
 
-#define CHORD (P8_PAD_CROSS | P8_PAD_CIRCLE)
+#define CHORD (P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6)
 
 /* Feeds frames to a fresh matcher; returns a bitmask of the frames it fired on. */
 static int fired_on(const int *frames, int count) {
@@ -67,13 +67,13 @@ static int type_cheat(void) {
 
 static void test_cheat_matcher(void) {
     static const int four_chords[] = {CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0};
-    static const int held_chords[] = {CHORD, P8_PAD_CROSS, P8_PAD_UP, CHORD, P8_PAD_CIRCLE, 0, CHORD, CHORD | P8_PAD_LEFT, 0, CHORD};
-    static const int lone_cross[] = {CHORD, 0, CHORD, 0, P8_PAD_CROSS, 0, CHORD, 0, CHORD, 0};
-    static const int lone_circle[] = {CHORD, 0, CHORD, 0, CHORD, 0, P8_PAD_CIRCLE, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD};
-    static const int staggered[] = {P8_PAD_CROSS, CHORD, 0, P8_PAD_CROSS, CHORD, 0, P8_PAD_CIRCLE, CHORD, 0,
-                                    P8_PAD_CIRCLE, CHORD, 0};
-    static const int old_sequence[] = {P8_PAD_CROSS, 0, P8_PAD_CROSS, 0, P8_PAD_CIRCLE, 0, P8_PAD_CIRCLE, 0,
-                                       P8_PAD_CROSS, 0, P8_PAD_CROSS, 0, P8_PAD_CIRCLE, 0, P8_PAD_CIRCLE, 0};
+    static const int held_chords[] = {CHORD, P8_PAD_BUTTON_5, P8_PAD_BUTTON_1, CHORD, P8_PAD_BUTTON_6, 0, CHORD, CHORD | P8_PAD_BUTTON_3, 0, CHORD};
+    static const int lone_cross[] = {CHORD, 0, CHORD, 0, P8_PAD_BUTTON_5, 0, CHORD, 0, CHORD, 0};
+    static const int lone_circle[] = {CHORD, 0, CHORD, 0, CHORD, 0, P8_PAD_BUTTON_6, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD};
+    static const int staggered[] = {P8_PAD_BUTTON_5, CHORD, 0, P8_PAD_BUTTON_5, CHORD, 0, P8_PAD_BUTTON_6, CHORD, 0,
+                                    P8_PAD_BUTTON_6, CHORD, 0};
+    static const int old_sequence[] = {P8_PAD_BUTTON_5, 0, P8_PAD_BUTTON_5, 0, P8_PAD_BUTTON_6, 0, P8_PAD_BUTTON_6, 0,
+                                       P8_PAD_BUTTON_5, 0, P8_PAD_BUTTON_5, 0, P8_PAD_BUTTON_6, 0, P8_PAD_BUTTON_6, 0};
     static const int eight_chords[] = {CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD, 0, CHORD};
 
     assert(fired_on(four_chords, 8) == 1 << 6);
