@@ -52,7 +52,7 @@
   - [x] 15. Keymap compiled in
     - [x] Chunk 1: the keymap reads button numbers
     - [x] Chunk 2: the keymap is compiled in
-- [ ] Phase 4 — Replays that prove the remap
+- [x] Phase 4 — Replays that prove the remap
   - [x] 16. Fixtures in replay
     - [x] Chunk 1: fixture reading in replay_source
     - [x] Chunk 2: replay reads the fixture, Make learns it
@@ -62,7 +62,7 @@
     - [x] Chunk 1: the recorder writes the flag
     - [x] Chunk 2: the flag comes from the compiled unit
   - [x] 18. Swap twin
-  - [ ] 19. Unbound action
+  - [x] 19. Unbound action
 - [ ] Phase 5 — Docs and cleanup
   - [ ] 20. Docs
   - [ ] 21. skill: rework-comments
