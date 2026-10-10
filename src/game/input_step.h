@@ -18,21 +18,14 @@ typedef struct {
 
 typedef enum { INPUT_STEP_BINDINGS_SESSION, INPUT_STEP_BINDINGS_DEFAULT } input_step_bindings_t;
 
-/* The attract mode starts on ATTRACT_AFTER_DEFAULT idle title frames. */
 void input_step_init(input_step_t *step, const bindings_t *bindings);
 
-/* frames >= 1. Restarts the attract mode idle, with a zero count. */
 void input_step_set_attract_after(input_step_t *step, int frames);
 
-/* Keeps the session's table and the attract state. */
 void input_step_switch_bindings(input_step_t *step, input_step_bindings_t which);
 
-/* At the top of a frame only, before its input_step_run: right after boot's cart_init, or after
-   at least one cart_update60 since the last return (else flip_zone_flip asserts). step was
-   initialised by input_step_init. Switches to the default table, then cart_resume_game(state). */
 void input_step_start_record(input_step_t *step, const save_state_t *state);
 
-/* At the top of a frame only: cart_return_to_title, then back to the session's table. */
 void input_step_return_to_title(input_step_t *step);
 
 int input_step_run(input_step_t *step, const p8_input_frame_t *raw);

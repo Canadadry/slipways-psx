@@ -151,7 +151,6 @@ void cart_shutdown(void) {
     entity_shutdown();
 }
 
-/* Shared by the title decode, the resume and the frame-end capture: they never overlap. */
 static save_state_t g_save_state;
 static uint8_t g_save_bytes[SAVE_STATE_MAX_BYTES];
 
@@ -160,7 +159,6 @@ static void resume_saved_game(button_t *self) {
     cart_resume_game(&g_save_state);
 }
 
-/* A bad save is a normal case: no resume row, and the stored bytes are left alone. */
 static button_fn_t title_resume_handler(void) {
     int count = save_storage_read(g_save_bytes, (int)sizeof g_save_bytes);
 
@@ -174,7 +172,6 @@ void cart_init(void) {
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
-    /* An empty generation needs no flip, and flipping it would trip flip_zone_flip's assert. */
     if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
     reset_world(NULL);
     research_expire_project_ids();
@@ -196,6 +193,8 @@ int cart_title_shown(void) {
     return g_title_built && shown_message_box() == NULL && entity_registry_count_tagged(TAG_MESSAGE_BOX) == 0;
 }
 
+/* Between frames only, never from a handler inside ui_update or update_entities: it releases
+   every live entity while they are still being walked. */
 void cart_return_to_title(void) {
     entity_registry_abandon_live_entities();
     cart_flush_exit_queue();
@@ -248,7 +247,6 @@ static void start_world(const button_t *difficulty) {
     g_title_built = 0;
     game_zone_flip();
 
-    /* Not redundant with cart_init()'s call: the registries, camera, mouse and UI must be rebuilt. */
     reset_world(&cart_game_registry_reserve);
     research_expire_project_ids();
     (void)background_new();
@@ -311,12 +309,9 @@ void cart_resume_game(const save_state_t *state) {
     recompute_economy();
 }
 
-/* Erase before write: the frame that ends a game also has a pending action, and a write winning
-   there would put a resume row on the title after "again?" (pad_game_end's hash). */
 static void save_at_frame_end(void) {
     economy_t *economy = main_economy_typed();
 
-    /* No difficulty: only unit tests start one (cart_start_game(NULL)), and the record cannot hold it. */
     if (economy == NULL || !economy->save_pending || economy_score_difficulty() == NULL) return;
     if (economy->has_end_status && economy->end_status != NULL) {
         (void)save_storage_erase();
@@ -328,7 +323,6 @@ static void save_at_frame_end(void) {
     }
 }
 
-/* Here, not in a driver: every driver goes through cart_update60(), and cart_draw() reads what it wrote in the frame zone. */
 void cart_update60(void) {
     frame_zone_reset();
     cart_flush_exit_queue();

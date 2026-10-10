@@ -47,3 +47,4 @@
     - [x] README paragraph and Makefile legend
   - [ ] 15. skill: rework-comments
     - [x] comments: attract, demo_data, demo_overlay
+    - [x] comments: cart, input_step, bindings.h
