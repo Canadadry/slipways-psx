@@ -134,6 +134,7 @@ menu p34
 menu p39
 score
 bar
+label demo-record
 research slipgates
 build slipgate 250 92
 fold 220 81
