@@ -30,7 +30,6 @@ static void test_pset_plots_pixel_at_coordinate(void) {
     p8_pset(&gfx, &mem, 10, 20, 7);
 
     assert(mem.screen[20][10] == 7);
-    /* Neighboring pixels are untouched. */
     assert(mem.screen[20][11] == 0);
 }
 
@@ -64,7 +63,6 @@ static void test_camera_offset_shifts_subsequent_pset(void) {
     /* camera(10,5) shifts the world left/up by (10,5): world (15,15)
      * lands at screen (5,10). */
     assert(mem.screen[10][5] == 7);
-    /* It did NOT land at the unshifted coordinate. */
     assert(mem.screen[15][15] == 0);
 }
 
@@ -81,9 +79,6 @@ static void test_camera_reset_restores_zero_offset(void) {
     assert(mem.screen[4][3] == 6);
 }
 
-/* `palt()` stores into the draw palette in memory, so the PICO-8 default --
- * every colour opaque but colour 0 -- is `p8_vram_init`'s power-on state,
- * not a gfx-side flag array. */
 static void test_vram_init_default_transparency_is_color_0_only(void) {
     p8_vram_t mem;
     p8_vram_init(&mem);
@@ -173,7 +168,6 @@ static void test_line_draws_diagonal_pixels(void) {
     for (int i = 2; i <= 5; i++) {
         assert(mem.screen[i][i] == 8);
     }
-    /* Off the diagonal is untouched. */
     assert(mem.screen[2][3] == 0);
 }
 
@@ -197,14 +191,12 @@ static void test_rect_draws_unfilled_outline(void) {
 
     p8_rect(&gfx, &mem, 2, 2, 5, 4, 8);
 
-    /* Corners and edges are drawn. */
     assert(mem.screen[2][2] == 8);
     assert(mem.screen[2][5] == 8);
     assert(mem.screen[4][2] == 8);
     assert(mem.screen[4][5] == 8);
     assert(mem.screen[2][3] == 8);
     assert(mem.screen[3][2] == 8);
-    /* Interior is untouched (unfilled). */
     assert(mem.screen[3][3] == 0);
 }
 
@@ -234,7 +226,6 @@ static void test_rectfill_fills_every_pixel_in_bounds(void) {
             assert(mem.screen[y][x] == 9);
         }
     }
-    /* Just outside the rectangle is untouched. */
     assert(mem.screen[4][2] == 0);
     assert(mem.screen[2][5] == 0);
 }
@@ -247,12 +238,10 @@ static void test_circ_draws_unfilled_outline(void) {
 
     p8_circ(&gfx, &mem, 10, 10, 3, 8);
 
-    /* Cardinal points of the outline. */
     assert(mem.screen[10][13] == 8);
     assert(mem.screen[10][7] == 8);
     assert(mem.screen[13][10] == 8);
     assert(mem.screen[7][10] == 8);
-    /* Center is untouched (unfilled). */
     assert(mem.screen[10][10] == 0);
 }
 
@@ -277,11 +266,9 @@ static void test_circfill_fills_the_disc(void) {
 
     p8_circfill(&gfx, &mem, 10, 10, 3, 8);
 
-    /* Center and outline are both filled. */
     assert(mem.screen[10][10] == 8);
     assert(mem.screen[10][13] == 8);
     assert(mem.screen[10][7] == 8);
-    /* Well outside the disc is untouched. */
     assert(mem.screen[10][14] == 0);
 }
 
@@ -319,7 +306,6 @@ static void test_fillp_pattern_alters_rectfill_output(void) {
         assert(mem.screen[3][x] == 0);
     }
 
-    /* fillp() with no pattern resets to solid (always draw). */
     p8_fillp_reset(&gfx);
     p8_rectfill(&gfx, &mem, 0, 0, 3, 3, 8);
     for (int y = 0; y < 4; y++) {
@@ -358,9 +344,7 @@ static void test_sget_out_of_range_returns_zero(void) {
 }
 
 static void test_spr_default_draws_1x1_sprite_at_world_position(void) {
-    /* Sprite 5 lives at sheet pixel (40,0) (col 5*8, row 0*8, since 16
-     * sprites/row). Write two of its pixels directly and draw it with the
-     * 3-arg convenience wrapper (width and height default to 1). */
+    /* Sprite 5 lives at sheet pixel (40,0) (col 5*8, row 0*8, since 16 sprites/row). */
     p8_vram_t mem;
     p8_graphics_t gfx;
     p8_vram_init(&mem);
@@ -403,9 +387,6 @@ static void test_spr_with_explicit_width_height_draws_multi_block_sprite(void) {
 }
 
 static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
-    /* Unlike pset/shapes, spr must consult palt: a source pixel whose
-     * color is marked transparent is skipped (not drawn), leaving
-     * whatever was already on screen underneath. */
     p8_vram_t mem;
     p8_graphics_t gfx;
     p8_vram_init(&mem);
@@ -547,8 +528,6 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
 }
 
 static void test_map_and_mset_round_trip_against_real_sheet(void) {
-    /* `sget`'s read of a sprite-sheet pixel and the framebuffer `map()`
-     * draws from that same sprite must agree, on the real pico8/gfx.json. */
     p8_vram_t mem;
     p8_graphics_t gfx;
     p8_vram_init(&mem);
@@ -579,7 +558,6 @@ static void test_print_draws_known_glyph_pixels(void) {
 
     p8_print(&gfx, &mem, "a", 10, 20, 7);
 
-    /* 'a' row-by-row (# = lit, . = blank): .#. / #.# / ### / #.# / #.# */
     int expected[5][3] = {
         {0, 1, 0},
         {1, 0, 1},
@@ -592,13 +570,11 @@ static void test_print_draws_known_glyph_pixels(void) {
             unsigned char pixel = mem.screen[20 + row][10 + col];
             assert(pixel == (expected[row][col] ? 7 : 0));
         }
-        /* 4th column of the advance cell is always blank spacing. */
         assert(mem.screen[20 + row][13] == 0);
     }
 }
 
 static void test_print_advances_cursor_by_cell_width_between_chars(void) {
-    /* 'b' row-by-row: #.. / #.. / ##. / #.# / ##. */
     p8_vram_t mem;
     p8_graphics_t gfx;
     p8_vram_init(&mem);
@@ -623,9 +599,6 @@ static void test_print_advances_cursor_by_cell_width_between_chars(void) {
 }
 
 static void test_print_unmapped_character_draws_placeholder_block(void) {
-    /* A character outside the documented covered set (see p8/gfx.c)
-     * draws a solid 3x5 block rather than staying blank, so a missing
-     * mapping is visually obvious. */
     p8_vram_t mem;
     p8_graphics_t gfx;
     p8_vram_init(&mem);
@@ -656,9 +629,6 @@ static void test_print_space_is_blank(void) {
 }
 
 static void test_print_respects_camera_offset(void) {
-    /* Consistent with every other p8/gfx.c primitive: print goes through
-     * p8_pset, so a camera offset shifts world coordinates the same
-     * way it would for pset/line/etc. */
     p8_vram_t mem;
     p8_graphics_t gfx;
     p8_vram_init(&mem);
@@ -674,9 +644,6 @@ static void test_print_respects_camera_offset(void) {
 }
 
 static void test_print_digit_and_punctuation_glyphs(void) {
-    /* Spot-check a digit and a punctuation glyph from the covered set
-     * documented in p8/gfx.c (the game's UI text uses digits for
-     * scores/years/percentages and ':' for labels like "population:"). */
     p8_vram_t mem;
     p8_graphics_t gfx;
     p8_vram_init(&mem);
@@ -684,7 +651,6 @@ static void test_print_digit_and_punctuation_glyphs(void) {
 
     p8_print(&gfx, &mem, "1:", 0, 0, 9);
 
-    /* '1' row-by-row: .#. / ##. / .#. / .#. / ### */
     int expected_1[5][3] = {
         {0, 1, 0},
         {1, 1, 0},

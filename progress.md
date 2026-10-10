@@ -55,3 +55,4 @@
     - [x] comments: pad_author
     - [x] comments: replay, demo_check scripts
     - [x] comments: attract, cart and demo tests
+    - [x] comments: bindings, gfx, input and live-slot tests

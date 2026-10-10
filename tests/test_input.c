@@ -122,7 +122,7 @@ static long history_region_length(const char *json) {
     return (long)(last - json);
 }
 
-/* The regression test for the recording slowdown: recording frame N must
+/* Recording frame N must
  * not re-emit the N-1 frames already on disk. Proven by marking the
  * already-recorded region with a byte no correct re-serialisation of those
  * frames could produce, then recording one more frame and checking the
@@ -166,9 +166,6 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
     free(after);
 }
 
-/* A recording path is reused across sessions only by accident (the backend
- * timestamps it), but a fresh recording must never inherit a stale file's
- * frames: tail_offset 0 means "start over". */
 static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     const char *path = "tmp/test_input_append_fresh.json";
     p8_input_frame_t first[3] = {{0}, {0}, {0}};
@@ -289,9 +286,6 @@ static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(
     assert(strstr(committed, "    { \"pad\": [] }\n  ]\n}\n") != NULL);
     free(committed);
 
-    /* That recording must itself load through p8_input_load (sanity: the
-     * shape assumptions above are grounded in a file the loader actually
-     * accepts, not just string content). */
     p8_input_t input;
     p8_input_init(&input);
     assert(p8_input_load(&input, "tests/fixtures/demo_events.json"));

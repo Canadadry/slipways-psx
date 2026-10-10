@@ -1,12 +1,5 @@
-/* A marker must equal its frame's 0-based position in the recording on
- * disk. A resumed session is where that can break: it replays N frames the
- * player did not play before recording any they did.
- *
- * Every iteration is checked, not one chosen marker: an off-by-N can cancel
- * out at a single frame.
- *
- * Not covered here: the space bar itself, and that the marker file gets one
- * line per tap. Both need a window. */
+/* Every iteration is checked, not one chosen marker: an off-by-N can cancel
+ * out at a single frame. */
 
 #include "devtools/session_recorder.h"
 #include "devtools/replay_source.h"
@@ -27,7 +20,6 @@ static const p8_input_frame_t replayed_frames[REPLAYED_FRAME_COUNT] = {
     { 0, 0, 0, P8_PAD_BUTTON_6 | P8_PAD_BUTTON_7 },
 };
 
-/* What the player does once the controls come back. */
 #define LIVE_FRAME_COUNT 5
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
     { 0, 0, 0, P8_PAD_BUTTON_9 },

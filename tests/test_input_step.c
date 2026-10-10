@@ -35,7 +35,6 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
     assert(got->pad_buttons == want->pad_buttons);
 }
 
-/* The cart reads its input through the dispatch context: the played frame must be what it sees. */
 static void assert_installed(const input_step_t *step) {
     const p8_input_t *installed = dispatch_context_input();
     const p8_input_frame_t *played = input_step_played_frame(step);
@@ -208,7 +207,6 @@ static void assert_files_identical(const char *a_path, const char *b_path) {
     fclose(b);
 }
 
-/* D8: forked after the start, since the runtime's random state has no seed setter. */
 static void test_pad_session_ignores_mouse_noise(void) {
     static const char *const paths[2] = { "tmp/test_input_step_quiet.txt", "tmp/test_input_step_noisy.txt" };
     pid_t children[2];

@@ -183,7 +183,6 @@ static p8_input_t *load_e2e(const char *e2e) {
     return &input;
 }
 
-/* The current frame of the input, as the player's input step plays it. */
 static void play_input(const p8_input_t *input) {
     input_step_run(&g_step, &input->frames[input->current_frame]);
 }
@@ -282,7 +281,6 @@ static int count_in_child(int (*test)(void)) {
 
 static char *read_file(const char *path, size_t *len);
 
-/* The child must die under ASan, reading back a released block. */
 static void in_child_dying_by_asan(void (*test)(void)) {
     fflush(stdout);
     remove(ASAN_LOG);
@@ -516,7 +514,6 @@ static void pad_pause_restart_releases_quit_icons(void) {
     g_spend = (unsigned char)ie->is_revealed;
 }
 
-/* The help screen among the live entities, made by cart_init. */
 static const probe_t *help_screen_in_live_entities(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
@@ -695,14 +692,10 @@ static size_t icons_bytes(void) {
     return bytes + arena_used(measure_arena) - head;
 }
 
-/* The 'research and economy' term of the generation: what cart_start_game
- * makes for the main economy and the structure icons. */
 static size_t research_and_economy_bytes(void) {
     return economy_bytes() + icons_bytes();
 }
 
-/* The background among the live entities, which only cart_start_game
- * makes. */
 static const background_t *background_in_live_entities(void) {
     const entity_list_t *hv = live_entities();
     const background_t *bg = NULL;
@@ -715,8 +708,6 @@ static const background_t *background_in_live_entities(void) {
     return bg;
 }
 
-/* The 'singletons' term: the camera, mouse and main_ui of the reset_world of
- * cart_start_game, its background and its score panel. */
 static size_t singletons_bytes(void) {
     assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && main_score_panel() != NULL);
     (void)background_in_live_entities();
@@ -1406,7 +1397,6 @@ static int idle_windows_of_current_e2e(void) {
     return windows;
 }
 
-/* Returns the number of idle windows of the e2e of tests/e2e/. */
 static int idle_windows_on_all_e2e(void) {
     DIR *dir = opendir("tests/e2e");
     struct dirent *ent;
@@ -1496,12 +1486,6 @@ static int same_bytes(const char *a_path, const char *b_path) {
 #define DUMP_A "tmp/test_live_slots_a.txt"
 #define DUMP_B "tmp/test_live_slots_b.txt"
 
-/* REPLAY_FILL=<file>: at the end of the session, the replay writes there a
- * '<name> <live count>' line per UI slot kind then per particle slot kind,
- * the session maxima of the particle slot kinds (live count, bytes,
- * elements), then the used bytes of the game zone and their maximum, then
- * those of the load zone, leaving the capture, the dump and the exit status
- * alone. */
 static void replay_writes_fill_at_session_end(void) {
     const int frames[] = {75};
     reading_t reading[1];
@@ -1561,7 +1545,6 @@ static void replay_writes_fill_at_session_end(void) {
     remove(DUMP_B);
 }
 
-/* The value of the '<key> <count>' line of the fill file. */
 static long fill_value(const char *fill, const char *key) {
     char pattern[64];
     long n;
