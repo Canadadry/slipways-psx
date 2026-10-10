@@ -176,3 +176,11 @@ If a step finds plan 12's code doing something this table does not list, it foll
 - `docs/pad-modes-and-actions.md` is present. `make test-all` passes (17 e2e match).
 - Baseline on a warm build, 4 cores, three runs: `make test` 4.27–4.58 s, `make e2e` 0.24–0.25 s.
 - No PRD: the step only checks things and changes no code.
+
+### Step 1.2
+
+- Three commits: the loader accepts numbers; the writer and every `"pad"` array move to numbers; the loader refuses names. The `pad_author.c` source did not change: it writes JSON through `p8_input_save`, so its output moved to numbers on its own.
+- Converted with a one-off script (described in the commit message, not committed): 17 e2e replays, 4 of the 5 `worst-case/` files (`title_idle.json` has only empty frames), 12 fixtures with buttons, and the inline JSON of `test_input.c`, `test_replay_source.c` and `test_e2e_limits.c`. Bad-name fixtures: `["l2"]` → `[13]`, duplicate → `[5, 1, 5]`, select twice → `[12, 1, 12]`.
+- Loader grammar: digits only, 1–12, no leading zero or sign, no fraction or exponent, nothing glued to the number, no repeats, any order. The writer emits buttons in ascending order with `, `.
+- Every `.sha256` and end state unchanged. `pad-author-proof`, `pad-metrics-check` and `pad-metrics-worst-case` unchanged. After `git add`, `make pad-author` regenerates `worst-case/` with no diff. `make test` 4.22–4.41 s, `make e2e` 0.23–0.25 s.
+- The generator's mode log (`[cross+up]`) is not a `"pad"` array and keeps names until step 3.

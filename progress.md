@@ -1,7 +1,7 @@
 - [x] Phase 0 — Base
   - [x] 1. Base check
 - [ ] Phase 1 — Abstract buttons
-  - [ ] 2. Replays in numbers
+  - [x] 2. Replays in numbers
     - [x] Chunk 1: loader accepts numbers
     - [x] Chunk 2: writer and data in numbers
     - [x] Chunk 3: loader refuses names
