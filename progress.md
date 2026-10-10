@@ -18,7 +18,7 @@
   - [x] 6. Bindings module
     - [x] Chunk 1: button count and reader
     - [x] Chunk 2: enums, table and parser
-  - [ ] 7. Compile-time bindings
+  - [x] 7. Compile-time bindings
     - [x] Chunk 1: default file and generator
     - [x] Chunk 2: table handed to pad_nav
     - [x] Chunk 3: personal file for game
