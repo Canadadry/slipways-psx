@@ -87,7 +87,9 @@ draws. Its TTY:
   after the loop
 - `psx-replay: frame <n>` every 256 frames
 - `psx-replay: done <name> <frames> vsyncs <n>`
-- the state, each line behind `psx-state: `
+- the state, each line behind `psx-state: `, ending like the PC's `STATE=`
+  file with `cheat activations <n>` (the frames `input_step_run` fired the
+  cheat on); the three PSX drivers print it
 
 It also installs the draw meter (below), so its `zone gpu_frame` and `cap
 gpu_*` lines are measured like the PC's. It then leaves the emulator with
@@ -341,9 +343,9 @@ either when it is missing. `make psx-game-cd` is the named target: it runs
 - **No license data, no region**: PSn00bSDK ships none, and the pinned
   OpenBIOS checks neither. The image boots in the emulator, not on a console
   or under a Sony BIOS ("Still to do").
-- The image is 2,881,200 bytes, 1,225 sectors of 2,352. The CD boot exits
-  after 760 vsyncs from power-on (the EXE boot: 363), the game's own 342 from
-  its first frame included.
+- The image is 2,890,608 bytes, 1,229 sectors of 2,352. The CD boot exits
+  after 763 vsyncs from power-on (the EXE boot: 363), the game's own 342 from
+  its first frame included (199 frames).
 - **Never hash the `.bin`**: mkpsxiso stamps the build time into it. Its size
   is measured; the proof is state-based, and no capture of the CD boot is
   compared to a reference.
@@ -385,7 +387,7 @@ mask.
   A family label's mask holds `cls` and that family (the `pattern` label adds
   `rectfill` and `circfill`, the `circfill` label `line`, since its colour-0
   discs only show where they cut a slipway), so its report does not move
-  when another family changes. Three `all` captures (f100, f188, f391) draw
+  when another family changes. Three `all` captures (f100, f188, f265) draw
   every family together, for the interactions: sprites over the grid, text
   over fills, draw order. No captured frame is one the `DIGEST=` screen
   lines sample (every 32nd and the last): the PC draws a captured frame
@@ -566,41 +568,42 @@ None of these targets is in `make test-all`, and none runs a setup.
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `pattern` f190: `pattern f190 mask cls,rectfill,circfill,pattern calls 9
     differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform
-    0`, ceiling 0: the 0xA5A5 background grid and the 0x0F0F menu bar,
-    5,452 lit pixels in 6 colours.
+    0`, ceiling 0: the patterned HUD panels in aim mode, 1,984 lit pixels
+    in 4 colours.
   - `pattern` f257: `pattern f257 mask cls,rectfill,circfill,pattern calls 9
     differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform
-    0`, ceiling 0: the transparent 0xAAAA disc on p12 over the grid, 2,032
-    lit pixels in 5 colours. Both `pattern` captures are accepted together.
-  - `line` f194: `line f194 mask cls,line calls 8 differ 2 (0.1‰) near1 2
-    near2 0 far 0 bbox 72,119-73,119 offpalette 0 nonuniform 0`, ceiling 2:
-    two bottom-row pixels the PC lights stay black on the PSX, where the
-    dragged slipway enters from below the screen (GPU stepping).
-  - `circfill` f217: `circfill f217 mask cls,line,circfill calls 17 differ 0
+    0`, ceiling 0: the background grid under the HUD panels in slipway
+    mode, 2,028 lit pixels in 4 colours. Both `pattern` captures are
+    accepted together.
+  - `spr` f234: `spr f234 mask cls,spr calls 106 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
+    background map and the planet sprites, 829 lit pixels in 14 colours.
+  - `circfill` f263: `circfill f263 mask cls,line,circfill calls 12 differ 0
     (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling
     0. Every plain `circfill` of the game is the colour-0 disc behind a
     planet, invisible on a cleared screen: the mask keeps `line` so the
-    discs show as the 14 pixels they cut from the slipways.
-  - `spr` f234: `spr f234 mask cls,spr calls 191 differ 0 (0.0‰) near1 0
-    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
-    background map and the planet sprites, 1,134 lit pixels in 14 colours,
-    under 4 distinct draw palettes (the meter's count at that frame).
-  - `print` f299: `print f299 mask cls,print calls 72 differ 0 (0.0‰) near1
+    discs show as the 36 pixels they cut from the colour-2 lines of the
+    already linked p47.
+  - `print` f275: `print f275 mask cls,print calls 81 differ 0 (0.0‰) near1
     0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: "-too
-    far-", the HUD figures and labels, 220 lit pixels in 4 colours.
-  - `rect` f322: `rect f322 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
+    far-", the HUD figures and labels, 246 lit pixels in 4 colours.
+  - `line` f276: `line f276 mask cls,line calls 16 differ 2 (0.1‰) near1 2
+    near2 0 far 0 bbox 80,119-81,119 offpalette 0 nonuniform 0`, ceiling 2:
+    two bottom-row pixels the PC lights stay black on the PSX, where the
+    lines out of p28, below the screen, enter it (GPU stepping).
+  - `rect` f300: `rect f300 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
-  - `circ` f394: `circ f394 mask cls,circ calls 2 differ 0 (0.0‰) near1 0
+  - `circ` f314: `circ f314 mask cls,circ calls 2 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
-    colour-7 radius-9 pad circle round p61 and a colour-2 planet ring.
-  - `all` f100, f188, f391 (accepted together): `all f100 mask all calls
-    387 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
-    nonuniform 0`, `all f188 mask all calls 458 differ 0 (0.0‰) near1 0
-    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, `all f391 mask all
-    calls 381 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
-    nonuniform 0`, ceilings 0: every family at once, free mode on p14
-    (f100), p61's menu sliding open over the map (f188), two colour-2
-    slipways along one path and the forbidden sign (f391).
+    colour-7 hovered circle round p28 and a colour-2 planet ring.
+  - `all` f100, f188, f265 (accepted together): `all f100 mask all calls
+    357 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
+    nonuniform 0`, `all f188 mask all calls 298 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, `all f265 mask all
+    calls 327 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
+    nonuniform 0`, ceilings 0: every family at once, aim mode entered from
+    p47 (f100), aim mode moving to the fold (f188), the aim on the already
+    linked p47 in colour 2 with the forbidden sign (f265).
 
 - `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
   (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778
