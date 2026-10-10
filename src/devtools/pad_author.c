@@ -721,7 +721,6 @@ static int leave_aim(pad_author_t *author, const script_t *script) {
     return 1;
 }
 
-/* With nothing known, aim.leave_aim is a dead press: stay in aim mode. */
 static int leave_aim_if_able(pad_author_t *author, const script_t *script) {
     return current_mode(author) == PAD_METRICS_MODE_AIM && any_candidate() ? leave_aim(author, script) : 1;
 }
@@ -1327,7 +1326,6 @@ static int run_goal(pad_author_t *author, const script_t *script) {
     return fail(author, script, "unknown command '%s'", command);
 }
 
-/* A caption shown too briefly is the fault of the line that opened it, at the frame it appeared. */
 static int fail_at_caption(pad_author_t *author, const char *reason) {
     const pad_caption_track_t *track = &author->caption_track;
     assert(track->shown && "a failed close leaves the caption shown");
@@ -1415,7 +1413,6 @@ static int run_line(pad_author_t *author, const script_t *script, int depth) {
     return run_goal(author, script);
 }
 
-/* `caption` takes the rest of its line as one raw argument, so a caption is not cut into words. */
 static int tokenize_caption(script_line_t *line) {
     char *command = line->text + strspn(line->text, " \t");
     size_t length = strlen(CAPTION_COMMAND);

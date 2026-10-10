@@ -52,3 +52,4 @@
     - [x] comments: pad_caption, demo_source, demo_generate
     - [x] assert: a failed caption close leaves it shown
     - [x] comments: record_start, replay_source, session_recorder, input_json
+    - [x] comments: pad_author

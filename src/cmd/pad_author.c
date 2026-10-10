@@ -1,25 +1,3 @@
-/* usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>] [--no-aim-budget]
- *        [--try <file>]
- *
- * Plays the script headless and writes the pad frames it pressed to
- * <events.json>, or, when a command fails, to tmp/pad-author/<name>.failed.json
- * with the state in the default place. STATE=<file>: the state of the last frame, as the replay
- * tool's STATE writes it (default tmp/pad-author/<name>.state.txt). Then
- * replays <events.json> with the replay binary (default tmp/replay) and exits
- * 1 unless its state file is byte-identical. A script that runs from-record
- * writes "start": "resume" and the record as "initial_save" into the header,
- * and a script with a caption writes "captions" after them (not into a .failed.json).
- *
- * Writes the per-frame mode log and the run's totals to
- * tmp/pad-author/<name>.modes.txt, the totals also to stdout. A whole run
- * (no --stop-at) fails when 25% or more of its in-game frames (neither title
- * nor pause) are in aim mode, unless --no-aim-budget.
- *
- * --try <file>: after the run, each line of <file> (commands separated by `;`)
- * runs in its own fork from the run's last frame, writes its state to
- * tmp/pad-author/<name>.try<k>.txt and prints `try <k> ok <frames> science/year <n> aim <aim frames>` or
- * `try <k> failed <error>`; nothing it does reaches <events.json>. */
-
 #define _POSIX_C_SOURCE 200809L
 
 #include "devtools/pad_author.h"
