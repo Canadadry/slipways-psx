@@ -1,7 +1,8 @@
 #ifndef PLATFORM_KEYMAP_H
 #define PLATFORM_KEYMAP_H
 
-#define KEYMAP_BUTTON_COUNT 12
+#include "p8/input.h"
+
 #define KEYMAP_MAX_BINDINGS 4
 #define KEYMAP_MAX_LINE_LENGTH 127
 
@@ -17,9 +18,9 @@ typedef struct {
     int count;
 } keymap_button_t;
 
-/* buttons[i] is the PSX button of bit 1 << i of the P8_PAD_BUTTON_* mask. */
+/* buttons[i] is button i + 1, bit 1 << i of p8_input_frame_t.pad_buttons. */
 typedef struct {
-    keymap_button_t buttons[KEYMAP_BUTTON_COUNT];
+    keymap_button_t buttons[P8_PAD_BUTTON_COUNT];
 } keymap_t;
 
 /* line is 0 when the error is about the file as a whole. */
@@ -50,7 +51,5 @@ int keymap_pad_buttons(const keymap_t *keymap, keymap_is_down_fn is_down, void *
 
 /* Returns 0 when the name is not a raylib key or gamepad button name. */
 int keymap_find_binding(const char *name, keymap_binding_t *out);
-
-const char *keymap_button_name(int index);
 
 #endif

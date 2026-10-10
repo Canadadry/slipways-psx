@@ -1,5 +1,6 @@
 #include "platform/keymap.h"
 
+#include "game/bindings.h"
 #include "p8/input.h"
 #include "platform/keymap_names.h"
 
@@ -20,37 +21,28 @@ static void set_error(keymap_error_t *error, int line, const char *format, ...) 
 }
 
 static const char builtin_text[] =
-    "# Which keyboard keys and gamepad 0 buttons play each PSX button.\n"
-    "# One line per PSX button: button = name[, name...]\n"
+    "# Which keyboard keys and gamepad 0 buttons press each of the 12 buttons.\n"
+    "# One line per button: N = name[, name...], N from 1 to 12.\n"
     "# Names are raylib's KeyboardKey and GamepadButton names without their\n"
     "# KEY_ / GAMEPAD_BUTTON_ prefix (see raylib.h). Letter keys are key\n"
     "# positions named after the US layout. # starts a comment.\n"
     "\n"
-    "up = UP, LEFT_FACE_UP\n"
-    "down = DOWN, LEFT_FACE_DOWN\n"
-    "left = LEFT, LEFT_FACE_LEFT\n"
-    "right = RIGHT, LEFT_FACE_RIGHT\n"
-    "cross = X, RIGHT_FACE_DOWN\n"
-    "circle = C, RIGHT_FACE_RIGHT\n"
-    "square = Z, RIGHT_FACE_LEFT\n"
-    "triangle = V, RIGHT_FACE_UP\n"
-    "l1 = A, LEFT_TRIGGER_1\n"
-    "r1 = S, RIGHT_TRIGGER_1\n"
-    "start = ENTER, MIDDLE_RIGHT\n"
-    "select = RIGHT_SHIFT, MIDDLE_LEFT\n";
-
-static const char *const button_names[KEYMAP_BUTTON_COUNT] = {
-    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select"
-};
+    "1 = UP, LEFT_FACE_UP\n"
+    "2 = DOWN, LEFT_FACE_DOWN\n"
+    "3 = LEFT, LEFT_FACE_LEFT\n"
+    "4 = RIGHT, LEFT_FACE_RIGHT\n"
+    "5 = X, RIGHT_FACE_DOWN\n"
+    "6 = C, RIGHT_FACE_RIGHT\n"
+    "7 = Z, RIGHT_FACE_LEFT\n"
+    "8 = V, RIGHT_FACE_UP\n"
+    "9 = A, LEFT_TRIGGER_1\n"
+    "10 = S, RIGHT_TRIGGER_1\n"
+    "11 = ENTER, MIDDLE_RIGHT\n"
+    "12 = RIGHT_SHIFT, MIDDLE_LEFT\n";
 
 /* Space drops a marker, the page keys and End set the replay speed, Escape
  * closes the raylib window. */
 static const char *const reserved_names[] = { "SPACE", "PAGE_UP", "PAGE_DOWN", "END", "ESCAPE" };
-
-static const int button_bits[KEYMAP_BUTTON_COUNT] = {
-    P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4, P8_PAD_BUTTON_5, P8_PAD_BUTTON_6,
-    P8_PAD_BUTTON_7, P8_PAD_BUTTON_8, P8_PAD_BUTTON_9, P8_PAD_BUTTON_10, P8_PAD_BUTTON_11, P8_PAD_BUTTON_12
-};
 
 typedef struct {
     const char *name;
@@ -70,11 +62,6 @@ static const name_entry_t name_entries[] = {
 
 const char *keymap_default_text(void) {
     return builtin_text;
-}
-
-const char *keymap_button_name(int index) {
-    assert(index >= 0 && index < KEYMAP_BUTTON_COUNT && "keymap_button_name: index out of range");
-    return button_names[index];
 }
 
 int keymap_find_binding(const char *name, keymap_binding_t *out) {
@@ -108,15 +95,6 @@ static void copy_token(char *dst, const char *start, const char *end) {
     dst[length] = '\0';
 }
 
-static int button_index(const char *name) {
-    for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {
-        if (strcmp(button_names[i], name) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int name_reserved(const char *name) {
     for (size_t i = 0; i < sizeof reserved_names / sizeof reserved_names[0]; i++) {
         if (strcmp(reserved_names[i], name) == 0) {
@@ -127,7 +105,7 @@ static int name_reserved(const char *name) {
 }
 
 static int binding_used(const keymap_t *keymap, keymap_binding_t binding) {
-    for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {
+    for (int i = 0; i < P8_PAD_BUTTON_COUNT; i++) {
         for (int j = 0; j < keymap->buttons[i].count; j++) {
             const keymap_binding_t *used = &keymap->buttons[i].bindings[j];
             if (used->device == binding.device && used->code == binding.code) {
@@ -148,14 +126,15 @@ static int parse_line(const char *start, const char *end, int line_number, keyma
     }
     const char *name_start = skip_blanks(start, equal);
     copy_token(token, name_start, trim_end(name_start, equal));
-    int index = button_index(token);
-    if (index < 0) {
-        set_error(error, line_number, "unknown PSX button \"%s\"", token);
+    const char *digits_end = NULL;
+    int number = bindings_read_button_number(token, &digits_end);
+    if (number == 0 || *digits_end != '\0') {
+        set_error(error, line_number, "bad button \"%s\": expected a number from 1 to %d", token, P8_PAD_BUTTON_COUNT);
         return 0;
     }
-    keymap_button_t *button = &out->buttons[index];
+    keymap_button_t *button = &out->buttons[number - 1];
     if (button->count > 0) {
-        set_error(error, line_number, "PSX button \"%s\" already given", token);
+        set_error(error, line_number, "button %d already given", number);
         return 0;
     }
     const char *item = equal + 1;
@@ -165,7 +144,7 @@ static int parse_line(const char *start, const char *end, int line_number, keyma
         const char *item_start = skip_blanks(item, item_end);
         copy_token(token, item_start, trim_end(item_start, item_end));
         if (token[0] == '\0') {
-            set_error(error, line_number, "empty name in the line of \"%s\"", button_names[index]);
+            set_error(error, line_number, "empty name in the line of button %d", number);
             return 0;
         }
         if (button->count == KEYMAP_MAX_BINDINGS) {
@@ -223,9 +202,9 @@ int keymap_parse(const char *text, keymap_t *out, keymap_error_t *error) {
         }
         line = next;
     }
-    for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {
+    for (int i = 0; i < P8_PAD_BUTTON_COUNT; i++) {
         if (out->buttons[i].count == 0) {
-            set_error(error, 0, "no line for PSX button \"%s\"", button_names[i]);
+            set_error(error, 0, "no line for button %d", i + 1);
             return 0;
         }
     }
@@ -268,11 +247,11 @@ keymap_load_status_t keymap_load(const char *path, keymap_t *out, keymap_error_t
 
 int keymap_pad_buttons(const keymap_t *keymap, keymap_is_down_fn is_down, void *context) {
     int mask = 0;
-    for (int i = 0; i < KEYMAP_BUTTON_COUNT; i++) {
+    for (int i = 0; i < P8_PAD_BUTTON_COUNT; i++) {
         const keymap_button_t *button = &keymap->buttons[i];
         for (int j = 0; j < button->count; j++) {
             if (is_down(button->bindings[j].device, button->bindings[j].code, context)) {
-                mask |= button_bits[i];
+                mask |= 1 << i;
                 break;
             }
         }
