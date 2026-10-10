@@ -1,5 +1,7 @@
 #include "devtools/session_recorder.h"
 
+#include "devtools/replay_source.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,19 +48,16 @@ static char *append_text(char *end, const char *text) {
 }
 
 static char *format_header_members(const session_recorder_t *recorder) {
-    static const char bindings_member[] = "\"bindings\": \"personal\"";
-    static const char separator[] = ",\n  ";
-    static const char save_key[] = "\"initial_save\": \"";
+    static const char bindings_member[] = ",\n  \"bindings\": \"personal\"";
+    static const char save_key[] = ",\n  \"initial_save\": \"";
     static const char hex_digits[] = "0123456789abcdef";
-    if (!recorder->personal_bindings && recorder->initial_save_count == 0) {
-        return NULL;
-    }
-    size_t length = 0;
+    char attract_member[64];
+    int attract_length =
+        replay_source_format_attract_after(attract_member, sizeof(attract_member), REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+
+    size_t length = (size_t)attract_length;
     if (recorder->personal_bindings) {
         length += strlen(bindings_member);
-    }
-    if (recorder->personal_bindings && recorder->initial_save_count > 0) {
-        length += strlen(separator);
     }
     if (recorder->initial_save_count > 0) {
         length += strlen(save_key) + 2 * (size_t)recorder->initial_save_count + 1;
@@ -67,12 +66,9 @@ static char *format_header_members(const session_recorder_t *recorder) {
     if (!members) {
         return NULL;
     }
-    char *end = members;
+    char *end = append_text(members, attract_member);
     if (recorder->personal_bindings) {
         end = append_text(end, bindings_member);
-    }
-    if (recorder->personal_bindings && recorder->initial_save_count > 0) {
-        end = append_text(end, separator);
     }
     if (recorder->initial_save_count > 0) {
         end = append_text(end, save_key);
@@ -92,7 +88,7 @@ int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_f
     assert(frame);
 
     char *member = NULL;
-    if (recorder->frame_count == 0 && (recorder->personal_bindings || recorder->initial_save_count > 0)) {
+    if (recorder->frame_count == 0) {
         member = format_header_members(recorder);
         if (!member) {
             return 0;

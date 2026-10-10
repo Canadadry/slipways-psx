@@ -41,7 +41,7 @@ void p8_input_init(p8_input_t *input);
 
 int p8_input_load(p8_input_t *input, const char *path);
 
-int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path);
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, const char *header_members);
 
 int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_offset, const char *header_member);
 

@@ -25,13 +25,26 @@
 #                       initial_save format) and prints its decoded
 #                       "save:" summary; fails when there is no record or
 #                       it does not decode; refuses a recording whose header
-#                       says "bindings": "personal"
+#                       says "bindings": "personal"; a file whose header says
+#                       "start": "resume" (pad_author's from-record) starts
+#                       from its initial_save at the first frame, not on the
+#                       title; with REPLAY_STARTS=2, plays it, returns to the
+#                       title, idles 30 frames and plays it again, and takes
+#                       no capture but /dev/null, so a dump path can follow
+#                       it; with ATTRACT_STATE=<file> on a title-start file,
+#                       writes the state on the last frame of each complete
+#                       demo playback to <file>.1, <file>.2, ..., then, on the
+#                       frame of its return to the title, the state to
+#                       <file>.<n>.return and the stored record (SAVE_HEX's
+#                       format and failures) to <file>.<n>.return.hex
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
 #                       use, then the cheat activation count, to
 #                       tmp/state.txt, outside the suite; takes
-#                       SAVE_HEX=<file> as make replay does
+#                       SAVE_HEX=<file> as make replay does; with
+#                       REPLAY_STARTS=2, the first playback's state goes to
+#                       tmp/state.txt.start1
 # make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
 #                       every e2e of tests/e2e/, each state in
 #                       tmp/state/<name>.txt, then
@@ -110,8 +123,16 @@
 #                       bindings) that changes nothing unless
 #                       `back --required`), a failed command check, more than
 #                       7200 frames, or 25% or more of the frames in aim
-#                       mode; the per-frame mode log and the totals go to
-#                       tmp/pad-author/<game>.modes.txt, outside the suite
+#                       mode; a `caption` (`/` breaks the line, `caption -`
+#                       clears; written as a "captions" header member) is
+#                       refused with a line over 32 characters, more than 2
+#                       lines, the letter v, a character with no font glyph,
+#                       fewer than 150 frames shown, or a button down fewer
+#                       than 90 frames after it appears; the per-frame mode
+#                       log and the totals go to
+#                       tmp/pad-author/<game>.modes.txt, outside the suite;
+#                       then the same for pico8/demo.pad -> pico8/demo.json,
+#                       without the aim budget
 # make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
 #                       for one script, written to OUT (default
 #                       tmp/pad-author/<name>.json), ending at its first
@@ -124,8 +145,46 @@
 #                       <e2e>.end-state.pad must pass tools/end_state.sh
 #                       against tests/e2e/<e2e>.json.end-state (both without
 #                       the aim budget), and each <name>.refused.pad must fail
-#                       with the error its `# expect:` first line names,
-#                       outside the suite
+#                       with the error its `# expect:` first line names;
+#                       each <name>.record.pad (a script that starts with
+#                       from-record) must pass pad_author's self-check, then
+#                       replay with REPLAY_STARTS=2 to pad_author's normalized
+#                       end state at both ends, outside the suite
+# make demo-check    -> tools/demo_check_run.sh, files and dumps in
+#                       tmp/demo-check/, every check always run, outside the
+#                       suite: tests/test_demo_check; tests/test_attract_demo
+#                       (the whole demo through the attract mode twice, one
+#                       interruption per command range, the player's save
+#                       untouched) also writes the full cycle at the default
+#                       threshold over tests/e2e/pad_tech_costs.json's
+#                       initial_save, which must equal
+#                       worst-case/attract_cycle.json byte for byte; that
+#                       file is replayed to its end by the `-O0` replay (with
+#                       ATTRACT_STATE, capture hashed) and by replay_sanitize
+#                       (clean exit): each playback passes
+#                       tools/demo_check.sh and ends at the resumed replay's
+#                       normalized end state, no third playback, each return
+#                       and the file's end equal
+#                       worst-case/title_idle.json.end-state with the stored
+#                       record equal to the initial_save; pico8/demo.json,
+#                       replayed with REPLAY_STARTS=2, passes
+#                       tools/demo_check.sh at both ends (at most 3600
+#                       frames, the seven captions pinned in
+#                       tools/demo_check.sh, in order, tiling the demo, a
+#                       180-frame closing card, exactly one more year,
+#                       colony, slipway and tech than the state at the
+#                       `probe` label, no cheat); pico8/demo.pad
+#                       regenerates pico8/demo.json byte for byte (no aim
+#                       budget), a failure that fails the target but does
+#                       not hold back the hash; last, and only when the
+#                       content checks above pass, the capture hash is
+#                       compared with worst-case/attract_cycle.json.sha256,
+#                       a missing one failing; to rebaseline after reading
+#                       the checks: cp tmp/demo-check/attract_cycle.json
+#                       worst-case/ and cp tmp/demo-check/attract_cycle.sha256
+#                       worst-case/attract_cycle.json.sha256; never alongside
+#                       make test-all (both rebuild binaries in tmp/) or
+#                       make pad-author (both write tmp/pad-author/)
 # make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
 #                       PAD_METRICS and prints its report (time per mode, dead
 #                       presses by group, hold repeats, section 4 verdict),
@@ -221,7 +280,11 @@
 #                       target compiles bindings.default.cfg, and only
 #                       test_keymap compiles keymap.default.cfg; a game built
 #                       with bindings.cfg writes "bindings": "personal" in
-#                       every recording, which replay refuses
+#                       every recording, which replay refuses; also links
+#                       pico8/demo.json, compiled into tmp/demo/demo.c;
+#                       every binary, game included, also links
+#                       bindings.default.cfg as the default table the demo
+#                       plays on
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
@@ -347,18 +410,26 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
+BINDINGS_CORE_UNIT := $(TMP_DIR)/bindings/core.c
+DEMO_UNIT := $(TMP_DIR)/demo/demo.c
+
 # The whole engine closure: all of src/ except the three entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c`, `src/platform/keymap.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, replay_control, replay_source, screencast,
-# session_recorder, state). Used by the
+# session_recorder, state), plus the default bindings table generated into
+# tmp/bindings/core.c and the demo compiled into tmp/demo/demo.c. Used by the
 # targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
+    $(BINDINGS_CORE_UNIT) \
+    $(DEMO_UNIT) \
     src/p8/assets.c \
+    src/game/attract.c \
     src/game/background.c \
     src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
+    src/game/demo_overlay.c \
     src/game/input_step.c \
     src/game/pad_nav.c \
     src/game/pad_panel.c \
@@ -446,11 +517,14 @@ ENGINE_SRCS := \
 # The ported core, free of floating point: the engine closure minus the host
 # tools, which keep the libc. constants-check, float-guard, alloc-guard and
 # float-grep all read this list.
-CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
+CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) $(DEMO_UNIT) src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
 
 # A narrower closure: what data_init() reaches to build a real game state,
 # without calling cart_load().
 CART_ONLY_SRCS := \
+    $(DEMO_UNIT) \
+    src/game/attract.c \
+    src/game/demo_overlay.c \
     src/game/cart.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -534,7 +608,11 @@ $(BINDINGS_DEFAULT_UNIT): bindings.default.cfg $(TMP_DIR)/bindings_generate
 	@mkdir -p $(@D)
 	$(TMP_DIR)/bindings_generate $< $@
 
-$(TMP_DIR)/test_bindings: $(call objs,tests/test_bindings.c src/game/bindings.c $(BINDINGS_DEFAULT_UNIT)) bindings.default.cfg | $(TMP_DIR)
+$(BINDINGS_CORE_UNIT): bindings.default.cfg $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate --default $< $@
+
+$(TMP_DIR)/test_bindings: $(call objs,tests/test_bindings.c src/game/bindings.c $(BINDINGS_DEFAULT_UNIT) $(BINDINGS_CORE_UNIT)) bindings.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
@@ -559,10 +637,13 @@ $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/scr
 $(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json tests/e2e/pad_title.json bindings.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c src/devtools/replay_source.c $(ENGINE_SRCS)) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_replay_from_resume: $(call objs,tests/test_replay_from_resume.c) $(TMP_DIR)/replay pico8/demo_record.hex bindings.default.cfg tools/end_state.sh tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/frames_tool: $(call objs,src/cmd/frames.c src/devtools/screencast.c src/devtools/dump.c src/p8/vram.c) | $(TMP_DIR)
@@ -582,6 +663,9 @@ $(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_p
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_end_state: $(call objs,tests/test_end_state.c) tools/end_state.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_demo_check: $(call objs,tests/test_demo_check.c) tools/demo_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_coverage_compare: $(call objs,tests/test_coverage_compare.c) tools/coverage_compare.sh | $(TMP_DIR)
@@ -817,10 +901,32 @@ $(TMP_DIR)/test_pad_select: $(call objs,tests/test_pad_select.c $(ENGINE_SRCS)) 
 $(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pad_caption: $(call objs,tests/test_pad_caption.c src/devtools/pad_caption.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_demo_source: $(call objs,tests/test_demo_source.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/demo_generate: $(call objs,src/cmd/demo_generate.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(DEMO_UNIT): pico8/demo.json $(TMP_DIR)/demo_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/demo_generate $< $@
+
+$(TMP_DIR)/test_demo_data: $(call objs,tests/test_demo_data.c src/devtools/replay_source.c src/devtools/pad_caption.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/demo.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_cycle: $(call objs,tests/test_pad_cycle.c src/game/pad_cycle.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_attract: $(call objs,tests/test_attract.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_demo_overlay: $(call objs,tests/test_demo_overlay.c src/game/demo_overlay.c src/p8/gfx.c src/p8/vram.c $(DEMO_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -829,7 +935,7 @@ $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c 
 $(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/state.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -843,7 +949,13 @@ $(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/sav
 $(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_attract_demo: $(call objs,tests/test_attract_demo.c src/devtools/replay_source.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_record_start: $(call objs,tests/test_record_start.c src/devtools/record_start.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -922,6 +1034,7 @@ UNIT_TESTS := \
     test_headless_capture \
     test_replay_from_title \
     test_replay_usage \
+    test_replay_from_resume \
     test_palette \
     test_hud \
     test_frames_tool \
@@ -975,6 +1088,7 @@ UNIT_TESTS := \
     test_save_check \
     test_save_load \
     test_cart \
+    test_record_start \
     test_structure \
     test_trading_hub \
     test_entity_kind \
@@ -1006,7 +1120,12 @@ UNIT_TESTS := \
     test_pad_select \
     test_pad_build \
     test_pad_cycle \
-    test_pad_metrics
+    test_pad_metrics \
+    test_pad_caption \
+    test_demo_source \
+    test_demo_data \
+    test_attract \
+    test_demo_overlay
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
@@ -1051,9 +1170,10 @@ unit-run-test_live_slots: $(TMP_DIR)/test_live_slots
 unit-run-test_trade: $(TMP_DIR)/test_trade
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-# These two tests read tmp/replay_dump.txt, the default dump of tmp/replay:
-# under `-j`, never at the same time.
+# These two tests read tmp/replay_dump.txt, the default dump of tmp/replay,
+# and test_replay_from_resume writes it: under `-j`, never at the same time.
 unit-run-test_frames_tool: | unit-run-test_headless_capture
+unit-run-test_replay_from_resume: | unit-run-test_frames_tool
 
 .PHONY: $(UNIT_RUNS)
 
@@ -1065,7 +1185,7 @@ ifneq ($(filter replay,$(MAKECMDGOALS)),)
 endif
 
 replay: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
 
@@ -1180,7 +1300,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_caption.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/state.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
@@ -1192,20 +1312,24 @@ pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 else
 pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
+	@./$(TMP_DIR)/pad_author pico8/demo.pad pico8/demo.json --no-aim-budget
 endif
 
 PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
 PAD_AUTHOR_END_STATE_PROOFS := $(wildcard tools/pad_author_proofs/*.end-state.pad)
 PAD_AUTHOR_REFUSAL_PROOFS := $(wildcard tools/pad_author_proofs/*.refused.pad)
+PAD_AUTHOR_RECORD_PROOFS := $(wildcard tools/pad_author_proofs/*.record.pad)
 pad_author_proof_json = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=.json))
+pad_author_proof_stem = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=))
 pad_author_proof_e2e = $(E2E_DIR)/$(basename $(basename $(notdir $(1)))).json
 
 # A refusal proof's first line is `# expect: <text of the error>`.
-pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) tools/end_state.sh
+pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) $(PAD_AUTHOR_RECORD_PROOFS) tools/end_state.sh
 	@mkdir -p $(TMP_DIR)/pad-author
 	@$(foreach p,$(PAD_AUTHOR_FRAME_PROOFS),./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; cmp $(call pad_author_proof_json,$(p)) $(call pad_author_proof_e2e,$(p)) || exit 1; echo "pad-author-proof: $(p) regenerates $(call pad_author_proof_e2e,$(p))"; ) true
 	@$(foreach p,$(PAD_AUTHOR_END_STATE_PROOFS),STATE=$(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_e2e,$(p)) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) $(call pad_author_proof_e2e,$(p)).end-state || exit 1; echo "pad-author-proof: $(p) reaches $(call pad_author_proof_e2e,$(p)).end-state"; ) true
 	@$(foreach p,$(PAD_AUTHOR_REFUSAL_PROOFS),! ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) > /dev/null 2> $(TMP_DIR)/pad-author/refusal.txt || { echo "pad-author-proof: $(p) was not refused"; exit 1; }; grep -qF "$$(sed -n '1s/^# expect: //p' $(p))" $(TMP_DIR)/pad-author/refusal.txt || { cat $(TMP_DIR)/pad-author/refusal.txt; echo "pad-author-proof: $(p) refused for another reason"; exit 1; }; echo "pad-author-proof: $(p) refused: $$(sed -n '1s/^# expect: //p' $(p))"; ) true
+	@$(foreach p,$(PAD_AUTHOR_RECORD_PROOFS),STATE=$(call pad_author_proof_stem,$(p)).state.txt ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh normalize $(call pad_author_proof_stem,$(p)).state.txt > $(call pad_author_proof_stem,$(p)).reference.txt || exit 1; REPLAY_STARTS=2 STATE=$(call pad_author_proof_stem,$(p)).starts.txt ./$(TMP_DIR)/replay $(call pad_author_proof_json,$(p)) > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_json,$(p)) $(call pad_author_proof_stem,$(p)).starts.txt.start1 $(call pad_author_proof_stem,$(p)).reference.txt $(call pad_author_proof_json,$(p)) $(call pad_author_proof_stem,$(p)).starts.txt $(call pad_author_proof_stem,$(p)).reference.txt || exit 1; echo "pad-author-proof: $(p) replays from the record, twice, to pad_author's end state"; ) true
 
 PAD_METRICS_DIR := $(TMP_DIR)/pad-metrics
 PAD_METRICS_GAMES := $(filter-out worst-case/title_idle.json,$(FULL_GAME_EVENTS))
@@ -1243,6 +1367,13 @@ worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_p
 	@sh tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) $(TMP_DIR)/worst-case-peaks.txt $(foreach e,$(FULL_GAME_EVENTS),$(e) $(call state_file,$(e)))
 
 .PHONY: pad-author pad-author-proof worst-case-peaks
+
+DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
+
+demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json pico8/demo_record.hex worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state tools/demo_check_run.sh tools/demo_check.sh tools/end_state.sh
+	@sh tools/demo_check_run.sh $(DEMO_CHECK_DIR) ./$(TMP_DIR)/test_demo_check ./$(TMP_DIR)/test_attract_demo ./$(TMP_DIR)/pad_author ./$(TMP_DIR)/replay ./$(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state '$(SHA256_CMD)'
+
+.PHONY: demo-check
 
 rng-sync-probe: $(TMP_DIR)/test_rng_sync
 	./$<
@@ -1321,7 +1452,7 @@ $(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
 
 ifneq ($(strip $(EVENTS)),)
 state: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 else
 state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
@@ -1539,9 +1670,9 @@ raylib: $(TMP_DIR)/game
 
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.
--include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d $(OBJ_DIR)/tmp/keymap/*.d)
--include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d)
+-include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d $(OBJ_DIR)/tmp/keymap/*.d $(OBJ_DIR)/tmp/demo/*.d)
+-include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d $(OBJ_ASAN_DIR)/tmp/demo/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d)
--include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d)
+-include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d $(OBJ_SANITIZE_DIR)/tmp/demo/*.d)
+-include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d $(OBJ_COVERAGE_DIR)/tmp/demo/*.d)
 

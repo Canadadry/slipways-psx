@@ -22,6 +22,8 @@ src/devtools/replay_control.c | replay speed of the interactive driver
 src/devtools/replay_control.h | replay speed of the interactive driver
 src/devtools/replay_source.c | replay, reads events.json
 src/devtools/replay_source.h | replay, reads events.json
+src/devtools/record_start.c | record start of replay and pad_author, reads a hex record through the libc
+src/devtools/record_start.h | record start of replay and pad_author, header of devtools/record_start.c
 src/devtools/screencast.c | screen capture of the replay, writer and reader
 src/devtools/screencast.h | screen capture of the replay, header of devtools/screencast.c
 src/devtools/session_recorder.c | session recording of the interactive driver
@@ -40,3 +42,8 @@ src/devtools/pad_author.c | worst-case game generator, plays a pad script headle
 src/devtools/pad_author.h | worst-case game generator, header of devtools/pad_author.c
 src/devtools/pad_metrics.c | pad metrics of the generator, writes its totals through a FILE stream, host tool
 src/devtools/pad_metrics.h | pad metrics of the generator, header of devtools/pad_metrics.c
+src/devtools/pad_caption.c | caption rules of the generator, formats its refusals and JSON member, host tool
+src/devtools/pad_caption.h | caption rules of the generator, header of devtools/pad_caption.c
+src/devtools/demo_source.c | demo loader of the demo generator, reads pico8/demo.json through the libc, host tool
+src/devtools/demo_source.h | demo loader of the demo generator, header of devtools/demo_source.c
+src/cmd/demo_generate.c | entry point of the demo generator, writes tmp/demo/demo.c through the libc, host tool

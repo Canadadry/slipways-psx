@@ -122,7 +122,7 @@ static long history_region_length(const char *json) {
     return (long)(last - json);
 }
 
-/* The regression test for the recording slowdown: recording frame N must
+/* Recording frame N must
  * not re-emit the N-1 frames already on disk. Proven by marking the
  * already-recorded region with a byte no correct re-serialisation of those
  * frames could produce, then recording one more frame and checking the
@@ -166,9 +166,6 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
     free(after);
 }
 
-/* A recording path is reused across sessions only by accident (the backend
- * timestamps it), but a fresh recording must never inherit a stale file's
- * frames: tail_offset 0 means "start over". */
 static void test_append_with_zero_tail_offset_starts_a_fresh_recording(void) {
     const char *path = "tmp/test_input_append_fresh.json";
     p8_input_frame_t first[3] = {{0}, {0}, {0}};
@@ -215,7 +212,7 @@ static void test_pad_save_then_load_round_trips_every_button(void) {
     fill_pad_frames(written);
     const char *path = "tmp/test_input_pad_roundtrip.json";
 
-    assert(p8_input_save(written, PAD_FRAME_COUNT, path));
+    assert(p8_input_save(written, PAD_FRAME_COUNT, path, NULL));
 
     p8_input_t input;
     p8_input_init(&input);
@@ -240,7 +237,7 @@ static void test_pad_append_is_byte_identical_to_pad_save_every_frame(void) {
 
     for (int i = 0; i < PAD_FRAME_COUNT; i++) {
         assert(p8_input_append(&frames[i], appended_path, &tail_offset, NULL));
-        assert(p8_input_save(frames, i + 1, reference_path));
+        assert(p8_input_save(frames, i + 1, reference_path, NULL));
 
         char *appended = read_file_raw(appended_path);
         char *reference = read_file_raw(reference_path);
@@ -265,7 +262,7 @@ static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(
     };
     const char *path = "tmp/test_input_pad_shape.json";
 
-    assert(p8_input_save(written, 3, path));
+    assert(p8_input_save(written, 3, path, NULL));
 
     char *saved = read_file_raw(path);
     assert(strcmp(saved,
@@ -289,9 +286,6 @@ static void test_pad_save_writes_the_declaration_and_buttons_in_canonical_order(
     assert(strstr(committed, "    { \"pad\": [] }\n  ]\n}\n") != NULL);
     free(committed);
 
-    /* That recording must itself load through p8_input_load (sanity: the
-     * shape assumptions above are grounded in a file the loader actually
-     * accepts, not just string content). */
     p8_input_t input;
     p8_input_init(&input);
     assert(p8_input_load(&input, "tests/fixtures/demo_events.json"));
@@ -454,6 +448,22 @@ static void test_unknown_header_members_are_ignored(void) {
     p8_input_free(&input);
 }
 
+static void test_captions_member_is_ignored(void) {
+    const char *path = "tmp/test_input_captions.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n  \"start\": \"resume\",\n  \"initial_save\": \"00a1\",\n"
+                     "  \"captions\": [\n"
+                     "    { \"from\": 0, \"to\": 150, \"text\": \"build a trading empire\\nacross the stars\" },\n"
+                     "    { \"from\": 150, \"to\": 330, \"text\": \"spend science on new tech\" }\n"
+                     "  ],\n" PAD_FRAMES_TEXT "}\n");
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, path));
+    assert(input.frame_count == 2);
+    assert(input.frames[0].pad_buttons == P8_PAD_BUTTON_1 && input.frames[1].pad_buttons == 0);
+    p8_input_free(&input);
+    remove(path);
+}
+
 static void test_append_writes_a_header_member_into_a_fresh_file_only(void) {
     const char *path = "tmp/test_input_append_header_member.json";
     const char *member = "\"initial_save\": \"00ff\"";
@@ -483,9 +493,36 @@ static void test_append_writes_a_header_member_into_a_fresh_file_only(void) {
     remove(path);
 }
 
+static void test_save_writes_header_members_after_the_input_declaration(void) {
+    const char *path = "tmp/test_input_save_header_members.json";
+    p8_input_frame_t frames[2] = {{0, 0, 0, P8_PAD_BUTTON_5}, {0, 0, 0, 0}};
+
+    assert(p8_input_save(frames, 2, path, "\"start\": \"resume\",\n  \"initial_save\": \"00ff\""));
+
+    char *text = read_file_raw(path);
+    assert(strcmp(text, "{\n"
+                        "  \"input\": \"pad\",\n"
+                        "  \"start\": \"resume\",\n"
+                        "  \"initial_save\": \"00ff\",\n"
+                        "  \"frames\": [\n"
+                        "    { \"pad\": [5] },\n"
+                        "    { \"pad\": [] }\n"
+                        "  ]\n"
+                        "}\n") == 0);
+    free(text);
+
+    p8_input_t input;
+    p8_input_init(&input);
+    assert(p8_input_load(&input, path));
+    assert(input.frame_count == 2);
+    assert(input.frames[0].pad_buttons == P8_PAD_BUTTON_5 && input.frames[1].pad_buttons == 0);
+    p8_input_free(&input);
+    remove(path);
+}
+
 static void test_save_rejects_empty_frame_list(void) {
     const char *path = "tmp/test_input_save_empty.json";
-    int saved = p8_input_save(NULL, 0, path);
+    int saved = p8_input_save(NULL, 0, path, NULL);
     assert(!saved);
 }
 
@@ -513,9 +550,11 @@ int main(void) {
     test_input_after_the_frames_is_not_a_header();
     test_old_mouse_recording_fails();
     test_unknown_header_members_are_ignored();
+    test_captions_member_is_ignored();
     test_append_does_not_rewrite_already_recorded_frames();
     test_append_with_zero_tail_offset_starts_a_fresh_recording();
     test_append_writes_a_header_member_into_a_fresh_file_only();
+    test_save_writes_header_members_after_the_input_declaration();
 
     printf("test_input: all tests passed\n");
     return 0;

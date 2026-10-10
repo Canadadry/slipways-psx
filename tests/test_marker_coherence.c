@@ -1,12 +1,5 @@
-/* A marker must equal its frame's 0-based position in the recording on
- * disk. A resumed session is where that can break: it replays N frames the
- * player did not play before recording any they did.
- *
- * Every iteration is checked, not one chosen marker: an off-by-N can cancel
- * out at a single frame.
- *
- * Not covered here: the space bar itself, and that the marker file gets one
- * line per tap. Both need a window. */
+/* Every iteration is checked, not one chosen marker: an off-by-N can cancel
+ * out at a single frame. */
 
 #include "devtools/session_recorder.h"
 #include "devtools/replay_source.h"
@@ -27,7 +20,6 @@ static const p8_input_frame_t replayed_frames[REPLAYED_FRAME_COUNT] = {
     { 0, 0, 0, P8_PAD_BUTTON_6 | P8_PAD_BUTTON_7 },
 };
 
-/* What the player does once the controls come back. */
 #define LIVE_FRAME_COUNT 5
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
     { 0, 0, 0, P8_PAD_BUTTON_9 },
@@ -79,7 +71,7 @@ static void test_marker_index_counts_the_replayed_frames_too(void) {
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, NULL));
 
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
@@ -102,7 +94,7 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     const char *resumed_path = "tmp/test_marker_coherence_resolve_resumed.json";
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, NULL));
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
     p8_input_t resumed;

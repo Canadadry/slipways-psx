@@ -36,7 +36,6 @@ static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
     { 96, 97, 6, P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6 },
 };
 
-/* `want` is the raw frame; `got` is what the recording gives back. */
 static void assert_recorded_as(const p8_input_frame_t *got, const p8_input_frame_t *want) {
     assert(got->mouse_x == 0 && got->mouse_y == 0 && got->mouse_buttons == 0);
     assert(got->pad_buttons == want->pad_buttons);
@@ -109,8 +108,7 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *source_path = "tmp/test_recording_continuity_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
-    /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, NULL));
 
     run_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT, 0);
 
@@ -140,7 +138,7 @@ static void test_resumed_recording_is_itself_resumable(void) {
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";
     const int total = SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT;
 
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, source_path, NULL));
     run_session(source_path, resumed_path, total, 0);
 
     replay_source_t second;
@@ -241,6 +239,7 @@ static void assert_initial_save_round_trips(const uint8_t *save, int save_count,
         assert_recorded_as(&frame, &source_frames[i]);
     }
     assert(replay_source_seed_storage(&replay) == 1);
+    assert(replay_source_attract_after(&replay) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
     replay_source_close(&replay);
 
     static uint8_t got[SAVE_STATE_MAX_BYTES];
@@ -251,6 +250,7 @@ static void assert_initial_save_round_trips(const uint8_t *save, int save_count,
     const char *member = strstr(bytes, "\"initial_save\"");
     assert(member && member < strstr(bytes, "\"frames\""));
     assert(count_occurrences(bytes, "\"bindings\"") == personal);
+    assert(count_occurrences(bytes, "\"attract_after\"") == 1);
     free(bytes);
     remove(path);
 }
@@ -271,9 +271,7 @@ static void test_initial_save_of_the_full_size_round_trips(void) {
     assert_initial_save_round_trips(save, SAVE_STATE_MAX_BYTES, 0);
 }
 
-/* No save, no key: the file stays what p8_input_save would write, and it
- * seeds an empty storage. */
-static void assert_recording_without_save_or_flag_writes_no_key(int set_flag_explicitly) {
+static void assert_recording_without_save_or_flag_writes_only_attract_after(int set_flag_explicitly) {
     const char *path = "tmp/test_recording_continuity_no_initial_save.json";
     const char *reference_path = "tmp/test_recording_continuity_no_initial_save_reference.json";
     session_recorder_t recorder;
@@ -286,11 +284,17 @@ static void assert_recording_without_save_or_flag_writes_no_key(int set_flag_exp
         assert(session_recorder_record_frame(&recorder, &source_frames[i]) == 1);
     }
     session_recorder_close(&recorder);
-    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, reference_path));
+    assert(p8_input_save(source_frames, SOURCE_FRAME_COUNT, reference_path, NULL));
 
     char *bytes = read_whole_file(path);
     char *reference = read_whole_file(reference_path);
-    assert(strcmp(bytes, reference) == 0);
+    static const char input_line[] = "{\n  \"input\": \"pad\",\n";
+    static const char attract_line[] = "  \"attract_after\": 1200,\n";
+    const char *expected_prefix = "{\n  \"input\": \"pad\",\n  \"attract_after\": 1200,\n  \"frames\": [\n";
+    assert(strncmp(bytes, expected_prefix, strlen(expected_prefix)) == 0);
+    assert(strncmp(reference, input_line, strlen(input_line)) == 0);
+    assert(strncmp(bytes + strlen(input_line), attract_line, strlen(attract_line)) == 0);
+    assert(strcmp(bytes + strlen(input_line) + strlen(attract_line), reference + strlen(input_line)) == 0);
     free(bytes);
     free(reference);
 
@@ -299,6 +303,7 @@ static void assert_recording_without_save_or_flag_writes_no_key(int set_flag_exp
     replay_source_t replay;
     assert(replay_source_open(&replay, path) == REPLAY_SOURCE_LOADED);
     assert(replay_source_seed_storage(&replay) == 1);
+    assert(replay_source_attract_after(&replay) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
     replay_source_close(&replay);
     static uint8_t got[SAVE_STATE_MAX_BYTES];
     assert(save_storage_read(got, SAVE_STATE_MAX_BYTES) == 0);
@@ -307,9 +312,9 @@ static void assert_recording_without_save_or_flag_writes_no_key(int set_flag_exp
     remove(reference_path);
 }
 
-static void test_recorder_without_initial_save_writes_no_key(void) {
-    assert_recording_without_save_or_flag_writes_no_key(0);
-    assert_recording_without_save_or_flag_writes_no_key(1);
+static void test_recorder_without_save_or_flag_writes_only_attract_after(void) {
+    assert_recording_without_save_or_flag_writes_only_attract_after(0);
+    assert_recording_without_save_or_flag_writes_only_attract_after(1);
 }
 
 static void test_flagged_recording_without_save_names_personal_bindings(void) {
@@ -317,7 +322,8 @@ static void test_flagged_recording_without_save_names_personal_bindings(void) {
     record_source_frames(path, 1, NULL, 0);
 
     char *bytes = read_whole_file(path);
-    const char *expected = "{\n  \"input\": \"pad\",\n  \"bindings\": \"personal\",\n  \"frames\": [\n";
+    const char *expected =
+        "{\n  \"input\": \"pad\",\n  \"attract_after\": 1200,\n  \"bindings\": \"personal\",\n  \"frames\": [\n";
     assert(strncmp(bytes, expected, strlen(expected)) == 0);
     assert(count_occurrences(bytes, "\"bindings\"") == 1);
     free(bytes);
@@ -336,6 +342,7 @@ static void test_flagged_recording_without_save_names_personal_bindings(void) {
     replay_source_t replay;
     assert(replay_source_open(&replay, path) == REPLAY_SOURCE_LOADED);
     assert(replay_source_seed_storage(&replay) == 1);
+    assert(replay_source_attract_after(&replay) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
     replay_source_close(&replay);
     static uint8_t got[SAVE_STATE_MAX_BYTES];
     assert(save_storage_read(got, SAVE_STATE_MAX_BYTES) == 0);
@@ -343,8 +350,6 @@ static void test_flagged_recording_without_save_names_personal_bindings(void) {
     remove(path);
 }
 
-/* The flag never costs the save: both members in one header, and the
- * shared loader still serves the frames and seeds the save. */
 static void test_flagged_recording_with_save_carries_both_members(void) {
     const uint8_t save[3] = { 0x00, 0xa5, 0xff };
     assert_initial_save_round_trips(save, 3, 1);
@@ -352,7 +357,7 @@ static void test_flagged_recording_with_save_carries_both_members(void) {
     const char *path = "tmp/test_recording_continuity_personal_save.json";
     record_source_frames(path, 1, save, 3);
     char *bytes = read_whole_file(path);
-    const char *expected = "{\n  \"input\": \"pad\",\n  \"bindings\": \"personal\",\n"
+    const char *expected = "{\n  \"input\": \"pad\",\n  \"attract_after\": 1200,\n  \"bindings\": \"personal\",\n"
                            "  \"initial_save\": \"00a5ff\",\n  \"frames\": [\n";
     assert(strncmp(bytes, expected, strlen(expected)) == 0);
     free(bytes);
@@ -389,7 +394,13 @@ static void test_flagged_resume_writes_the_header_once(void) {
 
     char *bytes = read_whole_file(resumed_path);
     assert(count_occurrences(bytes, "\"bindings\"") == 1);
+    assert(count_occurrences(bytes, "\"attract_after\"") == 1);
     free(bytes);
+
+    replay_source_t replay;
+    assert(replay_source_open(&replay, resumed_path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_attract_after(&replay) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+    replay_source_close(&replay);
 
     p8_input_t resumed;
     p8_input_init(&resumed);
@@ -406,7 +417,6 @@ static void test_flagged_resume_writes_the_header_once(void) {
     remove(resumed_path);
 }
 
-/* The writer and replay_source_read_bindings must agree on the spelling. */
 static replay_source_bindings_status_t read_recorded_bindings(int personal) {
     const char *path = "tmp/test_recording_continuity_read_bindings.json";
     record_source_frames(path, personal, NULL, 0);
@@ -434,7 +444,7 @@ int main(void) {
     test_fresh_session_records_a_pad_replay();
     test_initial_save_of_every_byte_value_round_trips();
     test_initial_save_of_the_full_size_round_trips();
-    test_recorder_without_initial_save_writes_no_key();
+    test_recorder_without_save_or_flag_writes_only_attract_after();
     test_flagged_recording_without_save_names_personal_bindings();
     test_flagged_recording_with_save_carries_both_members();
     test_open_and_close_clear_the_flag();

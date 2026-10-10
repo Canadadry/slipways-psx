@@ -94,6 +94,7 @@ int main(int argc, char **argv) {
     /* Step AND draw every recorded frame: drawing has side effects on game state. */
     input_step_t step;
     input_step_init(&step, &bindings_compiled);
+    input_step_set_attract_after(&step, replay_source_attract_after(&replay));
     while (raylib_backend_should_continue(&backend)) {
         p8_input_frame_t frame;
         int from_recording = replay_source_next_frame(&replay, &frame);

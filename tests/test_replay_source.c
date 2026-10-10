@@ -173,7 +173,7 @@ static const p8_input_frame_t pad_frames[PAD_FRAME_COUNT] = {
 
 static void test_pad_recording_serves_its_masks_in_order(void) {
     const char *path = "tmp/test_replay_source_pad.json";
-    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path));
+    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path, NULL));
 
     replay_source_t source;
     assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
@@ -207,7 +207,6 @@ static void write_text(const char *path, const char *text) {
     assert(fclose(file) == 0);
 }
 
-/* Writes a recording whose header carries `member` (NULL for none) after "input". */
 static void write_recording_with_member(const char *path, const char *member) {
     char text[4 * SAVE_STATE_MAX_BYTES];
     int used = snprintf(text, sizeof(text), "{\n  \"input\": \"pad\",\n%s%s%s" SAVE_FRAMES_TEXT "}\n",
@@ -279,7 +278,6 @@ static void test_recording_without_initial_save_empties_the_storage(void) {
     remove(path);
 }
 
-/* Live play reads whatever the storage holds: the player's own save. */
 static void test_live_play_leaves_the_storage_untouched(void) {
     store_a_record();
 
@@ -335,7 +333,6 @@ static void assert_member_fails_to_load(const char *member) {
     remove(path);
 }
 
-/* `digit_count` hex digits "ab" repeated, as an initial_save member. */
 static void format_long_member(char *member, size_t size, int digit_count) {
     int used = snprintf(member, size, "\"initial_save\": \"");
     assert(used > 0 && (size_t)(used + digit_count + 2) < size);
@@ -390,6 +387,50 @@ static void test_initial_save_after_the_frames_is_ignored(void) {
     remove(path);
 }
 
+static void test_attract_after_defaults_without_the_member(void) {
+    replay_source_t source;
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+    replay_source_close(&source);
+
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
+    assert(replay_source_attract_after(&source) == 1200);
+    replay_source_close(&source);
+}
+
+static int attract_after_of(const char *member) {
+    const char *path = "tmp/test_replay_source_attract_after.json";
+    write_recording_with_member(path, member);
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_frame_count(&source) == 2);
+    int attract_after = replay_source_attract_after(&source);
+
+    replay_source_close(&source);
+    remove(path);
+    return attract_after;
+}
+
+static void test_attract_after_in_the_header_is_read(void) {
+    assert(attract_after_of("\"attract_after\": 3") == 3);
+    assert(attract_after_of("\"attract_after\": 1200") == 1200);
+    assert(attract_after_of("\"attract_after\":\t2147483647") == 2147483647);
+    assert(attract_after_of("\"attract_after\":45") == 45);
+}
+
+static void test_invalid_attract_after_fails_to_load(void) {
+    static const char *const values[] = { "0", "-3", "+3", "03", "3.5", "3e2", "\"3\"", "null", "true", "", "12abc",
+                                          "2147483648", "99999999999999999999" };
+    for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+        char member[64];
+        int used = snprintf(member, sizeof(member), "\"attract_after\": %s", values[i]);
+        assert(used > 0 && (size_t)used < sizeof(member));
+        assert_member_fails_to_load(member);
+    }
+    assert_member_fails_to_load("\"attract_after\": 3,\n  \"attract_after\": 3");
+}
+
 #define BINDINGS_DIR "tmp/test_replay_source_bindings"
 
 /* Distinct from every fixture these tests write, so a copied fallback is never mistaken for a parsed fixture. */
@@ -404,7 +445,6 @@ static void make_bindings_dir(void) {
     assert(mkdir(BINDINGS_DIR, 0777) == 0 || errno == EEXIST);
 }
 
-/* Opens the recording at `path`, which must load, and resolves its bindings against fallback_table(). */
 static replay_source_bindings_status_t read_bindings_of(const char *path, bindings_t *out,
                                                         replay_source_bindings_report_t *report) {
     replay_source_t source;
@@ -413,6 +453,209 @@ static replay_source_bindings_status_t read_bindings_of(const char *path, bindin
     replay_source_bindings_status_t status = replay_source_read_bindings(&source, &fallback, out, report);
     replay_source_close(&source);
     return status;
+}
+
+static void test_attract_after_beside_the_other_members_is_read(void) {
+    const char *path = "tmp/test_replay_source_attract_after_members.json";
+    static const char *const headers[] = {
+        "\"attract_after\": 3,\n  \"bindings\": \"personal\",\n  \"initial_save\": \"00a1\"",
+        "\"initial_save\": \"00a1\",\n  \"attract_after\": 3,\n  \"bindings\": \"personal\"",
+        "\"bindings\": \"personal\",\n  \"initial_save\": \"00a1\",\n  \"attract_after\": 3",
+    };
+    for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
+        write_recording_with_member(path, headers[i]);
+        replay_source_t source;
+        assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+        assert(replay_source_attract_after(&source) == 3);
+        assert(replay_source_frame_count(&source) == 2);
+        assert(replay_source_seed_storage(&source) == 1);
+        const uint8_t expected[2] = { 0x00, 0xa1 };
+        assert_storage_holds(expected, 2);
+        bindings_t fallback = fallback_table();
+        bindings_t table;
+        replay_source_bindings_report_t report;
+        assert(replay_source_read_bindings(&source, &fallback, &table, &report) == REPLAY_SOURCE_BINDINGS_PERSONAL);
+        replay_source_close(&source);
+    }
+    remove(path);
+}
+
+static void test_attract_after_after_the_frames_is_ignored(void) {
+    const char *path = "tmp/test_replay_source_attract_after_late.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n" SAVE_FRAMES_TEXT "  ,\"attract_after\": 0\n}\n");
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void test_attract_after_returns_to_the_default(void) {
+    const char *path = "tmp/test_replay_source_attract_after_reset.json";
+    write_recording_with_member(path, "\"attract_after\": 3");
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_attract_after(&source) == 3);
+    replay_source_close(&source);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+
+    write_text(path, "{\n  \"input\": \"pad\",\n  \"attract_after\": 3,\n  \"frames\": [ { \"pad\": [1] }\n}\n");
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+    replay_source_close(&source);
+
+    write_recording_with_member(path, "\"attract_after\": 0");
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_attract_after(&source) == REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT);
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void test_start_defaults_to_the_title_without_the_member(void) {
+    replay_source_t source;
+    assert(replay_source_open(&source, NULL) == REPLAY_SOURCE_NONE);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    replay_source_close(&source);
+
+    assert(replay_source_open(&source, "tests/fixtures/events_valid.json") == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    replay_source_close(&source);
+}
+
+#define RESUME_MEMBERS "\"start\": \"resume\",\n  \"initial_save\": \"00a1\""
+
+/* The record is the demo's start, not a player's save: storage is erased, never seeded with it. */
+static void test_resume_start_is_read_and_erases_the_storage(void) {
+    const char *path = "tmp/test_replay_source_resume.json";
+    write_recording_with_member(path, RESUME_MEMBERS);
+    store_a_record();
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_RESUME);
+    assert(replay_source_frame_count(&source) == 2);
+    assert(replay_source_seed_storage(&source) == 1);
+    static uint8_t got[SAVE_STATE_MAX_BYTES];
+    assert(save_storage_read(got, SAVE_STATE_MAX_BYTES) == 0);
+    const uint8_t expected[2] = { 0x00, 0xa1 };
+    assert(source.initial_save_count == 2 && memcmp(source.initial_save, expected, 2) == 0);
+
+    replay_source_close(&source);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    remove(path);
+}
+
+static void test_resume_start_written_by_the_writer_is_read(void) {
+    const char *path = "tmp/test_replay_source_resume_written.json";
+    assert(p8_input_save(pad_frames, PAD_FRAME_COUNT, path, RESUME_MEMBERS));
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_RESUME);
+    assert(replay_source_frame_count(&source) == PAD_FRAME_COUNT);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void assert_start_fails_to_load(const char *member) {
+    const char *path = "tmp/test_replay_source_bad_start.json";
+    write_recording_with_member(path, member);
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOAD_FAILED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+    assert(replay_source_frame_count(&source) == 0);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+static void test_invalid_start_fails_to_load(void) {
+    assert_start_fails_to_load("\"start\": \"title\",\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": \"resumed\",\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": \"\",\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": 1,\n  \"initial_save\": \"00a1\"");
+    assert_start_fails_to_load("\"start\": \"resume\"");
+    assert_start_fails_to_load("\"start\": \"resume\",\n  \"start\": \"resume\",\n  \"initial_save\": \"00a1\"");
+}
+
+static void test_start_after_the_frames_is_ignored(void) {
+    const char *path = "tmp/test_replay_source_start_late.json";
+    write_text(path, "{\n  \"input\": \"pad\",\n" SAVE_FRAMES_TEXT "  ,\"start\": \"resume\"\n}\n");
+
+    replay_source_t source;
+    assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
+    assert(replay_source_start(&source) == REPLAY_SOURCE_START_TITLE);
+
+    replay_source_close(&source);
+    remove(path);
+}
+
+#define HEADER_MEMBERS RESUME_MEMBERS ",\n  \"attract_after\": 3"
+#define CAPTIONS_MEMBER                                                                                             \
+    "\"captions\": [\n"                                                                                          \
+    "    { \"from\": 0, \"to\": 150, \"text\": \"build a trading empire\\nacross the stars\" },\n"              \
+    "    { \"from\": 150, \"to\": 330, \"text\": \"spend science on new tech\" }\n"                             \
+    "  ]"
+
+typedef struct {
+    int status;
+    int frame_count;
+    p8_input_frame_t frames[2];
+    replay_source_start_t start;
+    int attract_after;
+    int initial_save_count;
+    uint8_t initial_save[SAVE_STATE_MAX_BYTES];
+} loaded_header_t;
+
+static loaded_header_t load_header(const char *path) {
+    static loaded_header_t loaded;
+    memset(&loaded, 0, sizeof(loaded));
+    replay_source_t source;
+    loaded.status = replay_source_open(&source, path);
+    loaded.frame_count = replay_source_frame_count(&source);
+    for (int i = 0; i < loaded.frame_count && i < 2; i++) {
+        assert(replay_source_next_frame(&source, &loaded.frames[i]) == 1);
+    }
+    loaded.start = replay_source_start(&source);
+    loaded.attract_after = replay_source_attract_after(&source);
+    loaded.initial_save_count = source.initial_save_count;
+    memcpy(loaded.initial_save, source.initial_save, (size_t)source.initial_save_count);
+    replay_source_close(&source);
+    return loaded;
+}
+
+static void assert_same_header(const loaded_header_t *got, const loaded_header_t *expected) {
+    assert(got->status == REPLAY_SOURCE_LOADED && expected->status == REPLAY_SOURCE_LOADED);
+    assert(got->frame_count == expected->frame_count && got->frame_count == 2);
+    for (int i = 0; i < 2; i++) assert_frame_equals(&got->frames[i], &expected->frames[i]);
+    assert(got->start == expected->start && got->start == REPLAY_SOURCE_START_RESUME);
+    assert(got->attract_after == expected->attract_after && got->attract_after == 3);
+    assert(got->initial_save_count == expected->initial_save_count && got->initial_save_count == 2);
+    assert(memcmp(got->initial_save, expected->initial_save, 2) == 0);
+}
+
+static void test_captions_member_is_ignored_in_the_header(void) {
+    const char *path = "tmp/test_replay_source_captions.json";
+    write_recording_with_member(path, HEADER_MEMBERS);
+    loaded_header_t without = load_header(path);
+    write_recording_with_member(path, HEADER_MEMBERS ",\n  " CAPTIONS_MEMBER);
+    loaded_header_t with = load_header(path);
+    assert_same_header(&with, &without);
+    remove(path);
+}
+
+static void test_captions_member_after_the_frames_is_ignored(void) {
+    const char *path = "tmp/test_replay_source_captions_late.json";
+    write_recording_with_member(path, HEADER_MEMBERS);
+    loaded_header_t without = load_header(path);
+    write_text(path, "{\n  \"input\": \"pad\",\n  " HEADER_MEMBERS ",\n" SAVE_FRAMES_TEXT "  ," CAPTIONS_MEMBER "\n}\n");
+    loaded_header_t with = load_header(path);
+    assert_same_header(&with, &without);
+    remove(path);
 }
 
 static void test_recording_without_bindings_member_uses_the_fallback(void) {
@@ -542,7 +785,6 @@ static replay_source_bindings_status_t read_bindings_with_member(const char *mem
     return status;
 }
 
-/* `name_length` characters: 'a's then ".cfg", as a "bindings" member. */
 static void format_long_name_member(char *member, size_t size, int name_length) {
     int used = snprintf(member, size, "\"bindings\": \"%.*s.cfg\"", name_length - 4,
                         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
@@ -642,6 +884,19 @@ int main(void) {
     test_malformed_initial_save_fails_to_load();
     test_initial_save_of_the_full_size_loads();
     test_initial_save_after_the_frames_is_ignored();
+    test_attract_after_defaults_without_the_member();
+    test_attract_after_in_the_header_is_read();
+    test_invalid_attract_after_fails_to_load();
+    test_attract_after_beside_the_other_members_is_read();
+    test_attract_after_after_the_frames_is_ignored();
+    test_attract_after_returns_to_the_default();
+    test_start_defaults_to_the_title_without_the_member();
+    test_resume_start_is_read_and_erases_the_storage();
+    test_resume_start_written_by_the_writer_is_read();
+    test_invalid_start_fails_to_load();
+    test_start_after_the_frames_is_ignored();
+    test_captions_member_is_ignored_in_the_header();
+    test_captions_member_after_the_frames_is_ignored();
     test_recording_without_bindings_member_uses_the_fallback();
     test_fixture_next_to_the_recording_drives_the_table();
     test_missing_fixture_names_the_path_and_the_recording();

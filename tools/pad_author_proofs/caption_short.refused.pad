@@ -1,0 +1,5 @@
+# expect: caption_short.refused.pad:3: frame 13: caption: shown 149 frames, at least 150
+title 12 reasonable
+caption x
+idle 149
+caption -
