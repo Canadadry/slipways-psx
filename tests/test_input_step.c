@@ -264,6 +264,58 @@ static void test_init_with_the_compiled_default(void) {
            == P8_PAD_BUTTON_7);
 }
 
+static void test_switch_to_the_default_puts_the_default_table_in_pad_nav(void) {
+    bindings_t swap = swap_table();
+    input_step_t step;
+    input_step_init(&step, &swap);
+    input_step_switch_bindings(&step, INPUT_STEP_BINDINGS_DEFAULT);
+    const bindings_t *active = pad_nav_bindings(&step.pad_nav);
+    assert(bindings_mask(active, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ENTER_AIM) == P8_PAD_BUTTON_7);
+    assert(bindings_mask(active, BINDINGS_MODE_JUMP, BINDINGS_ACTION_OPEN_MENU) == P8_PAD_BUTTON_8);
+    assert(memcmp(active, &bindings_default, sizeof bindings_default) == 0);
+}
+
+static void test_switch_back_restores_the_session_table_from_its_own_copy(void) {
+    bindings_t swap = swap_table();
+    bindings_t kept = swap;
+    input_step_t step;
+    input_step_init(&step, &swap);
+    memset(&swap, 0, sizeof swap);
+    input_step_switch_bindings(&step, INPUT_STEP_BINDINGS_DEFAULT);
+    input_step_switch_bindings(&step, INPUT_STEP_BINDINGS_SESSION);
+    assert(memcmp(pad_nav_bindings(&step.pad_nav), &kept, sizeof kept) == 0);
+}
+
+/* Cursor moves, then two of the cheat's chords: pad navigation and the cheat both hold state. */
+static void run_some_frames(input_step_t *step) {
+    static const int pads[] = { P8_PAD_BUTTON_4, P8_PAD_BUTTON_4, 0, P8_PAD_BUTTON_2, 0, CHORD, 0, CHORD, 0 };
+    for (size_t i = 0; i < sizeof pads / sizeof pads[0]; i++) {
+        p8_input_frame_t frame = { 0, 0, 0, pads[i] };
+        assert(!input_step_run(step, &frame));
+    }
+}
+
+static void assert_switch_resets_as_init_does(input_step_bindings_t which) {
+    bindings_t swap = swap_table();
+    input_step_t played;
+    input_step_t fresh;
+    input_step_init(&played, &swap);
+    input_step_init(&fresh, &swap);
+    run_some_frames(&played);
+    assert(memcmp(&played, &fresh, sizeof played) != 0);
+    input_step_switch_bindings(&played, which);
+    input_step_switch_bindings(&fresh, which);
+    assert(memcmp(&played, &fresh, sizeof played) == 0);
+}
+
+static void test_switch_to_the_default_after_some_frames_resets_as_init_does(void) {
+    assert_switch_resets_as_init_does(INPUT_STEP_BINDINGS_DEFAULT);
+}
+
+static void test_switch_to_the_table_in_use_resets_as_init_does(void) {
+    assert_switch_resets_as_init_does(INPUT_STEP_BINDINGS_SESSION);
+}
+
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
     int status;
@@ -292,6 +344,10 @@ int main(void) {
     test_init_hands_the_table_to_pad_nav();
     test_init_keeps_its_own_copy_of_the_table();
     test_init_with_the_compiled_default();
+    test_switch_to_the_default_puts_the_default_table_in_pad_nav();
+    test_switch_back_restores_the_session_table_from_its_own_copy();
+    in_fresh_child(test_switch_to_the_default_after_some_frames_resets_as_init_does);
+    in_fresh_child(test_switch_to_the_table_in_use_resets_as_init_does);
     in_fresh_child(test_pad_keeps_only_the_pad_mask);
     in_fresh_child(test_pad_cheat_fires_on_cross_and_circle);
     in_fresh_child(test_live_and_replayed_pad_frames_play_alike);

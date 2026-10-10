@@ -26,7 +26,7 @@
 - [ ] Phase 2 — Attract mode in the core
   - [ ] 9. Default table beside the compiled one
     - [x] Chunk 1: bindings_default core unit
-    - [ ] Chunk 2: input_step switches tables
+    - [x] Chunk 2: input_step switches tables
   - [ ] 10. Attract state machine
   - [ ] 11. Captions and label
   - [ ] 12. The attract e2e

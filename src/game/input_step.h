@@ -10,9 +10,14 @@ typedef struct {
     pad_nav_t pad_nav;
     p8_input_frame_t played_frame;
     p8_input_t played;
+    bindings_t session_bindings;
 } input_step_t;
 
+typedef enum { INPUT_STEP_BINDINGS_SESSION, INPUT_STEP_BINDINGS_DEFAULT } input_step_bindings_t;
+
 void input_step_init(input_step_t *step, const bindings_t *bindings);
+
+void input_step_switch_bindings(input_step_t *step, input_step_bindings_t which);
 
 int input_step_run(input_step_t *step, const p8_input_frame_t *raw);
 
