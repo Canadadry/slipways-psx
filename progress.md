@@ -41,7 +41,7 @@
     - [x] Chunk 1: moves through the table, shared direction and conversions go
     - [x] Chunk 2: choose and arming through the table
     - [x] Chunk 3: close actions through the table
-  - [ ] 13. Cross-mode tests read their bindings
+  - [x] 13. Cross-mode tests read their bindings
     - [x] Chunk 1: chord mask from the cheat module
     - [x] Chunk 2: shoulders through the table
     - [x] Chunk 3: pause opening and Select through the table
