@@ -47,6 +47,7 @@
     - [x] Chunk 3: pause opening and Select through the table
     - [x] Chunk 4: the circle family through the table
   - [ ] 14. Guard closed
+    - [x] Chunk 1: guard closed
 - [ ] Phase 3 — Compile-time keymap
   - [ ] 15. Keymap compiled in
 - [ ] Phase 4 — Replays that prove the remap

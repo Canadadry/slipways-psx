@@ -200,10 +200,9 @@
 #                       tools/random_guard_exceptions.txt (strict counts,
 #                       updated by hand), in make test
 # make button-guard  -> counts, per file of src/game/, the P8_PAD_BUTTON_*
-#                       names, comments and strings left out; fails on any
-#                       difference from tools/button_guard_allowance.txt
-#                       (strict counts per file, one line per owning step of
-#                       plan 17, updated by hand), in make test
+#                       names, comments and strings left out; fails when a
+#                       file other than cheat.c and the bindings module
+#                       names one, in make test
 # make float-link    -> links the objects of tmp/replay without `-lm` into a
 #                       throwaway binary, never run; outside the suite: make
 #                       test already builds tmp/replay, with the same link
@@ -1377,10 +1376,8 @@ random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS)
 
 .PHONY: random-guard
 
-BUTTON_GUARD_ALLOWANCE := tools/button_guard_allowance.txt
-
-button-guard: tools/button_guard.sh $(BUTTON_GUARD_ALLOWANCE)
-	@sh tools/button_guard.sh $(BUTTON_GUARD_ALLOWANCE) src/game
+button-guard: tools/button_guard.sh
+	@sh tools/button_guard.sh src/game
 
 .PHONY: button-guard
 

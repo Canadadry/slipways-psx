@@ -1,6 +1,0 @@
-# Pad button names left in src/game/, read by tools/button_guard.sh through
-# make button-guard. One line `<path> <owner> <count> | <reason>`, strict
-# counts summed per path. Each of steps 9-13 of plan 17 deletes its own
-# lines; `fixed` lines stay.
-src/game/cheat.c fixed 2 | cheat_step: the cheat chord, below the bindings
-src/game/bindings.c fixed 3 | bindings module: button count

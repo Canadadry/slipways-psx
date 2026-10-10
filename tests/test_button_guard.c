@@ -5,9 +5,8 @@
 
 #define DIR "tmp/test_button_guard_work"
 #define SRC DIR "/src"
-#define LIST DIR "/allowance.txt"
 #define OUT DIR "/out.txt"
-#define GUARD "sh tools/button_guard.sh " LIST " " SRC
+#define GUARD "sh tools/button_guard.sh " SRC
 
 /* Static buffer, NUL-terminated, overwritten by each call. */
 static const char *read_file(const char *path) {
@@ -29,48 +28,52 @@ static void write_file(const char *path, const char *text) {
 
 /* The exit code of the script, read back from a file: the raw status of
  * system() cannot be decoded without <sys/wait.h>, outside C99. */
-static int run_guard(void) {
-    assert(system(GUARD " > " OUT " 2>&1; echo $? > " DIR "/code") == 0);
+static int run(const char *command) {
+    char line[512];
+    snprintf(line, sizeof(line), "%s > " OUT " 2>&1; echo $? > " DIR "/code", command);
+    assert(system(line) == 0);
     return atoi(read_file(DIR "/code"));
 }
 
 /* Spawns no process, the directories are made once by main: every guard run
  * costs a few milliseconds. */
 static void setup(void) {
-    write_file(SRC "/nav.c", "int jump(int p) { return (p & P8_PAD_BUTTON_7) || (p & P8_PAD_BUTTON_8); }\n"
-                             "int aim(int p) { return (p & P8_PAD_BUTTON_12) != 0; }\n");
-    write_file(SRC "/cheat.h", "#define CHORD (P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6)\n");
+    remove(SRC "/nav.c");
+    remove(SRC "/cheat.h");
+    remove(SRC "/sub/cheat.c");
+    write_file(SRC "/cheat.c", "int chord(int p) { return (p & P8_PAD_BUTTON_5) && (p & P8_PAD_BUTTON_6); }\n");
+    write_file(SRC "/bindings.c", "int valid(int b) { return b >= 0 && b < P8_PAD_BUTTON_COUNT; }\n"
+                                  "int last(void) { return P8_PAD_BUTTON_COUNT - 1; }\n");
+    write_file(SRC "/bindings.h", "enum { BINDINGS_BUTTONS = P8_PAD_BUTTON_COUNT };\n");
     write_file(SRC "/hud.c", "int hud(void) { return 1; }\n");
-    write_file(LIST, "# comment\n\n"
-                     SRC "/nav.c step-9 2 | jump: enter_aim, open_menu\n"
-                     SRC "/nav.c step-10 1 | aim: select\n"
-                     SRC "/cheat.h fixed 2 | the cheat chord\n");
 }
 
-static void test_tree_matching_the_allowance_passes(void) {
+static void test_reads_only_in_the_fixed_exceptions_pass(void) {
     setup();
-    assert(run_guard() == 0);
-    assert(strstr(read_file(OUT), "button-guard files 2 reads 5\n") != NULL);
+    assert(run(GUARD) == 0);
+    assert(strstr(read_file(OUT), "button-guard files 3 reads 5\n") != NULL);
 }
 
-static void test_count_changes_fail_naming_the_file_and_both_counts(void) {
-    setup();
-    write_file(SRC "/nav.c", "int jump(int p) { return (p & P8_PAD_BUTTON_7) || (p & P8_PAD_BUTTON_8); }\n"
-                             "int aim(int p) { return (p & P8_PAD_BUTTON_12) || (p & P8_PAD_BUTTON_5); }\n");
-    write_file(SRC "/cheat.h", "#define CHORD 0\n");
-    write_file(SRC "/hud.c", "int hud(int p) { return p & P8_PAD_BUTTON_11; }\n");
-    assert(run_guard() == 1);
-    const char *out = read_file(OUT);
-    assert(strstr(out, "button_guard: " SRC "/nav.c names 4 button(s), listed 3\n") != NULL);
-    assert(strstr(out, "button_guard: " SRC "/hud.c names 1 button(s), not listed\n") != NULL);
-    assert(strstr(out, "button_guard: " SRC "/cheat.h names no button, listed 2\n") != NULL);
-}
-
-static void test_stale_line_with_a_higher_count_fails(void) {
+static void test_reads_outside_the_exceptions_fail_one_sorted_line_per_file(void) {
     setup();
     write_file(SRC "/nav.c", "int jump(int p) { return (p & P8_PAD_BUTTON_7) || (p & P8_PAD_BUTTON_8); }\n");
-    assert(run_guard() == 1);
-    assert(strstr(read_file(OUT), SRC "/nav.c names 2 button(s), listed 3\n") != NULL);
+    write_file(SRC "/hud.c", "int hud(int p) { return p & P8_PAD_BUTTON_11; }\n");
+    assert(run(GUARD) == 1);
+    const char *out = read_file(OUT);
+    const char *hud = strstr(out, "button_guard: " SRC "/hud.c names 1 button(s) outside cheat.c and the bindings module\n");
+    const char *nav = strstr(out, "button_guard: " SRC "/nav.c names 2 button(s) outside cheat.c and the bindings module\n");
+    assert(hud != NULL && nav != NULL && hud < nav);
+    assert(strstr(out, "button-guard files 5 reads 8\n") != NULL);
+}
+
+static void test_only_the_exact_exception_paths_are_exempt(void) {
+    setup();
+    write_file(SRC "/cheat.h", "#define CHORD (P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6)\n");
+    write_file(SRC "/sub/cheat.c", "int chord(int p) { return p & P8_PAD_BUTTON_5; }\n");
+    assert(run(GUARD) == 1);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "button_guard: " SRC "/cheat.h names 2 button(s) outside") != NULL);
+    assert(strstr(out, "button_guard: " SRC "/sub/cheat.c names 1 button(s) outside") != NULL);
 }
 
 static void test_names_in_comments_literals_and_longer_identifiers_are_not_reads(void) {
@@ -80,56 +83,45 @@ static void test_names_in_comments_literals_and_longer_identifiers_are_not_reads
                              "const char *m = \"P8_PAD_BUTTON_4 \\\" P8_PAD_BUTTON_4\";\n"
                              "char quote = '\"'; /* P8_PAD_BUTTON_5 */ int x; /* \" */\n"
                              "int MY_P8_PAD_BUTTON_5 = 0; char c = 'P';\n");
-    assert(run_guard() == 0);
-    assert(strstr(read_file(OUT), "button-guard files 2 reads 5\n") != NULL);
+    assert(run(GUARD) == 0);
+    assert(strstr(read_file(OUT), "button-guard files 3 reads 5\n") != NULL);
 }
 
-static void test_invalid_allowance_lines_are_errors(void) {
+static void test_tree_without_buttons_passes_and_ignores_standard_input(void) {
     setup();
-    write_file(LIST, SRC "/nav.c step-9 2\n"
-                     SRC "/nav.c step-10 2 |  \n"
-                     SRC "/nav.c step-8 1 | before the bindings\n"
-                     SRC "/nav.c step-14 1 | after the bindings\n"
-                     SRC "/cheat.h fixed 0 | the cheat chord\n"
-                     SRC "/hud.c 2 | the hud\n"
-                     SRC "/gone.c step-12 2 | deleted\n"
-                     SRC "/nav.c step-10 1 | aim, again\n");
-    assert(run_guard() == 2);
-    const char *out = read_file(OUT);
-    assert(strstr(out, "line without a reason: " SRC "/nav.c step-9 2\n") != NULL);
-    assert(strstr(out, "empty reason: " SRC "/nav.c\n") != NULL);
-    assert(strstr(out, "unknown owner step-8: " SRC "/nav.c\n") != NULL);
-    assert(strstr(out, "unknown owner step-14: " SRC "/nav.c\n") != NULL);
-    assert(strstr(out, "count not a positive integer: " SRC "/cheat.h fixed 0") != NULL);
-    assert(strstr(out, "not `<path> <owner> <count> | <reason>`: " SRC "/hud.c 2") != NULL);
-    assert(strstr(out, "listed file missing: " SRC "/gone.c\n") != NULL);
-    assert(strstr(out, "duplicate line: " SRC "/nav.c step-10\n") != NULL);
-    assert(strstr(out, "button-guard ") == NULL);
-}
-
-static void test_empty_allowance_is_an_error_not_a_pass(void) {
-    setup();
-    write_file(LIST, "# only a comment\n\n");
-    assert(run_guard() == 2);
-    assert(strstr(read_file(OUT), "empty list\n") != NULL);
+    write_file(SRC "/cheat.c", "int chord(int p) { return p; }\n");
+    write_file(SRC "/bindings.c", "int valid(int b) { return b >= 0; }\n");
+    write_file(SRC "/bindings.h", "int valid(int b);\n");
+    assert(run("printf 'P8_PAD_BUTTON_1\\n' | " GUARD) == 0);
+    assert(strstr(read_file(OUT), "button-guard files 0 reads 0\n") != NULL);
 }
 
 static void test_missing_directory_is_an_error(void) {
     setup();
-    assert(system("sh tools/button_guard.sh " LIST " " DIR "/none > " OUT " 2>&1; echo $? > " DIR "/code") == 0);
-    assert(atoi(read_file(DIR "/code")) == 2);
-    assert(strstr(read_file(OUT), "directory not found: " DIR "/none\n") != NULL);
+    assert(run("sh tools/button_guard.sh " DIR "/none") == 2);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "directory not found: " DIR "/none\n") != NULL);
+    assert(strstr(out, "button-guard ") == NULL);
+}
+
+static void test_directory_without_c_files_is_an_error(void) {
+    setup();
+    write_file(DIR "/empty/notes.txt", "P8_PAD_BUTTON_1\n");
+    assert(run("sh tools/button_guard.sh " DIR "/empty") == 2);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "no C file under: " DIR "/empty\n") != NULL);
+    assert(strstr(out, "button-guard ") == NULL);
 }
 
 int main(void) {
-    assert(system("mkdir -p " SRC) == 0);
-    test_tree_matching_the_allowance_passes();
-    test_count_changes_fail_naming_the_file_and_both_counts();
-    test_stale_line_with_a_higher_count_fails();
+    assert(system("mkdir -p " SRC "/sub " DIR "/empty") == 0);
+    test_reads_only_in_the_fixed_exceptions_pass();
+    test_reads_outside_the_exceptions_fail_one_sorted_line_per_file();
+    test_only_the_exact_exception_paths_are_exempt();
     test_names_in_comments_literals_and_longer_identifiers_are_not_reads();
-    test_invalid_allowance_lines_are_errors();
-    test_empty_allowance_is_an_error_not_a_pass();
+    test_tree_without_buttons_passes_and_ignores_standard_input();
     test_missing_directory_is_an_error();
+    test_directory_without_c_files_is_an_error();
     assert(system("rm -rf " DIR) == 0);
     printf("test_button_guard: all tests passed\n");
     return 0;
