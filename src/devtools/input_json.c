@@ -286,6 +286,8 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
 
     int fresh = (*tail_offset <= 0);
     const char *member = (fresh && header_member) ? header_member : NULL;
+    assert((!member || (member[0] == '"' && member[strlen(member) - 1] == '"')) &&
+           "header_member is bare JSON members: no leading indent, no trailing comma");
     long start = fresh ? 0 : *tail_offset;
 
     char fixed_tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];
