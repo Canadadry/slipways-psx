@@ -590,15 +590,15 @@ static void cancel_point(pad_nav_t *nav) {
 static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
     nav->probe_or_fold_engaged = 0;
-    if ((pressed & P8_PAD_BUTTON_6) || pad_nav_panel_open()) {
+    if (action_pressed(nav, pressed, BINDINGS_MODE_PLACEMENT, BINDINGS_ACTION_CANCEL_PLACEMENT) || pad_nav_panel_open()) {
         cancel_point(nav);
         return;
     }
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     aim_pan(nav, BINDINGS_MODE_PLACEMENT, pad_buttons);
-    /* × drops by letting the held left button go for one frame: the ui's drop runs the cart's rules. */
-    if (pressed & P8_PAD_BUTTON_5) {
+    /* place_structure drops by letting the held left button go for one frame: the ui's drop runs the cart's rules. */
+    if (action_pressed(nav, pressed, BINDINGS_MODE_PLACEMENT, BINDINGS_ACTION_PLACE_STRUCTURE)) {
         return;
     }
     played->mouse_buttons = P8_MOUSE_LEFT;

@@ -4331,6 +4331,18 @@ static void test_the_bar_and_placement_follow_a_moved_table(void) {
     bindings_t table = moved_bar_and_placement_table();
     input_step_t step;
     start_game_with(&step, &table);
+    if (in_forked_copy()) {
+        make_known(planet_farthest_outside());
+        pan_to_empty_space(&step);
+        world_count_t before = world_count();
+        for (int b = 0; b < 2; b++) {
+            run_frame(&step, b ? P8_PAD_BUTTON_7 : P8_PAD_BUTTON_5);
+            assert(input_step_played_frame(&step)->mouse_buttons == 0);
+            run_frame(&step, 0);
+            assert(tagged_count(TAG_PROBE) == before.probes && pad_nav_aim_mode(&step.pad_nav));
+        }
+        end_forked_copy();
+    }
     open_build_bar(&step);
     assert_build_focus(&step, basic_structure_icon());
     tap(&step, P8_PAD_BUTTON_4);
@@ -4368,6 +4380,39 @@ static void test_the_bar_and_placement_follow_a_moved_table(void) {
     for (int i = 0; i < 10; i++) {
         run_frame(&step, P8_PAD_BUTTON_8);
         assert_carrying(&step, structure);
+    }
+    pan_clear_of_every_node(&step, structure);
+    world_count_t before = world_count();
+    p8_fixed_t cost = targeting_of(structure)->cost;
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_BUTTON_7);
+        run_frame(&step, 0);
+        assert(!structure->is_dead && structure->state == ENTITY_STATE_SETTLED);
+        assert(world_count().credits == p8_fixed_sub(before.credits, cost));
+        assert_placement_over(&step);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        vec_t from = camera_at();
+        run_frame(&step, P8_PAD_BUTTON_5);
+        assert_played(&step, x, y, 0);
+        run_frame(&step, 0);
+        assert(structure->is_dead);
+        assert_world_unchanged(before);
+        assert_placement_over(&step);
+        assert_moved(from, 0, 0);
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        run_frame(&step, P8_PAD_BUTTON_6);
+        assert_carrying(&step, structure);
+        run_frame(&step, 0);
+        assert_carrying(&step, structure);
+        run_frame(&step, P8_PAD_BUTTON_8);
+        assert_carrying(&step, structure);
+        run_frame(&step, 0);
+        assert_carrying(&step, structure);
+        end_forked_copy();
     }
 }
 
