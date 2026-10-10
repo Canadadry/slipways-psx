@@ -362,9 +362,20 @@ static void settle(input_step_t *step) {
 
 /* The title and the game's creation, no frame run: the layout built before the first frame is what the game
  * appears with. */
-static void begin_game(input_step_t *step) {
-    start_title(step);
+static void begin_game_with(input_step_t *step, const bindings_t *bindings) {
+    start_title_with(step, bindings);
     cart_start_game((button_t *)title_button("forgiving"));
+}
+
+static void begin_game(input_step_t *step) {
+    begin_game_with(step, &bindings_compiled);
+}
+
+static void start_game_with(input_step_t *step, const bindings_t *bindings) {
+    begin_game_with(step, bindings);
+    settle(step);
+    assert(main_economy_typed() != NULL && !pad_nav_panel_open());
+    assert(pad_nav_aim_mode(&step->pad_nav) && pad_nav_hovered(&step->pad_nav) == NULL);
 }
 
 static void start_game(input_step_t *step) {
@@ -4189,6 +4200,74 @@ static void test_jump_mode_follows_a_rotated_table_and_slipway_mode_stays_unboun
     }
 }
 
+static const int rotated_pan_buttons[4] = { P8_PAD_BUTTON_2, P8_PAD_BUTTON_1, P8_PAD_BUTTON_4, P8_PAD_BUTTON_3 };
+static const int rotated_pan_moves[4] = { -12, 12, -12, 12 };
+
+static bindings_t parsed_table(const char *text) {
+    bindings_t table;
+    bindings_error_t error;
+    assert(bindings_parse("test.cfg", text, &table, &error));
+    return table;
+}
+
+static void assert_no_button_pans(input_step_t *step, const entity_t *carried) {
+    vec_t from = camera_at();
+    for (int b = 0; b < 4; b++) {
+        for (int frame = 0; frame < 11; frame++) {
+            run_frame(step, rotated_pan_buttons[b]);
+            if (carried != NULL) {
+                assert_carrying(step, carried);
+            }
+        }
+        run_frame(step, 0);
+        assert_moved(from, 0, 0);
+    }
+}
+
+static void test_aim_mode_pans_on_a_rotated_table_and_placement_stays_unbound(void) {
+    bindings_t table = parsed_table("aim.pan_up = 2\naim.pan_down = 1\naim.pan_left = 4\naim.pan_right = 3\n"
+                                    "aim.probe_or_fold = 8\naim.leave_aim = 5\n"
+                                    "aim.open_build_bar = 9\n"        /* reach-only (step 13) */
+                                    "build_bar.take_structure = 5\n"); /* reach-only (step 11) */
+    input_step_t step;
+    start_game_with(&step, &table);
+    for (int d = 0; d < 4; d++) {
+        if (in_forked_copy()) {
+            assert(hold_and_measure(&step, rotated_pan_buttons[d], 11) == rotated_pan_moves[d]);
+            end_forked_copy();
+        }
+    }
+    if (in_forked_copy()) {
+        vec_t from = camera_at();
+        hold(&step, P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2, 11);
+        run_frame(&step, 0);
+        assert_moved(from, 0, 0);
+        end_forked_copy();
+    }
+    open_build_bar(&step);
+    entity_t *structure = take_structure(&step);
+    assert_no_button_pans(&step, structure);
+}
+
+static void test_placement_pans_on_its_table_and_aim_mode_stays_unbound(void) {
+    bindings_t table = parsed_table("placement.pan_up = 2\nplacement.pan_down = 1\n"
+                                    "placement.pan_left = 4\nplacement.pan_right = 3\n"
+                                    "aim.open_build_bar = 9\n"        /* reach-only (step 13) */
+                                    "build_bar.take_structure = 5\n"); /* reach-only (step 11) */
+    input_step_t step;
+    start_game_with(&step, &table);
+    assert_no_button_pans(&step, NULL);
+    open_build_bar(&step);
+    entity_t *structure = take_structure(&step);
+    for (int d = 0; d < 4; d++) {
+        if (in_forked_copy()) {
+            assert(hold_and_measure(&step, rotated_pan_buttons[d], 11) == rotated_pan_moves[d]);
+            assert_carrying(&step, structure);
+            end_forked_copy();
+        }
+    }
+}
+
 static void test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways(void) {
     input_step_t step;
     planet_t *a, *b, *c;
@@ -6313,6 +6392,8 @@ int main(void) {
     in_fresh_child(test_four_chords_in_aim_mode_cheat_and_change_nothing_else);
     in_fresh_child(test_probing_and_leaving_aim_mode_never_types_the_cheat);
     in_fresh_child(test_jump_mode_follows_a_rotated_table_and_slipway_mode_stays_unbound);
+    in_fresh_child(test_aim_mode_pans_on_a_rotated_table_and_placement_stays_unbound);
+    in_fresh_child(test_placement_pans_on_its_table_and_aim_mode_stays_unbound);
     in_fresh_child(test_cross_dpad_cross_dpad_cross_builds_a_chain_of_two_slipways);
     in_fresh_child(test_a_built_slipway_records_its_target_and_a_refused_one_keeps_the_start);
     in_fresh_child(test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing);

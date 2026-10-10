@@ -148,10 +148,15 @@ static int pan_speed(int held_frames) {
     return held_frames <= 40 ? 2 : 4;
 }
 
-static void aim_pan(pad_nav_t *nav, int pad_buttons) {
+static void aim_pan(pad_nav_t *nav, bindings_mode_t mode, int pad_buttons) {
+    static const bindings_action_t pan_action[PAD_JUMP_DIRECTIONS] = {
+        BINDINGS_ACTION_PAN_UP, BINDINGS_ACTION_PAN_DOWN, BINDINGS_ACTION_PAN_LEFT, BINDINGS_ACTION_PAN_RIGHT
+    };
+    assert(bindings_mode_has_action(mode, BINDINGS_ACTION_PAN_UP) &&
+           "aim_pan: a mode with pan_* actions (aim or placement)");
     int speed[PAD_JUMP_DIRECTIONS];
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        if (!(pad_buttons & pad_jump_direction_button(pad_jump_direction(i)))) {
+        if (!(pad_buttons & bindings_mask(&nav->bindings, mode, pan_action[i]))) {
             nav->held_frames[i] = 0;
         } else if (nav->held_frames[i] < HELD_FRAMES_CAP) {
             nav->held_frames[i]++;
@@ -160,7 +165,7 @@ static void aim_pan(pad_nav_t *nav, int pad_buttons) {
     }
     assert(pad_jump_direction(0) == PAD_DIRECTION_UP && pad_jump_direction(1) == PAD_DIRECTION_DOWN &&
            pad_jump_direction(2) == PAD_DIRECTION_LEFT && pad_jump_direction(3) == PAD_DIRECTION_RIGHT &&
-           "aim_pan: speed[] is indexed Up, Down, Left, Right");
+           "aim_pan: speed[] and pan_action[] are indexed Up, Down, Left, Right");
     camera_t *camera = main_camera_typed();
     if (camera != NULL) {
         camera_pan(camera, speed[3] - speed[2], speed[1] - speed[0]);
@@ -358,7 +363,7 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     if (!still) {
-        aim_pan(nav, pad_buttons);
+        aim_pan(nav, BINDINGS_MODE_AIM, pad_buttons);
     }
     if (select_tapped && !nav->cross_engaged && select_tap(nav, NULL, shown)) {
         return;
@@ -580,7 +585,7 @@ static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_inpu
     }
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
-    aim_pan(nav, pad_buttons);
+    aim_pan(nav, BINDINGS_MODE_PLACEMENT, pad_buttons);
     /* × drops by letting the held left button go for one frame: the ui's drop runs the cart's rules. */
     if (pressed & P8_PAD_BUTTON_5) {
         return;

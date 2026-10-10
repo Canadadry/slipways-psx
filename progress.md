@@ -31,6 +31,9 @@
     - [x] Chunk 1: the hold repeat takes the table and the mode
     - [x] Chunk 2: jump_step reads the table
   - [ ] 10. Aim and slipway modes read their bindings
+    - [x] Chunk 1: the pan takes the mode
+    - [ ] Chunk 2: aim mode reads the table
+    - [ ] Chunk 3: slipway mode reads the table
   - [ ] 11. Build bar and placement read their bindings
   - [ ] 12. Menu, panels, pause and title read their bindings
   - [ ] 13. Cross-mode tests read their bindings
