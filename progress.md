@@ -13,6 +13,8 @@
     - [x] Chunk 2: directions as their own enum
 - [ ] Phase 2 — Bindings in the game
   - [ ] 5. Inventory of button reads
+    - [x] Chunk 1: the guard
+    - [ ] Chunk 2: inventory and reconciled table
   - [ ] 6. Bindings module
   - [ ] 7. Compile-time bindings
   - [ ] 8. Generator high level reads the default bindings

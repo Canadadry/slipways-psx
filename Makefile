@@ -3,7 +3,7 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
 #                       alloc-guard + pointer-guard + random-guard +
-#                       data-guard + p8-guard, the fast loop
+#                       button-guard + data-guard + p8-guard, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -198,6 +198,11 @@
 #                       out; fails on any difference from
 #                       tools/random_guard_exceptions.txt (strict counts,
 #                       updated by hand), in make test
+# make button-guard  -> counts, per file of src/game/, the P8_PAD_BUTTON_*
+#                       names, comments and strings left out; fails on any
+#                       difference from tools/button_guard_allowance.txt
+#                       (strict counts per file, one line per owning step of
+#                       plan 17, updated by hand), in make test
 # make float-link    -> links the objects of tmp/replay without `-lm` into a
 #                       throwaway binary, never run; outside the suite: make
 #                       test already builds tmp/replay, with the same link
@@ -564,6 +569,9 @@ $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_gre
 $(TMP_DIR)/test_random_guard: $(call objs,tests/test_random_guard.c) tools/random_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_button_guard: $(call objs,tests/test_button_guard.c) tools/button_guard.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -893,6 +901,7 @@ UNIT_TESTS := \
     test_pointer_guard \
     test_float_grep \
     test_random_guard \
+    test_button_guard \
     test_float_link \
     test_constants_check \
     test_background_draw \
@@ -1024,7 +1033,7 @@ endif
 replay: $(TMP_DIR)/replay
 	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -1349,6 +1358,13 @@ random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS)
 	@sh tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS) src
 
 .PHONY: random-guard
+
+BUTTON_GUARD_ALLOWANCE := tools/button_guard_allowance.txt
+
+button-guard: tools/button_guard.sh $(BUTTON_GUARD_ALLOWANCE)
+	@sh tools/button_guard.sh $(BUTTON_GUARD_ALLOWANCE) src/game
+
+.PHONY: button-guard
 
 float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh
 	@sh tools/float_link.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-link/replay $(call objs,$(REPLAY_SRCS))
