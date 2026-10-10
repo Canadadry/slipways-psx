@@ -63,11 +63,11 @@
     - [x] Chunk 2: the flag comes from the compiled unit
   - [x] 18. Swap twin
   - [x] 19. Unbound action
-- [ ] Phase 5 — Docs and cleanup
+- [x] Phase 5 — Docs and cleanup
   - [x] 20. Docs
     - [x] Chunk 1: explain every mode in bindings.default.cfg
     - [x] Chunk 2: README points to the two files, pad-modes doc deleted
-  - [ ] 21. skill: rework-comments
+  - [x] 21. skill: rework-comments
     - [x] rework-comments: button guard
     - [x] rework-comments: bindings
     - [x] rework-comments: replay
