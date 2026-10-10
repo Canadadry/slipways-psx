@@ -68,3 +68,4 @@
     - [x] Chunk 1: explain every mode in bindings.default.cfg
     - [x] Chunk 2: README points to the two files, pad-modes doc deleted
   - [ ] 21. skill: rework-comments
+    - [x] rework-comments: button guard

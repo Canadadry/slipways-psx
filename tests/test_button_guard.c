@@ -26,8 +26,6 @@ static void write_file(const char *path, const char *text) {
     fclose(file);
 }
 
-/* The exit code of the script, read back from a file: the raw status of
- * system() cannot be decoded without <sys/wait.h>, outside C99. */
 static int run(const char *command) {
     char line[512];
     snprintf(line, sizeof(line), "%s > " OUT " 2>&1; echo $? > " DIR "/code", command);
@@ -35,8 +33,6 @@ static int run(const char *command) {
     return atoi(read_file(DIR "/code"));
 }
 
-/* Spawns no process, the directories are made once by main: every guard run
- * costs a few milliseconds. */
 static void setup(void) {
     remove(SRC "/nav.c");
     remove(SRC "/cheat.h");

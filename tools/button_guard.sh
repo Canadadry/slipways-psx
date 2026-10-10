@@ -1,10 +1,4 @@
 #!/bin/sh
-# usage: button_guard.sh <directory>
-# Counts the names starting with P8_PAD_BUTTON_ outside comments and string
-# literals in each `.c` and `.h` file of <directory>. Fails (exit 1) when a
-# file other than <directory>/cheat.c, bindings.c or bindings.h names one;
-# exit 2 on a usage error, a missing directory or one with no C file: a guard
-# over nothing would pass for green.
 
 set -u
 
@@ -20,8 +14,6 @@ dir=${1%/}
 [ -n "$(find "$dir" -type f \( -name '*.c' -o -name '*.h' \) -print -quit)" ] ||
     fail "no C file under: $dir"
 
-# Word splitting below is deliberate: one argument per file, no path of src/
-# has a space. /dev/null keeps awk off standard input when no file matches.
 files=$(grep -rl --include='*.c' --include='*.h' 'P8_PAD_BUTTON_' "$dir")
 
 exec awk -v dir="$dir" -v sq="'" '
@@ -40,8 +32,6 @@ exec awk -v dir="$dir" -v sq="'" '
         for (i = 1; i <= n; i++) print lines[i]
     }
 
-    # Comments become a space and string or character literals empty quotes,
-    # so a name in a comment or an assert message is not a read.
     function source_line(    line, code, i, token, word) {
         line = $0
         code = ""
