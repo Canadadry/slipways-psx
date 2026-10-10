@@ -17,7 +17,7 @@
     - [x] Chunk 2: inventory and reconciled table
   - [ ] 6. Bindings module
     - [x] Chunk 1: button count and reader
-    - [ ] Chunk 2: enums, table and parser
+    - [x] Chunk 2: enums, table and parser
   - [ ] 7. Compile-time bindings
   - [ ] 8. Generator high level reads the default bindings
   - [ ] 9. Jump mode reads its bindings
