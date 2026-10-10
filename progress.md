@@ -1,0 +1,11 @@
+- [x] Plan 10, phase 1 — PSX backend
+  - [x] 1.1 The core compiles for MIPS
+  - [x] 1.2 Assets
+  - [x] 1.3 Separate the drawing API from its backend
+  - [x] 1.4 GPU primitives
+  - [x] 1.5 Controller
+  - [x] 1.6 The game's .bin/.cue
+- [ ] Plan 10, done when
+  - [x] The .bin/.cue boots, shows the title screen and passes it through scripted pad input
+  - [x] The PSX check target is green
+  - [ ] The human has reviewed the step 4 captures and they are frozen as references
