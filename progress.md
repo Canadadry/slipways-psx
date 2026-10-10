@@ -27,7 +27,7 @@
     - [x] Chunk 2: pad_metrics off pad_jump's conversions
     - [x] Chunk 3: high-level presses through the table
     - [x] Chunk 4: PSX words out of the generator
-  - [ ] 9. Jump mode reads its bindings
+  - [x] 9. Jump mode reads its bindings
     - [x] Chunk 1: the hold repeat takes the table and the mode
     - [x] Chunk 2: jump_step reads the table
   - [ ] 10. Aim and slipway modes read their bindings
