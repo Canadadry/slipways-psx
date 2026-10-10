@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* NULL when unreadable; else to free. */
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     if (!file) {
@@ -109,7 +108,6 @@ static int check_texts(const demo_source_t *source, char *reason, size_t reason_
     return 1;
 }
 
-/* A failed close leaves the caption shown: pad_author reports it at the frame the caption appeared. */
 static int refuse_close(const pad_caption_track_t *track, const char *rule, char *reason, size_t reason_size) {
     snprintf(reason, reason_size, "frame %d: %s", track->captions[track->count - 1].from, rule);
     return 0;
