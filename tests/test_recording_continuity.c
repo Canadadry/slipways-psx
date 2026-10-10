@@ -1,17 +1,7 @@
-/* The seam between the replay source and the session recorder, which each
- * have their own tests and neither of which says what happens where they
- * meet -- the only place a resume can go wrong. The loop below drives both
- * real modules in the order of src/cmd/game.c, replacing only the hardware
- * poll.
- *
- * Frames are compared field by field and in order: a count of N+M would
+/* Frames are compared field by field and in order: a count of N+M would
  * pass on a recording that replayed the wrong frames, replayed them
  * backwards, or wrote the live ones first, and each of those reloads fine
- * and replays to a different game.
- *
- * The last test serves the resumed recording back as a replay source
- * rather than merely reloading it: parsing says nothing about what the
- * next session does with the file. */
+ * and replays to a different game. */
 
 #include "devtools/session_recorder.h"
 #include "devtools/replay_source.h"
@@ -115,8 +105,6 @@ static void test_recorder_writes_a_loadable_recording(void) {
     remove(path);
 }
 
-/* The file a resumed session leaves behind is the whole game: replayed
- * part first, played part after, and it reloads without error. */
 static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *source_path = "tmp/test_recording_continuity_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
@@ -143,9 +131,10 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     remove(resumed_path);
 }
 
-/* A resumed session's recording must itself be resumable: all N+M frames
- * in order, then exhaustion as the original reported it. Serving fewer
- * would hand the controls back mid-game on the second resume. */
+/* Served back as a replay source rather than merely reloaded: parsing
+ * says nothing about what the next session does with the file. Serving
+ * fewer than N+M would hand the controls back mid-game on the second
+ * resume. */
 static void test_resumed_recording_is_itself_resumable(void) {
     const char *source_path = "tmp/test_recording_continuity_chain_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";

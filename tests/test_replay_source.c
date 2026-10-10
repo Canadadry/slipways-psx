@@ -1,15 +1,14 @@
-/* The switchable input source: N frames from the file, then exhaustion.
- * That a file was read proves nothing, so every served frame is asserted
- * value by value and in order -- counting them, or checking them for being
- * non-zero, would pass on a source serving them backwards.
+/* Every served frame is asserted value by value and in order: counting
+ * them, or checking them for being non-zero, would pass on a source serving
+ * them backwards.
  *
- * The three open outcomes are pinned separately because an unreadable
- * recording must stay an explicit launch error and never become a silent
- * new game, which would look to the player like a lost save.
+ * The three open outcomes are pinned separately: an unreadable recording
+ * must stay an explicit launch error, never a silent new game that would
+ * look to the player like a lost save.
  *
- * The failure fixtures are the ones `tests/test_input.c` uses: this
- * module delegates "valid recording" to `p8_input_load`, so it must be
- * tested against that function's idea of a bad file, not a second one. */
+ * The failure fixtures are those of `tests/test_input.c`: this module
+ * delegates "valid recording" to `p8_input_load`, so it is tested against
+ * that function's idea of a bad file, not a second one. */
 
 #include "devtools/replay_source.h"
 #include "game/save_state.h"
@@ -91,8 +90,6 @@ static void test_loaded_recording_serves_its_first_frame(void) {
     replay_source_close(&source);
 }
 
-/* A recording of N frames must feed the game those N frames, in the order
- * they were played, and nothing else. */
 static void test_loaded_recording_serves_every_frame_in_order(void) {
     replay_source_t source;
 
@@ -109,11 +106,8 @@ static void test_loaded_recording_serves_every_frame_in_order(void) {
     replay_source_close(&source);
 }
 
-/* The end of the recording is where the player gets the controls back, so
- * it is reported once per frame, for as long as the session runs. A source
- * that aborted, looped back to frame 0 or re-served the last frame would
- * crash or keep driving the game from a file that ran out. The loop is far
- * longer than the recording on purpose: exhaustion is a terminal state. */
+/* 100 is far longer than the recording: exhaustion is a terminal state,
+ * never a loop back to frame 0 or a re-served last frame. */
 static void test_exhausted_recording_reports_exhaustion_forever(void) {
     replay_source_t source;
     p8_input_frame_t frame;
@@ -132,9 +126,6 @@ static void test_exhausted_recording_reports_exhaustion_forever(void) {
     replay_source_close(&source);
 }
 
-/* Why the driver needs no mode flag: launching without an argument is a
- * replay that is over before it starts, so the first call already says
- * "take your frames from the hardware". */
 static void test_no_recording_is_exhausted_from_the_first_frame(void) {
     replay_source_t source;
     p8_input_frame_t frame;
@@ -147,11 +138,8 @@ static void test_no_recording_is_exhausted_from_the_first_frame(void) {
     replay_source_close(&source);
 }
 
-/* An accessor on the cursor this module already keeps, not a second
- * counter the driver maintains: two counters drift, and a progress line
- * that disagrees with the replay is worse than none. Counted in frames
- * served, so 1 on the first frame and N on the last -- one ahead of the
- * 0-based index the marker file writes. */
+/* Counted in frames served, so 1 on the first frame and N on the last --
+ * one ahead of the 0-based index the marker file writes. */
 static void test_frames_served_tracks_the_replay_position(void) {
     replay_source_t source;
     p8_input_frame_t frame;

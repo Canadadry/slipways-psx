@@ -1,20 +1,12 @@
-/* A marker is one 0-based frame index, appended to a markers file when the
- * player taps space, and meant to be read as an index into the paired
- * recording's "frames" array. Coherent means exactly that the number
- * written and the frame's position in the recording on disk are the same.
- *
- * A resumed session is where that can break: it replays N frames the player
- * did not play before recording any they did. The marker index comes from
- * `session_recorder_frame_count()`, so everything turns on whether
- * that counter counts the replayed frames too -- it does, because every
- * frame about to be played is recorded, replayed or live alike.
+/* A marker must equal its frame's 0-based position in the recording on
+ * disk. A resumed session is where that can break: it replays N frames the
+ * player did not play before recording any they did.
  *
  * Every iteration is checked, not one chosen marker: an off-by-N can cancel
  * out at a single frame.
  *
  * Not covered here: the space bar itself, and that the marker file gets one
- * line per tap. Both need a window. What is covered is the number those
- * lines would carry. */
+ * line per tap. Both need a window. */
 
 #include "devtools/session_recorder.h"
 #include "devtools/replay_source.h"
@@ -52,14 +44,9 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
 }
 
 /* The loop of src/cmd/game.c, with the hardware calls scripted and the
- * game step dropped. `marker_for_iteration` holds, for every iteration,
- * the count read where raylib_backend_poll_input reads it: just before
- * the frame is recorded. On a live frame, that is what a space-bar release
- * writes; the game does not read the keyboard on a replayed frame, so no
- * marker is written there, but the count is checked all the same. That
- * placement is the whole arithmetic -- the count is the index the next
- * recorded frame will take, so one line later it would name the following
- * frame. */
+ * game step dropped. `marker_for_iteration` holds the count read where
+ * raylib_backend_poll_input reads it: just before the frame is recorded.
+ * One line later it would name the following frame. */
 static void run_resumed_session(const char *source_path, const char *resumed_path, int *marker_for_iteration) {
     replay_source_t replay;
     assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
@@ -137,9 +124,6 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     remove(resumed_path);
 }
 
-/* The same path with N = 0: with no recording replayed, markers stay plain
- * frame indices. "Unchanged when the feature is unused" is the cheapest
- * regression to lose. */
 static void test_markers_are_unchanged_when_no_recording_is_replayed(void) {
     const char *path = "tmp/test_marker_coherence_fresh.json";
 

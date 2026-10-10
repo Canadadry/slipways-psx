@@ -1,17 +1,9 @@
-/* The screen capture made by the headless replay driver: as many frames
- * written as frames replayed, and the same pixels as the game drew.
+/* Runs the real driver, tmp/replay, through system(): a copy of its
+ * sequence here would be one more subtly different replay, and would say
+ * nothing of the one `make replay` runs.
  *
- * THIS TEST RUNS THE REAL DRIVER, NOT A COPY. tmp/replay is invoked by
- * system() on a short fixture. Redoing the driver's sequence here
- * (cart_load, cart_init, then per frame input_step_run, cart_update60,
- * cart_draw and the capture write) would add one more copy of a sequence
- * that src/cmd/game.c and src/cmd/replay.c already hold, so one more
- * subtly different replay: the test would prove that a replay writes the
- * right pixels, and say nothing of the one `make replay` runs.
- *
- * Each replay run here rewrites the driver's default dump with the short
- * fixture's; test_frames_tool and `make replay EVENTS=...` rewrite it
- * too. */
+ * Each run rewrites the driver's default dump, which test_frames_tool and
+ * `make replay EVENTS=...` rewrite too. */
 
 #include "devtools/dump.h"
 #include "p8/input.h"
@@ -28,8 +20,7 @@
 
 #define FIXTURE "tests/fixtures/screencast_capture_events.json"
 #define DRIVER "./tmp/replay"
-/* The default dump path of src/cmd/replay.c, when argv[3] is missing.
- * Fidelity AND neutrality are checked on this output. */
+/* The default dump path of src/cmd/replay.c, when argv[3] is missing. */
 #define DRIVER_DUMP "tmp/replay_dump.txt"
 #define CUSTOM_DUMP "tmp/test_headless_capture_custom_dump.txt"
 #define DUMP_WITNESS "witness: this dump must not be rewritten\n"
@@ -50,10 +41,8 @@
 #define FIXTURE_STDERR FIXTURE_DIR "/stderr.txt"
 #define TITLE_CAPTURE FIXTURE_DIR "/original.bin"
 
-/* The whole content of `path`, with one more NUL byte at the end so that
- * strstr() can be used on text outputs. `*out_len` is the real size,
- * without that NUL: dump comparisons go through memcmp on that length and
- * so do not depend on it. Allocated buffer: the caller frees it. */
+/* One NUL past the end so strstr() works on text outputs; `*out_len`
+ * excludes it. The caller frees. */
 static char *read_whole_file(const char *path, size_t *out_len) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -80,7 +69,7 @@ static void stale_save_hex(void) {
 }
 
 /* The fixture never acts: the storage ends empty, so a fixture cut from it
- * would be stale. Carried by a run another case needs, at no extra cost. */
+ * would be stale. */
 static void no_record_fails_and_removes_the_save_hex(int status) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 1);
     assert(fopen(SAVE_HEX, "r") == NULL && "a stale file is removed, never kept");
@@ -91,14 +80,11 @@ static void no_record_fails_and_removes_the_save_hex(int status) {
     remove(STDERR_LOG);
 }
 
-/* The text that dump_screen produces for a screen whose pixels are those
- * of `pixels`. The comparison goes through THE REAL dumper and not a hex
- * decoder written here: a test that rebuilt the dump format itself would
- * compare its own idea of that format with the driver's -- two things
- * that can drift together with nothing turning red.
+/* Through the real dumper, not a decoder written here: a test that rebuilt
+ * the dump format would compare its own idea of it with the driver's.
  *
- * Allocated buffer, freed by the caller. It is NOT NUL-terminated (unlike
- * read_whole_file above): only memcmp over `*out_len` is valid on it. */
+ * The caller frees. NOT NUL-terminated, unlike read_whole_file: only
+ * memcmp over `*out_len` is valid on it. */
 static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
     p8_vram_t mem;
     p8_vram_init(&mem);
@@ -120,11 +106,8 @@ static char *dump_text_of_pixels(const unsigned char *pixels, size_t *out_len) {
     return buf;
 }
 
-/* How many frames the fixture holds, read by the same loader as the
- * driver's rather than hard-coded here. The property aimed at is "as many
- * frames written as frames replayed"; a hard-coded constant would only
- * say "eight", and would stop speaking of the replay the day the fixture
- * changes. */
+/* Read by the driver's own loader rather than hard-coded, so the count
+ * follows the fixture if it changes. */
 static int fixture_frame_count(void) {
     p8_input_t input;
     p8_input_init(&input);
@@ -146,10 +129,8 @@ static void test_capture_holds_exactly_the_replayed_frames(void) {
     remove(CAPTURE);
 }
 
-/* CAPTURE FIDELITY. The last frame is the only possible point of
- * comparison: the driver's text dump describes that frame alone. If it
- * matches, the capture writes what the game drew, at the right moment --
- * neither the frame before, nor a half-drawn screen. */
+/* The last frame is the only possible point of comparison: the driver's
+ * text dump describes that frame alone. */
 static void test_last_captured_frame_matches_the_text_dump(void) {
     remove(CAPTURE);
     assert(system(DRIVER " " FIXTURE " " CAPTURE " > /dev/null") == 0);
@@ -165,11 +146,8 @@ static void test_last_captured_frame_matches_the_text_dump(void) {
     unsigned char last_pixels[SCREENCAST_FRAME_PIXELS];
     assert(screencast_read_frame(&reader, last, last_pixels));
 
-    /* The second-to-last frame is a witness, not the subject: it shows
-     * that this fixture draws two DIFFERENT images at the end. Without
-     * that, a capture shifted by one frame would pass the comparison
-     * below by accident, and this test would no longer prove anything
-     * about the moment the write happens. */
+    /* The second-to-last frame must differ from the last, or a capture
+     * shifted by one frame would pass the comparison below by accident. */
     unsigned char previous_pixels[SCREENCAST_FRAME_PIXELS];
     assert(screencast_read_frame(&reader, last - 1, previous_pixels));
     assert(memcmp(previous_pixels, last_pixels, sizeof(last_pixels)) != 0);
@@ -186,15 +164,6 @@ static void test_last_captured_frame_matches_the_text_dump(void) {
     remove(CAPTURE);
 }
 
-/* CAPTURE NEUTRALITY: a replay with a capture and a replay without one
- * produce the same final text dump, the guarantee that the instrument
- * does not alter what it measures. The final dump is the only observation
- * this test compares; if it is identical on both sides, the capture
- * changed nothing of the final screen.
- *
- * The same test covers the other half of the requirement -- the
- * behaviour without a capture argument is unchanged -- since the replay
- * without a capture runs here as is and must produce that dump. */
 static void test_capturing_changes_nothing_the_replay_produces(void) {
     remove(DRIVER_DUMP);
     stale_save_hex();
@@ -218,18 +187,10 @@ static void test_capturing_changes_nothing_the_replay_produces(void) {
     remove(CAPTURE);
 }
 
-/* A capture that cannot start makes the driver print its failure message
- * and return 1. This is the opposite policy to
- * session_recorder_record_frame, which drops a frame it cannot append,
- * and it flips here because nobody is playing: a truncated file would
- * silently yield a wrong sha256, that is a false red indistinguishable
- * from a regression. A driver that went on without capturing would have
- * returned 0, and `make e2e` could have hashed the file of an earlier
- * replay.
- *
- * The failure message is asserted, not only the exit status: it is the
- * only human interface of this failure, and it names the path, since a
- * mistyped path is only fixed by reading it again. */
+/* Fatal, unlike session_recorder_record_frame which drops a frame: nobody
+ * is playing, and a driver that went on would return 0 and let `make e2e`
+ * hash the capture of an earlier replay. The message is asserted because
+ * it names the path, the only way to fix a mistyped one. */
 static void test_unopenable_capture_path_is_fatal_and_names_the_path(void) {
     remove(STDERR_LOG);
     assert(system(DRIVER " " FIXTURE " " BAD_CAPTURE " > /dev/null 2> " STDERR_LOG) != 0);
