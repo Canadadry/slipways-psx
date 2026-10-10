@@ -45,7 +45,7 @@
     - [x] Chunk 1: chord mask from the cheat module
     - [x] Chunk 2: shoulders through the table
     - [x] Chunk 3: pause opening and Select through the table
-    - [ ] Chunk 4: the circle family through the table
+    - [x] Chunk 4: the circle family through the table
   - [ ] 14. Guard closed
 - [ ] Phase 3 — Compile-time keymap
   - [ ] 15. Keymap compiled in

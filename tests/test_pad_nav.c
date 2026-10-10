@@ -4988,13 +4988,14 @@ static void test_four_chords_on_a_hovered_known_planet_cheat_and_open_nothing(vo
 }
 
 /* a is the last object × acted on (a slipway started and cancelled), b is hovered, the year box is up. */
-static entity_t *year_box_with_the_last_object_elsewhere(input_step_t *step, planet_t **a, planet_t **b) {
+static entity_t *year_box_with_the_last_object_elsewhere_with(input_step_t *step, const bindings_t *bindings,
+                                                              int cancel_slipway, planet_t **a, planet_t **b) {
     planet_t *c;
-    start_game(step);
+    start_game_with(step, bindings);
     settled_row(step, a, b, &c);
     hover_object(step, &(*a)->header);
     start_slipway(step, &(*a)->header);
-    tap(step, P8_PAD_BUTTON_6);
+    tap(step, cancel_slipway);
     tap(step, P8_PAD_BUTTON_4);
     hold(step, 0, 40);
     assert_hovering(step, &(*b)->header);
@@ -5005,14 +5006,22 @@ static entity_t *year_box_with_the_last_object_elsewhere(input_step_t *step, pla
     return year_box;
 }
 
-/* ○ closes the year box; on that frame and the next the buttons are only the held ones. */
-static void circle_closes_the_year_box(input_step_t *step, entity_t *year_box, int held_buttons) {
+static entity_t *year_box_with_the_last_object_elsewhere(input_step_t *step, planet_t **a, planet_t **b) {
+    return year_box_with_the_last_object_elsewhere_with(step, &bindings_compiled, P8_PAD_BUTTON_6, a, b);
+}
+
+/* button closes the year box; on that frame and the next the buttons are only the held ones. */
+static void button_closes_the_year_box(input_step_t *step, entity_t *year_box, int button, int held_buttons) {
     assert(shown_message_box() == (message_box_t *)year_box);
-    run_frame(step, P8_PAD_BUTTON_6);
+    run_frame(step, button);
     assert(input_step_played_frame(step)->mouse_buttons == held_buttons);
     assert(shown_message_box() == NULL && year_box->is_dead);
     run_frame(step, 0);
     assert(input_step_played_frame(step)->mouse_buttons == held_buttons);
+}
+
+static void circle_closes_the_year_box(input_step_t *step, entity_t *year_box, int held_buttons) {
+    button_closes_the_year_box(step, year_box, P8_PAD_BUTTON_6, held_buttons);
 }
 
 static void test_circle_closes_the_year_box_over_jump_mode_and_moves_nothing(void) {
@@ -5101,6 +5110,157 @@ static void test_circle_on_the_bar_or_tech_returns_to_the_map_under_the_year_box
             end_forked_copy();
         }
     }
+}
+
+/* reach-only */
+#define BACK_REACH_LINES                                                                                       \
+    "jump.jump_up = 1\njump.jump_down = 2\njump.jump_left = 3\njump.jump_right = 4\njump.act_on_hovered = 5\n" \
+    "jump.enter_aim = 7\naim.leave_aim = 7\n"
+
+static void assert_year_box_stays(input_step_t *step, entity_t *year_box, int count, const int *buttons) {
+    for (int i = 0; i < count; i++) {
+        tap(step, buttons[i]);
+        assert(shown_message_box() == (message_box_t *)year_box && !year_box->is_dead);
+    }
+}
+
+static void test_back_on_the_map_follows_jump_and_aim_tables_each_the_others_neighbour(void) {
+    bindings_t table = parsed_table("jump.back = 8\naim.back = 12\nslipway.cancel_slipway = 7\n" BACK_REACH_LINES);
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere_with(&step, &table, P8_PAD_BUTTON_7, &a, &b);
+    if (in_forked_copy()) {
+        tap(&step, P8_PAD_BUTTON_7);
+        assert(pad_nav_aim_mode(&step.pad_nav));
+        assert_year_box_stays(&step, year_box, 2, (const int[]){ P8_PAD_BUTTON_6, P8_PAD_BUTTON_8 });
+        assert(pad_nav_aim_mode(&step.pad_nav));
+        button_closes_the_year_box(&step, year_box, P8_PAD_BUTTON_12, 0);
+        assert(pad_nav_aim_mode(&step.pad_nav));
+        assert_cursor_at_centre(&step);
+        tap(&step, P8_PAD_BUTTON_12);
+        assert(pad_nav_jump_mode(&step.pad_nav));
+        end_forked_copy();
+    }
+    assert_year_box_stays(&step, year_box, 2, (const int[]){ P8_PAD_BUTTON_6, P8_PAD_BUTTON_12 });
+    assert_hovering(&step, &b->header);
+    vec_t from = camera_at();
+    button_closes_the_year_box(&step, year_box, P8_PAD_BUTTON_8, 0);
+    assert_hovering(&step, &b->header);
+    assert_moved(from, 0, 0);
+    assert(pad_nav_last_acted(&step.pad_nav) == &a->header);
+    tap(&step, P8_PAD_BUTTON_8);
+    assert_hovering(&step, &a->header);
+}
+
+static void test_back_over_a_slipway_and_a_carried_structure_follows_their_tables(void) {
+    bindings_t table = parsed_table("jump.back = 8\naim.back = 12\nslipway.cancel_slipway = 7\n"
+                                    "placement.cancel_placement = 11\n" BACK_REACH_LINES
+                                    "jump.open_build_bar = 9\nbuild_bar.take_structure = 5\n"); /* reach-only */
+    input_step_t step;
+    planet_t *a, *b;
+    entity_t *year_box = year_box_with_the_last_object_elsewhere_with(&step, &table, P8_PAD_BUTTON_7, &a, &b);
+    if (in_forked_copy()) {
+        start_slipway(&step, &b->header);
+        world_count_t before = world_count();
+        const int others[2] = { P8_PAD_BUTTON_6, P8_PAD_BUTTON_8 };
+        for (int i = 0; i < 2; i++) {
+            tap(&step, others[i]);
+            assert(shown_message_box() == (message_box_t *)year_box);
+            assert_slipway_mode(&step, &b->header, NULL);
+        }
+        button_closes_the_year_box(&step, year_box, P8_PAD_BUTTON_7, P8_MOUSE_LEFT);
+        assert_slipway_mode(&step, &b->header, NULL);
+        tap(&step, P8_PAD_BUTTON_7);
+        assert_hovering(&step, &b->header);
+        assert(ui_left_held(main_ui()) == NULL);
+        assert_world_unchanged(before);
+        end_forked_copy();
+    }
+    tap(&step, P8_PAD_BUTTON_9);
+    entity_t *structure = take_structure(&step);
+    const int others[4] = { P8_PAD_BUTTON_6, P8_PAD_BUTTON_7, P8_PAD_BUTTON_8, P8_PAD_BUTTON_12 };
+    for (int i = 0; i < 4; i++) {
+        run_frame(&step, others[i]);
+        assert_carrying(&step, structure);
+        run_frame(&step, 0);
+        assert_carrying(&step, structure);
+        assert(shown_message_box() == (message_box_t *)year_box);
+    }
+    button_closes_the_year_box(&step, year_box, P8_PAD_BUTTON_11, P8_MOUSE_LEFT);
+    assert_carrying(&step, structure);
+    assert(!structure->is_dead);
+    tap(&step, P8_PAD_BUTTON_11);
+    assert(structure->is_dead);
+    assert(pad_nav_placing(&step.pad_nav) == NULL && ui_left_held(main_ui()) == NULL);
+}
+
+static void assert_box_stays(input_step_t *step, int count, const int *buttons) {
+    for (int i = 0; i < count; i++) {
+        tap(step, buttons[i]);
+        assert(pad_nav_panel_open() && main_ui()->ephemerals.count > 0);
+    }
+}
+
+static void test_boxes_and_back_off_the_map_follow_menu_panels_and_bar_tables(void) {
+    bindings_t table = parsed_table("menu.close_menu = 7\npanels.close_panel = 8\nbuild_bar.close_bar = 12\n"
+                                    "aim.open_build_bar = 9\naim.open_tech_panel = 10\n" /* reach-only */
+                                    "panels.next_panel = 10\n");                         /* reach-only */
+    input_step_t step;
+    start_game_with(&step, &table);
+    main_economy_typed()->research_points = p8_fixed_from_int(5);
+    if (in_forked_copy()) {
+        open_known_planet_box(&step);
+        assert_box_stays(&step, 3, (const int[]){ P8_PAD_BUTTON_6, P8_PAD_BUTTON_8, P8_PAD_BUTTON_12 });
+        tap(&step, P8_PAD_BUTTON_7);
+        assert(!pad_nav_panel_open() && main_ui()->ephemerals.count == 0 && pad_nav_aim_mode(&step.pad_nav));
+        end_forked_copy();
+    }
+    if (in_forked_copy()) {
+        galaxy_menu_on_click(2)(NULL);
+        settle(&step);
+        assert(!pad_nav_tech_open(&step.pad_nav));
+        assert_box_stays(&step, 1, (const int[]){ P8_PAD_BUTTON_8 });
+        tap(&step, P8_PAD_BUTTON_7);
+        assert(!pad_nav_panel_open() && on_the_map(&step.pad_nav));
+        end_forked_copy();
+    }
+    for (int score = 0; score < 2; score++) {
+        if (in_forked_copy()) {
+            for (int i = 0; i <= score; i++) {
+                tap(&step, P8_PAD_BUTTON_10);
+                settle(&step);
+            }
+            assert(score ? pad_nav_score_open(&step.pad_nav) : pad_nav_tech_open(&step.pad_nav));
+            const int others[3] = { P8_PAD_BUTTON_6, P8_PAD_BUTTON_7, P8_PAD_BUTTON_12 };
+            for (int i = 0; i < 3; i++) {
+                tap(&step, others[i]);
+                settle(&step);
+                assert(score ? pad_nav_score_open(&step.pad_nav) : pad_nav_tech_open(&step.pad_nav));
+            }
+            tap(&step, P8_PAD_BUTTON_8);
+            settle(&step);
+            assert(on_the_map(&step.pad_nav) && !pad_nav_panel_open());
+            end_forked_copy();
+        }
+    }
+    tap(&step, P8_PAD_BUTTON_9);
+    if (in_forked_copy()) {
+        const int others[3] = { P8_PAD_BUTTON_6, P8_PAD_BUTTON_7, P8_PAD_BUTTON_8 };
+        for (int i = 0; i < 3; i++) {
+            tap(&step, others[i]);
+            assert(pad_nav_build_bar_open(&step.pad_nav));
+        }
+        tap(&step, P8_PAD_BUTTON_12);
+        assert(on_the_map(&step.pad_nav));
+        end_forked_copy();
+    }
+    galaxy_menu_on_click(2)(NULL);
+    settle(&step);
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    assert_box_stays(&step, 1, (const int[]){ P8_PAD_BUTTON_12 });
+    assert(pad_nav_build_bar_open(&step.pad_nav));
+    tap(&step, P8_PAD_BUTTON_7);
+    assert(!pad_nav_panel_open() && main_ui()->ephemerals.count == 0 && pad_nav_build_bar_open(&step.pad_nav));
 }
 
 static planet_t *hovered_colony_near_centre(input_step_t *step) {
@@ -7110,6 +7270,9 @@ int main(void) {
     in_fresh_child(test_circle_closes_the_year_box_over_a_carried_structure_and_keeps_it);
     in_fresh_child(test_circle_closes_a_planet_menu_then_the_year_box);
     in_fresh_child(test_circle_on_the_bar_or_tech_returns_to_the_map_under_the_year_box);
+    in_fresh_child(test_back_on_the_map_follows_jump_and_aim_tables_each_the_others_neighbour);
+    in_fresh_child(test_back_over_a_slipway_and_a_carried_structure_follows_their_tables);
+    in_fresh_child(test_boxes_and_back_off_the_map_follow_menu_panels_and_bar_tables);
     in_fresh_child(test_cross_on_a_hovered_colony_holds_its_slipway_and_the_d_pad_aims_past_it);
     in_fresh_child(test_no_direction_aims_at_the_start);
     in_fresh_child(test_a_refused_start_holds_nothing);

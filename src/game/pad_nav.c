@@ -385,7 +385,7 @@ static int select_tap(pad_nav_t *nav, const entity_t *current, const entity_t **
 }
 
 /* On a click's release frame probe_or_fold starts nothing: finish_step forces its press up. */
-static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release, int still,
+static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int back_returns, int release, int still,
                           int select_tapped, p8_input_frame_t *played, const entity_t **shown) {
     nav->focus = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
@@ -407,7 +407,7 @@ static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circ
     }
     if (nav->probe_or_fold_engaged) {
         played->mouse_buttons = P8_MOUSE_LEFT;
-    } else if (circle_returns) {
+    } else if (back_returns) {
         leave_aim_mode(nav);
     }
 }
@@ -427,7 +427,7 @@ static void reset_on_new_game(pad_nav_t *nav) {
 }
 
 /* Never pause, which only pause_step closes: cleared on a release frame, the resumed carry would press the map. */
-static void circle_closes_the_box(void) {
+static void back_closes_the_box(void) {
     if (pad_panel_box_open() && !pause_menu_shown()) {
         ui_clear_ephemerals(main_ui());
     }
@@ -529,6 +529,33 @@ static bindings_mode_t nav_mode(const pad_nav_t *nav) {
         return BINDINGS_MODE_BUILD_BAR;
     }
     return map_binding_mode(nav);
+}
+
+/* Pause, the title and off the map with no box fall into the map mode, where the back block acts on nothing. */
+static bindings_mode_t back_mode(const pad_nav_t *nav) {
+    if (pad_panel_box_open() && !pause_menu_shown()) {
+        return cycle_open(nav) ? BINDINGS_MODE_PANELS : BINDINGS_MODE_MENU;
+    }
+    return map_binding_mode(nav);
+}
+
+static bindings_action_t back_action(bindings_mode_t mode) {
+    switch (mode) {
+    case BINDINGS_MODE_JUMP:
+    case BINDINGS_MODE_AIM:
+        return BINDINGS_ACTION_BACK;
+    case BINDINGS_MODE_SLIPWAY:
+        return BINDINGS_ACTION_CANCEL_SLIPWAY;
+    case BINDINGS_MODE_PLACEMENT:
+        return BINDINGS_ACTION_CANCEL_PLACEMENT;
+    case BINDINGS_MODE_MENU:
+        return BINDINGS_ACTION_CLOSE_MENU;
+    case BINDINGS_MODE_PANELS:
+        return BINDINGS_ACTION_CLOSE_PANEL;
+    default:
+        assert(!"back_action: back_mode returns only a map, menu or panels mode");
+        return BINDINGS_ACTION_BACK;
+    }
 }
 
 static bindings_action_t tech_shoulder_action(bindings_mode_t mode) {
@@ -741,7 +768,7 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, pad_direction_t d
     }
 }
 
-static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int circle_returns,
+static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int back_returns,
                       int select_tapped, p8_input_frame_t *played, const entity_t **shown) {
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
@@ -755,7 +782,7 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         pad_jump_repeat_step(&nav->jump, &nav->bindings, BINDINGS_MODE_JUMP, pad_buttons, pressed);
     entity_t *hovered = pad_jump_hovered(&nav->jump);
     int clicking = release || nav->release_pending;
-    entity_t *back = circle_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
+    entity_t *back = back_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
     if (back != NULL) {
         pad_jump_hover(&nav->jump, back);
         edge_scroll(back);
@@ -811,7 +838,7 @@ static int press_start_again(pad_nav_t *nav, const entity_t *start, p8_input_fra
     return 1;
 }
 
-static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
+static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int back_returns, int release,
                          p8_input_frame_t *played, const entity_t **shown) {
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
@@ -841,7 +868,7 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
         }
         nav->slipway.phase = PAD_SLIPWAY_HELD;
     }
-    if (circle_returns) {
+    if (back_returns) {
         drop_held_slipway();
         back_to_jump_mode(nav, start);
         screen_point(start, &nav->cursor_x, &nav->cursor_y);
@@ -873,7 +900,7 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
     *shown = aimed;
 }
 
-static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int circle_returns,
+static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int back_returns,
                      pad_select_event_t select, int year_release, p8_input_frame_t *played, const entity_t **shown,
                      int *repeat_kept) {
     if (pad_nav_placing(nav) != NULL) {
@@ -887,15 +914,15 @@ static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, 
             panel_step(nav, pad_buttons, pressed, played);
         }
     } else if (pad_nav_aim_mode(nav)) {
-        aim_mode_step(nav, pad_buttons, pressed, circle_returns, release, year_release, select == PAD_SELECT_TAP, played,
+        aim_mode_step(nav, pad_buttons, pressed, back_returns, release, year_release, select == PAD_SELECT_TAP, played,
                       shown);
     } else if (nav->map_mode == PAD_NAV_MAP_SLIPWAY) {
-        slipway_step(nav, pad_buttons, pressed, circle_returns, release, played, shown);
+        slipway_step(nav, pad_buttons, pressed, back_returns, release, played, shown);
         *repeat_kept = 1;
     } else {
         assert(pad_nav_jump_mode(nav) &&
                "map_step: after placement, panels, aim and slipway mode, only jump mode is left");
-        jump_step(nav, pad_buttons, pressed, release, circle_returns, select == PAD_SELECT_TAP, played, shown);
+        jump_step(nav, pad_buttons, pressed, release, back_returns, select == PAD_SELECT_TAP, played, shown);
         *repeat_kept = 1;
     }
 }
@@ -913,7 +940,11 @@ static int switch_panels(pad_nav_t *nav, int pressed, int release, int foreign_w
         shoulder_switch(nav, pressed, mode, played);
         return 1;
     }
-    if (!on_the_map(nav) && (pressed & P8_PAD_BUTTON_6) && !foreign_was_open && !release) {
+    /* The bar's state, not nav_mode: a box shown over the bar would read menu's buttons. */
+    int bar = pad_build_is_open(&nav->build);
+    int leaving = action_pressed(nav, pressed, bar ? BINDINGS_MODE_BUILD_BAR : BINDINGS_MODE_PANELS,
+                                 bar ? BINDINGS_ACTION_CLOSE_BAR : BINDINGS_ACTION_CLOSE_PANEL);
+    if (!on_the_map(nav) && leaving && !foreign_was_open && !release) {
         leave_panel(nav, played);
         close_panels(nav);
         return 1;
@@ -1069,13 +1100,15 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         return;
     }
     int foreign_was_open = foreign_panel_open(nav);
-    int circle_returns = (pressed & P8_PAD_BUTTON_6) && !pad_panel_box_open();
-    if (pressed & P8_PAD_BUTTON_6) {
-        circle_closes_the_box();
-        if (circle_returns && on_the_map(nav) && shown_message_box() != NULL) {
+    bindings_mode_t back_in = back_mode(nav);
+    int back = bindings_mask(&nav->bindings, back_in, back_action(back_in));
+    int back_returns = (pressed & back) && !pad_panel_box_open();
+    if (pressed & back) {
+        back_closes_the_box();
+        if (back_returns && on_the_map(nav) && shown_message_box() != NULL) {
             message_box_close_shown();
-            circle_returns = 0;
-            pressed &= ~P8_PAD_BUTTON_6;
+            back_returns = 0;
+            pressed &= ~back;
         }
     }
     if (pad_nav_panel_open()) {
@@ -1116,7 +1149,7 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         reset_aim_mode(nav);
         nav->focus = ENTITY_ID_NONE;
     } else if (on_the_map(nav)) {
-        map_step(nav, pad_buttons, pressed, release, circle_returns, select, year_release, played, &shown, &repeat_kept);
+        map_step(nav, pad_buttons, pressed, release, back_returns, select, year_release, played, &shown, &repeat_kept);
     } else {
         reset_aim_mode(nav);
         bar_or_cycle_step(nav, pad_buttons, pressed, release, played);
