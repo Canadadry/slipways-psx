@@ -15,7 +15,7 @@
   - [x] 6. caption command
     - [x] Chunk 1: caption rules module
     - [x] Chunk 2: pad_author caption command and output
-  - [ ] 7. The demo script
+  - [x] 7. The demo script
     - [x] Chunk 1: pico8/demo.pad and demo.json
     - [x] Chunk 2: make demo-check
     - [x] Chunk 3: pico8/demo.txt
