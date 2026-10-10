@@ -208,8 +208,6 @@ unsigned char p8_sget(const p8_vram_t *mem, int x, int y) {
     return mem->sprite_sheet[y][x];
 }
 
-/* Only p8_spr, and p8_map through it, remap colors through the draw palette: pset, line,
- * rect, circ, the fills and print write their color as is, so pal() does not recolor them. */
 void p8_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
     const int sprites_per_row = P8_SPRITE_SHEET_WIDTH / P8_SPRITE_SIZE;
     int sheet_x = (n % sprites_per_row) * P8_SPRITE_SIZE;

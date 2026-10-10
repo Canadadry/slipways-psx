@@ -48,3 +48,4 @@
   - [ ] 15. skill: rework-comments
     - [x] comments: attract, demo_data, demo_overlay
     - [x] comments: cart, input_step, bindings.h
+    - [x] comments: gfx, input.h, bindings_generate, game.c
