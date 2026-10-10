@@ -105,6 +105,11 @@ static void test_stopped_line(void) {
     assert(strcmp(g_sink_text.text, "stopped p8_fatal frame 37\n") == 0);
 }
 
+static void test_cheat_activations_line(void) {
+    state_format_cheat_activations(fresh_sink(), 2);
+    assert(strcmp(g_sink_text.text, "cheat activations 2\n") == 0);
+}
+
 
 static void test_gpu_lines_carry_the_meter_peaks_and_the_limits(void) {
     static p8_vram_t mem;
@@ -149,6 +154,7 @@ int main(void) {
     test_state_lines_equal_the_file_text();
     test_save_summary_lines_equal_the_file_text();
     test_stopped_line();
+    test_cheat_activations_line();
     test_gpu_lines_carry_the_meter_peaks_and_the_limits();
     printf("test_state_format: ok\n");
     return 0;

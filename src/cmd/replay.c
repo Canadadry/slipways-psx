@@ -390,7 +390,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         state_write(state_out);
-        fprintf(state_out, "cheat activations %d\n", cheat_activations);
+        state_write_cheat_activations(state_out, cheat_activations);
         fclose(state_out);
     }
 

@@ -79,6 +79,7 @@ int main(void) {
     int previous_pad = 0;
     input_step_t step;
     input_step_init(&step);
+    int cheat_activations = 0;
     for (g_frame = 0; *PSX_PAD_WORD(PSX_PAD_END_OFFSET) != PSX_PAD_END_MAGIC; g_frame++) {
         if (VSync(-1) == frame_vsync) VSync(0);
         frame_vsync = VSync(-1);
@@ -87,7 +88,7 @@ int main(void) {
             psx_tty_printf("psx-game: pad %d %03x\n", g_frame, (unsigned)raw.pad_buttons);
             previous_pad = raw.pad_buttons;
         }
-        input_step_run(&step, &raw);
+        cheat_activations += input_step_run(&step, &raw);
         cart_update60();
         cart_draw();
         p8_draw_meter_frame_end();
@@ -100,5 +101,6 @@ int main(void) {
     psx_tty_printf("psx-replay: done game %d vsyncs %d\n", g_frame, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);
+    state_format_cheat_activations(&sink, cheat_activations);
     psx_exit(PSX_EXIT_OK);
 }

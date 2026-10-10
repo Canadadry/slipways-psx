@@ -25,6 +25,11 @@ void state_write_save_summary(FILE *out, const save_state_t *state, const char *
     state_format_save_summary(&sink, state, prefix);
 }
 
+void state_write_cheat_activations(FILE *out, int count) {
+    state_sink_t sink = file_sink(out);
+    state_format_cheat_activations(&sink, count);
+}
+
 static const char *g_exit_path;
 static const int *g_exit_frame;
 static int g_exit_registered;

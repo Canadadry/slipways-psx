@@ -21,4 +21,6 @@ void state_format_save_summary(const state_sink_t *sink, const save_state_t *sta
 
 void state_format_stopped(const state_sink_t *sink, int frame);
 
+void state_format_cheat_activations(const state_sink_t *sink, int count);
+
 #endif

@@ -88,8 +88,9 @@ int main(void) {
     int start_vsync = VSync(-1);
     input_step_t step;
     input_step_init(&step);
+    int cheat_activations = 0;
     for (g_frame = 0; g_frame < input.frame_count; g_frame++) {
-        input_step_run(&step, &input.frames[input.current_frame]);
+        cheat_activations += input_step_run(&step, &input.frames[input.current_frame]);
         cart_update60();
         cart_draw();
         p8_draw_meter_frame_end();
@@ -110,5 +111,6 @@ int main(void) {
     psx_tty_printf("psx-replay: done %s %d vsyncs %d\n", embedded_replay_name, input.frame_count, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);
+    state_format_cheat_activations(&sink, cheat_activations);
     psx_exit(PSX_EXIT_OK);
 }

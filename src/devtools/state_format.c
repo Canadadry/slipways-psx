@@ -368,3 +368,9 @@ void state_format_stopped(const state_sink_t *sink, int frame) {
     line_add(&line, "stopped p8_fatal frame %d", frame);
     line_end(&line);
 }
+
+void state_format_cheat_activations(const state_sink_t *sink, int count) {
+    line_t line = line_start(sink);
+    line_add(&line, "cheat activations %d", count);
+    line_end(&line);
+}
