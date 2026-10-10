@@ -36,7 +36,7 @@ typedef struct {
 } cursor_t;
 
 static void write_u8(uint8_t *bytes, cursor_t *writer, uint32_t value) {
-    assert(writer->position < SAVE_STATE_MAX_BYTES && "save_state_encode: the record must fit SAVE_STATE_MAX_BYTES, one 8 KiB PSX memory card block");
+    assert(writer->position >= 0 && writer->position < SAVE_STATE_MAX_BYTES && "save_state_encode: the record must fit SAVE_STATE_MAX_BYTES, one 8 KiB PSX memory card block");
     bytes[writer->position++] = (uint8_t)(value & 0xFFu);
 }
 
