@@ -11,6 +11,7 @@
 #include "devtools/state.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
+#include "game/demo_data.h"
 #include "game/save_state.h"
 #include "game/save_storage.h"
 #include "game/ui_zone.h"
@@ -136,6 +137,25 @@ static int write_state(const char *path, int cheat_activations) {
     return 1;
 }
 
+typedef struct {
+    const char *path;
+    int playbacks;
+    int cheat_activations;
+} attract_state_t;
+
+/* After a frame's cart_draw: writes <path>.<n> when the frame played the demo's last frame. */
+static int write_attract_state_after_frame(attract_state_t *attract, const input_step_t *step, int cheat) {
+    if (input_step_attract_phase(step) != ATTRACT_PHASE_PLAYING) return 1;
+    int demo_frame = input_step_attract_demo_frame(step);
+    if (demo_frame == 1) attract->cheat_activations = 0;
+    attract->cheat_activations += cheat;
+    if (demo_frame != demo_data_frame_count) return 1;
+    char path[1024];
+    attract->playbacks++;
+    snprintf(path, sizeof path, "%s.%d", attract->path, attract->playbacks);
+    return write_state(path, attract->cheat_activations);
+}
+
 enum { TITLE_FRAMES_BETWEEN_STARTS = 30 };
 
 /* A start after a return needs at least one cart_update60 in between, else flip_zone_flip asserts. */
@@ -181,6 +201,11 @@ int main(int argc, char **argv) {
         fprintf(stderr, "replay: REPLAY_STARTS=2 checks states only, it takes no PAD_METRICS\n");
         return 2;
     }
+    const char *attract_state_path = getenv("ATTRACT_STATE");
+    if (starts == 2 && attract_state_path != NULL) {
+        fprintf(stderr, "replay: ATTRACT_STATE cycles through the attract mode, it takes no REPLAY_STARTS=2\n");
+        return 2;
+    }
 
     p8_vram_t memory;
     p8_vram_init(&memory);
@@ -196,6 +221,11 @@ int main(int argc, char **argv) {
     int seeded = replay_source_seed_storage(&source);
     assert(seeded);
     int resume_start = replay_source_start(&source) == REPLAY_SOURCE_START_RESUME;
+    if (resume_start && attract_state_path != NULL) {
+        fprintf(stderr, "replay: %s: ATTRACT_STATE needs a title-start file, this one says \"start\": \"resume\"\n",
+                replay_path);
+        return 2;
+    }
     if (starts == 2 && !resume_start) {
         fprintf(stderr, "replay: %s: REPLAY_STARTS=2 needs a \"start\": \"resume\" file, this one starts on the title\n",
                 replay_path);
@@ -251,6 +281,7 @@ int main(int argc, char **argv) {
         pad_metrics_observe(&pad_metrics, &step);
     }
     int cheat_activations = 0;
+    attract_state_t attract_state = {attract_state_path, 0, 0};
     for (int start = 1; start <= starts; start++) {
         if (start > 1) {
             play_title_between_starts(&step);
@@ -267,6 +298,7 @@ int main(int argc, char **argv) {
             cart_update60();
             cart_draw();
             if (pad_metrics_path != NULL) pad_metrics_record(&pad_metrics, &step, frame->pad_buttons, cheat);
+            if (attract_state_path != NULL && !write_attract_state_after_frame(&attract_state, &step, cheat)) return 1;
             if (capture_path && !screencast_write_frame(&capture, &memory)) {
                 fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                         i, capture_path);

@@ -29,7 +29,10 @@
 #                       "start": "resume" (pad_author's from-record) starts
 #                       from its initial_save at the first frame, not on the
 #                       title; with REPLAY_STARTS=2, plays it, returns to the
-#                       title, idles 30 frames and plays it again
+#                       title, idles 30 frames and plays it again; with
+#                       ATTRACT_STATE=<file> on a title-start file, writes the
+#                       state on the last frame of each complete demo
+#                       playback to <file>.1, <file>.2, ...
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
@@ -143,8 +146,14 @@
 #                       from-record) must pass pad_author's self-check, then
 #                       replay with REPLAY_STARTS=2 to pad_author's normalized
 #                       end state at both ends, outside the suite
-# make demo-check    -> runs tests/test_demo_check, then two checks, both
-#                       always run: pico8/demo.pad regenerates pico8/demo.json
+# make demo-check    -> runs tests/test_demo_check, then tests/test_attract_demo
+#                       (the whole demo through the attract mode twice, and
+#                       one interruption per command range, the player's save
+#                       untouched), which writes a full-cycle fixture, then
+#                       three checks, all always run: the fixture replayed
+#                       with ATTRACT_STATE passes tools/demo_check.sh and
+#                       tools/end_state.sh against the resumed replay's end
+#                       state at both playbacks; pico8/demo.pad regenerates pico8/demo.json
 #                       byte for byte (no aim budget), and pico8/demo.json,
 #                       replayed with REPLAY_STARTS=2, passes
 #                       tools/demo_check.sh at both ends (at most 3600 frames,
@@ -603,7 +612,7 @@ $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/scr
 $(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json tests/e2e/pad_title.json bindings.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c src/devtools/replay_source.c $(ENGINE_SRCS)) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json | $(TMP_DIR)
@@ -915,6 +924,9 @@ $(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_
 $(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_attract_demo: $(call objs,tests/test_attract_demo.c src/devtools/replay_source.c src/devtools/save_check.c src/devtools/state.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_record_start: $(call objs,tests/test_record_start.c src/devtools/record_start.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1144,7 +1156,7 @@ ifneq ($(filter replay,$(MAKECMDGOALS)),)
 endif
 
 replay: $(TMP_DIR)/replay
-	$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )./$(TMP_DIR)/replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
 
@@ -1329,15 +1341,24 @@ worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_p
 
 DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
 
-# The regeneration runs in the background while the content check plays.
-demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/pad_author $(TMP_DIR)/replay pico8/demo.pad pico8/demo.json pico8/demo_record.hex tools/demo_check.sh
+# The regeneration and the full-cycle replay run in the background while the content check plays.
+demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay pico8/demo.pad pico8/demo.json pico8/demo_record.hex tools/demo_check.sh tools/end_state.sh
 	@./$(TMP_DIR)/test_demo_check
 	@rm -rf $(DEMO_CHECK_DIR) && mkdir -p $(DEMO_CHECK_DIR)
+	@./$(TMP_DIR)/test_attract_demo $(DEMO_CHECK_DIR)/attract_cycle.json
 	@failed=0; \
 	./$(TMP_DIR)/pad_author pico8/demo.pad $(DEMO_CHECK_DIR)/demo.json --no-aim-budget > $(DEMO_CHECK_DIR)/regenerate.log 2>&1 & regenerate=$$!; \
+	ATTRACT_STATE=$(DEMO_CHECK_DIR)/attract.txt ./$(TMP_DIR)/replay $(DEMO_CHECK_DIR)/attract_cycle.json /dev/null $(DEMO_CHECK_DIR)/attract_cycle.dump.txt > $(DEMO_CHECK_DIR)/attract.log 2>&1 & attract=$$!; \
 	STATE=$(DEMO_CHECK_DIR)/record.txt ./$(TMP_DIR)/pad_author pico8/demo.pad $(DEMO_CHECK_DIR)/record.json --stop-at probe --no-aim-budget > $(DEMO_CHECK_DIR)/record.log 2>&1 || cat $(DEMO_CHECK_DIR)/record.log; \
 	REPLAY_STARTS=2 STATE=$(DEMO_CHECK_DIR)/end.txt ./$(TMP_DIR)/replay pico8/demo.json > $(DEMO_CHECK_DIR)/end.log 2>&1 || cat $(DEMO_CHECK_DIR)/end.log; \
 	sh tools/demo_check.sh pico8/demo.json $(DEMO_CHECK_DIR)/record.txt $(DEMO_CHECK_DIR)/end.txt.start1 $(DEMO_CHECK_DIR)/end.txt || failed=1; \
+	wait $$attract || { cat $(DEMO_CHECK_DIR)/attract.log; failed=1; }; \
+	sh tools/demo_check.sh pico8/demo.json $(DEMO_CHECK_DIR)/record.txt $(DEMO_CHECK_DIR)/attract.txt.1 $(DEMO_CHECK_DIR)/attract.txt.2 || failed=1; \
+	if [ -e $(DEMO_CHECK_DIR)/attract.txt.3 ]; then echo "demo-check: $(DEMO_CHECK_DIR)/attract_cycle.json: a third playback"; failed=1; fi; \
+	sh tools/end_state.sh normalize $(DEMO_CHECK_DIR)/end.txt > $(DEMO_CHECK_DIR)/end.reference.txt && \
+	sh tools/end_state.sh check $(DEMO_CHECK_DIR)/attract_cycle.json $(DEMO_CHECK_DIR)/attract.txt.1 $(DEMO_CHECK_DIR)/end.reference.txt \
+	    $(DEMO_CHECK_DIR)/attract_cycle.json $(DEMO_CHECK_DIR)/attract.txt.2 $(DEMO_CHECK_DIR)/end.reference.txt && \
+	echo "demo-check: both attract playbacks end where the resumed replay of pico8/demo.json ends" || failed=1; \
 	wait $$regenerate || cat $(DEMO_CHECK_DIR)/regenerate.log; \
 	if cmp -s $(DEMO_CHECK_DIR)/demo.json pico8/demo.json; then \
 	    echo "demo-check: pico8/demo.pad regenerates pico8/demo.json byte for byte"; \
@@ -1425,7 +1446,7 @@ $(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
 
 ifneq ($(strip $(EVENTS)),)
 state: $(TMP_DIR)/replay
-	$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 else
 state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))

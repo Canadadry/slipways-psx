@@ -14,6 +14,7 @@
 #define BINDINGS_EVENTS "tmp/test_replay_from_resume_bindings.json"
 #define BINDINGS_FIXTURE "tmp/test_replay_from_resume.cfg"
 #define STDERR_LOG "tmp/test_replay_from_resume_stderr.txt"
+#define ATTRACT_STATE "tmp/test_replay_from_resume_attract.txt"
 
 enum { RESUME_FRAMES = 30 };
 
@@ -54,17 +55,20 @@ static int run(const char *command) {
     return WEXITSTATUS(status);
 }
 
-static void assert_refused(const char *command, const char *reason) {
+/* Returns the driver's exit status. */
+static int assert_refused(const char *command, const char *reason) {
     char full[512];
     remove(STDERR_LOG);
     snprintf(full, sizeof full, "%s > /dev/null 2> " STDERR_LOG, command);
-    assert(run(full) != 0 && "the driver refuses");
+    int status = run(full);
+    assert(status != 0 && "the driver refuses");
     char *err = read_whole_file(STDERR_LOG);
     if (strncmp(err, "replay: ", 8) != 0 || strstr(err, reason) == NULL) {
         fprintf(stderr, "test_replay_from_resume: got \"%s\", want \"replay: ...%s...\"\n", err, reason);
         assert(0 && "the refusal is a replay: message naming the reason");
     }
     free(err);
+    return status;
 }
 
 static void test_a_resume_start_plays_a_running_game(void) {
@@ -108,11 +112,23 @@ static void test_replay_starts_refusals(void) {
                    "PAD_METRICS");
 }
 
+static void test_attract_state_refusals(void) {
+    write_resume_events(RESUME_EVENTS, "");
+    remove(ATTRACT_STATE ".1");
+    assert(assert_refused("ATTRACT_STATE=" ATTRACT_STATE " " DRIVER " " RESUME_EVENTS " /dev/null " DUMP,
+                          "ATTRACT_STATE") == 2);
+    assert(assert_refused("REPLAY_STARTS=2 ATTRACT_STATE=" ATTRACT_STATE " " DRIVER
+                          " tests/fixtures/title_pick_reasonable.json",
+                          "ATTRACT_STATE") == 2);
+    assert(fopen(ATTRACT_STATE ".1", "r") == NULL && "a refused run writes no state");
+}
+
 int main(void) {
     test_a_resume_start_plays_a_running_game();
     test_a_resume_start_with_bindings_is_refused();
     test_two_starts_reach_the_same_normalised_state();
     test_replay_starts_refusals();
+    test_attract_state_refusals();
     remove(RESUME_EVENTS);
     remove(STATE);
     remove(STATE ".start1");
