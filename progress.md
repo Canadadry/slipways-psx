@@ -53,7 +53,7 @@
     - [x] Chunk 1: the keymap reads button numbers
     - [x] Chunk 2: the keymap is compiled in
 - [ ] Phase 4 — Replays that prove the remap
-  - [ ] 16. Fixtures in replay
+  - [x] 16. Fixtures in replay
     - [x] Chunk 1: fixture reading in replay_source
     - [x] Chunk 2: replay reads the fixture, Make learns it
     - [x] Chunk 3: in-process replayers
