@@ -22,6 +22,8 @@ src/devtools/replay_control.c | replay speed of the interactive driver
 src/devtools/replay_control.h | replay speed of the interactive driver
 src/devtools/replay_source.c | replay, reads events.json
 src/devtools/replay_source.h | replay, reads events.json
+src/devtools/record_start.c | record start of replay and pad_author, reads a hex record through the libc
+src/devtools/record_start.h | record start of replay and pad_author, header of devtools/record_start.c
 src/devtools/screencast.c | screen capture of the replay, writer and reader
 src/devtools/screencast.h | screen capture of the replay, header of devtools/screencast.c
 src/devtools/session_recorder.c | session recording of the interactive driver

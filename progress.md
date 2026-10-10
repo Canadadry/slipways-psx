@@ -9,7 +9,7 @@
     - [x] cart_return_to_title and the two-start proof
   - [ ] 5. pad_author starts from a record
     - [x] Chunk 1: start header member and writer
-    - [ ] Chunk 2: record_start module
+    - [x] Chunk 2: record_start module
     - [ ] Chunk 3: replay from the resume
     - [ ] Chunk 4: pad_author from-record
   - [ ] 6. caption command
