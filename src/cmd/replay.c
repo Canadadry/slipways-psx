@@ -141,10 +141,24 @@ typedef struct {
     const char *path;
     int playbacks;
     int cheat_activations;
+    int return_pending;
 } attract_state_t;
 
-/* After a frame's cart_draw: writes <path>.<n> when the frame played the demo's last frame. */
+static int write_attract_return(const attract_state_t *attract) {
+    char path[1024];
+    snprintf(path, sizeof path, "%s.%d.return", attract->path, attract->playbacks);
+    if (!write_state(path, attract->cheat_activations)) return 0;
+    snprintf(path, sizeof path, "%s.%d.return.hex", attract->path, attract->playbacks);
+    return write_save_hex(path) == 0;
+}
+
+/* After a frame's cart_draw: writes <path>.<n> when the frame played the demo's last frame,
+   and <path>.<n>.return and <path>.<n>.return.hex on the frame after it. */
 static int write_attract_state_after_frame(attract_state_t *attract, const input_step_t *step, int cheat) {
+    if (attract->return_pending) {
+        attract->return_pending = 0;
+        if (!write_attract_return(attract)) return 0;
+    }
     if (input_step_attract_phase(step) != ATTRACT_PHASE_PLAYING) return 1;
     int demo_frame = input_step_attract_demo_frame(step);
     if (demo_frame == 1) attract->cheat_activations = 0;
@@ -152,6 +166,7 @@ static int write_attract_state_after_frame(attract_state_t *attract, const input
     if (demo_frame != demo_data_frame_count) return 1;
     char path[1024];
     attract->playbacks++;
+    attract->return_pending = 1;
     snprintf(path, sizeof path, "%s.%d", attract->path, attract->playbacks);
     return write_state(path, attract->cheat_activations);
 }
@@ -193,6 +208,7 @@ int main(int argc, char **argv) {
     }
     int starts = read_starts();
     if (starts == 0) return 2;
+    if (starts == 2 && capture_path != NULL && strcmp(capture_path, "/dev/null") == 0) capture_path = NULL;
     if (starts == 2 && capture_path != NULL) {
         fprintf(stderr, "replay: REPLAY_STARTS=2 checks states only, it takes no capture file\n");
         return 2;
@@ -281,7 +297,7 @@ int main(int argc, char **argv) {
         pad_metrics_observe(&pad_metrics, &step);
     }
     int cheat_activations = 0;
-    attract_state_t attract_state = {attract_state_path, 0, 0};
+    attract_state_t attract_state = {attract_state_path, 0, 0, 0};
     for (int start = 1; start <= starts; start++) {
         if (start > 1) {
             play_title_between_starts(&step);

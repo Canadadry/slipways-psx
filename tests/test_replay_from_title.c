@@ -80,8 +80,12 @@ static void write_interrupted_demo(const char *path) {
 static void test_an_interrupted_demo_writes_no_attract_state(void) {
     write_interrupted_demo(INTERRUPTED);
     remove(ATTRACT_STATE ".1");
+    remove(ATTRACT_STATE ".1.return");
+    remove(ATTRACT_STATE ".1.return.hex");
     assert(system("ATTRACT_STATE=" ATTRACT_STATE " " DRIVER " " INTERRUPTED " /dev/null " DUMP_A " > /dev/null") == 0);
     assert(fopen(ATTRACT_STATE ".1", "r") == NULL && "only a playback that reached the demo's last frame writes its state");
+    assert(fopen(ATTRACT_STATE ".1.return", "r") == NULL && "an interrupted playback writes no return state");
+    assert(fopen(ATTRACT_STATE ".1.return.hex", "r") == NULL && "an interrupted playback writes no return record");
 }
 
 int main(void) {

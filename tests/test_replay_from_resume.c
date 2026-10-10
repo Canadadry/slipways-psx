@@ -103,6 +103,15 @@ static void test_two_starts_reach_the_same_normalised_state(void) {
     free(second);
 }
 
+static void test_two_starts_write_an_explicit_dump_after_no_capture(void) {
+    write_resume_events(RESUME_EVENTS, "");
+    remove(DUMP);
+    assert(run("REPLAY_STARTS=2 " DRIVER " " RESUME_EVENTS " /dev/null " DUMP " > /dev/null") == 0);
+    char *dump = read_whole_file(DUMP);
+    assert(dump[0] != '\0' && "the dump goes to the path after /dev/null");
+    free(dump);
+}
+
 static void test_replay_starts_refusals(void) {
     write_resume_events(RESUME_EVENTS, "");
     assert_refused("REPLAY_STARTS=3 " DRIVER " " RESUME_EVENTS, "REPLAY_STARTS");
@@ -127,6 +136,7 @@ int main(void) {
     test_a_resume_start_plays_a_running_game();
     test_a_resume_start_with_bindings_is_refused();
     test_two_starts_reach_the_same_normalised_state();
+    test_two_starts_write_an_explicit_dump_after_no_capture();
     test_replay_starts_refusals();
     test_attract_state_refusals();
     remove(RESUME_EVENTS);
