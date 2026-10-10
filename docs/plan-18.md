@@ -162,3 +162,11 @@ Goals that justify every rule below:
 - The whole beat line `fold 118 307; idle 120; colonise p32; slipway p32 p55; year; research xenofoods` succeeds: year 3413, 17 colonies, 19 slipways, 3 techs.
 - PRD decisions: the probe beat is a `fold` (a probe is already live and `pad_author` refuses a second); "two colonies can be linked" counts colonies already in the record. 3410, 3414, 3419, 3420, 3422, 3424 and 3425 also met all four conditions; 3412 has more science margin than 3410 and is less crowded than the later years.
 - Bookkeeping: this note landed one commit late (in step 3's first commit), after a refused amend broke the command chain.
+
+### Step 3
+
+- `replay_source` parses `"attract_after"` from the header only (before `"frames"`): digits 1-9 then digits, at most `INT_MAX`, followed by a separator; `0`, signs, leading zeros, fractions, exponents, strings, `null`, overflow and a repeated member fail the load. `replay_source_attract_after()` returns `REPLAY_SOURCE_ATTRACT_AFTER_DEFAULT` (1200) when missing, with no recording, after a failed load and after close.
+- The session recorder writes `"attract_after": 1200` as the first header member of every recording, then `bindings`, then `initial_save`.
+- Deviation: `src/devtools/input_json.c` changes by one assertion (the PRD said none): `p8_input_append` required a header member ending in `"`; it now refuses a trailing comma or whitespace, its stated intent. `p8_input_save` and `pad_author` output are untouched, so `worst-case/` has no diff.
+- Three tests of `test_recording_continuity.c` froze the old header bytes and were updated.
+- `make test` 8.6–8.8 s (the step 1 baseline method gives 8.2–9.2 s); the new cases cost a few ms. Every `.sha256` unchanged.
