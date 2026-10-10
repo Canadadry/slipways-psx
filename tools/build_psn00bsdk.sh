@@ -1,9 +1,11 @@
 #!/bin/sh
 # usage: build_psn00bsdk.sh <install-dir> <sources>
-# Builds the mipsel-none-elf toolchain (binutils, GCC with libgcc) and
-# PSn00bSDK from the pins of <sources> into <install-dir>, the layout of the
-# Linux release: for macOS, which has no release, or PSN00BSDK_FROM_SOURCE.
-# Needs a host C/C++ compiler, make, cmake, curl, git; never sudo.
+# Builds PSn00bSDK from the pins of <sources> into <install-dir>, the layout
+# of the Linux release, for macOS (which has no release) or with
+# PSN00BSDK_FROM_SOURCE. Its mipsel-none-elf toolchain is, on macOS, the
+# prebuilt arm64 GCC 14.2.0 of toolchain-macos; with PSN00BSDK_FROM_SOURCE,
+# binutils and GCC (with libgcc) built from source, 30 to 60 min.
+# Needs a host C/C++ compiler, make, cmake, curl, git, unzip; never sudo.
 # Exit 0 at once when <install-dir> holds a stamp for the same pins; exit 1,
 # deleting nothing, when it is non-empty without that stamp.
 
@@ -31,12 +33,18 @@ source_of() {
     echo "$line"
 }
 
-binutils=$(source_of binutils file)
-gcc=$(source_of gcc file)
 sdk=$(source_of psn00bsdk-source git)
-
-stamp_text="binutils ${binutils#* }
-gcc ${gcc#* }
+if [ "$(uname -s)" = Darwin ] && [ -z "${PSN00BSDK_FROM_SOURCE:-}" ]; then
+    prebuilt=$(source_of toolchain-macos file)
+    stamp_text="toolchain-macos ${prebuilt#* }"
+else
+    prebuilt=
+    binutils=$(source_of binutils file)
+    gcc=$(source_of gcc file)
+    stamp_text="binutils ${binutils#* }
+gcc ${gcc#* }"
+fi
+stamp_text="$stamp_text
 psn00bsdk-source ${sdk#* }"
 
 if [ -f "$install_dir/$STAMP" ] && [ "$(cat "$install_dir/$STAMP")" = "$stamp_text" ]; then
@@ -46,7 +54,7 @@ fi
 if [ -d "$install_dir" ] && [ -n "$(ls -A "$install_dir")" ]; then
     fail "$install_dir is not empty and holds no stamp for these pins; remove it and re-run"
 fi
-for tool in cc c++ make cmake curl git tar xz; do
+for tool in cc c++ make cmake curl git tar xz unzip; do
     command -v "$tool" >/dev/null 2>&1 || fail "$tool not found on PATH"
 done
 
@@ -58,52 +66,64 @@ jobs=$(cpu_count)
 PATH=$install_dir/bin:$PATH
 export PATH
 
-# Downloads <url> into the work directory, checks its sha256, unpacks it and
-# prints the unpacked directory.
-fetch_tarball() {
+# Downloads "<url> <sha256>" into the work directory, checks it and prints
+# the archive's path.
+fetch() {
     url=${1% *}
     sha256=${1#* }
     archive=$work/$(basename "$url")
-    curl -fsSL --retry 2 -o "$archive" "$url" || fail "download failed: $url"
+    curl -fsSL --retry 3 -o "$archive" "$url" || fail "download failed: $url"
     actual=$(sha256_of "$archive")
     [ "$actual" = "$sha256" ] || fail "$(basename "$url"): sha256 $actual, expected $sha256"
-    tar -xf "$archive" -C "$work"
-    echo "$work/$(basename "$url" | sed 's/\.tar\..*$//')"
+    echo "$archive"
 }
 
-# The macOS SDK zlib is used: the copy bundled with binutils and GCC does not
-# build against it.
-zlib=
-[ "$(uname -s)" = Darwin ] && zlib=--with-system-zlib
+# Unpacks a fetched tarball and prints the unpacked directory.
+fetch_tarball() {
+    archive=$(fetch "$1")
+    tar -xf "$archive" -C "$work"
+    echo "$work/$(basename "$archive" | sed 's/\.tar\..*$//')"
+}
 
-echo "psn00bsdk-toolchain-setup: building binutils"
-binutils_src=$(fetch_tarball "$binutils")
-mkdir "$work/binutils-build"
-(
-    cd "$work/binutils-build"
-    "$binutils_src/configure" --prefix="$install_dir" --target=$TARGET \
-        --disable-docs --disable-nls --disable-werror --with-float=soft $zlib
-    make -j "$jobs" MAKEINFO=true
-    make install-strip MAKEINFO=true
-) > "$work/binutils.log" 2>&1 || { tail -n 40 "$work/binutils.log" >&2; fail "binutils build failed"; }
+if [ -n "$prebuilt" ]; then
+    echo "psn00bsdk-toolchain-setup: installing the prebuilt macOS toolchain"
+    unzip -q "$(fetch "$prebuilt")" -d "$install_dir"
+    rm -rf "$install_dir/__MACOSX"
+else
+    # The macOS SDK zlib is used: the copy bundled with binutils and GCC
+    # does not build against it.
+    zlib=
+    [ "$(uname -s)" = Darwin ] && zlib=--with-system-zlib
 
-echo "psn00bsdk-toolchain-setup: building GCC (the longest part)"
-gcc_src=$(fetch_tarball "$gcc")
-(cd "$gcc_src" && ./contrib/download_prerequisites) > "$work/gcc-prerequisites.log" 2>&1 \
-    || { tail -n 20 "$work/gcc-prerequisites.log" >&2; fail "GCC prerequisites download failed"; }
-mkdir "$work/gcc-build"
-(
-    cd "$work/gcc-build"
-    "$gcc_src/configure" --prefix="$install_dir" --target=$TARGET \
-        --disable-docs --disable-nls --disable-werror --disable-libada --disable-libssp \
-        --disable-libquadmath --disable-threads --disable-libgomp --disable-libstdcxx-pch \
-        --disable-hosted-libstdcxx --enable-languages=c,c++ --without-isl --without-headers \
-        --with-float=soft --with-gnu-as --with-gnu-ld $zlib
-    make -j "$jobs" all-gcc MAKEINFO=true
-    make install-strip-gcc MAKEINFO=true
-    make -j "$jobs" all-target-libgcc MAKEINFO=true
-    make install-strip-target-libgcc MAKEINFO=true
-) > "$work/gcc.log" 2>&1 || { tail -n 40 "$work/gcc.log" >&2; fail "GCC build failed (log tail above)"; }
+    echo "psn00bsdk-toolchain-setup: building binutils"
+    binutils_src=$(fetch_tarball "$binutils")
+    mkdir "$work/binutils-build"
+    (
+        cd "$work/binutils-build"
+        "$binutils_src/configure" --prefix="$install_dir" --target=$TARGET \
+            --disable-docs --disable-nls --disable-werror --with-float=soft $zlib
+        make -j "$jobs" MAKEINFO=true
+        make install-strip MAKEINFO=true
+    ) > "$work/binutils.log" 2>&1 || { tail -n 40 "$work/binutils.log" >&2; fail "binutils build failed"; }
+
+    echo "psn00bsdk-toolchain-setup: building GCC (the longest part)"
+    gcc_src=$(fetch_tarball "$gcc")
+    (cd "$gcc_src" && ./contrib/download_prerequisites) > "$work/gcc-prerequisites.log" 2>&1 \
+        || { tail -n 20 "$work/gcc-prerequisites.log" >&2; fail "GCC prerequisites download failed"; }
+    mkdir "$work/gcc-build"
+    (
+        cd "$work/gcc-build"
+        "$gcc_src/configure" --prefix="$install_dir" --target=$TARGET \
+            --disable-docs --disable-nls --disable-werror --disable-libada --disable-libssp \
+            --disable-libquadmath --disable-threads --disable-libgomp --disable-libstdcxx-pch \
+            --disable-hosted-libstdcxx --enable-languages=c,c++ --without-isl --without-headers \
+            --with-float=soft --with-gnu-as --with-gnu-ld $zlib
+        make -j "$jobs" all-gcc MAKEINFO=true
+        make install-strip-gcc MAKEINFO=true
+        make -j "$jobs" all-target-libgcc MAKEINFO=true
+        make install-strip-target-libgcc MAKEINFO=true
+    ) > "$work/gcc.log" 2>&1 || { tail -n 40 "$work/gcc.log" >&2; fail "GCC build failed (log tail above)"; }
+fi
 
 echo "psn00bsdk-toolchain-setup: building PSn00bSDK"
 sdk_src=$work/psn00bsdk

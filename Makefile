@@ -221,10 +221,11 @@
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
-#                       (default third_party/psn00bsdk); on macOS or with
-#                       PSN00BSDK_FROM_SOURCE, builds the same versions from
-#                       source instead (30-60 min, no sudo); apt via sudo
-#                       on Linux unless PSN00BSDK_SKIP_APT is set; exits 0 at once on a
+#                       (default third_party/psn00bsdk); on macOS, a prebuilt
+#                       arm64 GCC 14.2.0 and PSn00bSDK built with it (no
+#                       sudo); with PSN00BSDK_FROM_SOURCE, GCC 12.3.0 built
+#                       from source too (30-60 min); apt via sudo on Linux
+#                       unless PSN00BSDK_SKIP_APT is set; exits 0 at once on a
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
 # make psx-build [EVENTS=<events>] -> builds, in tmp/psx/build, the game's
