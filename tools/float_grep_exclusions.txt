@@ -44,3 +44,5 @@ src/devtools/pad_metrics.c | pad metrics of the generator, writes its totals thr
 src/devtools/pad_metrics.h | pad metrics of the generator, header of devtools/pad_metrics.c
 src/devtools/pad_caption.c | caption rules of the generator, formats its refusals and JSON member, host tool
 src/devtools/pad_caption.h | caption rules of the generator, header of devtools/pad_caption.c
+src/devtools/demo_source.c | demo loader of the demo generator, reads pico8/demo.json through the libc, host tool
+src/devtools/demo_source.h | demo loader of the demo generator, header of devtools/demo_source.c
