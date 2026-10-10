@@ -65,4 +65,6 @@
   - [x] 19. Unbound action
 - [ ] Phase 5 — Docs and cleanup
   - [ ] 20. Docs
+    - [x] Chunk 1: explain every mode in bindings.default.cfg
+    - [ ] Chunk 2: README points to the two files, pad-modes doc deleted
   - [ ] 21. skill: rework-comments
