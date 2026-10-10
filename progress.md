@@ -49,7 +49,7 @@
   - [x] 14. Guard closed
     - [x] Chunk 1: guard closed
 - [ ] Phase 3 — Compile-time keymap
-  - [ ] 15. Keymap compiled in
+  - [x] 15. Keymap compiled in
     - [x] Chunk 1: the keymap reads button numbers
     - [x] Chunk 2: the keymap is compiled in
 - [ ] Phase 4 — Replays that prove the remap
