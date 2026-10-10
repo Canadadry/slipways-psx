@@ -170,3 +170,20 @@ Goals that justify every rule below:
 - Deviation: `src/devtools/input_json.c` changes by one assertion (the PRD said none): `p8_input_append` required a header member ending in `"`; it now refuses a trailing comma or whitespace, its stated intent. `p8_input_save` and `pad_author` output are untouched, so `worst-case/` has no diff.
 - Three tests of `test_recording_continuity.c` froze the old header bytes and were updated.
 - `make test` 8.6–8.8 s (the step 1 baseline method gives 8.2–9.2 s); the new cases cost a few ms. Every `.sha256` unchanged.
+
+### Step 4
+
+- `tests/test_cart.c` proves two attract starts in one process on `pico8/demo_record.hex`: 30 idle, start, 30 played, return, 37 idle, start, 30 played, return. The starts match (save bytes, dump, screen); each returned title equals the boot title, keeps the `resume` row, and storage is unchanged. A tech-panel case and an empty-storage case (no `resume` row) too. Binary 0.27 s.
+- New `cart_return_to_title` (release live entities, flush the exit queue, forget registries, then `cart_init`): a bare `cart_init` with the tech panel open (11 live buttons) stops on `p8_fatal: zone ui button full, limit 15 slots`. Guideline decision: this still is "the return through `cart_init`" (the title is built by `cart_init`; "again?" and restart are unchanged, they never run with the panel open), so the stop rule does not trigger. Only tests call it until step 10.
+- Contracts for steps 5 and 10: the start (`input_step_init` on the default table, then `cart_resume_game`) and the return (`cart_return_to_title`, then `input_step_init` on the compiled table) run at the top of a frame, before that frame's input step. At least one `cart_update60` must come between a return and a start (else `flip_zone_flip`'s assert).
+- State `cart_init` and the resume do not rebuild (input for step 10):
+  1. The visual random stream: never reseeded; a different stream value gives 35 pixels apart after 30 frames (vanishing planet's flicker at (61,15)); the plan accepts it.
+  2. The game random state on the title: the returned title's differs from the boot title's (the demo's draws); harmless, `cart_resume_game` reseeds and the dump does not print it.
+  3. Entity ids: indexes repeat, generations rise; never comparable between starts.
+  4. The input step (pad navigation, cheat state): untouched by both calls; without the re-inits the second start inherits the previous demo's `pad_nav` ids and the title cursor. Step 10 must call `input_step_init` at start and return.
+  5. The abandoned world's UI slots: handled by `cart_return_to_title`.
+  6. The game zone's pending generation: one frame needed between return and start.
+  7. The stored save: still written by demo actions through `save_at_frame_end`; step 10 cuts it off.
+  8. Session peak counters (`cap`, `zone`, `budget` dump lines): rise across cycles; excluded from comparisons.
+  9. Seen by reading only, not exercised: `economy_score`'s difficulty and the year banner's keep-open counter.
+- Checks: `make test` 7.27–7.70 s, `make e2e` 1.25–1.32 s (under step 1's minimums); `make end-state`, `make full-game`, `make pad-author` clean, no diff in `worst-case/`, `pico8/`, `tests/e2e/`. ASan/UBSan build of `test_cart` clean.
