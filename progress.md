@@ -71,3 +71,4 @@
     - [x] rework-comments: button guard
     - [x] rework-comments: bindings
     - [x] rework-comments: replay
+    - [x] rework-comments: pad navigation

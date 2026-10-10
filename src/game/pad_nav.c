@@ -54,7 +54,6 @@ static int game_unseen(const pad_nav_t *nav) {
     return economy != NULL && entity_get(nav->game) != &economy->header;
 }
 
-/* Between the update that creates a game and the first step that sees it, the mode reset_on_new_game will give. */
 static pad_nav_map_mode_t map_mode_now(const pad_nav_t *nav) {
     if (!game_unseen(nav)) {
         return nav->map_mode;
@@ -173,7 +172,6 @@ static void aim_pan(pad_nav_t *nav, bindings_mode_t mode, int pad_buttons) {
     }
 }
 
-/* No pad_jump_init: the seeded flag must survive, or a reset within a game reseeds on the first colony. */
 static void reset_map_mode(pad_nav_t *nav) {
     nav->map_mode = PAD_NAV_MAP_JUMP;
     pad_jump_hover(&nav->jump, NULL);
@@ -247,7 +245,6 @@ static bindings_mode_t panel_mode(const pad_nav_t *nav) {
     return cycle_open(nav) ? BINDINGS_MODE_PANELS : BINDINGS_MODE_MENU;
 }
 
-/* Ranked by action, not by button: with move_up on 2 and move_down on 1, 1 + 2 moves up. */
 static pad_direction_t first_pressed_move(const pad_nav_t *nav, int pressed, bindings_mode_t mode) {
     static const bindings_action_t move_action[PAD_JUMP_DIRECTIONS] = {
         BINDINGS_ACTION_MOVE_UP, BINDINGS_ACTION_MOVE_DOWN, BINDINGS_ACTION_MOVE_LEFT, BINDINGS_ACTION_MOVE_RIGHT
@@ -308,7 +305,6 @@ static void enter_aim_mode(pad_nav_t *nav) {
     pad_jump_repeat_clear(&nav->jump);
 }
 
-/* The ui presses the highest layer first: a HUD item over the planet takes the press. */
 static int pressed_before(const entity_t *planet, int x, int y) {
     return pad_panel_entity_under(x, y, p8_fixed_flr_int(planet->layer), pad_panel_is_candidate) != NULL;
 }
@@ -488,7 +484,6 @@ static cancelled_t unwind_sub_modes(pad_nav_t *nav) {
     return cancel_slipway(nav) ? CANCELLED_SLIPWAY : CANCELLED_NOTHING;
 }
 
-/* The score backdrop takes a press anywhere above the HUD, even on the bar's icon, and its on_click hides the panel. */
 static void leave_panel(pad_nav_t *nav, p8_input_frame_t *played) {
     if (!own_panel_up(nav)) {
         return;
@@ -531,7 +526,6 @@ static bindings_mode_t nav_mode(const pad_nav_t *nav) {
     return map_binding_mode(nav);
 }
 
-/* Pause, the title and off the map with no box fall into the map mode, where the back block acts on nothing. */
 static bindings_mode_t back_mode(const pad_nav_t *nav) {
     if (pad_panel_box_open() && !pause_menu_shown()) {
         return cycle_open(nav) ? BINDINGS_MODE_PANELS : BINDINGS_MODE_MENU;
@@ -596,7 +590,7 @@ static void build_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_
         played->mouse_buttons = P8_MOUSE_LEFT;
         nav->placement = PAD_NAV_PLACEMENT_PRESSED;
     }
-    /* The bar has no up or down: it borrows the panels' pair, which ranks before left and right as on plan 12. */
+    /* The bar has no up or down: it borrows the panels' pair, which ranks before left and right. */
     if (action_pressed(nav, pressed, BINDINGS_MODE_PANELS, BINDINGS_ACTION_MOVE_UP) ||
         action_pressed(nav, pressed, BINDINGS_MODE_PANELS, BINDINGS_ACTION_MOVE_DOWN)) {
         return;

@@ -12,10 +12,8 @@ typedef struct {
     p8_input_t played;
 } input_step_t;
 
-/* Copies *bindings into the pad navigation state. */
 void input_step_init(input_step_t *step, const bindings_t *bindings);
 
-/* Installs the played frame in the dispatch context; returns 1 when the cheat fired this frame. */
 int input_step_run(input_step_t *step, const p8_input_frame_t *raw);
 
 const p8_input_frame_t *input_step_played_frame(const input_step_t *step);

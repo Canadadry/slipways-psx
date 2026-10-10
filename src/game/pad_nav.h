@@ -48,10 +48,8 @@ typedef struct {
     bindings_t bindings;
 } pad_nav_t;
 
-/* Copies *bindings: the caller's table may go away after the call. */
 void pad_nav_init(pad_nav_t *nav, const bindings_t *bindings);
 
-/* The pointer lives as long as nav; the caller never frees it. */
 const bindings_t *pad_nav_bindings(const pad_nav_t *nav);
 
 void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played);

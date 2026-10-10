@@ -13,11 +13,8 @@ typedef struct {
 
 void cheat_init(cheat_t *cheat);
 
-/* The pad mask of the chord's two buttons, fixed below the bindings. */
 int cheat_chord_buttons(void);
 
-/* Fed the raw pad buttons every frame; returns 1 on the frame that completes CHEAT_CHORDS chords of
- * cheat_chord_buttons() (both going down on the same frame) with no lone press of either between them. */
 int cheat_step(cheat_t *cheat, int pad_buttons);
 
 #endif

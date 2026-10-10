@@ -52,7 +52,6 @@ int pad_panel_open(void) {
     if (main_ui() == NULL) {
         return 0;
     }
-    /* The backdrop's hit test always holds, so any point finds it. */
     return main_economy_typed() == NULL || pad_panel_box_open() ||
            pad_panel_entity_under(0, 0, PAD_PANEL_ANY_LAYER, is_modal_backdrop) != NULL;
 }
@@ -92,7 +91,6 @@ static entity_t *candidates_next(candidate_iter_t *it) {
     }
 }
 
-/* -1 when there is no candidate. */
 static int top_layer(void) {
     candidate_iter_t it = candidates_all();
     int top = -1;
@@ -140,7 +138,6 @@ entity_t *pad_panel_first_item(void) {
     return NULL;
 }
 
-/* The hit box where the hit test reads it: layers under 10 are hit-tested in world space. */
 static box_t box_at(const entity_t *e, vec_t origin) {
     if (p8_fixed_flr_int(e->layer) < SCREEN_SPACE_LAYER) {
         const camera_t *camera = main_camera_typed();
@@ -185,7 +182,6 @@ static int absolute(int value) {
     return value < 0 ? -value : value;
 }
 
-/* 0 when the two spans overlap. */
 static int span_gap(p8_fixed_t low_a, p8_fixed_t high_a, p8_fixed_t low_b, p8_fixed_t high_b) {
     if (low_b > high_a) {
         return p8_fixed_flr_int(p8_fixed_sub(low_b, high_a));
@@ -196,7 +192,6 @@ static int span_gap(p8_fixed_t low_a, p8_fixed_t high_a, p8_fixed_t low_b, p8_fi
     return 0;
 }
 
-/* -1 when the candidate does not lie strictly beyond the item's box in that direction. */
 static int neighbor_score(const entity_t *item, const entity_t *candidate, pad_direction_t direction) {
     box_t from = rest_box(item);
     box_t to = rest_box(candidate);
