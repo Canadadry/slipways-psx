@@ -125,7 +125,7 @@ entity_t *pad_nav_first_item(void) {
     return pad_panel_first_item();
 }
 
-entity_t *pad_nav_neighbor(const entity_t *item, int direction) {
+entity_t *pad_nav_neighbor(const entity_t *item, pad_direction_t direction) {
     return pad_panel_neighbor(item, direction);
 }
 
@@ -151,15 +151,15 @@ static int pan_speed(int held_frames) {
 static void aim_pan(pad_nav_t *nav, int pad_buttons) {
     int speed[PAD_JUMP_DIRECTIONS];
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        if (!(pad_buttons & pad_jump_direction(i))) {
+        if (!(pad_buttons & pad_jump_direction_button(pad_jump_direction(i)))) {
             nav->held_frames[i] = 0;
         } else if (nav->held_frames[i] < HELD_FRAMES_CAP) {
             nav->held_frames[i]++;
         }
         speed[i] = pan_speed(nav->held_frames[i]);
     }
-    assert(pad_jump_direction(0) == P8_PAD_BUTTON_1 && pad_jump_direction(1) == P8_PAD_BUTTON_2 &&
-           pad_jump_direction(2) == P8_PAD_BUTTON_3 && pad_jump_direction(3) == P8_PAD_BUTTON_4 &&
+    assert(pad_jump_direction(0) == PAD_DIRECTION_UP && pad_jump_direction(1) == PAD_DIRECTION_DOWN &&
+           pad_jump_direction(2) == PAD_DIRECTION_LEFT && pad_jump_direction(3) == PAD_DIRECTION_RIGHT &&
            "aim_pan: speed[] is indexed Up, Down, Left, Right");
     camera_t *camera = main_camera_typed();
     if (camera != NULL) {
@@ -217,7 +217,8 @@ static int armed_panel_open(const pad_nav_t *nav) {
     return (on_the_map(nav) || cycle_open(nav)) && pad_nav_panel_open() && !pause_menu_shown();
 }
 
-static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, p8_input_frame_t *played) {
+static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, pad_direction_t direction,
+                       p8_input_frame_t *played) {
     if (pause_menu_shown()) {
         nav->pause_cross_armed |= (pressed & P8_PAD_BUTTON_5) != 0;
         if (!nav->pause_cross_armed) {
@@ -483,14 +484,14 @@ static entity_t *cycle_button(const pad_nav_t *nav) {
     return index != 0 ? (entity_t *)galaxy_menu_find_button(index) : NULL;
 }
 
-static void build_step(pad_nav_t *nav, int pressed, int direction, int release, p8_input_frame_t *played) {
+static void build_step(pad_nav_t *nav, int pressed, pad_direction_t direction, int release, p8_input_frame_t *played) {
     entity_t *icon = pad_build_focus(&nav->build);
     if (icon != NULL && (pressed & P8_PAD_BUTTON_5) && !release) {
         played->mouse_buttons = P8_MOUSE_LEFT;
         nav->placement = PAD_NAV_PLACEMENT_PRESSED;
     }
-    if (direction == P8_PAD_BUTTON_3 || direction == P8_PAD_BUTTON_4) {
-        pad_build_pick(&nav->build, direction == P8_PAD_BUTTON_3 ? -1 : 1);
+    if (direction == PAD_DIRECTION_LEFT || direction == PAD_DIRECTION_RIGHT) {
+        pad_build_pick(&nav->build, direction == PAD_DIRECTION_LEFT ? -1 : 1);
     }
 }
 
@@ -515,7 +516,7 @@ static void place_cursor(pad_nav_t *nav) {
     }
 }
 
-static void bar_or_cycle_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release,
+static void bar_or_cycle_step(pad_nav_t *nav, int pad_buttons, int pressed, pad_direction_t direction, int release,
                               p8_input_frame_t *played) {
     if (pad_nav_panel_open()) {
         panel_step(nav, pad_buttons, pressed, direction, played);
@@ -647,7 +648,7 @@ static int cross_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_inpu
     return 1;
 }
 
-static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
+static void jump_from(pad_nav_t *nav, const entity_t *hovered, pad_direction_t direction) {
     entity_list_t candidates = live_candidates();
     entity_t *target = pad_target_pick(hovered, direction, &candidates);
     if (target != NULL) {
@@ -665,7 +666,7 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         return;
     }
     /* Before the click check: the hold-repeat count keeps running through a click's frames. */
-    int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
+    pad_direction_t direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
     entity_t *hovered = pad_jump_hovered(&nav->jump);
     int clicking = release || nav->release_pending;
     entity_t *back = circle_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
@@ -697,7 +698,7 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
     if (!clicking && select_tapped && select_tap(nav, hovered, shown)) {
         return;
     }
-    if (direction != 0 && !clicking) {
+    if (direction != PAD_DIRECTION_NONE && !clicking) {
         jump_from(nav, hovered, direction);
         hovered = pad_jump_hovered(&nav->jump);
     }
@@ -758,7 +759,7 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
         screen_point(start, &nav->cursor_x, &nav->cursor_y);
         return;
     }
-    int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
+    pad_direction_t direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
     entity_t *target = pad_nav_slipway_target(nav);
     nav->slipway.target = entity_id_link(target);
     if ((pressed & P8_PAD_BUTTON_5) && !release && target != NULL && pressable(target)) {
@@ -766,7 +767,7 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
         screen_point(target, &nav->cursor_x, &nav->cursor_y);
         return;
     }
-    if (direction != 0 && !(pressed & P8_PAD_BUTTON_5)) {
+    if (direction != PAD_DIRECTION_NONE && !(pressed & P8_PAD_BUTTON_5)) {
         entity_list_t candidates = live_candidates();
         entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
         entity_t *picked = pad_target_pick(target != NULL ? target : start, direction, &targets);
@@ -782,9 +783,9 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
     *shown = aimed;
 }
 
-static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
-                     pad_select_event_t select, int year_release, p8_input_frame_t *played, const entity_t **shown,
-                     int *repeat_kept) {
+static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, pad_direction_t direction, int release,
+                     int circle_returns, pad_select_event_t select, int year_release, p8_input_frame_t *played,
+                     const entity_t **shown, int *repeat_kept) {
     if (pad_nav_placing(nav) != NULL) {
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
@@ -943,7 +944,7 @@ static int without_chord(pad_nav_t *nav, int raw_buttons) {
 void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     int pad_buttons = without_chord(nav, raw_buttons);
     int pressed = pad_buttons & ~nav->previous_pad;
-    int direction = pad_jump_first_direction(pressed);
+    pad_direction_t direction = pad_jump_first_direction(pressed);
     int release = nav->release_pending;
     nav->previous_pad = raw_buttons;
     nav->release_pending = 0;

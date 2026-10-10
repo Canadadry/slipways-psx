@@ -82,7 +82,7 @@ entity_t *pad_nav_placing(const pad_nav_t *nav);
 
 entity_t *pad_nav_first_item(void);
 
-entity_t *pad_nav_neighbor(const entity_t *item, int direction);
+entity_t *pad_nav_neighbor(const entity_t *item, pad_direction_t direction);
 
 int pad_nav_is_item(const entity_t *e);
 

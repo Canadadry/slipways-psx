@@ -2,6 +2,7 @@
 #define GAME_PAD_PANEL_H
 
 #include "engine/entity_class.h"
+#include "game/pad_direction.h"
 
 enum { PAD_PANEL_ANY_LAYER = -32768 };
 
@@ -26,11 +27,12 @@ void pad_panel_focus_point(const entity_t *e, int *x, int *y);
 entity_t *pad_panel_first_item(void);
 
 /* NULL when no item lies in that direction. */
-entity_t *pad_panel_neighbor(const entity_t *item, int direction);
+entity_t *pad_panel_neighbor(const entity_t *item, pad_direction_t direction);
 
-/* The focus after a move in direction (0 for none), from focus or, when focus is no longer an item, from the first
- * item. NULL when the panel has no item; otherwise also writes the new focus's centre on screen to x and y. Writes
- * P8_MOUSE_LEFT to mouse_buttons while × is held on a focus, 0 otherwise. */
-entity_t *pad_panel_step(entity_t *focus, int pad_buttons, int direction, int *x, int *y, int *mouse_buttons);
+/* The focus after a move in direction (PAD_DIRECTION_NONE for none), from focus or, when focus is no longer an item,
+ * from the first item. NULL when the panel has no item; otherwise also writes the new focus's centre on screen to x and
+ * y. Writes P8_MOUSE_LEFT to mouse_buttons while × is held on a focus, 0 otherwise. */
+entity_t *pad_panel_step(entity_t *focus, int pad_buttons, pad_direction_t direction, int *x, int *y,
+                         int *mouse_buttons);
 
 #endif

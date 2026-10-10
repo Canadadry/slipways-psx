@@ -145,7 +145,7 @@ int pad_metrics_view_changed(const pad_metrics_view_t *a, const pad_metrics_view
 
 int pad_metrics_hold_step(pad_metrics_hold_t *hold, pad_metrics_mode_t mode, int buttons);
 
-int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, int direction);
+int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, pad_direction_t direction);
 
 void pad_metrics_observe(pad_metrics_t *metrics, const input_step_t *step);
 const pad_metrics_view_t *pad_metrics_view(const pad_metrics_t *metrics);

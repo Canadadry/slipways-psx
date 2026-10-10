@@ -10,7 +10,7 @@
     - [x] Chunk 2: report, unit test and Makefile
   - [ ] 4. Rename the constants
     - [x] Chunk 1: rename the constants
-    - [ ] Chunk 2: directions as their own enum
+    - [x] Chunk 2: directions as their own enum
 - [ ] Phase 2 — Bindings in the game
   - [ ] 5. Inventory of button reads
   - [ ] 6. Bindings module

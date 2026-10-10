@@ -4,6 +4,7 @@
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
 #include "engine/entity_list.h"
+#include "game/pad_direction.h"
 
 #define PAD_JUMP_REPEAT_DELAY 18
 #define PAD_JUMP_REPEAT_PERIOD 8
@@ -16,7 +17,7 @@ enum { PAD_JUMP_DIRECTIONS = 4 };
 typedef struct {
     entity_id_t hovered;
     int seeded;
-    int repeat_direction;
+    pad_direction_t repeat_direction;
     int repeat_frames;
 } pad_jump_t;
 
@@ -27,10 +28,12 @@ entity_t *pad_jump_hovered(const pad_jump_t *jump);
 void pad_jump_hover_seeded(pad_jump_t *jump, const entity_t *e);
 entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int centre_x, int centre_y);
 
-int pad_jump_direction(int index);
-int pad_jump_first_direction(int buttons);
+pad_direction_t pad_jump_direction(int index);
+pad_direction_t pad_jump_first_direction(int buttons);
+/* 0 for PAD_DIRECTION_NONE. */
+int pad_jump_direction_button(pad_direction_t direction);
 
-int pad_jump_repeat_step(pad_jump_t *jump, int pad_buttons, int pressed);
+pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, int pad_buttons, int pressed);
 void pad_jump_repeat_clear(pad_jump_t *jump);
 
 int pad_jump_inside(int x, int y);

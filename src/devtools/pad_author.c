@@ -204,11 +204,11 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
     int pressed = pad_metrics_pressed(&author->metrics, buttons);
     if ((pressed & face) == face) return fail(author, script, "chord: buttons 5 and 6 pressed on the same frame");
     pad_metrics_mode_t mode = current_mode(author);
-    int direction = pad_jump_first_direction(pressed);
-    if (mode == PAD_METRICS_MODE_JUMP && direction != 0 &&
+    pad_direction_t direction = pad_jump_first_direction(pressed);
+    if (mode == PAD_METRICS_MODE_JUMP && direction != PAD_DIRECTION_NONE &&
         pad_metrics_cone_empty(&author->metrics, pad_nav_hovered(nav_of(author)), direction)) {
         return fail(author, script, "empty cone: no candidate for button %d of the hovered object in jump mode",
-                    first_button_number(direction));
+                    first_button_number(pad_jump_direction_button(direction)));
     }
     pad_metrics_observe(&author->metrics, &author->step);
     pad_metrics_view_t before = *pad_metrics_view(&author->metrics);
@@ -367,11 +367,12 @@ static int inside(pad_author_t *author, const void *context) {
     return pad_jump_inside(x, y);
 }
 
-static int pick_path(const entity_t *origin, const entity_t *target, const entity_list_t *candidates, int *directions) {
+static int pick_path(const entity_t *origin, const entity_t *target, const entity_list_t *candidates,
+                     pad_direction_t *directions) {
     int n = candidates->count;
     if (origin == target) return 0;
     int *previous = malloc((size_t)(n + 1) * sizeof *previous);
-    int *via = malloc((size_t)(n + 1) * sizeof *via);
+    pad_direction_t *via = malloc((size_t)(n + 1) * sizeof *via);
     int *queue = malloc((size_t)(n + 1) * sizeof *queue);
     assert(previous != NULL && via != NULL && queue != NULL);
     for (int i = 0; i <= n; i++) previous[i] = -2;
@@ -428,14 +429,14 @@ static int run_jump(pad_author_t *author, const script_t *script, const char *id
     if (pad_nav_hovered(nav) == NULL && !emit(author, script, 0)) return 0;
     entity_t *hovered = pad_nav_hovered(nav);
     if (hovered == NULL) return fail(author, script, "jump: nothing hovered");
-    int directions[PATH_STEPS_MAX];
+    pad_direction_t directions[PATH_STEPS_MAX];
     entity_list_t candidates = live_candidates();
     int length = pick_path(hovered, target, &candidates, directions);
     if (length < 0) return fail(author, script, "jump: no D-pad path from %s to %s", name_of(hovered), id);
     for (int i = 0; i < length; i++) {
         candidates = live_candidates();
         entity_t *expected = pad_target_pick(pad_nav_hovered(nav), directions[i], &candidates);
-        if (!tap(author, script, directions[i])) return 0;
+        if (!tap(author, script, pad_jump_direction_button(directions[i]))) return 0;
         if (pad_nav_hovered(nav) != expected) {
             return fail(author, script, "jump: the tap hovered %s, not %s", name_of(pad_nav_hovered(nav)),
                         name_of(expected));
@@ -524,7 +525,7 @@ static void best_jumps_before_aim(pad_author_t *author, int x, int y, entity_t *
     if (hovered == NULL) return;
     entity_list_t candidates = live_candidates();
     int n = candidates.count < CANDIDATES_MAX ? candidates.count : CANDIDATES_MAX;
-    int directions[PATH_STEPS_MAX];
+    pad_direction_t directions[PATH_STEPS_MAX];
     for (int i = 0; i < n; i++) {
         entity_t *a = candidates.items[i];
         length_from[i] = name_of(a)[0] == '-' ? -1 : pick_path(hovered, a, &candidates, directions);
@@ -675,7 +676,7 @@ static int panel_closed_on_map(pad_author_t *author, const void *context) {
 static int move_down_rows(pad_author_t *author, const script_t *script, int rows) {
     pad_nav_t *nav = nav_of(author);
     for (int r = 0; r < rows; r++) {
-        entity_t *expected = pad_nav_neighbor(pad_nav_focus(nav), P8_PAD_BUTTON_2);
+        entity_t *expected = pad_nav_neighbor(pad_nav_focus(nav), PAD_DIRECTION_DOWN);
         if (expected == NULL) return fail(author, script, "menu: no row %d", r + 1);
         if (!tap(author, script, P8_PAD_BUTTON_2)) return 0;
         if (pad_nav_focus(nav) != expected) return fail(author, script, "menu: Down missed row %d", r + 1);
@@ -739,7 +740,7 @@ static int aim_slipway_at(pad_author_t *author, const script_t *script, entity_t
     entity_list_t candidates = live_candidates();
     entity_list_t targets = pad_slipway_candidates(&scratch_zone, &candidates, start);
     entity_t *aimed = pad_nav_slipway_target(nav) != NULL ? pad_nav_slipway_target(nav) : start;
-    int directions[PATH_STEPS_MAX];
+    pad_direction_t directions[PATH_STEPS_MAX];
     int length = pick_path(aimed, target, &targets, directions);
     if (length < 0) return fail(author, script, "slipway: no D-pad path from %s to %s", name_of(aimed), name_of(target));
     for (int i = 0; i < length; i++) {
@@ -747,7 +748,7 @@ static int aim_slipway_at(pad_author_t *author, const script_t *script, entity_t
         targets = pad_slipway_candidates(&scratch_zone, &candidates, start);
         aimed = pad_nav_slipway_target(nav) != NULL ? pad_nav_slipway_target(nav) : start;
         entity_t *expected = pad_target_pick(aimed, directions[i], &targets);
-        if (!tap(author, script, directions[i])) return 0;
+        if (!tap(author, script, pad_jump_direction_button(directions[i]))) return 0;
         if (pad_nav_slipway_target(nav) != expected) {
             return fail(author, script, "slipway: the tap aimed at %s, not %s", name_of(pad_nav_slipway_target(nav)),
                         name_of(expected));
@@ -883,10 +884,11 @@ static int tech_panel_up(pad_author_t *author, const void *context) {
     return pad_nav_tech_open(nav_of(author)) && pad_nav_panel_open() && pad_nav_focus(nav_of(author)) != NULL;
 }
 
-static int item_path(const entity_t *from, item_match_t match, const char *name, int *directions) {
+static int item_path(const entity_t *from, item_match_t match, const char *name, pad_direction_t *directions) {
     enum { ITEMS_MAX = 64 };
     const entity_t *items[ITEMS_MAX];
-    int previous[ITEMS_MAX], via[ITEMS_MAX];
+    int previous[ITEMS_MAX];
+    pad_direction_t via[ITEMS_MAX];
     int count = 1, found = -1;
     items[0] = from;
     previous[0] = -1;
@@ -918,12 +920,12 @@ static int item_path(const entity_t *from, item_match_t match, const char *name,
 static int move_to_item(pad_author_t *author, const script_t *script, item_match_t match, const char *name,
                         const char *command) {
     pad_nav_t *nav = nav_of(author);
-    int directions[PATH_STEPS_MAX];
+    pad_direction_t directions[PATH_STEPS_MAX];
     int length = item_path(pad_nav_focus(nav), match, name, directions);
     if (length < 0) return fail(author, script, "%s: no row '%s' it can press", command, name);
     for (int i = 0; i < length; i++) {
         entity_t *expected = pad_nav_neighbor(pad_nav_focus(nav), directions[i]);
-        if (!tap(author, script, directions[i])) return 0;
+        if (!tap(author, script, pad_jump_direction_button(directions[i]))) return 0;
         if (pad_nav_focus(nav) != expected) return fail(author, script, "%s: a tap missed its row", command);
     }
     return 1;
@@ -1028,7 +1030,10 @@ static int run_menu(pad_author_t *author, const script_t *script, const char *id
         !wait_panel_settled(author, script, "menu")) {
         return 0;
     }
-    if (pad_nav_neighbor(pad_nav_focus(nav_of(author)), P8_PAD_BUTTON_2) != NULL && !move_down_rows(author, script, 1)) return 0;
+    if (pad_nav_neighbor(pad_nav_focus(nav_of(author)), PAD_DIRECTION_DOWN) != NULL &&
+        !move_down_rows(author, script, 1)) {
+        return 0;
+    }
     if (dwell > 0 && !emit_repeated(author, script, 0, dwell)) return 0;
     return tap(author, script, P8_PAD_BUTTON_6) &&
            wait_until(author, script, panel_closed_on_map, NULL, 6, "menu: closed by circle");

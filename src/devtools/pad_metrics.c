@@ -134,18 +134,18 @@ int pad_metrics_view_changed(const pad_metrics_view_t *a, const pad_metrics_view
 int pad_metrics_hold_step(pad_metrics_hold_t *hold, pad_metrics_mode_t mode, int buttons) {
     int repeats = 0;
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        int direction = pad_jump_direction(i);
-        hold->held[i] = (buttons & direction) ? hold->held[i] + 1 : 0;
+        int button = pad_jump_direction_button(pad_jump_direction(i));
+        hold->held[i] = (buttons & button) ? hold->held[i] + 1 : 0;
         int past = hold->held[i] - PAD_JUMP_REPEAT_DELAY;
         if ((mode == PAD_METRICS_MODE_JUMP || mode == PAD_METRICS_MODE_SLIPWAY) && past > 0 &&
             (past - 1) % PAD_JUMP_REPEAT_PERIOD == 0) {
-            repeats |= direction;
+            repeats |= button;
         }
     }
     return repeats;
 }
 
-int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, int direction) {
+int pad_metrics_cone_empty(const pad_metrics_t *metrics, const entity_t *from, pad_direction_t direction) {
     /* Resets the caller's scratch zone: pad_author shares it, so nothing it holds there survives this call. */
     bump_zone_reset(metrics->scratch);
     allocator_t zone = allocator_from_bump_zone(metrics->scratch);
@@ -160,8 +160,10 @@ static int is_moving_mode(pad_metrics_mode_t mode) {
 static int empty_cones(const entity_t *from, const entity_list_t *candidates) {
     int empty = 0;
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        int direction = pad_jump_direction(i);
-        if (from == NULL || pad_target_pick(from, direction, candidates) == NULL) empty |= direction;
+        pad_direction_t direction = pad_jump_direction(i);
+        if (from == NULL || pad_target_pick(from, direction, candidates) == NULL) {
+            empty |= pad_jump_direction_button(direction);
+        }
     }
     return empty;
 }
@@ -285,9 +287,11 @@ static void judge_frame(pad_metrics_t *metrics, int buttons, int pressed, int re
         if ((pressed & bit) && chord && (bit & face)) {
             metrics->chords[metrics->view.mode][b]++;
         } else if (pressed & bit) {
-            open_event(metrics, PAD_METRICS_PRESS, b, pad_jump_first_direction(pressed));
+            open_event(metrics, PAD_METRICS_PRESS, b, pad_jump_direction_button(pad_jump_first_direction(pressed)));
         }
-        if (repeats & bit) open_event(metrics, PAD_METRICS_REPEAT, b, pad_jump_first_direction(repeats));
+        if (repeats & bit) {
+            open_event(metrics, PAD_METRICS_REPEAT, b, pad_jump_direction_button(pad_jump_first_direction(repeats)));
+        }
     }
     for (int i = 0; i < metrics->pending_count; i++) {
         if (pad_metrics_view_changed(&metrics->pending[i].before, after)) metrics->pending[i].moved = 1;

@@ -176,8 +176,9 @@ void pad_panel_focus_point(const entity_t *e, int *x, int *y) {
     box_middle(screen_box(e), x, y);
 }
 
-static int is_direction(int direction) {
-    return direction == P8_PAD_BUTTON_1 || direction == P8_PAD_BUTTON_2 || direction == P8_PAD_BUTTON_3 || direction == P8_PAD_BUTTON_4;
+static int is_direction(pad_direction_t direction) {
+    return direction == PAD_DIRECTION_UP || direction == PAD_DIRECTION_DOWN || direction == PAD_DIRECTION_LEFT ||
+           direction == PAD_DIRECTION_RIGHT;
 }
 
 static int absolute(int value) {
@@ -196,35 +197,35 @@ static int span_gap(p8_fixed_t low_a, p8_fixed_t high_a, p8_fixed_t low_b, p8_fi
 }
 
 /* -1 when the candidate does not lie strictly beyond the item's box in that direction. */
-static int neighbor_score(const entity_t *item, const entity_t *candidate, int direction) {
+static int neighbor_score(const entity_t *item, const entity_t *candidate, pad_direction_t direction) {
     box_t from = rest_box(item);
     box_t to = rest_box(candidate);
     int from_x, from_y, to_x, to_y;
     box_middle(from, &from_x, &from_y);
     box_middle(to, &to_x, &to_y);
     switch (direction) {
-    case P8_PAD_BUTTON_1:
+    case PAD_DIRECTION_UP:
         if (p8_fixed_from_int(to_y) >= from.top) return -1;
         break;
-    case P8_PAD_BUTTON_2:
+    case PAD_DIRECTION_DOWN:
         if (p8_fixed_from_int(to_y) <= from.bottom) return -1;
         break;
-    case P8_PAD_BUTTON_3:
+    case PAD_DIRECTION_LEFT:
         if (p8_fixed_from_int(to_x) >= from.left) return -1;
         break;
     default:
         if (p8_fixed_from_int(to_x) <= from.right) return -1;
         break;
     }
-    if (direction == P8_PAD_BUTTON_1 || direction == P8_PAD_BUTTON_2) {
+    if (direction == PAD_DIRECTION_UP || direction == PAD_DIRECTION_DOWN) {
         return absolute(to_y - from_y) + 2 * span_gap(from.left, from.right, to.left, to.right);
     }
     return absolute(to_x - from_x) + 2 * span_gap(from.top, from.bottom, to.top, to.bottom);
 }
 
-entity_t *pad_panel_neighbor(const entity_t *item, int direction) {
+entity_t *pad_panel_neighbor(const entity_t *item, pad_direction_t direction) {
     assert(is_direction(direction) &&
-           "pad_panel_neighbor: the direction is exactly one of P8_PAD_BUTTON_1, DOWN, LEFT or RIGHT");
+           "pad_panel_neighbor: the direction is exactly one of PAD_DIRECTION_UP, DOWN, LEFT or RIGHT");
     int layer = top_layer();
     candidate_iter_t it = candidates_all();
     entity_t *best = NULL;
@@ -243,9 +244,10 @@ entity_t *pad_panel_neighbor(const entity_t *item, int direction) {
     return best;
 }
 
-entity_t *pad_panel_step(entity_t *focus, int pad_buttons, int direction, int *x, int *y, int *mouse_buttons) {
+entity_t *pad_panel_step(entity_t *focus, int pad_buttons, pad_direction_t direction, int *x, int *y,
+                         int *mouse_buttons) {
     entity_t *at = pad_panel_is_item(focus) ? focus : pad_panel_first_item();
-    if (at != NULL && direction != 0) {
+    if (at != NULL && direction != PAD_DIRECTION_NONE) {
         entity_t *next = pad_panel_neighbor(at, direction);
         if (next != NULL) {
             at = next;

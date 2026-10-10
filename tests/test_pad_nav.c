@@ -157,8 +157,8 @@ static void test_title_left_and_right_do_nothing(void) {
     assert_focused_and_hovered(&step, "reasonable");
     tap(&step, P8_PAD_BUTTON_4);
     assert_focused_and_hovered(&step, "reasonable");
-    assert(pad_nav_neighbor(title_button("tough"), P8_PAD_BUTTON_3) == NULL);
-    assert(pad_nav_neighbor(title_button("forgiving"), P8_PAD_BUTTON_4) == NULL);
+    assert(pad_nav_neighbor(title_button("tough"), PAD_DIRECTION_LEFT) == NULL);
+    assert(pad_nav_neighbor(title_button("forgiving"), PAD_DIRECTION_RIGHT) == NULL);
 }
 
 static void test_title_held_direction_moves_once(void) {
@@ -287,7 +287,8 @@ typedef struct {
 
 /* Breadth first over pad_nav_neighbor from the first item; returns how many items were reached. */
 static int reach_all(reached_t reached[ITEMS_CAP]) {
-    static const int directions[4] = { P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4 };
+    static const pad_direction_t directions[4] = { PAD_DIRECTION_UP, PAD_DIRECTION_DOWN, PAD_DIRECTION_LEFT,
+                                                   PAD_DIRECTION_RIGHT };
     entity_t *first = pad_nav_first_item();
     int count = 0;
     if (first == NULL) {
@@ -307,7 +308,7 @@ static int reach_all(reached_t reached[ITEMS_CAP]) {
             assert(count < ITEMS_CAP && reached[head].length < PATH_CAP);
             reached[count] = reached[head];
             reached[count].item = next;
-            reached[count].moves[reached[count].length++] = directions[d];
+            reached[count].moves[reached[count].length++] = pad_jump_direction_button(directions[d]);
             count++;
         }
     }
@@ -907,9 +908,9 @@ static void test_score_panel_at_game_end_left_and_right(void) {
     entity_t *again = has_text(buttons[0], " again? ") ? buttons[0] : buttons[1];
     entity_t *back = again == buttons[0] ? buttons[1] : buttons[0];
     assert(has_text(again, " again? "));
-    assert(pad_nav_neighbor(again, P8_PAD_BUTTON_3) == back && pad_nav_neighbor(back, P8_PAD_BUTTON_4) == again);
-    assert(pad_nav_neighbor(again, P8_PAD_BUTTON_4) == NULL && pad_nav_neighbor(back, P8_PAD_BUTTON_3) == NULL);
-    assert(pad_nav_neighbor(again, P8_PAD_BUTTON_1) == NULL && pad_nav_neighbor(again, P8_PAD_BUTTON_2) == NULL);
+    assert(pad_nav_neighbor(again, PAD_DIRECTION_LEFT) == back && pad_nav_neighbor(back, PAD_DIRECTION_RIGHT) == again);
+    assert(pad_nav_neighbor(again, PAD_DIRECTION_RIGHT) == NULL && pad_nav_neighbor(back, PAD_DIRECTION_LEFT) == NULL);
+    assert(pad_nav_neighbor(again, PAD_DIRECTION_UP) == NULL && pad_nav_neighbor(again, PAD_DIRECTION_DOWN) == NULL);
 }
 
 static int distance_to(vec_t screen, int x, int y) {
@@ -3289,10 +3290,10 @@ static void test_taking_a_structure_from_jump_mode_enters_plain_aim_mode_where_t
 }
 
 /* The live set jump mode searches: the TAG_NODE bucket filtered by pad_target_is_candidate. */
-static entity_t *expected_jump(const entity_t *origin, int direction) {
+static entity_t *expected_jump(const entity_t *origin, int button) {
     frame_zone_mark_t mark = frame_zone_mark();
     entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
-    entity_t *picked = pad_target_pick(origin, direction, &candidates);
+    entity_t *picked = pad_target_pick(origin, pad_jump_first_direction(button), &candidates);
     frame_zone_rewind(mark);
     return picked;
 }
@@ -3964,11 +3965,11 @@ static void test_probing_and_leaving_aim_mode_never_types_the_cheat(void) {
 }
 
 /* The slipway mode's targets: the jump candidates minus the start. */
-static entity_t *slipway_pick(const entity_t *start, const entity_t *origin, int direction) {
+static entity_t *slipway_pick(const entity_t *start, const entity_t *origin, int button) {
     frame_zone_mark_t mark = frame_zone_mark();
     entity_list_t candidates = pad_jump_candidates(frame_zone(), entities_by_tag(TAG_NODE));
     entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
-    entity_t *picked = pad_target_pick(origin, direction, &targets);
+    entity_t *picked = pad_target_pick(origin, pad_jump_first_direction(button), &targets);
     frame_zone_rewind(mark);
     return picked;
 }

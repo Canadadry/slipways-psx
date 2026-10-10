@@ -36,42 +36,59 @@ entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int
     return picked;
 }
 
-static const int directions_by_priority[PAD_JUMP_DIRECTIONS] = {P8_PAD_BUTTON_1, P8_PAD_BUTTON_2, P8_PAD_BUTTON_3, P8_PAD_BUTTON_4};
+static const pad_direction_t directions_by_priority[PAD_JUMP_DIRECTIONS] = {PAD_DIRECTION_UP, PAD_DIRECTION_DOWN,
+                                                                              PAD_DIRECTION_LEFT, PAD_DIRECTION_RIGHT};
 
-int pad_jump_direction(int index) {
+pad_direction_t pad_jump_direction(int index) {
     assert(index >= 0 && index < PAD_JUMP_DIRECTIONS && "pad_jump_direction: index 0 to PAD_JUMP_DIRECTIONS - 1");
     return directions_by_priority[index];
 }
 
-int pad_jump_first_direction(int buttons) {
+pad_direction_t pad_jump_first_direction(int buttons) {
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        if (buttons & directions_by_priority[i]) {
+        if (buttons & pad_jump_direction_button(directions_by_priority[i])) {
             return directions_by_priority[i];
         }
+    }
+    return PAD_DIRECTION_NONE;
+}
+
+int pad_jump_direction_button(pad_direction_t direction) {
+    switch (direction) {
+    case PAD_DIRECTION_UP:
+        return P8_PAD_BUTTON_1;
+    case PAD_DIRECTION_DOWN:
+        return P8_PAD_BUTTON_2;
+    case PAD_DIRECTION_LEFT:
+        return P8_PAD_BUTTON_3;
+    case PAD_DIRECTION_RIGHT:
+        return P8_PAD_BUTTON_4;
+    case PAD_DIRECTION_NONE:
+        break;
     }
     return 0;
 }
 
-int pad_jump_repeat_step(pad_jump_t *jump, int pad_buttons, int pressed) {
-    int direction = pad_jump_first_direction(pressed);
-    if (direction != 0) {
+pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, int pad_buttons, int pressed) {
+    pad_direction_t direction = pad_jump_first_direction(pressed);
+    if (direction != PAD_DIRECTION_NONE) {
         jump->repeat_direction = direction;
         jump->repeat_frames = 0;
         return jump->repeat_direction;
     }
-    if (jump->repeat_direction == 0 || !(pad_buttons & jump->repeat_direction)) {
+    if (!(pad_buttons & pad_jump_direction_button(jump->repeat_direction))) {
         pad_jump_repeat_clear(jump);
-        return 0;
+        return PAD_DIRECTION_NONE;
     }
     jump->repeat_frames++;
     if (jump->repeat_frames == PAD_JUMP_REPEAT_DELAY + PAD_JUMP_REPEAT_PERIOD) {
         jump->repeat_frames = PAD_JUMP_REPEAT_DELAY;
     }
-    return jump->repeat_frames == PAD_JUMP_REPEAT_DELAY ? jump->repeat_direction : 0;
+    return jump->repeat_frames == PAD_JUMP_REPEAT_DELAY ? jump->repeat_direction : PAD_DIRECTION_NONE;
 }
 
 void pad_jump_repeat_clear(pad_jump_t *jump) {
-    jump->repeat_direction = 0;
+    jump->repeat_direction = PAD_DIRECTION_NONE;
     jump->repeat_frames = 0;
 }
 
