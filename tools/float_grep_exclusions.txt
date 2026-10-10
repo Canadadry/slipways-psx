@@ -38,3 +38,5 @@ src/devtools/pad_author.c | worst-case game generator, plays a pad script headle
 src/devtools/pad_author.h | worst-case game generator, header of devtools/pad_author.c
 src/devtools/pad_metrics.c | pad metrics of the generator, writes its totals through a FILE stream, host tool
 src/devtools/pad_metrics.h | pad metrics of the generator, header of devtools/pad_metrics.c
+src/game/bindings.c | bindings module, not linked into any binary yet: plan 17 step 7 links it into the core and deletes this line
+src/game/bindings.h | bindings module, header of game/bindings.c: plan 17 step 7 deletes this line with the one above

@@ -20,6 +20,8 @@ typedef struct {
 #define P8_PAD_BUTTON_10 512
 #define P8_PAD_BUTTON_11 1024
 #define P8_PAD_BUTTON_12 2048
+#define P8_PAD_BUTTON_COUNT 12
+typedef char p8_pad_button_count_ends_at_button_12[(1 << (P8_PAD_BUTTON_COUNT - 1)) == P8_PAD_BUTTON_12 ? 1 : -1];
 
 #define P8_MOUSE_LEFT 1
 
