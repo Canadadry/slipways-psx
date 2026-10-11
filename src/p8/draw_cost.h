@@ -13,6 +13,10 @@ enum {
     P8_GPU_DR_ENV_BYTES = 36,
 };
 
+/* The PSX draws at P8_GPU_SCALE. A patterned span's SPRT reads U from P8_GPU_SCALE times its world
+ * x mod P8_GPU_PATTERN_PHASES, and is cut where U would cross P8_GPU_SPRT_U_LIMIT. */
+enum { P8_GPU_SCALE = 2, P8_GPU_PATTERN_PHASES = 8, P8_GPU_SPRT_U_LIMIT = 256 };
+
 typedef struct {
     unsigned long bytes;
     int primitives;

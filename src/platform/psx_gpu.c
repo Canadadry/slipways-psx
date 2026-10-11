@@ -253,8 +253,14 @@ static void add_patterned_spans(const p8_graphics_t *gfx, const psx_tile_t *span
     use_texture(PSX_VRAM_PATTERNS, slot);
     psx_vram_rect_t clut = psx_vram_layout_pattern_clut(slot);
     for (int s = 0; s < count; s++) {
-        psx_sprite_t sprite = psx_pattern_sprite(gfx, spans[s]);
-        add_sprt(sprite.x, sprite.y, sprite.u, sprite.v, sprite.w, sprite.h, clut);
+        psx_sprite_t pieces[PSX_PATTERN_PIECES_MAX];
+        int sent = psx_pattern_sprites_x2(gfx, spans[s], pieces);
+        for (int p = 0; p < sent; p++) {
+            psx_sprite_t piece = pieces[p];
+            assert(piece.u < PAGE_TEXELS && piece.u + piece.w <= PAGE_TEXELS && piece.v < PSX_GPU_TEXTURES_PATTERN_X2_SIZE
+                   && piece.w >= PSX_TILES_SCALE && piece.h >= PSX_TILES_SCALE && "a patterned SPRT reads its x2 tile with no UV wrap");
+            add_sprt(piece.x, piece.y, piece.u, piece.v, piece.w, piece.h, clut);
+        }
     }
 }
 
@@ -356,7 +362,9 @@ static void upload_slots(const psx_clut_cache_t *cluts, const psx_pattern_cache_
         queue_load(psx_vram_layout_palette_clut(slot), psx_clut_cache_clut(cluts, slot));
     }
     for (int slot = 0; slot < psx_pattern_cache_count(patterns); slot++) {
-        queue_load(psx_vram_layout_pattern_slot(slot), psx_pattern_cache_tile(patterns, slot));
+        psx_vram_rect_t texture = psx_vram_layout_pattern_slot(slot);
+        assert(texture.w * texture.h == PSX_GPU_TEXTURES_PATTERN_X2_UNITS && "a slot holds one x2 tile");
+        queue_load(texture, psx_pattern_cache_tile(patterns, slot));
         queue_load(psx_vram_layout_pattern_clut(slot), psx_pattern_cache_clut(patterns, slot));
     }
 }

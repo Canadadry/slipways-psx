@@ -10,7 +10,7 @@
 /* One frame's patterned-fill tiles and CLUTs, keyed by p8_draw_cost_pattern_key, as p8_draw_meter
  * counts them. */
 typedef struct {
-    uint16_t tiles[GPU_PATTERN_SLOTS][PSX_GPU_TEXTURES_PATTERN_UNITS];
+    uint16_t tiles[GPU_PATTERN_SLOTS][PSX_GPU_TEXTURES_PATTERN_X2_UNITS];
     uint16_t cluts[GPU_PATTERN_SLOTS][PSX_GPU_TEXTURES_CLUT_ENTRIES];
     unsigned long keys[GPU_PATTERN_SLOTS];
     int count;

@@ -121,6 +121,29 @@ static void test_a_pattern_tile_holds_the_software_bit_at_each_world_phase(void)
     }
 }
 
+static int pattern_x2_texel(const uint16_t tile[PSX_GPU_TEXTURES_PATTERN_X2_UNITS], int u, int v) {
+    int unit = tile[v * (PSX_GPU_TEXTURES_PATTERN_X2_SIZE / 4) + u / 4];
+    return (unit >> (4 * (u % 4))) & 0x0F;
+}
+
+static void test_the_x2_pattern_tile_is_the_tile_at_half_its_coordinates_with_a_16_texel_period(void) {
+    assert(PSX_GPU_TEXTURES_PATTERN_X2_SIZE == 16);
+    for (unsigned int pattern = 1; pattern <= 0xFFFFu; pattern += 251) {
+        uint16_t tile[PSX_GPU_TEXTURES_PATTERN_UNITS];
+        uint16_t tile_x2[PSX_GPU_TEXTURES_PATTERN_X2_UNITS];
+        memset(tile_x2, 0xFF, sizeof tile_x2);
+        psx_gpu_textures_pattern(pattern, tile);
+        psx_gpu_textures_pattern_x2(pattern, tile_x2);
+        for (int v = 0; v < PSX_GPU_TEXTURES_PATTERN_X2_SIZE; v++) {
+            for (int u = 0; u < PSX_GPU_TEXTURES_PATTERN_X2_SIZE; u++) {
+                assert(pattern_x2_texel(tile_x2, u, v) == pattern_texel(tile, u / 2, v / 2));
+                assert(pattern_x2_texel(tile_x2, u, v) == pattern_x2_texel(tile_x2, u % 8, v % 8)
+                       && "the doubled 4x4 pattern, twice each way");
+            }
+        }
+    }
+}
+
 static void test_a_pattern_clut_maps_clear_bits_to_the_low_nibble_and_set_ones_to_the_high(void) {
     uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES];
     memset(clut, 0xFF, sizeof clut);
@@ -232,6 +255,7 @@ int main(void) {
     test_a_cell_is_found_by_its_character_code_signed_or_not();
     test_a_font_clut_lights_texel_one_in_its_colour();
     test_a_pattern_tile_holds_the_software_bit_at_each_world_phase();
+    test_the_x2_pattern_tile_is_the_tile_at_half_its_coordinates_with_a_16_texel_period();
     test_a_pattern_clut_maps_clear_bits_to_the_low_nibble_and_set_ones_to_the_high();
     test_a_transparent_pattern_clut_skips_set_bits();
     test_the_x2_sheet_texel_is_the_packed_texel_at_half_its_coordinates();

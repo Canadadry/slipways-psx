@@ -23,7 +23,7 @@ psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region);
 /* The 4-bit texture page (64x256 units) that holds region. */
 psx_vram_rect_t psx_vram_layout_texture_page(psx_vram_region_t region);
 
-/* An 8x8 4-bit texture (2x8 units), on the 8-texel bounds of the texture window. slot <
+/* A 16x16 4-bit texture (4x16 units), on the 16-texel bounds of the x2 texture window. slot <
  * GPU_PATTERN_SLOTS. */
 psx_vram_rect_t psx_vram_layout_pattern_slot(int slot);
 

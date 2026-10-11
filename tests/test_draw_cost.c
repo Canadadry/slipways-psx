@@ -1,5 +1,6 @@
 #include "p8/draw_cost.h"
 #include "p8/gfx.h"
+#include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -122,6 +123,97 @@ static void test_spr_and_print_reset_the_window_after_a_pattern(void) {
     assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
 }
 
+static void test_a_pattern_after_print_costs_the_pair_although_they_share_a_page(void) {
+    reset();
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    p8_fillp(&gfx, 0xA5A5);
+    assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+}
+
+static void assert_patterned_rectfill_sprts(int x1, int x2, int sprts) {
+    assert_cost(p8_draw_cost_rectfill(&window, &gfx, x1, 0, x2, 10, 0x15), (unsigned long)sprts * P8_GPU_SPRT_BYTES, sprts);
+}
+
+/* At x2, a span's U runs from twice its world phase mod 8 over twice its width: past 256 it is
+ * cut in two SPRTs. */
+static void test_a_patterned_span_costs_one_sprt_per_piece_under_u_256(void) {
+    reset();
+    p8_fillp(&gfx, 0xA5A5);
+    (void)p8_draw_cost_rectfill(&window, &gfx, 0, 0, 0, 0, 0x15);
+    assert_patterned_rectfill_sprts(0, 127, 1);
+    assert_patterned_rectfill_sprts(0, 128, 2);
+    assert_patterned_rectfill_sprts(7, 127, 1);
+    assert_patterned_rectfill_sprts(7, 128, 2);
+    assert_patterned_rectfill_sprts(8, 135, 1);
+    assert_patterned_rectfill_sprts(0, 159, 2);
+    assert_patterned_rectfill_sprts(-50, 300, 2);
+    assert_patterned_rectfill_sprts(40, 159, 1);
+    p8_camera(&gfx, 3, 0);
+    assert_patterned_rectfill_sprts(3, 130, 2);
+    assert_patterned_rectfill_sprts(5, 127, 1);
+    assert_patterned_rectfill_sprts(5, 128, 2);
+    p8_camera(&gfx, -2, 0);
+    assert_patterned_rectfill_sprts(-50, 119, 1);
+    assert_patterned_rectfill_sprts(-50, 120, 2);
+}
+
+static void test_a_patterned_disc_costs_one_more_sprt_per_row_under_u_256(void) {
+    reset();
+    int plain_r60 = p8_draw_cost_circfill(&window, &gfx, 84, 60, 60, 0x15).primitives;
+    int plain_r200 = p8_draw_cost_circfill(&window, &gfx, 80, 60, 200, 0x15).primitives;
+    p8_fillp(&gfx, 0xA5A5);
+    (void)p8_draw_cost_rectfill(&window, &gfx, 0, 0, 0, 0, 0x15);
+    for (int cx = 60; cx < 100; cx++) {
+        assert(p8_draw_cost_circfill(&window, &gfx, cx, 60, 60, 0x15).primitives == plain_r60 && "121 wide never crosses 256");
+    }
+    assert(p8_draw_cost_circfill(&window, &gfx, 80, 60, 200, 0x15).primitives == plain_r200 + P8_SCREEN_HEIGHT);
+    p8_camera(&gfx, 0, 100);
+    assert(p8_draw_cost_circfill(&window, &gfx, 80, 60, 200, 0x15).primitives == plain_r200 + P8_SCREEN_HEIGHT);
+}
+
+/* The rows of the software's disc whose span crosses U 256 at x2. */
+static int rows_to_split(int cx, int cy, int r) {
+    static p8_vram_t software;
+    p8_graphics_t plain = gfx;
+    p8_fillp(&plain, 0);
+    p8_vram_init(&software);
+    p8_circfill(&plain, &software, cx, cy, r, 7);
+    int rows = 0;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        int first = -1;
+        int last = -1;
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            if (software.screen[y][x] == 7) {
+                first = first < 0 ? x : first;
+                last = x;
+            }
+        }
+        int phase = ((first + gfx.camera_x) % 8 + 8) % 8;
+        rows += first >= 0 && phase + (last - first + 1) > 128;
+    }
+    return rows;
+}
+
+static void test_a_wide_patterned_disc_costs_one_more_sprt_per_row_to_split(void) {
+    unsigned seed = 77;
+    for (int i = 0; i < 60; i++) {
+        int values[5];
+        for (int v = 0; v < 5; v++) {
+            seed = seed * 1103515245u + 12345u;
+            values[v] = (int)((seed >> 8) % 300) - 70;
+        }
+        reset();
+        p8_camera(&gfx, values[3] / 2, values[4] / 2);
+        int r = 55 + (values[2] + 70) % 120;
+        int plain = p8_draw_cost_circfill(&window, &gfx, values[0], values[1], r, 0x15).primitives;
+        p8_fillp(&gfx, 0x5A5A);
+        (void)p8_draw_cost_rectfill(&window, &gfx, gfx.camera_x, gfx.camera_y, gfx.camera_x, gfx.camera_y, 0x15);
+        int patterned = p8_draw_cost_circfill(&window, &gfx, values[0], values[1], r, 0x15).primitives;
+        assert(patterned == plain + rows_to_split(values[0], values[1], r));
+    }
+}
+
 static void test_alternating_spr_and_print_costs_a_pair_each_switch(void) {
     reset();
     assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
@@ -194,6 +286,10 @@ int main(void) {
     test_print_is_one_sprt_per_glyph_but_spaces();
     test_patterned_fill_is_a_sprt_with_its_window_pair_once();
     test_spr_and_print_reset_the_window_after_a_pattern();
+    test_a_pattern_after_print_costs_the_pair_although_they_share_a_page();
+    test_a_patterned_span_costs_one_sprt_per_piece_under_u_256();
+    test_a_patterned_disc_costs_one_more_sprt_per_row_under_u_256();
+    test_a_wide_patterned_disc_costs_one_more_sprt_per_row_to_split();
     test_alternating_spr_and_print_costs_a_pair_each_switch();
     test_culled_spr_and_print_keep_the_texture();
     test_untextured_and_culled_calls_keep_the_window();

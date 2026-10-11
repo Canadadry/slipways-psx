@@ -57,7 +57,7 @@ int psx_tiles_line(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, psx
     return 1;
 }
 
-/* The same loop as gfx_software.c's circles and draw_cost.c's circle_iterations: change all three
+/* The same loop as gfx_software.c's circles and draw_cost.c's midpoint: change all three
  * together. Iterate with for (m = midpoint_start(r); m.x >= m.y; midpoint_advance(&m)). */
 typedef struct {
     int x;

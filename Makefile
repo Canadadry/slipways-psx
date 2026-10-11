@@ -755,7 +755,7 @@ $(TMP_DIR)/test_psx_clut_cache: $(call objs,tests/test_psx_clut_cache.c src/plat
 $(TMP_DIR)/test_psx_pattern_cache: $(call objs,tests/test_psx_pattern_cache.c src/platform/psx_pattern_cache.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_psx_pattern: $(call objs,tests/test_psx_pattern.c src/platform/psx_pattern.c src/platform/psx_tiles.c src/platform/psx_vram_layout.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+$(TMP_DIR)/test_psx_pattern: $(call objs,tests/test_psx_pattern.c src/platform/psx_pattern.c src/platform/psx_sprite.c src/platform/psx_tiles.c src/platform/psx_vram_layout.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_sprite: $(call objs,tests/test_psx_sprite.c src/platform/psx_sprite.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)

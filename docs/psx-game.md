@@ -122,12 +122,15 @@ pattern textures, no software fallback** (decided; implemented in step 4).
   RGB555 of `P8_PALETTE_RGB[draw_palette[c] & 0x0F]` with the mask bit 0x8000,
   so black stays opaque. CLUTs are cached in VRAM, keyed by the 16 bytes; a
   palette `hud.c` copied with `memcpy` needs nothing more.
-- A `rectfill` or `circfill` span under a non-zero pattern is a `SPRT` of an
-  8x8 4-bit texture (the 4x4 pattern tiled, texel 1 for a set bit) repeated
-  by the texture window, with a 2-entry CLUT: `col & 0x0F`, then
-  `(col >> 4) & 0x0F` or 0x0000 under `fillp_transparent`. The pattern is
-  indexed by world coordinates, before the camera (U/V origin = world
-  coordinate mod 8), as the software `fillp_color` does. A slot is keyed by
+- A `rectfill` or `circfill` span under a non-zero pattern is a doubled
+  `SPRT` of a 16x16 4-bit x2 tile (the 8x8 tile of the 4x4 pattern, texel 1
+  for a set bit, upscaled x2) repeated by a 16-texel texture window, with a
+  2-entry CLUT: `col & 0x0F`, then `(col >> 4) & 0x0F` or 0x0000 under
+  `fillp_transparent`. The pattern is indexed by world coordinates, before
+  the camera (U/V origin = twice the world coordinate mod 8), as the
+  software `fillp_color` does. A span whose U would cross 256 is cut in two
+  `SPRT`s (the second from U 0, the same phase under the window), so no
+  `SPRT` relies on the 8-bit UV wrap; the cost model counts the pieces. A slot is keyed by
   pattern, colour byte and transparent flag. A span without pattern is a
   `TILE`. Any change of texture source (the sprite sheet, the font, a
   pattern slot) sends the `DR_TPAGE` + `DR_TWIN` pair the cost model
@@ -199,15 +202,28 @@ point, no `malloc`):
   so each texel is a uniform 2x2 block (host-tested at 1x and upscaled x2
   by `test_psx_sprite` and `test_psx_text`); a doubled UV past its 256x256
   page is an assert;
-- the other families (patterned fills, `line`) still draw at 1x, with their
-  1x coordinates, into the top-left 160x120 quarter of the display buffer,
-  until their step of `docs/plan-19.md` converts them: `line` is one
+- a patterned `rectfill` box or `circfill` span is placed and clipped at 1x,
+  its (u, v) its top-left pixel's world coordinates mod 8, then doubled by
+  `psx_sprite_double` and cut where its U would cross 256
+  (`psx_pattern_sprites_x2`, at most 2 pieces): each piece is a raw-textured
+  `SPRT` under a texture window (mask 0x1E, a 16-texel repeat) over its
+  pattern slot's x2 tile in the font's page (`src/platform/psx_pattern.c`,
+  host-tested against the software backend upscaled x2 by
+  `test_psx_pattern`); a frame's x2 tiles and CLUTs are cached by
+  `p8_draw_cost_pattern_key` (`src/platform/psx_pattern_cache.c`, built by
+  `psx_gpu_textures_pattern_x2` and `psx_gpu_textures_pattern_clut`, one
+  cache per primitive buffer) and uploaded with the spr CLUTs to the pattern
+  slots and pattern CLUT lines; more than `GPU_PATTERN_SLOTS` in a frame is a
+  `p8_fatal` naming the frame;
+- `line` still draws at 1x, with its 1x coordinates, into the top-left
+  160x120 quarter of the display buffer, until its step of
+  `docs/plan-19.md` converts it: `line` is one
   `LINE_F2` between its endpoints after the camera, unclipped (the GPU
   clips to the 320x240 draw area, so a line leaving the screen shows its
   overrun past the quarter),
   sent when its box meets the screen, so its stepping is the GPU's, not
   PICO-8's (the plan's accepted divergence, measured by its capture);
-  `spr` (and `map` through it) is one `SPRT` from the x2 sheet's
+- `spr` (and `map` through it) is one `SPRT` from the x2 sheet's
   4-bit page, after the camera and clipped to the screen
   (`src/platform/psx_sprite.c`, host-tested pixel for pixel by
   `test_psx_sprite`; a sprite reading past the sheet is an assert, which no
@@ -226,17 +242,7 @@ point, no `malloc`):
   cell (texel 1 lit) upscaled to 8x12, and the 16 font CLUTs (entry 1 the colour, every other
   entry transparent), built by `psx_gpu_textures_font` and
   `psx_gpu_textures_font_clut` (host-tested by `test_psx_gpu_textures`);
-  the CLUT is the font line of `col & 0x0F`; a patterned `rectfill` box or
-  `circfill` span is a raw-textured `SPRT` whose (u, v) is its top-left
-  pixel's world coordinates mod 8, under a texture window repeating its
-  pattern slot's 8x8 tile (`src/platform/psx_pattern.c`, host-tested pixel
-  for pixel by `test_psx_pattern`), in the 1x patterns' page; a frame's
-  pattern tiles and CLUTs are cached by `p8_draw_cost_pattern_key`
-  (`src/platform/psx_pattern_cache.c`, built by `psx_gpu_textures_pattern`
-  and `psx_gpu_textures_pattern_clut`, one cache per primitive buffer) and
-  uploaded with the spr CLUTs to the pattern slots and pattern CLUT lines;
-  more than `GPU_PATTERN_SLOTS` in a frame is a `p8_fatal` naming the
-  frame;
+  the CLUT is the font line of `col & 0x0F`;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
   compile time.
 
@@ -249,15 +255,11 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 | display buffers | (0, 0), (0, 240) | 320x240 each | |
 | sprite sheet | (512, 256) | 64x256 | x2, 256x256 texels 4-bit: the whole page (512, 256) |
 | font | (576, 256) | 64x96 | x2, page (576, 256), v 0..95: 256 codes in 8x12-texel cells, 32 a row, 8 rows |
-| pattern slots | (544, 0) | 32x256, 2x8 a slot | 1x until step 3.3, page (512, 0), u 128..255 |
+| pattern slots | (576, 352) | 64x160, 4x16 a slot | x2, the font's page (576, 256), v 96..255: 16x16 texels on 16-texel bounds for the texture window, 16 a row, up to 160 slots |
 | CLUTs | (640, 0) | 16x64, 16x1 each | `GPU_CLUT_SLOTS` draw palettes, 16 font colours, `GPU_PATTERN_SLOTS` pattern CLUTs |
 
-Still to do (`docs/plan-19.md` step 3.3): the x2 pattern slots, uploaded
-next to the 1x ones, which stay until that step replaces them:
-
-| region | x, y | size | notes |
-|---|---|---|---|
-| x2 pattern slots | (576, 352) | 4x16 a slot | font's page, v 96..255: 16x16 texels on 16-texel bounds for the texture window, 16 a row, up to 160 slots |
+The textured calls read two pages: the sheet's (512, 256), and the one the
+font and the pattern slots share (576, 256). The page at (512, 0) is free.
 
 ## Until-exit boot mode
 
@@ -575,10 +577,9 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Display resolution (`docs/plan-19.md`): patterned fills and `line` still
-  draw at 1x into the top-left quarter of
-  the display buffer, so the PSX image is wrong under every renderer until
-  their steps convert them.
+- Display resolution (`docs/plan-19.md`): only `line` still draws at 1x
+  into the top-left quarter of the display buffer, so the PSX image is
+  wrong under every renderer until its step converts it.
 
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS

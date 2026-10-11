@@ -71,6 +71,15 @@ void psx_gpu_textures_pattern(unsigned int pattern, uint16_t tile[PSX_GPU_TEXTUR
     }
 }
 
+typedef char the_x2_pattern_tile_doubles_the_tile[PSX_GPU_TEXTURES_PATTERN_X2_SIZE == 2 * PSX_GPU_TEXTURES_PATTERN_SIZE ? 1 : -1];
+
+void psx_gpu_textures_pattern_x2(unsigned int pattern, uint16_t tile[PSX_GPU_TEXTURES_PATTERN_X2_UNITS]) {
+    uint16_t source[PSX_GPU_TEXTURES_PATTERN_UNITS];
+    psx_gpu_textures_pattern(pattern, source);
+    psx_gpu_textures_upscale((const unsigned char *)source, PSX_GPU_TEXTURES_PATTERN_SIZE, 0,
+                             PSX_GPU_TEXTURES_PATTERN_X2_SIZE, (unsigned char *)tile);
+}
+
 void psx_gpu_textures_pattern_clut(int col, int transparent, uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]) {
     memset(clut, 0, PSX_GPU_TEXTURES_CLUT_ENTRIES * sizeof clut[0]);
     clut[0] = psx_colour_rgb555(col & 0x0F);

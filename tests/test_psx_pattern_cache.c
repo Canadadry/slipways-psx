@@ -11,9 +11,9 @@
 #include <string.h>
 
 static void assert_slot_holds(const psx_pattern_cache_t *cache, int slot, unsigned int pattern, int col, int transparent) {
-    uint16_t tile[PSX_GPU_TEXTURES_PATTERN_UNITS];
+    uint16_t tile[PSX_GPU_TEXTURES_PATTERN_X2_UNITS];
     uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES];
-    psx_gpu_textures_pattern(pattern, tile);
+    psx_gpu_textures_pattern_x2(pattern, tile);
     psx_gpu_textures_pattern_clut(col, transparent, clut);
     assert(memcmp(psx_pattern_cache_tile(cache, slot), tile, sizeof tile) == 0);
     assert(memcmp(psx_pattern_cache_clut(cache, slot), clut, sizeof clut) == 0);

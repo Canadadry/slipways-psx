@@ -11,6 +11,8 @@ enum {
     PSX_GPU_TEXTURES_FONT_LINES = 48,
     PSX_GPU_TEXTURES_PATTERN_SIZE = 8,
     PSX_GPU_TEXTURES_PATTERN_UNITS = PSX_GPU_TEXTURES_PATTERN_SIZE * PSX_GPU_TEXTURES_PATTERN_SIZE / 4,
+    PSX_GPU_TEXTURES_PATTERN_X2_SIZE = 16,
+    PSX_GPU_TEXTURES_PATTERN_X2_UNITS = PSX_GPU_TEXTURES_PATTERN_X2_SIZE * PSX_GPU_TEXTURES_PATTERN_X2_SIZE / 4,
 };
 
 typedef struct {
@@ -41,6 +43,10 @@ void psx_gpu_textures_upscale(const unsigned char *source, int width, int first_
 /* A fillp pattern's tile, PSX_GPU_TEXTURES_PATTERN_SIZE texels square, laid out as the font: texel
  * (u, v) is 1 when the pattern's bit for world (u, v) is set, else 0. */
 void psx_gpu_textures_pattern(unsigned int pattern, uint16_t tile[PSX_GPU_TEXTURES_PATTERN_UNITS]);
+
+/* The pattern's tile upscaled x2, PSX_GPU_TEXTURES_PATTERN_X2_SIZE texels square, laid out as the
+ * font: x2 texel (u, v) is texel (u / 2, v / 2) of psx_gpu_textures_pattern's tile. */
+void psx_gpu_textures_pattern_x2(unsigned int pattern, uint16_t tile[PSX_GPU_TEXTURES_PATTERN_X2_UNITS]);
 
 /* A patterned fill's CLUT: entry 0 is colour col & 0x0F, entry 1 is (col >> 4) & 0x0F, or 0x0000
  * when transparent; every other entry 0x0000. */

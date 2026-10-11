@@ -59,12 +59,24 @@ unsigned long p8_draw_cost_pattern_key(const p8_graphics_t *gfx, int col) {
     return (gfx->fillp_pattern & 0xFFFFul) | ((unsigned long)(col & 0xFF) << 16) | ((unsigned long)(gfx->fillp_transparent != 0) << 24);
 }
 
-static p8_draw_cost_t fill_spans(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int col, int spans) {
-    if ((gfx->fillp_pattern & 0xFFFFu) == 0) {
+static int patterned(const p8_graphics_t *gfx) {
+    return (gfx->fillp_pattern & 0xFFFFu) != 0;
+}
+
+/* 1 when the patterned span from screen x xmin to xmax, once clipped, needs a second SPRT. */
+static int span_splits(const p8_graphics_t *gfx, int xmin, int xmax) {
+    xmin = max(xmin, 0);
+    xmax = min(xmax, P8_SCREEN_WIDTH - 1);
+    int phase = ((xmin + gfx->camera_x) % P8_GPU_PATTERN_PHASES + P8_GPU_PATTERN_PHASES) % P8_GPU_PATTERN_PHASES;
+    return xmin <= xmax && (phase + xmax - xmin + 1) * P8_GPU_SCALE > P8_GPU_SPRT_U_LIMIT;
+}
+
+static p8_draw_cost_t fill_spans(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int col, int spans, int splits) {
+    if (!patterned(gfx)) {
         return cost_of(P8_GPU_TILE_BYTES, spans);
     }
     p8_draw_cost_t pair = window_switch(window, P8_DRAW_COST_TEXTURE_PATTERN, p8_draw_cost_pattern_key(gfx, col));
-    return cost_add(pair, cost_of(P8_GPU_SPRT_BYTES, spans));
+    return cost_add(pair, cost_of(P8_GPU_SPRT_BYTES, spans + splits));
 }
 
 p8_draw_cost_t p8_draw_cost_cls(void) {
@@ -85,27 +97,73 @@ p8_draw_cost_t p8_draw_cost_rect(const p8_graphics_t *gfx, int x1, int y1, int x
 
 p8_draw_cost_t p8_draw_cost_rectfill(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int x1, int y1, int x2, int y2,
                                      int col) {
-    return box_on_screen(gfx, x1, y1, x2, y2) ? fill_spans(window, gfx, col, 1) : FREE;
+    if (!box_on_screen(gfx, x1, y1, x2, y2)) {
+        return FREE;
+    }
+    int splits = patterned(gfx) && span_splits(gfx, min(x1, x2) - gfx->camera_x, max(x1, x2) - gfx->camera_x);
+    return fill_spans(window, gfx, col, 1, splits);
 }
 
-/* Must count the iterations of gfx_software.c's midpoint loop, or circles go undercounted. */
+/* Must step as gfx_software.c's midpoint loop does, or circles go undercounted. Iterate with
+ * for (m = midpoint_start(r); m.x >= m.y; midpoint_advance(&m)). */
+typedef struct {
+    int x;
+    int y;
+    int err;
+} midpoint_t;
+
+static midpoint_t midpoint_start(int r) {
+    midpoint_t m = { r, 0, 0 };
+    return m;
+}
+
+static void midpoint_advance(midpoint_t *m) {
+    m->y++;
+    if (m->err <= 0) {
+        m->err += 2 * m->y + 1;
+    }
+    if (m->err > 0) {
+        m->x--;
+        m->err -= 2 * m->x + 1;
+    }
+}
+
 static int circle_iterations(int r) {
-    int x = r;
-    int y = 0;
-    int err = 0;
     int iterations = 0;
-    while (x >= y) {
+    for (midpoint_t m = midpoint_start(r); m.x >= m.y; midpoint_advance(&m)) {
         iterations++;
-        y++;
-        if (err <= 0) {
-            err += 2 * y + 1;
-        }
-        if (err > 0) {
-            x--;
-            err -= 2 * x + 1;
-        }
     }
     return iterations;
+}
+
+static void widen(int half_widths[P8_SCREEN_HEIGHT], int row, int half_width) {
+    if (row >= 0 && row < P8_SCREEN_HEIGHT && half_widths[row] < half_width) {
+        half_widths[row] = half_width;
+    }
+}
+
+/* The disc's screen rows whose patterned span needs a second SPRT. */
+static int circle_splits(const p8_graphics_t *gfx, int cx, int cy, int r) {
+    if ((2 * r + 1 + P8_GPU_PATTERN_PHASES - 1) * P8_GPU_SCALE <= P8_GPU_SPRT_U_LIMIT) {
+        return 0;
+    }
+    int sx = cx - gfx->camera_x;
+    int sy = cy - gfx->camera_y;
+    int half_widths[P8_SCREEN_HEIGHT];
+    for (int row = 0; row < P8_SCREEN_HEIGHT; row++) {
+        half_widths[row] = -1;
+    }
+    for (midpoint_t m = midpoint_start(r); m.x >= m.y; midpoint_advance(&m)) {
+        widen(half_widths, sy + m.y, m.x);
+        widen(half_widths, sy - m.y, m.x);
+        widen(half_widths, sy + m.x, m.y);
+        widen(half_widths, sy - m.x, m.y);
+    }
+    int splits = 0;
+    for (int row = 0; row < P8_SCREEN_HEIGHT; row++) {
+        splits += half_widths[row] >= 0 && span_splits(gfx, sx - half_widths[row], sx + half_widths[row]);
+    }
+    return splits;
 }
 
 static int circle_on_screen(const p8_graphics_t *gfx, int cx, int cy, int r) {
@@ -117,7 +175,11 @@ p8_draw_cost_t p8_draw_cost_circ(const p8_graphics_t *gfx, int cx, int cy, int r
 }
 
 p8_draw_cost_t p8_draw_cost_circfill(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int cx, int cy, int r, int col) {
-    return circle_on_screen(gfx, cx, cy, r) ? fill_spans(window, gfx, col, 4 * circle_iterations(r)) : FREE;
+    if (!circle_on_screen(gfx, cx, cy, r)) {
+        return FREE;
+    }
+    int splits = patterned(gfx) ? circle_splits(gfx, cx, cy, r) : 0;
+    return fill_spans(window, gfx, col, 4 * circle_iterations(r), splits);
 }
 
 p8_draw_cost_t p8_draw_cost_spr(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int n, int x, int y, int w, int h) {

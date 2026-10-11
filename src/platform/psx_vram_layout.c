@@ -4,12 +4,17 @@
 
 #include <assert.h>
 
+enum { PATTERN_SLOT_WIDTH = 4, PATTERN_SLOT_HEIGHT = 16, PATTERN_REGION_WIDTH = 64, PATTERN_REGION_HEIGHT = 160 };
+
+typedef char every_pattern_slot_fits_its_region
+    [(PATTERN_REGION_WIDTH / PATTERN_SLOT_WIDTH) * (PATTERN_REGION_HEIGHT / PATTERN_SLOT_HEIGHT) >= GPU_PATTERN_SLOTS ? 1 : -1];
+
 static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
     [PSX_VRAM_DISPLAY_0] = { 0, 0, 320, 240 },
     [PSX_VRAM_DISPLAY_1] = { 0, 240, 320, 240 },
     [PSX_VRAM_SPRITE_SHEET] = { 512, 256, 64, 256 },
     [PSX_VRAM_FONT] = { 576, 256, 64, 96 },
-    [PSX_VRAM_PATTERNS] = { 544, 0, 32, 256 },
+    [PSX_VRAM_PATTERNS] = { 576, 352, PATTERN_REGION_WIDTH, PATTERN_REGION_HEIGHT },
     [PSX_VRAM_CLUTS] = { 640, 0, 16, 64 },
 };
 
@@ -28,8 +33,6 @@ psx_vram_rect_t psx_vram_layout_texture_page(psx_vram_region_t region) {
            "a texture read through one DR_TPAGE cannot straddle two pages");
     return page;
 }
-
-enum { PATTERN_SLOT_WIDTH = 2, PATTERN_SLOT_HEIGHT = 8 };
 
 psx_vram_rect_t psx_vram_layout_pattern_slot(int slot) {
     assert(slot >= 0 && slot < GPU_PATTERN_SLOTS);

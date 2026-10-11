@@ -20,7 +20,7 @@ int psx_pattern_cache_slot(psx_pattern_cache_t *cache, const p8_graphics_t *gfx,
     }
     int slot = cache->count++;
     cache->keys[slot] = key;
-    psx_gpu_textures_pattern(gfx->fillp_pattern, cache->tiles[slot]);
+    psx_gpu_textures_pattern_x2(gfx->fillp_pattern, cache->tiles[slot]);
     psx_gpu_textures_pattern_clut(col, gfx->fillp_transparent != 0, cache->cluts[slot]);
     return slot;
 }

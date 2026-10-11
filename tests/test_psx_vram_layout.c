@@ -50,19 +50,34 @@ static void test_the_font_holds_256_cells_of_8x12_texels(void) {
     assert(font.w * 4 == 32 * 8 && font.h == 8 * 12);
 }
 
-static void test_pattern_slots_fit_their_region_on_texture_window_bounds(void) {
+static int same_rect(psx_vram_rect_t a, psx_vram_rect_t b) {
+    return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
+}
+
+static void test_x2_pattern_slots_fit_the_font_page_on_16_texel_window_bounds(void) {
     psx_vram_rect_t region = psx_vram_layout_region(PSX_VRAM_PATTERNS);
     psx_vram_rect_t page = psx_vram_layout_texture_page(PSX_VRAM_PATTERNS);
+    assert(same_rect(page, psx_vram_layout_texture_page(PSX_VRAM_FONT)));
+    assert((region.w / 4) * (region.h / 16) >= GPU_PATTERN_SLOTS);
     for (int slot = 0; slot < GPU_PATTERN_SLOTS; slot++) {
         psx_vram_rect_t texture = psx_vram_layout_pattern_slot(slot);
-        assert(texture.w == 2 && texture.h == 8);
-        assert(inside(texture, region));
-        assert((texture.x - page.x) % 2 == 0);
-        assert((texture.y - page.y) % 8 == 0);
+        assert(texture.w == 4 && texture.h == 16);
+        assert(inside(texture, region) && inside(texture, page));
+        assert((texture.x - page.x) % 4 == 0);
+        assert((texture.y - page.y) % 16 == 0);
+        assert(!overlap(texture, psx_vram_layout_region(PSX_VRAM_FONT)));
         for (int other = slot + 1; other < GPU_PATTERN_SLOTS; other++) {
             assert(!overlap(texture, psx_vram_layout_pattern_slot(other)));
         }
     }
+}
+
+static void test_the_textures_read_exactly_two_pages(void) {
+    psx_vram_rect_t sheet = psx_vram_layout_texture_page(PSX_VRAM_SPRITE_SHEET);
+    psx_vram_rect_t font = psx_vram_layout_texture_page(PSX_VRAM_FONT);
+    psx_vram_rect_t patterns = psx_vram_layout_texture_page(PSX_VRAM_PATTERNS);
+    assert(!same_rect(sheet, font));
+    assert(same_rect(patterns, sheet) || same_rect(patterns, font));
 }
 
 enum { CLUT_COUNT = GPU_CLUT_SLOTS + PSX_VRAM_FONT_COLOURS + GPU_PATTERN_SLOTS };
@@ -94,7 +109,8 @@ int main(void) {
     test_regions_are_inside_vram_and_never_overlap();
     test_sheet_font_and_patterns_each_lie_in_one_4_bit_page();
     test_the_font_holds_256_cells_of_8x12_texels();
-    test_pattern_slots_fit_their_region_on_texture_window_bounds();
+    test_x2_pattern_slots_fit_the_font_page_on_16_texel_window_bounds();
+    test_the_textures_read_exactly_two_pages();
     test_every_clut_fits_the_clut_region_on_16_unit_bounds();
     printf("test_psx_vram_layout: ok\n");
     return 0;
