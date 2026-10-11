@@ -106,8 +106,8 @@ if [ -s "$references" ]; then
     done
     [ -z "$files" ] || hashes=$(sha256 $files)
 fi
-table=$(printf '%s\n' "$hashes" | awk -v report="$report" -v ceilings="$ceilings" -v references="$references" \
-    -v prefix="$prefix" -v captures="$captures" '
+table=$(printf '%s\n' "$hashes" | captures=$captures awk -v report="$report" -v ceilings="$ceilings" \
+    -v references="$references" -v prefix="$prefix" '
     function value(map, key) { return (key in map) ? map[key] : "-" }
     BEGIN {
         while ((getline line < report) > 0) {
@@ -130,7 +130,7 @@ table=$(printf '%s\n' "$hashes" | awk -v report="$report" -v ceilings="$ceilings
     }
     NF == 2 { hash[$2] = $1 }
     END {
-        count = split(captures, lines, "\n")
+        count = split(ENVIRON["captures"], lines, "\n")
         for (c = 1; c <= count; c++) {
             if (split(lines[c], w, " ") < 2) continue
             key = w[1] " " w[2]

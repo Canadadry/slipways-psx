@@ -69,8 +69,10 @@ seen=$(printf '%s\n' "$clean_tty" | sed -n 's/^psx-pad: \([0-9a-f]\{4\}\)$/\1/p'
 printf '%s\n' "$clean_tty" | grep -q '^psx-pad: done$' \
     || report "no done line (psx-pad: done): the probe did not see the script's end with no button held"
 
-difference=$(awk -v seen="$seen" -v expected="$expected" '
+difference=$(seen=$seen expected=$expected awk '
     BEGIN {
+        seen = ENVIRON["seen"]
+        expected = ENVIRON["expected"]
         seen_count = seen == "" ? 0 : split(seen, probe, "\n")
         expected_count = split(expected, script, "\n")
         count = seen_count > expected_count ? seen_count : expected_count
