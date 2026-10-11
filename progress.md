@@ -22,6 +22,6 @@
     - [x] Chunks 1-2: pixel walk, exact cost and backend
     - [x] Chunk 3: re-size the frame buffer
     - [x] Chunk 4: gate and step note
-- [ ] Step 4: no stretch left
+- [x] Step 4: no stretch left
 - [ ] Step 5: re-measure
 - [ ] Step 6: human acceptance

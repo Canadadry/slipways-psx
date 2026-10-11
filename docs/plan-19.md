@@ -88,3 +88,8 @@ Consequences: no headless reproducer exists. Step 3's two-`LINE_F2` option for `
 - `psx-check` exits 0: all thirty conditions `ok`, `gpu-cost` and `game-gpu-cost` included; `ram-room` 131824, `game-ram-room` 139940. All 14 labels have `differ 0`, `offpalette 0`, `nonuniform 0`: `line 276` and `circfill 263`, due here, and `all 100`, `all 188`, `all 265` with them; `cls 1`, `rectfill 11`, `pset 131`, `pattern 190`, `spr 234`, `pattern 257`, `print 275`, `rect 300`, `circ 314` stay green. Only the 14 "pending human acceptance" lines remain.
 - Boot vsyncs against their ceilings: GPU replay 939 of 1655 (878 at 3.2), game 342 of 545 (343), CD boot 770 of 1140 (769). No ceiling raised.
 - `psx-check` prints `below ceiling: line f276 2 -> 0`: the ceiling stays 2, left to step 5 or the human to lower. References untouched.
+
+### Step 4
+
+- Checked by hand, no PRD (the step changes nothing). The backend's only primitive constructors are `setTile` and `setSprt`, plus the `DR_AREA`/`DR_OFFSET`/`DR_TPAGE`/`DR_TWIN` packets; no `POLY_*`, `LINE_*`, `TILE_1` or `FILL` is left in `src/`. A `SPRT` maps texels 1:1, so no primitive scales a texture.
+- `make psx-check` exits 0 at step 3.4's commit: all thirty conditions hold, all 14 labels `differ 0`, `offpalette 0`, `nonuniform 0`, and only the 14 pending references remain. The reproducer clause is void (step 1).
