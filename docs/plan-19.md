@@ -53,3 +53,11 @@ Probed 2026-10-11 in this container (no GPU, no `/dev/dri`, no X server; Mesa ll
 - **PCSX-Redux, structural:** its OpenGL GPU allocates VRAM at native 1024x512 (`vramWidth`/`vramHeight` in `gpu_opengl.h`, MSAA the only option) and has no internal-resolution scale, so even with a context it could not render the case the human saw.
 
 Consequences: no headless reproducer exists. Step 3's two-`LINE_F2` option for `line` is not admissible (`line` takes the pixel list, or merged `TILE` runs). Step 4's reproducer clause is void. The bug's proof falls to the human in step 6.
+
+### Step 2
+
+- The frame draws straight into its display buffer. The draw area, the end-of-frame `FILL`, the `POLY_FT4` and the 0x0000 workaround are gone. `cls` (one black `TILE`, 320x240 once doubled), `rect`, `rectfill` and `circfill` spans go through `psx_tiles_double`. The other families draw at 1x into the top-left quarter until their own step.
+- Cost model: frame overhead 128 -> 52 bytes (`DR_ENV` + `DR_TPAGE` + `DR_TWIN`), `cls` is one `TILE`. `make state` peak 64952 (`worst-case/full_game.json`), so `GPU_FRAME_BUFFER_BYTES` stays 73728. CLUT 5/6 and pattern 3/4 slots unchanged.
+- `psx-check`: 28/30 conditions `ok`, `ram-room` 324644, `game-ram-room` 332760. `cls 1`, `rectfill 11` and `rect 300` pass with `differ 0`. The 14 references are pending.
+- x2 VRAM layout on paper (16-bit units): display buffers (0,0) and (0,240); the 1x textures stay in the page at (512,0) until steps 3.2/3.3 replace them; the x2 sheet fills the page at (512,256); the x2 font (8x12 cells, 64x96) and x2 pattern slots (16x16 texels) share the page at (576,256); CLUTs stay at (640,0). That is **two texture pages**, so from step 3.2 the cost model must count a page switch: a change of (page, window) costs the `DR_TPAGE` + `DR_TWIN` pair.
+- `line` options on `make state`, with `pset`/`circ` already priced at 16-byte `TILE`s (page-switch cost excluded): single `LINE_F2` peak 67316 (buffer 75776); two `LINE_F2`s 69140 (77824, not admissible); pixel list as 2x2 `TILE`s 187252 (210944, ram-room 50212 left); merged runs 96564 (109568, ram-room 252964 left). All fit; held by `worst-case/full_game.json`.
