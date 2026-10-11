@@ -4,7 +4,7 @@
   - [x] Chunk 1: the x2 tile
   - [x] Chunk 2: draw into the display buffer
   - [x] Chunk 3: line options measurement
-- [ ] Step 3: primitives at x2, one family per step
+- [x] Step 3: primitives at x2, one family per step
   - [x] Step 3.1: pset and circ
     - [x] Chunks 1-2: cost model and backend
     - [x] Chunk 3: re-size the frame buffer
@@ -18,10 +18,10 @@
   - [x] Step 3.3: patterned fills
     - [x] Chunks 1-2: x2 pattern tiles, window and backend
     - [x] Chunks 3-4: sizes, gate and step note
-  - [ ] Step 3.4: line
+  - [x] Step 3.4: line
     - [x] Chunks 1-2: pixel walk, exact cost and backend
     - [x] Chunk 3: re-size the frame buffer
-    - [ ] Chunk 4: gate and step note
+    - [x] Chunk 4: gate and step note
 - [ ] Step 4: no stretch left
 - [ ] Step 5: re-measure
 - [ ] Step 6: human acceptance
