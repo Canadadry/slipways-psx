@@ -20,9 +20,8 @@ typedef enum {
 
 psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region);
 
-/* The 4-bit texture page of the sprite sheet, the font and the pattern slots: one page for every
- * textured draw call, so none of them ever changes the page. */
-psx_vram_rect_t psx_vram_layout_texture_page(void);
+/* The 4-bit texture page (64x256 units) that holds region. */
+psx_vram_rect_t psx_vram_layout_texture_page(psx_vram_region_t region);
 
 /* An 8x8 4-bit texture (2x8 units), on the 8-texel bounds of the texture window. slot <
  * GPU_PATTERN_SLOTS. */

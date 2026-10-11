@@ -35,7 +35,7 @@ static int index_of(uint16_t colour) {
 
 /* The slot's tile and CLUT as the GPU holds them, the rest of the page a texel the tile never has. */
 static void store_tile(int slot, const uint16_t *tile) {
-    psx_vram_rect_t origin = psx_vram_layout_texture_page();
+    psx_vram_rect_t origin = psx_vram_layout_texture_page(PSX_VRAM_PATTERNS);
     psx_vram_rect_t texture = psx_vram_layout_pattern_slot(slot);
     for (int v = 0; v < PSX_GPU_TEXTURES_PATTERN_SIZE; v++) {
         for (int u = 0; u < PSX_GPU_TEXTURES_PATTERN_SIZE; u++) {

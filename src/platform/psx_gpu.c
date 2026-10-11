@@ -34,7 +34,7 @@ SIZE_CHECK(frame_overhead_size_check, sizeof(DR_AREA) + sizeof(DR_OFFSET) + size
                                           <= P8_GPU_DR_ENV_BYTES + P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES);
 SIZE_CHECK(frame_buffer_word_check, GPU_FRAME_BUFFER_BYTES % 4 == 0);
 
-enum { DISPLAY_WIDTH = 320, DISPLAY_HEIGHT = 240, TEXTURE_4_BIT = 0, SHEET_UPLOAD_LINES = 16 };
+enum { DISPLAY_WIDTH = 320, DISPLAY_HEIGHT = 240, TEXTURE_4_BIT = 0, UPLOAD_LINES = 16, PAGE_TEXELS = 256 };
 SIZE_CHECK(display_scale_check, DISPLAY_WIDTH == P8_SCREEN_WIDTH * PSX_TILES_SCALE
                                     && DISPLAY_HEIGHT == P8_SCREEN_HEIGHT * PSX_TILES_SCALE);
 
@@ -47,10 +47,16 @@ static DISPENV displays[2];
 /* One of each per primitive buffer: frame N fills its caches while frame N-1's LoadImage may still read the others. */
 static psx_clut_cache_t clut_caches[2];
 static psx_pattern_cache_t pattern_caches[2];
-/* The pattern slot the frame's last DR_TWIN repeats, NO_WINDOW for none. */
-static int window_slot;
-
 enum { NO_WINDOW = -1 };
+
+/* The texture the frame's last DR_TPAGE selects the page of, and the pattern slot its last DR_TWIN
+ * repeats (NO_WINDOW for none). */
+typedef struct {
+    psx_vram_region_t texture;
+    int slot;
+} texture_state_t;
+
+static texture_state_t texture_state;
 
 static void *packet(size_t bytes) {
     if (used + bytes > GPU_FRAME_BUFFER_BYTES) {
@@ -76,40 +82,41 @@ static void add_draw_target(psx_vram_rect_t target) {
     setDrawOffset(offset, target.x, target.y);
 }
 
-static void add_no_texture_window(void) {
-    static const RECT none = { 0, 0, 0, 0 };
-    DR_TWIN *window = packet(sizeof *window);
-    setTexWindow(window, &none);
-    window_slot = NO_WINDOW;
-}
-
-/* Only a DR_TWIN, where the cost model meters a DR_TPAGE too: every textured call reads the one
- * page frame_begin sets. */
-static void use_texture_window(int slot) {
-    if (slot == window_slot) {
-        return;
+/* Sends the DR_TPAGE + DR_TWIN pair p8_draw_cost meters for every change of texture state. */
+static void add_texture_state(psx_vram_region_t texture, int slot) {
+    psx_vram_rect_t page = psx_vram_layout_texture_page(texture);
+    DR_TPAGE *tpage = packet(sizeof *tpage);
+    setDrawTPage(tpage, 0, 0, getTPage(TEXTURE_4_BIT, 0, page.x, page.y));
+    RECT rect = { 0, 0, 0, 0 };
+    if (slot != NO_WINDOW) {
+        psx_pattern_window_t fields = psx_pattern_window(slot);
+        rect = (RECT){ (int16_t)fields.offset_x, (int16_t)fields.offset_y, (int16_t)fields.mask_x, (int16_t)fields.mask_y };
     }
-    if (slot == NO_WINDOW) {
-        add_no_texture_window();
-        return;
-    }
-    psx_pattern_window_t fields = psx_pattern_window(slot);
-    RECT rect = { (int16_t)fields.offset_x, (int16_t)fields.offset_y, (int16_t)fields.mask_x, (int16_t)fields.mask_y };
     DR_TWIN *window = packet(sizeof *window);
     setTexWindow(window, &rect);
-    window_slot = slot;
+    texture_state = (texture_state_t){ texture, slot };
+}
+
+static void use_texture(psx_vram_region_t texture, int slot) {
+    if (texture != texture_state.texture || slot != texture_state.slot) {
+        add_texture_state(texture, slot);
+    }
+}
+
+static uint32_t upload_chunk[UPLOAD_LINES * PAGE_TEXELS / 8];
+
+static void upload_upscaled(psx_vram_rect_t region, const unsigned char *source, int source_width) {
+    for (int line = 0; line < region.h; line += UPLOAD_LINES) {
+        psx_gpu_textures_upscale(source, source_width, line, UPLOAD_LINES, (unsigned char *)upload_chunk);
+        RECT rect = { (int16_t)region.x, (int16_t)(region.y + line), (int16_t)region.w, UPLOAD_LINES };
+        LoadImage(&rect, upload_chunk);
+        DrawSync(0);
+    }
 }
 
 static void upload_sprite_sheet(void) {
-    static uint32_t lines[SHEET_UPLOAD_LINES * P8_SPRITE_SHEET_WIDTH / 8];
     psx_vram_rect_t sheet = psx_vram_layout_region(PSX_VRAM_SPRITE_SHEET);
-    const unsigned char *packed = p8_sprite_sheet_packed();
-    for (int y = 0; y < sheet.h; y += SHEET_UPLOAD_LINES) {
-        memcpy(lines, packed + y * sheet.w * 2, sizeof lines);
-        RECT rect = { (int16_t)sheet.x, (int16_t)(sheet.y + y), (int16_t)sheet.w, SHEET_UPLOAD_LINES };
-        LoadImage(&rect, lines);
-        DrawSync(0);
-    }
+    upload_upscaled(sheet, p8_sprite_sheet_packed(), P8_SPRITE_SHEET_WIDTH);
 }
 
 static void queue_load(psx_vram_rect_t region, const uint16_t *pixels) {
@@ -127,11 +134,14 @@ static void upload_font(void) {
     static uint16_t texture[PSX_GPU_TEXTURES_FONT_UNITS];
     static uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES];
     psx_vram_rect_t font = psx_vram_layout_region(PSX_VRAM_FONT);
-    if (font.w * 4 != PSX_GPU_TEXTURES_FONT_SIZE || font.h != PSX_GPU_TEXTURES_FONT_SIZE) {
-        p8_fatal("psx_gpu: the font region does not hold the font texture");
+    if (font.w != 2 * PSX_GPU_TEXTURES_FONT_SIZE / 4 || font.h != 2 * PSX_GPU_TEXTURES_FONT_LINES
+        || font.h % UPLOAD_LINES != 0) {
+        p8_fatal("psx_gpu: the font region does not hold the x2 font texture");
     }
     psx_gpu_textures_font(texture);
-    load_and_wait(font, texture);
+    /* The upscaler reads bytes, low nibble first: the font's units are the same bytes only on a
+     * little-endian CPU, which the PSX is. */
+    upload_upscaled(font, (const unsigned char *)texture, PSX_GPU_TEXTURES_FONT_SIZE);
     for (int colour = 0; colour < PSX_VRAM_FONT_COLOURS; colour++) {
         psx_gpu_textures_font_clut(colour, clut);
         load_and_wait(psx_vram_layout_font_clut(colour), clut);
@@ -140,8 +150,9 @@ static void upload_font(void) {
 
 void psx_gpu_init(void) {
     psx_vram_rect_t sheet = psx_vram_layout_region(PSX_VRAM_SPRITE_SHEET);
-    if (sheet.w * sheet.h * 2 != P8_SPRITE_SHEET_PACKED_SIZE || sheet.h % SHEET_UPLOAD_LINES != 0) {
-        p8_fatal("psx_gpu: the sprite sheet region does not hold the packed sheet");
+    if (sheet.w * sheet.h * 2 != 4 * P8_SPRITE_SHEET_PACKED_SIZE || sheet.w * 4 != 2 * P8_SPRITE_SHEET_WIDTH
+        || sheet.h % UPLOAD_LINES != 0) {
+        p8_fatal("psx_gpu: the sprite sheet region does not hold the x2 packed sheet");
     }
     SetVideoMode(MODE_NTSC);
     for (int i = 0; i < 2; i++) {
@@ -239,7 +250,7 @@ static int pattern_slot(const p8_graphics_t *gfx, int col) {
  * model counts a call on screen. */
 static void add_patterned_spans(const p8_graphics_t *gfx, const psx_tile_t *spans, int count, int col) {
     int slot = pattern_slot(gfx, col);
-    use_texture_window(slot);
+    use_texture(PSX_VRAM_PATTERNS, slot);
     psx_vram_rect_t clut = psx_vram_layout_pattern_clut(slot);
     for (int s = 0; s < count; s++) {
         psx_sprite_t sprite = psx_pattern_sprite(gfx, spans[s]);
@@ -278,11 +289,15 @@ static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int c
     }
 }
 
-static void add_textured_sprite(psx_sprite_t sprite, psx_vram_rect_t texture, psx_vram_rect_t clut) {
-    psx_vram_rect_t page = psx_vram_layout_texture_page();
-    use_texture_window(NO_WINDOW);
-    add_sprt(sprite.x, sprite.y, (texture.x - page.x) * 4 + sprite.u, texture.y - page.y + sprite.v, sprite.w, sprite.h,
-             clut);
+static void add_textured_sprite(psx_sprite_t sprite, psx_vram_region_t texture, psx_vram_rect_t clut) {
+    use_texture(texture, NO_WINDOW);
+    psx_vram_rect_t region = psx_vram_layout_region(texture);
+    psx_vram_rect_t page = psx_vram_layout_texture_page(texture);
+    psx_sprite_t doubled = psx_sprite_double(sprite);
+    int u = (region.x - page.x) * 4 + doubled.u;
+    int v = region.y - page.y + doubled.v;
+    assert(u + doubled.w <= PAGE_TEXELS && v + doubled.h <= PAGE_TEXELS && "a SPRT's 8-bit UV wraps inside its page");
+    add_sprt(doubled.x, doubled.y, u, v, doubled.w, doubled.h, clut);
 }
 
 static int clut_slot(const unsigned char draw_palette[PSX_GPU_TEXTURES_CLUT_ENTRIES]) {
@@ -302,12 +317,12 @@ static void gpu_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int 
         return;
     }
     psx_vram_rect_t clut = psx_vram_layout_palette_clut(clut_slot(mem->draw_palette));
-    add_textured_sprite(sprite, psx_vram_layout_region(PSX_VRAM_SPRITE_SHEET), clut);
+    add_textured_sprite(sprite, PSX_VRAM_SPRITE_SHEET, clut);
 }
 
 static void add_glyph(psx_sprite_t glyph, void *context) {
     const psx_vram_rect_t *clut = context;
-    add_textured_sprite(glyph, psx_vram_layout_region(PSX_VRAM_FONT), *clut);
+    add_textured_sprite(glyph, PSX_VRAM_FONT, *clut);
 }
 
 static void gpu_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
@@ -331,10 +346,7 @@ void psx_gpu_frame_begin(int frame) {
     psx_clut_cache_reset(&clut_caches[current]);
     psx_pattern_cache_reset(&pattern_caches[current]);
     add_draw_target(psx_vram_layout_region(current == 0 ? PSX_VRAM_DISPLAY_0 : PSX_VRAM_DISPLAY_1));
-    psx_vram_rect_t page = psx_vram_layout_texture_page();
-    DR_TPAGE *tpage = packet(sizeof *tpage);
-    setDrawTPage(tpage, 0, 0, getTPage(TEXTURE_4_BIT, 0, page.x, page.y));
-    add_no_texture_window();
+    add_texture_state(PSX_VRAM_SPRITE_SHEET, NO_WINDOW);
 }
 
 /* Queued behind the previous frame's DrawSync and ahead of this frame's DrawOTag, so no slot

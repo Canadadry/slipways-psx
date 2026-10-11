@@ -10,7 +10,7 @@ enum { WINDOW_UNIT = 8, WINDOW_MASK = 0x1F };
 typedef char a_window_unit_is_one_tile[(int)PSX_GPU_TEXTURES_PATTERN_SIZE == (int)WINDOW_UNIT ? 1 : -1];
 
 psx_pattern_window_t psx_pattern_window(int slot) {
-    psx_vram_rect_t page = psx_vram_layout_texture_page();
+    psx_vram_rect_t page = psx_vram_layout_texture_page(PSX_VRAM_PATTERNS);
     psx_vram_rect_t texture = psx_vram_layout_pattern_slot(slot);
     int u = (texture.x - page.x) * 4;
     int v = texture.y - page.y;

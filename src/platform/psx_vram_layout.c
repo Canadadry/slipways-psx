@@ -7,8 +7,8 @@
 static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
     [PSX_VRAM_DISPLAY_0] = { 0, 0, 320, 240 },
     [PSX_VRAM_DISPLAY_1] = { 0, 240, 320, 240 },
-    [PSX_VRAM_SPRITE_SHEET] = { 512, 0, 32, 128 },
-    [PSX_VRAM_FONT] = { 512, 128, 32, 128 },
+    [PSX_VRAM_SPRITE_SHEET] = { 512, 256, 64, 256 },
+    [PSX_VRAM_FONT] = { 576, 256, 64, 96 },
     [PSX_VRAM_PATTERNS] = { 544, 0, 32, 256 },
     [PSX_VRAM_CLUTS] = { 640, 0, 16, 64 },
 };
@@ -18,8 +18,14 @@ psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region) {
     return regions[region];
 }
 
-psx_vram_rect_t psx_vram_layout_texture_page(void) {
-    psx_vram_rect_t page = { regions[PSX_VRAM_SPRITE_SHEET].x, regions[PSX_VRAM_SPRITE_SHEET].y, 64, 256 };
+enum { PAGE_WIDTH = 64, PAGE_HEIGHT = 256 };
+
+psx_vram_rect_t psx_vram_layout_texture_page(psx_vram_region_t region) {
+    psx_vram_rect_t texture = psx_vram_layout_region(region);
+    psx_vram_rect_t page = { texture.x - texture.x % PAGE_WIDTH, texture.y - texture.y % PAGE_HEIGHT, PAGE_WIDTH,
+                             PAGE_HEIGHT };
+    assert(texture.x + texture.w <= page.x + page.w && texture.y + texture.h <= page.y + page.h &&
+           "a texture read through one DR_TPAGE cannot straddle two pages");
     return page;
 }
 

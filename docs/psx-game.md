@@ -129,9 +129,9 @@ pattern textures, no software fallback** (decided; implemented in step 4).
   indexed by world coordinates, before the camera (U/V origin = world
   coordinate mod 8), as the software `fillp_color` does. A slot is keyed by
   pattern, colour byte and transparent flag. A span without pattern is a
-  `TILE`. The window change is one `DR_TWIN`, not the `DR_TPAGE` +
-  `DR_TWIN` pair the cost model meters: every textured call reads the one
-  page `psx_gpu_frame_begin` sets.
+  `TILE`. Any change of texture source (the sprite sheet, the font, a
+  pattern slot) sends the `DR_TPAGE` + `DR_TWIN` pair the cost model
+  meters, both starting a frame on the sheet with no window.
 - Rejected: rasterising those calls in RAM would need the framebuffer
   uploaded every frame, the copy the GPU path replaces.
 
@@ -165,11 +165,14 @@ it waits forever before its first frame.
 The GPU backend skeleton (`src/platform/psx_gpu.c`, PSn00bSDK, no floating
 point, no `malloc`):
 
-- init: NTSC 320x240 display on two display buffers, the packed sprite sheet
-  (`p8_sprite_sheet_packed`, already the 4-bit texture layout) uploaded;
+- init: NTSC 320x240 display on two display buffers; the packed sprite sheet
+  (`p8_sprite_sheet_packed`, already the 4-bit texture layout) and the font
+  texture uploaded upscaled x2 by `psx_gpu_textures_upscale` (host-tested by
+  `test_psx_gpu_textures`), in chunks of 16 x2 lines through one 2 KiB
+  buffer;
 - each frame: draw area and offset on the 320x240 display buffer the frame
-  will be shown from (the other one is on screen), the texture page, no
-  texture window, then the primitives in call order (no depth sort) in a
+  will be shown from (the other one is on screen), the sheet's texture page,
+  no texture window, then the primitives in call order (no depth sort) in a
   bump allocator over that frame's static buffer of
   `GPU_FRAME_BUFFER_BYTES`; the frame's one clear is the `cls` that opens
   every `cart_draw`, so a frame without one would show the buffer's frame
@@ -190,16 +193,21 @@ point, no `malloc`):
   screen (`src/platform/psx_tiles.c`, host-tested against the software
   backend pixel for pixel, at 1x and upscaled x2, by `test_psx_tiles`),
   coloured with the 8-bit components of `P8_PALETTE_RGB[col & 0x0F]`;
-- the other families (`spr`/`print`, patterned fills, `line`) still draw
-  at 1x, with their 1x coordinates, into the top-left 160x120 quarter of
-  the display buffer, until their step of `docs/plan-19.md` converts them:
-  `line` is one
+- `spr` and `print` are placed and clipped at 1x, then doubled by
+  `psx_sprite_double` (x, y, u, v, w and h times `PSX_TILES_SCALE`) into
+  one `SPRT` of the display buffer reading the x2 texture in its own page,
+  so each texel is a uniform 2x2 block (host-tested at 1x and upscaled x2
+  by `test_psx_sprite` and `test_psx_text`); a doubled UV past its 256x256
+  page is an assert;
+- the other families (patterned fills, `line`) still draw at 1x, with their
+  1x coordinates, into the top-left 160x120 quarter of the display buffer,
+  until their step of `docs/plan-19.md` converts them: `line` is one
   `LINE_F2` between its endpoints after the camera, unclipped (the GPU
   clips to the 320x240 draw area, so a line leaving the screen shows its
   overrun past the quarter),
   sent when its box meets the screen, so its stepping is the GPU's, not
   PICO-8's (the plan's accepted divergence, measured by its capture);
-  `spr` (and `map` through it) is one `SPRT` from the sheet's
+  `spr` (and `map` through it) is one `SPRT` from the x2 sheet's
   4-bit page, after the camera and clipped to the screen
   (`src/platform/psx_sprite.c`, host-tested pixel for pixel by
   `test_psx_sprite`; a sprite reading past the sheet is an assert, which no
@@ -213,17 +221,16 @@ point, no `malloc`):
   frame; `print` is one `SPRT` per glyph with a lit texel that shows, walked
   as the software walks the string, after the camera and clipped to the
   screen (`src/platform/psx_text.c`, host-tested pixel for pixel by
-  `test_psx_text`), from the font texture `psx_gpu_init` uploads once: the
-  256 character codes' glyphs from `p8_font_glyph_rows`, each in a 4x6 cell
-  (texel 1 lit), and the 16 font CLUTs (entry 1 the colour, every other
+  `test_psx_text`), from the x2 font texture `psx_gpu_init` uploads once:
+  the 256 character codes' glyphs from `p8_font_glyph_rows`, each in a 4x6
+  cell (texel 1 lit) upscaled to 8x12, and the 16 font CLUTs (entry 1 the colour, every other
   entry transparent), built by `psx_gpu_textures_font` and
   `psx_gpu_textures_font_clut` (host-tested by `test_psx_gpu_textures`);
   the CLUT is the font line of `col & 0x0F`; a patterned `rectfill` box or
   `circfill` span is a raw-textured `SPRT` whose (u, v) is its top-left
   pixel's world coordinates mod 8, under a texture window repeating its
   pattern slot's 8x8 tile (`src/platform/psx_pattern.c`, host-tested pixel
-  for pixel by `test_psx_pattern`), a `DR_TWIN` sent only when the window
-  changes (a pattern slot, or none for `spr` and `print`); a frame's
+  for pixel by `test_psx_pattern`), in the 1x patterns' page; a frame's
   pattern tiles and CLUTs are cached by `p8_draw_cost_pattern_key`
   (`src/platform/psx_pattern_cache.c`, built by `psx_gpu_textures_pattern`
   and `psx_gpu_textures_pattern_clut`, one cache per primitive buffer) and
@@ -240,26 +247,17 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 | region | x, y | size | notes |
 |---|---|---|---|
 | display buffers | (0, 0), (0, 240) | 320x240 each | |
-| sprite sheet | (512, 0) | 32x128 | 4-bit page (512, 0): u 0..127, v 0..127 |
-| font | (512, 128) | 32x128 | same page, v 128..255 |
-| pattern slots | (544, 0) | 32x256, 2x8 a slot | same page, u 128..255 |
+| sprite sheet | (512, 256) | 64x256 | x2, 256x256 texels 4-bit: the whole page (512, 256) |
+| font | (576, 256) | 64x96 | x2, page (576, 256), v 0..95: 256 codes in 8x12-texel cells, 32 a row, 8 rows |
+| pattern slots | (544, 0) | 32x256, 2x8 a slot | 1x until step 3.3, page (512, 0), u 128..255 |
 | CLUTs | (640, 0) | 16x64, 16x1 each | `GPU_CLUT_SLOTS` draw palettes, 16 font colours, `GPU_PATTERN_SLOTS` pattern CLUTs |
 
-Still to do (`docs/plan-19.md` steps 3.2 and 3.3): the x2 textures, uploaded
-next to the 1x ones, which stay until the step that replaces them, so no x2
-region overlaps a 1x region:
+Still to do (`docs/plan-19.md` step 3.3): the x2 pattern slots, uploaded
+next to the 1x ones, which stay until that step replaces them:
 
 | region | x, y | size | notes |
 |---|---|---|---|
-| x2 sprite sheet | (512, 256) | 64x256 | 256x256 texels 4-bit: the whole page (512, 256) |
-| x2 font | (576, 256) | 64x96 | page (576, 256), v 0..95: 256 codes in 8x12-texel cells, 32 a row, 8 rows |
-| x2 pattern slots | (576, 352) | 4x16 a slot | same page, v 96..255: 16x16 texels on 16-texel bounds for the texture window, 16 a row, up to 160 slots |
-
-The textured calls will then read two 4-bit pages, the sheet's and the font
-and patterns' one, so the cost model must count a page change: step 3.2 adds
-the page to `p8_draw_cost_window_t`, so that any change of page or window
-costs the `DR_TPAGE` + `DR_TWIN` pair, and the backend sends the `DR_TPAGE`
-where the page changes.
+| x2 pattern slots | (576, 352) | 4x16 a slot | font's page, v 96..255: 16x16 texels on 16-texel bounds for the texture window, 16 a row, up to 160 slots |
 
 ## Until-exit boot mode
 
@@ -577,8 +575,8 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Display resolution (`docs/plan-19.md`): `pset`/`circ`, `spr`/`print`,
-  patterned fills and `line` still draw at 1x into the top-left quarter of
+- Display resolution (`docs/plan-19.md`): patterned fills and `line` still
+  draw at 1x into the top-left quarter of
   the display buffer, so the PSX image is wrong under every renderer until
   their steps convert them.
 
