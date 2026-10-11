@@ -553,6 +553,11 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
+- Hardware renderers: DuckStation's hardware renderer samples the x2 upscale
+  quad unevenly (glyph outlines of uneven width, a broken-up title logo). Use
+  its Software renderer until `docs/plan-19.md` draws the frame at display
+  resolution.
+
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
   checks neither, so the disc is proven in the emulator only.

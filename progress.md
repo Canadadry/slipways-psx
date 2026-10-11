@@ -18,3 +18,4 @@
 - [x] PSX tool tests build on macOS
 - [x] PSX check scripts pass with the BSD awk of macOS
 - [x] psx-check prints a line before each emulator boot
+- [x] Plan 19 drafted: draw the PSX frame at display resolution
