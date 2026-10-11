@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 static p8_graphics_t gfx;
 static p8_draw_cost_window_t window;
@@ -43,10 +44,64 @@ static void test_culling_is_judged_after_the_camera(void) {
     assert_cost(p8_draw_cost_pset(&gfx, 260, 169), 0, 0);
 }
 
-static void test_line_is_one_line_f2_culled_on_its_bounding_box(void) {
+static unsigned char walked[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
+
+static void mark_walked(int x, int y, void *context) {
+    assert(context == walked);
+    assert(x >= 0 && x < P8_SCREEN_WIDTH && y >= 0 && y < P8_SCREEN_HEIGHT);
+    assert(walked[y][x] == 0 && "a pixel is emitted once");
+    walked[y][x] = 1;
+}
+
+/* The pixels the walk emits are those the software line lights; returns their number. */
+static int line_pixels_match_software(int x1, int y1, int x2, int y2) {
+    static p8_vram_t software;
+    p8_vram_init(&software);
+    p8_line(&gfx, &software, x1, y1, x2, y2, 7);
+    memset(walked, 0, sizeof walked);
+    int count = p8_draw_cost_line_pixels(&gfx, x1, y1, x2, y2, mark_walked, walked);
+    int lit = 0;
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            assert(walked[y][x] == (software.screen[y][x] != 0));
+            lit += walked[y][x];
+        }
+    }
+    assert(count == lit);
+    assert(p8_draw_cost_line_pixels(&gfx, x1, y1, x2, y2, NULL, NULL) == count && "counting needs no emitter");
+    assert_cost(p8_draw_cost_line(&gfx, x1, y1, x2, y2), (unsigned long)count * P8_GPU_TILE_BYTES, count);
+    return count;
+}
+
+static void test_a_line_costs_one_tile_per_pixel_the_software_lights(void) {
     reset();
-    assert_cost(p8_draw_cost_line(&gfx, -10, -10, 5, 200), P8_GPU_LINE_F2_BYTES, 1);
-    assert_cost(p8_draw_cost_line(&gfx, 170, -10, 160, 50), 0, 0);
+    assert(line_pixels_match_software(5, 5, 5, 5) == 1);
+    assert(line_pixels_match_software(-5, 3, 4, 3) == 5);
+    assert(line_pixels_match_software(7, 100, 7, 130) == 20);
+    assert(line_pixels_match_software(0, 0, 5, 5) == 6);
+    assert(line_pixels_match_software(10, 20, 90, 37) == 81);
+    assert(line_pixels_match_software(90, 37, 10, 20) == 81);
+    assert(line_pixels_match_software(30, 10, 41, 100) == 91);
+    assert(line_pixels_match_software(41, 100, 30, 10) == 91);
+    assert(line_pixels_match_software(-10, 5, 5, -10) == 0 && "its box meets the screen, its pixels miss it");
+    assert(line_pixels_match_software(170, -10, 160, 50) == 0);
+    p8_camera(&gfx, 100, -30);
+    assert(line_pixels_match_software(100, -30, 120, -10) == 21);
+    assert(line_pixels_match_software(0, 0, 99, 50) == 0);
+}
+
+static void test_random_lines_cost_what_the_software_lights(void) {
+    unsigned seed = 4242;
+    for (int i = 0; i < 300; i++) {
+        int values[6];
+        for (int v = 0; v < 6; v++) {
+            seed = seed * 1103515245u + 12345u;
+            values[v] = (int)((seed >> 8) % 560) - 200;
+        }
+        reset();
+        p8_camera(&gfx, values[4] / 8, values[5] / 8);
+        line_pixels_match_software(values[0], values[1] * 520 / 560, values[2], values[3] * 520 / 560);
+    }
 }
 
 static void test_rect_is_four_tiles_and_straddling_costs_in_full(void) {
@@ -239,7 +294,7 @@ static void test_untextured_and_culled_calls_keep_the_window(void) {
     reset();
     p8_fillp(&gfx, 0xA5A5);
     assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
-    assert_cost(p8_draw_cost_line(&gfx, 0, 0, 5, 5), P8_GPU_LINE_F2_BYTES, 1);
+    assert_cost(p8_draw_cost_line(&gfx, 0, 0, 5, 5), 6 * P8_GPU_TILE_BYTES, 6);
     assert_cost(p8_draw_cost_spr(&window, &gfx, 1, -50, 0, 1, 1), 0, 0);
     assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES, 1);
 }
@@ -278,7 +333,8 @@ int main(void) {
     test_cls_is_one_tile();
     test_pset_is_one_tile_and_off_screen_is_free();
     test_culling_is_judged_after_the_camera();
-    test_line_is_one_line_f2_culled_on_its_bounding_box();
+    test_a_line_costs_one_tile_per_pixel_the_software_lights();
+    test_random_lines_cost_what_the_software_lights();
     test_rect_is_four_tiles_and_straddling_costs_in_full();
     test_plain_rectfill_is_one_tile();
     test_circles_cost_per_midpoint_iteration();

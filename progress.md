@@ -19,6 +19,9 @@
     - [x] Chunks 1-2: x2 pattern tiles, window and backend
     - [x] Chunks 3-4: sizes, gate and step note
   - [ ] Step 3.4: line
+    - [x] Chunks 1-2: pixel walk, exact cost and backend
+    - [ ] Chunk 3: re-size the frame buffer
+    - [ ] Chunk 4: gate and step note
 - [ ] Step 4: no stretch left
 - [ ] Step 5: re-measure
 - [ ] Step 6: human acceptance

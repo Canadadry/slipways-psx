@@ -141,7 +141,9 @@ pattern textures, no software fallback** (decided; implemented in step 4).
 **GPU primitive buffers: counted on PC, sized at peak + 1/8, outside
 `ZONE_BUDGET_BYTES`, checked against the MIPS RAM.** `src/p8/draw_cost.c`
 gives each call's GPU bytes and primitives (PSn00bSDK 0.24 packet sizes, an
-upper bound; a call whose screen box misses 160x120 costs 0), and the draw
+upper bound; a call whose screen box misses 160x120 costs 0; a `line` costs
+exactly one `TILE` per on-screen pixel, from the walk the backend sends, so 0
+when none shows), and the draw
 meter (`src/p8/draw_meter.c`) wraps the active backend and adds them up a
 frame, with the distinct draw palettes and fill patterns. The PC replay
 installs it under `STATE=`, so `make state` reports `zone gpu_frame` and `cap
@@ -184,14 +186,15 @@ point, no `malloc`):
 - overflow of the buffer is a `p8_fatal` naming the frame and the bytes
   asked; a frame that sent more bytes than the meter counted is a `p8_fatal`
   naming the frame and both figures;
-- `cls`, `pset`, `rect`, plain `rectfill`, `circ` and plain `circfill`
-  spans are drawn at x2: each is computed as a 160x120 tile, then doubled by
+- `cls`, `pset`, `line`, `rect`, plain `rectfill`, `circ` and plain
+  `circfill` spans are drawn at x2: each is computed as a 160x120 tile, then doubled by
   `psx_tiles_double` (x, y, w and h times `PSX_TILES_SCALE`) into a `TILE`
   of the display buffer, so each PICO-8 pixel is a uniform 2x2 block; `cls`
   is one black `TILE` of the whole 320x240 buffer; `rect` is up to four
   `TILE`s (its edges, or one when it has no inside) and a plain `rectfill`
-  one `TILE`, `pset` and `circ` one 2x2 `TILE` at doubled coordinates per
-  on-screen pixel (`circ` from the software backend's midpoint loop), and a
+  one `TILE`, `pset`, `line` and `circ` one 2x2 `TILE` at doubled
+  coordinates per on-screen pixel (`line` from the software backend's line
+  walk, `p8_draw_cost_line_pixels`, and `circ` from its midpoint loop), and a
   plain `circfill` one `TILE` span per screen row from the same loop, after the camera and clipped to the
   screen (`src/platform/psx_tiles.c`, host-tested against the software
   backend pixel for pixel, at 1x and upscaled x2, by `test_psx_tiles`),
@@ -215,14 +218,6 @@ point, no `malloc`):
   cache per primitive buffer) and uploaded with the spr CLUTs to the pattern
   slots and pattern CLUT lines; more than `GPU_PATTERN_SLOTS` in a frame is a
   `p8_fatal` naming the frame;
-- `line` still draws at 1x, with its 1x coordinates, into the top-left
-  160x120 quarter of the display buffer, until its step of
-  `docs/plan-19.md` converts it: `line` is one
-  `LINE_F2` between its endpoints after the camera, unclipped (the GPU
-  clips to the 320x240 draw area, so a line leaving the screen shows its
-  overrun past the quarter),
-  sent when its box meets the screen, so its stepping is the GPU's, not
-  PICO-8's (the plan's accepted divergence, measured by its capture);
 - `spr` (and `map` through it) is one `SPRT` from the x2 sheet's
   4-bit page, after the camera and clipped to the screen
   (`src/platform/psx_sprite.c`, host-tested pixel for pixel by
@@ -577,10 +572,6 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Display resolution (`docs/plan-19.md`): only `line` still draws at 1x
-  into the top-left quarter of the display buffer, so the PSX image is
-  wrong under every renderer until its step converts it.
-
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
   checks neither, so the disc is proven in the emulator only.
@@ -589,15 +580,13 @@ None of these targets is in `make test-all`, and none runs a setup.
   emulator and judge the controller by hand. No agent opens a window.
 
 - Pending human acceptance, all 14 labels once, at the end of
-  `docs/plan-19.md` (its step 6; until then `make psx-check` fails by design
-  on the labels whose families are not drawn at x2 yet): run `make
+  `docs/plan-19.md` (its step 6): run `make
   psx-check`, review each capture's report line and
   `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` (PC | PSX |
   diff), then accept each label with the one command
   `make psx-gpu-capture-accept LABEL=<label>` and commit
   `psx/gpu_capture_references.txt`. The report lines below are those of the
-  1x backend before plan 19; at x2, `cls`, `rectfill` and `rect` already
-  reproduce theirs:
+  x2 backend:
   - `cls` f1: `cls f1 mask cls calls 1 differ 0 (0.0‰) near1 0 near2 0 far 0
     bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `rectfill` f11: `rectfill f11 mask cls,rectfill calls 8 differ 0 (0.0‰)
@@ -625,10 +614,10 @@ None of these targets is in `make test-all`, and none runs a setup.
   - `print` f275: `print f275 mask cls,print calls 81 differ 0 (0.0‰) near1
     0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: "-too
     far-", the HUD figures and labels, 246 lit pixels in 4 colours.
-  - `line` f276: `line f276 mask cls,line calls 16 differ 2 (0.1‰) near1 2
-    near2 0 far 0 bbox 80,119-81,119 offpalette 0 nonuniform 0`, ceiling 2:
-    two bottom-row pixels the PC lights stay black on the PSX, where the
-    lines out of p28, below the screen, enter it (GPU stepping).
+  - `line` f276: `line f276 mask cls,line calls 16 differ 0 (0.0‰) near1 0
+    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 2 (the 1x
+    `LINE_F2`'s GPU stepping; `psx-check` prints `below ceiling: line f276
+    2 -> 0`).
   - `rect` f300: `rect f300 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
     near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `circ` f314: `circ f314 mask cls,circ calls 2 differ 0 (0.0‰) near1 0

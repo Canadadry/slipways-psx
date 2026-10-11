@@ -2,6 +2,9 @@
 
 #include "p8/vram.h"
 
+#include <stddef.h>
+#include <stdlib.h>
+
 static const p8_draw_cost_t FREE = { 0, 0 };
 
 static p8_draw_cost_t cost_of(unsigned long bytes_each, int primitives) {
@@ -87,8 +90,45 @@ p8_draw_cost_t p8_draw_cost_pset(const p8_graphics_t *gfx, int x, int y) {
     return on_screen(gfx, x, y, x, y) ? cost_of(P8_GPU_TILE_BYTES, 1) : FREE;
 }
 
+int p8_draw_cost_line_pixels(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, p8_draw_cost_pixel_t emit,
+                             void *context) {
+    if (!box_on_screen(gfx, x1, y1, x2, y2)) {
+        return 0;
+    }
+    int dx = abs(x2 - x1);
+    int sx = x1 < x2 ? 1 : -1;
+    int dy = -abs(y2 - y1);
+    int sy = y1 < y2 ? 1 : -1;
+    int err = dx + dy;
+    int x = x1;
+    int y = y1;
+    int count = 0;
+    for (;;) {
+        int screen_x = x - gfx->camera_x;
+        int screen_y = y - gfx->camera_y;
+        if (screen_x >= 0 && screen_x < P8_SCREEN_WIDTH && screen_y >= 0 && screen_y < P8_SCREEN_HEIGHT) {
+            if (emit != NULL) {
+                emit(screen_x, screen_y, context);
+            }
+            count++;
+        }
+        if (x == x2 && y == y2) {
+            return count;
+        }
+        int e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+
 p8_draw_cost_t p8_draw_cost_line(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2) {
-    return box_on_screen(gfx, x1, y1, x2, y2) ? cost_of(P8_GPU_LINE_F2_BYTES, 1) : FREE;
+    return cost_of(P8_GPU_TILE_BYTES, p8_draw_cost_line_pixels(gfx, x1, y1, x2, y2, NULL, NULL));
 }
 
 p8_draw_cost_t p8_draw_cost_rect(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2) {

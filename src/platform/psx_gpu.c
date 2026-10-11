@@ -19,12 +19,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define SIZE_CHECK(name, condition) typedef char name[(condition) ? 1 : -1]
 SIZE_CHECK(tile_size_check, sizeof(TILE) == P8_GPU_TILE_BYTES);
-SIZE_CHECK(line_f2_size_check, sizeof(LINE_F2) == P8_GPU_LINE_F2_BYTES);
 SIZE_CHECK(sprt_size_check, sizeof(SPRT) == P8_GPU_SPRT_BYTES);
 SIZE_CHECK(dr_tpage_size_check, sizeof(DR_TPAGE) == P8_GPU_DR_TPAGE_BYTES);
 SIZE_CHECK(dr_twin_size_check, sizeof(DR_TWIN) == P8_GPU_DR_TWIN_BYTES);
@@ -182,25 +180,14 @@ static void gpu_cls(p8_vram_t *mem) {
     add_tile(screen, 0);
 }
 
-static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
-    (void)mem;
-    psx_line_t line;
-    if (!psx_tiles_line(gfx, x1, y1, x2, y2, &line)) {
-        return;
-    }
-    assert(abs(line.x2 - line.x1) < 1024 && abs(line.y2 - line.y1) < 512 && abs(line.x1) < 1024 &&
-           abs(line.y1) < 1024 && abs(line.x2) < 1024 && abs(line.y2) < 1024 &&
-           "the GPU silently drops a line this long or this far: the replays reach 297 at most");
-    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
-    LINE_F2 *primitive = packet(sizeof *primitive);
-    setLineF2(primitive);
-    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
-    setXY2(primitive, line.x1, line.y1, line.x2, line.y2);
-}
-
 static void add_pixel(psx_tile_t pixel, void *context) {
     const int *col = context;
     add_tile(pixel, *col);
+}
+
+static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    (void)mem;
+    psx_tiles_line(gfx, x1, y1, x2, y2, add_pixel, &col);
 }
 
 static void gpu_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {

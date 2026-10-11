@@ -6,7 +6,6 @@
 /* PSn00bSDK packet sizes on MIPS, tag included. */
 enum {
     P8_GPU_TILE_BYTES = 16,
-    P8_GPU_LINE_F2_BYTES = 16,
     P8_GPU_SPRT_BYTES = 20,
     P8_GPU_DR_TPAGE_BYTES = 8,
     P8_GPU_DR_TWIN_BYTES = 8,
@@ -45,8 +44,17 @@ p8_draw_cost_t p8_draw_cost_frame_begin(p8_draw_cost_window_t *window);
 /* What tells two pattern slots apart: the pattern, the colour byte and the transparent flag. */
 unsigned long p8_draw_cost_pattern_key(const p8_graphics_t *gfx, int col);
 
+typedef void (*p8_draw_cost_pixel_t)(int x, int y, void *context);
+
+/* Walks the line as gfx_software.c's line does (change both together) and calls emit, which may be
+ * NULL, once per pixel inside the screen after the camera, in screen coordinates. No pixel is
+ * emitted twice. Returns how many were, which is what the GPU backend sends. */
+int p8_draw_cost_line_pixels(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, p8_draw_cost_pixel_t emit,
+                             void *context);
+
 p8_draw_cost_t p8_draw_cost_cls(void);
 p8_draw_cost_t p8_draw_cost_pset(const p8_graphics_t *gfx, int x, int y);
+/* Exact: one TILE per pixel of p8_draw_cost_line_pixels, 0 when none shows. */
 p8_draw_cost_t p8_draw_cost_line(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2);
 p8_draw_cost_t p8_draw_cost_rect(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2);
 p8_draw_cost_t p8_draw_cost_rectfill(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int x1, int y1, int x2, int y2,

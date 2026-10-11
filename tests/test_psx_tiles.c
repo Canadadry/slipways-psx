@@ -99,61 +99,37 @@ static int pset_tile_matches_software(const p8_graphics_t *gfx, int x, int y) {
     return count;
 }
 
-static int software_lit_any(void) {
-    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
-        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
-            if (software.screen[y][x] != 0) {
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
-static int endpoint_lit_where_on_screen(int x, int y) {
-    if (x < 0 || x >= P8_SCREEN_WIDTH || y < 0 || y >= P8_SCREEN_HEIGHT) {
-        return 1;
-    }
-    return software.screen[y][x] != 0;
-}
-
-/* The GPU's stepping between the endpoints is the accepted divergence: only the endpoints, the
- * lines sent and their metering are checked. */
-static int line_is_sent_as_the_software_shows_it(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2) {
-    p8_vram_init(&software);
-    p8_line(gfx, &software, x1, y1, x2, y2, 7);
-    psx_line_t line;
-    int count = psx_tiles_line(gfx, x1, y1, x2, y2, &line);
-    assert(count == 0 || count == 1);
-    assert((count == 1 || !software_lit_any()) && "a line the software shows must be sent");
-    if (count == 1) {
-        assert(line.x1 == x1 - gfx->camera_x && line.y1 == y1 - gfx->camera_y);
-        assert(line.x2 == x2 - gfx->camera_x && line.y2 == y2 - gfx->camera_y);
-        assert(endpoint_lit_where_on_screen(line.x1, line.y1) && endpoint_lit_where_on_screen(line.x2, line.y2));
-        assert(p8_draw_cost_line(gfx, x1, y1, x2, y2).bytes > 0 && "a line sent must be metered");
-    }
-    return count;
-}
-
-enum { CIRCLE_PIXELS_MAX = 4096 };
-static psx_tile_t circle_pixels[CIRCLE_PIXELS_MAX];
-static int circle_pixel_count;
+enum { PIXELS_MAX = 4096 };
+static psx_tile_t pixels[PIXELS_MAX];
+static int pixel_count;
 
 static void collect_pixel(psx_tile_t pixel, void *context) {
-    assert(context == circle_pixels);
-    assert(circle_pixel_count < CIRCLE_PIXELS_MAX);
+    assert(context == pixels);
+    assert(pixel_count < PIXELS_MAX);
     assert(pixel.w == 1 && pixel.h == 1);
-    circle_pixels[circle_pixel_count++] = pixel;
+    pixels[pixel_count++] = pixel;
 }
 
 static int circ_pixels_match_software(const p8_graphics_t *gfx, int cx, int cy, int r) {
     p8_vram_init(&software);
     p8_circ(gfx, &software, cx, cy, r, 7);
-    circle_pixel_count = 0;
-    int count = psx_tiles_circ(gfx, cx, cy, r, collect_pixel, circle_pixels);
-    assert(count == circle_pixel_count);
-    assert_tiles_and_their_doubles_match_software(circle_pixels, count);
+    pixel_count = 0;
+    int count = psx_tiles_circ(gfx, cx, cy, r, collect_pixel, pixels);
+    assert(count == pixel_count);
+    assert_tiles_and_their_doubles_match_software(pixels, count);
     assert((unsigned long)count * P8_GPU_TILE_BYTES <= p8_draw_cost_circ(gfx, cx, cy, r).bytes && "real bytes must fit the metered");
+    return count;
+}
+
+static int line_pixels_match_software(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2) {
+    p8_vram_init(&software);
+    p8_line(gfx, &software, x1, y1, x2, y2, 7);
+    pixel_count = 0;
+    int count = psx_tiles_line(gfx, x1, y1, x2, y2, collect_pixel, pixels);
+    assert(count == pixel_count);
+    assert_tiles_and_their_doubles_match_software(pixels, count);
+    p8_draw_cost_t cost = p8_draw_cost_line(gfx, x1, y1, x2, y2);
+    assert(count == cost.primitives && (unsigned long)count * P8_GPU_TILE_BYTES == cost.bytes && "metered exactly");
     return count;
 }
 
@@ -201,20 +177,36 @@ static void test_a_circfill_is_one_span_per_row_of_the_software_disc(void) {
     assert(circfill_spans_match_software(&gfx, 60, 380, 19) == 0);
 }
 
-static void test_a_line_is_one_segment_between_its_endpoints_after_the_camera(void) {
+static void test_a_line_is_the_software_line_one_pixel_each(void) {
     p8_graphics_t gfx;
     p8_gfx_init(&gfx);
-    assert(line_is_sent_as_the_software_shows_it(&gfx, 10, 20, 90, 70) == 1);
-    assert(line_is_sent_as_the_software_shows_it(&gfx, 90, 70, 10, 20) == 1);
-    assert(line_is_sent_as_the_software_shows_it(&gfx, 5, 5, 5, 5) == 1);
-    assert(line_is_sent_as_the_software_shows_it(&gfx, -50, 60, 300, 60) == 1 && "endpoints are not clipped");
+    assert(line_pixels_match_software(&gfx, 5, 5, 5, 5) == 1);
+    assert(line_pixels_match_software(&gfx, 10, 30, 90, 30) == 81);
+    assert(line_pixels_match_software(&gfx, 40, 90, 40, 10) == 81);
+    assert(line_pixels_match_software(&gfx, 0, 0, 5, 5) == 6);
+    assert(line_pixels_match_software(&gfx, 10, 20, 90, 70) == 81);
+    assert(line_pixels_match_software(&gfx, 90, 70, 10, 20) == 81);
+    assert(line_pixels_match_software(&gfx, 20, 10, 70, 90) == 81);
+    assert(line_pixels_match_software(&gfx, 70, 90, 20, 10) == 81);
+    assert(line_pixels_match_software(&gfx, -5, 3, 4, 3) == 5 && "clipped by the left edge");
+    assert(line_pixels_match_software(&gfx, 150, 50, 170, 50) == 10 && "clipped by the right edge");
+    assert(line_pixels_match_software(&gfx, 30, -8, 30, 4) == 5 && "clipped by the top edge");
+    assert(line_pixels_match_software(&gfx, 30, 115, 30, 125) == 5 && "clipped by the bottom edge");
+    assert(line_pixels_match_software(&gfx, -10, -10, 10, 10) == 11 && "clipped by the top-left corner");
+    assert(line_pixels_match_software(&gfx, 150, 110, 170, 130) == 10 && "clipped by the bottom-right corner");
+    assert(line_pixels_match_software(&gfx, 150, 125, 165, 110) == 4 && "clipped by the bottom-right corner");
+    assert(line_pixels_match_software(&gfx, -10, 130, 10, 110) > 0 && "clipped by the bottom-left corner");
+    assert(line_pixels_match_software(&gfx, 170, -10, 150, 10) > 0 && "clipped by the top-right corner");
+    assert(line_pixels_match_software(&gfx, -300, 60, 400, 60) == P8_SCREEN_WIDTH);
+    assert(line_pixels_match_software(&gfx, -300, -200, 400, 300) > 0);
+    assert(line_pixels_match_software(&gfx, -10, 5, 5, -10) == 0 && "its box meets the screen, its pixels miss it");
     p8_camera(&gfx, 200, -100);
-    assert(line_is_sent_as_the_software_shows_it(&gfx, 210, -90, 250, 10) == 1);
-    assert(line_is_sent_as_the_software_shows_it(&gfx, 100, -90, 150, 10) == 0);
-    assert(line_is_sent_as_the_software_shows_it(&gfx, 210, -200, 250, -101) == 0);
+    assert(line_pixels_match_software(&gfx, 210, -90, 250, 10) > 0);
+    assert(line_pixels_match_software(&gfx, 100, -90, 150, 10) == 0);
+    assert(line_pixels_match_software(&gfx, 210, -200, 250, -101) == 0);
 }
 
-static void test_random_lines_are_sent_when_the_software_shows_them(void) {
+static void test_random_lines_are_the_software_lines(void) {
     unsigned seed = 777;
     p8_graphics_t gfx;
     for (int i = 0; i < 200; i++) {
@@ -225,7 +217,7 @@ static void test_random_lines_are_sent_when_the_software_shows_them(void) {
         }
         p8_gfx_init(&gfx);
         p8_camera(&gfx, values[4] / 2, values[5] / 2);
-        line_is_sent_as_the_software_shows_it(&gfx, values[0], values[1], values[2], values[3]);
+        line_pixels_match_software(&gfx, values[0], values[1], values[2], values[3]);
     }
 }
 
@@ -311,8 +303,8 @@ int main(void) {
     test_a_rect_is_clipped_to_the_screen_after_the_camera();
     test_a_rectfill_is_one_clipped_tile();
     test_random_boxes_draw_as_the_software_does();
-    test_a_line_is_one_segment_between_its_endpoints_after_the_camera();
-    test_random_lines_are_sent_when_the_software_shows_them();
+    test_a_line_is_the_software_line_one_pixel_each();
+    test_random_lines_are_the_software_lines();
     test_a_circ_is_the_software_midpoint_circle_one_pixel_each();
     test_a_circfill_is_one_span_per_row_of_the_software_disc();
     test_the_full_screen_tile_doubles_to_the_whole_display_buffer();

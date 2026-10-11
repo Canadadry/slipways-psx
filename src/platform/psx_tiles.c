@@ -1,5 +1,6 @@
 #include "platform/psx_tiles.h"
 
+#include "p8/draw_cost.h"
 #include "p8/vram.h"
 
 static int min(int a, int b) {
@@ -47,14 +48,20 @@ int psx_tiles_pset(const p8_graphics_t *gfx, int x, int y, psx_tile_t *tile) {
     return add_clipped(tile, 0, x - gfx->camera_x, y - gfx->camera_y, x - gfx->camera_x, y - gfx->camera_y);
 }
 
-int psx_tiles_line(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, psx_line_t *line) {
-    psx_tile_t box;
-    if (!psx_tiles_rectfill(gfx, x1, y1, x2, y2, &box)) {
-        return 0;
-    }
-    psx_line_t sent = { x1 - gfx->camera_x, y1 - gfx->camera_y, x2 - gfx->camera_x, y2 - gfx->camera_y };
-    *line = sent;
-    return 1;
+typedef struct {
+    psx_tiles_emit_t emit;
+    void *context;
+} line_emitter_t;
+
+static void emit_line_pixel(int x, int y, void *context) {
+    const line_emitter_t *emitter = context;
+    psx_tile_t pixel = { x, y, 1, 1 };
+    emitter->emit(pixel, emitter->context);
+}
+
+int psx_tiles_line(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, psx_tiles_emit_t emit, void *context) {
+    line_emitter_t emitter = { emit, context };
+    return p8_draw_cost_line_pixels(gfx, x1, y1, x2, y2, emit_line_pixel, &emitter);
 }
 
 /* The same loop as gfx_software.c's circles and draw_cost.c's midpoint: change all three
