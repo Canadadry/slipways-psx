@@ -5,10 +5,10 @@
   - [x] 1.4 GPU primitives
   - [x] 1.5 Controller
   - [x] 1.6 The game's .bin/.cue
-- [ ] Plan 10, done when
+- [x] Plan 10, done when
   - [x] The .bin/.cue boots, shows the title screen and passes it through scripted pad input
   - [x] The PSX check target is green
-  - [ ] The human has reviewed the step 4 captures and they are frozen as references
+  - [x] The human has reviewed the step 4 captures and they are frozen as references
 - [x] PSX setups on macOS without admin rights
 - [x] The core compiles under GCC 14
 - [x] Prebuilt macOS toolchain
