@@ -1,0 +1,11 @@
+# The pad probe's script for make psx-pad-check: every button of the digital
+# pad, alone and combined, then released.
+30 CROSS
+50 CROSS UP
+70 UP
+90 -
+110 START
+130 SELECT L1 R1
+150 L2 R2 TRIANGLE CIRCLE SQUARE
+170 DOWN LEFT RIGHT
+190 -

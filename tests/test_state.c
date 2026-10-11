@@ -10,6 +10,7 @@
 
 #include "devtools/state.h"
 #include "engine/zone_sizes.h"
+#include "p8/gpu_sizes.h"
 #include "game/save_state.h"
 #include "p8/input.h"
 #include "p8/fatal.h"
@@ -55,6 +56,7 @@ static const char *const MEMORY_LINES[] = {
     "cap bytes_ephemerals", "cap particle", "cap particles", "cap particles_help_screen", "cap burst",
     "cap transit_dots", "cap exit_queue", "cap entity_table", "cap elements_particles", "cap elements_particles_help_screen",
     "cap elements_transit_dots", "cap elements_ephemerals", "cap bytes_particles", "cap bytes_particles_help_screen", "cap bytes_burst",
+    "zone gpu_frame", "cap gpu_cluts", "cap gpu_patterns",
 };
 
 static long memory_value(const char *line, int column) {
@@ -170,6 +172,10 @@ static void pad_tech_costs_rich_mine(void) {
     memory_lines_have_peak_and_limit();
     assert(memory_value(memory_line("cap message_box"), 1) >= 1 && "the replay opens a message box");
     assert(memory_value(memory_line("cap bytes_message_box"), 1) > 0);
+    const char *gpu_frame = memory_line("zone gpu_frame");
+    assert(memory_value(gpu_frame, 0) > 0 && memory_value(gpu_frame, 1) > 0 && "STATE installs the draw meter");
+    assert(memory_value(gpu_frame, 2) == GPU_FRAME_BUFFER_BYTES);
+    assert(memory_value(memory_line("cap gpu_cluts"), 1) > 0 && "the background map draws sprites");
 }
 
 #define CHEAT_CUT "tmp/test_state_cheat.json"

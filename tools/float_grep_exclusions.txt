@@ -30,11 +30,69 @@ src/devtools/session_recorder.c | session recording of the interactive driver
 src/devtools/session_recorder.h | session recording of the interactive driver
 src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c
+src/devtools/state_format.c | text state of make state, shared by the PC and PSX adapters
+src/devtools/state_format.h | text state of make state, header of devtools/state_format.c
+src/devtools/vram_digest.c | sprite sheet, screen and map digest lines, shared by the PC and PSX replays
+src/devtools/vram_digest.h | sprite sheet, screen and map digest lines, header of devtools/vram_digest.c
 src/devtools/save_check.c | save comparison harness of the tests, writes the state dump through a FILE stream
 src/devtools/save_check.h | save comparison harness of the tests, header of devtools/save_check.c
 src/platform/keymap.c | raylib backend, keymap file parser and pad mask
 src/platform/keymap.h | raylib backend, header of platform/keymap.c
 src/platform/keymap_names.h | raylib backend, raylib key and gamepad names
+src/cmd/embed_replay.c | entry point of embed_replay, which writes a recording as C source, host tool
+src/devtools/embedded_replay.h | declarations of the source embed_replay writes, linked by the replay tools
+src/cmd/psx_replay.c | entry point of the PSX replay, PSX only
+src/cmd/psx_pad_probe.c | entry point of the PSX pad probe, PSX only
+src/cmd/format_self_test.c | entry point of format_self_test, which prints the PC side of the PSX format self-test, host tool
+src/devtools/format_self_test.c | printf self-test of the PSX replay, compared with the PC's
+src/devtools/format_self_test.h | printf self-test of the PSX replay, header of devtools/format_self_test.c
+src/platform/assert_psx.c | PSX assert handler, PSX only
+src/platform/fatal_psx.c | PSX implementation of p8_fatal (TTY, exit module), provided by the platform
+src/platform/psx_exit.c | PSX exit module, PSX only
+src/platform/psx_exit.h | PSX exit module, header of platform/psx_exit.c
+src/platform/psx_pad.c | PSX raw pad read through the BIOS, PSX only
+src/platform/psx_pad.h | PSX raw pad read, header of platform/psx_pad.c
+src/platform/psx_tty.c | PSX TTY output and state line sink, PSX only
+src/platform/psx_tty.h | PSX TTY output, header of platform/psx_tty.c
+src/p8/format.c | snprintf replacement of the PSX build, linked by the PSX platform and its host test
+src/p8/format.h | snprintf replacement of the PSX build, header of p8/format.c
+src/platform/format_psx.c | routes the PSX snprintf and vsnprintf to p8/format.c, PSX only
+src/cmd/psx_gpu_replay.c | entry point of the PSX GPU replay, PSX only
+src/platform/psx_gpu.c | PSX GPU drawing backend, PSX only
+src/platform/psx_gpu.h | PSX GPU drawing backend, header of platform/psx_gpu.c
+src/platform/psx_vram_layout.c | VRAM layout of the PSX GPU backend, PSX build and its host test
+src/platform/psx_vram_layout.h | VRAM layout of the PSX GPU backend, header of platform/psx_vram_layout.c
+src/platform/psx_tiles.c | pset, rect, rectfill, circ and circfill as clipped GPU tiles and line as a GPU segment, PSX build and its host test
+src/platform/psx_tiles.h | pset, rect, rectfill, circ and circfill as clipped GPU tiles and line as a GPU segment, header of platform/psx_tiles.c
+src/platform/psx_sprite.c | spr as a clipped GPU sprite, PSX build and its host test
+src/platform/psx_sprite.h | spr as a clipped GPU sprite, header of platform/psx_sprite.c
+src/platform/psx_text.c | print as clipped GPU glyph sprites, PSX build and its host test
+src/platform/psx_text.h | print as clipped GPU glyph sprites, header of platform/psx_text.c
+src/platform/psx_gpu_textures.c | CLUTs, the font texture and the pattern tiles built for the PSX GPU backend, PSX build and its host test
+src/platform/psx_gpu_textures.h | CLUTs, the font texture and the pattern tiles built for the PSX GPU backend, header of platform/psx_gpu_textures.c
+src/platform/psx_clut_cache.c | per-frame spr CLUT cache of the PSX GPU backend, PSX build and its host test
+src/platform/psx_clut_cache.h | per-frame spr CLUT cache of the PSX GPU backend, header of platform/psx_clut_cache.c
+src/platform/psx_pattern_cache.c | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, PSX build and its host test
+src/platform/psx_pattern_cache.h | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, header of platform/psx_pattern_cache.c
+src/platform/psx_pattern.c | patterned rectfill and circfill as GPU sprites under a texture window, PSX build and its host test
+src/platform/psx_pattern.h | patterned rectfill and circfill as GPU sprites under a texture window, header of platform/psx_pattern.c
+src/devtools/draw_filter.c | family filter of the GPU captures, shared by the PC replay and the PSX GPU replay
+src/devtools/draw_filter.h | family filter of the GPU captures, header of devtools/draw_filter.c
+src/devtools/capture_list.c | GPU capture list parser, host tool
+src/devtools/capture_list.h | GPU capture list parser, header of devtools/capture_list.c
+src/devtools/capture_compare.c | GPU capture comparator, host tool
+src/devtools/capture_compare.h | GPU capture comparator, header of devtools/capture_compare.c
+src/cmd/psx_capture_compare.c | entry point of psx_capture_compare, host tool
+src/platform/psx_colour.c | PICO-8 index to PSX RGB555, host-tested, read by the capture comparator
+src/platform/psx_colour.h | PICO-8 index to PSX RGB555, header of platform/psx_colour.c
+src/platform/psx_capture_protocol.h | scratchpad words of the GPU capture handshake, PSX only
+src/platform/psx_pad_map.c | PSX pad word to pad_buttons, PSX build and its host test and tool
+src/platform/psx_pad_map.h | PSX pad word to pad_buttons, header of platform/psx_pad_map.c
+src/devtools/pad_log.c | PSX game pad log and pad script reader, host tool
+src/devtools/pad_log.h | PSX game pad log and pad script reader, header of devtools/pad_log.c
+src/cmd/psx_pad_log.c | entry point of psx_pad_log, which turns the PSX game's pad log into an events.json, host tool
+src/cmd/psx_game.c | entry point of the PSX game read from the pad, PSX only
+src/platform/psx_pad_protocol.h | scratchpad words of the pad script handshake, PSX only
 src/cmd/pad_author.c | entry point of the worst-case game generator, host tool
 src/cmd/bindings_generate.c | entry point of the bindings table generator, host tool
 src/cmd/keymap_generate.c | entry point of the keymap table generator, host tool

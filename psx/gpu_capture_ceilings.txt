@@ -1,0 +1,14 @@
+cls 1 0
+rectfill 11 0
+all 100 0
+pset 131 0
+all 188 0
+pattern 190 0
+spr 234 0
+pattern 257 0
+circfill 263 0
+all 265 0
+print 275 0
+line 276 2
+rect 300 0
+circ 314 0

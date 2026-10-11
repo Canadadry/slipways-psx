@@ -4,6 +4,10 @@
 
 set -u
 
+. "$(cd "$(dirname "$0")" && pwd)/psx_portable.sh"
+GIT_TERMINAL_PROMPT=0
+export GIT_TERMINAL_PROMPT
+
 sources=$1
 if [ ! -f "$sources" ]; then
     echo "psx-net-check: missing sources list: $sources" >&2
@@ -21,7 +25,7 @@ while read -r component kind url pin; do
     host=$(echo "$url" | sed -e 's|^[a-z]*://||' -e 's|[/:].*||')
     case $kind in
         git)
-            GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote "$url" HEAD </dev/null >/dev/null 2>&1
+            run_with_timeout 30 git ls-remote "$url" HEAD </dev/null >/dev/null 2>&1
             ok=$? ;;
         file)
             case $(http_code "$url") in 2??) ok=0 ;; *) ok=1 ;; esac ;;

@@ -28,13 +28,14 @@ breaks them.
 |---|---|
 | Emulator | PCSX-Redux built from source at its pinned commit, plus the upstream headless fix applied on top |
 | BIOS | OpenBIOS from the same PCSX-Redux tree; no Sony BIOS |
-| Toolchain, SDK, CD tool | the PSn00bSDK 0.24 Linux release: prebuilt `mipsel-none-elf` GCC 12.3.0, binutils, `elf2x`, libpsn00b, mkpsxiso 2.03 |
+| Toolchain, SDK, CD tool | Linux: the PSn00bSDK 0.24 release (prebuilt `mipsel-none-elf` GCC 12.3.0, binutils 2.40, `elf2x`, libpsn00b, mkpsxiso 2.03). macOS: the prebuilt arm64 `mipsel-none-elf` GCC 14.2.0 of alextrevisan/mipsel-none-elf (sha256-pinned), PSn00bSDK 0.24 built from its commit with it |
 | CD license data | none: PSn00bSDK ships none and OpenBIOS does not check it |
 | Emulator test media | a ps1-tests PS-EXE and the BuzzyBee homebrew CD image, used by `psx-emulator-check` only |
 
 Hosts reached: `github.com` (git clones and release downloads, the latter
 redirected through `release-assets.githubusercontent.com`), `psx.arthus.net`,
-and the Ubuntu noble archive and security hosts. `make psx-net-check` probes
+the Ubuntu noble archive and security hosts, `ftp.gnu.org` and `gcc.gnu.org`
+(the macOS toolchain build). `make psx-net-check` probes
 every one of them without downloading and names each unreachable host, in
 seconds; both setups run it first.
 
@@ -51,10 +52,21 @@ Run once each, in either order, before any build or check:
   emulator finds OpenBIOS next to its own binary: no BIOS to place.
 - `make psn00bsdk-toolchain-setup` installs the sha256-checked PSn00bSDK
   release into `PSN00BSDK_DIR` (default `third_party/psn00bsdk`), a few
-  seconds plus the download. No GCC is compiled.
+  seconds plus the download. On macOS, which has no release, it unpacks the
+  prebuilt arm64 GCC 14.2.0 and builds PSn00bSDK with it into the same
+  layout (`tools/build_psn00bsdk.sh`), a few minutes. With
+  `PSN00BSDK_FROM_SOURCE` set it builds binutils 2.40 and GCC 12.3.0 from
+  source instead, 30 to 60 min; on Linux that SDK gives byte-identical
+  PS-EXEs to the release's.
 
-Both install their build dependencies with `sudo apt` unless
-`PSX_EMULATOR_SKIP_APT` or `PSN00BSDK_SKIP_APT` is set. Both exit 0 at once
+On Linux both install their build dependencies with `sudo apt` unless
+`PSX_EMULATOR_SKIP_APT` or `PSN00BSDK_SKIP_APT` is set. On macOS nothing
+needs sudo: the toolchain build needs only the Command Line Tools, `cmake`,
+`git` and `curl`; the emulator takes its libraries from the user's Homebrew
+and builds OpenBIOS with the `mipsel-none-elf` GCC of `PSN00BSDK_DIR`, so the
+toolchain setup comes first. That OpenBIOS differs from the Linux one, built
+with `mipsel-linux-gnu`, yet gives the same captures (`psx-hello-e2e` and
+`psx-check` green with it). Both exit 0 at once
 when the directory holds the stamp of a complete install for the same pins,
 and refuse, deleting nothing, a non-empty directory without that stamp: look
 at what is there before removing it.
@@ -87,7 +99,8 @@ A capture is one text line `psx-vram <w> <h> <depth>` (depth 16 or 24), then
 the raw bytes of the displayed frame, as `PCSX.GPU.takeScreenShot()` returns
 them (`tools/psx_capture.lua`). A boot that exits non-zero, writes no capture
 or outlasts `PSX_BOOT_TIMEOUT` seconds (default 120) fails naming its input.
-Any later PSX binary boots the same way.
+Any later PSX binary boots the same way; the until-exit mode for programs
+that leave the emulator themselves is in `docs/psx-game.md`.
 
 ## Checks
 
@@ -102,7 +115,8 @@ The `psx-hello` proof boots the input twice and nothing once, checks every
 condition before concluding and prints one line per condition:
 
 - `magic` (`.exe`): the file starts with the PS-EXE magic; or `cue` (CD): the
-  `.cue` names a `.bin` of whole 2352-byte sectors;
+  `.cue` names a `.bin` of whole 2352-byte sectors (`tools/psx_cue_check.sh`,
+  shared with the game's disc check);
 - `deterministic`: both captures are identical;
 - `differs-from-empty`: they differ from the empty boot's;
 - `not-uniform`: they are not one color;
@@ -139,12 +153,9 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- No target drives the pad, so the mouse mapping (Cross, D-pad, Circle) is not
-  checked by anything.
-- Scripted pad input works headless and deterministically:
-  `PCSX.SIO0.slots[1].pads[1].setOverride(…)` and `clearOverride` called from
-  the `GPU::Vsync` listener. It was a trial; nothing is committed. Plans 10
-  and 11 pick it up.
+- No target drives psx-hello's pad, so its mouse mapping (Cross, D-pad,
+  Circle) is not checked by anything. Scripted pad input itself is proven on
+  the game's pad probe: see `docs/psx-game.md`.
 
 Playing `psx-hello` in a windowed emulator is a human's job; agents never open
 a window.

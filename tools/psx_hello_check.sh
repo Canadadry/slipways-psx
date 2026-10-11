@@ -25,6 +25,7 @@ case $input_flag in
 esac
 [ -f "$input" ] || fail "missing input: $input"
 script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/psx_portable.sh"
 
 rm -rf "$out_dir"
 mkdir -p "$out_dir"
@@ -66,14 +67,9 @@ distinct_pixels() {
         24) size=3 ;;
         *) echo 0; return ;;
     esac
-    tail -c +$((${#header} + 2)) "$1" | od -An -v -tx1 -w$size | uniq | head -n 2 | wc -l
-}
-
-# Prints the .bin named by the .cue's FILE line, resolved next to the .cue;
-# prints nothing when there is no FILE line.
-cue_bin() {
-    name=$(sed -n 's/^[[:space:]]*FILE[[:space:]]*"\([^"]*\)".*/\1/p' "$input" | head -n 1)
-    [ -n "$name" ] && echo "$(dirname "$input")/$name"
+    tail -c +$((${#header} + 2)) "$1" | od -An -v -tx1 \
+        | awk -v n="$size" '{ for (i = 1; i <= NF; i++) { p = p $i; if (++c == n) { print p; p = ""; c = 0 } } }' \
+        | uniq | head -n 2 | wc -l | tr -d ' '
 }
 
 if [ "$input_flag" = --exe ]; then
@@ -82,17 +78,10 @@ if [ "$input_flag" = --exe ]; then
     else
         report magic "$input does not start with PS-X EXE (elf2x failed?)"
     fi
+elif bin=$(sh "$script_dir/psx_cue_check.sh" "$input"); then
+    pass cue
 else
-    bin=$(cue_bin)
-    if [ -z "$bin" ]; then
-        report cue "$input has no FILE \"<bin>\" line"
-    elif [ ! -s "$bin" ]; then
-        report cue "$bin, named by $input, is missing or empty"
-    elif [ $(($(wc -c <"$bin") % 2352)) -ne 0 ]; then
-        report cue "$bin is $(wc -c <"$bin") bytes, not a whole number of 2352-byte sectors"
-    else
-        pass cue
-    fi
+    report cue "$bin"
 fi
 
 if detail=$(need run1 run2); then
@@ -136,10 +125,10 @@ else
 fi
 
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-hello-check: $(sha256sum "$input")"
+echo "psx-hello-check: $(sha256_of "$input")  $input"
 # The .bin hash changes on every build (mkpsxiso stamps the build time): never compare it.
-[ "$input_flag" = --iso ] && echo "psx-hello-check: $(sha256sum "$bin")"
+[ "$input_flag" = --iso ] && echo "psx-hello-check: $(sha256_of "$bin")  $bin"
 for name in run1 run2 empty; do
-    echo "psx-hello-check: $(head -n 1 "$out_dir/$name.vram") $(sha256sum "$out_dir/$name.vram")"
+    echo "psx-hello-check: $(head -n 1 "$out_dir/$name.vram") $(sha256_of "$out_dir/$name.vram")  $out_dir/$name.vram"
 done
 echo "psx-hello-check: all five conditions hold"

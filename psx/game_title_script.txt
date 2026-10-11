@@ -1,0 +1,13 @@
+# The game's script for make psx-check: the title screen walked as tests/e2e/pad_title.json does,
+# each press and release held 20 vsyncs, then idle until the game has started.
+90 DOWN
+110 -
+130 DOWN
+150 -
+170 RIGHT
+190 -
+210 UP
+230 -
+250 CROSS
+270 -
+330 -

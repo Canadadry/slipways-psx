@@ -57,6 +57,10 @@ void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int 
 #define P8_FONT_GLYPH_HEIGHT 5
 #define P8_FONT_CELL_WIDTH 4
 
+/* The P8_FONT_GLYPH_HEIGHT row bytes print draws for character, bit 2 the leftmost column: the
+ * placeholder's for a character with no glyph. Static, never NULL. Defined by the software backend. */
+const unsigned char *p8_font_glyph_rows(char character);
+
 void p8_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col);
 int p8_font_has_glyph(char character);
 

@@ -1,5 +1,5 @@
 #include "p8/vram.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/input_step.h"
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
 
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

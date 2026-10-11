@@ -1,14 +1,18 @@
 #include "p8/vram.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
+#include "p8/draw_meter.h"
 #include "p8/input.h"
 #include "game/input_step.h"
+#include "devtools/capture_list.h"
+#include "devtools/draw_filter.h"
 #include "devtools/dump.h"
 #include "devtools/pad_metrics.h"
 #include "devtools/record_start.h"
 #include "devtools/replay_source.h"
 #include "devtools/screencast.h"
 #include "devtools/state.h"
+#include "devtools/vram_digest.h"
 #include "engine/dispatch_context.h"
 #include "game/cart.h"
 #include "game/demo_data.h"
@@ -80,6 +84,10 @@ static void write_fill(const char *path) {
     fclose(out);
 }
 
+static void write_digest_line(void *context, const char *line) {
+    fputs(line, (FILE *)context);
+}
+
 static int write_dependencies(const char *path, const char *capture_path, const char *fixture_path) {
     if (fixture_path[0] == '\0') {
         remove(path);
@@ -92,6 +100,7 @@ static int write_dependencies(const char *path, const char *capture_path, const 
     return written;
 }
 
+/* Returns the replay's exit status. */
 static int write_save_hex(const char *path) {
     static uint8_t bytes[SAVE_STATE_MAX_BYTES];
     static save_state_t decoded;
@@ -125,6 +134,108 @@ static int write_save_hex(const char *path) {
     return 0;
 }
 
+typedef struct {
+    capture_list_t list;
+    int next;
+    screencast_writer_t frames;
+    FILE *counts;
+} captures_t;
+
+/* Returns the length read, or -1. */
+static long read_text(const char *path, char *text, size_t cap) {
+    FILE *file = fopen(path, "rb");
+    if (file == NULL) return -1;
+    size_t length = fread(text, 1, cap - 1, file);
+    int whole = feof(file);
+    fclose(file);
+    if (!whole) return -1;
+    text[length] = '\0';
+    return (long)length;
+}
+
+static void recording_name(const char *path, char name[CAPTURE_LIST_REPLAY_CAP]) {
+    const char *base = strrchr(path, '/');
+    base = base != NULL ? base + 1 : path;
+    const char *dot = strrchr(base, '.');
+    size_t length = dot != NULL && strcmp(dot, ".json") == 0 ? (size_t)(dot - base) : strlen(base);
+    snprintf(name, CAPTURE_LIST_REPLAY_CAP, "%.*s", (int)length, base);
+}
+
+static FILE *open_in(const char *dir, const char *file_name, const char *mode) {
+    char path[1024];
+    snprintf(path, sizeof path, "%s/%s", dir, file_name);
+    FILE *file = fopen(path, mode);
+    if (file == NULL) fprintf(stderr, "replay: cannot open '%s'\n", path);
+    return file;
+}
+
+/* Returns 0 after naming the failure; installs the draw filter on success. */
+static int captures_open(captures_t *captures, const char *list_path, const char *dir, const char *replay_path,
+                         int frame_count) {
+    static char text[1 << 14];
+    if (dir == NULL) {
+        fprintf(stderr, "replay: CAPTURE_LIST needs CAPTURE_DIR\n");
+        return 0;
+    }
+    if (read_text(list_path, text, sizeof text) < 0) {
+        fprintf(stderr, "replay: cannot read the capture list '%s'\n", list_path);
+        return 0;
+    }
+    char name[CAPTURE_LIST_REPLAY_CAP];
+    recording_name(replay_path, name);
+    char error[CAPTURE_LIST_ERROR_CAP];
+    if (!capture_list_parse(text, name, frame_count, &captures->list, error)) {
+        fprintf(stderr, "replay: %s: %s\n", list_path, error);
+        return 0;
+    }
+    FILE *script = open_in(dir, "capture_script.txt", "w");
+    if (script == NULL) return 0;
+    for (int c = 0; c < captures->list.count; c++) {
+        char line[CAPTURE_LIST_SCRIPT_LINE_CAP];
+        capture_list_script_line(&captures->list.entries[c], line);
+        fputs(line, script);
+    }
+    if (fclose(script) != 0) return 0;
+    captures->counts = open_in(dir, "counts.txt", "w");
+    if (captures->counts == NULL) return 0;
+    char frames_path[1024];
+    snprintf(frames_path, sizeof frames_path, "%s/pc_frames.bin", dir);
+    if (!screencast_writer_open(&captures->frames, frames_path)) {
+        fprintf(stderr, "replay: cannot open '%s'\n", frames_path);
+        return 0;
+    }
+    captures->next = 0;
+    draw_filter_install();
+    return 1;
+}
+
+static const capture_list_entry_t *captures_at(const captures_t *captures, int frame) {
+    if (captures->next >= captures->list.count) return NULL;
+    const capture_list_entry_t *entry = &captures->list.entries[captures->next];
+    return entry->frame == frame ? entry : NULL;
+}
+
+/* Returns 0 on a write failure. */
+static int captures_frame_drawn(captures_t *captures, int frame, const p8_vram_t *mem) {
+    const capture_list_entry_t *entry = captures_at(captures, frame);
+    int ok = 1;
+    if (entry != NULL) {
+        ok = screencast_write_frame(&captures->frames, mem);
+        for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+            fprintf(captures->counts, "%d %s %d\n", frame, capture_list_family_name((draw_filter_family_t)family),
+                    draw_filter_count((draw_filter_family_t)family));
+        }
+        captures->next++;
+    }
+    draw_filter_frame_end();
+    return ok;
+}
+
+static int captures_close(captures_t *captures) {
+    int counts_ok = fclose(captures->counts) == 0;
+    return screencast_writer_close(&captures->frames) && counts_ok;
+}
+
 static int write_state(const char *path, int cheat_activations) {
     FILE *out = fopen(path, "w");
     if (out == NULL) {
@@ -132,7 +243,7 @@ static int write_state(const char *path, int cheat_activations) {
         return 0;
     }
     state_write(out);
-    fprintf(out, "cheat activations %d\n", cheat_activations);
+    state_write_cheat_activations(out, cheat_activations);
     fclose(out);
     return 1;
 }
@@ -171,13 +282,14 @@ static int write_attract_state_after_frame(attract_state_t *attract, const input
 
 enum { TITLE_FRAMES_BETWEEN_STARTS = 30 };
 
-static void play_title_between_starts(input_step_t *step) {
+static void play_title_between_starts(input_step_t *step, int metered) {
     static const p8_input_frame_t empty_frame = {0, 0, 0, 0};
     record_start_return(step);
     for (int frame = 0; frame < TITLE_FRAMES_BETWEEN_STARTS; frame++) {
         input_step_run(step, &empty_frame);
         cart_update60();
         cart_draw();
+        if (metered) p8_draw_meter_frame_end();
     }
 }
 
@@ -213,6 +325,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "replay: REPLAY_STARTS=2 checks states only, it takes no PAD_METRICS\n");
         return 2;
     }
+    if (starts == 2 && (getenv("DIGEST") != NULL || getenv("CAPTURE_LIST") != NULL)) {
+        fprintf(stderr, "replay: REPLAY_STARTS=2 checks states only, it takes no DIGEST or CAPTURE_LIST\n");
+        return 2;
+    }
     const char *attract_state_path = getenv("ATTRACT_STATE");
     if (starts == 2 && attract_state_path != NULL) {
         fprintf(stderr, "replay: ATTRACT_STATE cycles through the attract mode, it takes no REPLAY_STARTS=2\n");
@@ -225,7 +341,18 @@ int main(int argc, char **argv) {
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
+
+    const char *digest_path = getenv("DIGEST");
+    vram_digest_sink_t digest = { write_digest_line, NULL };
+    if (digest_path != NULL) {
+        digest.context = fopen(digest_path, "w");
+        if (digest.context == NULL) {
+            fprintf(stderr, "replay: cannot open the digest file '%s'\n", digest_path);
+            return 1;
+        }
+        vram_digest_write_sprite_sheet(&digest, &memory);
+    }
 
     static replay_source_t source;
     replay_source_status_t source_status = replay_source_open(&source, replay_path);
@@ -264,6 +391,16 @@ int main(int argc, char **argv) {
     dispatch_context_set_mem(&memory);
     dispatch_context_set_input(input);
 
+    const char *capture_list_path = getenv("CAPTURE_LIST");
+    static captures_t captures;
+    if (capture_list_path != NULL
+        && !captures_open(&captures, capture_list_path, getenv("CAPTURE_DIR"), replay_path, input->frame_count)) {
+        return 1;
+    }
+
+    const char *state_path = getenv("STATE");
+    if (state_path != NULL) p8_draw_meter_install();
+
     cart_load();
     cart_init();
 
@@ -276,7 +413,6 @@ int main(int argc, char **argv) {
     }
 
     int frame_count = input->frame_count;
-    const char *state_path = getenv("STATE");
     static int i;
     if (state_path != NULL) state_write_on_exit(state_path, &i);
     input_step_t step;
@@ -296,7 +432,7 @@ int main(int argc, char **argv) {
     attract_state_t attract_state = {attract_state_path, 0, 0, 0};
     for (int start = 1; start <= starts; start++) {
         if (start > 1) {
-            play_title_between_starts(&step);
+            play_title_between_starts(&step, state_path != NULL);
             input->current_frame = 0;
             int resumed = record_start_resume(&step, source.initial_save, source.initial_save_count);
             assert(resumed);
@@ -308,9 +444,22 @@ int main(int argc, char **argv) {
             int cheat = input_step_run(&step, frame);
             cheat_activations += cheat;
             cart_update60();
+            if (capture_list_path != NULL) {
+                const capture_list_entry_t *entry = captures_at(&captures, i);
+                draw_filter_set_mask(entry != NULL ? entry->mask : DRAW_FILTER_ALL);
+            }
             cart_draw();
+            if (state_path != NULL) p8_draw_meter_frame_end();
+            if (capture_list_path != NULL && !captures_frame_drawn(&captures, i, &memory)) {
+                fprintf(stderr, "replay: cannot write the capture outputs of frame %d\n", i);
+                return 1;
+            }
+            if (digest_path != NULL && vram_digest_samples_frame(i, frame_count)) {
+                vram_digest_write_screen(&digest, &memory, i);
+            }
             if (pad_metrics_path != NULL) pad_metrics_record(&pad_metrics, &step, frame->pad_buttons, cheat);
             if (attract_state_path != NULL && !write_attract_state_after_frame(&attract_state, &step, cheat)) return 1;
+            /* After cart_draw(): at the top of the loop the capture would be shifted by one frame. */
             if (capture_path && !screencast_write_frame(&capture, &memory)) {
                 fprintf(stderr, "replay: cannot write frame %d to '%s'\n",
                         i, capture_path);
@@ -333,6 +482,19 @@ int main(int argc, char **argv) {
         fprintf(stderr, "replay: cannot close the capture file '%s'\n",
                 capture_path);
         return 1;
+    }
+
+    if (capture_list_path != NULL && !captures_close(&captures)) {
+        fprintf(stderr, "replay: cannot close the capture outputs in '%s'\n", getenv("CAPTURE_DIR"));
+        return 1;
+    }
+
+    if (digest_path != NULL) {
+        vram_digest_write_map(&digest, &memory);
+        if (fclose(digest.context) != 0) {
+            fprintf(stderr, "replay: cannot write the digest file '%s'\n", digest_path);
+            return 1;
+        }
     }
 
     FILE *dump_out = fopen(dump_path, "w");

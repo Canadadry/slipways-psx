@@ -1,0 +1,243 @@
+#include "devtools/draw_filter.h"
+
+#include "p8/draw_backend.h"
+#include "p8/gfx.h"
+#include "p8/vram.h"
+
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+
+enum { KINDS = 9 };
+
+typedef struct {
+    int calls;
+    const p8_graphics_t *gfx;
+    p8_vram_t *mem;
+    int args[6];
+    const char *str;
+} received_t;
+
+static received_t received[KINDS];
+
+static void seen(int kind, const p8_graphics_t *gfx, p8_vram_t *mem, int a, int b, int c, int d, int e, int f) {
+    received_t *r = &received[kind];
+    r->calls++;
+    r->gfx = gfx;
+    r->mem = mem;
+    int args[6] = { a, b, c, d, e, f };
+    memcpy(r->args, args, sizeof args);
+}
+
+static void recording_cls(p8_vram_t *mem) {
+    seen(0, NULL, mem, 0, 0, 0, 0, 0, 0);
+}
+
+static void recording_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
+    seen(1, gfx, mem, x, y, col, 0, 0, 0);
+}
+
+static void recording_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    seen(2, gfx, mem, x1, y1, x2, y2, col, 0);
+}
+
+static void recording_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    seen(3, gfx, mem, x1, y1, x2, y2, col, 0);
+}
+
+static void recording_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    seen(4, gfx, mem, x1, y1, x2, y2, col, 0);
+}
+
+static void recording_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
+    seen(5, gfx, mem, cx, cy, r, col, 0, 0);
+}
+
+static void recording_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
+    seen(6, gfx, mem, cx, cy, r, col, 0, 0);
+}
+
+static void recording_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
+    seen(7, gfx, mem, n, x, y, w, h, 0);
+}
+
+static void recording_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    seen(8, gfx, mem, x, y, col, 0, 0, 0);
+    received[8].str = str;
+}
+
+static const p8_draw_backend_t RECORDING = {
+    recording_cls, recording_pset, recording_line, recording_rect, recording_rectfill,
+    recording_circ, recording_circfill, recording_spr, recording_print,
+};
+
+static p8_vram_t mem;
+static p8_graphics_t gfx;
+
+static void filter_over_recording(void) {
+    memset(received, 0, sizeof received);
+    p8_vram_init(&mem);
+    p8_gfx_init(&gfx);
+    p8_draw_backend_set(&RECORDING);
+    const p8_draw_backend_t *wrapped = draw_filter_install();
+    assert(wrapped == &RECORDING);
+    assert(p8_draw_backend_get() != &RECORDING);
+}
+
+static void filter_removed(void) {
+    p8_draw_backend_set(NULL);
+}
+
+static const char TEXT[] = "ab";
+
+static void draw_one_of_each_on_screen(void) {
+    p8_cls(&mem);
+    p8_pset(&gfx, &mem, 1, 2, 3);
+    p8_line(&gfx, &mem, 1, 2, 3, 4, 5);
+    p8_rect(&gfx, &mem, 1, 2, 3, 4, 6);
+    p8_rectfill(&gfx, &mem, 1, 2, 3, 4, 7);
+    p8_circ(&gfx, &mem, 10, 11, 3, 8);
+    p8_circfill(&gfx, &mem, 12, 13, 4, 9);
+    p8_spr(&gfx, &mem, 5, 6, 7, 1, 2);
+    p8_print(&gfx, &mem, TEXT, 8, 9, 10);
+}
+
+static void test_all_forwards_every_call_with_its_arguments_and_pointers(void) {
+    filter_over_recording();
+    draw_one_of_each_on_screen();
+    for (int kind = 0; kind < KINDS; kind++) {
+        assert(received[kind].calls == 1);
+        assert(received[kind].mem == &mem);
+        assert(kind == 0 || received[kind].gfx == &gfx);
+    }
+    assert(received[1].args[0] == 1 && received[1].args[1] == 2 && received[1].args[2] == 3);
+    assert(received[4].args[0] == 1 && received[4].args[3] == 4 && received[4].args[4] == 7);
+    assert(received[6].args[0] == 12 && received[6].args[2] == 4 && received[6].args[3] == 9);
+    assert(received[7].args[0] == 5 && received[7].args[3] == 1 && received[7].args[4] == 2);
+    assert(received[8].str == TEXT && received[8].args[2] == 10);
+    filter_removed();
+}
+
+static const draw_filter_family_t KIND_FAMILY[KINDS] = {
+    DRAW_FILTER_CLS, DRAW_FILTER_PSET, DRAW_FILTER_LINE, DRAW_FILTER_RECT, DRAW_FILTER_RECTFILL,
+    DRAW_FILTER_CIRC, DRAW_FILTER_CIRCFILL, DRAW_FILTER_SPR, DRAW_FILTER_PRINT,
+};
+
+static void test_a_mask_passes_cls_and_its_families_only(void) {
+    for (int kind = 1; kind < KINDS; kind++) {
+        filter_over_recording();
+        draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(KIND_FAMILY[kind]));
+        draw_one_of_each_on_screen();
+        for (int other = 0; other < KINDS; other++) {
+            int expected = other == 0 || other == kind;
+            assert(received[other].calls == expected);
+        }
+        filter_removed();
+    }
+}
+
+static void test_a_patterned_fill_needs_its_shape_and_the_pattern_bit(void) {
+    unsigned shapes = DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_RECTFILL)
+        | DRAW_FILTER_BIT(DRAW_FILTER_CIRCFILL);
+    filter_over_recording();
+    draw_filter_set_mask(shapes);
+    p8_fillp(&gfx, 0xA5A5);
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    p8_circfill(&gfx, &mem, 10, 10, 3, 7);
+    assert(received[4].calls == 0 && received[6].calls == 0);
+
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_PATTERN));
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    assert(received[4].calls == 0 && "the pattern bit alone is not enough");
+
+    draw_filter_set_mask(shapes | DRAW_FILTER_BIT(DRAW_FILTER_PATTERN));
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    p8_circfill(&gfx, &mem, 10, 10, 3, 7);
+    assert(received[4].calls == 1 && received[6].calls == 1);
+    filter_removed();
+}
+
+static void test_a_plain_fill_ignores_the_pattern_bit(void) {
+    filter_over_recording();
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_RECTFILL));
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    assert(received[4].calls == 1);
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_PATTERN));
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    assert(received[4].calls == 1);
+    filter_removed();
+}
+
+static void test_counts_are_on_screen_calls_before_the_mask(void) {
+    filter_over_recording();
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS));
+    draw_one_of_each_on_screen();
+    for (int kind = 0; kind < KINDS; kind++) {
+        assert(draw_filter_count(KIND_FAMILY[kind]) == 1);
+    }
+    assert(draw_filter_count(DRAW_FILTER_PATTERN) == 0);
+
+    p8_pset(&gfx, &mem, 500, 2, 3);
+    p8_rectfill(&gfx, &mem, -20, -20, -10, -10, 7);
+    p8_print(&gfx, &mem, TEXT, 300, 9, 10);
+    assert(draw_filter_count(DRAW_FILTER_PSET) == 1 && "an off-screen call counts 0");
+    assert(draw_filter_count(DRAW_FILTER_RECTFILL) == 1);
+    assert(draw_filter_count(DRAW_FILTER_PRINT) == 1);
+
+    p8_camera(&gfx, 400, 0);
+    p8_pset(&gfx, &mem, 401, 2, 3);
+    assert(draw_filter_count(DRAW_FILTER_PSET) == 2 && "on screen after the camera");
+    filter_removed();
+}
+
+static void test_a_patterned_fill_counts_under_its_shape_and_pattern(void) {
+    filter_over_recording();
+    p8_fillp_transparent(&gfx, 0xAAAA);
+    p8_circfill(&gfx, &mem, 10, 10, 3, 7);
+    p8_rectfill(&gfx, &mem, 0, 0, 3, 3, 7);
+    assert(draw_filter_count(DRAW_FILTER_CIRCFILL) == 1);
+    assert(draw_filter_count(DRAW_FILTER_RECTFILL) == 1);
+    assert(draw_filter_count(DRAW_FILTER_PATTERN) == 2);
+    filter_removed();
+}
+
+static void test_frame_end_resets_the_counts_and_keeps_the_mask(void) {
+    filter_over_recording();
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_PSET));
+    draw_one_of_each_on_screen();
+    draw_filter_frame_end();
+    for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+        assert(draw_filter_count((draw_filter_family_t)family) == 0);
+    }
+    p8_line(&gfx, &mem, 1, 2, 3, 4, 5);
+    assert(received[2].calls == 0);
+    filter_removed();
+}
+
+static void test_the_filter_writes_no_graphics_or_vram_state(void) {
+    filter_over_recording();
+    p8_fillp(&gfx, 0x0F0F);
+    p8_camera(&gfx, 3, 4);
+    p8_graphics_t gfx_before = gfx;
+    static p8_vram_t mem_before;
+    mem_before = mem;
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS));
+    draw_one_of_each_on_screen();
+    draw_filter_frame_end();
+    assert(memcmp(&gfx, &gfx_before, sizeof gfx) == 0);
+    assert(memcmp(&mem, &mem_before, sizeof mem) == 0);
+    filter_removed();
+}
+
+int main(void) {
+    test_all_forwards_every_call_with_its_arguments_and_pointers();
+    test_a_mask_passes_cls_and_its_families_only();
+    test_a_patterned_fill_needs_its_shape_and_the_pattern_bit();
+    test_a_plain_fill_ignores_the_pattern_bit();
+    test_counts_are_on_screen_calls_before_the_mask();
+    test_a_patterned_fill_counts_under_its_shape_and_pattern();
+    test_frame_end_resets_the_counts_and_keeps_the_mask();
+    test_the_filter_writes_no_graphics_or_vram_state();
+    printf("test_draw_filter: ok\n");
+    return 0;
+}

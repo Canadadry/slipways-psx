@@ -14,6 +14,7 @@ out_dir=$4
 known_line=$5
 frames=$6
 script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/psx_portable.sh"
 
 fail() {
     echo "psx-emulator-check: $*" >&2
@@ -37,13 +38,13 @@ fetch() {
     url=${entry% *}
     pin=${entry#* }
     target=$media_dir/$2
-    if [ -f "$target" ] && [ "$(sha256sum < "$target" | cut -d' ' -f1)" = "$pin" ]; then
+    if [ -f "$target" ] && [ "$(sha256_of "$target")" = "$pin" ]; then
         return
     fi
     rm -f "$target"
     curl -sSfL --connect-timeout 10 --max-time 600 -o "$target" "$url" </dev/null \
         || { rm -f "$target"; fail "$1: download of $url failed"; }
-    if [ "$(sha256sum < "$target" | cut -d' ' -f1)" != "$pin" ]; then
+    if [ "$(sha256_of "$target")" != "$pin" ]; then
         rm -f "$target"
         fail "$1: sha256 of $url differs from the pin $pin"
     fi
@@ -131,6 +132,6 @@ fi
 
 [ "$failed" -eq 0 ] || exit 1
 for name in exe1 exe2 cue1 cue2 empty; do
-    echo "psx-emulator-check: $(sha256sum "$out_dir/$name.vram")"
+    echo "psx-emulator-check: $(sha256_of "$out_dir/$name.vram")  $out_dir/$name.vram"
 done
 echo "psx-emulator-check: all four conditions hold"
