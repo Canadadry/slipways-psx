@@ -1,6 +1,9 @@
 - [x] Step 1: reproduce the bug headless
   - [x] Chunk 1: feasibility probe and step note
 - [ ] Step 2: draw into the display buffer
+  - [x] Chunk 1: the x2 tile
+  - [ ] Chunk 2: draw into the display buffer
+  - [ ] Chunk 3: line options measurement
 - [ ] Step 3: primitives at x2, one family per step
   - [ ] Step 3.1: pset and circ
   - [ ] Step 3.2: spr and print

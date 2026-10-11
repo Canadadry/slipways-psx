@@ -140,3 +140,8 @@ int psx_tiles_circfill(const p8_graphics_t *gfx, int cx, int cy, int r, psx_tile
     }
     return count;
 }
+
+psx_tile_t psx_tiles_double(psx_tile_t tile) {
+    psx_tile_t doubled = { tile.x * PSX_TILES_SCALE, tile.y * PSX_TILES_SCALE, tile.w * PSX_TILES_SCALE, tile.h * PSX_TILES_SCALE };
+    return doubled;
+}

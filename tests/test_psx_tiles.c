@@ -34,14 +34,47 @@ static void assert_painted_is_the_software_screen(void) {
     }
 }
 
+enum { DISPLAY_WIDTH = P8_SCREEN_WIDTH * PSX_TILES_SCALE, DISPLAY_HEIGHT = P8_SCREEN_HEIGHT * PSX_TILES_SCALE };
+static unsigned char painted_doubled[DISPLAY_HEIGHT][DISPLAY_WIDTH];
+
+static void paint_doubled(const psx_tile_t *tiles, int count) {
+    memset(painted_doubled, 0, sizeof painted_doubled);
+    for (int t = 0; t < count; t++) {
+        psx_tile_t tile = psx_tiles_double(tiles[t]);
+        assert(tile.w >= 1 && tile.h >= 1);
+        assert(tile.x >= 0 && tile.x + tile.w <= DISPLAY_WIDTH);
+        assert(tile.y >= 0 && tile.y + tile.h <= DISPLAY_HEIGHT);
+        for (int y = tile.y; y < tile.y + tile.h; y++) {
+            for (int x = tile.x; x < tile.x + tile.w; x++) {
+                assert(painted_doubled[y][x] == 0 && "doubled tiles overlap");
+                painted_doubled[y][x] = 1;
+            }
+        }
+    }
+}
+
+static void assert_painted_doubled_is_the_software_screen_upscaled(void) {
+    for (int y = 0; y < DISPLAY_HEIGHT; y++) {
+        for (int x = 0; x < DISPLAY_WIDTH; x++) {
+            assert(painted_doubled[y][x] == (software.screen[y / PSX_TILES_SCALE][x / PSX_TILES_SCALE] != 0));
+        }
+    }
+}
+
+static void assert_tiles_and_their_doubles_match_software(const psx_tile_t *tiles, int count) {
+    paint(tiles, count);
+    assert_painted_is_the_software_screen();
+    paint_doubled(tiles, count);
+    assert_painted_doubled_is_the_software_screen_upscaled();
+}
+
 static int rect_tiles_match_software(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2) {
     p8_vram_init(&software);
     p8_rect(gfx, &software, x1, y1, x2, y2, 7);
     psx_tile_t tiles[PSX_TILES_RECT_MAX];
     int count = psx_tiles_rect(gfx, x1, y1, x2, y2, tiles);
     assert(count >= 0 && count <= PSX_TILES_RECT_MAX);
-    paint(tiles, count);
-    assert_painted_is_the_software_screen();
+    assert_tiles_and_their_doubles_match_software(tiles, count);
     return count;
 }
 
@@ -51,8 +84,7 @@ static int rectfill_tiles_match_software(const p8_graphics_t *gfx, int x1, int y
     psx_tile_t tile;
     int count = psx_tiles_rectfill(gfx, x1, y1, x2, y2, &tile);
     assert(count == 0 || count == 1);
-    paint(&tile, count);
-    assert_painted_is_the_software_screen();
+    assert_tiles_and_their_doubles_match_software(&tile, count);
     return count;
 }
 
@@ -136,8 +168,7 @@ static int circfill_spans_match_software(const p8_graphics_t *gfx, int cx, int c
     for (int s = 0; s < count; s++) {
         assert(spans[s].h == 1);
     }
-    paint(spans, count);
-    assert_painted_is_the_software_screen();
+    assert_tiles_and_their_doubles_match_software(spans, count);
     p8_draw_cost_window_t window;
     p8_draw_cost_frame_begin(&window);
     assert((unsigned long)count * P8_GPU_TILE_BYTES <= p8_draw_cost_circfill(&window, gfx, cx, cy, r, 7).bytes &&
@@ -268,6 +299,13 @@ static void test_random_boxes_draw_as_the_software_does(void) {
     }
 }
 
+static void test_the_full_screen_tile_doubles_to_the_whole_display_buffer(void) {
+    psx_tile_t screen = { 0, 0, P8_SCREEN_WIDTH, P8_SCREEN_HEIGHT };
+    psx_tile_t doubled = psx_tiles_double(screen);
+    assert(doubled.x == 0 && doubled.y == 0 && doubled.w == DISPLAY_WIDTH && doubled.h == DISPLAY_HEIGHT);
+    assert(DISPLAY_WIDTH == 320 && DISPLAY_HEIGHT == 240);
+}
+
 int main(void) {
     test_a_pset_is_one_pixel_after_the_camera();
     test_a_rect_on_screen_is_its_four_edges();
@@ -279,6 +317,7 @@ int main(void) {
     test_random_lines_are_sent_when_the_software_shows_them();
     test_a_circ_is_the_software_midpoint_circle_one_pixel_each();
     test_a_circfill_is_one_span_per_row_of_the_software_disc();
+    test_the_full_screen_tile_doubles_to_the_whole_display_buffer();
     printf("test_psx_tiles: ok\n");
     return 0;
 }

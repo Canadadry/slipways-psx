@@ -19,7 +19,7 @@ typedef struct {
     int y2;
 } psx_line_t;
 
-enum { PSX_TILES_RECT_MAX = 4, PSX_TILES_CIRCFILL_MAX = P8_SCREEN_HEIGHT };
+enum { PSX_TILES_RECT_MAX = 4, PSX_TILES_CIRCFILL_MAX = P8_SCREEN_HEIGHT, PSX_TILES_SCALE = 2 };
 
 typedef void (*psx_tiles_emit_t)(psx_tile_t tile, void *context);
 
@@ -46,5 +46,9 @@ int psx_tiles_circ(const p8_graphics_t *gfx, int cx, int cy, int r, psx_tiles_em
  * span per screen row, top to bottom. Returns how many spans were written, at most 4 per iteration
  * of the loop. */
 int psx_tiles_circfill(const p8_graphics_t *gfx, int cx, int cy, int r, psx_tile_t spans[PSX_TILES_CIRCFILL_MAX]);
+
+/* tile with x, y, w and h multiplied by PSX_TILES_SCALE, in display-buffer coordinates: inside
+ * 320x240 whenever tile lies inside the 160x120 screen. */
+psx_tile_t psx_tiles_double(psx_tile_t tile);
 
 #endif
