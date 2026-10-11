@@ -154,7 +154,8 @@ static void test_missing_dumpsxiso_names_the_setup(void) {
 static void test_failed_cue_skips_and_fails_cd_exe(void) {
     setup_passing();
     write_bytes(BIN, SECTOR + 1, (size_t)-1);
-    assert(WEXITSTATUS(run()) == 1);
+    int status = run();
+    assert(WEXITSTATUS(status) == 1);
     const char *log = read_file(LOG);
     assert(strstr(log, "psx-cd-check: cue: " BIN " is 2353 bytes, not a whole number of 2352-byte sectors\n") != NULL);
     assert(strstr(log, "psx-cd-check: cd-exe: skipped: cue failed\n") != NULL);
@@ -163,7 +164,8 @@ static void test_failed_cue_skips_and_fails_cd_exe(void) {
 
 static void test_wrong_argument_count_exits_2(void) {
     setup_passing();
-    assert(WEXITSTATUS(system(SCRIPT " " CUE " " EXE " SLIPWAYS.EXE " STUB " > " LOG " 2>&1")) == 2);
+    int status = system(SCRIPT " " CUE " " EXE " SLIPWAYS.EXE " STUB " > " LOG " 2>&1");
+    assert(WEXITSTATUS(status) == 2);
     assert(strstr(read_file(LOG), "usage: psx_cd_check.sh <cue> <exe> <disc-name> <dumpsxiso> <out-dir>") != NULL);
 }
 

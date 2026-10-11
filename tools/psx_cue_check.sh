@@ -19,7 +19,7 @@ if [ ! -s "$bin" ]; then
     exit 1
 fi
 if [ $(($(wc -c <"$bin") % 2352)) -ne 0 ]; then
-    echo "$bin is $(wc -c <"$bin") bytes, not a whole number of 2352-byte sectors"
+    echo "$bin is $(wc -c <"$bin" | tr -d " ") bytes, not a whole number of 2352-byte sectors"
     exit 1
 fi
 echo "$bin"

@@ -114,7 +114,8 @@ static void test_relative_bin_resolves_next_to_the_cue(void) {
 
 static void test_wrong_argument_count_exits_2(void) {
     fresh_dir();
-    assert(WEXITSTATUS(system(SCRIPT " > " LOG " 2>&1")) == 2);
+    int status = system(SCRIPT " > " LOG " 2>&1");
+    assert(WEXITSTATUS(status) == 2);
     assert(strstr(read_file(LOG), "usage: psx_cue_check.sh <cue>") != NULL);
 }
 

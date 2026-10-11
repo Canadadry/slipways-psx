@@ -71,7 +71,7 @@ for frame in $frames; do
         problem="${problem}missing $file; "
     else
         read -r header < "$file" || header=
-        size=$(wc -c < "$file")
+        size=$(wc -c < "$file" | tr -d " ")
         [ "$header" = "psx-vram 320 240 16" ] && [ "$size" -eq 153620 ] \
             || problem="${problem}malformed $file ('$header', $size bytes); "
     fi
