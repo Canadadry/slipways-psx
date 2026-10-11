@@ -39,6 +39,17 @@ The title screen and a game look the same in DuckStation with the hardware rende
 ## 5. Open questions
 
 - Does `line` at x2 stay within its current `differ` ceiling with two `LINE_F2`s, or does it need the pixel list?
-- Can step 1 run in this container at all, with no GPU? If not, the plan loses its automated proof and relies on step 6 alone.
+- Can step 1 run in this container at all, with no GPU? No: both candidates are exhausted, so the proof relies on step 6 alone (see § 6, Step 1).
 
 ## 6. Step notes
+
+### Step 1
+
+Probed 2026-10-11 in this container (no GPU, no `/dev/dri`, no X server; Mesa llvmpipe gives a surfaceless GL 4.5 core context).
+
+- **DuckStation regression runner: exhausted.** Blocker: license and owner instruction, not code. Releases ship only the Qt AppImage, so `duckstation-regtest` would need a build from source (`curl https://api.github.com/repos/stenzek/duckstation/releases/latest` is now refused by this session's proxy with 403, so the asset list was not re-read; the PRD recorded it). The root and `src/duckstation-regtest/CMakeLists.txt` read: "SPDX-License-Identifier: CC-BY-NC-ND-4.0 + Packaging Restriction … you may not use this file to create packages or build recipes without explicit permission from the copyright holder". The repository's `CLAUDE.md` says the codebase "is not authorized for use with AI coding assistants" and tells them not to operate on it. Not cloned, not built.
+- **PCSX-Redux OpenGL GPU, `-cli`: exhausted.** `env -u DISPLAY -u WAYLAND_DISPLAY HOME=<tmp> timeout 60 third_party/pcsx-redux/pcsx-redux -cli -stdout -openglgpu -interpreter -run -iso tmp/psx/build/slipways.cue -dofile <120-vsync screenshot lua>` exits 139 (SIGSEGV) with empty stderr, no capture. gdb: `#0 0x0000000000000000`, `#1 OpenGL::VertexBuffer::create` (`src/support/opengl.h:345`), `#3 OpenGL_GPU::initBackend` (`src/core/OpenGL_GPU/gpu_opengl.cc:84`), `#4 pcsxMain` (`src/main/main.cc:378`): the text UI never creates a GL context or loads GL entry points.
+- **PCSX-Redux OpenGL GPU, GUI front end: exhausted.** The same command without `-cli -stdout` exits 255 with `Failed to initialize GLFW` on stderr, no capture.
+- **PCSX-Redux, structural:** its OpenGL GPU allocates VRAM at native 1024x512 (`vramWidth`/`vramHeight` in `gpu_opengl.h`, MSAA the only option) and has no internal-resolution scale, so even with a context it could not render the case the human saw.
+
+Consequences: no headless reproducer exists. Step 3's two-`LINE_F2` option for `line` is not admissible (`line` takes the pixel list, or merged `TILE` runs). Step 4's reproducer clause is void. The bug's proof falls to the human in step 6.
