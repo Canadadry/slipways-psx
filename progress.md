@@ -25,3 +25,6 @@
 - [x] Step 4: no stretch left
 - [x] Step 5: re-measure
 - [ ] Step 6: human acceptance
+  - [x] Failure path for the DuckStation check (plan-review)
+  - [ ] Captures re-accepted (make psx-gpu-capture-accept)
+  - [ ] DuckStation hardware renderer check
