@@ -15,9 +15,9 @@
     - [x] Chunk 3: layout, uploads and backend
     - [x] Chunk 4: re-size the frame buffer
     - [x] Chunk 5: gate and step note
-  - [ ] Step 3.3: patterned fills
+  - [x] Step 3.3: patterned fills
     - [x] Chunks 1-2: x2 pattern tiles, window and backend
-    - [ ] Chunks 3-4: sizes, gate and step note
+    - [x] Chunks 3-4: sizes, gate and step note
   - [ ] Step 3.4: line
 - [ ] Step 4: no stretch left
 - [ ] Step 5: re-measure
