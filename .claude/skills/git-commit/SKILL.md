@@ -49,6 +49,7 @@ While it exists (a `plan-pilot` run), the hook installed by `tools/progress_chec
 - The unit has its own item (a chunk, a step, a module) → stage `progress.md` with that item ticked.
 - It has none (a `fix:`, a PRD removal) → fold it into `HEAD` if `HEAD` is not pushed (`git branch -r --contains HEAD` prints nothing): `git commit --amend`, this message appended to `HEAD`'s body. `HEAD` pushed → don't commit: leave it in the working tree, the next commit that ticks carries it and its message.
 - A refusal is never bypassed: fix `progress.md` per the hook's message.
+- The commit ticks the last `[ ]` → follow it with a `docs:` commit that `git rm`s `progress.md` and the finished plan file (`plan-pilot` § Find the next step).
 
 ## Commit message format
 

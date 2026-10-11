@@ -367,7 +367,7 @@
 #                       extracted by PSX_DUMPSXISO equals psx-game.exe); outputs
 #                       in tmp/psx/game-cd, never runs a setup, outside the
 #                       suite
-# make psx-check     -> the plan-10 check: runs psx-build, writes the PC state
+# make psx-check     -> the PSX check: runs psx-build, writes the PC state
 #                       and VRAM digests of PSX_EVENTS in one tmp/replay run
 #                       (STATE=, DIGEST=, and CAPTURE_LIST=psx/gpu_captures.txt
 #                       for the PC frames, family call counts and capture

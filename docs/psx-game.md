@@ -453,7 +453,7 @@ mask.
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
 | `make psx-full-game-check` | the replay proof on `worst-case/full_game.json` (outputs in `tmp/psx/full-game`) | minutes |
 
-`make psx-check` is the plan-10 check target: a later step adds its own
+`make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
 `STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
 `tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
