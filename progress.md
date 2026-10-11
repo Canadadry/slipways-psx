@@ -1,4 +1,4 @@
-- [ ] Step 1: reproduce the bug headless
+- [x] Step 1: reproduce the bug headless
   - [x] Chunk 1: feasibility probe and step note
 - [ ] Step 2: draw into the display buffer
 - [ ] Step 3: primitives at x2, one family per step
