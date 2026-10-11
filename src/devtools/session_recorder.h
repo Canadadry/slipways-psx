@@ -14,13 +14,14 @@ typedef struct {
     long tail_offset;
     uint8_t initial_save[SAVE_STATE_MAX_BYTES];
     int initial_save_count;
+    int personal_bindings;
 } session_recorder_t;
 
 void session_recorder_open(session_recorder_t *recorder, const char *path);
 
-/* Copies the bytes; a count of 0 means the session started with no save,
- * and the recording then carries no initial_save. Before the first frame. */
 void session_recorder_set_initial_save(session_recorder_t *recorder, const uint8_t *bytes, int count);
+
+void session_recorder_set_personal_bindings(session_recorder_t *recorder, int personal);
 
 int session_recorder_record_frame(session_recorder_t *recorder, const p8_input_frame_t *frame);
 

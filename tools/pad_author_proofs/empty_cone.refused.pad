@@ -1,6 +1,6 @@
-# expect: empty cone: no candidate up of the hovered object in jump mode
+# expect: empty cone: no candidate for button 1 of the hovered object in jump mode
 title 12 reasonable
 probe 256 250
 fold 268 244
 jump p25
-tap up
+tap 1

@@ -3,7 +3,7 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
 #                       alloc-guard + pointer-guard + random-guard +
-#                       data-guard + p8-guard, the fast loop
+#                       button-guard + data-guard + p8-guard, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -11,7 +11,11 @@
 #                       past 180 frames (600 if listed in
 #                       tools/e2e_long_exceptions.txt, whose "N frames:"
 #                       must match and exceed 180), or if an e2e does
-#                       not declare "input": "pad" or carries a mouse field
+#                       not declare "input": "pad" or carries a mouse field;
+#                       an e2e whose header names a fixture ("bindings":
+#                       "<file>.cfg", read from its directory) reruns when
+#                       that fixture changes, through the .d file replay
+#                       writes next to the capture
 # make test-all      -> test + e2e, the full suite
 # make unit          -> the binaries of tests/, built and run
 # make replay EVENTS=<events> -> replays that file in the headless engine,
@@ -23,7 +27,24 @@
 #                       it does not decode; with DIGEST=<file>, also writes
 #                       the FNV-1a lines of src/devtools/vram_digest.h
 #                       ("sprite-sheet", "screen <frame>" every 32nd frame
-#                       and the last, "map")
+#                       of the recording and the last, "map"); the binary
+#                       also reads CAPTURE_LIST=<list> with CAPTURE_DIR=<dir>
+#                       (psx-check): draws each listed frame with its draw
+#                       filter mask and writes pc_frames.bin, counts.txt and
+#                       capture_script.txt there, exiting 1 on a bad list;
+#                       refuses a recording whose header
+#                       says "bindings": "personal"; a file whose header says
+#                       "start": "resume" (pad_author's from-record) starts
+#                       from its initial_save at the first frame, not on the
+#                       title; with REPLAY_STARTS=2, plays it, returns to the
+#                       title, idles 30 frames and plays it again, and takes
+#                       no capture but /dev/null, so a dump path can follow
+#                       it; with ATTRACT_STATE=<file> on a title-start file,
+#                       writes the state on the last frame of each complete
+#                       demo playback to <file>.1, <file>.2, ..., then, on the
+#                       frame of its return to the title, the state to
+#                       <file>.<n>.return and the stored record (SAVE_HEX's
+#                       format and failures) to <file>.<n>.return.hex
 # make state EVENTS=<events> -> make replay with STATE set, which also writes
 #                       the state of the last frame (clock, difficulty,
 #                       planets, slipways, structures, counts), zone and cap
@@ -33,7 +54,10 @@
 #                       GPU_FRAME_BUFFER_BYTES; cap gpu_cluts, cap
 #                       gpu_patterns: distinct draw palettes and fill
 #                       patterns a frame), outside the suite; takes
-#                       SAVE_HEX=<file> and DIGEST=<file> as make replay does
+#                       SAVE_HEX=<file>, DIGEST=<file>, REPLAY_STARTS and
+#                       ATTRACT_STATE as make replay does; with
+#                       REPLAY_STARTS=2, the first playback's state goes to
+#                       tmp/state.txt.start1
 # make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
 #                       every e2e of tests/e2e/, each state in
 #                       tmp/state/<name>.txt, then
@@ -108,12 +132,21 @@
 #                       frames it pressed, then replays each JSON with
 #                       tmp/replay and fails unless the two last-frame states
 #                       are byte-identical; also fails on a refused input (a
-#                       cross + circle chord, a jump-mode D-pad press into an
-#                       empty cone, a circle that changes nothing unless
+#                       button 5 + 6 chord, a jump-mode D-pad press into an
+#                       empty cone, a back action (button 6 in the default
+#                       bindings) that changes nothing unless
 #                       `back --required`), a failed command check, more than
 #                       7200 frames, or 25% or more of the frames in aim
-#                       mode; the per-frame mode log and the totals go to
-#                       tmp/pad-author/<game>.modes.txt, outside the suite
+#                       mode; a `caption` (`/` breaks the line, `caption -`
+#                       clears; written as a "captions" header member) is
+#                       refused with a line over 32 characters, more than 2
+#                       lines, the letter v, a character with no font glyph,
+#                       fewer than 150 frames shown, or a button down fewer
+#                       than 90 frames after it appears; the per-frame mode
+#                       log and the totals go to
+#                       tmp/pad-author/<game>.modes.txt, outside the suite;
+#                       then the same for pico8/demo.pad -> pico8/demo.json,
+#                       without the aim budget
 # make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
 #                       for one script, written to OUT (default
 #                       tmp/pad-author/<name>.json), ending at its first
@@ -126,8 +159,46 @@
 #                       <e2e>.end-state.pad must pass tools/end_state.sh
 #                       against tests/e2e/<e2e>.json.end-state (both without
 #                       the aim budget), and each <name>.refused.pad must fail
-#                       with the error its `# expect:` first line names,
-#                       outside the suite
+#                       with the error its `# expect:` first line names;
+#                       each <name>.record.pad (a script that starts with
+#                       from-record) must pass pad_author's self-check, then
+#                       replay with REPLAY_STARTS=2 to pad_author's normalized
+#                       end state at both ends, outside the suite
+# make demo-check    -> tools/demo_check_run.sh, files and dumps in
+#                       tmp/demo-check/, every check always run, outside the
+#                       suite: tests/test_demo_check; tests/test_attract_demo
+#                       (the whole demo through the attract mode twice, one
+#                       interruption per command range, the player's save
+#                       untouched) also writes the full cycle at the default
+#                       threshold over tests/e2e/pad_tech_costs.json's
+#                       initial_save, which must equal
+#                       worst-case/attract_cycle.json byte for byte; that
+#                       file is replayed to its end by the `-O0` replay (with
+#                       ATTRACT_STATE, capture hashed) and by replay_sanitize
+#                       (clean exit): each playback passes
+#                       tools/demo_check.sh and ends at the resumed replay's
+#                       normalized end state, no third playback, each return
+#                       and the file's end equal
+#                       worst-case/title_idle.json.end-state with the stored
+#                       record equal to the initial_save; pico8/demo.json,
+#                       replayed with REPLAY_STARTS=2, passes
+#                       tools/demo_check.sh at both ends (at most 3600
+#                       frames, the seven captions pinned in
+#                       tools/demo_check.sh, in order, tiling the demo, a
+#                       180-frame closing card, exactly one more year,
+#                       colony, slipway and tech than the state at the
+#                       `probe` label, no cheat); pico8/demo.pad
+#                       regenerates pico8/demo.json byte for byte (no aim
+#                       budget), a failure that fails the target but does
+#                       not hold back the hash; last, and only when the
+#                       content checks above pass, the capture hash is
+#                       compared with worst-case/attract_cycle.json.sha256,
+#                       a missing one failing; to rebaseline after reading
+#                       the checks: cp tmp/demo-check/attract_cycle.json
+#                       worst-case/ and cp tmp/demo-check/attract_cycle.sha256
+#                       worst-case/attract_cycle.json.sha256; never alongside
+#                       make test-all (both rebuild binaries in tmp/) or
+#                       make pad-author (both write tmp/pad-author/)
 # make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
 #                       PAD_METRICS and prints its report (time per mode, dead
 #                       presses by group, hold repeats, section 4 verdict),
@@ -139,8 +210,8 @@
 # make pad-metrics-check -> regenerates tests/e2e/pad_colonise.json from its
 #                       proof script, then fails unless the report's `total `
 #                       lines equal the generator's and its required group is
-#                       exactly f16's square, f17's circle (aim mode, nothing
-#                       known) and f293's circle, outside the suite
+#                       exactly f16's button 7, f17's button 6 (aim mode,
+#                       nothing known) and f293's button 6, outside the suite
 # make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
 #                       as make state does and prints, per line of
 #                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
@@ -206,6 +277,10 @@
 #                       out; fails on any difference from
 #                       tools/random_guard_exceptions.txt (strict counts,
 #                       updated by hand), in make test
+# make button-guard  -> counts, per file of src/game/, the P8_PAD_BUTTON_*
+#                       names, comments and strings left out; fails when a
+#                       file other than cheat.c and the bindings module
+#                       names one, in make test
 # make float-link    -> links the objects of tmp/replay without `-lm` into a
 #                       throwaway binary, never run; outside the suite: make
 #                       test already builds tmp/replay, with the same link
@@ -217,7 +292,17 @@
 #                       pico8/gfx.json with tools/gen_sprite_sheet.c, outside
 #                       the suite
 # make raylib        -> compiles and LINKS the interactive binary, never runs
-#                       it (needs make raylib-vendor-setup first)
+#                       it (needs make raylib-vendor-setup first); prints the
+#                       bindings and keymap files it compiled: <name>.cfg
+#                       when present, else <name>.default.cfg; every other
+#                       target compiles bindings.default.cfg, and only
+#                       test_keymap compiles keymap.default.cfg; a game built
+#                       with bindings.cfg writes "bindings": "personal" in
+#                       every recording, which replay refuses; also links
+#                       pico8/demo.json, compiled into tmp/demo/demo.c;
+#                       every binary, game included, also links
+#                       bindings.default.cfg as the default table the demo
+#                       plays on
 # make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
 #                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
 #                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
@@ -466,18 +551,27 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
+BINDINGS_CORE_UNIT := $(TMP_DIR)/bindings/core.c
+DEMO_UNIT := $(TMP_DIR)/demo/demo.c
+
 # The whole engine closure: all of src/ except the entry points of
 # src/cmd/, src/p8/palette.c, the two `src/platform/raylib_backend*.c`, `src/platform/keymap.c` and
 # the modules of src/devtools/ that only the tools and the interactive game
 # link (fixed_test_double, replay_control, replay_source, screencast,
-# session_recorder, state). Used by the
+# session_recorder, state), plus the default bindings table generated into
+# tmp/bindings/core.c and the demo compiled into tmp/demo/demo.c. Used by the
 # targets that call cart_load(), which pulls in the whole port.
 ENGINE_SRCS := \
+    $(BINDINGS_CORE_UNIT) \
+    $(DEMO_UNIT) \
     src/p8/assets.c \
     src/p8/sprite_sheet.c \
+    src/game/attract.c \
     src/game/background.c \
+    src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
+    src/game/demo_overlay.c \
     src/game/input_step.c \
     src/game/pad_nav.c \
     src/game/pad_panel.c \
@@ -568,11 +662,14 @@ ENGINE_SRCS := \
 # The ported core, free of floating point: the engine closure minus the host
 # tools, which keep the libc. constants-check, float-guard, alloc-guard and
 # float-grep all read this list.
-CORE_SRCS := $(filter-out src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
+CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) $(DEMO_UNIT) src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
 
 # A narrower closure: what data_init() reaches to build a real game state,
 # without calling cart_load().
 CART_ONLY_SRCS := \
+    $(DEMO_UNIT) \
+    src/game/attract.c \
+    src/game/demo_overlay.c \
     src/game/cart.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -667,7 +764,7 @@ $(TMP_DIR)/test_psx_sprite: $(call objs,tests/test_psx_sprite.c src/platform/psx
 $(TMP_DIR)/test_psx_text: $(call objs,tests/test_psx_text.c src/platform/psx_text.c src/platform/psx_sprite.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_mouse_recording_refused.json $(wildcard tests/fixtures/events_pad_*.json) | $(TMP_DIR)
+$(TMP_DIR)/test_input: $(call objs,tests/test_input.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) tests/fixtures/demo_events.json tests/fixtures/events_valid_ox.json tests/fixtures/events_mouse_recording_refused.json $(wildcard tests/fixtures/events_pad_*.json) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_dump: $(call objs,tests/test_dump.c src/devtools/dump.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
@@ -683,25 +780,50 @@ $(TMP_DIR)/test_fixed: $(call objs,tests/test_fixed.c src/p8/fixed.c src/devtool
 $(TMP_DIR)/test_fixed_ubsan: $(call ubsan_objs,tests/test_fixed.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c) keymap.cfg | $(TMP_DIR)
+KEYMAP_DEFAULT_UNIT := $(TMP_DIR)/keymap/default.c
+
+$(TMP_DIR)/keymap_generate: $(call objs,src/cmd/keymap_generate.c src/platform/keymap.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_psx_pad_map: $(call objs,tests/test_psx_pad_map.c src/platform/psx_pad_map.c src/platform/keymap.c) | $(TMP_DIR)
+$(KEYMAP_DEFAULT_UNIT): keymap.default.cfg $(TMP_DIR)/keymap_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/keymap_generate $< $@
+
+$(TMP_DIR)/test_keymap: $(call objs,tests/test_keymap.c src/platform/keymap.c src/game/bindings.c $(KEYMAP_DEFAULT_UNIT)) keymap.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pad_log: $(call objs,tests/test_pad_log.c src/devtools/pad_log.c src/platform/psx_pad_map.c src/p8/input.c src/devtools/input_json.c) tests/e2e/pad_title.json psx/game_title_script.txt | $(TMP_DIR)
+$(TMP_DIR)/test_psx_pad_map: $(call objs,tests/test_psx_pad_map.c src/platform/psx_pad_map.c src/platform/keymap.c src/game/bindings.c) keymap.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+$(TMP_DIR)/test_pad_log: $(call objs,tests/test_pad_log.c src/devtools/pad_log.c src/platform/psx_pad_map.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) tests/e2e/pad_title.json psx/game_title_script.txt | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+BINDINGS_DEFAULT_UNIT := $(TMP_DIR)/bindings/default.c
+
+$(TMP_DIR)/bindings_generate: $(call objs,src/cmd/bindings_generate.c src/game/bindings.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(BINDINGS_DEFAULT_UNIT): bindings.default.cfg $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate $< $@
+
+$(BINDINGS_CORE_UNIT): bindings.default.cfg $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate --default $< $@
+
+$(TMP_DIR)/test_bindings: $(call objs,tests/test_bindings.c src/game/bindings.c $(BINDINGS_DEFAULT_UNIT) $(BINDINGS_CORE_UNIT)) bindings.default.cfg | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_replay_source: $(call objs,tests/test_replay_source.c src/devtools/save_storage_memory.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) tests/fixtures/events_valid.json tests/fixtures/events_pad_missing_buttons.json tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_recording_continuity: $(call objs,tests/test_recording_continuity.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_control: $(call objs,tests/test_replay_control.c src/devtools/replay_control.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c) | $(TMP_DIR)
+$(TMP_DIR)/test_marker_coherence: $(call objs,tests/test_marker_coherence.c src/devtools/save_storage_memory.c src/devtools/session_recorder.c src/devtools/replay_source.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/screencast.c src/p8/vram.c) | $(TMP_DIR)
@@ -711,13 +833,16 @@ $(TMP_DIR)/test_screencast: $(call objs,tests/test_screencast.c src/devtools/scr
 # prerequisite: it replays the same fixture with and without a capture and
 # compares the two dumps, so that the capture argument has no effect on the
 # rest.
-$(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_headless_capture: $(call objs,tests/test_headless_capture.c src/devtools/screencast.c src/devtools/dump.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) $(TMP_DIR)/replay tests/fixtures/screencast_capture_events.json tests/e2e/pad_title.json bindings.default.cfg | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c src/devtools/replay_source.c $(ENGINE_SRCS)) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_replay_from_resume: $(call objs,tests/test_replay_from_resume.c) $(TMP_DIR)/replay pico8/demo_record.hex bindings.default.cfg tools/end_state.sh tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/frames_tool: $(call objs,src/cmd/frames.c src/devtools/screencast.c src/devtools/dump.c src/p8/vram.c) | $(TMP_DIR)
@@ -766,6 +891,9 @@ $(TMP_DIR)/test_state_peaks: $(call objs,tests/test_state_peaks.c) tools/state_p
 $(TMP_DIR)/test_end_state: $(call objs,tests/test_end_state.c) tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_demo_check: $(call objs,tests/test_demo_check.c) tools/demo_check.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_coverage_compare: $(call objs,tests/test_coverage_compare.c) tools/coverage_compare.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -782,6 +910,9 @@ $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_gre
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_random_guard: $(call objs,tests/test_random_guard.c) tools/random_guard.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_button_guard: $(call objs,tests/test_button_guard.c) tools/button_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
@@ -843,7 +974,7 @@ $(TMP_DIR)/test_toast: $(call asan_objs,tests/test_toast.c $(ENGINE_SRCS)) | $(T
 $(TMP_DIR)/test_message_box: $(call asan_objs,tests/test_message_box.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c src/devtools/replay_source.c $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
+$(TMP_DIR)/test_live_slots: $(call asan_objs,tests/test_live_slots.c src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_modal_backdrop: $(call objs,tests/test_modal_backdrop.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -935,16 +1066,16 @@ $(TMP_DIR)/test_burst: $(call objs,tests/test_burst.c $(ENGINE_SRCS)) | $(TMP_DI
 
 STATE_SRCS := src/devtools/state.c src/devtools/state_format.c
 
-$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_probe: $(call objs,tests/test_probe.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -974,16 +1105,16 @@ $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c
 $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c $(STATE_SRCS) $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_target: $(call objs,tests/test_pad_target.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pad_jump: $(call objs,tests/test_pad_jump.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_jump: $(call objs,tests/test_pad_jump.c tests/heap_allocator.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_slipway: $(call objs,tests/test_pad_slipway.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -995,7 +1126,23 @@ $(TMP_DIR)/test_pad_back: $(call objs,tests/test_pad_back.c tests/heap_allocator
 $(TMP_DIR)/test_pad_select: $(call objs,tests/test_pad_select.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/pad_metrics.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_caption: $(call objs,tests/test_pad_caption.c src/devtools/pad_caption.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_demo_source: $(call objs,tests/test_demo_source.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/demo_generate: $(call objs,src/cmd/demo_generate.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(DEMO_UNIT): pico8/demo.json $(TMP_DIR)/demo_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/demo_generate $< $@
+
+$(TMP_DIR)/test_demo_data: $(call objs,tests/test_demo_data.c src/devtools/replay_source.c src/devtools/pad_caption.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/demo.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -1004,13 +1151,19 @@ $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | 
 $(TMP_DIR)/test_pad_cycle: $(call objs,tests/test_pad_cycle.c src/game/pad_cycle.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_attract: $(call objs,tests/test_attract.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_demo_overlay: $(call objs,tests/test_demo_overlay.c src/game/demo_overlay.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c $(DEMO_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/gfx_software.c src/p8/input.c src/devtools/input_json.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/gfx_software.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-REPLAY_SRCS := src/cmd/replay.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/vram_digest.c src/devtools/draw_filter.c src/devtools/capture_list.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)
+REPLAY_SRCS := src/cmd/replay.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/vram_digest.c src/devtools/draw_filter.c src/devtools/capture_list.c $(STATE_SRCS) src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 
 $(TMP_DIR)/replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1021,12 +1174,12 @@ PSX_CAPTURE_COMPARE_SRCS := src/cmd/psx_capture_compare.c src/devtools/capture_c
 $(TMP_DIR)/psx_capture_compare: $(call objs,$(PSX_CAPTURE_COMPARE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-PSX_PAD_LOG_SRCS := src/cmd/psx_pad_log.c src/devtools/pad_log.c src/platform/psx_pad_map.c src/p8/input.c src/devtools/input_json.c
+PSX_PAD_LOG_SRCS := src/cmd/psx_pad_log.c src/devtools/pad_log.c src/platform/psx_pad_map.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c
 
 $(TMP_DIR)/psx_pad_log: $(call objs,$(PSX_PAD_LOG_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-EMBED_REPLAY_SRCS := src/cmd/embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c
+EMBED_REPLAY_SRCS := src/cmd/embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c
 
 $(TMP_DIR)/embed_replay: $(call objs,$(EMBED_REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1045,12 +1198,12 @@ $(call embedded,test_embed_replay_save): tests/e2e/pad_resume_at_start.json $(TM
 	@mkdir -p $(@D)
 	./$(TMP_DIR)/embed_replay $< $< $@
 
-TEST_EMBED_REPLAY_SRCS := tests/test_embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c
+TEST_EMBED_REPLAY_SRCS := tests/test_embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c
 
-$(TMP_DIR)/test_embed_replay: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_pad)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+$(TMP_DIR)/test_embed_replay: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_pad)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json pico8/demo.json tests/e2e/pad_swap_aim_menu.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_embed_replay_save: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_save)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json | $(TMP_DIR)
+$(TMP_DIR)/test_embed_replay_save: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_save)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json pico8/demo.json tests/e2e/pad_swap_aim_menu.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/format_self_test: $(call objs,src/cmd/format_self_test.c src/devtools/format_self_test.c) | $(TMP_DIR)
@@ -1077,7 +1230,13 @@ $(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/sav
 $(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_attract_demo: $(call objs,tests/test_attract_demo.c src/devtools/replay_source.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_record_start: $(call objs,tests/test_record_start.c src/devtools/record_start.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -1159,6 +1318,7 @@ UNIT_TESTS := \
     test_keymap \
     test_psx_pad_map \
     test_pad_log \
+    test_bindings \
     test_replay_source \
     test_embed_replay \
     test_embed_replay_save \
@@ -1169,6 +1329,7 @@ UNIT_TESTS := \
     test_headless_capture \
     test_replay_from_title \
     test_replay_usage \
+    test_replay_from_resume \
     test_palette \
     test_hud \
     test_frames_tool \
@@ -1185,6 +1346,7 @@ UNIT_TESTS := \
     test_pointer_guard \
     test_float_grep \
     test_random_guard \
+    test_button_guard \
     test_float_link \
     test_constants_check \
     test_background_draw \
@@ -1225,6 +1387,7 @@ UNIT_TESTS := \
     test_save_check \
     test_save_load \
     test_cart \
+    test_record_start \
     test_structure \
     test_trading_hub \
     test_entity_kind \
@@ -1262,7 +1425,12 @@ UNIT_TESTS := \
     test_pad_select \
     test_pad_build \
     test_pad_cycle \
-    test_pad_metrics
+    test_pad_metrics \
+    test_pad_caption \
+    test_demo_source \
+    test_demo_data \
+    test_attract \
+    test_demo_overlay
 
 # One run per test, each its own target: that is what `-j` runs in parallel.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
@@ -1313,9 +1481,10 @@ unit-run-test_live_slots: $(TMP_DIR)/test_live_slots
 unit-run-test_trade: $(TMP_DIR)/test_trade
 	ASAN_OPTIONS=detect_leaks=0 ./$<
 
-# These two tests read tmp/replay_dump.txt, the default dump of tmp/replay:
-# under `-j`, never at the same time.
+# These two tests read tmp/replay_dump.txt, the default dump of tmp/replay,
+# and test_replay_from_resume writes it: under `-j`, never at the same time.
 unit-run-test_frames_tool: | unit-run-test_headless_capture
+unit-run-test_replay_from_resume: | unit-run-test_frames_tool
 
 .PHONY: $(UNIT_RUNS)
 
@@ -1327,9 +1496,9 @@ ifneq ($(filter replay,$(MAKECMDGOALS)),)
 endif
 
 replay: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
 
 test-all: test e2e
 
@@ -1370,7 +1539,9 @@ frames_reference = $(1).sha256
 # is read by two tests that run in parallel.
 $(FRAMES_DIR)/%.bin: % $(TMP_DIR)/replay
 	@mkdir -p $(@D)
-	./$(TMP_DIR)/replay $< $@ $(@:.bin=.dump.txt) > /dev/null
+	REPLAY_DEPS=$(@:.bin=.d) ./$(TMP_DIR)/replay $< $@ $(@:.bin=.dump.txt) > /dev/null
+
+-include $(wildcard $(FRAMES_DIR)/$(E2E_DIR)/*.json.d)
 
 # The assignment keeps the exit status of sha256, which a pipe into cut would
 # lose.
@@ -1440,7 +1611,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_metrics.c src/devtools/state.c $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_caption.c src/devtools/record_start.c src/devtools/pad_metrics.c $(STATE_SRCS) $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
@@ -1452,20 +1623,24 @@ pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 else
 pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
+	@./$(TMP_DIR)/pad_author pico8/demo.pad pico8/demo.json --no-aim-budget
 endif
 
 PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
 PAD_AUTHOR_END_STATE_PROOFS := $(wildcard tools/pad_author_proofs/*.end-state.pad)
 PAD_AUTHOR_REFUSAL_PROOFS := $(wildcard tools/pad_author_proofs/*.refused.pad)
+PAD_AUTHOR_RECORD_PROOFS := $(wildcard tools/pad_author_proofs/*.record.pad)
 pad_author_proof_json = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=.json))
+pad_author_proof_stem = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=))
 pad_author_proof_e2e = $(E2E_DIR)/$(basename $(basename $(notdir $(1)))).json
 
 # A refusal proof's first line is `# expect: <text of the error>`.
-pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) tools/end_state.sh
+pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) $(PAD_AUTHOR_RECORD_PROOFS) tools/end_state.sh
 	@mkdir -p $(TMP_DIR)/pad-author
 	@$(foreach p,$(PAD_AUTHOR_FRAME_PROOFS),./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; cmp $(call pad_author_proof_json,$(p)) $(call pad_author_proof_e2e,$(p)) || exit 1; echo "pad-author-proof: $(p) regenerates $(call pad_author_proof_e2e,$(p))"; ) true
 	@$(foreach p,$(PAD_AUTHOR_END_STATE_PROOFS),STATE=$(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_e2e,$(p)) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) $(call pad_author_proof_e2e,$(p)).end-state || exit 1; echo "pad-author-proof: $(p) reaches $(call pad_author_proof_e2e,$(p)).end-state"; ) true
 	@$(foreach p,$(PAD_AUTHOR_REFUSAL_PROOFS),! ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) > /dev/null 2> $(TMP_DIR)/pad-author/refusal.txt || { echo "pad-author-proof: $(p) was not refused"; exit 1; }; grep -qF "$$(sed -n '1s/^# expect: //p' $(p))" $(TMP_DIR)/pad-author/refusal.txt || { cat $(TMP_DIR)/pad-author/refusal.txt; echo "pad-author-proof: $(p) refused for another reason"; exit 1; }; echo "pad-author-proof: $(p) refused: $$(sed -n '1s/^# expect: //p' $(p))"; ) true
+	@$(foreach p,$(PAD_AUTHOR_RECORD_PROOFS),STATE=$(call pad_author_proof_stem,$(p)).state.txt ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh normalize $(call pad_author_proof_stem,$(p)).state.txt > $(call pad_author_proof_stem,$(p)).reference.txt || exit 1; REPLAY_STARTS=2 STATE=$(call pad_author_proof_stem,$(p)).starts.txt ./$(TMP_DIR)/replay $(call pad_author_proof_json,$(p)) > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_json,$(p)) $(call pad_author_proof_stem,$(p)).starts.txt.start1 $(call pad_author_proof_stem,$(p)).reference.txt $(call pad_author_proof_json,$(p)) $(call pad_author_proof_stem,$(p)).starts.txt $(call pad_author_proof_stem,$(p)).reference.txt || exit 1; echo "pad-author-proof: $(p) replays from the record, twice, to pad_author's end state"; ) true
 
 PAD_METRICS_DIR := $(TMP_DIR)/pad-metrics
 PAD_METRICS_GAMES := $(filter-out worst-case/title_idle.json,$(FULL_GAME_EVENTS))
@@ -1474,7 +1649,7 @@ pad_metrics_name = $(PAD_METRICS_DIR)/$(basename $(notdir $(1)))
 pad_metrics_run = PAD_METRICS=$(call pad_metrics_name,$(1)).txt ./$(TMP_DIR)/replay $(1) /dev/null $(call pad_metrics_name,$(1)).dump.txt > /dev/null || exit 1; echo "pad-metrics: $(1) -> $(call pad_metrics_name,$(1)).txt"; grep '$(3)' $(call pad_metrics_name,$(1)).txt; $(if $(filter 1,$(2)),grep -qx 'section4 verdict ok' $(call pad_metrics_name,$(1)).txt || { echo "pad-metrics: $(1) misses section 4"; exit 1; };)
 PAD_METRICS_PROOF := tools/pad_author_proofs/pad_colonise.frames.pad
 PAD_METRICS_PROOF_E2E := $(E2E_DIR)/pad_colonise.json
-PAD_METRICS_PROOF_REQUIRED := dead f16 press square aim required;dead f17 press circle aim required;dead f293 press circle jump required
+PAD_METRICS_PROOF_REQUIRED := dead f16 press 7 aim required;dead f17 press 6 aim required;dead f293 press 6 jump required
 
 pad-metrics: $(TMP_DIR)/replay
 	@test -n "$(EVENTS)" || { echo "pad-metrics: EVENTS=<events.json> is required"; exit 2; }
@@ -1493,7 +1668,7 @@ pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) 
 	@grep '^total ' $(TMP_DIR)/pad-author/pad_colonise.modes.txt > $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt
 	@grep '^total ' $(PAD_METRICS_DIR)/pad_colonise.txt | diff $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt - || { echo "pad-metrics-check: the totals differ from the generator's"; exit 1; }
 	@required=$$(grep -E ' (required|dead-required)$$' $(PAD_METRICS_DIR)/pad_colonise.txt | paste -sd ';' -); test "$$required" = "$(PAD_METRICS_PROOF_REQUIRED)" || { echo "pad-metrics-check: required group is '$$required', not '$(PAD_METRICS_PROOF_REQUIRED)'"; exit 1; }
-	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's square, f17's circle and f293's circle"
+	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's button 7, f17's button 6 and f293's button 6"
 
 .PHONY: pad-metrics pad-metrics-worst-case pad-metrics-check
 
@@ -1503,6 +1678,13 @@ worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_p
 	@sh tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) $(TMP_DIR)/worst-case-peaks.txt $(foreach e,$(FULL_GAME_EVENTS),$(e) $(call state_file,$(e)))
 
 .PHONY: pad-author pad-author-proof worst-case-peaks
+
+DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
+
+demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json pico8/demo_record.hex worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state tools/demo_check_run.sh tools/demo_check.sh tools/end_state.sh
+	@sh tools/demo_check_run.sh $(DEMO_CHECK_DIR) ./$(TMP_DIR)/test_demo_check ./$(TMP_DIR)/test_attract_demo ./$(TMP_DIR)/pad_author ./$(TMP_DIR)/replay ./$(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state '$(SHA256_CMD)'
+
+.PHONY: demo-check
 
 rng-sync-probe: $(TMP_DIR)/test_rng_sync
 	./$<
@@ -1581,7 +1763,7 @@ $(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
 
 ifneq ($(strip $(EVENTS)),)
 state: $(TMP_DIR)/replay
-	$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
+	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 else
 state: $(STATE_RUNS) tools/state_peaks.sh
 	@sh tools/state_peaks.sh $(TMP_DIR)/state.txt $(foreach e,$(STATE_EVENTS),$(e) $(call state_file,$(e)))
@@ -1655,6 +1837,11 @@ random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS)
 
 .PHONY: random-guard
 
+button-guard: tools/button_guard.sh
+	@sh tools/button_guard.sh src/game
+
+.PHONY: button-guard
+
 float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh
 	@sh tools/float_link.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-link/replay $(call objs,$(REPLAY_SRCS))
 
@@ -1692,23 +1879,25 @@ psx-hello:
 	cmake --build psx-hello/build
 
 # The game's PSX build: the core (CORE_SRCS, which holds the memory save
-# storage), the shared state and VRAM digest formatters, the PSX platform and
-# the recording's generated source.
+# storage) with its generated default bindings and demo (PSX_CORE_UNITS), the
+# shared state and VRAM digest formatters, the PSX platform and the
+# recording's generated source.
 PSX_EVENTS ?= $(or $(EVENTS),tests/e2e/pad_slipway.json)
 PSX_REPLAY_NAME = $(basename $(notdir $(PSX_EVENTS)))
 PSX_BUILD_DIR := $(TMP_DIR)/psx/build
 PSX_EMBEDDED_REPLAY := $(PSX_BUILD_DIR)/embedded/psx_replay.c
 PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform/fatal_psx.c src/platform/assert_psx.c \
 	src/platform/format_psx.c src/p8/format.c
-PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) \
+PSX_CORE_UNITS := $(BINDINGS_CORE_UNIT) $(DEMO_UNIT)
+PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_text.c \
 	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c \
 	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c
-PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) src/devtools/state_format.c src/devtools/format_self_test.c \
+PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) src/devtools/state_format.c src/devtools/format_self_test.c \
 	src/devtools/draw_filter.c $(PSX_GPU_BACKEND_SRCS) $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
-PSX_GAME_SRCS := src/cmd/psx_game.c $(CORE_SRCS) src/devtools/state_format.c $(PSX_GPU_BACKEND_SRCS) \
+PSX_GAME_SRCS := src/cmd/psx_game.c $(CORE_SRCS) $(PSX_CORE_UNITS) src/devtools/state_format.c $(PSX_GPU_BACKEND_SRCS) \
 	src/platform/psx_pad.c src/platform/psx_pad_map.c $(PSX_PLATFORM_SRCS)
 PSX_GAME_CUE ?= $(PSX_BUILD_DIR)/slipways.cue
 PSX_GAME_BIN := $(PSX_BUILD_DIR)/slipways.bin
@@ -1719,7 +1908,7 @@ PSX_NM = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-nm
 psx_cmake_list = $(subst $(space),;,$(strip $(abspath $(1))))
 space := $(empty) $(empty)
 
-psx-build: $(TMP_DIR)/embed_replay
+psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@mkdir -p $(dir $(PSX_EMBEDDED_REPLAY))
 	./$(TMP_DIR)/embed_replay $(PSX_EVENTS) $(PSX_REPLAY_NAME) $(PSX_EMBEDDED_REPLAY)
@@ -1917,6 +2106,31 @@ raylib-vendor-setup:
 # without vendoring fails with "no rule to make target".
 # The raylib target builds straight from the sources to the executable:
 # its files need `-I third_party/raylib/src`, which the others do not have.
+BINDINGS_GAME_UNIT := $(TMP_DIR)/bindings/game.c
+BINDINGS_CHOSEN := $(if $(wildcard bindings.cfg),bindings.cfg,bindings.default.cfg)
+BINDINGS_PERSONAL_OPTION := $(if $(wildcard bindings.cfg),--personal)
+
+# Rewritten only when the chosen file name changes, so that creating or
+# deleting bindings.cfg regenerates the game unit whatever its date.
+$(TMP_DIR)/bindings.source: FORCE | $(TMP_DIR)
+	@echo '$(BINDINGS_CHOSEN)' | cmp -s - $@ || echo '$(BINDINGS_CHOSEN)' > $@
+
+FORCE:
+
+$(BINDINGS_GAME_UNIT): $(BINDINGS_CHOSEN) $(TMP_DIR)/bindings.source $(TMP_DIR)/bindings_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/bindings_generate $(BINDINGS_PERSONAL_OPTION) $(BINDINGS_CHOSEN) $@
+
+KEYMAP_GAME_UNIT := $(TMP_DIR)/keymap/game.c
+KEYMAP_CHOSEN := $(if $(wildcard keymap.cfg),keymap.cfg,keymap.default.cfg)
+
+$(TMP_DIR)/keymap.source: FORCE | $(TMP_DIR)
+	@echo '$(KEYMAP_CHOSEN)' | cmp -s - $@ || echo '$(KEYMAP_CHOSEN)' > $@
+
+$(KEYMAP_GAME_UNIT): $(KEYMAP_CHOSEN) $(TMP_DIR)/keymap.source $(TMP_DIR)/keymap_generate
+	@mkdir -p $(@D)
+	$(TMP_DIR)/keymap_generate $(KEYMAP_CHOSEN) $@
+
 GAME_SRCS := \
     src/cmd/game.c \
     src/platform/raylib_backend.c \
@@ -1926,18 +2140,22 @@ GAME_SRCS := \
     src/devtools/replay_source.c \
     src/devtools/session_recorder.c \
     src/platform/save_storage_file.c \
+    $(BINDINGS_GAME_UNIT) \
+    $(KEYMAP_GAME_UNIT) \
     $(filter-out src/devtools/save_storage_memory.c,$(ENGINE_SRCS))
 
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ $(GAME_SRCS) third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/game
+	@echo "bindings: $(BINDINGS_CHOSEN)$(if $(wildcard bindings.cfg), (personal))"
+	@echo "keymap: $(KEYMAP_CHOSEN)$(if $(wildcard keymap.cfg), (personal))"
 
 # The dependency fragments written by the compiler, one per object. The
 # wildcard tolerates their absence: on a fresh clone, everything is compiled.
--include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d)
--include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_DIR)/src/*/*.d $(OBJ_DIR)/tests/*.d $(OBJ_DIR)/tmp/bindings/*.d $(OBJ_DIR)/tmp/keymap/*.d $(OBJ_DIR)/tmp/demo/*.d)
+-include $(wildcard $(OBJ_ASAN_DIR)/src/*/*.d $(OBJ_ASAN_DIR)/tests/*.d $(OBJ_ASAN_DIR)/tmp/bindings/*.d $(OBJ_ASAN_DIR)/tmp/demo/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d)
+-include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d $(OBJ_SANITIZE_DIR)/tmp/demo/*.d)
+-include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d $(OBJ_COVERAGE_DIR)/tmp/demo/*.d)
 

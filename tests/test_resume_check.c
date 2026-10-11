@@ -43,6 +43,8 @@ static p8_vram_t memory;
 static p8_graphics_t graphics;
 static replay_source_t source;
 static input_step_t step;
+static bindings_t bindings;
+static replay_source_bindings_report_t report;
 static uint8_t record[SAVE_STATE_MAX_BYTES];
 static uint8_t stored[SAVE_STATE_MAX_BYTES];
 
@@ -50,18 +52,22 @@ static int game_is_running(void) {
     return main_economy_typed() != NULL && economy_score_difficulty() != NULL;
 }
 
-static void boot(const char *path) {
+/* Returns 0, with report.message filled, when the recording's bindings cannot be played. */
+static int boot(const char *path) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
     assert(replay_source_seed_storage(&source));
+    replay_source_bindings_status_t status = replay_source_read_bindings(&source, &bindings_compiled, &bindings, &report);
+    if (status != REPLAY_SOURCE_BINDINGS_DEFAULT && status != REPLAY_SOURCE_BINDINGS_FIXTURE) return 0;
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
     dispatch_context_set_input(&source.recording);
     cart_load();
     cart_init();
-    input_step_init(&step);
+    input_step_init(&step, &bindings);
+    return 1;
 }
 
 /* snapshot: when not NULL, captured between the update and the draw. */
@@ -106,7 +112,10 @@ static int run_side(side_t side, const char *path, int before, int after, side_r
     int count = 0;
     int writes = 0;
     int title_seen = 0;
-    boot(path);
+    if (!boot(path)) {
+        snprintf(result->report, sizeof result->report, "%s", report.message);
+        return 1;
+    }
     if (last >= source.recording.frame_count) {
         snprintf(result->report, sizeof result->report, "f%d is past the recording's %d frames", last,
                  source.recording.frame_count);

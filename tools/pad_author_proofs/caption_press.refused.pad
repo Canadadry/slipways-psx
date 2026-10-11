@@ -1,0 +1,5 @@
+# expect: caption_press.refused.pad:5: frame 102: caption: a button down 89 frames after the caption appeared, at least 90
+title 12 reasonable
+caption x
+idle 89
+probe 256 250

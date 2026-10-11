@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { LINE_CAP = 256, MAX_WORDS = 7, PAD_BUTTONS_MASK = (P8_PAD_SELECT << 1) - 1, PAD_SCRIPT_LINE_WORDS = 17 };
+enum { LINE_CAP = 256, MAX_WORDS = 7, PAD_BUTTONS_MASK = (P8_PAD_BUTTON_12 << 1) - 1, PAD_SCRIPT_LINE_WORDS = 17 };
 
 typedef struct {
     const char *at;
@@ -182,7 +182,7 @@ int pad_log_save(const pad_log_t *log, const char *path) {
     p8_input_frame_t *frames = calloc((size_t)log->frame_count, sizeof *frames);
     if (frames == NULL) return 0;
     for (int frame = 0; frame < log->frame_count; frame++) frames[frame].pad_buttons = log->pad_buttons[frame];
-    int saved = p8_input_save(frames, log->frame_count, path);
+    int saved = p8_input_save(frames, log->frame_count, path, NULL);
     free(frames);
     return saved;
 }

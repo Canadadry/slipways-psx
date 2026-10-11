@@ -1,5 +1,7 @@
 #include "p8/input.h"
 
+#include "game/bindings.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,22 +48,10 @@ static int has_pad_header(const char *json, const char *head_end) {
     return strncmp(p, "\"pad\"", 5) == 0;
 }
 
-/* Indexed by bit: also the order a pad frame is saved in. */
-static const char *const pad_button_names[] = {
-    "up", "down", "left", "right", "cross", "circle", "square", "triangle", "l1", "r1", "start", "select",
-};
-#define PAD_BUTTON_COUNT ((int)(sizeof(pad_button_names) / sizeof(pad_button_names[0])))
-
-static int pad_button_from_name(const char *name, size_t length) {
-    for (int bit = 0; bit < PAD_BUTTON_COUNT; bit++) {
-        if (strlen(pad_button_names[bit]) == length && strncmp(pad_button_names[bit], name, length) == 0) {
-            return 1 << bit;
-        }
-    }
-    return 0;
+static int is_json_separator(char c) {
+    return c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t';
 }
 
-/* Fills only out->pad_buttons, which must start at 0. */
 static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
     static const char *const mouse_keys[] = {"\"mouse_x\"", "\"mouse_y\"", "\"mouse_buttons\"", "\"dpad\""};
     for (size_t i = 0; i < sizeof(mouse_keys) / sizeof(mouse_keys[0]); i++) {
@@ -80,26 +70,20 @@ static int parse_pad_frame(const char *obj, p8_input_frame_t *out) {
     p++;
 
     for (;;) {
-        while (*p == ' ' || *p == ',' || *p == '\n' || *p == '\r' || *p == '\t') {
+        while (is_json_separator(*p)) {
             p++;
         }
         if (*p == ']') {
             return 1;
         }
-        if (*p != '"') {
+        const char *end = NULL;
+        int number = bindings_read_button_number(p, &end);
+        int ends_element = is_json_separator(*end) || *end == ']';
+        if (number == 0 || !ends_element || (out->pad_buttons & (1 << (number - 1)))) {
             return 0;
         }
-        const char *name = p + 1;
-        const char *name_end = strchr(name, '"');
-        if (!name_end) {
-            return 0;
-        }
-        int button = pad_button_from_name(name, (size_t)(name_end - name));
-        if (!button || (out->pad_buttons & button)) {
-            return 0;
-        }
-        out->pad_buttons |= button;
-        p = name_end + 1;
+        out->pad_buttons |= 1 << (number - 1);
+        p = end;
     }
 }
 
@@ -142,7 +126,7 @@ int p8_input_load(p8_input_t *input, const char *path) {
     }
 
     while (*cursor) {
-        while (*cursor == ' ' || *cursor == ',' || *cursor == '\n' || *cursor == '\r' || *cursor == '\t') {
+        while (is_json_separator(*cursor)) {
             cursor++;
         }
         if (*cursor == ']') {
@@ -216,15 +200,15 @@ int p8_input_load(p8_input_t *input, const char *path) {
 #define FRAME_LINE_MAX 160
 
 static int format_pad_frame_line(char *buf, size_t size, const p8_input_frame_t *fr) {
-    assert((fr->pad_buttons & ~((1 << PAD_BUTTON_COUNT) - 1)) == 0 && "a bit past P8_PAD_SELECT has no name to save");
+    assert((fr->pad_buttons & ~((1 << P8_PAD_BUTTON_COUNT) - 1)) == 0 && "a bit past P8_PAD_BUTTON_12 has no button number");
     int used = snprintf(buf, size, "    { \"pad\": [");
     const char *separator = "";
-    for (int bit = 0; bit < PAD_BUTTON_COUNT; bit++) {
+    for (int bit = 0; bit < P8_PAD_BUTTON_COUNT; bit++) {
         if (used < 0 || (size_t)used >= size) {
             return 0;
         }
         if (fr->pad_buttons & (1 << bit)) {
-            used += snprintf(buf + used, size - (size_t)used, "%s\"%s\"", separator, pad_button_names[bit]);
+            used += snprintf(buf + used, size - (size_t)used, "%s%d", separator, bit + 1);
             separator = ", ";
         }
     }
@@ -235,7 +219,13 @@ static int format_pad_frame_line(char *buf, size_t size, const p8_input_frame_t 
     return rc > 0 && (size_t)(used + rc) < size;
 }
 
-int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path) {
+static void assert_bare_header_members(const char *members) {
+    assert((!members || (members[0] == '"' && !strchr(", \t\n\r", members[strlen(members) - 1]))) &&
+           "header members are bare JSON members: no leading indent, no trailing comma");
+}
+
+int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *path, const char *header_members) {
+    assert_bare_header_members(header_members);
     if (!frames || frame_count <= 0) {
         return 0;
     }
@@ -254,8 +244,11 @@ int p8_input_save(const p8_input_frame_t *frames, int frame_count, const char *p
         return 0;
     }
 
-    int ok = 1;
-    if (fputs(JSON_PREFIX, f) < 0) {
+    int ok = fputs(JSON_HEADER, f) >= 0;
+    if (ok && header_members) {
+        ok = fputs(HEADER_MEMBER_INDENT, f) >= 0 && fputs(header_members, f) >= 0 && fputs(HEADER_MEMBER_END, f) >= 0;
+    }
+    if (ok && fputs(JSON_FRAMES_OPEN, f) < 0) {
         ok = 0;
     }
     for (int i = 0; ok && i < frame_count; i++) {
@@ -301,6 +294,7 @@ int p8_input_append(const p8_input_frame_t *frame, const char *path, long *tail_
 
     int fresh = (*tail_offset <= 0);
     const char *member = (fresh && header_member) ? header_member : NULL;
+    assert_bare_header_members(member);
     long start = fresh ? 0 : *tail_offset;
 
     char fixed_tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];

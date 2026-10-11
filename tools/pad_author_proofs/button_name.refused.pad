@@ -1,0 +1,4 @@
+# expect: tap: unknown buttons 'cross'
+title 12 reasonable
+idle 4
+tap cross

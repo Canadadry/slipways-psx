@@ -5,6 +5,7 @@
 #include "engine/frame_zone.h"
 #include "engine/geom.h"
 #include "game/background.h"
+#include "game/cheat.h"
 #include "game/main_economy.h"
 #include "game/menu.h"
 #include "game/message_box.h"
@@ -53,7 +54,6 @@ static int game_unseen(const pad_nav_t *nav) {
     return economy != NULL && entity_get(nav->game) != &economy->header;
 }
 
-/* Between the update that creates a game and the first step that sees it, the mode reset_on_new_game will give. */
 static pad_nav_map_mode_t map_mode_now(const pad_nav_t *nav) {
     if (!game_unseen(nav)) {
         return nav->map_mode;
@@ -125,7 +125,7 @@ entity_t *pad_nav_first_item(void) {
     return pad_panel_first_item();
 }
 
-entity_t *pad_nav_neighbor(const entity_t *item, int direction) {
+entity_t *pad_nav_neighbor(const entity_t *item, pad_direction_t direction) {
     return pad_panel_neighbor(item, direction);
 }
 
@@ -135,7 +135,7 @@ static void reset_aim_mode(pad_nav_t *nav) {
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
         nav->held_frames[i] = 0;
     }
-    nav->cross_engaged = 0;
+    nav->probe_or_fold_engaged = 0;
 }
 
 static int pan_speed(int held_frames) {
@@ -148,26 +148,30 @@ static int pan_speed(int held_frames) {
     return held_frames <= 40 ? 2 : 4;
 }
 
-static void aim_pan(pad_nav_t *nav, int pad_buttons) {
+static void aim_pan(pad_nav_t *nav, bindings_mode_t mode, int pad_buttons) {
+    static const bindings_action_t pan_action[PAD_JUMP_DIRECTIONS] = {
+        BINDINGS_ACTION_PAN_UP, BINDINGS_ACTION_PAN_DOWN, BINDINGS_ACTION_PAN_LEFT, BINDINGS_ACTION_PAN_RIGHT
+    };
+    assert(bindings_mode_has_action(mode, BINDINGS_ACTION_PAN_UP) &&
+           "aim_pan: a mode with pan_* actions (aim or placement)");
     int speed[PAD_JUMP_DIRECTIONS];
     for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        if (!(pad_buttons & pad_jump_direction(i))) {
+        if (!(pad_buttons & bindings_mask(&nav->bindings, mode, pan_action[i]))) {
             nav->held_frames[i] = 0;
         } else if (nav->held_frames[i] < HELD_FRAMES_CAP) {
             nav->held_frames[i]++;
         }
         speed[i] = pan_speed(nav->held_frames[i]);
     }
-    assert(pad_jump_direction(0) == P8_PAD_UP && pad_jump_direction(1) == P8_PAD_DOWN &&
-           pad_jump_direction(2) == P8_PAD_LEFT && pad_jump_direction(3) == P8_PAD_RIGHT &&
-           "aim_pan: speed[] is indexed Up, Down, Left, Right");
+    assert(pad_jump_direction(0) == PAD_DIRECTION_UP && pad_jump_direction(1) == PAD_DIRECTION_DOWN &&
+           pad_jump_direction(2) == PAD_DIRECTION_LEFT && pad_jump_direction(3) == PAD_DIRECTION_RIGHT &&
+           "aim_pan: speed[] and pan_action[] are indexed Up, Down, Left, Right");
     camera_t *camera = main_camera_typed();
     if (camera != NULL) {
         camera_pan(camera, speed[3] - speed[2], speed[1] - speed[0]);
     }
 }
 
-/* No pad_jump_init: the seeded flag must survive, or a reset within a game reseeds on the first colony. */
 static void reset_map_mode(pad_nav_t *nav) {
     nav->map_mode = PAD_NAV_MAP_JUMP;
     pad_jump_hover(&nav->jump, NULL);
@@ -184,7 +188,9 @@ static void close_panels(pad_nav_t *nav) {
     pad_cycle_set(&nav->cycle, PAD_CYCLE_CLOSED);
 }
 
-void pad_nav_init(pad_nav_t *nav) {
+void pad_nav_init(pad_nav_t *nav, const bindings_t *bindings) {
+    assert(bindings != NULL && "pad_nav_init: the caller hands its compiled table, never NULL");
+    nav->bindings = *bindings;
     nav->focus = ENTITY_ID_NONE;
     pad_build_init(&nav->build);
     pad_cycle_init(&nav->cycle);
@@ -194,14 +200,26 @@ void pad_nav_init(pad_nav_t *nav) {
     reset_map_mode(nav);
     nav->release_pending = 0;
     nav->pause_due = 0;
-    nav->pause_cross_armed = 0;
-    nav->menu_cross_armed = 0;
+    nav->pause_choose_row_armed = 0;
+    nav->menu_choose_row_armed = 0;
     nav->previous_pad = 0;
     nav->chord_held = 0;
     nav->left_was_down = 0;
     nav->cursor_x = 0;
     nav->cursor_y = 0;
     reset_aim_mode(nav);
+}
+
+const bindings_t *pad_nav_bindings(const pad_nav_t *nav) {
+    return &nav->bindings;
+}
+
+static int action_pressed(const pad_nav_t *nav, int pressed, bindings_mode_t mode, bindings_action_t action) {
+    return (pressed & bindings_mask(&nav->bindings, mode, action)) != 0;
+}
+
+static int action_held(const pad_nav_t *nav, int pad_buttons, bindings_mode_t mode, bindings_action_t action) {
+    return (pad_buttons & bindings_mask(&nav->bindings, mode, action)) != 0;
 }
 
 entity_t *pad_nav_focus(const pad_nav_t *nav) {
@@ -217,19 +235,42 @@ static int armed_panel_open(const pad_nav_t *nav) {
     return (on_the_map(nav) || cycle_open(nav)) && pad_nav_panel_open() && !pause_menu_shown();
 }
 
-static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, p8_input_frame_t *played) {
+static bindings_mode_t panel_mode(const pad_nav_t *nav) {
     if (pause_menu_shown()) {
-        nav->pause_cross_armed |= (pressed & P8_PAD_CROSS) != 0;
-        if (!nav->pause_cross_armed) {
-            pad_buttons &= ~P8_PAD_CROSS;
-        }
-    } else if (armed_panel_open(nav)) {
-        nav->menu_cross_armed |= (pressed & P8_PAD_CROSS) != 0;
-        if (!nav->menu_cross_armed) {
-            pad_buttons &= ~P8_PAD_CROSS;
+        return BINDINGS_MODE_PAUSE;
+    }
+    if (main_economy_typed() == NULL) {
+        return BINDINGS_MODE_TITLE;
+    }
+    return cycle_open(nav) ? BINDINGS_MODE_PANELS : BINDINGS_MODE_MENU;
+}
+
+static pad_direction_t first_pressed_move(const pad_nav_t *nav, int pressed, bindings_mode_t mode) {
+    static const bindings_action_t move_action[PAD_JUMP_DIRECTIONS] = {
+        BINDINGS_ACTION_MOVE_UP, BINDINGS_ACTION_MOVE_DOWN, BINDINGS_ACTION_MOVE_LEFT, BINDINGS_ACTION_MOVE_RIGHT
+    };
+    assert(bindings_mode_has_action(mode, BINDINGS_ACTION_MOVE_UP) &&
+           "first_pressed_move: a mode with move_* actions (title, menu, pause or panels)");
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
+        if (action_pressed(nav, pressed, mode, move_action[i])) {
+            return pad_jump_direction(i);
         }
     }
-    nav->focus = entity_id_link(pad_panel_step(entity_get(nav->focus), pad_buttons, direction, &nav->cursor_x,
+    return PAD_DIRECTION_NONE;
+}
+
+static void panel_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
+    bindings_mode_t mode = panel_mode(nav);
+    pad_direction_t direction = first_pressed_move(nav, pressed, mode);
+    int choose_held = action_held(nav, pad_buttons, mode, BINDINGS_ACTION_CHOOSE_ROW);
+    if (pause_menu_shown()) {
+        nav->pause_choose_row_armed |= action_pressed(nav, pressed, BINDINGS_MODE_PAUSE, BINDINGS_ACTION_CHOOSE_ROW);
+        choose_held &= nav->pause_choose_row_armed;
+    } else if (armed_panel_open(nav)) {
+        nav->menu_choose_row_armed |= action_pressed(nav, pressed, mode, BINDINGS_ACTION_CHOOSE_ROW);
+        choose_held &= nav->menu_choose_row_armed;
+    }
+    nav->focus = entity_id_link(pad_panel_step(entity_get(nav->focus), choose_held, direction, &nav->cursor_x,
                                                &nav->cursor_y, &played->mouse_buttons));
 }
 
@@ -264,7 +305,6 @@ static void enter_aim_mode(pad_nav_t *nav) {
     pad_jump_repeat_clear(&nav->jump);
 }
 
-/* The ui presses the highest layer first: a HUD item over the planet takes the press. */
 static int pressed_before(const entity_t *planet, int x, int y) {
     return pad_panel_entity_under(x, y, p8_fixed_flr_int(planet->layer), pad_panel_is_candidate) != NULL;
 }
@@ -340,30 +380,30 @@ static int select_tap(pad_nav_t *nav, const entity_t *current, const entity_t **
     return jumps;
 }
 
-/* On a click's release frame × starts nothing: finish_step forces its press up. */
-static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release, int still,
+/* On a click's release frame probe_or_fold starts nothing: finish_step forces its press up. */
+static void aim_mode_step(pad_nav_t *nav, int pad_buttons, int pressed, int back_returns, int release, int still,
                           int select_tapped, p8_input_frame_t *played, const entity_t **shown) {
     nav->focus = ENTITY_ID_NONE;
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
     if (!still) {
-        aim_pan(nav, pad_buttons);
+        aim_pan(nav, BINDINGS_MODE_AIM, pad_buttons);
     }
-    if (select_tapped && !nav->cross_engaged && select_tap(nav, NULL, shown)) {
+    if (select_tapped && !nav->probe_or_fold_engaged && select_tap(nav, NULL, shown)) {
         return;
     }
-    if ((pressed & P8_PAD_SQUARE) && !nav->cross_engaged) {
+    if (action_pressed(nav, pressed, BINDINGS_MODE_AIM, BINDINGS_ACTION_LEAVE_AIM) && !nav->probe_or_fold_engaged) {
         leave_aim_mode(nav);
         return;
     }
-    if (!(pad_buttons & P8_PAD_CROSS)) {
-        nav->cross_engaged = 0;
-    } else if ((pressed & P8_PAD_CROSS) && !release) {
-        nav->cross_engaged = entity_under(nav->cursor_x, nav->cursor_y, presses_off_background) == NULL;
+    if (!action_held(nav, pad_buttons, BINDINGS_MODE_AIM, BINDINGS_ACTION_PROBE_OR_FOLD)) {
+        nav->probe_or_fold_engaged = 0;
+    } else if (action_pressed(nav, pressed, BINDINGS_MODE_AIM, BINDINGS_ACTION_PROBE_OR_FOLD) && !release) {
+        nav->probe_or_fold_engaged = entity_under(nav->cursor_x, nav->cursor_y, presses_off_background) == NULL;
     }
-    if (nav->cross_engaged) {
+    if (nav->probe_or_fold_engaged) {
         played->mouse_buttons = P8_MOUSE_LEFT;
-    } else if (circle_returns) {
+    } else if (back_returns) {
         leave_aim_mode(nav);
     }
 }
@@ -383,7 +423,7 @@ static void reset_on_new_game(pad_nav_t *nav) {
 }
 
 /* Never pause, which only pause_step closes: cleared on a release frame, the resumed carry would press the map. */
-static void circle_closes_the_box(void) {
+static void back_closes_the_box(void) {
     if (pad_panel_box_open() && !pause_menu_shown()) {
         ui_clear_ephemerals(main_ui());
     }
@@ -444,7 +484,6 @@ static cancelled_t unwind_sub_modes(pad_nav_t *nav) {
     return cancel_slipway(nav) ? CANCELLED_SLIPWAY : CANCELLED_NOTHING;
 }
 
-/* The score backdrop takes a press anywhere above the HUD, even on the bar's icon, and its on_click hides the panel. */
 static void leave_panel(pad_nav_t *nav, p8_input_frame_t *played) {
     if (!own_panel_up(nav)) {
         return;
@@ -456,13 +495,75 @@ static void leave_panel(pad_nav_t *nav, p8_input_frame_t *played) {
     }
 }
 
-static int one_shoulder(int pressed) {
-    return ((pressed & P8_PAD_R1) != 0) != ((pressed & P8_PAD_L1) != 0);
+static bindings_mode_t map_binding_mode(const pad_nav_t *nav) {
+    if (pad_nav_placing(nav) != NULL) {
+        return BINDINGS_MODE_PLACEMENT;
+    }
+    switch (map_mode_now(nav)) {
+    case PAD_NAV_MAP_AIM:
+        return BINDINGS_MODE_AIM;
+    case PAD_NAV_MAP_SLIPWAY:
+        return BINDINGS_MODE_SLIPWAY;
+    default:
+        return BINDINGS_MODE_JUMP;
+    }
 }
 
-static void shoulder_switch(pad_nav_t *nav, int pressed, p8_input_frame_t *played) {
+/* The mode the dispatch would run from the nav state at the call: decide it before anything is unwound. */
+static bindings_mode_t nav_mode(const pad_nav_t *nav) {
+    if (on_the_map(nav) && pad_nav_placing(nav) != NULL) {
+        return BINDINGS_MODE_PLACEMENT;
+    }
+    if (pad_nav_panel_open()) {
+        return panel_mode(nav);
+    }
+    if (cycle_open(nav)) {
+        return BINDINGS_MODE_PANELS;
+    }
+    if (pad_build_is_open(&nav->build)) {
+        return BINDINGS_MODE_BUILD_BAR;
+    }
+    return map_binding_mode(nav);
+}
+
+static bindings_mode_t back_mode(const pad_nav_t *nav) {
+    if (pad_panel_box_open() && !pause_menu_shown()) {
+        return cycle_open(nav) ? BINDINGS_MODE_PANELS : BINDINGS_MODE_MENU;
+    }
+    return map_binding_mode(nav);
+}
+
+static bindings_action_t back_action(bindings_mode_t mode) {
+    switch (mode) {
+    case BINDINGS_MODE_JUMP:
+    case BINDINGS_MODE_AIM:
+        return BINDINGS_ACTION_BACK;
+    case BINDINGS_MODE_SLIPWAY:
+        return BINDINGS_ACTION_CANCEL_SLIPWAY;
+    case BINDINGS_MODE_PLACEMENT:
+        return BINDINGS_ACTION_CANCEL_PLACEMENT;
+    case BINDINGS_MODE_MENU:
+        return BINDINGS_ACTION_CLOSE_MENU;
+    case BINDINGS_MODE_PANELS:
+        return BINDINGS_ACTION_CLOSE_PANEL;
+    default:
+        assert(!"back_action: back_mode returns only a map, menu or panels mode");
+        return BINDINGS_ACTION_BACK;
+    }
+}
+
+static bindings_action_t tech_shoulder_action(bindings_mode_t mode) {
+    return mode == BINDINGS_MODE_PANELS ? BINDINGS_ACTION_NEXT_PANEL : BINDINGS_ACTION_OPEN_TECH_PANEL;
+}
+
+static int one_shoulder(const pad_nav_t *nav, int pressed, bindings_mode_t mode) {
+    return action_pressed(nav, pressed, mode, tech_shoulder_action(mode)) !=
+           action_pressed(nav, pressed, mode, BINDINGS_ACTION_OPEN_BUILD_BAR);
+}
+
+static void shoulder_switch(pad_nav_t *nav, int pressed, bindings_mode_t mode, p8_input_frame_t *played) {
     leave_panel(nav, played);
-    if (pressed & P8_PAD_R1) {
+    if (action_pressed(nav, pressed, mode, tech_shoulder_action(mode))) {
         pad_build_close(&nav->build);
         pad_cycle_set(&nav->cycle, pad_cycle_next(pad_cycle_panel(&nav->cycle)));
     } else if (pad_build_is_open(&nav->build)) {
@@ -473,7 +574,7 @@ static void shoulder_switch(pad_nav_t *nav, int pressed, p8_input_frame_t *playe
     }
 }
 
-/* Off screen, so × finds no left_press under the cursor. */
+/* Off screen, so a press finds no left_press under the cursor. */
 enum { PARKED_X = -16, PARKED_Y = -16 };
 
 enum { YEAR_SKIP_BUTTON = 1, PAUSE_BUTTON = 4 };
@@ -483,14 +584,21 @@ static entity_t *cycle_button(const pad_nav_t *nav) {
     return index != 0 ? (entity_t *)galaxy_menu_find_button(index) : NULL;
 }
 
-static void build_step(pad_nav_t *nav, int pressed, int direction, int release, p8_input_frame_t *played) {
+static void build_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t *played) {
     entity_t *icon = pad_build_focus(&nav->build);
-    if (icon != NULL && (pressed & P8_PAD_CROSS) && !release) {
+    if (icon != NULL && action_pressed(nav, pressed, BINDINGS_MODE_BUILD_BAR, BINDINGS_ACTION_TAKE_STRUCTURE) && !release) {
         played->mouse_buttons = P8_MOUSE_LEFT;
         nav->placement = PAD_NAV_PLACEMENT_PRESSED;
     }
-    if (direction == P8_PAD_LEFT || direction == P8_PAD_RIGHT) {
-        pad_build_pick(&nav->build, direction == P8_PAD_LEFT ? -1 : 1);
+    /* The bar has no up or down: it borrows the panels' pair, which ranks before left and right. */
+    if (action_pressed(nav, pressed, BINDINGS_MODE_PANELS, BINDINGS_ACTION_MOVE_UP) ||
+        action_pressed(nav, pressed, BINDINGS_MODE_PANELS, BINDINGS_ACTION_MOVE_DOWN)) {
+        return;
+    }
+    if (action_pressed(nav, pressed, BINDINGS_MODE_BUILD_BAR, BINDINGS_ACTION_PICK_LEFT)) {
+        pad_build_pick(&nav->build, -1);
+    } else if (action_pressed(nav, pressed, BINDINGS_MODE_BUILD_BAR, BINDINGS_ACTION_PICK_RIGHT)) {
+        pad_build_pick(&nav->build, 1);
     }
 }
 
@@ -515,15 +623,14 @@ static void place_cursor(pad_nav_t *nav) {
     }
 }
 
-static void bar_or_cycle_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release,
-                              p8_input_frame_t *played) {
+static void bar_or_cycle_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, p8_input_frame_t *played) {
     if (pad_nav_panel_open()) {
-        panel_step(nav, pad_buttons, pressed, direction, played);
+        panel_step(nav, pad_buttons, pressed, played);
         return;
     }
     nav->focus = ENTITY_ID_NONE;
     if (pad_build_is_open(&nav->build)) {
-        build_step(nav, pressed, direction, release, played);
+        build_step(nav, pressed, release, played);
     }
     place_cursor(nav);
 }
@@ -562,16 +669,16 @@ static void cancel_point(pad_nav_t *nav) {
 
 static void placement_step(pad_nav_t *nav, int pad_buttons, int pressed, p8_input_frame_t *played) {
     nav->focus = ENTITY_ID_NONE;
-    nav->cross_engaged = 0;
-    if ((pressed & P8_PAD_CIRCLE) || pad_nav_panel_open()) {
+    nav->probe_or_fold_engaged = 0;
+    if (action_pressed(nav, pressed, BINDINGS_MODE_PLACEMENT, BINDINGS_ACTION_CANCEL_PLACEMENT) || pad_nav_panel_open()) {
         cancel_point(nav);
         return;
     }
     nav->cursor_x = P8_SCREEN_WIDTH / 2;
     nav->cursor_y = P8_SCREEN_HEIGHT / 2;
-    aim_pan(nav, pad_buttons);
-    /* × drops by letting the held left button go for one frame: the ui's drop runs the cart's rules. */
-    if (pressed & P8_PAD_CROSS) {
+    aim_pan(nav, BINDINGS_MODE_PLACEMENT, pad_buttons);
+    /* place_structure drops by letting the held left button go for one frame: the ui's drop runs the cart's rules. */
+    if (action_pressed(nav, pressed, BINDINGS_MODE_PLACEMENT, BINDINGS_ACTION_PLACE_STRUCTURE)) {
         return;
     }
     played->mouse_buttons = P8_MOUSE_LEFT;
@@ -626,7 +733,7 @@ static int click_hovered(pad_nav_t *nav, const entity_t *hovered, p8_input_frame
         return 0;
     }
     click(nav, played);
-    nav->menu_cross_armed = 0;
+    nav->menu_choose_row_armed = 0;
     return 1;
 }
 
@@ -635,7 +742,7 @@ static void press_slipway_start(pad_nav_t *nav, const entity_t *start, p8_input_
     played->mouse_buttons = P8_MOUSE_LEFT;
 }
 
-static int cross_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
+static int act_on_hovered_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_input_frame_t *played) {
     if (!pad_slipway_can_start(hovered) || !pressable(hovered) || nav->left_was_down) {
         return 0;
     }
@@ -647,7 +754,7 @@ static int cross_starts_slipway(pad_nav_t *nav, const entity_t *hovered, p8_inpu
     return 1;
 }
 
-static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
+static void jump_from(pad_nav_t *nav, const entity_t *hovered, pad_direction_t direction) {
     entity_list_t candidates = live_candidates();
     entity_t *target = pad_target_pick(hovered, direction, &candidates);
     if (target != NULL) {
@@ -655,20 +762,21 @@ static void jump_from(pad_nav_t *nav, const entity_t *hovered, int direction) {
     }
 }
 
-static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int circle_returns,
+static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int back_returns,
                       int select_tapped, p8_input_frame_t *played, const entity_t **shown) {
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
     seed_hovered(nav);
-    if (pressed & P8_PAD_SQUARE) {
+    if (action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ENTER_AIM)) {
         enter_aim_mode(nav);
         return;
     }
     /* Before the click check: the hold-repeat count keeps running through a click's frames. */
-    int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
+    pad_direction_t direction =
+        pad_jump_repeat_step(&nav->jump, &nav->bindings, BINDINGS_MODE_JUMP, pad_buttons, pressed);
     entity_t *hovered = pad_jump_hovered(&nav->jump);
     int clicking = release || nav->release_pending;
-    entity_t *back = circle_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
+    entity_t *back = back_returns && !clicking ? pad_back_target(&nav->back, hovered) : NULL;
     if (back != NULL) {
         pad_jump_hover(&nav->jump, back);
         edge_scroll(back);
@@ -681,23 +789,25 @@ static void jump_step(pad_nav_t *nav, int pad_buttons, int pressed, int release,
         nav->cursor_y = P8_SCREEN_HEIGHT / 2;
         return;
     }
-    if (!clicking && (pressed & P8_PAD_TRIANGLE)) {
+    if (!clicking && action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_OPEN_MENU)) {
         clicking = click_hovered(nav, hovered, played);
     }
-    if (!clicking && (pressed & P8_PAD_CROSS) && hovered->state == ENTITY_STATE_KNOWN) {
+    if (!clicking && action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ACT_ON_HOVERED)
+        && hovered->state == ENTITY_STATE_KNOWN) {
         clicking = click_hovered(nav, hovered, played);
         if (clicking) {
             pad_back_record(&nav->back, hovered);
         }
     }
-    if (!clicking && (pressed & P8_PAD_CROSS) && cross_starts_slipway(nav, hovered, played)) {
+    if (!clicking && action_pressed(nav, pressed, BINDINGS_MODE_JUMP, BINDINGS_ACTION_ACT_ON_HOVERED)
+        && act_on_hovered_starts_slipway(nav, hovered, played)) {
         pad_back_record(&nav->back, hovered);
         return;
     }
     if (!clicking && select_tapped && select_tap(nav, hovered, shown)) {
         return;
     }
-    if (direction != 0 && !clicking) {
+    if (direction != PAD_DIRECTION_NONE && !clicking) {
         jump_from(nav, hovered, direction);
         hovered = pad_jump_hovered(&nav->jump);
     }
@@ -722,7 +832,7 @@ static int press_start_again(pad_nav_t *nav, const entity_t *start, p8_input_fra
     return 1;
 }
 
-static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circle_returns, int release,
+static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int back_returns, int release,
                          p8_input_frame_t *played, const entity_t **shown) {
     reset_aim_mode(nav);
     nav->focus = ENTITY_ID_NONE;
@@ -752,21 +862,23 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
         }
         nav->slipway.phase = PAD_SLIPWAY_HELD;
     }
-    if (circle_returns) {
+    if (back_returns) {
         drop_held_slipway();
         back_to_jump_mode(nav, start);
         screen_point(start, &nav->cursor_x, &nav->cursor_y);
         return;
     }
-    int direction = pad_jump_repeat_step(&nav->jump, pad_buttons, pressed);
+    pad_direction_t direction =
+        pad_jump_repeat_step(&nav->jump, &nav->bindings, BINDINGS_MODE_SLIPWAY, pad_buttons, pressed);
     entity_t *target = pad_nav_slipway_target(nav);
     nav->slipway.target = entity_id_link(target);
-    if ((pressed & P8_PAD_CROSS) && !release && target != NULL && pressable(target)) {
+    int build_on_target = action_pressed(nav, pressed, BINDINGS_MODE_SLIPWAY, BINDINGS_ACTION_BUILD_ON_TARGET);
+    if (build_on_target && !release && target != NULL && pressable(target)) {
         pad_slipway_release(&nav->slipway, pad_slipway_between(start, target) != NULL);
         screen_point(target, &nav->cursor_x, &nav->cursor_y);
         return;
     }
-    if (direction != 0 && !(pressed & P8_PAD_CROSS)) {
+    if (direction != PAD_DIRECTION_NONE && !build_on_target) {
         entity_list_t candidates = live_candidates();
         entity_list_t targets = pad_slipway_candidates(frame_zone(), &candidates, start);
         entity_t *picked = pad_target_pick(target != NULL ? target : start, direction, &targets);
@@ -782,28 +894,29 @@ static void slipway_step(pad_nav_t *nav, int pad_buttons, int pressed, int circl
     *shown = aimed;
 }
 
-static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int direction, int release, int circle_returns,
+static void map_step(pad_nav_t *nav, int pad_buttons, int pressed, int release, int back_returns,
                      pad_select_event_t select, int year_release, p8_input_frame_t *played, const entity_t **shown,
                      int *repeat_kept) {
     if (pad_nav_placing(nav) != NULL) {
         placement_step(nav, pad_buttons, pressed, played);
     } else if (pad_nav_panel_open()) {
         reset_aim_mode(nav);
-        if ((pressed & P8_PAD_TRIANGLE) && !release && !nav->release_pending && planet_menu_open(nav)) {
+        if (action_pressed(nav, pressed, BINDINGS_MODE_MENU, BINDINGS_ACTION_OPEN_MENU) && !release &&
+            !nav->release_pending && planet_menu_open(nav)) {
             ui_clear_ephemerals(main_ui());
         } else {
-            panel_step(nav, pad_buttons, pressed, direction, played);
+            panel_step(nav, pad_buttons, pressed, played);
         }
     } else if (pad_nav_aim_mode(nav)) {
-        aim_mode_step(nav, pad_buttons, pressed, circle_returns, release, year_release, select == PAD_SELECT_TAP, played,
+        aim_mode_step(nav, pad_buttons, pressed, back_returns, release, year_release, select == PAD_SELECT_TAP, played,
                       shown);
     } else if (nav->map_mode == PAD_NAV_MAP_SLIPWAY) {
-        slipway_step(nav, pad_buttons, pressed, circle_returns, release, played, shown);
+        slipway_step(nav, pad_buttons, pressed, back_returns, release, played, shown);
         *repeat_kept = 1;
     } else {
         assert(pad_nav_jump_mode(nav) &&
                "map_step: after placement, panels, aim and slipway mode, only jump mode is left");
-        jump_step(nav, pad_buttons, pressed, release, circle_returns, select == PAD_SELECT_TAP, played, shown);
+        jump_step(nav, pad_buttons, pressed, release, back_returns, select == PAD_SELECT_TAP, played, shown);
         *repeat_kept = 1;
     }
 }
@@ -815,12 +928,17 @@ static int switch_panels(pad_nav_t *nav, int pressed, int release, int foreign_w
         close_panels(nav);
         return 0;
     }
-    if (one_shoulder(pressed) && shoulders_can_switch(nav, release)) {
+    bindings_mode_t mode = nav_mode(nav);
+    if (one_shoulder(nav, pressed, mode) && shoulders_can_switch(nav, release)) {
         *cancelled = unwind_sub_modes(nav);
-        shoulder_switch(nav, pressed, played);
+        shoulder_switch(nav, pressed, mode, played);
         return 1;
     }
-    if (!on_the_map(nav) && (pressed & P8_PAD_CIRCLE) && !foreign_was_open && !release) {
+    /* The bar's state, not nav_mode: a box shown over the bar would read menu's buttons. */
+    int bar = pad_build_is_open(&nav->build);
+    int leaving = action_pressed(nav, pressed, bar ? BINDINGS_MODE_BUILD_BAR : BINDINGS_MODE_PANELS,
+                                 bar ? BINDINGS_ACTION_CLOSE_BAR : BINDINGS_ACTION_CLOSE_PANEL);
+    if (!on_the_map(nav) && leaving && !foreign_was_open && !release) {
         leave_panel(nav, played);
         close_panels(nav);
         return 1;
@@ -830,7 +948,7 @@ static int switch_panels(pad_nav_t *nav, int pressed, int release, int foreign_w
 
 static entity_t *pause_button_free(const pad_nav_t *nav, int release) {
     if (main_economy_typed() == NULL || pad_nav_panel_open() || release || map_action_due(nav) ||
-        nav->cross_engaged || cycle_open(nav)) {
+        nav->probe_or_fold_engaged || cycle_open(nav)) {
         return NULL;
     }
     return (entity_t *)galaxy_menu_find_button(PAUSE_BUTTON);
@@ -865,7 +983,7 @@ static int resume_placement(pad_nav_t *nav) {
 
 static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t *played) {
     if (pause_menu_shown()) {
-        if (!(pressed & (P8_PAD_START | P8_PAD_CIRCLE)) || release) {
+        if (!action_pressed(nav, pressed, BINDINGS_MODE_PAUSE, BINDINGS_ACTION_CLOSE_PAUSE) || release) {
             return 0;
         }
         nav->cursor_x = P8_SCREEN_WIDTH / 2;
@@ -875,7 +993,8 @@ static int pause_step(pad_nav_t *nav, int pressed, int release, p8_input_frame_t
     }
     int due = nav->pause_due;
     nav->pause_due = 0;
-    entity_t *button = due || (pressed & P8_PAD_START) ? pause_button_free(nav, release) : NULL;
+    int opening = due || action_pressed(nav, pressed, nav_mode(nav), BINDINGS_ACTION_PAUSE);
+    entity_t *button = opening ? pause_button_free(nav, release) : NULL;
     if (button == NULL) {
         return 0;
     }
@@ -916,7 +1035,13 @@ static void finish_step(pad_nav_t *nav, int release, const entity_t *shown, p8_i
 static int select_allowed(const pad_nav_t *nav, int panels_changing, int release) {
     return main_economy_typed() != NULL && on_the_map(nav) && !panels_changing && !pause_menu_shown() &&
            !pad_nav_panel_open() && (nav->map_mode == PAD_NAV_MAP_JUMP || nav->map_mode == PAD_NAV_MAP_AIM) &&
-           nav->placement == PAD_NAV_PLACEMENT_NONE && !nav->cross_engaged && !release && !nav->release_pending;
+           nav->placement == PAD_NAV_PLACEMENT_NONE && !nav->probe_or_fold_engaged && !release && !nav->release_pending;
+}
+
+/* Read in every mode, so the latch sees a Select held from elsewhere. Jump's and aim's buttons both count in either. */
+static int select_held(const pad_nav_t *nav, int pad_buttons) {
+    return action_held(nav, pad_buttons, BINDINGS_MODE_JUMP, BINDINGS_ACTION_SELECT_TAP_OR_YEAR) ||
+           action_held(nav, pad_buttons, BINDINGS_MODE_AIM, BINDINGS_ACTION_SELECT_TAP_OR_YEAR);
 }
 
 static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {
@@ -931,7 +1056,7 @@ static int select_ends_year(pad_nav_t *nav, p8_input_frame_t *played) {
 }
 
 static int without_chord(pad_nav_t *nav, int raw_buttons) {
-    const int face = P8_PAD_CROSS | P8_PAD_CIRCLE;
+    const int face = cheat_chord_buttons();
     if ((raw_buttons & ~nav->previous_pad & face) == face) {
         nav->chord_held = 1;
     } else if (!(raw_buttons & face)) {
@@ -943,24 +1068,23 @@ static int without_chord(pad_nav_t *nav, int raw_buttons) {
 void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     int pad_buttons = without_chord(nav, raw_buttons);
     int pressed = pad_buttons & ~nav->previous_pad;
-    int direction = pad_jump_first_direction(pressed);
     int release = nav->release_pending;
     nav->previous_pad = raw_buttons;
     nav->release_pending = 0;
     played->mouse_buttons = 0;
     const entity_t *shown = NULL;
     if (!pause_menu_shown()) {
-        nav->pause_cross_armed = 0;
+        nav->pause_choose_row_armed = 0;
     }
     if (!armed_panel_open(nav)) {
-        nav->menu_cross_armed = 0;
+        nav->menu_choose_row_armed = 0;
     }
     reset_on_new_game(nav);
     int panels_changed = begin_placement(nav);
     if (resume_placement(nav)) {
         release = 0;
     }
-    int select_down = (pad_buttons & P8_PAD_SELECT) != 0;
+    int select_down = select_held(nav, pad_buttons);
     if (!panels_changed && pause_step(nav, pressed, release, played)) {
         (void)pad_select_step(&nav->select, select_down, 0);
         pad_jump_repeat_clear(&nav->jump);
@@ -970,13 +1094,15 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         return;
     }
     int foreign_was_open = foreign_panel_open(nav);
-    int circle_returns = (pressed & P8_PAD_CIRCLE) && !pad_panel_box_open();
-    if (pressed & P8_PAD_CIRCLE) {
-        circle_closes_the_box();
-        if (circle_returns && on_the_map(nav) && shown_message_box() != NULL) {
+    bindings_mode_t back_in = back_mode(nav);
+    int back = bindings_mask(&nav->bindings, back_in, back_action(back_in));
+    int back_returns = (pressed & back) && !pad_panel_box_open();
+    if (pressed & back) {
+        back_closes_the_box();
+        if (back_returns && on_the_map(nav) && shown_message_box() != NULL) {
             message_box_close_shown();
-            circle_returns = 0;
-            pressed &= ~P8_PAD_CIRCLE;
+            back_returns = 0;
+            pressed &= ~back;
         }
     }
     if (pad_nav_panel_open()) {
@@ -1017,11 +1143,10 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         reset_aim_mode(nav);
         nav->focus = ENTITY_ID_NONE;
     } else if (on_the_map(nav)) {
-        map_step(nav, pad_buttons, pressed, direction, release, circle_returns, select, year_release, played, &shown,
-                 &repeat_kept);
+        map_step(nav, pad_buttons, pressed, release, back_returns, select, year_release, played, &shown, &repeat_kept);
     } else {
         reset_aim_mode(nav);
-        bar_or_cycle_step(nav, pad_buttons, pressed, direction, release, played);
+        bar_or_cycle_step(nav, pad_buttons, pressed, release, played);
     }
     if (!repeat_kept) {
         pad_jump_repeat_clear(&nav->jump);

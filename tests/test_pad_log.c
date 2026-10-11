@@ -124,7 +124,7 @@ static void test_a_step_holding_only_l2_adds_no_state(void) {
     char error[PAD_LOG_ERROR_CAP];
     assert(pad_log_parse_script("# l2 is no pad button\n\n10 L2\n20 CROSS L2\n30 -\n", &script, error));
     assert(script.count == 3);
-    assert(script.states[0] == 0 && script.states[1] == P8_PAD_CROSS && script.states[2] == 0);
+    assert(script.states[0] == 0 && script.states[1] == P8_PAD_BUTTON_5 && script.states[2] == 0);
 }
 
 static void assert_script_refused(const char *text, const char *expected_error) {

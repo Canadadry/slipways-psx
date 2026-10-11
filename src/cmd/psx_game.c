@@ -9,6 +9,7 @@
 
 #include "devtools/state_format.h"
 #include "engine/dispatch_context.h"
+#include "game/bindings.h"
 #include "game/cart.h"
 #include "game/input_step.h"
 #include "game/save_storage.h"
@@ -78,7 +79,7 @@ int main(void) {
     int frame_vsync = start_vsync - 1;
     int previous_pad = 0;
     input_step_t step;
-    input_step_init(&step);
+    input_step_init(&step, &bindings_default);
     int cheat_activations = 0;
     for (g_frame = 0; *PSX_PAD_WORD(PSX_PAD_END_OFFSET) != PSX_PAD_END_MAGIC; g_frame++) {
         if (VSync(-1) == frame_vsync) VSync(0);

@@ -8,6 +8,7 @@
 #include "game/main_economy.h"
 #include "engine/entity_class.h"
 #include "game/data_init.h"
+#include "game/demo_overlay.h"
 #include "engine/dispatch_context.h"
 #include "game/economy.h"
 #include "game/economy_score.h"
@@ -44,6 +45,10 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 
+static int g_title_built;
+static int g_save_cut;
+static int g_demo_frame = CART_NO_DEMO_FRAME;
+
 static void quit_game_zone(void) {
     entity_registry_abandon_live_entities();
     cart_flush_exit_queue();
@@ -57,6 +62,9 @@ void cart_load(void) {
     p8_vram_t *memory;
 
     quit_game_zone();
+    g_title_built = 0;
+    g_save_cut = 0;
+    g_demo_frame = CART_NO_DEMO_FRAME;
     entity_init();
     assert(entity_ready() && "cart_load: entity_init() must run before every class that extends entity_t");
     camera_init();
@@ -143,7 +151,6 @@ void cart_shutdown(void) {
     entity_shutdown();
 }
 
-/* Shared by the title decode, the resume and the frame-end capture: they never overlap. */
 static save_state_t g_save_state;
 static uint8_t g_save_bytes[SAVE_STATE_MAX_BYTES];
 
@@ -152,7 +159,6 @@ static void resume_saved_game(button_t *self) {
     cart_resume_game(&g_save_state);
 }
 
-/* A bad save is a normal case: no resume row, and the stored bytes are left alone. */
 static button_fn_t title_resume_handler(void) {
     int count = save_storage_read(g_save_bytes, (int)sizeof g_save_bytes);
 
@@ -166,7 +172,6 @@ void cart_init(void) {
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
-    /* An empty generation needs no flip, and flipping it would trip flip_zone_flip's assert. */
     if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
     reset_world(NULL);
     research_expire_project_ids();
@@ -181,6 +186,31 @@ void cart_init(void) {
 
     help_set_resume_game(title_resume_handler());
     (void)help_screen_new();
+    g_title_built = 1;
+}
+
+int cart_title_shown(void) {
+    return g_title_built && shown_message_box() == NULL && entity_registry_count_tagged(TAG_MESSAGE_BOX) == 0;
+}
+
+/* Between frames only, never from a handler inside ui_update or update_entities: it releases
+   every live entity while they are still being walked. */
+void cart_return_to_title(void) {
+    entity_registry_abandon_live_entities();
+    cart_flush_exit_queue();
+    /* After the flush: reset_world's own abandon would walk the released entries. */
+    entity_registry_forget_registries();
+    g_save_cut = 0;
+    g_demo_frame = CART_NO_DEMO_FRAME;
+    cart_init();
+}
+
+void cart_cut_save(void) {
+    g_save_cut = 1;
+}
+
+void cart_set_demo_frame(int frame) {
+    g_demo_frame = frame;
 }
 
 void cart_init_method(button_t *self) {
@@ -214,9 +244,9 @@ static void start_world(const button_t *difficulty) {
     assert(economy_ready() && structure_ready() && "game start: cart_load() must run first");
 
     economy_score_set_difficulty(difficulty);
+    g_title_built = 0;
     game_zone_flip();
 
-    /* Not redundant with cart_init()'s call: the registries, camera, mouse and UI must be rebuilt. */
     reset_world(&cart_game_registry_reserve);
     research_expire_project_ids();
     (void)background_new();
@@ -279,12 +309,9 @@ void cart_resume_game(const save_state_t *state) {
     recompute_economy();
 }
 
-/* Erase before write: the frame that ends a game also has a pending action, and a write winning
-   there would put a resume row on the title after "again?" (pad_game_end's hash). */
 static void save_at_frame_end(void) {
     economy_t *economy = main_economy_typed();
 
-    /* No difficulty: only unit tests start one (cart_start_game(NULL)), and the record cannot hold it. */
     if (economy == NULL || !economy->save_pending || economy_score_difficulty() == NULL) return;
     if (economy->has_end_status && economy->end_status != NULL) {
         (void)save_storage_erase();
@@ -296,13 +323,12 @@ static void save_at_frame_end(void) {
     }
 }
 
-/* Here, not in a driver: every driver goes through cart_update60(), and cart_draw() reads what it wrote in the frame zone. */
 void cart_update60(void) {
     frame_zone_reset();
     cart_flush_exit_queue();
     update_entities();
     ui_update(dispatch_context_mem(), main_ui());
-    save_at_frame_end();
+    if (!g_save_cut) save_at_frame_end();
 }
 
 void cart_draw(void) {
@@ -312,4 +338,5 @@ void cart_draw(void) {
     hud_select_palette_block_default(mem);
     draw_layers(ENTITY_MESSAGE_DRAW);
     draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
+    demo_overlay_draw(dispatch_context_gfx(), mem, g_demo_frame);
 }

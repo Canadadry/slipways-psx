@@ -62,5 +62,6 @@ void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int 
 const unsigned char *p8_font_glyph_rows(char character);
 
 void p8_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col);
+int p8_font_has_glyph(char character);
 
 #endif

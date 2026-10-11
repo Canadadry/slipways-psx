@@ -195,7 +195,7 @@ static int run_case(const probe_case_t *c) {
 
     assert(n > 0 && n <= WINDOW_CAP && c->last_frame < input.frame_count);
     cart_init();
-    input_step_init(&step);
+    input_step_init(&step, &bindings_compiled);
     for (int frame = 0; frame <= c->save_frame; frame++) {
         play_frame(frame);
     }

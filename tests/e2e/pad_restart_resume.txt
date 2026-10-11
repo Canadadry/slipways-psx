@@ -57,8 +57,12 @@ holds.
 
 Check (the save-check criteria: bytes, dump, screen without particles):
 
-    make resume-check EVENTS=tests/e2e/pad_restart_resume.json BEFORE=111 AFTER=132
-    resume-check: tests/e2e/pad_restart_resume.json f111 vs f132 (3939 bytes): ok
+    make resume-check EVENTS=tests/e2e/pad_restart_resume.json BEFORE=111 AFTER=133
+    resume-check: tests/e2e/pad_restart_resume.json f111 vs f133 (3939 bytes): ok
+
+AFTER is 133, not 132: the resumed game starts in jump mode and f133's
+press is what brings it back to aim mode, where f111 was. At AFTER=132
+only the pad overlay differs (crosshair against hover circle).
 
 The negative run, never committed, with BEFORE before the fold:
 

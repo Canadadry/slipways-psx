@@ -23,7 +23,7 @@ enum {
     PSX_PAD_HARDWARE_SQUARE = 1 << 15
 };
 
-/* The P8_PAD_* mask of a pad word; L3, R3, L2 and R2 set nothing, as keymap.cfg names none of them. */
+/* The P8_PAD_* mask of a pad word; L3, R3, L2 and R2 set nothing, as keymap.default.cfg names none of them. */
 int psx_pad_map_buttons(uint16_t pressed);
 
 /* The bit of an uppercase button name as pad scripts and PCSX.CONSTS.PAD.BUTTON spell it; 0 for an unknown name. */

@@ -68,8 +68,11 @@ The recording is compiled into the PS-EXE: no file system, CD image or JSON
 parser on PSX. `tmp/embed_replay <events> <name> <out.c>` (`src/cmd/embed_replay.c`)
 reads it through the PC replay's own loader and writes a C source holding the
 frames (`p8_input_frame_t`, 16 bytes a frame), the `initial_save` bytes, the
-name and the frame count (`src/devtools/embedded_replay.h`). It refuses a mouse
-recording, an unreadable or empty file, and writes nothing then. One PS-EXE per
+name, the frame count and the `attract_after` threshold
+(`src/devtools/embedded_replay.h`). It refuses a mouse recording, an
+unreadable or empty file, a `"start": "resume"` file and a `"bindings"`
+member (the PSX replays start on the title with `bindings_default`), and
+writes nothing then. One PS-EXE per
 recording: only the generated source changes.
 
 `src/cmd/psx_replay.c` runs the PC replay loop (input step, `cart_update60`,
@@ -281,15 +284,18 @@ bytes than metered is a `p8_fatal`, as in the GPU replay.
 **Pad map** (`src/platform/psx_pad_map.c`, pure, host-tested by
 `test_psx_pad_map`). Each frame reads `psx_pad_read_pressed()` once, before
 the input step, and `psx_pad_map_buttons` turns it into `pad_buttons`: each
-controller button named like a `keymap.cfg` button sets that button's
-`P8_PAD_*` bit, so the game reads on PSX what the PC reads through
-`keymap.cfg`. `psx_pad.c` checks the hardware bits against the SDK's `PAD_*`
-at compile time. No `keymap.cfg` is read on PSX.
+controller button sets the button (1 to 12, `P8_PAD_BUTTON_<n>`) that
+`keymap.default.cfg` binds to its raylib gamepad name (CROSS is
+`RIGHT_FACE_DOWN`, START `MIDDLE_RIGHT`...), so the game reads on PSX what
+the PC reads with the default keymap; `test_psx_pad_map` checks the table
+against that file. `psx_pad.c` checks the hardware bits against the SDK's
+`PAD_*` at compile time. No keymap file is read on PSX, and the PSX game
+plays `bindings.default.cfg` (`bindings_default`).
 
 | hardware bit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | button | SELECT | L3 | R3 | START | UP | RIGHT | DOWN | LEFT | L2 | R2 | L1 | R1 | TRIANGLE | CIRCLE | CROSS | SQUARE |
-| `pad_buttons` | `SELECT` | - | - | `START` | `UP` | `RIGHT` | `DOWN` | `LEFT` | - | - | `L1` | `R1` | `TRIANGLE` | `CIRCLE` | `CROSS` | `SQUARE` |
+| `pad_buttons` button | 12 | - | - | 11 | 1 | 4 | 2 | 3 | - | - | 9 | 10 | 8 | 6 | 5 | 7 |
 
 **Pad log.** Its TTY is `psx-game: ready` once the handshake is raised, then
 `psx-game: pad <frame> <pad_buttons as %03x>` on frame 0 and on every frame

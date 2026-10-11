@@ -1,8 +1,8 @@
 {
   "input": "pad",
   "frames": [
-    { "pad": ["right", "cross"] },
-    { "pad": ["up"] },
+    { "pad": [4, 5] },
+    { "pad": [1] },
     { "pad": [] },
     { "pad": [] }
   ]

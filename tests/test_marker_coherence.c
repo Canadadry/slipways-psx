@@ -1,20 +1,5 @@
-/* A marker is one 0-based frame index, appended to a markers file when the
- * player taps space, and meant to be read as an index into the paired
- * recording's "frames" array. Coherent means exactly that the number
- * written and the frame's position in the recording on disk are the same.
- *
- * A resumed session is where that can break: it replays N frames the player
- * did not play before recording any they did. The marker index comes from
- * `session_recorder_frame_count()`, so everything turns on whether
- * that counter counts the replayed frames too -- it does, because every
- * frame about to be played is recorded, replayed or live alike.
- *
- * Every iteration is checked, not one chosen marker: an off-by-N can cancel
- * out at a single frame.
- *
- * Not covered here: the space bar itself, and that the marker file gets one
- * line per tap. Both need a window. What is covered is the number those
- * lines would carry. */
+/* Every iteration is checked, not one chosen marker: an off-by-N can cancel
+ * out at a single frame. */
 
 #include "devtools/session_recorder.h"
 #include "devtools/replay_source.h"
@@ -22,27 +7,26 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* The session being resumed. Every mask stays below P8_PAD_L1, and the live
+/* The session being resumed. Every mask stays below P8_PAD_BUTTON_9, and the live
  * frames below hold it, so a marker pointing into the wrong half names a
  * visibly different frame rather than just an unequal number. */
 #define REPLAYED_FRAME_COUNT 6
 static const p8_input_frame_t replayed_frames[REPLAYED_FRAME_COUNT] = {
-    { 0, 0, 0, P8_PAD_UP },
-    { 0, 0, 0, P8_PAD_DOWN },
-    { 0, 0, 0, P8_PAD_LEFT },
-    { 0, 0, 0, P8_PAD_RIGHT },
-    { 0, 0, 0, P8_PAD_CROSS },
-    { 0, 0, 0, P8_PAD_CIRCLE | P8_PAD_SQUARE },
+    { 0, 0, 0, P8_PAD_BUTTON_1 },
+    { 0, 0, 0, P8_PAD_BUTTON_2 },
+    { 0, 0, 0, P8_PAD_BUTTON_3 },
+    { 0, 0, 0, P8_PAD_BUTTON_4 },
+    { 0, 0, 0, P8_PAD_BUTTON_5 },
+    { 0, 0, 0, P8_PAD_BUTTON_6 | P8_PAD_BUTTON_7 },
 };
 
-/* What the player does once the controls come back. */
 #define LIVE_FRAME_COUNT 5
 static const p8_input_frame_t live_frames[LIVE_FRAME_COUNT] = {
-    { 0, 0, 0, P8_PAD_L1 },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_UP },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_R1 },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_START },
-    { 0, 0, 0, P8_PAD_L1 | P8_PAD_TRIANGLE },
+    { 0, 0, 0, P8_PAD_BUTTON_9 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_1 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_10 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_11 },
+    { 0, 0, 0, P8_PAD_BUTTON_9 | P8_PAD_BUTTON_8 },
 };
 
 #define TOTAL_FRAME_COUNT (REPLAYED_FRAME_COUNT + LIVE_FRAME_COUNT)
@@ -52,14 +36,9 @@ static void assert_frame_equals(const p8_input_frame_t *got, const p8_input_fram
 }
 
 /* The loop of src/cmd/game.c, with the hardware calls scripted and the
- * game step dropped. `marker_for_iteration` holds, for every iteration,
- * the count read where raylib_backend_poll_input reads it: just before
- * the frame is recorded. On a live frame, that is what a space-bar release
- * writes; the game does not read the keyboard on a replayed frame, so no
- * marker is written there, but the count is checked all the same. That
- * placement is the whole arithmetic -- the count is the index the next
- * recorded frame will take, so one line later it would name the following
- * frame. */
+ * game step dropped. `marker_for_iteration` holds the count read where
+ * raylib_backend_poll_input reads it: just before the frame is recorded.
+ * One line later it would name the following frame. */
 static void run_resumed_session(const char *source_path, const char *resumed_path, int *marker_for_iteration) {
     replay_source_t replay;
     assert(replay_source_open(&replay, source_path) == REPLAY_SOURCE_LOADED);
@@ -92,7 +71,7 @@ static void test_marker_index_counts_the_replayed_frames_too(void) {
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
     /* Written by `p8_input_save`, not by the recorder under test. */
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, NULL));
 
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
@@ -115,7 +94,7 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     const char *resumed_path = "tmp/test_marker_coherence_resolve_resumed.json";
     int marker_for_iteration[TOTAL_FRAME_COUNT];
 
-    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path));
+    assert(p8_input_save(replayed_frames, REPLAYED_FRAME_COUNT, source_path, NULL));
     run_resumed_session(source_path, resumed_path, marker_for_iteration);
 
     p8_input_t resumed;
@@ -137,9 +116,6 @@ static void test_marker_index_names_the_frame_that_was_on_screen(void) {
     remove(resumed_path);
 }
 
-/* The same path with N = 0: with no recording replayed, markers stay plain
- * frame indices. "Unchanged when the feature is unused" is the cheapest
- * regression to lose. */
 static void test_markers_are_unchanged_when_no_recording_is_replayed(void) {
     const char *path = "tmp/test_marker_coherence_fresh.json";
 

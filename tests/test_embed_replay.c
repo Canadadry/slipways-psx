@@ -36,6 +36,7 @@ static void test_embedded_save_equals_the_replay_source_save(void) {
 
     assert(embedded_replay_initial_save_count == source.initial_save_count);
     assert(memcmp(embedded_replay_initial_save, source.initial_save, (size_t)source.initial_save_count) == 0);
+    assert(embedded_replay_attract_after == replay_source_attract_after(&source));
 
     replay_source_close(&source);
 }
@@ -103,6 +104,14 @@ static void test_empty_recording_is_refused(void) {
     remove(path);
 }
 
+static void test_resume_start_is_refused(void) {
+    assert_refused("pico8/demo.json");
+}
+
+static void test_bindings_member_is_refused(void) {
+    assert_refused("tests/e2e/pad_swap_aim_menu.json");
+}
+
 int main(int argc, char **argv) {
     assert(argc >= 1);
     int used = snprintf(work_dir, sizeof(work_dir), "%s_work", argv[0]);
@@ -113,6 +122,8 @@ int main(int argc, char **argv) {
     test_mouse_recording_is_refused();
     test_unreadable_recording_is_refused();
     test_empty_recording_is_refused();
+    test_resume_start_is_refused();
+    test_bindings_member_is_refused();
 
     printf("test_embed_replay: all tests passed (%s)\n", embedded_replay_name);
     return 0;

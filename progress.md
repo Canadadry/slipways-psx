@@ -12,3 +12,4 @@
 - [x] PSX setups on macOS without admin rights
 - [x] The core compiles under GCC 14
 - [x] Prebuilt macOS toolchain
+- [x] Merge master (plans 17 and 18)

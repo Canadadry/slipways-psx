@@ -40,6 +40,8 @@ static int write_source(FILE *out, replay_source_t *source, const char *name) {
     }
     fprintf(out, "%s\n};\n", source->initial_save_count == 0 ? "\n    0" : "");
 
+    fprintf(out, "\nconst int embedded_replay_attract_after = %d;\n", replay_source_attract_after(source));
+
     return !ferror(out);
 }
 
@@ -60,6 +62,21 @@ int main(int argc, char **argv) {
     }
     if (replay_source_frame_count(&source) == 0) {
         fprintf(stderr, "embed_replay: %s: no frames\n", recording);
+        replay_source_close(&source);
+        return 1;
+    }
+    if (replay_source_start(&source) == REPLAY_SOURCE_START_RESUME) {
+        fprintf(stderr, "embed_replay: %s: \"start\": \"resume\", the PSX replays start on the title\n", recording);
+        replay_source_close(&source);
+        return 1;
+    }
+    static bindings_t unused_fallback;
+    static bindings_t read_bindings;
+    static replay_source_bindings_report_t bindings_report;
+    if (replay_source_read_bindings(&source, &unused_fallback, &read_bindings, &bindings_report)
+        != REPLAY_SOURCE_BINDINGS_DEFAULT) {
+        fprintf(stderr, "embed_replay: %s: a \"bindings\" member, the PSX replays play the default bindings\n",
+                recording);
         replay_source_close(&source);
         return 1;
     }

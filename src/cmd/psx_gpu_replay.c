@@ -12,6 +12,7 @@
 #include "devtools/format_self_test.h"
 #include "devtools/state_format.h"
 #include "engine/dispatch_context.h"
+#include "game/bindings.h"
 #include "game/cart.h"
 #include "game/input_step.h"
 #include "game/save_storage.h"
@@ -120,7 +121,8 @@ int main(void) {
     capture_request_t capture = capture_start();
     int start_vsync = VSync(-1);
     input_step_t step;
-    input_step_init(&step);
+    input_step_init(&step, &bindings_default);
+    input_step_set_attract_after(&step, embedded_replay_attract_after);
     int cheat_activations = 0;
     for (g_frame = 0; g_frame < input.frame_count; g_frame++) {
         cheat_activations += input_step_run(&step, &input.frames[input.current_frame]);

@@ -1,0 +1,3 @@
+# expect: caption_lines.refused.pad:3: frame 13: caption: 3 lines, at most 2
+title 12 reasonable
+caption one/two/three

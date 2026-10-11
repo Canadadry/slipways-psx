@@ -124,6 +124,28 @@ static void test_each_game_field_moves_only_the_view_change_test(void) {
     }
 }
 
+static void test_each_direction_maps_to_its_dpad_button(void) {
+    assert(pad_metrics_direction_button(PAD_DIRECTION_UP) == P8_PAD_BUTTON_1);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_DOWN) == P8_PAD_BUTTON_2);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_LEFT) == P8_PAD_BUTTON_3);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_RIGHT) == P8_PAD_BUTTON_4);
+    assert(pad_metrics_direction_button(PAD_DIRECTION_NONE) == 0);
+}
+
+static void test_the_first_direction_button_follows_up_down_left_right(void) {
+    const int dpad = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4;
+    assert(pad_metrics_first_direction_button(dpad) == P8_PAD_BUTTON_1);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_2 | P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_2);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_3 | P8_PAD_BUTTON_4) == P8_PAD_BUTTON_3);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_4) == P8_PAD_BUTTON_4);
+}
+
+static void test_the_first_direction_button_ignores_other_buttons(void) {
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_7) == 0);
+    assert(pad_metrics_first_direction_button(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_3) == P8_PAD_BUTTON_3);
+    assert(pad_metrics_first_direction_button(0) == 0);
+}
+
 /* Feeds the same pad frames to the counter in mode and to pad_jump; returns how many frames of frame_count both
  * report a repeat on, and asserts they never disagree past a press frame. */
 static int repeats_against_pad_jump(const int *buttons, int frame_count, pad_metrics_mode_t mode) {
@@ -136,11 +158,12 @@ static int repeats_against_pad_jump(const int *buttons, int frame_count, pad_met
     for (int f = 0; f < frame_count; f++) {
         int pressed = buttons[f] & ~previous;
         int counted = pad_metrics_hold_step(&hold, mode, buttons[f]);
-        int jumped = pad_jump_repeat_step(&jump, buttons[f], pressed);
+        pad_direction_t jumped =
+            pad_jump_repeat_step(&jump, &bindings_compiled, BINDINGS_MODE_JUMP, buttons[f], pressed);
         if (pressed != 0) {
             assert(counted == 0);
         } else {
-            assert(counted == jumped);
+            assert(counted == pad_metrics_direction_button(jumped));
         }
         repeats += counted != 0;
         previous = buttons[f];
@@ -151,12 +174,12 @@ static int repeats_against_pad_jump(const int *buttons, int frame_count, pad_met
 static void test_a_held_direction_repeats_on_the_frames_pad_jump_does(void) {
     enum { FRAMES = 40 };
     int buttons[FRAMES];
-    for (int f = 0; f < FRAMES; f++) buttons[f] = P8_PAD_LEFT;
+    for (int f = 0; f < FRAMES; f++) buttons[f] = P8_PAD_BUTTON_3;
     pad_metrics_hold_t hold;
     memset(&hold, 0, sizeof hold);
     for (int f = 0; f < FRAMES; f++) {
         int fired = pad_metrics_hold_step(&hold, PAD_METRICS_MODE_JUMP, buttons[f]);
-        assert(fired == ((f == 18 || f == 26 || f == 34) ? P8_PAD_LEFT : 0));
+        assert(fired == ((f == 18 || f == 26 || f == 34) ? P8_PAD_BUTTON_3 : 0));
     }
     assert(repeats_against_pad_jump(buttons, FRAMES, PAD_METRICS_MODE_JUMP) == 3);
 }
@@ -164,20 +187,20 @@ static void test_a_held_direction_repeats_on_the_frames_pad_jump_does(void) {
 static void test_a_fresh_press_restarts_the_count(void) {
     enum { FRAMES = 60 };
     int buttons[FRAMES];
-    for (int f = 0; f < FRAMES; f++) buttons[f] = f == 22 ? 0 : P8_PAD_DOWN;
+    for (int f = 0; f < FRAMES; f++) buttons[f] = f == 22 ? 0 : P8_PAD_BUTTON_2;
     assert(repeats_against_pad_jump(buttons, FRAMES, PAD_METRICS_MODE_JUMP) == 4);
     pad_metrics_hold_t hold;
     memset(&hold, 0, sizeof hold);
     for (int f = 0; f < FRAMES; f++) {
         int fired = pad_metrics_hold_step(&hold, PAD_METRICS_MODE_JUMP, buttons[f]);
-        assert(fired == ((f == 18 || f == 23 + 18 || f == 23 + 26 || f == 23 + 34) ? P8_PAD_DOWN : 0));
+        assert(fired == ((f == 18 || f == 23 + 18 || f == 23 + 26 || f == 23 + 34) ? P8_PAD_BUTTON_2 : 0));
     }
 }
 
 static void test_holds_repeat_in_slipway_mode_and_nowhere_else(void) {
     enum { FRAMES = 30 };
     int buttons[FRAMES];
-    for (int f = 0; f < FRAMES; f++) buttons[f] = P8_PAD_RIGHT;
+    for (int f = 0; f < FRAMES; f++) buttons[f] = P8_PAD_BUTTON_4;
     assert(repeats_against_pad_jump(buttons, FRAMES, PAD_METRICS_MODE_SLIPWAY) == 2);
     for (int m = 0; m < PAD_METRICS_MODE_COUNT; m++) {
         if (m == PAD_METRICS_MODE_JUMP || m == PAD_METRICS_MODE_SLIPWAY) continue;
@@ -220,75 +243,75 @@ static int count(pad_metrics_kind_t kind, pad_metrics_mode_t mode, int button_bi
 
 static void test_a_press_that_moves_nothing_is_dead(void) {
     start(PAD_METRICS_MODE_AIM);
-    run(P8_PAD_TRIANGLE, 0);
+    run(P8_PAD_BUTTON_8, 0);
     run_idle(5);
     pad_metrics_finish(&metrics);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_DEAD_OTHER) == 1);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 0);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_8, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_8, PAD_METRICS_LIVE) == 0);
 }
 
 /* Pressed at f0, released at f3: the window runs from f0 to f5. */
 static void test_the_window_runs_to_two_frames_after_the_release(void) {
     for (int moved_at = 0; moved_at <= 6; moved_at++) {
         start(PAD_METRICS_MODE_AIM);
-        for (int f = 0; f < 10; f++) run(f < 3 ? P8_PAD_TRIANGLE : 0, f == moved_at);
+        for (int f = 0; f < 10; f++) run(f < 3 ? P8_PAD_BUTTON_8 : 0, f == moved_at);
         pad_metrics_finish(&metrics);
         pad_metrics_verdict_t expected = moved_at <= 5 ? PAD_METRICS_LIVE : PAD_METRICS_DEAD_OTHER;
-        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, expected) == 1);
+        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_8, expected) == 1);
     }
 }
 
 static void test_a_window_reaching_the_end_of_the_file_is_judged_on_the_frames_seen(void) {
     start(PAD_METRICS_MODE_AIM);
-    run(P8_PAD_TRIANGLE, 0);
-    run(P8_PAD_TRIANGLE, 0);
+    run(P8_PAD_BUTTON_8, 0);
+    run(P8_PAD_BUTTON_8, 0);
     pad_metrics_finish(&metrics);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_8, PAD_METRICS_DEAD_OTHER) == 1);
 
     start(PAD_METRICS_MODE_AIM);
-    run(P8_PAD_TRIANGLE, 0);
-    run(P8_PAD_TRIANGLE, 1);
+    run(P8_PAD_BUTTON_8, 0);
+    run(P8_PAD_BUTTON_8, 1);
     pad_metrics_finish(&metrics);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_8, PAD_METRICS_LIVE) == 1);
 }
 
 /* Held from f0 to f29, released at f30: repeats at f18 and f26. */
 static void hold_left(int moved_at) {
     start(PAD_METRICS_MODE_JUMP);
-    for (int f = 0; f < 40; f++) run(f < 30 ? P8_PAD_LEFT : 0, f == moved_at);
+    for (int f = 0; f < 40; f++) run(f < 30 ? P8_PAD_BUTTON_3 : 0, f == moved_at);
     pad_metrics_finish(&metrics);
 }
 
 static void test_a_press_window_is_cut_before_its_first_repeat(void) {
     hold_left(17);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_LIVE) == 1);
     hold_left(18);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 1);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_DEAD_OTHER) == 1);
 }
 
 static void test_a_repeat_window_runs_to_the_next_repeat_or_the_release(void) {
     hold_left(25);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_DEAD_OTHER) == 1);
     hold_left(32);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_LIVE) == 1);
     hold_left(33);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 0);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_OTHER) == 2);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_LIVE) == 0);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_DEAD_OTHER) == 2);
 }
 
 static void test_a_chord_is_counted_apart_and_never_judged(void) {
     start(PAD_METRICS_MODE_JUMP);
-    run(P8_PAD_CROSS | P8_PAD_CIRCLE, 0);
+    run(P8_PAD_BUTTON_5 | P8_PAD_BUTTON_6, 0);
     run_idle(5);
     pad_metrics_finish(&metrics);
     assert(pad_metrics_chord_count(&metrics, PAD_METRICS_MODE_JUMP, 4) == 1);
     assert(pad_metrics_chord_count(&metrics, PAD_METRICS_MODE_JUMP, 5) == 1);
     for (int v = 0; v < PAD_METRICS_VERDICT_COUNT; v++) {
-        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_CROSS, (pad_metrics_verdict_t)v) == 0);
-        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_CIRCLE, (pad_metrics_verdict_t)v) == 0);
+        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_5, (pad_metrics_verdict_t)v) == 0);
+        assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_6, (pad_metrics_verdict_t)v) == 0);
     }
 }
 
@@ -307,7 +330,7 @@ static pad_metrics_verdict_t dead_press_group(pad_metrics_mode_t mode, int butto
 }
 
 static pad_metrics_verdict_t dead_circle_group(pad_metrics_mode_t mode, void (*set)(pad_metrics_view_t *view)) {
-    return dead_press_group(mode, P8_PAD_CIRCLE, set);
+    return dead_press_group(mode, P8_PAD_BUTTON_6, set);
 }
 
 static void nothing_recorded(pad_metrics_view_t *view) {
@@ -337,7 +360,7 @@ static void test_any_other_dead_circle_is_in_the_other_group(void) {
     assert(dead_circle_group(PAD_METRICS_MODE_JUMP, message_box_shown) == PAD_METRICS_DEAD_OTHER);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_recorded) == PAD_METRICS_DEAD_OTHER);
     assert(!pad_metrics_section4(&metrics).ok);
-    assert(pad_metrics_section4(&metrics).circle_dead_other == 1);
+    assert(pad_metrics_section4(&metrics).button_6_dead_other == 1);
 }
 
 static void nothing_to_jump_to(pad_metrics_view_t *view) {
@@ -349,9 +372,9 @@ static void something_to_jump_to(pad_metrics_view_t *view) {
 }
 
 static void test_a_dead_square_in_aim_mode_with_nothing_to_jump_to_is_required(void) {
-    assert(dead_press_group(PAD_METRICS_MODE_AIM, P8_PAD_SQUARE, nothing_to_jump_to) == PAD_METRICS_DEAD_REQUIRED);
-    assert(dead_press_group(PAD_METRICS_MODE_AIM, P8_PAD_SQUARE, something_to_jump_to) == PAD_METRICS_DEAD_OTHER);
-    assert(dead_press_group(PAD_METRICS_MODE_JUMP, P8_PAD_SQUARE, nothing_to_jump_to) == PAD_METRICS_DEAD_OTHER);
+    assert(dead_press_group(PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_7, nothing_to_jump_to) == PAD_METRICS_DEAD_REQUIRED);
+    assert(dead_press_group(PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_7, something_to_jump_to) == PAD_METRICS_DEAD_OTHER);
+    assert(dead_press_group(PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_7, nothing_to_jump_to) == PAD_METRICS_DEAD_OTHER);
 }
 
 static void nothing_to_jump_to_with_a_message_box(pad_metrics_view_t *view) {
@@ -366,7 +389,7 @@ static void nothing_to_jump_to_with_a_box(pad_metrics_view_t *view) {
 
 static void test_a_dead_circle_in_aim_mode_with_nothing_to_jump_to_is_required(void) {
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to) == PAD_METRICS_DEAD_REQUIRED);
-    assert(pad_metrics_section4(&metrics).circle_dead_other == 0);
+    assert(pad_metrics_section4(&metrics).button_6_dead_other == 0);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to_with_a_message_box) == PAD_METRICS_DEAD_OTHER);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, nothing_to_jump_to_with_a_box) == PAD_METRICS_DEAD_OTHER);
     assert(dead_circle_group(PAD_METRICS_MODE_AIM, something_to_jump_to) == PAD_METRICS_DEAD_OTHER);
@@ -377,44 +400,44 @@ static void test_a_dead_direction_into_an_empty_cone_is_required_in_jump_and_sli
     pad_metrics_mode_t modes[] = {PAD_METRICS_MODE_JUMP, PAD_METRICS_MODE_SLIPWAY};
     for (int i = 0; i < 2; i++) {
         start(modes[i]);
-        current.cone_empty = P8_PAD_UP;
+        current.cone_empty = P8_PAD_BUTTON_1;
         pad_metrics_begin(&metrics, &current);
-        run(P8_PAD_UP, 0);
+        run(P8_PAD_BUTTON_1, 0);
         run_idle(4);
-        run(P8_PAD_DOWN, 0);
+        run(P8_PAD_BUTTON_2, 0);
         run_idle(4);
         pad_metrics_finish(&metrics);
-        assert(count(PAD_METRICS_PRESS, modes[i], P8_PAD_UP, PAD_METRICS_DEAD_REQUIRED) == 1);
-        assert(count(PAD_METRICS_PRESS, modes[i], P8_PAD_DOWN, PAD_METRICS_DEAD_OTHER) == 1);
+        assert(count(PAD_METRICS_PRESS, modes[i], P8_PAD_BUTTON_1, PAD_METRICS_DEAD_REQUIRED) == 1);
+        assert(count(PAD_METRICS_PRESS, modes[i], P8_PAD_BUTTON_2, PAD_METRICS_DEAD_OTHER) == 1);
     }
 }
 
 static void test_a_diagonals_second_direction_is_never_required(void) {
     start(PAD_METRICS_MODE_JUMP);
-    current.cone_empty = P8_PAD_UP | P8_PAD_RIGHT;
+    current.cone_empty = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_4;
     pad_metrics_begin(&metrics, &current);
-    run(P8_PAD_UP | P8_PAD_RIGHT, 0);
+    run(P8_PAD_BUTTON_1 | P8_PAD_BUTTON_4, 0);
     run_idle(4);
     pad_metrics_finish(&metrics);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_UP, PAD_METRICS_DEAD_REQUIRED) == 1);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_RIGHT, PAD_METRICS_DEAD_OTHER) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_1, PAD_METRICS_DEAD_REQUIRED) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_4, PAD_METRICS_DEAD_OTHER) == 1);
 }
 
 static void test_a_dead_repeat_into_an_empty_cone_is_required(void) {
     start(PAD_METRICS_MODE_JUMP);
-    current.cone_empty = P8_PAD_LEFT;
+    current.cone_empty = P8_PAD_BUTTON_3;
     pad_metrics_begin(&metrics, &current);
-    for (int f = 0; f < 20; f++) run(P8_PAD_LEFT, f == 1);
+    for (int f = 0; f < 20; f++) run(P8_PAD_BUTTON_3, f == 1);
     run_idle(4);
     pad_metrics_finish(&metrics);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_LIVE) == 1);
-    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_LEFT, PAD_METRICS_DEAD_REQUIRED) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_REPEAT, PAD_METRICS_MODE_JUMP, P8_PAD_BUTTON_3, PAD_METRICS_DEAD_REQUIRED) == 1);
 }
 
 static void test_the_group_facts_move_neither_change_test(void) {
     pad_metrics_view_t a = still_view(), b = still_view();
     b.last_acted = (entity_id_t){4, 2};
-    b.cone_empty = P8_PAD_UP | P8_PAD_LEFT;
+    b.cone_empty = P8_PAD_BUTTON_1 | P8_PAD_BUTTON_3;
     b.no_candidate = 1;
     assert(!pad_metrics_navigation_changed(&a, &b));
     assert(!pad_metrics_view_changed(&a, &b));
@@ -485,29 +508,29 @@ static void test_title_and_pause_are_outside_the_aim_denominator(void) {
 
 static void test_the_verdict_fails_on_a_required_dead_dpad_press_in_jump_mode(void) {
     start(PAD_METRICS_MODE_JUMP);
-    current.cone_empty = P8_PAD_DOWN;
+    current.cone_empty = P8_PAD_BUTTON_2;
     pad_metrics_begin(&metrics, &current);
-    run(P8_PAD_DOWN, 0);
+    run(P8_PAD_BUTTON_2, 0);
     run_idle(4);
     pad_metrics_finish(&metrics);
     write_report();
-    assert(report_has("dead f0 press down jump required\n"));
+    assert(report_has("dead f0 press 2 jump required\n"));
     assert(report_has("section4 dead d-pad presses in jump mode 1 fail (lenient, other group only: 0)\n"));
     assert(report_has("section4 verdict fail\n"));
 }
 
 static void test_the_verdict_passes_with_required_circles_and_dead_repeats_only(void) {
     start(PAD_METRICS_MODE_JUMP);
-    run(P8_PAD_CIRCLE, 0);
+    run(P8_PAD_BUTTON_6, 0);
     run_idle(4);
-    for (int f = 0; f < 20; f++) run(P8_PAD_LEFT, f == 1);
+    for (int f = 0; f < 20; f++) run(P8_PAD_BUTTON_3, f == 1);
     run_idle(4);
     pad_metrics_finish(&metrics);
     write_report();
-    assert(report_has("dead f0 press circle jump required\n"));
-    assert(report_has("repeat f23 left jump dead-other\n"));
-    assert(report_has("presses jump circle 1 chords 0 live 0 dead-required 1 dead-other 0\n"));
-    assert(report_has("repeats jump left 1 live 0 dead-required 0 dead-other 1\n"));
+    assert(report_has("dead f0 press 6 jump required\n"));
+    assert(report_has("repeat f23 3 jump dead-other\n"));
+    assert(report_has("presses jump 6 1 chords 0 live 0 dead-required 1 dead-other 0\n"));
+    assert(report_has("repeats jump 3 1 live 0 dead-required 0 dead-other 1\n"));
     assert(report_has("section4 dead hold repeats required 0 other 1 (not deciding)\n"));
     assert(report_has("total required no-ops 1\n"));
     assert(report_has("section4 verdict ok\n"));
@@ -517,8 +540,8 @@ static void test_the_verdict_passes_with_a_required_circle_in_aim_mode(void) {
     start(PAD_METRICS_MODE_AIM);
     current.no_candidate = 1;
     pad_metrics_begin(&metrics, &current);
-    run(P8_PAD_CIRCLE, 0);
-    run(P8_PAD_SQUARE, 0);
+    run(P8_PAD_BUTTON_6, 0);
+    run(P8_PAD_BUTTON_7, 0);
     run_idle(4);
     current.mode = PAD_METRICS_MODE_JUMP;
     current.no_candidate = 0;
@@ -526,21 +549,35 @@ static void test_the_verdict_passes_with_a_required_circle_in_aim_mode(void) {
     run_idle(30);
     pad_metrics_finish(&metrics);
     write_report();
-    assert(report_has("dead f0 press circle aim required\n"));
-    assert(report_has("dead f1 press square aim required\n"));
+    assert(report_has("dead f0 press 6 aim required\n"));
+    assert(report_has("dead f1 press 7 aim required\n"));
     assert(report_has("total required no-ops 1\n"));
     assert(report_has("section4 verdict ok\n"));
 }
 
 static void test_the_lenient_count_leaves_out_the_required_group(void) {
     start(PAD_METRICS_MODE_JUMP);
-    current.cone_empty = P8_PAD_UP;
+    current.cone_empty = P8_PAD_BUTTON_1;
     pad_metrics_begin(&metrics, &current);
-    run(P8_PAD_UP | P8_PAD_RIGHT, 0);
+    run(P8_PAD_BUTTON_1 | P8_PAD_BUTTON_4, 0);
     run_idle(4);
     pad_metrics_finish(&metrics);
     pad_metrics_section4_t section4 = pad_metrics_section4(&metrics);
     assert(section4.jump_dpad_dead_strict == 2 && section4.jump_dpad_dead_lenient == 1 && !section4.ok);
+}
+
+static void test_the_report_numbers_buttons_from_1_for_the_lowest_bit_to_12_for_the_highest(void) {
+    start(PAD_METRICS_MODE_JUMP);
+    run(P8_PAD_BUTTON_1, 1);
+    run_idle(4);
+    run(P8_PAD_BUTTON_12, 1);
+    run_idle(4);
+    pad_metrics_finish(&metrics);
+    write_report();
+    assert(report_has("presses jump 1 1 chords 0 live 1 dead-required 0 dead-other 0\n"));
+    assert(report_has("presses jump 12 1 chords 0 live 1 dead-required 0 dead-other 0\n"));
+    assert(report_has("total presses jump 1 1\n"));
+    assert(report_has("total presses jump 12 1\n"));
 }
 
 static void test_cheat_activations_fail_the_verdict(void) {
@@ -556,36 +593,36 @@ static void test_cheat_activations_fail_the_verdict(void) {
 static pad_metrics_verdict_t triangle_then(int f_other, int other) {
     start(PAD_METRICS_MODE_AIM);
     for (int f = 0; f < 10; f++) {
-        int buttons = (f == 0 ? P8_PAD_TRIANGLE : 0) | (f == f_other ? other : 0);
+        int buttons = (f == 0 ? P8_PAD_BUTTON_8 : 0) | (f == f_other ? other : 0);
         run(buttons, f == f_other);
     }
     pad_metrics_finish(&metrics);
-    return count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 1 ? PAD_METRICS_LIVE
+    return count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_8, PAD_METRICS_LIVE) == 1 ? PAD_METRICS_LIVE
                                                                                                      : PAD_METRICS_DEAD_OTHER;
 }
 
 static void test_a_later_separate_press_cuts_a_released_press_window(void) {
-    assert(triangle_then(2, P8_PAD_SQUARE) == PAD_METRICS_DEAD_OTHER);
-    assert(triangle_then(3, P8_PAD_SQUARE) == PAD_METRICS_DEAD_OTHER);
+    assert(triangle_then(2, P8_PAD_BUTTON_7) == PAD_METRICS_DEAD_OTHER);
+    assert(triangle_then(3, P8_PAD_BUTTON_7) == PAD_METRICS_DEAD_OTHER);
 }
 
 static void test_a_press_on_the_release_frame_is_a_roll_and_does_not_cut(void) {
-    assert(triangle_then(1, P8_PAD_SQUARE) == PAD_METRICS_LIVE);
+    assert(triangle_then(1, P8_PAD_BUTTON_7) == PAD_METRICS_LIVE);
 }
 
 static void test_a_new_press_of_the_same_button_does_not_cut(void) {
-    triangle_then(2, P8_PAD_TRIANGLE);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_TRIANGLE, PAD_METRICS_LIVE) == 2);
+    triangle_then(2, P8_PAD_BUTTON_8);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_8, PAD_METRICS_LIVE) == 2);
 }
 
 static void test_another_press_while_still_held_does_not_cut(void) {
     start(PAD_METRICS_MODE_AIM);
     for (int f = 0; f < 10; f++) {
-        int buttons = (f < 4 ? P8_PAD_CROSS : 0) | (f == 2 ? P8_PAD_UP : 0);
+        int buttons = (f < 4 ? P8_PAD_BUTTON_5 : 0) | (f == 2 ? P8_PAD_BUTTON_1 : 0);
         run(buttons, f == 5);
     }
     pad_metrics_finish(&metrics);
-    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_CROSS, PAD_METRICS_LIVE) == 1);
+    assert(count(PAD_METRICS_PRESS, PAD_METRICS_MODE_AIM, P8_PAD_BUTTON_5, PAD_METRICS_LIVE) == 1);
 }
 
 int main(void) {
@@ -597,6 +634,9 @@ int main(void) {
     test_a_view_against_itself_changes_nothing();
     test_each_navigation_field_moves_both_change_tests();
     test_each_game_field_moves_only_the_view_change_test();
+    test_each_direction_maps_to_its_dpad_button();
+    test_the_first_direction_button_follows_up_down_left_right();
+    test_the_first_direction_button_ignores_other_buttons();
     test_a_held_direction_repeats_on_the_frames_pad_jump_does();
     test_a_fresh_press_restarts_the_count();
     test_holds_repeat_in_slipway_mode_and_nowhere_else();
@@ -620,6 +660,7 @@ int main(void) {
     test_the_verdict_passes_with_required_circles_and_dead_repeats_only();
     test_the_verdict_passes_with_a_required_circle_in_aim_mode();
     test_the_lenient_count_leaves_out_the_required_group();
+    test_the_report_numbers_buttons_from_1_for_the_lowest_bit_to_12_for_the_highest();
     test_cheat_activations_fail_the_verdict();
     test_a_later_separate_press_cuts_a_released_press_window();
     test_a_press_on_the_release_frame_is_a_roll_and_does_not_cut();

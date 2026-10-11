@@ -3,6 +3,7 @@
 
 #include "engine/entity_class.h"
 #include "engine/entity_id_type.h"
+#include "game/bindings.h"
 #include "game/pad_back.h"
 #include "game/pad_build.h"
 #include "game/pad_cycle.h"
@@ -27,8 +28,8 @@ typedef struct {
     pad_nav_placement_t placement;
     entity_id_t suspended_carry;
     int pause_due;
-    int pause_cross_armed;
-    int menu_cross_armed;
+    int pause_choose_row_armed;
+    int menu_choose_row_armed;
     pad_nav_map_mode_t map_mode;
     int marker_frames;
     int release_pending;
@@ -38,15 +39,18 @@ typedef struct {
     int cursor_x;
     int cursor_y;
     int held_frames[PAD_JUMP_DIRECTIONS];
-    int cross_engaged;
+    int probe_or_fold_engaged;
     entity_id_t game;
     pad_jump_t jump;
     pad_slipway_t slipway;
     pad_back_t back;
     pad_select_t select;
+    bindings_t bindings;
 } pad_nav_t;
 
-void pad_nav_init(pad_nav_t *nav);
+void pad_nav_init(pad_nav_t *nav, const bindings_t *bindings);
+
+const bindings_t *pad_nav_bindings(const pad_nav_t *nav);
 
 void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played);
 
@@ -82,7 +86,7 @@ entity_t *pad_nav_placing(const pad_nav_t *nav);
 
 entity_t *pad_nav_first_item(void);
 
-entity_t *pad_nav_neighbor(const entity_t *item, int direction);
+entity_t *pad_nav_neighbor(const entity_t *item, pad_direction_t direction);
 
 int pad_nav_is_item(const entity_t *e);
 

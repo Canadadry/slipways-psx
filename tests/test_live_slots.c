@@ -155,25 +155,34 @@ static p8_input_t *load_e2e(const char *e2e) {
     p8_vram_init(&mem);
     p8_gfx_init(&gfx);
     assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    static bindings_t bindings;
     p8_input_init(&input);
+    bindings = bindings_compiled;
+    int attract_after = ATTRACT_AFTER_DEFAULT;
     if (e2e != NULL) {
         snprintf(path, sizeof path, strchr(e2e, '/') != NULL ? "%s" : "tests/e2e/%s.json", e2e);
         assert(p8_input_load(&input, path));
         static replay_source_t source;
+        static replay_source_bindings_report_t report;
         assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
         assert(replay_source_seed_storage(&source) && "the header's initial_save is seeded as the replay tool seeds it");
+        replay_source_bindings_status_t status = replay_source_read_bindings(&source, &bindings_compiled, &bindings, &report);
+        if (status != REPLAY_SOURCE_BINDINGS_DEFAULT && status != REPLAY_SOURCE_BINDINGS_FIXTURE) fprintf(stderr, "%s\n", report.message);
+        assert((status == REPLAY_SOURCE_BINDINGS_DEFAULT || status == REPLAY_SOURCE_BINDINGS_FIXTURE) &&
+               "an e2e plays with its bindings fixture, as the replay tool plays it");
+        attract_after = replay_source_attract_after(&source);
         replay_source_close(&source);
     }
     dispatch_context_set_gfx(&gfx);
     dispatch_context_set_mem(&mem);
     dispatch_context_set_input(&input);
-    input_step_init(&g_step);
+    input_step_init(&g_step, &bindings);
+    input_step_set_attract_after(&g_step, attract_after);
     cart_load();
     cart_init();
     return &input;
 }
 
-/* The current frame of the input, as the player's input step plays it. */
 static void play_input(const p8_input_t *input) {
     input_step_run(&g_step, &input->frames[input->current_frame]);
 }
@@ -204,20 +213,24 @@ static void replay_e2e(const char *e2e, const int *frames, int n, reading_t *out
 }
 
 /* Replays the whole e2e, checking the invariant after every frame and that
- * the replay starts a game. */
-static void replay_under_invariant(const char *e2e) {
+ * the replay starts a game. Returns 1 when the attract mode played a demo
+ * frame, 0 otherwise. */
+static int replay_under_invariant(const char *e2e) {
     p8_input_t *input = load_e2e(e2e);
     check_invariant(e2e, BEFORE_F0);
     int started = 0;
+    int reached_demo = 0;
     for (int i = 0; i < input->frame_count; i++) {
         play_input(input);
         cart_update60();
         cart_draw();
         check_invariant(e2e, i);
         started |= main_economy_typed() != NULL;
+        reached_demo |= input_step_attract_phase(&g_step) == ATTRACT_PHASE_PLAYING;
         if (i < input->frame_count - 1) p8_input_step(input);
     }
     assert(started && "the replay never leaves the title screen: its input is not played");
+    return reached_demo;
 }
 
 /* Everything but the particle count, which an active emitter moves without
@@ -248,11 +261,26 @@ static void in_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0 && "a live slots reading failed");
 }
 
+/* Returns what the case returns, run in a child (below 255). */
+static int count_in_child(int (*test)(void)) {
+    fflush(stdout);
+    pid_t pid = fork();
+    assert(pid >= 0);
+    if (pid == 0) {
+        int n = test();
+        fflush(stdout);
+        _exit(n < 255 ? n : 255);
+    }
+    int status;
+    assert(waitpid(pid, &status, 0) == pid);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) < 255 && "a counted reading failed");
+    return WEXITSTATUS(status);
+}
+
 #define ASAN_LOG "tmp/test_live_slots_asan.txt"
 
 static char *read_file(const char *path, size_t *len);
 
-/* The child must die under ASan, reading back a released block. */
 static void in_child_dying_by_asan(void (*test)(void)) {
     fflush(stdout);
     remove(ASAN_LOG);
@@ -282,17 +310,18 @@ static void in_child_dying_by_asan(void (*test)(void)) {
 
 static char g_e2e[128];
 
-static void invariant_on_current_e2e(void) {
-    replay_under_invariant(g_e2e);
+static int invariant_on_current_e2e(void) {
+    return replay_under_invariant(g_e2e);
 }
 
-/* Every frame of every e2e of tests/e2e/; returns how many e2e ran, and in
- * *pad how many of them are pad_ replays. */
-static int invariant_on_all_e2e(int *pad) {
+/* Every frame of every e2e of tests/e2e/; returns how many e2e ran, in *pad
+ * how many of them are pad_ replays, and in *demo how many reach the demo. */
+static int invariant_on_all_e2e(int *pad, int *demo) {
     DIR *dir = opendir("tests/e2e");
     struct dirent *ent;
     int n = 0;
     *pad = 0;
+    *demo = 0;
     assert(dir != NULL);
     while ((ent = readdir(dir)) != NULL) {
         size_t len = strlen(ent->d_name);
@@ -300,7 +329,7 @@ static int invariant_on_all_e2e(int *pad) {
         assert(len - 5 < sizeof g_e2e);
         memcpy(g_e2e, ent->d_name, len - 5);
         g_e2e[len - 5] = '\0';
-        in_child(invariant_on_current_e2e);
+        *demo += count_in_child(invariant_on_current_e2e);
         n++;
         *pad += strncmp(g_e2e, "pad_", 4) == 0;
     }
@@ -485,7 +514,6 @@ static void pad_pause_restart_releases_quit_icons(void) {
     g_spend = (unsigned char)ie->is_revealed;
 }
 
-/* The help screen among the live entities, made by cart_init. */
 static const probe_t *help_screen_in_live_entities(void) {
     const entity_list_t *hv = live_entities();
     for (int i = 0; hv != NULL && i < hv->count; i++) {
@@ -664,14 +692,10 @@ static size_t icons_bytes(void) {
     return bytes + arena_used(measure_arena) - head;
 }
 
-/* The 'research and economy' term of the generation: what cart_start_game
- * makes for the main economy and the structure icons. */
 static size_t research_and_economy_bytes(void) {
     return economy_bytes() + icons_bytes();
 }
 
-/* The background among the live entities, which only cart_start_game
- * makes. */
 static const background_t *background_in_live_entities(void) {
     const entity_list_t *hv = live_entities();
     const background_t *bg = NULL;
@@ -684,8 +708,6 @@ static const background_t *background_in_live_entities(void) {
     return bg;
 }
 
-/* The 'singletons' term: the camera, mouse and main_ui of the reset_world of
- * cart_start_game, its background and its score panel. */
 static size_t singletons_bytes(void) {
     assert(main_camera_typed() != NULL && main_mouse_typed() != NULL && main_ui() != NULL && main_score_panel() != NULL);
     (void)background_in_live_entities();
@@ -1330,52 +1352,51 @@ static int idle_frame(const p8_input_t *input, int i) {
     return i > 0 && input->frames[i].pad_buttons == 0 && input->frames[i - 1].pad_buttons == 0;
 }
 
+/* Returns 1 when the window [start, last] holds two frames or more, after
+ * checking that the generation at its second frame is the one at its last. */
+static int close_window(int start, int last, size_t second, size_t used) {
+    if (last <= start) return 0;
+    if (used != second) {
+        fprintf(stderr, "  %s f%d-%d: game %lu -> %lu\n", g_e2e, start, last, (unsigned long)second, (unsigned long)used);
+        assert(0 && "the generation grows during an idle window");
+    }
+    return 1;
+}
+
 /* A window: at least two frames with no pad button, the frame before
  * included. The generation at its second frame (the
  * first may still flush what the action before left) is the one at its last.
+ * A frame whose attract phase differs from the previous frame's (a demo start
+ * or return flips the game zone) ends the window before it.
  * Without take_reading, whose flush would release the generation early. */
 static int idle_windows_of_current_e2e(void) {
     start_e2e(g_e2e);
     int start = -1;
     size_t second = 0;
+    size_t previous = 0;
+    attract_phase_t phase = input_step_attract_phase(&g_step);
     int windows = 0;
     for (int i = 0; i < g_input->frame_count; i++) {
-        int idle = idle_frame(g_input, i);
         play_until(i);
         size_t used = game_zone_used();
+        attract_phase_t now = input_step_attract_phase(&g_step);
+        int phase_changed = now != phase;
+        phase = now;
+        if (phase_changed && start >= 0) {
+            windows += close_window(start, i - 1, second, previous);
+            start = -1;
+        }
+        int idle = idle_frame(g_input, i) && !phase_changed;
         if (idle && start < 0) start = i;
         if (idle && i == start + 1) second = used;
         int end = idle && (i + 1 == g_input->frame_count || !idle_frame(g_input, i + 1));
-        if (end && i > start) {
-            if (used != second) {
-                fprintf(stderr, "  %s f%d-%d: game %lu -> %lu\n", g_e2e, start, i, (unsigned long)second,
-                        (unsigned long)used);
-                assert(0 && "the generation grows during an idle window");
-            }
-            windows++;
-        }
+        if (end) windows += close_window(start, i, second, used);
         if (!idle || end) start = -1;
+        previous = used;
     }
     return windows;
 }
 
-/* Returns what the case returns, run in a child (below 255). */
-static int count_in_child(int (*test)(void)) {
-    fflush(stdout);
-    pid_t pid = fork();
-    assert(pid >= 0);
-    if (pid == 0) {
-        int n = test();
-        fflush(stdout);
-        _exit(n < 255 ? n : 255);
-    }
-    int status;
-    assert(waitpid(pid, &status, 0) == pid);
-    assert(WIFEXITED(status) && WEXITSTATUS(status) < 255 && "an idle windows reading failed");
-    return WEXITSTATUS(status);
-}
-
-/* Returns the number of idle windows of the e2e of tests/e2e/. */
 static int idle_windows_on_all_e2e(void) {
     DIR *dir = opendir("tests/e2e");
     struct dirent *ent;
@@ -1465,12 +1486,6 @@ static int same_bytes(const char *a_path, const char *b_path) {
 #define DUMP_A "tmp/test_live_slots_a.txt"
 #define DUMP_B "tmp/test_live_slots_b.txt"
 
-/* REPLAY_FILL=<file>: at the end of the session, the replay writes there a
- * '<name> <live count>' line per UI slot kind then per particle slot kind,
- * the session maxima of the particle slot kinds (live count, bytes,
- * elements), then the used bytes of the game zone and their maximum, then
- * those of the load zone, leaving the capture, the dump and the exit status
- * alone. */
 static void replay_writes_fill_at_session_end(void) {
     const int frames[] = {75};
     reading_t reading[1];
@@ -1530,7 +1545,6 @@ static void replay_writes_fill_at_session_end(void) {
     remove(DUMP_B);
 }
 
-/* The value of the '<key> <count>' line of the fill file. */
 static long fill_value(const char *fill, const char *key) {
     char pattern[64];
     long n;
@@ -1563,9 +1577,11 @@ static void replay_writes_session_peak(void) {
 
 int main(void) {
     int pad_count;
-    int e2e_count = invariant_on_all_e2e(&pad_count);
-    printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e (%d pad), every frame\n", e2e_count, pad_count);
+    int demo_count;
+    int e2e_count = invariant_on_all_e2e(&pad_count, &demo_count);
+    printf("  invariant particle = sum of the registered #particles, transit_dots = sum of the #transit_dots of entities_by_tag(slipway): %d e2e (%d pad, %d reaching the demo), every frame\n", e2e_count, pad_count, demo_count);
     assert(pad_count >= 11 && "tests/e2e/ lost some of its 11 pad replays");
+    assert(demo_count >= 1 && "tests/e2e/ lost its attract replay");
     in_child(pad_pause_restart_returns_to_title);
     in_child(pad_pause_restart_keeps_title_during_click);
     in_child_dying_by_asan(pad_pause_restart_releases_title_next_frame);

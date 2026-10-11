@@ -9,6 +9,9 @@
  * shows the name of the chosen difficulty button (economy_score_difficulty,
  * read by score_panel_display.c). */
 
+#include "devtools/replay_source.h"
+#include "p8/input.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +23,10 @@
 #define CAPTURE "tmp/test_replay_from_title.bin"
 #define DUMP_A "tmp/test_replay_from_title_a.txt"
 #define DUMP_B "tmp/test_replay_from_title_b.txt"
+#define INTERRUPTED "tmp/test_replay_from_title_interrupted.json"
+#define ATTRACT_STATE "tmp/test_replay_from_title_attract.txt"
+
+enum { ATTRACT_AFTER = 3, DEMO_FRAMES_BEFORE_THE_PRESS = 20, TITLE_FRAMES_AFTER_THE_PRESS = 2 };
 
 /* Allocated buffer, freed by the caller. */
 static char *read_whole_file(const char *path, size_t *out_len) {
@@ -61,8 +68,30 @@ static void test_title_pick_chooses_the_difficulty(void) {
            "the title-screen pick must choose the difficulty shown in the score panel");
 }
 
+static void write_interrupted_demo(const char *path) {
+    enum { FRAMES = ATTRACT_AFTER + DEMO_FRAMES_BEFORE_THE_PRESS + 1 + TITLE_FRAMES_AFTER_THE_PRESS };
+    static p8_input_frame_t frames[FRAMES];
+    char member[64];
+    frames[ATTRACT_AFTER + DEMO_FRAMES_BEFORE_THE_PRESS].pad_buttons = 1;
+    assert(replay_source_format_attract_after(member, sizeof member, ATTRACT_AFTER) > 0);
+    assert(p8_input_save(frames, FRAMES, path, member));
+}
+
+static void test_an_interrupted_demo_writes_no_attract_state(void) {
+    write_interrupted_demo(INTERRUPTED);
+    remove(ATTRACT_STATE ".1");
+    remove(ATTRACT_STATE ".1.return");
+    remove(ATTRACT_STATE ".1.return.hex");
+    assert(system("ATTRACT_STATE=" ATTRACT_STATE " " DRIVER " " INTERRUPTED " /dev/null " DUMP_A " > /dev/null") == 0);
+    assert(fopen(ATTRACT_STATE ".1", "r") == NULL && "only a playback that reached the demo's last frame writes its state");
+    assert(fopen(ATTRACT_STATE ".1.return", "r") == NULL && "an interrupted playback writes no return state");
+    assert(fopen(ATTRACT_STATE ".1.return.hex", "r") == NULL && "an interrupted playback writes no return record");
+}
+
 int main(void) {
     test_title_pick_chooses_the_difficulty();
+    test_an_interrupted_demo_writes_no_attract_state();
+    remove(INTERRUPTED);
     remove(CAPTURE);
     remove(DUMP_A);
     remove(DUMP_B);

@@ -73,7 +73,7 @@ static void play_short_fixture(void) {
     cart_load();
     cart_init();
     input_step_t step;
-    input_step_init(&step);
+    input_step_init(&step, &bindings_default);
     for (int i = 0; i < input->frame_count; i++) {
         input_step_run(&step, &input->frames[input->current_frame]);
         cart_update60();

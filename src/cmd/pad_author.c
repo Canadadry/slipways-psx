@@ -1,23 +1,3 @@
-/* usage: pad_author <script> <events.json> [--stop-at <label>] [--replay <replay binary>] [--no-aim-budget]
- *        [--try <file>]
- *
- * Plays the script headless and writes the pad frames it pressed to
- * <events.json>, or, when a command fails, to tmp/pad-author/<name>.failed.json
- * with the state in the default place. STATE=<file>: the state of the last frame, as the replay
- * tool's STATE writes it (default tmp/pad-author/<name>.state.txt). Then
- * replays <events.json> with the replay binary (default tmp/replay) and exits
- * 1 unless its state file is byte-identical.
- *
- * Writes the per-frame mode log and the run's totals to
- * tmp/pad-author/<name>.modes.txt, the totals also to stdout. A whole run
- * (no --stop-at) fails when 25% or more of its in-game frames (neither title
- * nor pause) are in aim mode, unless --no-aim-budget.
- *
- * --try <file>: after the run, each line of <file> (commands separated by `;`)
- * runs in its own fork from the run's last frame, writes its state to
- * tmp/pad-author/<name>.try<k>.txt and prints `try <k> ok <frames> science/year <n> aim <aim frames>` or
- * `try <k> failed <error>`; nothing it does reaches <events.json>. */
-
 #define _POSIX_C_SOURCE 200809L
 
 #include "devtools/pad_author.h"
@@ -149,6 +129,25 @@ static void write_economy(const char *path) {
     fclose(out);
 }
 
+#define CAPTIONS_MEMBER_CHARS (PAD_AUTHOR_CAPTIONS_MAX * (64 + 2 * PAD_CAPTION_TEXT_SIZE) + 16)
+
+/* NULL when there is no member; else static, valid until the next call. */
+static const char *header_members(int with_captions) {
+    static const char START[] = "\"start\": \"resume\",\n  \"initial_save\": \"";
+    static char captions[CAPTIONS_MEMBER_CHARS];
+    static char header[sizeof START + 2 * SAVE_STATE_MAX_BYTES + 8 + CAPTIONS_MEMBER_CHARS];
+    int has_captions = with_captions && pad_author_captions_member(&author, captions, sizeof captions) > 0;
+    char *at = header;
+    if (author.record_count > 0) {
+        at += snprintf(header, sizeof header, "%s", START);
+        for (int i = 0; i < author.record_count; i++) at += sprintf(at, "%02x", author.record[i]);
+        *at++ = '"';
+    }
+    if (has_captions) at += sprintf(at, "%s%s", at > header ? ",\n  " : "", captions);
+    *at = '\0';
+    return at > header ? header : NULL;
+}
+
 static int run_trials(const char *try_path, const char *name) {
     FILE *in = fopen(try_path, "r");
     if (in == NULL) {
@@ -259,7 +258,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "pad_author: %s pressed no frame, '%s' not written\n", script_path, events_path);
         return 1;
     }
-    if (!p8_input_save(author.frames, author.frame_count, events_path)) {
+    if (!p8_input_save(author.frames, author.frame_count, events_path, header_members(played))) {
         fprintf(stderr, "pad_author: cannot write '%s'\n", events_path);
         return 1;
     }

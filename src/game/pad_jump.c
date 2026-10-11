@@ -6,7 +6,6 @@
 #include "game/pad_target.h"
 #include "game/planet.h"
 #include "p8/fixed.h"
-#include "p8/input.h"
 #include "p8/vram.h"
 
 #include <assert.h>
@@ -36,42 +35,62 @@ entity_t *pad_jump_reseed(pad_jump_t *jump, const entity_list_t *candidates, int
     return picked;
 }
 
-static const int directions_by_priority[PAD_JUMP_DIRECTIONS] = {P8_PAD_UP, P8_PAD_DOWN, P8_PAD_LEFT, P8_PAD_RIGHT};
+static const pad_direction_t directions_by_priority[PAD_JUMP_DIRECTIONS] = {PAD_DIRECTION_UP, PAD_DIRECTION_DOWN,
+                                                                              PAD_DIRECTION_LEFT, PAD_DIRECTION_RIGHT};
 
-int pad_jump_direction(int index) {
+pad_direction_t pad_jump_direction(int index) {
     assert(index >= 0 && index < PAD_JUMP_DIRECTIONS && "pad_jump_direction: index 0 to PAD_JUMP_DIRECTIONS - 1");
     return directions_by_priority[index];
 }
 
-int pad_jump_first_direction(int buttons) {
-    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
-        if (buttons & directions_by_priority[i]) {
-            return directions_by_priority[i];
-        }
+static int direction_mask(const bindings_t *bindings, bindings_mode_t mode, pad_direction_t direction) {
+    switch (direction) {
+    case PAD_DIRECTION_UP:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_UP);
+    case PAD_DIRECTION_DOWN:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_DOWN);
+    case PAD_DIRECTION_LEFT:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_LEFT);
+    case PAD_DIRECTION_RIGHT:
+        return bindings_mask(bindings, mode, BINDINGS_ACTION_JUMP_RIGHT);
+    case PAD_DIRECTION_NONE:
+        break;
     }
     return 0;
 }
 
-int pad_jump_repeat_step(pad_jump_t *jump, int pad_buttons, int pressed) {
-    int direction = pad_jump_first_direction(pressed);
-    if (direction != 0) {
+static pad_direction_t first_pressed_direction(const bindings_t *bindings, bindings_mode_t mode, int pressed) {
+    for (int i = 0; i < PAD_JUMP_DIRECTIONS; i++) {
+        if (pressed & direction_mask(bindings, mode, directions_by_priority[i])) {
+            return directions_by_priority[i];
+        }
+    }
+    return PAD_DIRECTION_NONE;
+}
+
+pad_direction_t pad_jump_repeat_step(pad_jump_t *jump, const bindings_t *bindings, bindings_mode_t mode,
+                                     int pad_buttons, int pressed) {
+    assert(bindings != NULL && bindings_mode_has_action(mode, BINDINGS_ACTION_JUMP_UP) &&
+           "pad_jump_repeat_step: a mode with jump_* actions (jump or slipway)");
+    pad_direction_t direction = first_pressed_direction(bindings, mode, pressed);
+    if (direction != PAD_DIRECTION_NONE) {
         jump->repeat_direction = direction;
         jump->repeat_frames = 0;
         return jump->repeat_direction;
     }
-    if (jump->repeat_direction == 0 || !(pad_buttons & jump->repeat_direction)) {
+    if (!(pad_buttons & direction_mask(bindings, mode, jump->repeat_direction))) {
         pad_jump_repeat_clear(jump);
-        return 0;
+        return PAD_DIRECTION_NONE;
     }
     jump->repeat_frames++;
     if (jump->repeat_frames == PAD_JUMP_REPEAT_DELAY + PAD_JUMP_REPEAT_PERIOD) {
         jump->repeat_frames = PAD_JUMP_REPEAT_DELAY;
     }
-    return jump->repeat_frames == PAD_JUMP_REPEAT_DELAY ? jump->repeat_direction : 0;
+    return jump->repeat_frames == PAD_JUMP_REPEAT_DELAY ? jump->repeat_direction : PAD_DIRECTION_NONE;
 }
 
 void pad_jump_repeat_clear(pad_jump_t *jump) {
-    jump->repeat_direction = 0;
+    jump->repeat_direction = PAD_DIRECTION_NONE;
     jump->repeat_frames = 0;
 }
 
