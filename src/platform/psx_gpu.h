@@ -14,8 +14,8 @@ const p8_draw_backend_t *psx_gpu_backend(void);
  * names it in a p8_fatal on overflow. */
 void psx_gpu_frame_begin(int frame);
 
-/* Clears this frame's display buffer and appends the x2 upscale, waits for the previous frame,
- * shows it and submits this one, with no VSync wait. p8_fatal when the frame sent more bytes than metered_bytes. */
+/* Waits for the previous frame, shows it and submits this one, with no VSync wait. p8_fatal when
+ * the frame sent more bytes than metered_bytes. */
 void psx_gpu_frame_end(unsigned long metered_bytes);
 
 /* After psx_gpu_frame_end: waits for the frame it submitted and shows it at once. The next

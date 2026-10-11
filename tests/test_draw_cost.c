@@ -17,9 +17,9 @@ static void assert_cost(p8_draw_cost_t cost, unsigned long bytes, int primitives
     assert(cost.primitives == primitives);
 }
 
-static void test_cls_is_one_fill(void) {
+static void test_cls_is_one_tile(void) {
     reset();
-    assert_cost(p8_draw_cost_cls(), P8_GPU_FILL_BYTES, 1);
+    assert_cost(p8_draw_cost_cls(), P8_GPU_TILE_BYTES, 1);
 }
 
 static void test_pset_is_one_tile_1_and_off_screen_is_free(void) {
@@ -135,7 +135,7 @@ static void test_frame_begin_returns_the_overhead_and_resets_the_window(void) {
     p8_fillp(&gfx, 0xA5A5);
     assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
     assert_cost(p8_draw_cost_frame_begin(&window),
-                2 * P8_GPU_DR_ENV_BYTES + P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES + P8_GPU_POLY_FT4_BYTES, 5);
+                P8_GPU_DR_ENV_BYTES + P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES, 3);
     assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
 }
 
@@ -152,7 +152,7 @@ static void test_pattern_key_tells_pattern_colour_and_transparency_apart(void) {
 }
 
 int main(void) {
-    test_cls_is_one_fill();
+    test_cls_is_one_tile();
     test_pset_is_one_tile_1_and_off_screen_is_free();
     test_culling_is_judged_after_the_camera();
     test_line_is_one_line_f2_culled_on_its_bounding_box();

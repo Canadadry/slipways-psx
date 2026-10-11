@@ -3,7 +3,7 @@
 
 #include "p8/gfx.h"
 
-/* A GPU TILE in draw-area coordinates, inside the 160x120 screen, w and h at least 1. */
+/* A tile in screen coordinates, inside the 160x120 screen, w and h at least 1. */
 typedef struct {
     int x;
     int y;

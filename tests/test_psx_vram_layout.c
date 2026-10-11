@@ -41,15 +41,6 @@ static void test_sheet_font_and_patterns_share_one_4_bit_page(void) {
     assert(inside(psx_vram_layout_region(PSX_VRAM_PATTERNS), page));
 }
 
-static void test_the_upscale_page_starts_at_the_draw_area(void) {
-    psx_vram_rect_t page = psx_vram_layout_upscale_page();
-    psx_vram_rect_t draw_area = psx_vram_layout_region(PSX_VRAM_DRAW_AREA);
-    assert_page_aligned(page);
-    assert(page.w == 256);
-    assert(page.x == draw_area.x && page.y == draw_area.y);
-    assert(inside(draw_area, page));
-}
-
 static void test_pattern_slots_fit_their_region_on_texture_window_bounds(void) {
     psx_vram_rect_t region = psx_vram_layout_region(PSX_VRAM_PATTERNS);
     psx_vram_rect_t page = psx_vram_layout_texture_page();
@@ -93,7 +84,6 @@ static void test_every_clut_fits_the_clut_region_on_16_unit_bounds(void) {
 int main(void) {
     test_regions_are_inside_vram_and_never_overlap();
     test_sheet_font_and_patterns_share_one_4_bit_page();
-    test_the_upscale_page_starts_at_the_draw_area();
     test_pattern_slots_fit_their_region_on_texture_window_bounds();
     test_every_clut_fits_the_clut_region_on_16_unit_bounds();
     printf("test_psx_vram_layout: ok\n");

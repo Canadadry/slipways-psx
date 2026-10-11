@@ -23,7 +23,6 @@
 #include <string.h>
 
 #define SIZE_CHECK(name, condition) typedef char name[(condition) ? 1 : -1]
-SIZE_CHECK(fill_size_check, sizeof(FILL) == P8_GPU_FILL_BYTES);
 SIZE_CHECK(tile_1_size_check, sizeof(TILE_1) == P8_GPU_TILE_1_BYTES);
 SIZE_CHECK(tile_size_check, sizeof(TILE) == P8_GPU_TILE_BYTES);
 SIZE_CHECK(line_f2_size_check, sizeof(LINE_F2) == P8_GPU_LINE_F2_BYTES);
@@ -31,14 +30,14 @@ SIZE_CHECK(sprt_size_check, sizeof(SPRT) == P8_GPU_SPRT_BYTES);
 SIZE_CHECK(dr_tpage_size_check, sizeof(DR_TPAGE) == P8_GPU_DR_TPAGE_BYTES);
 SIZE_CHECK(dr_twin_size_check, sizeof(DR_TWIN) == P8_GPU_DR_TWIN_BYTES);
 SIZE_CHECK(dr_env_size_check, sizeof(DR_ENV) == P8_GPU_DR_ENV_BYTES);
-SIZE_CHECK(poly_ft4_size_check, sizeof(POLY_FT4) == P8_GPU_POLY_FT4_BYTES);
-/* What frame_begin and frame_end add must fit what p8_draw_cost_frame_begin meters. */
-SIZE_CHECK(frame_overhead_size_check,
-           2 * (sizeof(DR_AREA) + sizeof(DR_OFFSET) + sizeof(DR_TWIN)) + sizeof(DR_TPAGE) + sizeof(FILL) + sizeof(POLY_FT4)
-               <= 2 * P8_GPU_DR_ENV_BYTES + P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES + P8_GPU_POLY_FT4_BYTES);
+/* What frame_begin adds must fit what p8_draw_cost_frame_begin meters. */
+SIZE_CHECK(frame_overhead_size_check, sizeof(DR_AREA) + sizeof(DR_OFFSET) + sizeof(DR_TPAGE) + sizeof(DR_TWIN)
+                                          <= P8_GPU_DR_ENV_BYTES + P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES);
 SIZE_CHECK(frame_buffer_word_check, GPU_FRAME_BUFFER_BYTES % 4 == 0);
 
-enum { DISPLAY_WIDTH = 320, DISPLAY_HEIGHT = 240, TEXTURE_4_BIT = 0, TEXTURE_15_BIT = 2, SHEET_UPLOAD_LINES = 16 };
+enum { DISPLAY_WIDTH = 320, DISPLAY_HEIGHT = 240, TEXTURE_4_BIT = 0, SHEET_UPLOAD_LINES = 16 };
+SIZE_CHECK(display_scale_check, DISPLAY_WIDTH == P8_SCREEN_WIDTH * PSX_TILES_SCALE
+                                    && DISPLAY_HEIGHT == P8_SCREEN_HEIGHT * PSX_TILES_SCALE);
 
 static uint32_t buffers[2][GPU_FRAME_BUFFER_BYTES / 4];
 static int current;
@@ -157,17 +156,20 @@ void psx_gpu_init(void) {
     SetDispMask(1);
 }
 
-static void add_black_fill(psx_vram_rect_t region) {
-    FILL *fill = packet(sizeof *fill);
-    setFill(fill);
-    setRGB0(fill, 0, 0, 0);
-    setXY0(fill, region.x, region.y);
-    setWH(fill, region.w, region.h);
+static void add_tile(psx_tile_t tile, int col) {
+    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
+    psx_tile_t doubled = psx_tiles_double(tile);
+    TILE *primitive = packet(sizeof *primitive);
+    setTile(primitive);
+    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
+    setXY0(primitive, doubled.x, doubled.y);
+    setWH(primitive, doubled.w, doubled.h);
 }
 
 static void gpu_cls(p8_vram_t *mem) {
     (void)mem;
-    add_black_fill(psx_vram_layout_region(PSX_VRAM_DRAW_AREA));
+    psx_tile_t screen = { 0, 0, P8_SCREEN_WIDTH, P8_SCREEN_HEIGHT };
+    add_tile(screen, 0);
 }
 
 static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
@@ -184,15 +186,6 @@ static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, i
     setLineF2(primitive);
     setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
     setXY2(primitive, line.x1, line.y1, line.x2, line.y2);
-}
-
-static void add_tile(psx_tile_t tile, int col) {
-    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
-    TILE *primitive = packet(sizeof *primitive);
-    setTile(primitive);
-    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
-    setXY0(primitive, tile.x, tile.y);
-    setWH(primitive, tile.w, tile.h);
 }
 
 static void add_pixel(psx_tile_t pixel, void *context) {
@@ -343,24 +336,11 @@ void psx_gpu_frame_begin(int frame) {
     previous = NULL;
     psx_clut_cache_reset(&clut_caches[current]);
     psx_pattern_cache_reset(&pattern_caches[current]);
-    add_draw_target(psx_vram_layout_region(PSX_VRAM_DRAW_AREA));
+    add_draw_target(psx_vram_layout_region(current == 0 ? PSX_VRAM_DISPLAY_0 : PSX_VRAM_DISPLAY_1));
     psx_vram_rect_t page = psx_vram_layout_texture_page();
     DR_TPAGE *tpage = packet(sizeof *tpage);
     setDrawTPage(tpage, 0, 0, getTPage(TEXTURE_4_BIT, 0, page.x, page.y));
     add_no_texture_window();
-}
-
-static void add_upscale(void) {
-    psx_vram_rect_t page = psx_vram_layout_upscale_page();
-    psx_vram_rect_t area = psx_vram_layout_region(PSX_VRAM_DRAW_AREA);
-    POLY_FT4 *quad = packet(sizeof *quad);
-    setPolyFT4(quad);
-    setShadeTex(quad, 1);
-    setRGB0(quad, 128, 128, 128);
-    setXY4(quad, 0, 0, DISPLAY_WIDTH, 0, 0, DISPLAY_HEIGHT, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-    setUV4(quad, 0, 0, area.w, 0, 0, area.h, area.w, area.h);
-    quad->tpage = getTPage(TEXTURE_15_BIT, 0, page.x, page.y);
-    quad->clut = 0;
 }
 
 /* Queued behind the previous frame's DrawSync and ahead of this frame's DrawOTag, so no slot
@@ -376,13 +356,6 @@ static void upload_slots(const psx_clut_cache_t *cluts, const psx_pattern_cache_
 }
 
 void psx_gpu_frame_end(unsigned long metered_bytes) {
-    psx_vram_rect_t display = psx_vram_layout_region(current == 0 ? PSX_VRAM_DISPLAY_0 : PSX_VRAM_DISPLAY_1);
-    add_draw_target(display);
-    add_no_texture_window();
-    /* The upscale skips 0x0000 texels as transparent, and a black FILL or TILE writes 0x0000: without
-     * this clear, black pixels would show the display buffer's previous frame. */
-    add_black_fill(display);
-    add_upscale();
     if (used > metered_bytes) {
         static char message[128];
         snprintf(message, sizeof message, "psx_gpu: frame %d sent %u bytes, metered %lu", frame_number, (unsigned)used,

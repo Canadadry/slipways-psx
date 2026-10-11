@@ -7,7 +7,6 @@
 static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
     [PSX_VRAM_DISPLAY_0] = { 0, 0, 320, 240 },
     [PSX_VRAM_DISPLAY_1] = { 0, 240, 320, 240 },
-    [PSX_VRAM_DRAW_AREA] = { 320, 0, 160, 120 },
     [PSX_VRAM_SPRITE_SHEET] = { 512, 0, 32, 128 },
     [PSX_VRAM_FONT] = { 512, 128, 32, 128 },
     [PSX_VRAM_PATTERNS] = { 544, 0, 32, 256 },
@@ -21,11 +20,6 @@ psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region) {
 
 psx_vram_rect_t psx_vram_layout_texture_page(void) {
     psx_vram_rect_t page = { regions[PSX_VRAM_SPRITE_SHEET].x, regions[PSX_VRAM_SPRITE_SHEET].y, 64, 256 };
-    return page;
-}
-
-psx_vram_rect_t psx_vram_layout_upscale_page(void) {
-    psx_vram_rect_t page = { regions[PSX_VRAM_DRAW_AREA].x, regions[PSX_VRAM_DRAW_AREA].y, 256, 256 };
     return page;
 }
 

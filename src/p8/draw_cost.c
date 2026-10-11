@@ -56,8 +56,7 @@ static p8_draw_cost_t unpatterned_window(p8_draw_cost_window_t *window) {
 p8_draw_cost_t p8_draw_cost_frame_begin(p8_draw_cost_window_t *window) {
     window->patterned = 0;
     window->pattern_key = 0;
-    p8_draw_cost_t overhead = cost_add(cost_of(P8_GPU_DR_ENV_BYTES, 2), window_pair());
-    return cost_add(overhead, cost_of(P8_GPU_POLY_FT4_BYTES, 1));
+    return cost_add(cost_of(P8_GPU_DR_ENV_BYTES, 1), window_pair());
 }
 
 unsigned long p8_draw_cost_pattern_key(const p8_graphics_t *gfx, int col) {
@@ -73,7 +72,7 @@ static p8_draw_cost_t fill_spans(p8_draw_cost_window_t *window, const p8_graphic
 }
 
 p8_draw_cost_t p8_draw_cost_cls(void) {
-    return cost_of(P8_GPU_FILL_BYTES, 1);
+    return cost_of(P8_GPU_TILE_BYTES, 1);
 }
 
 p8_draw_cost_t p8_draw_cost_pset(const p8_graphics_t *gfx, int x, int y) {

@@ -167,30 +167,39 @@ point, no `malloc`):
 
 - init: NTSC 320x240 display on two display buffers, the packed sprite sheet
   (`p8_sprite_sheet_packed`, already the 4-bit texture layout) uploaded;
-- each frame: draw area and offset on the 160x120 draw area, the texture
-  page, no texture window, then the primitives in call order (no depth sort)
-  in a bump allocator over that frame's static buffer of
-  `GPU_FRAME_BUFFER_BYTES`; the frame ends on a black `FILL` of the frame's
-  display buffer and the x2 upscale quad into it (the quad skips 0x0000
-  texels, which black `FILL`s and `TILE`s write, so the clear keeps the
-  previous frame from showing through), waits for the previous frame's
+- each frame: draw area and offset on the 320x240 display buffer the frame
+  will be shown from (the other one is on screen), the texture page, no
+  texture window, then the primitives in call order (no depth sort) in a
+  bump allocator over that frame's static buffer of
+  `GPU_FRAME_BUFFER_BYTES`; the frame's one clear is the `cls` that opens
+  every `cart_draw`, so a frame without one would show the buffer's frame
+  N-2; the frame end appends nothing: it waits for the previous frame's
   `DrawSync`, shows it and submits this one, with no `VSync` wait;
 - overflow of the buffer is a `p8_fatal` naming the frame and the bytes
   asked; a frame that sent more bytes than the meter counted is a `p8_fatal`
   naming the frame and both figures;
-- `cls` is a `FILL` of the draw area; `pset` is one `TILE_1`, `rect` up to
-  four `TILE`s (its edges, or one when it has no inside) and a plain
-  `rectfill` one `TILE`, after the camera and clipped to the screen
-  (`src/platform/psx_tiles.c`, host-tested against the software backend by
-  `test_psx_tiles`), coloured with the 8-bit components of
-  `P8_PALETTE_RGB[col & 0x0F]`; `line` is one `LINE_F2` between its
-  endpoints after the camera, unclipped (the GPU clips to the draw area),
+- `cls`, `rect`, plain `rectfill` and plain `circfill` spans are drawn at
+  x2: each is computed as a 160x120 tile, then doubled by
+  `psx_tiles_double` (x, y, w and h times `PSX_TILES_SCALE`) into a `TILE`
+  of the display buffer, so each PICO-8 pixel is a uniform 2x2 block; `cls`
+  is one black `TILE` of the whole 320x240 buffer; `rect` is up to four
+  `TILE`s (its edges, or one when it has no inside) and a plain `rectfill`
+  one `TILE`, and a plain `circfill` one `TILE` span per screen row from the
+  software backend's midpoint loop, after the camera and clipped to the
+  screen (`src/platform/psx_tiles.c`, host-tested against the software
+  backend pixel for pixel, at 1x and upscaled x2, by `test_psx_tiles`),
+  coloured with the 8-bit components of `P8_PALETTE_RGB[col & 0x0F]`;
+- the other families (`pset`/`circ`, `spr`/`print`, patterned fills,
+  `line`) still draw at 1x, with their 1x coordinates, into the top-left
+  160x120 quarter of the display buffer, until their step of
+  `docs/plan-19.md` converts them: `pset` is one `TILE_1`; `line` is one
+  `LINE_F2` between its endpoints after the camera, unclipped (the GPU
+  clips to the 320x240 draw area, so a line leaving the screen shows its
+  overrun past the quarter),
   sent when its box meets the screen, so its stepping is the GPU's, not
   PICO-8's (the plan's accepted divergence, measured by its capture);
-  `circ` is one `TILE_1` per on-screen pixel and a plain `circfill` one
-  `TILE` span per screen row, both from the software backend's midpoint
-  loop (`psx_tiles.c`, host-tested pixel for pixel), so circles match the
-  PC exactly; `spr` (and `map` through it) is one `SPRT` from the sheet's
+  `circ` is one `TILE_1` per on-screen pixel, from the same midpoint loop
+  (`psx_tiles.c`, host-tested pixel for pixel); `spr` (and `map` through it) is one `SPRT` from the sheet's
   4-bit page, after the camera and clipped to the screen
   (`src/platform/psx_sprite.c`, host-tested pixel for pixel by
   `test_psx_sprite`; a sprite reading past the sheet is an assert, which no
@@ -231,11 +240,26 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 | region | x, y | size | notes |
 |---|---|---|---|
 | display buffers | (0, 0), (0, 240) | 320x240 each | |
-| draw area | (320, 0) | 160x120 | 15-bit texture page (320, 0) for the upscale |
 | sprite sheet | (512, 0) | 32x128 | 4-bit page (512, 0): u 0..127, v 0..127 |
 | font | (512, 128) | 32x128 | same page, v 128..255 |
 | pattern slots | (544, 0) | 32x256, 2x8 a slot | same page, u 128..255 |
 | CLUTs | (640, 0) | 16x64, 16x1 each | `GPU_CLUT_SLOTS` draw palettes, 16 font colours, `GPU_PATTERN_SLOTS` pattern CLUTs |
+
+Still to do (`docs/plan-19.md` steps 3.2 and 3.3): the x2 textures, uploaded
+next to the 1x ones, which stay until the step that replaces them, so no x2
+region overlaps a 1x region:
+
+| region | x, y | size | notes |
+|---|---|---|---|
+| x2 sprite sheet | (512, 256) | 64x256 | 256x256 texels 4-bit: the whole page (512, 256) |
+| x2 font | (576, 256) | 64x96 | page (576, 256), v 0..95: 256 codes in 8x12-texel cells, 32 a row, 8 rows |
+| x2 pattern slots | (576, 352) | 4x16 a slot | same page, v 96..255: 16x16 texels on 16-texel bounds for the texture window, 16 a row, up to 160 slots |
+
+The textured calls will then read two 4-bit pages, the sheet's and the font
+and patterns' one, so the cost model must count a page change: step 3.2 adds
+the page to `p8_draw_cost_window_t`, so that any change of page or window
+costs the `DR_TPAGE` + `DR_TWIN` pair, and the backend sends the `DR_TPAGE`
+where the page changes.
 
 ## Until-exit boot mode
 
@@ -423,7 +447,7 @@ mask.
   diff side by side). `near1`/`near2` count the differing pixels whose PSX
   colour is in the PC frame within 1 or 2 pixels, `far` the others. The `rect`
   and `rectfill` captures, on real colours, confirm the channel order (red in
-  bits 0-4) and that the x2 upscale is exact: zero `offpalette`, zero
+  bits 0-4) and that the doubled `TILE`s are exact: zero `offpalette`, zero
   `nonuniform`.
 - **Ceilings and references**: until a human accepts a family, its captures'
   `differ` may not exceed their line in `psx/gpu_capture_ceilings.txt`,
@@ -553,10 +577,10 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- Hardware renderers: DuckStation's hardware renderer samples the x2 upscale
-  quad unevenly (glyph outlines of uneven width, a broken-up title logo). Use
-  its Software renderer until `docs/plan-19.md` draws the frame at display
-  resolution.
+- Display resolution (`docs/plan-19.md`): `pset`/`circ`, `spr`/`print`,
+  patterned fills and `line` still draw at 1x into the top-left quarter of
+  the display buffer, so the PSX image is wrong under every renderer until
+  their steps convert them.
 
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
@@ -565,12 +589,16 @@ None of these targets is in `make test-all`, and none runs a setup.
 - The human's play: load `tmp/psx/build/slipways.cue` in a windowed
   emulator and judge the controller by hand. No agent opens a window.
 
-- Pending human acceptance, one label at a time: run `make psx-check`,
-  review each capture's report line and
+- Pending human acceptance, all 14 labels once, at the end of
+  `docs/plan-19.md` (its step 6; until then `make psx-check` fails by design
+  on the labels whose families are not drawn at x2 yet): run `make
+  psx-check`, review each capture's report line and
   `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` (PC | PSX |
-  diff), then accept the label with the one command
+  diff), then accept each label with the one command
   `make psx-gpu-capture-accept LABEL=<label>` and commit
-  `psx/gpu_capture_references.txt`:
+  `psx/gpu_capture_references.txt`. The report lines below are those of the
+  1x backend before plan 19; at x2, `cls`, `rectfill` and `rect` already
+  reproduce theirs:
   - `cls` f1: `cls f1 mask cls calls 1 differ 0 (0.0‰) near1 0 near2 0 far 0
     bbox - offpalette 0 nonuniform 0`, ceiling 0.
   - `rectfill` f11: `rectfill f11 mask cls,rectfill calls 8 differ 0 (0.0‰)

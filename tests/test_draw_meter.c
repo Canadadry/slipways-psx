@@ -127,13 +127,13 @@ static void test_frame_end_folds_the_frame_into_the_peaks_and_resets_it(void) {
     p8_pset(&gfx, &mem, 500, 1, 7);
     p8_draw_meter_frame_end();
     p8_draw_meter_counts_t first = p8_draw_meter_last_frame();
-    assert(first.bytes == base + P8_GPU_FILL_BYTES + P8_GPU_TILE_1_BYTES);
+    assert(first.bytes == base + P8_GPU_TILE_BYTES + P8_GPU_TILE_1_BYTES);
     assert(first.primitives == base_primitives + 2);
     assert(p8_draw_meter_peak().bytes == first.bytes);
 
     p8_cls(&mem);
     p8_draw_meter_frame_end();
-    assert(p8_draw_meter_last_frame().bytes == base + P8_GPU_FILL_BYTES && "the frame was reset");
+    assert(p8_draw_meter_last_frame().bytes == base + P8_GPU_TILE_BYTES && "the frame was reset");
     assert(p8_draw_meter_peak().bytes == first.bytes && p8_draw_meter_peak().primitives == first.primitives);
 
     p8_rect(&gfx, &mem, 0, 0, 5, 5, 7);

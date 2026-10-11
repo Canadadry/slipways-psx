@@ -5,7 +5,6 @@
 
 /* PSn00bSDK packet sizes on MIPS, tag included. */
 enum {
-    P8_GPU_FILL_BYTES = 16,
     P8_GPU_TILE_1_BYTES = 12,
     P8_GPU_TILE_BYTES = 16,
     P8_GPU_LINE_F2_BYTES = 16,
@@ -13,7 +12,6 @@ enum {
     P8_GPU_DR_TPAGE_BYTES = 8,
     P8_GPU_DR_TWIN_BYTES = 8,
     P8_GPU_DR_ENV_BYTES = 36,
-    P8_GPU_POLY_FT4_BYTES = 40,
 };
 
 typedef struct {
@@ -32,7 +30,7 @@ typedef struct {
  * box misses 0..159 x 0..119. Coordinates are the API's, before gfx's camera. */
 
 /* Resets *window to the frame's initial state and returns the fixed per-frame overhead
- * (draw environments, texture state, x2 upscale quad). */
+ * (draw environment, texture state). */
 p8_draw_cost_t p8_draw_cost_frame_begin(p8_draw_cost_window_t *window);
 
 /* What tells two pattern slots apart: the pattern, the colour byte and the transparent flag. */
