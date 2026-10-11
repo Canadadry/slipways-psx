@@ -14,7 +14,7 @@ No human responds during this run. Every `QUESTION:` from any sub-agent goes to 
 `progress.md` at the root is the run's checklist: what is done and what is left, read by the user while you work. Before the first step:
 
 1. Run `tools/progress_check.sh --install`. From then on git refuses any commit that ticks no new `[x]` in `progress.md`; `git-commit` § `progress.md` says how each commit satisfies it.
-2. `progress.md` exists and every item is `[x]` (a finished run) → `git rm` it and commit (`docs:`). Some item is `[ ]` → it is this plan's, resumed: keep it, or stop and report if it belongs to another plan.
+2. `progress.md` exists and every item is `[x]` (a finished run) → `git rm` it, and that run's plan file if it is still in `docs/`, and commit (`docs:`). Some item is `[ ]` → it is this plan's, resumed: keep it, or stop and report if it belongs to another plan.
 3. No `progress.md` → write it: a nested `- [ ]` list indented by 2 spaces, one top-level item per group of steps as the plan names them (phase, part, chunk…), one child per step, `[x]` for each step that already has a note. Commit it (`docs:`).
 
 Rules the hook enforces: an existing line keeps its text and its place; a new line never goes before an existing `[x]`; an `[x]` never goes back. A step added to the plan later goes at the end.
@@ -24,7 +24,10 @@ Rules the hook enforces: an existing line keeps its text and its place; a new li
 Repeat until there's no next step:
 
 ### 1. Find the next step
-The plan's `Step notes` section (whatever its number) is the progress record: one note per finished step, `### Step <phase>.<step>`. The next step is the first one in the plan's order without a note. Every step has one → the plan is complete: check its `Done when` list, report, and stop.
+The plan's `Step notes` section (whatever its number) is the progress record: one note per finished step, `### Step <phase>.<step>`. The next step is the first one in the plan's order without a note. Every step has one → the plan is complete: check its `Done when` list, then finish it:
+
+- Every item holds → `git rm` the plan file and `progress.md` in one commit (`docs:`, the hook allows the deletion once every item is `[x]`), push, report, and stop. A finished plan never stays in `docs/` (CLAUDE.md § Docs).
+- An item waits on the human (a review, a play test) → keep both files, its `[ ]` open, and report it. Whoever makes the commit that ticks it, agent or human, follows it with that same `docs:` commit removing the plan file and `progress.md`; say so in the report, with the exact commands.
 
 ### 2. Run it
 
