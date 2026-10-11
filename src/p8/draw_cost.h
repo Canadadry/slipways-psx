@@ -5,7 +5,6 @@
 
 /* PSn00bSDK packet sizes on MIPS, tag included. */
 enum {
-    P8_GPU_TILE_1_BYTES = 12,
     P8_GPU_TILE_BYTES = 16,
     P8_GPU_LINE_F2_BYTES = 16,
     P8_GPU_SPRT_BYTES = 20,

@@ -95,8 +95,7 @@ static int pset_tile_matches_software(const p8_graphics_t *gfx, int x, int y) {
     int count = psx_tiles_pset(gfx, x, y, &tile);
     assert(count == 0 || count == 1);
     assert(count == 0 || (tile.w == 1 && tile.h == 1));
-    paint(&tile, count);
-    assert_painted_is_the_software_screen();
+    assert_tiles_and_their_doubles_match_software(&tile, count);
     return count;
 }
 
@@ -153,9 +152,8 @@ static int circ_pixels_match_software(const p8_graphics_t *gfx, int cx, int cy, 
     circle_pixel_count = 0;
     int count = psx_tiles_circ(gfx, cx, cy, r, collect_pixel, circle_pixels);
     assert(count == circle_pixel_count);
-    paint(circle_pixels, count);
-    assert_painted_is_the_software_screen();
-    assert((unsigned long)count * P8_GPU_TILE_1_BYTES <= p8_draw_cost_circ(gfx, cx, cy, r).bytes && "real bytes must fit the metered");
+    assert_tiles_and_their_doubles_match_software(circle_pixels, count);
+    assert((unsigned long)count * P8_GPU_TILE_BYTES <= p8_draw_cost_circ(gfx, cx, cy, r).bytes && "real bytes must fit the metered");
     return count;
 }
 

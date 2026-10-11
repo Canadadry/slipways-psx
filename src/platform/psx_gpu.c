@@ -23,7 +23,6 @@
 #include <string.h>
 
 #define SIZE_CHECK(name, condition) typedef char name[(condition) ? 1 : -1]
-SIZE_CHECK(tile_1_size_check, sizeof(TILE_1) == P8_GPU_TILE_1_BYTES);
 SIZE_CHECK(tile_size_check, sizeof(TILE) == P8_GPU_TILE_BYTES);
 SIZE_CHECK(line_f2_size_check, sizeof(LINE_F2) == P8_GPU_LINE_F2_BYTES);
 SIZE_CHECK(sprt_size_check, sizeof(SPRT) == P8_GPU_SPRT_BYTES);
@@ -189,19 +188,15 @@ static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, i
 }
 
 static void add_pixel(psx_tile_t pixel, void *context) {
-    const p8_rgb_t *rgb = context;
-    TILE_1 *primitive = packet(sizeof *primitive);
-    setTile1(primitive);
-    setRGB0(primitive, rgb->red, rgb->green, rgb->blue);
-    setXY0(primitive, pixel.x, pixel.y);
+    const int *col = context;
+    add_tile(pixel, *col);
 }
 
 static void gpu_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
     (void)mem;
     psx_tile_t pixel;
     if (psx_tiles_pset(gfx, x, y, &pixel)) {
-        p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
-        add_pixel(pixel, &rgb);
+        add_tile(pixel, col);
     }
 }
 
@@ -267,8 +262,7 @@ static void gpu_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y
 
 static void gpu_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
     (void)mem;
-    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
-    psx_tiles_circ(gfx, cx, cy, r, add_pixel, &rgb);
+    psx_tiles_circ(gfx, cx, cy, r, add_pixel, &col);
 }
 
 static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {

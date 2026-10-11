@@ -178,28 +178,28 @@ point, no `malloc`):
 - overflow of the buffer is a `p8_fatal` naming the frame and the bytes
   asked; a frame that sent more bytes than the meter counted is a `p8_fatal`
   naming the frame and both figures;
-- `cls`, `rect`, plain `rectfill` and plain `circfill` spans are drawn at
-  x2: each is computed as a 160x120 tile, then doubled by
+- `cls`, `pset`, `rect`, plain `rectfill`, `circ` and plain `circfill`
+  spans are drawn at x2: each is computed as a 160x120 tile, then doubled by
   `psx_tiles_double` (x, y, w and h times `PSX_TILES_SCALE`) into a `TILE`
   of the display buffer, so each PICO-8 pixel is a uniform 2x2 block; `cls`
   is one black `TILE` of the whole 320x240 buffer; `rect` is up to four
   `TILE`s (its edges, or one when it has no inside) and a plain `rectfill`
-  one `TILE`, and a plain `circfill` one `TILE` span per screen row from the
-  software backend's midpoint loop, after the camera and clipped to the
+  one `TILE`, `pset` and `circ` one 2x2 `TILE` at doubled coordinates per
+  on-screen pixel (`circ` from the software backend's midpoint loop), and a
+  plain `circfill` one `TILE` span per screen row from the same loop, after the camera and clipped to the
   screen (`src/platform/psx_tiles.c`, host-tested against the software
   backend pixel for pixel, at 1x and upscaled x2, by `test_psx_tiles`),
   coloured with the 8-bit components of `P8_PALETTE_RGB[col & 0x0F]`;
-- the other families (`pset`/`circ`, `spr`/`print`, patterned fills,
-  `line`) still draw at 1x, with their 1x coordinates, into the top-left
-  160x120 quarter of the display buffer, until their step of
-  `docs/plan-19.md` converts them: `pset` is one `TILE_1`; `line` is one
+- the other families (`spr`/`print`, patterned fills, `line`) still draw
+  at 1x, with their 1x coordinates, into the top-left 160x120 quarter of
+  the display buffer, until their step of `docs/plan-19.md` converts them:
+  `line` is one
   `LINE_F2` between its endpoints after the camera, unclipped (the GPU
   clips to the 320x240 draw area, so a line leaving the screen shows its
   overrun past the quarter),
   sent when its box meets the screen, so its stepping is the GPU's, not
   PICO-8's (the plan's accepted divergence, measured by its capture);
-  `circ` is one `TILE_1` per on-screen pixel, from the same midpoint loop
-  (`psx_tiles.c`, host-tested pixel for pixel); `spr` (and `map` through it) is one `SPRT` from the sheet's
+  `spr` (and `map` through it) is one `SPRT` from the sheet's
   4-bit page, after the camera and clipped to the screen
   (`src/platform/psx_sprite.c`, host-tested pixel for pixel by
   `test_psx_sprite`; a sprite reading past the sheet is an assert, which no

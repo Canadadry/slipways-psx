@@ -127,7 +127,7 @@ static void test_frame_end_folds_the_frame_into_the_peaks_and_resets_it(void) {
     p8_pset(&gfx, &mem, 500, 1, 7);
     p8_draw_meter_frame_end();
     p8_draw_meter_counts_t first = p8_draw_meter_last_frame();
-    assert(first.bytes == base + P8_GPU_TILE_BYTES + P8_GPU_TILE_1_BYTES);
+    assert(first.bytes == base + 2 * P8_GPU_TILE_BYTES);
     assert(first.primitives == base_primitives + 2);
     assert(p8_draw_meter_peak().bytes == first.bytes);
 

@@ -22,10 +22,10 @@ static void test_cls_is_one_tile(void) {
     assert_cost(p8_draw_cost_cls(), P8_GPU_TILE_BYTES, 1);
 }
 
-static void test_pset_is_one_tile_1_and_off_screen_is_free(void) {
+static void test_pset_is_one_tile_and_off_screen_is_free(void) {
     reset();
-    assert_cost(p8_draw_cost_pset(&gfx, 0, 0), P8_GPU_TILE_1_BYTES, 1);
-    assert_cost(p8_draw_cost_pset(&gfx, 159, 119), P8_GPU_TILE_1_BYTES, 1);
+    assert_cost(p8_draw_cost_pset(&gfx, 0, 0), P8_GPU_TILE_BYTES, 1);
+    assert_cost(p8_draw_cost_pset(&gfx, 159, 119), P8_GPU_TILE_BYTES, 1);
     assert_cost(p8_draw_cost_pset(&gfx, 160, 0), 0, 0);
     assert_cost(p8_draw_cost_pset(&gfx, 0, -1), 0, 0);
 }
@@ -35,8 +35,8 @@ static void test_culling_is_judged_after_the_camera(void) {
     reset();
     p8_camera(&gfx, 100, 50);
     assert_cost(p8_draw_cost_pset(&gfx, 10, 10), 0, 0);
-    assert_cost(p8_draw_cost_pset(&gfx, 100, 50), P8_GPU_TILE_1_BYTES, 1);
-    assert_cost(p8_draw_cost_pset(&gfx, 259, 169), P8_GPU_TILE_1_BYTES, 1);
+    assert_cost(p8_draw_cost_pset(&gfx, 100, 50), P8_GPU_TILE_BYTES, 1);
+    assert_cost(p8_draw_cost_pset(&gfx, 259, 169), P8_GPU_TILE_BYTES, 1);
     assert_cost(p8_draw_cost_pset(&gfx, 260, 169), 0, 0);
 }
 
@@ -65,13 +65,13 @@ static void test_circles_cost_per_midpoint_iteration(void) {
     for (int i = 0; i < 4; i++) {
         reset();
         int n = ITERATIONS[i];
-        assert_cost(p8_draw_cost_circ(&gfx, 80, 60, RADII[i]), (unsigned long)(8 * n) * P8_GPU_TILE_1_BYTES, 8 * n);
+        assert_cost(p8_draw_cost_circ(&gfx, 80, 60, RADII[i]), (unsigned long)(8 * n) * P8_GPU_TILE_BYTES, 8 * n);
         assert_cost(p8_draw_cost_circfill(&window, &gfx, 80, 60, RADII[i], 7), (unsigned long)(4 * n) * P8_GPU_TILE_BYTES, 4 * n);
     }
     reset();
     assert_cost(p8_draw_cost_circ(&gfx, 80, 60, -1), 0, 0);
     assert_cost(p8_draw_cost_circfill(&window, &gfx, 80, 60, -1, 7), 0, 0);
-    assert_cost(p8_draw_cost_circ(&gfx, -9, 60, 9), 8 * 6 * P8_GPU_TILE_1_BYTES, 8 * 6);
+    assert_cost(p8_draw_cost_circ(&gfx, -9, 60, 9), 8 * 6 * P8_GPU_TILE_BYTES, 8 * 6);
     assert_cost(p8_draw_cost_circ(&gfx, -10, 60, 9), 0, 0);
 }
 
@@ -153,7 +153,7 @@ static void test_pattern_key_tells_pattern_colour_and_transparency_apart(void) {
 
 int main(void) {
     test_cls_is_one_tile();
-    test_pset_is_one_tile_1_and_off_screen_is_free();
+    test_pset_is_one_tile_and_off_screen_is_free();
     test_culling_is_judged_after_the_camera();
     test_line_is_one_line_f2_culled_on_its_bounding_box();
     test_rect_is_four_tiles_and_straddling_costs_in_full();

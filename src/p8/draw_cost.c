@@ -76,7 +76,7 @@ p8_draw_cost_t p8_draw_cost_cls(void) {
 }
 
 p8_draw_cost_t p8_draw_cost_pset(const p8_graphics_t *gfx, int x, int y) {
-    return on_screen(gfx, x, y, x, y) ? cost_of(P8_GPU_TILE_1_BYTES, 1) : FREE;
+    return on_screen(gfx, x, y, x, y) ? cost_of(P8_GPU_TILE_BYTES, 1) : FREE;
 }
 
 p8_draw_cost_t p8_draw_cost_line(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2) {
@@ -117,7 +117,7 @@ static int circle_on_screen(const p8_graphics_t *gfx, int cx, int cy, int r) {
 }
 
 p8_draw_cost_t p8_draw_cost_circ(const p8_graphics_t *gfx, int cx, int cy, int r) {
-    return circle_on_screen(gfx, cx, cy, r) ? cost_of(P8_GPU_TILE_1_BYTES, 8 * circle_iterations(r)) : FREE;
+    return circle_on_screen(gfx, cx, cy, r) ? cost_of(P8_GPU_TILE_BYTES, 8 * circle_iterations(r)) : FREE;
 }
 
 p8_draw_cost_t p8_draw_cost_circfill(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int cx, int cy, int r, int col) {
