@@ -13,7 +13,7 @@
     - [x] Chunk 1: cost-model texture state
     - [x] Chunk 2: pure x2 helpers
     - [x] Chunk 3: layout, uploads and backend
-    - [ ] Chunk 4: re-size the frame buffer
+    - [x] Chunk 4: re-size the frame buffer
     - [ ] Chunk 5: gate and step note
   - [ ] Step 3.3: patterned fills
   - [ ] Step 3.4: line
