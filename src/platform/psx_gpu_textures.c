@@ -9,6 +9,7 @@
 enum { FONT_CELL_HEIGHT = P8_FONT_GLYPH_HEIGHT + 1, FONT_COLUMNS = PSX_GPU_TEXTURES_FONT_SIZE / P8_FONT_CELL_WIDTH };
 
 typedef char every_character_code_has_a_cell[256 / FONT_COLUMNS * FONT_CELL_HEIGHT <= PSX_GPU_TEXTURES_FONT_SIZE ? 1 : -1];
+typedef char font_lines_end_on_the_last_cell[256 / FONT_COLUMNS * FONT_CELL_HEIGHT == PSX_GPU_TEXTURES_FONT_LINES ? 1 : -1];
 
 void psx_gpu_textures_clut(const unsigned char draw_palette[PSX_GPU_TEXTURES_CLUT_ENTRIES],
                            uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]) {
@@ -35,6 +36,19 @@ void psx_gpu_textures_font(uint16_t texture[PSX_GPU_TEXTURES_FONT_UNITS]) {
                     texture[(cell.v + row) * (PSX_GPU_TEXTURES_FONT_SIZE / 4) + u / 4] |= (uint16_t)(1u << (4 * (u % 4)));
                 }
             }
+        }
+    }
+}
+
+void psx_gpu_textures_upscale(const unsigned char *source, int width, int first_line, int lines, unsigned char *out) {
+    assert(width > 0 && width % 2 == 0 && first_line >= 0 && lines >= 0);
+    for (int line = 0; line < lines; line++) {
+        const unsigned char *from = source + (first_line + line) / 2 * (width / 2);
+        unsigned char *to = out + line * width;
+        for (int u = 0; u < width; u++) {
+            unsigned char byte = from[u / 2];
+            unsigned char texel = (unsigned char)(u % 2 == 0 ? byte & 0x0F : byte >> 4);
+            to[u] = (unsigned char)(texel | texel << 4);
         }
     }
 }

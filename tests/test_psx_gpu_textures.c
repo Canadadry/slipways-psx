@@ -1,6 +1,7 @@
 #include "platform/psx_gpu_textures.h"
 
 #include "p8/gfx.h"
+#include "p8/sprite_sheet.h"
 #include "p8/vram.h"
 #include "platform/psx_colour.h"
 
@@ -144,6 +145,86 @@ static void test_a_transparent_pattern_clut_skips_set_bits(void) {
     assert(clut[0] == 0x8000);
 }
 
+enum { SHEET_X2_SIZE = 2 * P8_SPRITE_SHEET_WIDTH, SHEET_X2_BYTES = SHEET_X2_SIZE * SHEET_X2_SIZE / 2 };
+
+static unsigned char sheet_x2[SHEET_X2_BYTES];
+
+static int packed_texel(const unsigned char *texture, int width, int u, int v) {
+    unsigned char byte = texture[v * (width / 2) + u / 2];
+    return u % 2 == 0 ? byte & 0x0F : byte >> 4;
+}
+
+static void test_the_x2_sheet_texel_is_the_packed_texel_at_half_its_coordinates(void) {
+    memset(sheet_x2, 0xEE, sizeof sheet_x2);
+    psx_gpu_textures_upscale(p8_sprite_sheet_packed(), P8_SPRITE_SHEET_WIDTH, 0, SHEET_X2_SIZE, sheet_x2);
+    for (int v = 0; v < SHEET_X2_SIZE; v++) {
+        for (int u = 0; u < SHEET_X2_SIZE; u++) {
+            assert(packed_texel(sheet_x2, SHEET_X2_SIZE, u, v) == packed_texel(p8_sprite_sheet_packed(), P8_SPRITE_SHEET_WIDTH, u / 2, v / 2));
+        }
+    }
+}
+
+static unsigned char chunked[SHEET_X2_BYTES];
+
+static void upscale_sheet_in_chunks(int first_line, int chunk_lines) {
+    memset(chunked, 0xEE, sizeof chunked);
+    for (int line = first_line; line < SHEET_X2_SIZE; line += chunk_lines) {
+        int lines = SHEET_X2_SIZE - line < chunk_lines ? SHEET_X2_SIZE - line : chunk_lines;
+        psx_gpu_textures_upscale(p8_sprite_sheet_packed(), P8_SPRITE_SHEET_WIDTH, line, lines,
+                                 chunked + line * P8_SPRITE_SHEET_WIDTH);
+    }
+}
+
+static void test_a_chunked_upscale_equals_the_single_pass(void) {
+    psx_gpu_textures_upscale(p8_sprite_sheet_packed(), P8_SPRITE_SHEET_WIDTH, 0, SHEET_X2_SIZE, sheet_x2);
+    upscale_sheet_in_chunks(0, 16);
+    assert(memcmp(chunked, sheet_x2, sizeof chunked) == 0);
+    upscale_sheet_in_chunks(0, 7);
+    assert(memcmp(chunked, sheet_x2, sizeof chunked) == 0);
+    upscale_sheet_in_chunks(33, 5);
+    int skipped = 33 * P8_SPRITE_SHEET_WIDTH;
+    assert(memcmp(chunked + skipped, sheet_x2 + skipped, sizeof chunked - (size_t)skipped) == 0 && "an odd first line");
+}
+
+enum { FONT_X2_SIZE = 2 * PSX_GPU_TEXTURES_FONT_SIZE, FONT_X2_LINES = 2 * PSX_GPU_TEXTURES_FONT_LINES };
+
+static unsigned char font_x2[FONT_X2_SIZE * FONT_X2_LINES / 2];
+
+static void test_the_font_bytes_are_its_texels_low_nibble_first(void) {
+    psx_gpu_textures_font(font);
+    const unsigned char *bytes = (const unsigned char *)font;
+    for (int v = 0; v < PSX_GPU_TEXTURES_FONT_SIZE; v++) {
+        for (int u = 0; u < PSX_GPU_TEXTURES_FONT_SIZE; u++) {
+            assert(packed_texel(bytes, PSX_GPU_TEXTURES_FONT_SIZE, u, v) == font_texel(u, v)
+                   && "the upscaler reads the font's uint16_t units as bytes: only a little-endian host and PSX agree");
+        }
+    }
+}
+
+static void test_the_x2_font_texel_is_the_font_texel_at_half_its_coordinates(void) {
+    psx_gpu_textures_font(font);
+    memset(font_x2, 0xEE, sizeof font_x2);
+    psx_gpu_textures_upscale((const unsigned char *)font, PSX_GPU_TEXTURES_FONT_SIZE, 0, FONT_X2_LINES, font_x2);
+    for (int v = 0; v < FONT_X2_LINES; v++) {
+        for (int u = 0; u < FONT_X2_SIZE; u++) {
+            assert(packed_texel(font_x2, FONT_X2_SIZE, u, v) == font_texel(u / 2, v / 2));
+        }
+    }
+    for (int v = FONT_X2_LINES; v < 2 * PSX_GPU_TEXTURES_FONT_SIZE; v++) {
+        for (int u = 0; u < FONT_X2_SIZE; u++) {
+            assert(font_texel(u / 2, v / 2) == 0 && "the font extent leaves out a lit texel");
+        }
+    }
+}
+
+static void test_every_x2_cell_fits_the_x2_font(void) {
+    for (int code = 0; code < 256; code++) {
+        psx_gpu_textures_texel_t cell = psx_gpu_textures_font_cell((char)code);
+        assert(2 * cell.u >= 0 && 2 * cell.u + 2 * P8_FONT_CELL_WIDTH <= FONT_X2_SIZE);
+        assert(2 * cell.v >= 0 && 2 * cell.v + 2 * (P8_FONT_GLYPH_HEIGHT + 1) <= FONT_X2_LINES);
+    }
+}
+
 int main(void) {
     test_a_transparent_entry_is_zero_and_black_stays_opaque();
     test_each_entry_follows_its_draw_palette_byte();
@@ -153,6 +234,11 @@ int main(void) {
     test_a_pattern_tile_holds_the_software_bit_at_each_world_phase();
     test_a_pattern_clut_maps_clear_bits_to_the_low_nibble_and_set_ones_to_the_high();
     test_a_transparent_pattern_clut_skips_set_bits();
+    test_the_x2_sheet_texel_is_the_packed_texel_at_half_its_coordinates();
+    test_a_chunked_upscale_equals_the_single_pass();
+    test_the_font_bytes_are_its_texels_low_nibble_first();
+    test_the_x2_font_texel_is_the_font_texel_at_half_its_coordinates();
+    test_every_x2_cell_fits_the_x2_font();
     printf("test_psx_gpu_textures: ok\n");
     return 0;
 }

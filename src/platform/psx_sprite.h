@@ -22,4 +22,8 @@ int psx_sprite_place(const p8_graphics_t *gfx, int n, int x, int y, int w, int h
  * corner. Returns 0 when nothing of it shows (sprite then unspecified), else 1. */
 int psx_sprite_clip(psx_sprite_t *sprite);
 
+/* sprite with x, y, u, v, w and h multiplied by PSX_TILES_SCALE: display-buffer coordinates and
+ * texels of the x2 texture, inside 320x240 whenever sprite lies inside the 160x120 screen. */
+psx_sprite_t psx_sprite_double(psx_sprite_t sprite);
+
 #endif

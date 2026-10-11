@@ -1,6 +1,7 @@
 #include "platform/psx_sprite.h"
 
 #include "p8/vram.h"
+#include "platform/psx_tiles.h"
 
 #include <assert.h>
 
@@ -40,4 +41,12 @@ int psx_sprite_place(const p8_graphics_t *gfx, int n, int x, int y, int w, int h
            && "the SPRT would read past the sheet, where the software draws colour 0: no replay does");
     *sprite = placed;
     return 1;
+}
+
+psx_sprite_t psx_sprite_double(psx_sprite_t sprite) {
+    psx_sprite_t doubled = {
+        sprite.x * PSX_TILES_SCALE, sprite.y * PSX_TILES_SCALE, sprite.u * PSX_TILES_SCALE,
+        sprite.v * PSX_TILES_SCALE, sprite.w * PSX_TILES_SCALE, sprite.h * PSX_TILES_SCALE,
+    };
+    return doubled;
 }

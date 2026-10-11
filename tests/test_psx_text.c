@@ -4,6 +4,7 @@
 #include "p8/gfx.h"
 #include "p8/vram.h"
 #include "platform/psx_gpu_textures.h"
+#include "platform/psx_tiles.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -14,6 +15,16 @@ enum { UNTOUCHED = 0xEE };
 static p8_vram_t software;
 static unsigned char painted[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
 static uint16_t font[PSX_GPU_TEXTURES_FONT_UNITS];
+
+enum {
+    DISPLAY_WIDTH = PSX_TILES_SCALE * P8_SCREEN_WIDTH,
+    DISPLAY_HEIGHT = PSX_TILES_SCALE * P8_SCREEN_HEIGHT,
+    FONT_X2_SIZE = PSX_TILES_SCALE * PSX_GPU_TEXTURES_FONT_SIZE,
+    FONT_X2_LINES = PSX_TILES_SCALE * PSX_GPU_TEXTURES_FONT_LINES,
+};
+
+static unsigned char font_x2[FONT_X2_SIZE * FONT_X2_LINES / 2];
+static unsigned char painted_x2[DISPLAY_HEIGHT][DISPLAY_WIDTH];
 
 typedef struct {
     int colour;
@@ -41,6 +52,35 @@ static void paint(psx_sprite_t glyph, void *context) {
     paint->sprites++;
 }
 
+/* The GPU's SPRT at x2: the doubled glyph read from the x2 font through the same font CLUT. */
+static void paint_x2(psx_sprite_t glyph, void *context) {
+    const paint_t *paint = context;
+    psx_sprite_t doubled = psx_sprite_double(glyph);
+    assert(doubled.x >= 0 && doubled.x + doubled.w <= DISPLAY_WIDTH);
+    assert(doubled.y >= 0 && doubled.y + doubled.h <= DISPLAY_HEIGHT);
+    assert(doubled.u >= 0 && doubled.u + doubled.w <= FONT_X2_SIZE);
+    assert(doubled.v >= 0 && doubled.v + doubled.h <= FONT_X2_LINES);
+    for (int j = 0; j < doubled.h; j++) {
+        for (int i = 0; i < doubled.w; i++) {
+            int u = doubled.u + i;
+            unsigned char byte = font_x2[(doubled.v + j) * (FONT_X2_SIZE / 2) + u / 2];
+            int texel = u % 2 == 0 ? byte & 0x0F : byte >> 4;
+            assert(texel <= 1);
+            if (texel == 1) {
+                painted_x2[doubled.y + j][doubled.x + i] = (unsigned char)paint->colour;
+            }
+        }
+    }
+}
+
+static void assert_x2_is_the_software_screen_upscaled(void) {
+    for (int y = 0; y < DISPLAY_HEIGHT; y++) {
+        for (int x = 0; x < DISPLAY_WIDTH; x++) {
+            assert(painted_x2[y][x] == software.screen[y / PSX_TILES_SCALE][x / PSX_TILES_SCALE]);
+        }
+    }
+}
+
 static int text_matches_software(const p8_graphics_t *gfx, const char *str, int x, int y, int col) {
     memset(software.screen, UNTOUCHED, sizeof software.screen);
     memset(painted, UNTOUCHED, sizeof painted);
@@ -48,6 +88,9 @@ static int text_matches_software(const p8_graphics_t *gfx, const char *str, int 
     paint_t context = { col, 0 };
     psx_text_place(gfx, str, x, y, paint, &context);
     assert(memcmp(painted, software.screen, sizeof painted) == 0);
+    memset(painted_x2, UNTOUCHED, sizeof painted_x2);
+    psx_text_place(gfx, str, x, y, paint_x2, &context);
+    assert_x2_is_the_software_screen_upscaled();
     p8_draw_cost_window_t window;
     p8_draw_cost_frame_begin(&window);
     assert((unsigned long)context.sprites * P8_GPU_SPRT_BYTES <= p8_draw_cost_print(&window, gfx, str, x, y).bytes);
@@ -57,6 +100,7 @@ static int text_matches_software(const p8_graphics_t *gfx, const char *str, int 
 static void setup(void) {
     p8_vram_init(&software);
     psx_gpu_textures_font(font);
+    psx_gpu_textures_upscale((const unsigned char *)font, PSX_GPU_TEXTURES_FONT_SIZE, 0, FONT_X2_LINES, font_x2);
 }
 
 static void test_one_sprite_per_glyph_with_a_lit_row(void) {

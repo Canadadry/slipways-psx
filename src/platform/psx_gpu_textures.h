@@ -7,6 +7,8 @@ enum {
     PSX_GPU_TEXTURES_CLUT_ENTRIES = 16,
     PSX_GPU_TEXTURES_FONT_SIZE = 128,
     PSX_GPU_TEXTURES_FONT_UNITS = PSX_GPU_TEXTURES_FONT_SIZE * PSX_GPU_TEXTURES_FONT_SIZE / 4,
+    /* The font texture's first lines, the only ones a cell lies in. */
+    PSX_GPU_TEXTURES_FONT_LINES = 48,
     PSX_GPU_TEXTURES_PATTERN_SIZE = 8,
     PSX_GPU_TEXTURES_PATTERN_UNITS = PSX_GPU_TEXTURES_PATTERN_SIZE * PSX_GPU_TEXTURES_PATTERN_SIZE / 4,
 };
@@ -29,6 +31,12 @@ psx_gpu_textures_texel_t psx_gpu_textures_font_cell(char character);
 
 /* print's CLUT for colour (0..15): entry 1 is psx_colour_rgb555(colour), every other entry 0x0000. */
 void psx_gpu_textures_font_clut(int colour, uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]);
+
+/* Writes lines first_line .. first_line + lines - 1 of source upscaled x2 into out, each x2 line
+ * width bytes (2 * width texels): x2 texel (u, v) is source texel (u / 2, v / 2). Source, width
+ * texels a line, and out are laid out as p8_sprite_sheet_packed: texel u of a line in byte u / 2,
+ * low nibble for an even u. */
+void psx_gpu_textures_upscale(const unsigned char *source, int width, int first_line, int lines, unsigned char *out);
 
 /* A fillp pattern's tile, PSX_GPU_TEXTURES_PATTERN_SIZE texels square, laid out as the font: texel
  * (u, v) is 1 when the pattern's bit for world (u, v) is set, else 0. */
