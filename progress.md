@@ -1,0 +1,10 @@
+- [ ] Step 1: reproduce the bug headless
+- [ ] Step 2: draw into the display buffer
+- [ ] Step 3: primitives at x2, one family per step
+  - [ ] Step 3.1: pset and circ
+  - [ ] Step 3.2: spr and print
+  - [ ] Step 3.3: patterned fills
+  - [ ] Step 3.4: line
+- [ ] Step 4: no stretch left
+- [ ] Step 5: re-measure
+- [ ] Step 6: human acceptance
