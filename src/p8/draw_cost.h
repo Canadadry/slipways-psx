@@ -18,10 +18,16 @@ typedef struct {
     int primitives;
 } p8_draw_cost_t;
 
-/* The texture window of the frame's last textured call: none for spr and print, the pattern key
- * for a patterned fill. */
+typedef enum {
+    P8_DRAW_COST_TEXTURE_SHEET,
+    P8_DRAW_COST_TEXTURE_FONT,
+    P8_DRAW_COST_TEXTURE_PATTERN,
+} p8_draw_cost_texture_t;
+
+/* The texture source of the frame's last textured call; pattern_key is meaningful only for
+ * P8_DRAW_COST_TEXTURE_PATTERN and 0 otherwise. */
 typedef struct {
-    int patterned;
+    p8_draw_cost_texture_t texture;
     unsigned long pattern_key;
 } p8_draw_cost_window_t;
 

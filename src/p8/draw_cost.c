@@ -40,21 +40,17 @@ static p8_draw_cost_t window_pair(void) {
     return pair;
 }
 
-static p8_draw_cost_t window_switch(p8_draw_cost_window_t *window, int patterned, unsigned long pattern_key) {
-    if (window->patterned == patterned && window->pattern_key == pattern_key) {
+static p8_draw_cost_t window_switch(p8_draw_cost_window_t *window, p8_draw_cost_texture_t texture, unsigned long pattern_key) {
+    if (window->texture == texture && window->pattern_key == pattern_key) {
         return FREE;
     }
-    window->patterned = patterned;
+    window->texture = texture;
     window->pattern_key = pattern_key;
     return window_pair();
 }
 
-static p8_draw_cost_t unpatterned_window(p8_draw_cost_window_t *window) {
-    return window_switch(window, 0, 0);
-}
-
 p8_draw_cost_t p8_draw_cost_frame_begin(p8_draw_cost_window_t *window) {
-    window->patterned = 0;
+    window->texture = P8_DRAW_COST_TEXTURE_SHEET;
     window->pattern_key = 0;
     return cost_add(cost_of(P8_GPU_DR_ENV_BYTES, 1), window_pair());
 }
@@ -67,7 +63,7 @@ static p8_draw_cost_t fill_spans(p8_draw_cost_window_t *window, const p8_graphic
     if ((gfx->fillp_pattern & 0xFFFFu) == 0) {
         return cost_of(P8_GPU_TILE_BYTES, spans);
     }
-    p8_draw_cost_t pair = window_switch(window, 1, p8_draw_cost_pattern_key(gfx, col));
+    p8_draw_cost_t pair = window_switch(window, P8_DRAW_COST_TEXTURE_PATTERN, p8_draw_cost_pattern_key(gfx, col));
     return cost_add(pair, cost_of(P8_GPU_SPRT_BYTES, spans));
 }
 
@@ -129,7 +125,7 @@ p8_draw_cost_t p8_draw_cost_spr(p8_draw_cost_window_t *window, const p8_graphics
     if (w <= 0 || h <= 0 || !on_screen(gfx, x, y, x + w * P8_SPRITE_SIZE - 1, y + h * P8_SPRITE_SIZE - 1)) {
         return FREE;
     }
-    return cost_add(unpatterned_window(window), cost_of(P8_GPU_SPRT_BYTES, 1));
+    return cost_add(window_switch(window, P8_DRAW_COST_TEXTURE_SHEET, 0), cost_of(P8_GPU_SPRT_BYTES, 1));
 }
 
 /* Only the space glyph has no lit row. */
@@ -143,5 +139,5 @@ p8_draw_cost_t p8_draw_cost_print(p8_draw_cost_window_t *window, const p8_graphi
     if (glyphs == 0 || !on_screen(gfx, x, y, x + (length - 1) * P8_FONT_CELL_WIDTH + P8_FONT_GLYPH_WIDTH - 1, y + P8_FONT_GLYPH_HEIGHT - 1)) {
         return FREE;
     }
-    return cost_add(unpatterned_window(window), cost_of(P8_GPU_SPRT_BYTES, glyphs));
+    return cost_add(window_switch(window, P8_DRAW_COST_TEXTURE_FONT, 0), cost_of(P8_GPU_SPRT_BYTES, glyphs));
 }

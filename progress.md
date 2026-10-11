@@ -10,6 +10,11 @@
     - [x] Chunk 3: re-size the frame buffer
     - [x] Chunk 4: gate and step note
   - [ ] Step 3.2: spr and print
+    - [x] Chunk 1: cost-model texture state
+    - [ ] Chunk 2: pure x2 helpers
+    - [ ] Chunk 3: layout, uploads and backend
+    - [ ] Chunk 4: re-size the frame buffer
+    - [ ] Chunk 5: gate and step note
   - [ ] Step 3.3: patterned fills
   - [ ] Step 3.4: line
 - [ ] Step 4: no stretch left

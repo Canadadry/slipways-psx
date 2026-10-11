@@ -12,6 +12,8 @@ static void reset(void) {
     (void)p8_draw_cost_frame_begin(&window);
 }
 
+enum { WINDOW_PAIR_BYTES = P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES };
+
 static void assert_cost(p8_draw_cost_t cost, unsigned long bytes, int primitives) {
     assert(cost.bytes == bytes);
     assert(cost.primitives == primitives);
@@ -86,7 +88,7 @@ static void test_spr_is_one_sprt_whatever_its_cells(void) {
 
 static void test_print_is_one_sprt_per_glyph_but_spaces(void) {
     reset();
-    assert_cost(p8_draw_cost_print(&window, &gfx, "a b!", 0, 0), 3 * P8_GPU_SPRT_BYTES, 3);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a b!", 0, 0), 3 * P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3 + 2);
     assert_cost(p8_draw_cost_print(&window, &gfx, "   ", 0, 0), 0, 0);
     assert_cost(p8_draw_cost_print(&window, &gfx, "", 0, 0), 0, 0);
     assert_cost(p8_draw_cost_print(&window, &gfx, "ab", -6, 0), 2 * P8_GPU_SPRT_BYTES, 2);
@@ -94,8 +96,6 @@ static void test_print_is_one_sprt_per_glyph_but_spaces(void) {
     assert_cost(p8_draw_cost_print(&window, &gfx, "ab", 0, -5), 0, 0);
 }
 
-
-enum { WINDOW_PAIR_BYTES = P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES };
 
 static void test_patterned_fill_is_a_sprt_with_its_window_pair_once(void) {
     reset();
@@ -116,9 +116,31 @@ static void test_spr_and_print_reset_the_window_after_a_pattern(void) {
     p8_fillp(&gfx, 0xA5A5);
     assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
     assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
-    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES, 1);
     assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
     assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
+}
+
+static void test_alternating_spr_and_print_costs_a_pair_each_switch(void) {
+    reset();
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "ab", 0, 0), 2 * P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 4);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "c", 0, 0), P8_GPU_SPRT_BYTES, 1);
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 2, 8, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+}
+
+static void test_culled_spr_and_print_keep_the_texture(void) {
+    reset();
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, -50), 0, 0);
+    assert_cost(p8_draw_cost_print(&window, &gfx, " ", 0, 0), 0, 0);
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, -50, 0, 1, 1), 0, 0);
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 0, 1), 0, 0);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES, 1);
 }
 
 static void test_untextured_and_culled_calls_keep_the_window(void) {
@@ -137,6 +159,15 @@ static void test_frame_begin_returns_the_overhead_and_resets_the_window(void) {
     assert_cost(p8_draw_cost_frame_begin(&window),
                 P8_GPU_DR_ENV_BYTES + P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES, 3);
     assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+}
+
+static void test_frame_begins_on_the_sprite_sheet(void) {
+    reset();
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    (void)p8_draw_cost_frame_begin(&window);
+    assert_cost(p8_draw_cost_spr(&window, &gfx, 1, 0, 0, 1, 1), P8_GPU_SPRT_BYTES, 1);
+    (void)p8_draw_cost_frame_begin(&window);
+    assert_cost(p8_draw_cost_print(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
 }
 
 static void test_pattern_key_tells_pattern_colour_and_transparency_apart(void) {
@@ -163,8 +194,11 @@ int main(void) {
     test_print_is_one_sprt_per_glyph_but_spaces();
     test_patterned_fill_is_a_sprt_with_its_window_pair_once();
     test_spr_and_print_reset_the_window_after_a_pattern();
+    test_alternating_spr_and_print_costs_a_pair_each_switch();
+    test_culled_spr_and_print_keep_the_texture();
     test_untextured_and_culled_calls_keep_the_window();
     test_frame_begin_returns_the_overhead_and_resets_the_window();
+    test_frame_begins_on_the_sprite_sheet();
     test_pattern_key_tells_pattern_colour_and_transparency_apart();
     printf("test_draw_cost: ok\n");
     return 0;
