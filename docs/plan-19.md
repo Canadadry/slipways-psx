@@ -93,3 +93,9 @@ Consequences: no headless reproducer exists. Step 3's two-`LINE_F2` option for `
 
 - Checked by hand, no PRD (the step changes nothing). The backend's only primitive constructors are `setTile` and `setSprt`, plus the `DR_AREA`/`DR_OFFSET`/`DR_TPAGE`/`DR_TWIN` packets; no `POLY_*`, `LINE_*`, `TILE_1` or `FILL` is left in `src/`. A `SPRT` maps texels 1:1, so no primitive scales a texture.
 - `make psx-check` exits 0 at step 3.4's commit: all thirty conditions hold, all 14 labels `differ 0`, `offpalette 0`, `nonuniform 0`, and only the 14 pending references remain. The reproducer clause is void (step 1).
+
+### Step 5
+
+- Checked by hand, no PRD (a measurement step). `make state` green: `zone gpu_frame` peak 149156 under 167936, CLUT 5/6, patterns 3/4, all from `worst-case/full_game.json`; the family steps' sizes hold.
+- Boot ceilings re-sized by their rule (measured run plus half again) from the step 3.4 run, the vsync count being deterministic: `PSX_GPU_CEILING` 1655 -> 1409 (939), `PSX_GAME_CEILING` 545 -> 513 (342), `PSX_GAME_CD_CEILING` 1140 -> 1155 (770). The wall-clock timeouts were not re-measured and stay. `make psx-check` re-run with them: all thirty conditions hold, `ram-room` 131824, `game-ram-room` 139940.
+- `make psx-full-game-check` not run, per the plan.

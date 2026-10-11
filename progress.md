@@ -23,5 +23,5 @@
     - [x] Chunk 3: re-size the frame buffer
     - [x] Chunk 4: gate and step note
 - [x] Step 4: no stretch left
-- [ ] Step 5: re-measure
+- [x] Step 5: re-measure
 - [ ] Step 6: human acceptance

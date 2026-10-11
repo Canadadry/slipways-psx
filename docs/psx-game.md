@@ -562,7 +562,7 @@ Ceilings and timeouts are the first measured run plus half again:
 `PSX_GPU_CEILING`/`PSX_GPU_TIMEOUT` for the GPU replay of `pad_slipway`,
 `PSX_PAD_CEILING`/`PSX_PAD_TIMEOUT` for the probe,
 `PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
-(`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,
+(`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,155 vsyncs,
 20 s) for the CD boot (`psx-game-cd-check`, `psx-check`),
 `PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` for `full_game`.
 `psx-full-game-check` builds in its own directory and is not part of

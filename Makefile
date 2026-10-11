@@ -1992,7 +1992,7 @@ psx-pad-check: psx-build
 PSX_GAME_SCRIPT ?= psx/game_title_script.txt
 PSX_GAME_DIFFICULTY ?= reasonable
 PSX_GAME_OUT := $(TMP_DIR)/psx/game
-PSX_GAME_CEILING ?= 545
+PSX_GAME_CEILING ?= 513
 PSX_GAME_TIMEOUT ?= 10
 
 # The boot's failure is the game-done condition's, not make's: every condition is still printed.
@@ -2005,7 +2005,7 @@ psx-game-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_lo
 			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_OUT)
 
 PSX_GAME_CD_OUT := $(TMP_DIR)/psx/game-cd
-PSX_GAME_CD_CEILING ?= 1140
+PSX_GAME_CD_CEILING ?= 1155
 PSX_GAME_CD_TIMEOUT ?= 20
 
 # The boot's failure is game-done's, not make's: every condition is still printed.
@@ -2021,7 +2021,7 @@ psx-game-cd-check: psx-tools-test psx-game-cd $(TMP_DIR)/replay $(TMP_DIR)/psx_p
 		exit $$failed
 
 PSX_CHECK_OUT := $(TMP_DIR)/psx/game-check
-PSX_GPU_CEILING ?= 1655
+PSX_GPU_CEILING ?= 1409
 PSX_GPU_TIMEOUT ?= 29
 PSX_STACK_RESERVE ?= 65536
 PSX_CAPTURE_LIST := psx/gpu_captures.txt
