@@ -17,3 +17,4 @@
 - [x] PSn00bSDK host tools build with Apple clang
 - [x] PSX tool tests build on macOS
 - [x] PSX check scripts pass with the BSD awk of macOS
+- [x] psx-check prints a line before each emulator boot

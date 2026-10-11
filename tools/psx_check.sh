@@ -68,20 +68,25 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 rm -rf "$out_dir"
 mkdir -p "$out_dir"
 
+echo "psx-check: booting the replay PS-EXE (at most ${replay_timeout}s)"
 replay_boot=$(PSX_BOOT_TIMEOUT=$replay_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --exe "$replay_exe" "$replay_ceiling" "$out_dir/replay" 2>&1)
 replay_status=$?
 capture_script=$pc_capture_dir/capture_script.txt
+echo "psx-check: booting the GPU replay PS-EXE (at most ${gpu_timeout}s)"
 gpu_boot=$(PSX_BOOT_TIMEOUT=$gpu_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --capture-script "$capture_script" --exe "$gpu_exe" "$gpu_ceiling" "$out_dir/gpu" 2>&1)
 gpu_status=$?
+echo "psx-check: booting the GPU replay PS-EXE again (at most ${gpu_timeout}s)"
 # Only for gpu-capture-deterministic: one boot cannot prove two boots agree.
 PSX_BOOT_TIMEOUT=$gpu_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --capture-script "$capture_script" --exe "$gpu_exe" "$gpu_ceiling" "$out_dir/gpu-repeat/gpu" \
     > "$out_dir/gpu-repeat.boot.txt" 2>&1
+echo "psx-check: booting the pad probe (at most ${pad_timeout}s)"
 pad_boot=$(PSX_BOOT_TIMEOUT=$pad_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --pad-script "$pad_script" --exe "$pad_exe" "$pad_ceiling" "$out_dir/pad" 2>&1)
 pad_status=$?
+echo "psx-check: booting the game CD image (at most ${game_timeout}s)"
 game_boot=$(PSX_BOOT_TIMEOUT=$game_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --pad-script "$game_script" --iso "$game_cue" "$game_ceiling" "$out_dir/game" 2>&1)
 game_status=$?
