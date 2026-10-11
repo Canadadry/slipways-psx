@@ -61,7 +61,21 @@ done
 mkdir -p tmp "$install_dir"
 install_dir=$(cd "$install_dir" && pwd)
 work=$(mktemp -d "$PWD/tmp/psn00bsdk-build.XXXXXX")
-trap 'rm -rf "$work"' EXIT
+# install_dir was empty or new: a failed run removes it, so the next one can start over.
+trap 'status=$?; rm -rf "$work"; [ $status -eq 0 ] || [ -f "$install_dir/$STAMP" ] || rm -rf "$install_dir"' EXIT
+
+# Inside the step subshells every command ends in "|| exit 1": errexit is off
+# in a subshell followed by ||.
+
+# Keeps the log under tmp/, prints its first error lines and its tail, fails.
+step_failed() {
+    kept=$PWD/tmp/psn00bsdk-$(basename "$1")
+    cp "$1" "$kept"
+    grep -n -i -E 'error|fatal' "$1" | head -n 20 >&2
+    echo "--- last lines of the log:" >&2
+    tail -n 25 "$1" >&2
+    fail "$2 (full log: $kept)"
+}
 jobs=$(cpu_count)
 PATH=$install_dir/bin:$PATH
 export PATH
@@ -99,46 +113,46 @@ else
     binutils_src=$(fetch_tarball "$binutils")
     mkdir "$work/binutils-build"
     (
-        cd "$work/binutils-build"
+        cd "$work/binutils-build" || exit 1
         "$binutils_src/configure" --prefix="$install_dir" --target=$TARGET \
-            --disable-docs --disable-nls --disable-werror --with-float=soft $zlib
-        make -j "$jobs" MAKEINFO=true
-        make install-strip MAKEINFO=true
-    ) > "$work/binutils.log" 2>&1 || { tail -n 40 "$work/binutils.log" >&2; fail "binutils build failed"; }
+            --disable-docs --disable-nls --disable-werror --with-float=soft $zlib || exit 1
+        make -j "$jobs" MAKEINFO=true || exit 1
+        make install-strip MAKEINFO=true || exit 1
+    ) > "$work/binutils.log" 2>&1 || step_failed "$work/binutils.log" "binutils build failed"
 
     echo "psn00bsdk-toolchain-setup: building GCC (the longest part)"
     gcc_src=$(fetch_tarball "$gcc")
     (cd "$gcc_src" && ./contrib/download_prerequisites) > "$work/gcc-prerequisites.log" 2>&1 \
-        || { tail -n 20 "$work/gcc-prerequisites.log" >&2; fail "GCC prerequisites download failed"; }
+        || step_failed "$work/gcc-prerequisites.log" "GCC prerequisites download failed"
     mkdir "$work/gcc-build"
     (
-        cd "$work/gcc-build"
+        cd "$work/gcc-build" || exit 1
         "$gcc_src/configure" --prefix="$install_dir" --target=$TARGET \
             --disable-docs --disable-nls --disable-werror --disable-libada --disable-libssp \
             --disable-libquadmath --disable-threads --disable-libgomp --disable-libstdcxx-pch \
             --disable-hosted-libstdcxx --enable-languages=c,c++ --without-isl --without-headers \
-            --with-float=soft --with-gnu-as --with-gnu-ld $zlib
-        make -j "$jobs" all-gcc MAKEINFO=true
-        make install-strip-gcc MAKEINFO=true
-        make -j "$jobs" all-target-libgcc MAKEINFO=true
-        make install-strip-target-libgcc MAKEINFO=true
-    ) > "$work/gcc.log" 2>&1 || { tail -n 40 "$work/gcc.log" >&2; fail "GCC build failed (log tail above)"; }
+            --with-float=soft --with-gnu-as --with-gnu-ld $zlib || exit 1
+        make -j "$jobs" all-gcc MAKEINFO=true || exit 1
+        make install-strip-gcc MAKEINFO=true || exit 1
+        make -j "$jobs" all-target-libgcc MAKEINFO=true || exit 1
+        make install-strip-target-libgcc MAKEINFO=true || exit 1
+    ) > "$work/gcc.log" 2>&1 || step_failed "$work/gcc.log" "GCC build failed"
 fi
 
 echo "psn00bsdk-toolchain-setup: building PSn00bSDK"
 sdk_src=$work/psn00bsdk
 (
-    git init -q "$sdk_src"
-    cd "$sdk_src"
-    GIT_TERMINAL_PROMPT=0 git fetch -q --depth 1 "${sdk% *}" "${sdk#* }"
-    git checkout -q --detach FETCH_HEAD
-    git submodule update --init --recursive --depth 1 -q || git submodule update --init --recursive -q
+    git init -q "$sdk_src" || exit 1
+    cd "$sdk_src" || exit 1
+    GIT_TERMINAL_PROMPT=0 git fetch -q --depth 1 "${sdk% *}" "${sdk#* }" || exit 1
+    git checkout -q --detach FETCH_HEAD || exit 1
+    git submodule update --init --recursive --depth 1 -q || git submodule update --init --recursive -q || exit 1
     cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DSKIP_EXAMPLES=ON \
         -DLIBPSN00B_GENERATOR="Unix Makefiles" -DPSN00BSDK_TC="$install_dir" \
-        -DCMAKE_INSTALL_PREFIX="$install_dir"
-    cmake --build build -j "$jobs"
-    cmake --install build
-) > "$work/psn00bsdk.log" 2>&1 || { tail -n 40 "$work/psn00bsdk.log" >&2; fail "PSn00bSDK build failed"; }
+        -DCMAKE_INSTALL_PREFIX="$install_dir" || exit 1
+    cmake --build build -j "$jobs" || exit 1
+    cmake --install build || exit 1
+) > "$work/psn00bsdk.log" 2>&1 || step_failed "$work/psn00bsdk.log" "PSn00bSDK build failed"
 
 "$install_dir/bin/$TARGET-gcc" -dumpversion >/dev/null || fail "installed $TARGET-gcc does not run"
 for tool in elf2x mkpsxiso dumpsxiso; do

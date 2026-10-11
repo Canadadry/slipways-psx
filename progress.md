@@ -13,3 +13,4 @@
 - [x] The core compiles under GCC 14
 - [x] Prebuilt macOS toolchain
 - [x] Merge master (plans 17 and 18)
+- [x] Toolchain setup shows the real build error
