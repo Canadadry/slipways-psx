@@ -5,10 +5,10 @@
   - [x] Chunk 2: draw into the display buffer
   - [x] Chunk 3: line options measurement
 - [ ] Step 3: primitives at x2, one family per step
-  - [ ] Step 3.1: pset and circ
+  - [x] Step 3.1: pset and circ
     - [x] Chunks 1-2: cost model and backend
     - [x] Chunk 3: re-size the frame buffer
-    - [ ] Chunk 4: gate and step note
+    - [x] Chunk 4: gate and step note
   - [ ] Step 3.2: spr and print
   - [ ] Step 3.3: patterned fills
   - [ ] Step 3.4: line

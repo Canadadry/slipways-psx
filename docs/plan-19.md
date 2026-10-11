@@ -61,3 +61,9 @@ Consequences: no headless reproducer exists. Step 3's two-`LINE_F2` option for `
 - `psx-check`: 28/30 conditions `ok`, `ram-room` 324644, `game-ram-room` 332760. `cls 1`, `rectfill 11` and `rect 300` pass with `differ 0`. The 14 references are pending.
 - x2 VRAM layout on paper (16-bit units): display buffers (0,0) and (0,240); the 1x textures stay in the page at (512,0) until steps 3.2/3.3 replace them; the x2 sheet fills the page at (512,256); the x2 font (8x12 cells, 64x96) and x2 pattern slots (16x16 texels) share the page at (576,256); CLUTs stay at (640,0). That is **two texture pages**, so from step 3.2 the cost model must count a page switch: a change of (page, window) costs the `DR_TPAGE` + `DR_TWIN` pair.
 - `line` options on `make state`, with `pset`/`circ` already priced at 16-byte `TILE`s (page-switch cost excluded): single `LINE_F2` peak 67316 (buffer 75776); two `LINE_F2`s 69140 (77824, not admissible); pixel list as 2x2 `TILE`s 187252 (210944, ram-room 50212 left); merged runs 96564 (109568, ram-room 252964 left). All fit; held by `worst-case/full_game.json`.
+
+### Step 3.1
+
+- `pset` and `circ` send one 2x2 `TILE` per on-screen pixel through `psx_tiles_double` and the fills' emitter. `TILE_1`, `P8_GPU_TILE_1_BYTES` and its size check are gone. H-2-1 to H-2-6 held.
+- `make state` peak 67316 (`worst-case/full_game.json`, as step 2 predicted), so `GPU_FRAME_BUFFER_BYTES` 73728 -> 75776. CLUT 5/6 and pattern 3/4 slots unchanged.
+- `psx-check`: 28/30 conditions `ok`, `ram-room` 320976, `game-ram-room` 329092. `pset 131` and `circ 314` pass with `differ 0`, `offpalette 0`, `nonuniform 0`; `cls 1`, `rectfill 11`, `rect 300` stay at `differ 0`. Still red, not yet due: `spr 234`, `print 275`, `pattern 190`, `pattern 257`, `circfill 263`, `line 276`, `all 100`, `all 188`, `all 265`.
