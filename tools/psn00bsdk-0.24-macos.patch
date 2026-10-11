@@ -1,0 +1,28 @@
+diff -ru a/libpsn00b/lzp/compress.c b/libpsn00b/lzp/compress.c
+--- a/libpsn00b/lzp/compress.c	2026-10-11 07:35:49.639002364 +0000
++++ b/libpsn00b/lzp/compress.c	2026-10-11 07:35:57.566931206 +0000
+@@ -1,9 +1,7 @@
+ // Based on ilia muraviev's CRUSH compressor program which falls under public domain
+ 
+ #include <string.h>
+-#ifdef LZP_USE_MALLOC
+ #include <stdlib.h>
+-#endif
+ 
+ #include "lzconfig.h"
+ #include "bit.h"
+diff -ru a/tools/mkpsxiso/src/shared/platform.h b/tools/mkpsxiso/src/shared/platform.h
+--- a/tools/mkpsxiso/src/shared/platform.h	2026-10-11 07:35:49.640871089 +0000
++++ b/tools/mkpsxiso/src/shared/platform.h	2026-10-11 07:35:57.567031417 +0000
+@@ -17,6 +17,11 @@
+ #define PRFILESYSTEM_PATH "s"
+ #endif
+ 
++// macOS has no stat64: its stat is 64-bit already.
++#ifdef __APPLE__
++#define stat64 stat
++#endif
++
+ namespace cd
+ {
+ 	struct ISO_DATESTAMP;

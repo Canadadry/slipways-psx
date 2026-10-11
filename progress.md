@@ -14,3 +14,4 @@
 - [x] Prebuilt macOS toolchain
 - [x] Merge master (plans 17 and 18)
 - [x] Toolchain setup shows the real build error
+- [x] PSn00bSDK host tools build with Apple clang

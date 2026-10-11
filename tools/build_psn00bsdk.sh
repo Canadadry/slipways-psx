@@ -5,7 +5,8 @@
 # PSN00BSDK_FROM_SOURCE. Its mipsel-none-elf toolchain is, on macOS, the
 # prebuilt arm64 GCC 14.2.0 of toolchain-macos; with PSN00BSDK_FROM_SOURCE,
 # binutils and GCC (with libgcc) built from source, 30 to 60 min.
-# Needs a host C/C++ compiler, make, cmake, curl, git, unzip; never sudo.
+# tools/psn00bsdk-0.24-macos.patch makes its host tools build with Apple clang.
+# Needs a host C/C++ compiler, make, cmake, curl, git, unzip, patch; never sudo.
 # Exit 0 at once when <install-dir> holds a stamp for the same pins; exit 1,
 # deleting nothing, when it is non-empty without that stamp.
 
@@ -54,7 +55,7 @@ fi
 if [ -d "$install_dir" ] && [ -n "$(ls -A "$install_dir")" ]; then
     fail "$install_dir is not empty and holds no stamp for these pins; remove it and re-run"
 fi
-for tool in cc c++ make cmake curl git tar xz unzip; do
+for tool in cc c++ make cmake curl git tar xz unzip patch; do
     command -v "$tool" >/dev/null 2>&1 || fail "$tool not found on PATH"
 done
 
@@ -147,6 +148,7 @@ sdk_src=$work/psn00bsdk
     GIT_TERMINAL_PROMPT=0 git fetch -q --depth 1 "${sdk% *}" "${sdk#* }" || exit 1
     git checkout -q --detach FETCH_HEAD || exit 1
     git submodule update --init --recursive --depth 1 -q || git submodule update --init --recursive -q || exit 1
+    patch -p1 -s --forward < "$script_dir/psn00bsdk-0.24-macos.patch" || exit 1
     cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DSKIP_EXAMPLES=ON \
         -DLIBPSN00B_GENERATOR="Unix Makefiles" -DPSN00BSDK_TC="$install_dir" \
         -DCMAKE_INSTALL_PREFIX="$install_dir" || exit 1
