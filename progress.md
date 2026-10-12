@@ -3,7 +3,7 @@
     - [x] Chunk 1 — Boot reporting
     - [x] Chunk 2 — Save-state boot
     - [x] Chunk 3 — Full-game check with the GPU boot
-    - [ ] Chunk 4 — Investigation and fix
+    - [x] Chunk 4 — Investigation and fix
   - [ ] Step 1.2 — Measure the full game on the GPU path
   - [ ] Step 1.3 — Re-measure the zones on MIPS
   - [ ] Step 1.4 — Optimize only what the measurement points to

@@ -429,7 +429,7 @@
 #                       replay-done, state-game-lines, sprite-sheet, screen,
 #                       map, gpu-replay-done and gpu-state-game-lines through
 #                       tools/psx_full_game_check.sh (outputs in
-#                       tmp/psx/full-game/run, minutes); not run by psx-check,
+#                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
 #                       outside the suite
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
 #                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
@@ -453,6 +453,7 @@
 # make psx-emulator-setup -> runs psx-net-check, then builds the pinned
 #                       PCSX-Redux and its OpenBIOS from PSX_SOURCES into
 #                       PSX_EMULATOR_DIR (default third_party/pcsx-redux),
+#                       with every tools/pcsx-redux-*.patch applied,
 #                       ~10 min; apt via sudo on Linux unless
 #                       PSX_EMULATOR_SKIP_APT is set, the user's Homebrew on
 #                       macOS (after psn00bsdk-toolchain-setup); exits 0 at once on a complete install, fails on
@@ -890,6 +891,9 @@ $(TMP_DIR)/test_psx_cd_check: $(call objs,tests/test_psx_cd_check.c) tools/psx_c
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_boot: $(call objs,tests/test_psx_boot.c) tools/psx_boot.sh tools/psx_portable.sh tools/psx_until_exit.lua | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_emulator_setup: $(call objs,tests/test_psx_emulator_setup.c) tools/install_psx_emulator.sh tools/psx_portable.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_full_game_check: $(call objs,tests/test_psx_full_game_check.c) tools/psx_full_game_check.sh \
@@ -1455,7 +1459,7 @@ unit: $(UNIT_RUNS)
 
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
-	test_psx_full_game_check
+	test_psx_full_game_check test_psx_emulator_setup
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
@@ -1986,10 +1990,10 @@ psx-replay-check: psx-build $(TMP_DIR)/replay
 
 PSX_FULL_GAME_EVENTS := worst-case/full_game.json
 PSX_FULL_GAME_DIR := $(TMP_DIR)/psx/full-game
-PSX_FULL_GAME_CEILING ?= 60000
-PSX_FULL_GAME_TIMEOUT ?= 1200
-PSX_FULL_GAME_GPU_CEILING ?= 60000
-PSX_FULL_GAME_GPU_TIMEOUT ?= 1200
+PSX_FULL_GAME_CEILING ?= 71834
+PSX_FULL_GAME_TIMEOUT ?= 1197
+PSX_FULL_GAME_GPU_CEILING ?= 30810
+PSX_FULL_GAME_GPU_TIMEOUT ?= 515
 
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay

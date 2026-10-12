@@ -26,7 +26,7 @@ breaks them.
 
 | Component | What is used |
 |---|---|
-| Emulator | PCSX-Redux built from source at its pinned commit, plus the upstream headless fix applied on top |
+| Emulator | PCSX-Redux built from source at its pinned commit, plus the upstream headless fix and the repository's `tools/pcsx-redux-*.patch` applied on top |
 | BIOS | OpenBIOS from the same PCSX-Redux tree; no Sony BIOS |
 | Toolchain, SDK, CD tool | Linux: the PSn00bSDK 0.24 release (prebuilt `mipsel-none-elf` GCC 12.3.0, binutils 2.40, `elf2x`, libpsn00b, mkpsxiso 2.03). macOS: the prebuilt arm64 `mipsel-none-elf` GCC 14.2.0 of alextrevisan/mipsel-none-elf (sha256-pinned), PSn00bSDK 0.24 built from its commit with it |
 | CD license data | none: PSn00bSDK ships none and OpenBIOS does not check it |
@@ -150,6 +150,11 @@ None of these targets is in `make test-all`, and none runs a setup.
   `-cli` segfaults on a disc boot. A pin bump must keep it or include it.
 - The emulator pin is the last commit before PCSX-Redux moved to SDL3, which
   Ubuntu noble does not ship.
+- `tools/pcsx-redux-event-listener-stack.patch` stops each Lua event listener
+  from leaving two slots on its Lua thread per event: unpatched, any boot
+  with a `GPU::Vsync` listener aborts at about 32,700 vsyncs (LuaJIT stack
+  overflow, `An unknown exception occured`). Upstream still has the bug.
+  Every patch is in the install stamp, so changing one rebuilds.
 
 ## Still to do
 

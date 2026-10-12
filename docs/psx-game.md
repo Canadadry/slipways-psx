@@ -467,7 +467,7 @@ mask.
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | seven conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (outputs in `tmp/psx/full-game/run`) | minutes |
+| `make psx-full-game-check` | seven conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (outputs in `tmp/psx/full-game/run`) | ~20 min |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
@@ -555,6 +555,16 @@ also in `run/conditions.txt`): `replay-done`, `state-game-lines`,
 `gpu-state-game-lines` on the GPU replay, as `psx-check` defines them; both
 scripts source these conditions from `tools/psx_conditions.sh`.
 
+The unpatched pinned emulator aborts any boot at about 32,700 vsyncs (exit
+134, `An unknown exception occured`): each Lua event listener left two slots
+on its Lua thread per event, and the `GPU::Vsync` listener's thread
+overflowed LuaJIT's 65,500-slot stack outside a protected call. An idle boot
+with no program aborted at the same vsync, and a state saved at vsync 32,100
+and loaded in a fresh emulator ran on past it, so the guest is not involved.
+`tools/pcsx-redux-event-listener-stack.patch`, applied by
+`psx-emulator-setup`, restores the thread's stack after each call; an install
+made before it must be removed and set up again.
+
 `measurements.txt` (in `tmp/psx/game-check/run`, in the output directory of
 `psx-replay-check` and in `tmp/psx/full-game/run`) holds the MIPS `zone`,
 `budget` and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF;
@@ -574,9 +584,11 @@ Ceilings and timeouts are the first measured run plus half again:
 `PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
 (`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,
 20 s) for the CD boot (`psx-game-cd-check`, `psx-check`),
-`PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` for the replay of `full_game`
-and `PSX_FULL_GAME_GPU_CEILING`/`PSX_FULL_GAME_GPU_TIMEOUT` for its GPU replay,
-both generous (60,000 vsyncs, 1,200 s) until a first green run sets them.
+`PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` (71,834 vsyncs, 1,197 s) for
+the replay of `full_game` and `PSX_FULL_GAME_GPU_CEILING`/
+`PSX_FULL_GAME_GPU_TIMEOUT` (30,810 vsyncs, 515 s) for its GPU replay: the
+first green run's 47,889 and 20,540 vsyncs in 798 s and 343 s, both `done`
+lines at 6,059 frames, the PC's count.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
 
@@ -646,15 +658,3 @@ None of these targets is in `make test-all`, and none runs a setup.
     nonuniform 0`, ceilings 0: every family at once, aim mode entered from
     p47 (f100), aim mode moving to the fold (f188), the aim on the already
     linked p47 in colour 2 with the forbidden sign (f265).
-
-- `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
-  (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778
-  frames, but the emulator aborts after about 9 minutes (exit 134,
-  `An unknown exception occured`, `terminate called without an active
-  exception` in `run.log`), before the ceiling or the timeout. A rerun with
-  the emulator's stdout unbuffered (`stdbuf -o0`, which `psx_boot.sh` now
-  does itself) reached `psx-replay: frame 4608`
-  with no `p8_fatal` line, then aborted the same way before the `done` line.
-  The cause, in the guest or in the emulator, is not found yet. The digest
-  lines that reach the TTY before the abort equal the PC's: the sprite sheet
-  and every screen up to frame 2464.
