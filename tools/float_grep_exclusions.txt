@@ -84,6 +84,8 @@ src/platform/psx_pattern.c | patterned rectfill and circfill as GPU sprites unde
 src/platform/psx_pattern.h | patterned rectfill and circfill as GPU sprites under a texture window, header of platform/psx_pattern.c
 src/devtools/draw_filter.c | family filter of the GPU captures, shared by the PC replay and the PSX GPU replay
 src/devtools/draw_filter.h | family filter of the GPU captures, header of devtools/draw_filter.c
+src/devtools/draw_timing.c | draw call timing of the PSX breakdown replay, written through the state sink, host-tested
+src/devtools/draw_timing.h | draw call timing of the PSX breakdown replay, header of devtools/draw_timing.c
 src/devtools/capture_list.c | GPU capture list parser, host tool
 src/devtools/capture_list.h | GPU capture list parser, header of devtools/capture_list.c
 src/devtools/capture_compare.c | GPU capture comparator, host tool

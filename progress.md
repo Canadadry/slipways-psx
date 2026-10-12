@@ -18,6 +18,11 @@
   - [ ] Step 1.4 — Optimize only what the measurement points to
     - [x] Plan-review before step 4: split into 4.1–4.4
     - [ ] Step 1.4.1 — Harness and draw breakdown
+      - [x] Chunk 1 — Draw timing wrapper
+      - [ ] Chunk 2 — Cut planner and cut command
+      - [ ] Chunk 3 — Breakdown PS-EXE
+      - [ ] Chunk 4 — Analysis script
+      - [ ] Chunk 5 — Target, docs and first measurement
     - [ ] Step 1.4.2 — Draw
     - [ ] Step 1.4.3 — Update
     - [ ] Step 1.4.4 — Close

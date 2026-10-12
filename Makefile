@@ -760,6 +760,9 @@ $(TMP_DIR)/test_psx_tiles: $(call objs,tests/test_psx_tiles.c src/platform/psx_t
 $(TMP_DIR)/test_draw_filter: $(call objs,tests/test_draw_filter.c src/devtools/draw_filter.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_draw_timing: $(call objs,tests/test_draw_timing.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_capture_list: $(call objs,tests/test_capture_list.c src/devtools/capture_list.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1338,6 +1341,7 @@ UNIT_TESTS := \
     test_psx_colour \
     test_psx_tiles \
     test_draw_filter \
+    test_draw_timing \
     test_capture_list \
     test_capture_compare \
     test_input \
