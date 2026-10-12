@@ -56,10 +56,12 @@ src/platform/psx_exit.c | PSX exit module, PSX only
 src/platform/psx_exit.h | PSX exit module, header of platform/psx_exit.c
 src/platform/psx_pad.c | PSX raw pad read through the BIOS, PSX only
 src/platform/psx_pad.h | PSX raw pad read, header of platform/psx_pad.c
-src/platform/psx_tty.c | PSX TTY output and its state and frame line sinks, PSX only
+src/platform/psx_tty.c | PSX TTY output and its state, frame and draw line sinks, PSX only
 src/platform/psx_tty.h | PSX TTY output, header of platform/psx_tty.c
 src/platform/psx_frame_timer.c | hblank root counter of the PSX GPU replay's frame times, PSX only
 src/platform/psx_frame_timer.h | hblank root counter, header of platform/psx_frame_timer.c
+src/platform/psx_fine_clock.c | system clock / 8 root counter of the PSX breakdown replay's draw call timing, PSX only
+src/platform/psx_fine_clock.h | system clock / 8 root counter, header of platform/psx_fine_clock.c
 src/p8/format.c | snprintf replacement of the PSX build, linked by the PSX platform and its host test
 src/p8/format.h | snprintf replacement of the PSX build, header of p8/format.c
 src/platform/format_psx.c | routes the PSX snprintf and vsnprintf to p8/format.c, PSX only

@@ -17,6 +17,9 @@ state_sink_t psx_tty_state_sink(void);
 /* Writes each frame time line behind "psx-frame: ". */
 state_sink_t psx_tty_frame_sink(void);
 
+/* Writes each draw timing line behind "psx-draw: ". */
+state_sink_t psx_tty_draw_sink(void);
+
 /* Writes each digest line behind "psx-digest: ", the prefix
    tools/psx_digest_compare.sh extracts. */
 vram_digest_sink_t psx_tty_digest_sink(void);

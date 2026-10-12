@@ -7,7 +7,10 @@
  * at each frame the capture script (platform/psx_capture_protocol.h) asks for, plus the frame times
  * (devtools/frame_times.h) behind "psx-frame: ": the calibration line before the first frame, then
  * every frame's line before the done line, or before the stopped state on a p8_fatal. Without a
- * capture script driving the handshake it waits forever before the first frame. */
+ * capture script driving the handshake it waits forever before the first frame.
+ * Built with PSX_GPU_REPLAY_BREAKDOWN (psx-gpu-replay-breakdown), it also times every backend call
+ * per draw family (devtools/draw_timing.h) and writes, after the "psx-frame: " lines, the fine
+ * clock's calibration then one line per frame behind "psx-draw: ". */
 
 #include "devtools/draw_filter.h"
 #include "devtools/embedded_replay.h"
@@ -68,10 +71,56 @@ static capture_request_t capture_frame(int frame, unsigned mask) {
     return capture_wait_next();
 }
 
+#ifdef PSX_GPU_REPLAY_BREAKDOWN
+#include "devtools/draw_timing.h"
+#include "platform/psx_fine_clock.h"
+
+enum { BREAKDOWN_WRAP_HBLANKS = 200 };
+
+static const draw_timing_clock_t BREAKDOWN_CLOCK = {
+    psx_fine_clock_read, psx_frame_timer_read, BREAKDOWN_WRAP_HBLANKS,
+};
+static uint32_t breakdown_calibration;
+
+/* The frame timer must be started. */
+static void breakdown_start(int frame_count) {
+    if (frame_count > DRAW_TIMING_CAP) {
+        char message[80];
+        snprintf(message, sizeof message, "replay has %d frames, draw timing capacity %d", frame_count,
+                 DRAW_TIMING_CAP);
+        p8_fatal(message);
+    }
+    psx_fine_clock_start();
+    breakdown_calibration = psx_fine_clock_calibrate();
+    draw_timing_install(&BREAKDOWN_CLOCK);
+}
+
+static void breakdown_frame_end(void) {
+    draw_timing_frame_end();
+}
+
+static void breakdown_write(void) {
+    state_sink_t sink = psx_tty_draw_sink();
+    draw_timing_write_calibration(&sink, breakdown_calibration);
+    draw_timing_write(&sink);
+}
+#else
+static void breakdown_start(int frame_count) {
+    (void)frame_count;
+}
+
+static void breakdown_frame_end(void) {
+}
+
+static void breakdown_write(void) {
+}
+#endif
+
 static void write_stopped_state(int code) {
     if (code != PSX_EXIT_FATAL) return;
     state_sink_t frame_sink = psx_tty_frame_sink();
     frame_times_write(&frame_sink);
+    breakdown_write();
     state_sink_t sink = psx_tty_state_sink();
     state_format_stopped(&sink, g_frame);
     state_format(&sink);
@@ -138,6 +187,8 @@ int main(void) {
     state_sink_t frame_sink = psx_tty_frame_sink();
     frame_times_write_calibration(&frame_sink, psx_frame_timer_calibrate());
 
+    breakdown_start(input.frame_count);
+
     capture_request_t capture = capture_start();
     int start_vsync = VSync(-1);
     input_step_t step;
@@ -157,6 +208,7 @@ int main(void) {
         marks[2] = psx_frame_timer_read();
         p8_draw_meter_frame_end();
         draw_filter_frame_end();
+        breakdown_frame_end();
         psx_gpu_frame_end(p8_draw_meter_last_frame().bytes);
         /* The capture handshake waits on the emulator: its time and vsyncs stay out of the frame's. */
         uint16_t capture_time = 0;
@@ -182,6 +234,7 @@ int main(void) {
     psx_exit_set_hook(NULL);
 
     frame_times_write(&frame_sink);
+    breakdown_write();
     psx_tty_printf("psx-replay: done %s %d vsyncs %d\n", embedded_replay_name, input.frame_count, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);

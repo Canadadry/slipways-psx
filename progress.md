@@ -20,7 +20,7 @@
     - [ ] Step 1.4.1 — Harness and draw breakdown
       - [x] Chunk 1 — Draw timing wrapper
       - [x] Chunk 2 — Cut planner and cut command
-      - [ ] Chunk 3 — Breakdown PS-EXE
+      - [x] Chunk 3 — Breakdown PS-EXE
       - [ ] Chunk 4 — Analysis script
       - [ ] Chunk 5 — Target, docs and first measurement
     - [ ] Step 1.4.2 — Draw

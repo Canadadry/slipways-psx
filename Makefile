@@ -314,10 +314,12 @@
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
 # make psx-build [EVENTS=<events>] -> builds, in tmp/psx/build, the game's
-#                       two PS-EXEs replaying that recording (default
+#                       PS-EXEs replaying that recording (default
 #                       tests/e2e/pad_slipway.json, embedded through
-#                       tmp/embed_replay), psx-replay drawing in RAM and
-#                       psx-gpu-replay through the GPU backend, the pad
+#                       tmp/embed_replay), psx-replay drawing in RAM,
+#                       psx-gpu-replay through the GPU backend and
+#                       psx-gpu-replay-breakdown (the same, timing each
+#                       backend call per draw family), the pad
 #                       probe, psx-game (the game read from the pad),
 #                       psx-largest-slots (the largest-case scenarios of
 #                       src/devtools/largest_slots.c on MIPS), and the
@@ -1965,6 +1967,7 @@ PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/plat
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) src/devtools/state_format.c src/devtools/format_self_test.c \
 	src/devtools/draw_filter.c src/devtools/frame_times.c src/platform/psx_frame_timer.c $(PSX_GPU_BACKEND_SRCS) \
 	$(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
+PSX_GPU_REPLAY_BREAKDOWN_SRCS := $(PSX_GPU_REPLAY_SRCS) src/devtools/draw_timing.c src/platform/psx_fine_clock.c
 PSX_LARGEST_SLOTS_SRCS := src/cmd/psx_largest_slots.c src/devtools/largest_slots.c $(CORE_SRCS) $(PSX_CORE_UNITS) \
 	src/devtools/state_format.c $(PSX_PLATFORM_SRCS)
 PSX_PAD_PROBE_SRCS := src/cmd/psx_pad_probe.c src/platform/psx_pad.c $(PSX_PLATFORM_SRCS)
@@ -1988,12 +1991,14 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
+		'-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS))' \
 		'-DPSX_LARGEST_SLOTS_SOURCES=$(call psx_cmake_list,$(PSX_LARGEST_SLOTS_SRCS))' \
 		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))' \
 		'-DPSX_GAME_SOURCES=$(call psx_cmake_list,$(PSX_GAME_SRCS))'
 	+cmake --build $(PSX_BUILD_DIR)
-	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-gpu-replay.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf \
-		$(PSX_BUILD_DIR)/psx-game.elf $(PSX_BUILD_DIR)/psx-largest-slots.elf
+	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-gpu-replay.elf \
+		$(PSX_BUILD_DIR)/psx-gpu-replay-breakdown.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf $(PSX_BUILD_DIR)/psx-game.elf \
+		$(PSX_BUILD_DIR)/psx-largest-slots.elf
 	@for f in $(PSX_GAME_BIN) $(PSX_GAME_CUE); do \
 		[ -f "$$f" ] || { echo "psx-build: CD image $$f missing" >&2; exit 1; }; echo "psx-build: CD image $$f"; done
 
