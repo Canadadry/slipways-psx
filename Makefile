@@ -464,6 +464,21 @@
 #                       jump selection or crosshair); fails on a refused
 #                       cut, an embed failure, a stopped replay or a missing
 #                       file, ~25 s; never boots, outside the suite
+# make psx-short-runs [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
+#                       then per run builds psx-gpu-replay and
+#                       psx-gpu-replay-breakdown with its run.json embedded in
+#                       tmp/psx/short-runs/<name>/build, boots the plain one
+#                       twice and the breakdown once with an empty capture
+#                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, timeout
+#                       PSX_SHORT_RUN_TIMEOUT s; wall time and vsyncs in
+#                       boots.txt), then tools/psx_short_run.sh into
+#                       <name>/analysis: done, deterministic, representative
+#                       (against PSX_SHORT_RUN_REFERENCE, default
+#                       psx-full-game-check's frames.txt; empty skips it, a
+#                       missing file fails), breakdown, then the window's draw
+#                       split, overhead and best cases; fails after every run
+#                       when a condition failed, ~4 min; never runs a setup,
+#                       outside the suite and psx-check
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
 #                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
 #                       (default psx/pad_probe_script.txt) from the probe's
@@ -528,7 +543,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -2106,6 +2121,53 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 		fi; \
 	done; \
 	exit $$failed
+
+PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
+PSX_SHORT_RUN_CEILING ?= 540
+PSX_SHORT_RUN_TIMEOUT ?= 10
+# Each run's own embedded recording replaces psx-build's in the three lists that hold it.
+psx_short_run_list = $(call psx_cmake_list,$(filter-out $(PSX_EMBEDDED_REPLAY),$(1)))
+
+# A failed boot or analysis fails the run but never stops the loop: every run is booted.
+psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_short_run.sh
+	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-short-runs: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
+	@[ -z "$(PSX_SHORT_RUN_REFERENCE)" ] || [ -f "$(PSX_SHORT_RUN_REFERENCE)" ] \
+		|| { echo "psx-short-runs: no reference frame table $(PSX_SHORT_RUN_REFERENCE): run make psx-full-game-check" >&2; exit 1; }
+	@failed=; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '!/^[[:space:]]*(#|$$)/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		dir=$(PSX_SHORT_RUNS_DIR)/$$name; embedded=$(abspath $(PSX_SHORT_RUNS_DIR))/$$name/run.embedded.c; \
+		frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $$dir/run.log); \
+		echo "psx-short-runs: $$name: building $$frames frames in $$dir/build"; \
+		if ! { cmake -S psx -B $$dir/build \
+			-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
+			-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+			"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$$embedded" \
+			"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
+			"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
+			'-DPSX_LARGEST_SLOTS_SOURCES=$(call psx_cmake_list,$(PSX_LARGEST_SLOTS_SRCS))' \
+			'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))' \
+			'-DPSX_GAME_SOURCES=$(call psx_cmake_list,$(PSX_GAME_SRCS))' \
+			&& cmake --build $$dir/build --target psx-gpu-replay psx-gpu-replay-breakdown; } > $$dir/build.log 2>&1; then \
+			tail -n 20 $$dir/build.log >&2; echo "psx-short-runs: $$name failed to build ($$dir/build.log)"; \
+			failed="$$failed $$name"; continue; \
+		fi; \
+		: > $$dir/empty_capture_script.txt; : > $$dir/boots.txt; \
+		for boot in plain-1 plain-2 breakdown; do \
+			exe=$$dir/build/psx-gpu-replay.exe; [ $$boot = breakdown ] && exe=$$dir/build/psx-gpu-replay-breakdown.exe; \
+			rm -f $$dir/$$boot.*; start=$$(date +%s); \
+			PSX_BOOT_TIMEOUT=$(PSX_SHORT_RUN_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
+				--capture-script $$dir/empty_capture_script.txt --exe $$exe $(PSX_SHORT_RUN_CEILING) $$dir/$$boot \
+				|| echo "psx-short-runs: $$name: $$boot boot failed"; \
+			done_vsyncs=$$(tr -d '\r' < $$dir/$$boot.tty.txt 2>/dev/null | sed -n 's/^psx-replay: done .* vsyncs \([0-9]*\)$$/\1/p'); \
+			echo "$$boot wall $$(($$(date +%s) - start)) s done-vsyncs $${done_vsyncs:--} progress-vsyncs $$(sed -n 's/^vsync //p' $$dir/$$boot.progress 2>/dev/null)" >> $$dir/boots.txt; \
+		done; \
+		sed "s/^/psx-short-runs: $$name: boot /" $$dir/boots.txt; rm -rf $$dir/analysis; \
+		sh tools/psx_short_run.sh $$dir/plain-1.tty.txt $$dir/plain-2.tty.txt $$dir/breakdown.tty.txt $$dir/map.txt "$$frames" \
+			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis | sed "s/^/psx-short-runs: $$name: /"; \
+		[ -f $$dir/analysis/verdicts.txt ] && ! grep -q '^[a-z]* failed ' $$dir/analysis/verdicts.txt || failed="$$failed $$name"; \
+	done; \
+	if [ -n "$$failed" ]; then echo "psx-short-runs: failed:$$failed"; exit 1; fi; \
+	echo "psx-short-runs: passed"
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

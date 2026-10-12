@@ -27,3 +27,4 @@
     - [ ] Step 1.4.3 — Update
     - [ ] Step 1.4.4 — Close
   - [ ] Step 1.5 — Ship
+- [x] Step 1.4.1 stopped: representative failed on 4 of 5 short runs — waiting on the human (chunk 5 committed, step not done)

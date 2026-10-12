@@ -501,6 +501,8 @@ mask.
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
 | `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted, the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
+| `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
@@ -711,8 +713,99 @@ first green run's 47,889 vsyncs in 798 s for the replay, and for the GPU
 replay the first run with frame lines, 21,000 vsyncs (`.progress`, the frame
 lines printed after the loop included; `done` line 20,543) in 350 s, both
 `done` lines at 6,059 frames, the PC's count.
+`PSX_SHORT_RUN_CEILING`/`PSX_SHORT_RUN_TIMEOUT` (540 vsyncs, 10 s) for every
+boot of `psx-short-runs`: its longest first boot, the breakdown of `start`,
+282 vsyncs at `done` and 300 to 359 by `.progress`, in 6 s.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
+
+## Short runs
+
+`make psx-short-runs` measures the GPU replay on a few short recordings that
+hold the worst frames of `full_game.json`, in minutes instead of the full
+check's 20, from the program under test (an emulator save state would hold
+the old code). It judges no zone or cap: `psx-full-game-check` stays the only
+judge of sizes.
+
+**Manifest.** `psx/short_runs.txt`, one run a line, frames of
+`full_game.json`: `<name> prefix <first> <last> <end>` (its first `end + 1`
+frames) or `<name> resume <first> <last>` (a resume before the window
+`first..last`). The five runs: `start` (frames 0–99, the start spike at 12),
+`update-4737`, `update-5500`, `update-5719` (update spikes) and `draw-5564`
+(the draw cluster 5564–5578).
+
+**Cut.** `make psx-short-runs-cut` (host only) replays `full_game.json` with
+`tmp/short_run_cut` (`src/devtools/short_run_cut.c`, pure, host-tested by
+`test_short_run_cut`), which observes every storage write and writes per run
+into `tmp/psx/short-runs/<name>/`:
+
+- `run.json`: for `resume`, an `initial_save` recording whose cut W is the
+  last frame at or before `first − 9` where the game wrote a save and whose
+  next frame W+1 has an idle pad; its frames are the 13-frame title resume of
+  `tests/e2e/pad_resume_at_start.json`, then `full_game.json`'s frames W+1 to
+  `last`. A cut with no eligible save, or longer than 1,024 frames (the
+  breakdown table), is refused naming the run;
+- `reference.json`: `full_game.json`'s frames up to the frame matching the
+  run's last;
+- `map.txt`: `cut <W> first-game-frame 13 source-first <W+1> window <first>
+  <last>` (run frame 13 + k plays full frame W+1+k; run frames 0–12, the
+  resume frame included, are never compared), or `cut none first-game-frame
+  0 source-first 0 ...` for a prefix.
+
+Both recordings must pass `tmp/embed_replay` and replay with `STATE=`; the
+target then prints `short-run-match: <name> same|differs <map>` with the
+differing lines of the two `tools/end_state.sh` states. A difference is
+reported, never a failure: a save holds no camera, jump selection or
+crosshair, so a resumed run can diverge from the full game, and the game is
+not changed for it.
+
+**Breakdown PS-EXE.** `psx-gpu-replay-breakdown` (built by `psx-build`, never
+booted by `psx-check`) is the GPU replay compiled with
+`PSX_GPU_REPLAY_BREAKDOWN`: `src/devtools/draw_timing.c` (host-tested by
+`test_draw_timing`) wraps the backend outermost, after the meter, and times
+every p8 draw call per family of `draw_filter.h` on root counter 2, system
+clock / 8 (`src/platform/psx_fine_clock.c`), with counter 1's hblanks as the
+coarse clock (a call of 200 hblanks or more flags its frame `wrapped`). A
+patterned rectfill or circfill counts under its shape and again under
+`pattern`, which no total adds. After the `psx-frame:` lines it prints
+`psx-draw: clk8-per-64-hblanks <n>` then, per frame, `psx-draw: frame <n>`,
+`<family> <ticks> <calls>` for the ten families and `wrapped <0|1>`. Without
+the definition the GPU replay is the same program.
+
+**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>]` runs the cut, then
+per run configures `psx/` in `<name>/build` with `run.json` embedded and
+builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, boots the plain
+one twice and the breakdown once with an empty capture script until they
+exit (`PSX_SHORT_RUN_CEILING` vsyncs, `PSX_SHORT_RUN_TIMEOUT` s; each boot's
+wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
+(host-tested by `test_psx_short_run` in `psx-tools-test`) into
+`<name>/analysis`. One line per condition, `ok` or `failed <reason>`
+(`verdicts.txt`):
+
+- `done`: each boot printed its `done` line with the run's frame count and
+  no stopped state;
+- `deterministic`: the two plain boots' `psx-frame:` lines are byte-identical;
+- `representative`: over the window frames (mapped), the plain run's draw sum
+  and update sum each within ±10% of `PSX_SHORT_RUN_REFERENCE`'s (default
+  `tmp/psx/full-game/run/frame-budget/frames.txt`, written by
+  `psx-full-game-check`); both runs' figures side by side in `window.txt`.
+  An empty reference skips it, so a changed program can still use the runs;
+  a set path that does not exist fails the target naming
+  `make psx-full-game-check`;
+- `breakdown`: the calibration in 15,500–19,000, one `psx-draw:` record per
+  frame, no wrapped frame, and no frame's in-call time above the breakdown
+  boot's own draw.
+
+`summary.txt`, over the window frames: each family's hblanks, calls and share
+of the breakdown boot's draw (`pattern` apart), `in-calls` (everything under
+the p8 draw API: meter, filter and GPU backend) and `outside-calls` (the
+game's own code in `cart_draw`); `overhead` (breakdown draw − plain draw);
+then per frame and as the window's maximum the best cases on the first plain
+boot's parts with the breakdown's in-call share s: `backend-free` (update +
+submit + draw × (1 − s)), `game-draw-free` (update + submit + draw × s) and
+`draw-free` (update + submit), each with the frames still over
+`PSX_FRAME_BUDGET_HBLANKS`. The target fails after every run when a
+condition failed. It is not part of `psx-check`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
@@ -724,6 +817,15 @@ None of these targets is in `make test-all`, and none runs a setup.
   first 12), worst frame 12 at 9,558 (update 9,074), mean overrun 629, mean
   frame 891 hblanks (~3.4 vsyncs), draw dominant (4,714,765 of the
   over-budget frames' 5,399,037 hblanks). The eleven other conditions hold.
+
+- `make psx-short-runs` is red on `representative`: `done`, `deterministic`
+  and `breakdown` hold on all five runs, and `start` matches the full run
+  exactly, but the four resumed runs miss their window: the update spikes
+  are not reproduced after the resume (4737: update 125 vs 2002; 5719: 49
+  vs 1588), and draw comes out lower than in the full run (5500: −33.3%;
+  draw-5564: −13.6%, about 15% lower on every window frame although its
+  end state matches the full game's). Plan 11 step 4.1 stops on it; the
+  cut rule and the windows are not loosened.
 
 - The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
   `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in
