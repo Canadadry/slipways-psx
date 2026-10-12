@@ -34,3 +34,11 @@ A final `.bin/.cue` in which a full game plays in the emulator at the game's fra
 ## 5. Open questions
 
 ## 6. Step notes
+
+### Step 1.1
+
+- Cause, in the emulator: each Lua event listener of the pinned pcsx-redux left two values on its Lua thread per event (`src/core/eventslua.cc`, `createListener`); the vsync listener overflowed LuaJIT's stack at ~32,700 vsyncs, outside a protected call → `An unknown exception occured`, exit 134. A BIOS-only boot aborts at the same vsync. Upstream HEAD still leaks and the next commits move to SDL3, so no re-pin: `tools/pcsx-redux-event-listener-stack.patch`, applied by `install_psx_emulator.sh` and recorded in the stamp (an older install must be set up again).
+- Rungs: (1) sanitized PC replay on `full_game.json` clean; (2) old emulator: software boot aborted at vsync 32,700 (last progress `frame 4096`, last screen digest 4256, 546 s), GPU boot exited 0 at 20,568 vsyncs (under the limit); (3) a state saved at vsync 32,100 and loaded ran past the abort in 24 s, screen digests equal to the PC's; (4) the abort follows the emulator's own vsync count, not the guest; (5) patched build: BIOS-only boot reaches 40,000 vsyncs.
+- Deviation: `full_game.json` is 6,059 frames, not 4,778 (it grew in later commits). Green `make psx-full-game-check`: software `done full_game 6059 vsyncs 47889` (798 s), GPU `done full_game 6059 vsyncs 20540` (343 s). Ceilings/timeouts: software 71,834 / 1,197 s, GPU 30,810 / 515 s.
+- Added on the way: abort reporting with signal, last progress line and `.progress` vsync heartbeat; `psx_boot.sh --save-state-at`/`--load-state` (state loads at the first vsync, written with plain `io`: `Support.File` writes on another thread and truncated it); the GPU replay boot inside `psx-full-game-check` (seven conditions, shared `tools/psx_conditions.sh`, `gpu ` measurement lines). `make psx-check` green.
+- `make test` measures ~10 s on this 4-core container, above CLAUDE.md's ~5 s; no step-1 test runs in it (all in `psx-tools-test`).
