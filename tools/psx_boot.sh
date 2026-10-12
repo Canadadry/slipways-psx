@@ -8,7 +8,8 @@
 # --until-exit adds -testmode and writes no capture: the program's own exit
 # code is the result (0 passes, anything else fails naming it), and <frames>
 # is a vsync ceiling; reaching it or the timeout fails naming the input and
-# the last "psx-replay:", "psx-pad:" or "psx-game:" line of the TTY.
+# the last "psx-replay:", "psx-pad:", "psx-game:" or "psx-largest:" line of
+# the TTY.
 # tools/psx_until_exit.lua writes the vsync count to <out-prefix>.progress
 # every 60 vsyncs; an emulator killed by a signal fails naming the status, the
 # signal, that line and the last vsync, as the timeout does. The emulator's
@@ -148,7 +149,7 @@ status=0
 ) || status=$?
 
 if [ -n "$until_exit" ]; then
-    progress=$(tr -d '\r' < "$prefix.tty.txt" | grep -E '^psx-(replay|pad|game): ' | tail -n 1)
+    progress=$(tr -d '\r' < "$prefix.tty.txt" | grep -E '^psx-(replay|pad|game|largest): ' | tail -n 1)
     last="last progress line: ${progress:-(none)}"
     vsync=$(sed -n 's/^vsync //p' "$prefix.progress" 2>/dev/null | tail -n 1)
     last_vsync="last vsync: ${vsync:-(none)}"

@@ -98,6 +98,7 @@ src/devtools/pad_log.c | PSX game pad log and pad script reader, host tool
 src/devtools/pad_log.h | PSX game pad log and pad script reader, header of devtools/pad_log.c
 src/cmd/psx_pad_log.c | entry point of psx_pad_log, which turns the PSX game's pad log into an events.json, host tool
 src/cmd/psx_game.c | entry point of the PSX game read from the pad, PSX only
+src/cmd/psx_largest_slots.c | entry point of the PSX largest-slots boot, PSX only
 src/platform/psx_pad_protocol.h | scratchpad words of the pad script handshake, PSX only
 src/cmd/pad_author.c | entry point of the worst-case game generator, host tool
 src/cmd/bindings_generate.c | entry point of the bindings table generator, host tool

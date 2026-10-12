@@ -16,7 +16,7 @@ in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
 
 ## Build
 
-`make psx-build [EVENTS=<events>]` builds four PS-EXEs and the game's CD
+`make psx-build [EVENTS=<events>]` builds five PS-EXEs and the game's CD
 image in `tmp/psx/build` (`PSX_BUILD_DIR`), then prints the ELF sizes and the
 image paths:
 
@@ -25,6 +25,8 @@ image paths:
 - `psx-gpu-replay.{elf,exe}`: the same replay drawing through the GPU backend;
 - `psx-pad-probe.{elf,exe}`: the pad probe;
 - `psx-game.{elf,exe}`: the game read from the pad, the EXE that ships (below);
+- `psx-largest-slots.{elf,exe}`: the largest-case scenarios of
+  `src/devtools/largest_slots.c` on MIPS (below);
 - `slipways.{bin,cue}`: the CD image holding `psx-game.exe` ("CD image" below).
 
 `psx/CMakeLists.txt` is a PSn00bSDK project. The Makefile hands it the source
@@ -40,8 +42,10 @@ replay source. The GPU replay swaps the VRAM digest for the GPU backend
 (`src/devtools/draw_filter.c`). The game takes `CORE_SRCS`, the state
 formatter, the GPU backend (`PSX_GPU_BACKEND_SRCS`, shared with the GPU
 replay), `psx_pad` and `psx_pad_map`, and no embedded replay, format self-test,
-family filter or capture code. A file added to `CORE_SRCS` is in the PSX
-build at once.
+family filter or capture code. `psx-largest-slots` takes `CORE_SRCS`, the
+state formatter, `src/devtools/largest_slots.c` and the PSX platform files,
+and no embedded replay, VRAM digest or GPU backend. A file added to
+`CORE_SRCS` is in the PSX build at once.
 
 It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
 in, as in the PC `-O0` binary. `snprintf`/`vsnprintf` are wrapped onto
@@ -489,7 +493,7 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the thirty conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; five boots | ~105 s |
+| `make psx-check` | the thirty-one conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
 | `make psx-game-check` | the five `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
 | `make psx-game-cd-check` | the five `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
 | `make psx-game-cd` | builds the CD image and prints its paths | build |
@@ -502,12 +506,12 @@ mask.
 condition to it. It builds the PS-EXEs, writes the PC references with
 `STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
 `tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
-script), the probe and the game's CD image (with `PSX_GAME_SCRIPT`) until
-they exit, five boots, then checks every condition before
+script), the probe, the game's CD image (with `PSX_GAME_SCRIPT`) and
+`psx-largest-slots` until they exit, six boots, then checks every condition before
 concluding, one line each (`tools/psx_check.sh`, outputs in
 `tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
-- `magic`: the four `.exe` start with `PS-X EXE`;
+- `magic`: the five `.exe` start with `PS-X EXE`;
 - `asserts-on`: the replay printed `asserts on`;
 - `format`: its self-test string equals the PC's;
 - `replay-done`: the boot exited with 0, its `done` line has the PC's frame
@@ -572,7 +576,21 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   `PSX_GAME_CUE` and `psx-game.exe` (extracted disc in `run/game-cd/disc`);
   a disc that lands in the OpenBIOS shell fails `game-done` first, with "last
   progress line: (none)";
-- `game-ram-room`: `ram-room` on the game ELF.
+- `game-ram-room`: `ram-room` on the game ELF;
+- `largest-slots`: the `psx-largest-slots` boot exited with 0, printed
+  `psx-largest: asserts on`, `psx-largest: done` and no `stopped p8_fatal`,
+  and its `psx-largest: bytes_button <peak> <size>` and `bytes_row` lines
+  each have a peak no larger than the size: the largest button and row the
+  game builds fit their slot on MIPS (`check_largest_slots` of
+  `tools/psx_conditions.sh`); a failure names the missing line or the first
+  slot over its size.
+
+`src/cmd/psx_largest_slots.c` loads the sprite sheet and the cart, runs
+`largest_slots_run` (the scenarios `test_button` and `test_layout_row` run on
+the host), prints the `largest_slots_format` lines behind `psx-largest: `,
+then `psx-largest: done`, and exits with 0. A `p8_fatal` prints `psx-state:
+stopped p8_fatal frame 0` and the state, then exits with 3; a failed assert
+exits with 4.
 
 `make psx-full-game-check` builds the PS-EXEs of `worst-case/full_game.json`
 in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
@@ -639,7 +657,9 @@ adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
 behind `game `, then `bin-bytes <n> sectors <n>` and `boot-vsyncs <n>`
-(from power-on, BIOS and CD load included) behind `game cd `. The MIPS figures
+(from power-on, BIOS and CD load included) behind `game cd `, then the
+`largest-slots` boot's `bytes_<slot> <peak> <size>` lines behind `largest `.
+The MIPS figures
 are lower than the PC's (4-byte pointers): in `measurements.txt` a
 measurement, not a limit check; `psx-full-game-check`'s `zone-sizes` and
 `cap-sizes` judge the GPU replay's against their sizes.
@@ -651,6 +671,8 @@ Ceilings and timeouts are the first measured run plus half again:
 `PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
 (`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,
 20 s) for the CD boot (`psx-game-cd-check`, `psx-check`),
+`PSX_LARGEST_SLOTS_CEILING`/`PSX_LARGEST_SLOTS_TIMEOUT` (531 vsyncs, 10 s) for
+`psx-largest-slots` (first run 354 vsyncs in 6.5 s),
 `PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` (71,834 vsyncs, 1,197 s) for
 the replay of `full_game` and `PSX_FULL_GAME_GPU_CEILING`/
 `PSX_FULL_GAME_GPU_TIMEOUT` (31,500 vsyncs, 525 s) for its GPU replay: the

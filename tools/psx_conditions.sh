@@ -1,5 +1,5 @@
 # Sourced by tools/psx_check.sh and tools/psx_full_game_check.sh: the
-# conditions both check. The caller sets check_name (the line prefix, such as
+# conditions they check, as functions. The caller sets check_name (the line prefix, such as
 # psx-check), out_dir (conditions.txt is appended there), script_dir (the
 # tools directory) and failed=0; a failed condition sets failed=1.
 # check_ram_room also needs size_tool and stack_reserve (in bytes).
@@ -77,4 +77,39 @@ check_ram_room() {
     else
         report "$1" "kernel $kernel_area + ELF + stack $stack_reserve = $3 bytes, over $4 by $((-$5))"
     fi
+}
+
+# usage: check_largest_slots <condition> <boot-status> <boot-output> <tty>; sets largest_lines (the
+# "bytes_<slot> <peak> <size>" lines of psx-largest-slots, without their prefix)
+check_largest_slots() {
+    largest=$(tr -d '\r' < "$4" | sed -n 's/^psx-largest: //p')
+    largest_lines=$(printf '%s\n' "$largest" | grep '^bytes_')
+    stopped=$(tr -d '\r' < "$4" | grep '^psx-state: stopped p8_fatal' | head -n 1)
+    asserts=$(printf '%s\n' "$largest" | sed -n 's/^asserts //p' | head -n 1)
+    if [ "$2" -ne 0 ]; then
+        report "$1" "$3"
+        return
+    elif [ -n "$stopped" ]; then
+        report "$1" "psx-largest-slots stopped: ${stopped#psx-state: }"
+        return
+    elif [ "$asserts" != on ]; then
+        report "$1" "psx-largest: asserts ${asserts:-(no line)}"
+        return
+    elif ! printf '%s\n' "$largest" | grep -qx done; then
+        report "$1" "no done line"
+        return
+    fi
+    summary=
+    for slot in bytes_button bytes_row; do
+        set -- "$1" $(printf '%s\n' "$largest_lines" | grep "^$slot " | head -n 1)
+        if [ -z "${3:-}" ] || [ -z "${4:-}" ]; then
+            report "$1" "no $slot line"
+            return
+        elif [ "$3" -gt "$4" ]; then
+            report "$1" "$slot peak $3 over its size $4"
+            return
+        fi
+        summary="$summary${summary:+, }$slot $3 of $4"
+    done
+    pass "$1" "$summary"
 }
