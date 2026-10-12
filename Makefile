@@ -426,9 +426,16 @@
 #                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
 #                       empty capture script (PSX_FULL_GAME_GPU_CEILING,
 #                       PSX_FULL_GAME_GPU_TIMEOUT) until they exit, then checks
-#                       replay-done, state-game-lines, sprite-sheet, screen,
-#                       map, gpu-replay-done and gpu-state-game-lines through
-#                       tools/psx_full_game_check.sh (outputs in
+#                       twelve conditions (replay-done, state-game-lines,
+#                       sprite-sheet, screen, map, gpu-replay-done,
+#                       gpu-state-game-lines, then on the GPU boot's
+#                       psx-frame: lines and MIPS state through
+#                       tools/psx_frame_budget.sh: timer, frame-budget: no
+#                       frame above PSX_FRAME_BUDGET_HBLANKS, zone-sizes,
+#                       cap-sizes, then gpu-ram-room: ram-room on the GPU ELF)
+#                       through tools/psx_full_game_check.sh, printing every
+#                       frame line and the frame summary; measurements.txt
+#                       gains the summary behind "gpu frame " (outputs in
 #                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
 #                       outside the suite
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
@@ -2002,6 +2009,8 @@ PSX_FULL_GAME_CEILING ?= 71834
 PSX_FULL_GAME_TIMEOUT ?= 1197
 PSX_FULL_GAME_GPU_CEILING ?= 30810
 PSX_FULL_GAME_GPU_TIMEOUT ?= 515
+# One NTSC vsync in horizontal blanks: plan 11 step 4 must never raise it.
+PSX_FRAME_BUDGET_HBLANKS := 263
 
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
@@ -2013,7 +2022,8 @@ psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 		&& sh tools/psx_full_game_check.sh $(PSX_EMULATOR_DIR) $(PSX_FULL_GAME_DIR)/build/psx-replay.exe \
 			$(PSX_FULL_GAME_DIR)/build/psx-gpu-replay.exe $(PSX_FULL_GAME_DIR)/pc_state.txt \
 			$(PSX_FULL_GAME_DIR)/pc_digest.txt "$$frames" $(PSX_FULL_GAME_CEILING) $(PSX_FULL_GAME_TIMEOUT) \
-			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_SIZE) $(PSX_FULL_GAME_DIR)/run
+			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_SIZE) \
+			$(PSX_STACK_RESERVE) $(PSX_FULL_GAME_DIR)/run
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

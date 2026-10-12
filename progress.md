@@ -8,7 +8,7 @@
     - [x] Chunk 1 — Frame table module
     - [x] Chunk 2 — GPU replay instrumentation
     - [x] Chunk 3 — Frame analysis
-    - [ ] Chunk 4 — Full-game check wiring
+    - [x] Chunk 4 — Full-game check wiring
     - [ ] Chunk 5 — Docs and the first run
   - [ ] Step 1.3 — Re-measure the zones on MIPS
   - [ ] Step 1.4 — Optimize only what the measurement points to

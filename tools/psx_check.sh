@@ -156,28 +156,6 @@ check_meter() {
 check_meter gpu-cost "the GPU replay" "$out_dir/gpu-state/tty.txt" "$pc_state"
 gpu_meter=$psx_meter
 
-kernel_area=65536
-ram_bytes=2097152
-# usage: check_ram_room <condition> <elf>; sets elf_size (the size tool's output) and room_line
-# ("<used> <limit> <left>", empty when the size tool failed)
-check_ram_room() {
-    room_line=
-    if ! elf_size=$("$size_tool" "$2" 2>&1); then
-        report "$1" "$size_tool failed on $2: $elf_size"
-        return
-    fi
-    room_line=$(printf '%s\n' "$elf_size" | awk -v kernel="$kernel_area" -v stack="$stack_reserve" -v ram="$ram_bytes" '
-        NR == 2 { used = kernel + $1 + $2 + $3 + stack; print used, ram, ram - used }')
-    set -- "$1" "$2" $room_line
-    if [ -z "$room_line" ]; then
-        report "$1" "no size line for $2: $elf_size"
-    elif [ "$5" -ge 0 ]; then
-        pass "$1" "$5 bytes left in $4 (kernel $kernel_area + ELF + stack $stack_reserve = $3)"
-    else
-        report "$1" "kernel $kernel_area + ELF + stack $stack_reserve = $3 bytes, over $4 by $((-$5))"
-    fi
-}
-
 gpu_elf=${gpu_exe%.exe}.elf
 check_ram_room ram-room "$gpu_elf"
 gpu_size=$elf_size
