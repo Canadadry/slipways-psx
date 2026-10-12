@@ -16,4 +16,9 @@
     - [x] Chunk 3 — psx-largest-slots and largest-slots
     - [x] Chunk 4 — MIPS measurement and sizes
   - [ ] Step 1.4 — Optimize only what the measurement points to
+    - [x] Plan-review before step 4: split into 4.1–4.4
+    - [ ] Step 1.4.1 — Harness and draw breakdown
+    - [ ] Step 1.4.2 — Draw
+    - [ ] Step 1.4.3 — Update
+    - [ ] Step 1.4.4 — Close
   - [ ] Step 1.5 — Ship
