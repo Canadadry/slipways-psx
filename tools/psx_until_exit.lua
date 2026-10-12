@@ -8,6 +8,9 @@
 -- "error <message>" to the result file: the exit status alone cannot tell
 -- them apart. Every 60 vsyncs it overwrites the progress file with
 -- "vsync <vsyncs>", closed each time so that it survives an emulator abort.
+-- With PSX_LOAD_STATE_FILE it loads that save state at the first vsync, and
+-- its vsync count starts there; with PSX_SAVE_STATE_AT and
+-- PSX_SAVE_STATE_FILE it writes the save state at that vsync and carries on.
 
 local frames = tonumber(os.getenv('PSX_CEILING_FRAMES'))
 local path = os.getenv('PSX_RESULT_FILE')
@@ -15,6 +18,10 @@ local progress_path = os.getenv('PSX_PROGRESS_FILE')
 if frames == nil or path == nil or progress_path == nil then
     error('psx_until_exit.lua: PSX_CEILING_FRAMES, PSX_RESULT_FILE and PSX_PROGRESS_FILE must be set')
 end
+
+local save_at = tonumber(os.getenv('PSX_SAVE_STATE_AT') or '')
+local save_path = os.getenv('PSX_SAVE_STATE_FILE') or ''
+local load_path = os.getenv('PSX_LOAD_STATE_FILE') or ''
 
 local vsyncs = 0
 local result = nil
@@ -44,13 +51,45 @@ for _, pair in ipairs({ { 'PSX_PAD_PLAYER', 'PSX_PAD_SCRIPT' }, { 'PSX_CAPTURE_P
     end
 end
 
+-- Support.File writes run on another thread and come out different from the
+-- slice: plain io keeps the file whole.
+local function saveState()
+    local file = assert(io.open(save_path, 'wb'))
+    file:write(tostring(PCSX.createSaveState()))
+    file:close()
+end
+
+local function loadState()
+    local file = assert(io.open(load_path, 'rb'))
+    local state = Support.File.buffer()
+    state:write(file:read('*a'))
+    file:close()
+    PCSX.loadSaveState(state)
+end
+
+local function runOrFail(action)
+    local ok, message = pcall(action)
+    if not ok then psxBootFail(message) end
+    return ok
+end
+
+-- Loaded before the main loop's first run, the state leaves the guest looping
+-- in garbage: load it at the first vsync instead.
+local state_loaded = load_path == ''
+
 psxCeilingListener = PCSX.Events.createEventListener('GPU::Vsync', function()
+    if not state_loaded then
+        state_loaded = true
+        runOrFail(loadState)
+        return
+    end
     vsyncs = vsyncs + 1
     if vsyncs % 60 == 0 then
         local file = assert(io.open(progress_path, 'w'))
         file:write(string.format('vsync %d', vsyncs), '\n')
         file:close()
     end
+    if vsyncs == save_at and save_path ~= '' and not runOrFail(saveState) then return end
     if vsyncs ~= frames then return end
     result = string.format('ceiling %d', vsyncs)
     PCSX.quit(1)

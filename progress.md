@@ -1,7 +1,7 @@
 - [ ] Phase 1 — Measure, optimize, ship
   - [ ] Step 1.1 — Make the full-game replay finish in the emulator
     - [x] Chunk 1 — Boot reporting
-    - [ ] Chunk 2 — Save-state boot
+    - [x] Chunk 2 — Save-state boot
     - [ ] Chunk 3 — Full-game check with the GPU boot
     - [ ] Chunk 4 — Investigation and fix
   - [ ] Step 1.2 — Measure the full game on the GPU path

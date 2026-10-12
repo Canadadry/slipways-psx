@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>] [--capture-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>
+# usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>] [--capture-script <file>] [--save-state-at <vsync> <file> | --load-state <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>
 # Boots the input (or nothing) headless for <frames> vsyncs and writes
 # <out-prefix>.vram (capture), <out-prefix>.tty.txt (stdout) and
 # <out-prefix>.log (stderr). Exit 1 naming the input when the emulator exits
@@ -13,6 +13,10 @@
 # every 60 vsyncs; an emulator killed by a signal fails naming the status, the
 # signal, that line and the last vsync, as the timeout does. The emulator's
 # output is unbuffered (stdbuf) when the host has it, so an abort keeps the TTY.
+# --save-state-at writes the emulator's save state to <file> at that vsync
+# (below the ceiling) and carries on; the boot fails if the program exits
+# first. --load-state boots from <file>, loaded at the first vsync: the vsync
+# count, so the ceiling and the result, start at the load.
 # --pad-script plays that pad script on port 1 (tools/psx_pad_play.lua,
 # format in tools/psx_pad_compare.sh); a bad script fails naming its line.
 # --capture-script drives the GPU replay's frame-locked captures
@@ -35,7 +39,7 @@ absolute() {
     esac
 }
 
-usage="usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>] [--capture-script <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
+usage="usage: psx_boot.sh <install-dir> [--until-exit [--pad-script <file>] [--capture-script <file>] [--save-state-at <vsync> <file> | --load-state <file>]] [--exe <file> | --iso <cue>] <frames> <out-prefix>"
 [ $# -ge 3 ] || fail "$usage"
 install_dir=$(absolute "$1")
 shift
@@ -46,6 +50,9 @@ label="nothing"
 until_exit=
 pad_script=
 capture_script=
+load_state=
+save_state_at=
+save_state=
 while [ $# -gt 2 ]; do
     case $1 in
         --until-exit)
@@ -62,6 +69,20 @@ while [ $# -gt 2 ]; do
             capture_script=$(absolute "$2")
             shift 2
             ;;
+        --save-state-at)
+            [ $# -ge 5 ] || fail "$usage"
+            case $2 in
+                '' | *[!0-9]* | 0) fail "--save-state-at: vsync must be a positive integer: $2" ;;
+            esac
+            save_state_at=$2
+            save_state=$(absolute "$3")
+            shift 3
+            ;;
+        --load-state)
+            [ -f "$2" ] || fail "--load-state: missing save state: $2"
+            load_state=$(absolute "$2")
+            shift 2
+            ;;
         --exe | --iso)
             [ -z "$input_flag" ] || fail "--exe and --iso are mutually exclusive"
             [ -f "$2" ] || fail "missing input: $2"
@@ -76,11 +97,16 @@ done
 [ $# -eq 2 ] || fail "$usage"
 [ -z "$pad_script" ] || [ -n "$until_exit" ] || fail "--pad-script needs --until-exit"
 [ -z "$capture_script" ] || [ -n "$until_exit" ] || fail "--capture-script needs --until-exit"
+[ -z "$load_state" ] || [ -n "$until_exit" ] || fail "--load-state needs --until-exit"
+[ -z "$save_state" ] || [ -n "$until_exit" ] || fail "--save-state-at needs --until-exit"
+[ -z "$save_state" ] || [ -z "$load_state" ] || fail "--save-state-at and --load-state are mutually exclusive"
 frames=$1
 prefix=$(absolute "$2")
 case $frames in
     '' | *[!0-9]* | 0) fail "frame count must be a positive integer: $frames" ;;
 esac
+[ -z "$save_state" ] || [ "$save_state_at" -lt "$frames" ] \
+    || fail "--save-state-at: vsync $save_state_at is not below the ceiling of $frames vsyncs"
 
 [ -f "$install_dir/$STAMP" ] && [ -x "$install_dir/pcsx-redux" ] \
     && [ -f "$install_dir/src/mips/openbios/openbios.bin" ] \
@@ -89,6 +115,7 @@ esac
 script_dir=$(cd "$(dirname "$0")" && pwd)
 . "$script_dir/psx_portable.sh"
 mkdir -p "$(dirname "$prefix")"
+[ -z "$save_state" ] || { mkdir -p "$(dirname "$save_state")" && rm -f "$save_state"; }
 rm -f "$prefix.vram" "$prefix.tty.txt" "$prefix.log" "$prefix.result" "$prefix.progress" "$prefix".f*.vram
 
 # Config, memory cards and caches land in the working directory or HOME:
@@ -113,7 +140,8 @@ status=0
     PSX_CEILING_FRAMES=$frames PSX_RESULT_FILE=$prefix.result PSX_PROGRESS_FILE=$prefix.progress \
     PSX_PAD_SCRIPT=$pad_script PSX_PAD_PLAYER=$script_dir/psx_pad_play.lua \
     PSX_CAPTURE_SCRIPT=$capture_script PSX_CAPTURE_PLAYER=$script_dir/psx_capture_frames.lua \
-    PSX_CAPTURE_PREFIX=$prefix \
+    PSX_CAPTURE_PREFIX=$prefix PSX_LOAD_STATE_FILE=$load_state \
+    PSX_SAVE_STATE_AT=$save_state_at PSX_SAVE_STATE_FILE=$save_state \
         run_with_timeout "${PSX_BOOT_TIMEOUT:-120}" $(unbuffered_prefix) "$install_dir/pcsx-redux" \
         "$@" -dofile "$script_dir/$lua" \
         > "$prefix.tty.txt" 2> "$prefix.log"
@@ -140,6 +168,8 @@ if [ -n "$until_exit" ]; then
         *) fail "$label: emulator exited with $status without a result; $last (see $prefix.log)" ;;
     esac
     [ "$status" -eq 0 ] || fail "$label: program exited with code $status; $last (see $prefix.log)"
+    [ -z "$save_state" ] || [ -s "$save_state" ] \
+        || fail "$label: exited after ${result#exit } vsyncs, before the save state at vsync $save_state_at"
     echo "psx-boot: $label: exited with 0 after ${result#exit } vsyncs, $prefix.tty.txt"
     exit 0
 fi

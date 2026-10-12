@@ -66,13 +66,17 @@ static void setup(void) {
 
 /* `stub` is shell code run by the stub emulator; it sees the boot's
  * environment (PSX_RESULT_FILE, PSX_PROGRESS_FILE, ...). */
-static int boot(const char *stub, const char *timeout) {
+static int boot_with(const char *options, const char *stub, const char *timeout) {
     char command[2048];
     snprintf(command, sizeof(command),
-             "PSX_STUB='%s' PSX_BOOT_TIMEOUT=%s sh tools/psx_boot.sh " INSTALL " --until-exit --exe " EXE
-             " 100 " PREFIX " > " LOG " 2>&1",
-             stub, timeout);
+             "PSX_STUB='%s' PSX_BOOT_TIMEOUT=%s sh tools/psx_boot.sh " INSTALL " %s --exe " EXE " 100 " PREFIX
+             " > " LOG " 2>&1",
+             stub, timeout, options);
     return system(command);
+}
+
+static int boot(const char *stub, const char *timeout) {
+    return boot_with("--until-exit", stub, timeout);
 }
 
 static void test_abort_names_signal_last_progress_line_and_vsync(void) {
@@ -141,6 +145,59 @@ static void test_emulator_output_is_unbuffered_when_the_host_has_stdbuf(void) {
     assert(has(read_file(PREFIX ".tty.txt"), "stdout 0 stderr 0\n"));
 }
 
+static void test_load_state_reaches_the_lua_as_an_absolute_path(void) {
+    setup();
+    write_file(DIR "/saved.state", "state\n");
+    assert(boot_with("--until-exit --load-state " DIR "/saved.state",
+                     "echo \"load $PSX_LOAD_STATE_FILE\"; echo \"exit 1\" > \"$PSX_RESULT_FILE\"", "10") == 0);
+    assert(has(read_file(PREFIX ".tty.txt"), "load @/" DIR "/saved.state\n"));
+}
+
+static void test_save_state_request_reaches_the_lua_and_the_boot_passes_once_written(void) {
+    setup();
+    assert(boot_with("--until-exit --save-state-at 40 " DIR "/states/at40.state",
+                     "echo \"save $PSX_SAVE_STATE_AT $PSX_SAVE_STATE_FILE\"; echo state > \"$PSX_SAVE_STATE_FILE\"; "
+                     "echo \"exit 90\" > \"$PSX_RESULT_FILE\"",
+                     "10") == 0);
+    assert(has(read_file(PREFIX ".tty.txt"), "save 40 @/" DIR "/states/at40.state\n"));
+    assert(has(read_file(LOG), "psx-boot: @/" EXE ": exited with 0 after 90 vsyncs, @/" PREFIX ".tty.txt\n"));
+}
+
+static void test_exit_before_the_save_vsync_fails_even_with_a_stale_state(void) {
+    setup();
+    write_file(DIR "/at.state", "stale\n");
+    assert(boot_with("--until-exit --save-state-at 60 " DIR "/at.state", "echo \"exit 50\" > \"$PSX_RESULT_FILE\"",
+                     "10") != 0);
+    assert(has(read_file(LOG), "psx-boot: @/" EXE ": exited after 50 vsyncs, before the save state at vsync 60\n"));
+}
+
+/* The boot must fail with `message` before the stub emulator runs. */
+static void assert_refused(const char *options, const char *message) {
+    setup();
+    write_file(DIR "/saved.state", "state\n");
+    assert(boot_with(options, "touch " DIR "/ran", "10") != 0);
+    assert(has(read_file(LOG), message));
+    assert(access(DIR "/ran", F_OK) != 0);
+}
+
+static void test_bad_load_state_is_refused_before_the_emulator_runs(void) {
+    assert_refused("--until-exit --load-state " DIR "/missing.state",
+                   "psx-boot: --load-state: missing save state: " DIR "/missing.state\n");
+    assert_refused("--load-state " DIR "/saved.state", "psx-boot: --load-state needs --until-exit\n");
+}
+
+static void test_bad_save_state_is_refused_before_the_emulator_runs(void) {
+    assert_refused("--until-exit --save-state-at 0 " DIR "/at.state",
+                   "psx-boot: --save-state-at: vsync must be a positive integer: 0\n");
+    assert_refused("--until-exit --save-state-at 4k " DIR "/at.state",
+                   "psx-boot: --save-state-at: vsync must be a positive integer: 4k\n");
+    assert_refused("--until-exit --save-state-at 100 " DIR "/at.state",
+                   "psx-boot: --save-state-at: vsync 100 is not below the ceiling of 100 vsyncs\n");
+    assert_refused("--save-state-at 40 " DIR "/at.state", "psx-boot: --save-state-at needs --until-exit\n");
+    assert_refused("--until-exit --save-state-at 40 " DIR "/at.state --load-state " DIR "/saved.state",
+                   "psx-boot: --save-state-at and --load-state are mutually exclusive\n");
+}
+
 int main(void) {
     test_abort_names_signal_last_progress_line_and_vsync();
     test_abort_ignores_a_stale_progress_file();
@@ -151,6 +208,11 @@ int main(void) {
     test_timeout_names_the_last_vsync();
     test_progress_file_is_named_after_the_out_prefix();
     test_emulator_output_is_unbuffered_when_the_host_has_stdbuf();
+    test_load_state_reaches_the_lua_as_an_absolute_path();
+    test_bad_load_state_is_refused_before_the_emulator_runs();
+    test_save_state_request_reaches_the_lua_and_the_boot_passes_once_written();
+    test_bad_save_state_is_refused_before_the_emulator_runs();
+    test_exit_before_the_save_vsync_fails_even_with_a_stale_state();
     assert(system("rm -rf " DIR) == 0);
     printf("test_psx_boot: all tests passed\n");
     return 0;

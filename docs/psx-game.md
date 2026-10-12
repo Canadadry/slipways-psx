@@ -239,7 +239,7 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 
 ## Until-exit boot mode
 
-`tools/psx_boot.sh <install-dir> --until-exit [--pad-script <file>] [--capture-script <file>] --exe <exe> <ceiling> <out-prefix>`
+`tools/psx_boot.sh <install-dir> --until-exit [--pad-script <file>] [--capture-script <file>] [--save-state-at <vsync> <file> | --load-state <file>] --exe <exe> <ceiling> <out-prefix>`
 adds `-testmode`, so the program's write to the PCSX exit register quits the
 emulator with its code. No capture is written, except the frame-locked ones of
 `--capture-script` (below). `<ceiling>` is a vsync ceiling:
@@ -251,6 +251,16 @@ result fails as `emulator aborted with status <n> (signal <name>)`, naming the
 last progress line and the last vsync of `.progress`; the timeout names that
 vsync too. The emulator runs under `stdbuf -o0 -e0` when the host has it, so
 an abort keeps the whole TTY.
+`--save-state-at <vsync> <file>` writes the emulator's save state
+(`PCSX.createSaveState`) to `<file>` when the vsync count reaches `<vsync>`,
+then the boot carries on; the boot fails if the program exits first.
+`--load-state <file>` loads that state (`PCSX.loadSaveState`) at the first
+vsync and runs to the program's exit: the boot's vsync count, so its ceiling
+and its `exited with 0 after <n> vsyncs`, starts at the load, while the
+guest's own counters, so the `done` line's frame count and vsyncs, come back
+with the state. The two options exclude each other, need `--until-exit`, and are
+refused naming the argument before the emulator starts when the vsync is not a
+positive integer below the ceiling or the file to load is missing.
 Without `--until-exit`, `psx_boot.sh` behaves as `docs/psx-hello-world.md`
 describes.
 
