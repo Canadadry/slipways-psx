@@ -1,0 +1,8 @@
+# The short runs of make psx-short-runs: "<name> prefix <first> <last> <end>" or
+# "<name> resume <first> <last>", frames of worst-case/full_game.json (format
+# and cut rule in src/devtools/short_run_cut.h).
+start prefix 12 12 99
+update-4737 resume 4737 4737
+update-5500 resume 5500 5500
+draw-5564 resume 5564 5578
+update-5719 resume 5719 5719

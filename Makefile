@@ -446,6 +446,22 @@
 #                       gains the summary behind "gpu frame " (outputs in
 #                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
 #                       outside the suite
+# make psx-short-runs-cut [PSX_SHORT_RUNS=<names>] -> cuts each run of
+#                       psx/short_runs.txt (or those named) out of
+#                       PSX_FULL_GAME_EVENTS with tmp/short_run_cut into
+#                       tmp/psx/short-runs/<name>/: run.json (a prefix, or
+#                       the title resume of the last save at least 9 frames
+#                       before the window whose next frame is idle, then the
+#                       full game's frames up to the window's end),
+#                       reference.json (the full game's frames up to the
+#                       matching frame) and map.txt; then, per run, both
+#                       must pass tmp/embed_replay and replay with STATE=;
+#                       prints per run whether the two tools/end_state.sh
+#                       normalized states are the same, with the differing
+#                       lines (reported, not gating: a save holds no camera,
+#                       jump selection or crosshair); fails on a refused
+#                       cut, an embed failure, a stopped replay or a missing
+#                       file, ~25 s; never boots, outside the suite
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
 #                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
 #                       (default psx/pad_probe_script.txt) from the probe's
@@ -510,7 +526,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -764,6 +780,9 @@ $(TMP_DIR)/test_draw_timing: $(call objs,tests/test_draw_timing.c src/devtools/d
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_capture_list: $(call objs,tests/test_capture_list.c src/devtools/capture_list.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_short_run_cut: $(call objs,tests/test_short_run_cut.c src/devtools/short_run_cut.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_capture_compare: $(call objs,tests/test_capture_compare.c src/devtools/capture_compare.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
@@ -1343,6 +1362,7 @@ UNIT_TESTS := \
     test_draw_filter \
     test_draw_timing \
     test_capture_list \
+    test_short_run_cut \
     test_capture_compare \
     test_input \
     test_dump \
@@ -2042,6 +2062,42 @@ psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 			$(PSX_FULL_GAME_DIR)/pc_digest.txt "$$frames" $(PSX_FULL_GAME_CEILING) $(PSX_FULL_GAME_TIMEOUT) \
 			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_SIZE) \
 			$(PSX_STACK_RESERVE) $(PSX_FULL_GAME_DIR)/run
+
+PSX_SHORT_RUNS_MANIFEST := psx/short_runs.txt
+PSX_SHORT_RUNS_DIR := $(TMP_DIR)/psx/short-runs
+PSX_SHORT_RUNS ?=
+
+SHORT_RUN_CUT_SRCS := src/cmd/short_run_cut.c src/devtools/short_run_cut.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+
+$(TMP_DIR)/short_run_cut: $(call objs,$(SHORT_RUN_CUT_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+# Per run: both recordings must embed and replay; a differing end state is reported, never a failure.
+psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_replay tools/end_state.sh $(PSX_SHORT_RUNS_MANIFEST) $(PSX_FULL_GAME_EVENTS)
+	@mkdir -p $(PSX_SHORT_RUNS_DIR)
+	./$(TMP_DIR)/short_run_cut $(PSX_FULL_GAME_EVENTS) $(PSX_SHORT_RUNS_MANIFEST) $(PSX_SHORT_RUNS_DIR) $(PSX_SHORT_RUNS)
+	@failed=0; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '!/^[[:space:]]*(#|$$)/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		dir=$(PSX_SHORT_RUNS_DIR)/$$name; reason=; \
+		[ -f $$dir/map.txt ] || reason=" $$dir/map.txt missing;"; \
+		for side in run reference; do \
+			./$(TMP_DIR)/embed_replay $$dir/$$side.json $$side $$dir/$$side.embedded.c > $$dir/$$side.embed.log 2>&1 \
+				|| reason="$$reason $$side.json does not embed;"; \
+			rm -f $$dir/$$side.state.txt; \
+			STATE=$$dir/$$side.state.txt ./$(TMP_DIR)/replay $$dir/$$side.json /dev/null $$dir/$$side.dump.txt > $$dir/$$side.log 2>&1 \
+				&& sh tools/end_state.sh normalize $$dir/$$side.state.txt > $$dir/$$side.end-state \
+				|| reason="$$reason $$side.json stopped or its state does not normalize;"; \
+		done; \
+		if [ -n "$$reason" ]; then echo "short-run-match: $$name failed$$reason"; failed=1; \
+		elif cmp -s $$dir/run.end-state $$dir/reference.end-state; then \
+			echo "short-run-match: $$name same $$(cat $$dir/map.txt)"; \
+		else \
+			diff $$dir/reference.end-state $$dir/run.end-state > $$dir/end-state.diff; \
+			echo "short-run-match: $$name differs (reported, not gating; - reference, + run) $$(cat $$dir/map.txt)"; \
+			grep '^[<>]' $$dir/end-state.diff | sed 's/^</  -/; s/^>/  +/'; \
+		fi; \
+	done; \
+	exit $$failed
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad
