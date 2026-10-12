@@ -4,7 +4,7 @@
     - [x] Chunk 2 — Save-state boot
     - [x] Chunk 3 — Full-game check with the GPU boot
     - [x] Chunk 4 — Investigation and fix
-  - [ ] Step 1.2 — Measure the full game on the GPU path
+  - [x] Step 1.2 — Measure the full game on the GPU path
     - [x] Chunk 1 — Frame table module
     - [x] Chunk 2 — GPU replay instrumentation
     - [x] Chunk 3 — Frame analysis
