@@ -12,7 +12,6 @@ A final `.bin/.cue` in which a full game plays in the emulator at the game's fra
 - A saturation is first treated as a leak; a limit is raised only once a leak is ruled out.
 - Size of a zone or cap = measured peak + 1/8, rounded up to a whole cell or slot. A ceiling proven by a largest-case test is sized on that ceiling, with no margin.
 - The emulator replay is a dedicated target, outside `make test-all`, which must not get slower.
-- Plan 11 starts only once plan 19 (draw the PSX frame at display resolution) has landed, i.e. `docs/plan-19.md` is gone: plan 19 rewrites every GPU primitive and re-sizes the frame buffer, so measurements taken before it are void. Whichever of the two runs first owns the `psx-full-game-check` abort (step 1.1).
 - Full-game emulator runs and the PSX setups outlast an agent's command time limit: they run in the background and are waited on until they exit. A run counts as evidence only if it ended on its own (the emulator's exit, or `psx_boot.sh`'s ceiling or timeout); a run the agent's command limit killed is never read as the abort and never closes a step.
 - A step's done condition is verified on the targets it names, even outside `make test-all`. Where a step says it "stops and reports to the human", it ends as a failure of its PRD run (the verifier reports `FAILED:`), never as DONE: that is the stop plan-pilot halts on, and no later step starts on it.
 - Measurements that judge the shipped game (frame time, primitive buffer) are taken on the GPU drawing path `psx-game` ships, not on the software `psx-replay`.
