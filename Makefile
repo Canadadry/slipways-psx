@@ -419,11 +419,18 @@
 #                       psx/gpu_captures.txt, then the comparator, without the
 #                       other conditions (outputs in tmp/psx/gpu-capture,
 #                       ~20 s); outside the suite
-# make psx-full-game-check -> psx-replay-check on PSX_FULL_GAME_EVENTS
-#                       (worst-case/full_game.json), built in and written to
-#                       tmp/psx/full-game, ceiling PSX_FULL_GAME_CEILING
-#                       vsyncs, timeout PSX_FULL_GAME_TIMEOUT s; not run by
-#                       psx-check, outside the suite
+# make psx-full-game-check -> builds the PS-EXEs of PSX_FULL_GAME_EVENTS
+#                       (worst-case/full_game.json) in tmp/psx/full-game/build,
+#                       writes its PC state and digest, boots the replay
+#                       (ceiling PSX_FULL_GAME_CEILING vsyncs, timeout
+#                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
+#                       empty capture script (PSX_FULL_GAME_GPU_CEILING,
+#                       PSX_FULL_GAME_GPU_TIMEOUT) until they exit, then checks
+#                       replay-done, state-game-lines, sprite-sheet, screen,
+#                       map, gpu-replay-done and gpu-state-game-lines through
+#                       tools/psx_full_game_check.sh (outputs in
+#                       tmp/psx/full-game/run, minutes); not run by psx-check,
+#                       outside the suite
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
 #                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
 #                       (default psx/pad_probe_script.txt) from the probe's
@@ -883,6 +890,10 @@ $(TMP_DIR)/test_psx_cd_check: $(call objs,tests/test_psx_cd_check.c) tools/psx_c
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_boot: $(call objs,tests/test_psx_boot.c) tools/psx_boot.sh tools/psx_portable.sh tools/psx_until_exit.lua | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_full_game_check: $(call objs,tests/test_psx_full_game_check.c) tools/psx_full_game_check.sh \
+		tools/psx_conditions.sh tools/psx_state_compare.sh tools/psx_digest_compare.sh tools/psx_boot.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
@@ -1443,7 +1454,8 @@ UNIT_RUNS_SPECIAL := unit-run-test_zone unit-run-test_allocator unit-run-test_fr
 unit: $(UNIT_RUNS)
 
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
-	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot
+	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
+	test_psx_full_game_check
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
@@ -1976,11 +1988,20 @@ PSX_FULL_GAME_EVENTS := worst-case/full_game.json
 PSX_FULL_GAME_DIR := $(TMP_DIR)/psx/full-game
 PSX_FULL_GAME_CEILING ?= 60000
 PSX_FULL_GAME_TIMEOUT ?= 1200
+PSX_FULL_GAME_GPU_CEILING ?= 60000
+PSX_FULL_GAME_GPU_TIMEOUT ?= 1200
 
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
-psx-full-game-check:
-	+$(MAKE) psx-replay-check PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
-		PSX_REPLAY_OUT=$(PSX_FULL_GAME_DIR) PSX_REPLAY_CEILING=$(PSX_FULL_GAME_CEILING) PSX_REPLAY_TIMEOUT=$(PSX_FULL_GAME_TIMEOUT)
+psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
+	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build
+	@mkdir -p $(PSX_FULL_GAME_DIR)
+	STATE=$(PSX_FULL_GAME_DIR)/pc_state.txt DIGEST=$(PSX_FULL_GAME_DIR)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_FULL_GAME_EVENTS) /dev/null $(PSX_FULL_GAME_DIR)/pc.dump.txt > $(PSX_FULL_GAME_DIR)/pc.log 2>&1 \
+		|| { cat $(PSX_FULL_GAME_DIR)/pc.log >&2; exit 1; }
+	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_FULL_GAME_DIR)/pc.log) \
+		&& sh tools/psx_full_game_check.sh $(PSX_EMULATOR_DIR) $(PSX_FULL_GAME_DIR)/build/psx-replay.exe \
+			$(PSX_FULL_GAME_DIR)/build/psx-gpu-replay.exe $(PSX_FULL_GAME_DIR)/pc_state.txt \
+			$(PSX_FULL_GAME_DIR)/pc_digest.txt "$$frames" $(PSX_FULL_GAME_CEILING) $(PSX_FULL_GAME_TIMEOUT) \
+			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_SIZE) $(PSX_FULL_GAME_DIR)/run
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

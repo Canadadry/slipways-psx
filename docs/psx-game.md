@@ -467,7 +467,7 @@ mask.
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | the replay proof on `worst-case/full_game.json` (outputs in `tmp/psx/full-game`) | minutes |
+| `make psx-full-game-check` | seven conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (outputs in `tmp/psx/full-game/run`) | minutes |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
@@ -544,9 +544,22 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   progress line: (none)";
 - `game-ram-room`: `ram-room` on the game ELF.
 
-`measurements.txt` (in `tmp/psx/game-check/run`, and in the output directory of
-`psx-replay-check` and `psx-full-game-check`) holds the MIPS `zone`, `budget`
-and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF; `psx-check`'s
+`make psx-full-game-check` builds the PS-EXEs of `worst-case/full_game.json`
+in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
+`DIGEST=`, boots the replay, then the GPU replay with an empty capture script
+(the capture handshake runs, `psx_capture_frames.lua` hands `NO_FRAME` at once,
+nothing is captured), until they exit, and checks seven conditions
+(`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
+also in `run/conditions.txt`): `replay-done`, `state-game-lines`,
+`sprite-sheet`, `screen` and `map` on the replay, `gpu-replay-done` and
+`gpu-state-game-lines` on the GPU replay, as `psx-check` defines them; both
+scripts source these conditions from `tools/psx_conditions.sh`.
+
+`measurements.txt` (in `tmp/psx/game-check/run`, in the output directory of
+`psx-replay-check` and in `tmp/psx/full-game/run`) holds the MIPS `zone`,
+`budget` and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF;
+`psx-full-game-check`'s adds the GPU replay's `vsyncs`, its `zone gpu_frame`
+and `cap gpu_*` lines and its ELF `size`, each behind `gpu `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
@@ -561,7 +574,9 @@ Ceilings and timeouts are the first measured run plus half again:
 `PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
 (`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,
 20 s) for the CD boot (`psx-game-cd-check`, `psx-check`),
-`PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` for `full_game`.
+`PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` for the replay of `full_game`
+and `PSX_FULL_GAME_GPU_CEILING`/`PSX_FULL_GAME_GPU_TIMEOUT` for its GPU replay,
+both generous (60,000 vsyncs, 1,200 s) until a first green run sets them.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
 
