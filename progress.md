@@ -1,0 +1,6 @@
+- [ ] Phase 1 — Measure, optimize, ship
+  - [ ] Step 1.1 — Make the full-game replay finish in the emulator
+  - [ ] Step 1.2 — Measure the full game on the GPU path
+  - [ ] Step 1.3 — Re-measure the zones on MIPS
+  - [ ] Step 1.4 — Optimize only what the measurement points to
+  - [ ] Step 1.5 — Ship
