@@ -162,6 +162,35 @@ frame ends, then `psx_gpu_frame_end` with the metered bytes, then
 `psx_gpu_frame_begin`. It is driven by a capture script (below): without one
 it waits forever before its first frame.
 
+**Frame timer.** The GPU replay times every frame on root counter 1, clocked
+by the horizontal blank (~63.6 µs; 263 lines a vsync in the backend's NTSC
+non-interlaced mode), free-running over 16 bits
+(`src/platform/psx_frame_timer.c`). Counter 2 (system clock / 8) was
+rejected: it wraps every ~15.5 ms, under one vsync. Before the loop the
+replay counts the hblanks between two vsyncs and prints `psx-frame:
+hblanks-per-vsync <n>` (at most two vsyncs before `start_vsync`, not counted
+in the `done` line). Each frame reads four marks: before the input step,
+after `cart_update60`, after `cart_draw`, after `psx_gpu_frame_begin`.
+**update**, **draw** and **submit** are their differences modulo 65,536;
+submit covers the meter's and the filter's frame ends, `psx_gpu_frame_end`
+(uploads, the `DrawSync` wait on the previous frame, `DrawOTag`) and
+`psx_gpu_frame_begin`. The capture handshake's time and vsyncs are taken out
+of submit and of the frame's vsyncs. The input advance and the progress line
+fall outside every part; the progress line runs while the GPU draws, so the
+next frame's submit may wait a little less (23 of `full_game`'s 6,059
+frames). Each frame also records the vsyncs it spanned, so a frame of 249
+vsyncs or more (where the 16-bit counter may wrap) is detected.
+
+The records go to a static table (`src/devtools/frame_times.c`, pure,
+host-tested by `test_frame_times`): 8 bytes a frame, `FRAME_TIMES_CAP` =
+6,848 frames, 54,784 bytes of bss in the GPU replay only. A replay longer than
+the table stops with a `p8_fatal` naming both counts before frame 0. Nothing
+is printed during the loop: after it, the replay prints `psx-frame: frame <n>
+update <u> draw <d> submit <s> total <t> vsyncs <v>` for every frame, then the
+`done` line; on a `p8_fatal`, the frames recorded so far come before the
+stopped state. The instrumentation has no build flag: `psx-check`'s GPU
+boots print frame lines too, and ignore them.
+
 The GPU backend skeleton (`src/platform/psx_gpu.c`, PSn00bSDK, no floating
 point, no `malloc`):
 
@@ -467,7 +496,7 @@ mask.
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | seven conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted, the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
@@ -498,7 +527,8 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
 - `ram-room`: 65,536 (kernel area) + text + data + bss of the GPU ELF (the
   toolchain's `size`, `PSX_SIZE`; the zones and both primitive buffers
   included) + `PSX_STACK_RESERVE` (64 KiB) <= 2,097,152; the line prints the
-  bytes left;
+  bytes left (`check_ram_room` of `tools/psx_conditions.sh`, shared with
+  `game-ram-room` and `psx-full-game-check`'s `gpu-ram-room`);
 - `gpu-capture-list`: the list's replay is the PS-EXE's, the PC run wrote
   its frames to the capture script, and each label but `all` has an
   on-screen call of its family at its frame on PC;
@@ -548,12 +578,46 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
 in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
 `DIGEST=`, boots the replay, then the GPU replay with an empty capture script
 (the capture handshake runs, `psx_capture_frames.lua` hands `NO_FRAME` at once,
-nothing is captured), until they exit, and checks seven conditions
+nothing is captured), until they exit, and checks twelve conditions
 (`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
-also in `run/conditions.txt`): `replay-done`, `state-game-lines`,
-`sprite-sheet`, `screen` and `map` on the replay, `gpu-replay-done` and
-`gpu-state-game-lines` on the GPU replay, as `psx-check` defines them; both
-scripts source these conditions from `tools/psx_conditions.sh`.
+also in `run/conditions.txt`), every one before concluding:
+
+- `replay-done`, `state-game-lines`, `sprite-sheet`, `screen` and `map` on
+  the replay, `gpu-replay-done` and `gpu-state-game-lines` on the GPU replay,
+  as `psx-check` defines them (both scripts source these conditions, and
+  `check_ram_room`, from `tools/psx_conditions.sh`);
+- `timer`, `frame-budget`, `zone-sizes` and `cap-sizes`, the verdicts of
+  `tools/psx_frame_budget.sh` on the GPU boot's TTY and MIPS state (below);
+- `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,059 embedded
+  frames and the frame table included).
+
+`tools/psx_frame_budget.sh <gpu-tty> <gpu-psx-state> <expected-frames>
+<budget-hblanks> <out-dir>` analyses a finished boot, with no boot of its own
+(host-tested by `test_psx_frame_budget` in `make psx-tools-test`). It writes
+`frames.txt` (a header, then one line a frame), `summary.txt` and
+`verdicts.txt` into `run/frame-budget`:
+
+- `timer`: the calibration line is there with 255..271 hblanks a vsync, one
+  frame line per frame from 0 to frames − 1 in order, no frame spanning 249
+  vsyncs or more;
+- `frame-budget`: no frame's total above `PSX_FRAME_BUDGET_HBLANKS` (263, one
+  NTSC vsync; fixed, plan 11's step 4 never moves it); a failure names the
+  count over and the worst frame;
+- `zone-sizes`: every `zone` line's peak (`gpu_frame`, the primitive buffer
+  against `GPU_FRAME_BUFFER_BYTES`, included) at most its limit, and `budget
+  zones <used> <total>` with used at most total;
+- `cap-sizes`: every `cap` line's peak at most its limit.
+
+The summary, integer arithmetic: `frames <n> budget <h> hblanks`; `over
+<count> frames (<‰>), worst frame <f> total <t> (+<overrun>) update <u> draw
+<d> submit <s>`; `overrun mean <m> hblanks over the over-budget frames`;
+`overrun distribution <=1/4 vsync <a> <=1/2 <b> <=1 <c> <=2 <d> >2 <e>`
+(overruns against 263 lines); `parts over-budget frames update <U> draw <D>
+submit <S> dominant <part>` (the largest sum, `-` when no frame is over);
+`parts all frames update <U> draw <D> submit <S> mean total <m>`; then each
+zone, budget and cap line, `ok margin <n>/8` or `over by <n>`. The 1/8 margin
+is information here, not a failure. The check prints every frame line behind
+`psx-full-game-check: frame ` and the summary behind `psx-full-game-check: `.
 
 The unpatched pinned emulator aborts any boot at about 32,700 vsyncs (exit
 134, `An unknown exception occured`): each Lua event listener left two slots
@@ -569,13 +633,16 @@ made before it must be removed and set up again.
 `psx-replay-check` and in `tmp/psx/full-game/run`) holds the MIPS `zone`,
 `budget` and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF;
 `psx-full-game-check`'s adds the GPU replay's `vsyncs`, its `zone gpu_frame`
-and `cap gpu_*` lines and its ELF `size`, each behind `gpu `; `psx-check`'s
+and `cap gpu_*` lines, `ram-room <used> <limit> <left>` and its ELF `size`,
+each behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
 behind `game `, then `bin-bytes <n> sectors <n>` and `boot-vsyncs <n>`
 (from power-on, BIOS and CD load included) behind `game cd `. The MIPS figures
-are lower than the PC's (4-byte pointers): a measurement, not a limit check.
+are lower than the PC's (4-byte pointers): in `measurements.txt` a
+measurement, not a limit check; `psx-full-game-check`'s `zone-sizes` and
+`cap-sizes` judge the GPU replay's against their sizes.
 
 Ceilings and timeouts are the first measured run plus half again:
 `PSX_REPLAY_CEILING`/`PSX_REPLAY_TIMEOUT` for `pad_slipway`,
@@ -586,15 +653,28 @@ Ceilings and timeouts are the first measured run plus half again:
 20 s) for the CD boot (`psx-game-cd-check`, `psx-check`),
 `PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` (71,834 vsyncs, 1,197 s) for
 the replay of `full_game` and `PSX_FULL_GAME_GPU_CEILING`/
-`PSX_FULL_GAME_GPU_TIMEOUT` (30,810 vsyncs, 515 s) for its GPU replay: the
-first green run's 47,889 and 20,540 vsyncs in 798 s and 343 s, both `done`
-lines at 6,059 frames, the PC's count.
+`PSX_FULL_GAME_GPU_TIMEOUT` (31,500 vsyncs, 525 s) for its GPU replay: the
+first green run's 47,889 vsyncs in 798 s for the replay, and for the GPU
+replay the first run with frame lines, 21,000 vsyncs (`.progress`, the frame
+lines printed after the loop included; `done` line 20,543) in 350 s, both
+`done` lines at 6,059 frames, the PC's count.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
+
+- `make psx-full-game-check` is red on `frame-budget` until plan 11 step 4,
+  as expected; nobody raises `PSX_FRAME_BUDGET_HBLANKS` to turn it green.
+  First run: 6,047 of 6,059 frames over 263 hblanks (every frame after the
+  first 12), worst frame 12 at 9,558 (update 9,074), mean overrun 629, mean
+  frame 891 hblanks (~3.4 vsyncs), draw dominant (4,714,765 of the
+  over-budget frames' 5,399,037 hblanks). The eleven other conditions hold.
+
+- The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
+  `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in
+  `game-ram-room`: the shipped `psx-game` is not instrumented.
 
 - Hardware renderers: DuckStation's hardware renderer samples the x2 upscale
   quad unevenly (glyph outlines of uneven width, a broken-up title logo). Use

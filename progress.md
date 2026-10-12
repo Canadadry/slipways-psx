@@ -9,7 +9,7 @@
     - [x] Chunk 2 — GPU replay instrumentation
     - [x] Chunk 3 — Frame analysis
     - [x] Chunk 4 — Full-game check wiring
-    - [ ] Chunk 5 — Docs and the first run
+    - [x] Chunk 5 — Docs and the first run
   - [ ] Step 1.3 — Re-measure the zones on MIPS
   - [ ] Step 1.4 — Optimize only what the measurement points to
   - [ ] Step 1.5 — Ship
