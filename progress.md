@@ -10,7 +10,7 @@
     - [x] Chunk 3 — Frame analysis
     - [x] Chunk 4 — Full-game check wiring
     - [x] Chunk 5 — Docs and the first run
-  - [ ] Step 1.3 — Re-measure the zones on MIPS
+  - [x] Step 1.3 — Re-measure the zones on MIPS
     - [x] Chunk 1 — Pointer-width rule and computed sizes
     - [x] Chunk 2 — Shared largest-case module
     - [x] Chunk 3 — psx-largest-slots and largest-slots
