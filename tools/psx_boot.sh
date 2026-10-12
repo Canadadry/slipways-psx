@@ -9,6 +9,10 @@
 # code is the result (0 passes, anything else fails naming it), and <frames>
 # is a vsync ceiling; reaching it or the timeout fails naming the input and
 # the last "psx-replay:", "psx-pad:" or "psx-game:" line of the TTY.
+# tools/psx_until_exit.lua writes the vsync count to <out-prefix>.progress
+# every 60 vsyncs; an emulator killed by a signal fails naming the status, the
+# signal, that line and the last vsync, as the timeout does. The emulator's
+# output is unbuffered (stdbuf) when the host has it, so an abort keeps the TTY.
 # --pad-script plays that pad script on port 1 (tools/psx_pad_play.lua,
 # format in tools/psx_pad_compare.sh); a bad script fails naming its line.
 # --capture-script drives the GPU replay's frame-locked captures
@@ -85,7 +89,7 @@ esac
 script_dir=$(cd "$(dirname "$0")" && pwd)
 . "$script_dir/psx_portable.sh"
 mkdir -p "$(dirname "$prefix")"
-rm -f "$prefix.vram" "$prefix.tty.txt" "$prefix.log" "$prefix.result" "$prefix".f*.vram
+rm -f "$prefix.vram" "$prefix.tty.txt" "$prefix.log" "$prefix.result" "$prefix.progress" "$prefix".f*.vram
 
 # Config, memory cards and caches land in the working directory or HOME:
 # a fresh one per boot keeps two boots of the same input byte-identical.
@@ -106,11 +110,11 @@ status=0
     unset DISPLAY WAYLAND_DISPLAY
     HOME=$work XDG_CONFIG_HOME=$work/.config \
     PSX_CAPTURE_FRAMES=$frames PSX_CAPTURE_FILE=$prefix.vram \
-    PSX_CEILING_FRAMES=$frames PSX_RESULT_FILE=$prefix.result \
+    PSX_CEILING_FRAMES=$frames PSX_RESULT_FILE=$prefix.result PSX_PROGRESS_FILE=$prefix.progress \
     PSX_PAD_SCRIPT=$pad_script PSX_PAD_PLAYER=$script_dir/psx_pad_play.lua \
     PSX_CAPTURE_SCRIPT=$capture_script PSX_CAPTURE_PLAYER=$script_dir/psx_capture_frames.lua \
     PSX_CAPTURE_PREFIX=$prefix \
-        run_with_timeout "${PSX_BOOT_TIMEOUT:-120}" "$install_dir/pcsx-redux" \
+        run_with_timeout "${PSX_BOOT_TIMEOUT:-120}" $(unbuffered_prefix) "$install_dir/pcsx-redux" \
         "$@" -dofile "$script_dir/$lua" \
         > "$prefix.tty.txt" 2> "$prefix.log"
 ) || status=$?
@@ -118,11 +122,17 @@ status=0
 if [ -n "$until_exit" ]; then
     progress=$(tr -d '\r' < "$prefix.tty.txt" | grep -E '^psx-(replay|pad|game): ' | tail -n 1)
     last="last progress line: ${progress:-(none)}"
+    vsync=$(sed -n 's/^vsync //p' "$prefix.progress" 2>/dev/null | tail -n 1)
+    last_vsync="last vsync: ${vsync:-(none)}"
     if [ "$status" -eq 124 ]; then
-        fail "$label: timed out after ${PSX_BOOT_TIMEOUT:-120} s before exiting; $last (see $prefix.log)"
+        fail "$label: timed out after ${PSX_BOOT_TIMEOUT:-120} s before exiting; $last; $last_vsync (see $prefix.log)"
     fi
     result=$(cat "$prefix.result" 2>/dev/null || true)
     rm -f "$prefix.result"
+    if [ -z "$result" ] && [ "$status" -gt 128 ]; then
+        signal=$(kill -l "$((status - 128))" 2>/dev/null) && signal=SIG${signal#SIG} || signal=$((status - 128))
+        fail "$label: emulator aborted with status $status (signal $signal); $last; $last_vsync (see $prefix.log)"
+    fi
     case $result in
         ceiling*) fail "$label: reached the ceiling of $frames vsyncs before exiting; $last (see $prefix.log)" ;;
         exit*) ;;

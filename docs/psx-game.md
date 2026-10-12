@@ -245,6 +245,12 @@ emulator with its code. No capture is written, except the frame-locked ones of
 `--capture-script` (below). `<ceiling>` is a vsync ceiling:
 reaching it, or `PSX_BOOT_TIMEOUT` seconds, fails naming the input and the last
 `psx-replay:`, `psx-pad:` or `psx-game:` line. Code 0 passes, any other fails naming it.
+`tools/psx_until_exit.lua` overwrites `<out-prefix>.progress` with
+`vsync <n>` every 60 vsyncs. An emulator that dies on a signal without a
+result fails as `emulator aborted with status <n> (signal <name>)`, naming the
+last progress line and the last vsync of `.progress`; the timeout names that
+vsync too. The emulator runs under `stdbuf -o0 -e0` when the host has it, so
+an abort keeps the whole TTY.
 Without `--until-exit`, `psx_boot.sh` behaves as `docs/psx-hello-world.md`
 describes.
 
@@ -621,8 +627,8 @@ None of these targets is in `make test-all`, and none runs a setup.
   frames, but the emulator aborts after about 9 minutes (exit 134,
   `An unknown exception occured`, `terminate called without an active
   exception` in `run.log`), before the ceiling or the timeout. A rerun with
-  the emulator's stdout unbuffered (`stdbuf -o0`; `psx_boot.sh` leaves it
-  block-buffered, so an abort loses the TTY) reached `psx-replay: frame 4608`
+  the emulator's stdout unbuffered (`stdbuf -o0`, which `psx_boot.sh` now
+  does itself) reached `psx-replay: frame 4608`
   with no `p8_fatal` line, then aborted the same way before the `done` line.
   The cause, in the guest or in the emulator, is not found yet. The digest
   lines that reach the TTY before the abort equal the PC's: the sprite sheet
