@@ -37,6 +37,17 @@ state_sink_t psx_tty_state_sink(void) {
     return sink;
 }
 
+static void write_frame_line(void *context, const char *line) {
+    (void)context;
+    psx_tty_write("psx-frame: ");
+    psx_tty_write(line);
+}
+
+state_sink_t psx_tty_frame_sink(void) {
+    state_sink_t sink = { write_frame_line, NULL };
+    return sink;
+}
+
 static void write_digest_line(void *context, const char *line) {
     (void)context;
     psx_tty_write("psx-digest: ");

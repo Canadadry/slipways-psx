@@ -6,7 +6,7 @@
     - [x] Chunk 4 — Investigation and fix
   - [ ] Step 1.2 — Measure the full game on the GPU path
     - [x] Chunk 1 — Frame table module
-    - [ ] Chunk 2 — GPU replay instrumentation
+    - [x] Chunk 2 — GPU replay instrumentation
     - [ ] Chunk 3 — Frame analysis
     - [ ] Chunk 4 — Full-game check wiring
     - [ ] Chunk 5 — Docs and the first run

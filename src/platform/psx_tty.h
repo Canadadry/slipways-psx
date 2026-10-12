@@ -14,6 +14,9 @@ void psx_tty_printf(const char *format, ...) __attribute__((format(printf, 1, 2)
    tools/psx_state_compare.sh extracts. */
 state_sink_t psx_tty_state_sink(void);
 
+/* Writes each frame time line behind "psx-frame: ". */
+state_sink_t psx_tty_frame_sink(void);
+
 /* Writes each digest line behind "psx-digest: ", the prefix
    tools/psx_digest_compare.sh extracts. */
 vram_digest_sink_t psx_tty_digest_sink(void);
