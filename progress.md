@@ -14,6 +14,6 @@
     - [x] Chunk 1 — Pointer-width rule and computed sizes
     - [x] Chunk 2 — Shared largest-case module
     - [x] Chunk 3 — psx-largest-slots and largest-slots
-    - [ ] Chunk 4 — MIPS measurement and sizes
+    - [x] Chunk 4 — MIPS measurement and sizes
   - [ ] Step 1.4 — Optimize only what the measurement points to
   - [ ] Step 1.5 — Ship

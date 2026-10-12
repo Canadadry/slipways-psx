@@ -664,6 +664,37 @@ are lower than the PC's (4-byte pointers): in `measurements.txt` a
 measurement, not a limit check; `psx-full-game-check`'s `zone-sizes` and
 `cap-sizes` judge the GPU replay's against their sizes.
 
+**UI and particle slot sizes are per build, picked by pointer width.** Each
+is either a `ZONE_BYTES_BY_WIDTH(<PC>, <MIPS>)` pair (`src/engine/zone.h`:
+the MIPS column must be a whole 8-byte cell and no larger than the PC
+column, checked at compile time) or computed from the real `sizeof`s
+(`particles`, `particles_help_screen`, `ephemerals`: `ARENA_LIST_BYTES` of
+`src/engine/allocator.h`). Slot counts are shared. The MIPS column comes from:
+
+| Slot | PC | MIPS | MIPS source |
+|---|---|---|---|
+| `button` | 6,056 | 3,784 | `largest-slots` peak, no margin |
+| `row` | 1,184 | 616 | `largest-slots` peak, no margin |
+| `modal_backdrop` | 280 | 160 | MIPS `cap bytes_*` peak 136 + 1/8 |
+| `message_box` | 5,128 | 3,072 | MIPS peak 2,728 + 1/8 |
+| `toast` | 344 | 192 | MIPS peak 168 + 1/8 |
+| `burst` | 648 | 424 | MIPS peak 376 + 1/8 |
+| `particles` | 1,384 | 696 | computed |
+| `particles_help_screen` | 5,344 | 2,680 | computed |
+| `ephemerals` | 152 | 96 | computed |
+| `particle`, `transit_dots` | 32, 24 | 32, 24 | struct size, compile-time guard |
+
+The other MIPS sizes are the highest `cap bytes_<slot>` over MIPS replays
+of the five worst-case games plus 1/8, rounded up to a cell (the four
+`full_game*` games gave the same peaks; `title_idle` never opens these
+slots). `largest-slots` keeps `button` and `row` honest, and
+`psx-full-game-check`'s `cap-sizes` the others on `full_game.json`. The
+other four worst-case games are in no PSX target: to re-measure one, run
+`make psx-replay-check PSX_EVENTS=worst-case/<game>.json` with
+`PSX_REPLAY_CEILING` at frames × 12 and `PSX_REPLAY_TIMEOUT` at frames ×
+0.2 s (and its own `PSX_BUILD_DIR` and `PSX_REPLAY_OUT`), in the
+background, about 13 minutes each.
+
 Ceilings and timeouts are the first measured run plus half again:
 `PSX_REPLAY_CEILING`/`PSX_REPLAY_TIMEOUT` for `pad_slipway`,
 `PSX_GPU_CEILING`/`PSX_GPU_TIMEOUT` for the GPU replay of `pad_slipway`,
