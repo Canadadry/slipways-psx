@@ -7,7 +7,7 @@
   - [ ] Step 1.2 — Measure the full game on the GPU path
     - [x] Chunk 1 — Frame table module
     - [x] Chunk 2 — GPU replay instrumentation
-    - [ ] Chunk 3 — Frame analysis
+    - [x] Chunk 3 — Frame analysis
     - [ ] Chunk 4 — Full-game check wiring
     - [ ] Chunk 5 — Docs and the first run
   - [ ] Step 1.3 — Re-measure the zones on MIPS

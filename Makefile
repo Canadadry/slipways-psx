@@ -896,6 +896,9 @@ $(TMP_DIR)/test_psx_boot: $(call objs,tests/test_psx_boot.c) tools/psx_boot.sh t
 $(TMP_DIR)/test_psx_emulator_setup: $(call objs,tests/test_psx_emulator_setup.c) tools/install_psx_emulator.sh tools/psx_portable.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_frame_budget: $(call objs,tests/test_psx_frame_budget.c) tools/psx_frame_budget.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_psx_full_game_check: $(call objs,tests/test_psx_full_game_check.c) tools/psx_full_game_check.sh \
 		tools/psx_conditions.sh tools/psx_state_compare.sh tools/psx_digest_compare.sh tools/psx_boot.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1463,7 +1466,7 @@ unit: $(UNIT_RUNS)
 
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
-	test_psx_full_game_check test_psx_emulator_setup
+	test_psx_full_game_check test_psx_frame_budget test_psx_emulator_setup
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
