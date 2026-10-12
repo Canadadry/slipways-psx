@@ -332,6 +332,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     self_path = argv[0];
+    assert(ZONE_BYTES_BY_WIDTH(16u, 8u) == 16u && "the host has 8-byte pointers: the first column");
     expect_clean("control");
     expect_clean("slot_taken_follows");
     expect_clean("flip_zone_grab_arena_follows");

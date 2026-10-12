@@ -13,7 +13,7 @@
 #include "game/particle.h"
 #include "game/particle_zone.h"
 
-typedef char transit_dot_fits_its_slot_t[sizeof(transit_dot_t) <= TRANSIT_DOTS_SLOT ? 1 : -1];
+typedef char transit_dot_fills_its_slot_t[ZONE_BYTES(sizeof(transit_dot_t)) == TRANSIT_DOTS_SLOT ? 1 : -1];
 
 static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);

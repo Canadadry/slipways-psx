@@ -426,6 +426,13 @@ int main(int argc, char **argv) {
         return 2;
     }
     self_path = argv[0];
+    assert(particle_zone_slot_size(PARTICLE_SLOT_LIST) ==
+               ARENA_HEAD_BYTES + ZONE_BYTES(sizeof(pointer_list_t)) + ZONE_BYTES(PARTICLES_CAPACITY * sizeof(void *)) &&
+           "a particles slot is its arena head, list head and full capacity");
+    assert(particle_zone_slot_size(PARTICLE_SLOT_HELP_LIST) ==
+               ARENA_HEAD_BYTES + ZONE_BYTES(sizeof(pointer_list_t)) +
+                   ZONE_BYTES(PARTICLES_HELP_SCREEN_CAPACITY * sizeof(void *)) &&
+           "a help screen particles slot is its arena head, list head and full capacity");
     expect_clean("live_slots_follow_takes");
     expect_poison_crash("particle_dead_after_release");
     expect_fatal("burst_zone_full", "zone particles burst full, limit 4 slots");

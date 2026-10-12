@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "engine/allocator.h"
+#include "engine/zone.h"
 
 typedef enum {
     PARTICLE_SLOT_PARTICLE,
@@ -14,8 +15,8 @@ typedef enum {
     PARTICLE_SLOT_COUNT
 } particle_slot_kind_t;
 
-#define PARTICLE_SLOT 32u
-#define TRANSIT_DOTS_SLOT 24u
+#define PARTICLE_SLOT ZONE_BYTES_BY_WIDTH(32u, 32u)
+#define TRANSIT_DOTS_SLOT ZONE_BYTES_BY_WIDTH(24u, 24u)
 #define PARTICLES_CAPACITY 158
 #define PARTICLES_HELP_SCREEN_CAPACITY 653
 

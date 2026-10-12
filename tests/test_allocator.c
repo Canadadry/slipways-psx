@@ -604,6 +604,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     self_path = argv[0];
+    assert(ARENA_HEAD_BYTES == arena_size_for(0) && "the shared arena head is the head the allocator reserves");
     expect_clean("bump_grow_keeps_order");
     expect_clean("slot_handle_round_trip");
     expect_assert("slot_handle_too_big", "larger than a slot");
