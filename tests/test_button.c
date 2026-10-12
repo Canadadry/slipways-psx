@@ -49,6 +49,8 @@
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
 #include "game/ui_zone.h"
+#include "devtools/largest_slots.h"
+#include "devtools/state_format.h"
 #include "heap_allocator.h"
 
 static mouse_pos_t mouse_world_only(vec_t world) {
@@ -2093,47 +2095,17 @@ static void test_ephemerals_slots_after_restart(void) {
     assert(ephemerals_slots() == title);
 }
 
-/* The largest buttons the game builds, each in one button slot: every
- * tech's row of the tech tree screen (its tooltip bubble), the "invented"
- * row once every tech is, and every project's row as the projects panel
- * builds it (its layout row, its cost, its tooltip bubble). */
+static void print_line(void *context, const char *line) {
+    (void)context;
+    fputs(line, stdout);
+}
+
 static void test_largest_buttons_fit_their_slots(void) {
-    economy_t *fm;
-    int k;
-    int i;
+    const state_sink_t sink = {print_line, NULL};
 
-    start_game();
-    fm = main_economy_typed();
-    fm->research_points = p8_fixed_from_int(9999);
-    /* Each screen closes, its buttons gone at the next frame, before the
-     * next opens: the game never opens one over the other. */
-    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
-        fm->era = p8_fixed_from_int(technologies_table[i].era);
-        menu_show_tech_tree_screen();
-        ui_clear_ephemerals(main_ui());
-        one_frame();
-    }
-    for (i = 0; i < TECHNOLOGIES_COUNT; i++) {
-        invent((char *)technologies_table[i].name);
-    }
-    menu_show_tech_tree_screen();
-    assert(button_of(entity_id_list_at(main_ui_ephemerals(), main_ui_ephemerals()->count - 1))->tooltip->rows_count == TECHNOLOGIES_COUNT);
-    one_frame();
-
-    for (k = 1; k <= research_projects_count(); k++) {
-        research_project_t *b = research_projects_at(k);
-        button_keys_t keys = {.has_side_tooltip = 1, .has_side_tooltip_row = 1, .has_tooltip = 1};
-
-        layout_row_keys_append(&keys.side_tooltip_row, layout_row_cell_string(p8_concat2(frame_zone(), "$", p8_tostr_fixed(frame_zone(), research_project_cost(b)))));
-        if (b->has_icon_sprite) {
-            keys.layout_row_keys = research_project_icon_row_keys(b);
-        } else {
-            (void)research_project_layout_row_keys(b, &keys.layout_row_keys);
-        }
-        button_keys_set_tooltip_row(&keys, research_project_tooltip(b));
-        entity_unregister(&button_new(&keys)->header);
-        one_frame();
-    }
+    largest_slots_run();
+    largest_slots_format(&sink);
+    assert(ui_zone_max_bytes(SLOT_KIND_BUTTON) <= ui_zone_slot_size(SLOT_KIND_BUTTON));
 }
 
 static void test_project_planet_resolves_until_the_flush(void) {

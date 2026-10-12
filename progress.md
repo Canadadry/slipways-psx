@@ -12,7 +12,7 @@
     - [x] Chunk 5 — Docs and the first run
   - [ ] Step 1.3 — Re-measure the zones on MIPS
     - [x] Chunk 1 — Pointer-width rule and computed sizes
-    - [ ] Chunk 2 — Shared largest-case module
+    - [x] Chunk 2 — Shared largest-case module
     - [ ] Chunk 3 — psx-largest-slots and largest-slots
     - [ ] Chunk 4 — MIPS measurement and sizes
   - [ ] Step 1.4 — Optimize only what the measurement points to

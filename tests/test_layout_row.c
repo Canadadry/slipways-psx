@@ -44,6 +44,8 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 #include "engine/game_zone.h"
+#include "devtools/largest_slots.h"
+#include "devtools/state_format.h"
 #include "heap_allocator.h"
 
 static const vec_t *pos_ref(const entity_t *e) {
@@ -1049,33 +1051,17 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
-/* The largest row planet_refresh() can build: a planet producing luxury,
- * so two outputs, with the most wants a project has and an amount of 5, the
- * most drawn one by one. It fits in one row slot. */
+static void print_line(void *context, const char *line) {
+    (void)context;
+    fputs(line, stdout);
+}
+
 static void test_planet_resource_row_largest_row_fits_a_slot(void) {
-    const pointer_list_t *is = NULL;
-    const allocator_t *slot;
-    p8_fixed_t o;
-    int r_w;
-    int k;
+    const state_sink_t sink = {print_line, NULL};
 
-    for (k = 1; research_projects_at(k) != NULL; k++) {
-        const research_project_t *p = research_projects_at(k);
-        if (is == NULL || p->inputs.count > is->count) {
-            is = &p->inputs;
-        }
-    }
-    assert(is != NULL && is->count == 2 && "the most wants a project has; a longer input list needs a bigger row slot");
-    assert(resource_code_lookup("w", &r_w));
-    o = p8_fixed_from_int(r_w);
-    slot = ui_zone_slot(SLOT_KIND_ROW);
-    {
-        layout_row_keys_t keys;
-
-        assert(research_display_planet_resource_row_keys(is, 1, o, p8_fixed_from_int(5), 0, 0, &keys));
-        assert(layout_row_new(slot, &keys) != NULL);
-    }
-    arena_release(slot);
+    largest_slots_run();
+    largest_slots_format(&sink);
+    assert(ui_zone_max_bytes(SLOT_KIND_ROW) <= ui_zone_slot_size(SLOT_KIND_ROW));
 }
 
 int main(void) {
