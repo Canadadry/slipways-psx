@@ -21,7 +21,7 @@
       - [x] Chunk 1 — Draw timing wrapper
       - [x] Chunk 2 — Cut planner and cut command
       - [x] Chunk 3 — Breakdown PS-EXE
-      - [ ] Chunk 4 — Analysis script
+      - [x] Chunk 4 — Analysis script
       - [ ] Chunk 5 — Target, docs and first measurement
     - [ ] Step 1.4.2 — Draw
     - [ ] Step 1.4.3 — Update
