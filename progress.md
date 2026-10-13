@@ -15,16 +15,17 @@
     - [x] Chunk 2 — Shared largest-case module
     - [x] Chunk 3 — psx-largest-slots and largest-slots
     - [x] Chunk 4 — MIPS measurement and sizes
-  - [ ] Step 1.4 — Optimize only what the measurement points to
+  - [x] Step 1.4 — Optimize only what the measurement points to
     - [x] Plan-review before step 4: split into 4.1–4.4
-    - [ ] Step 1.4.1 — Harness and draw breakdown
+    - [x] Step 1.4.1 — Harness and draw breakdown
       - [x] Chunk 1 — Draw timing wrapper
       - [x] Chunk 2 — Cut planner and cut command
       - [x] Chunk 3 — Breakdown PS-EXE
       - [x] Chunk 4 — Analysis script
-      - [ ] Chunk 5 — Target, docs and first measurement
-    - [ ] Step 1.4.2 — Draw
-    - [ ] Step 1.4.3 — Update
-    - [ ] Step 1.4.4 — Close
+      - [x] Chunk 5 — Target, docs and first measurement
+    - [x] Step 1.4.2 — Draw
+    - [x] Step 1.4.3 — Update
+    - [x] Step 1.4.4 — Close
   - [ ] Step 1.5 — Ship
 - [x] Step 1.4.1 stopped: representative failed on 4 of 5 short runs — waiting on the human (chunk 5 committed, step not done)
+- [x] Human decision: ship as is — step 4 items above closed without being done, frame-budget red accepted

@@ -31,11 +31,11 @@ A final `.bin/.cue` in which a full game plays in the emulator at the game's fra
    2. **Draw.** Its PRD is written after 4.1's note, not in parallel with 4.1; plan-pilot consults `plan-review` again with that note first.
    3. **Update.** The 171 frames: the start spike (frame 12) and the other spikes.
    4. **Close.** One full `make psx-full-game-check`. Green → step 4 is done. Red → the stop-and-report rule above, reporting per part, from step 2's `frames.txt` and the new one: frames over budget and the overrun distribution, the required-speedup percentiles (p50/p90/p99), the leads tried with their gains, and the leads not opened and why.
-5. **Ship.** The final `.bin/.cue`, with `make psx-check`, `make psx-full-game-check` and step 2's check green.
+5. **Ship.** The final `.bin/.cue`, with `make psx-check`, `make psx-full-game-check` and step 2's check green. Human decision after step 4.1 (2026-10-13): ship as is — `frame-budget` stays red and is accepted; every other condition of `make psx-full-game-check` must be green.
 
 ## 4. Done when
 
-- `make test-all` passes, every `*.sha256` in `tests/e2e/` is unchanged, and `make psx-check`, `make psx-full-game-check` and step 2's check are green on the final `.bin/.cue`.
+- `make test-all` passes, every `*.sha256` in `tests/e2e/` is unchanged, and `make psx-check` and `make psx-full-game-check` are green on the final `.bin/.cue`, except `frame-budget`, red and accepted by the human (ship as is).
 - Waits on the human: they finish a game in the emulator with the controller. The rendering differences they find are accepted or fixed one by one; a slowdown or a crash they find becomes a bug for `fix-bug`, or a new plan.
 
 ## 5. Open questions
@@ -67,3 +67,10 @@ A final `.bin/.cue` in which a full game plays in the emulator at the game's fra
 - RAM: `ram-room` 267,784 → 371,560 bytes left, `game-ram-room` 332,132 → 435,908, full-game `gpu-ram-room` 175,928 → 279,704 (+103,776). UI zone reserved 207,576 → 120,248.
 - `make psx-check` green (thirty-one conditions); `make psx-full-game-check` red only on `frame-budget` (unchanged figures). Tightest MIPS margins: `message_box` 2,728/3,072, `burst` 376/424, `particles` 680/696, `particles_help_screen` 2,664/2,680.
 - Deviation: a verifier found two untrue sentences in the chunk 4 docs (all five games "same figures", "in no target"); fixed before the commit rather than stopping the run.
+
+### Step 1.4.1
+
+- Stopped: `representative` failed on 4 of 5 short runs (update-4737 update −94%, update-5500 draw −33%, draw-5564 draw −14%, update-5719 update −97%); `done`, `deterministic` and `breakdown` held on all five. A resumed save carries no camera, jump-selection or crosshair state, so the update spikes do not recur and draw comes out lower. Decision (`guideline`): the PC game-match check reports, never gates.
+- Breakdown: 70–79% of draw inside backend calls, `print` and `spr` leading (draw-5564: print 42%, spr 22%). With free backend calls every draw-5564 window frame stays over 263 hblanks (max 358); only removing all draw fits. Update spikes (frame 12: 9,074; 5500: 1,565) exceed the budget alone.
+- Delivered and committed: `devtools/draw_timing`, the cut planner and `make psx-short-runs-cut`, the `psx-gpu-replay-breakdown` PS-EXE, `tools/psx_short_run.sh`, `make psx-short-runs` (540 vsyncs / 10 s).
+- Human decision after the stop: ship as is. Steps 4.1 (chunk 5's measurement), 4.2, 4.3 and 4.4 are closed without being done; `frame-budget` stays red and is accepted. The human reported 58–62 FPS on a Miyoo Mini Flip in early game (the emulator's display rate, not game frames) with slow probe animations, consistent with ~1.7 vsyncs a frame early on.
