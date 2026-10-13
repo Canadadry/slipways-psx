@@ -840,9 +840,6 @@ None of these targets is in `make test-all`, and none runs a setup.
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
   checks neither, so the disc is proven in the emulator only.
 
-- The human's play: load `tmp/psx/build/slipways.cue` in a windowed
-  emulator and judge the controller by hand. No agent opens a window.
-
 - Pending human acceptance, one label at a time: run `make psx-check`,
   review each capture's report line and
   `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` (PC | PSX |

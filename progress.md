@@ -29,5 +29,6 @@
   - [x] Step 1.5 — Ship
 - [x] Step 1.4.1 stopped: representative failed on 4 of 5 short runs — waiting on the human (chunk 5 committed, step not done)
 - [x] Human decision: ship as is — step 4 items above closed without being done, frame-budget red accepted
-- [ ] Human: finish a game in the emulator with the controller (plan 11 Done when)
+- [x] Human: finish a game in the emulator with the controller (plan 11 Done when)
 - [x] plan-pilot opens or updates the pull request when a run stops (user request, after the run)
+- [x] Human play test waived by the human: no full game played on the PSX build
