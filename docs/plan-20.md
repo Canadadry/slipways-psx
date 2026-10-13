@@ -58,7 +58,11 @@ because this plan file is deleted once it is finished.
   platforms: a PSX-only divergence was rejected.
 - **The PSX picture stays pixel-identical to the PC's.** Every capture keeps
   its 0-pixel tolerance. Changes that alter pixels are not on the table
-  unless the human reopens the question after getting stuck.
+  unless the human reopens the question after getting stuck. One exception:
+  a lever that only changes how much `visual_random` is consumed (for
+  example a removed redundant draw call) may change e2e `*.sha256`. It is
+  accepted after checking that each changed screen differs from the old one
+  by only a few pixels of visual noise, with the game state unchanged.
 - **Asserts go off** in `psx-game` and in the GPU replay that is measured,
   and stay on in the PC build and the tests. The PC with asserts on plays
   the same game, as `psx-check` proves.
@@ -83,9 +87,10 @@ because this plan file is deleted once it is finished.
   A pre-chosen list of suspects was rejected: it depends on intuition.
   - **Drawing functions are called twice.** Drawing the same thing twice
     gives the same picture, and the frame grows by exactly the function's
-    cost. The run's game-state lines must stay identical to the baseline's.
-    If they do not (the function mutates state, for example through
-    `visual_random`), that function falls back to the fixed delay.
+    cost. A second call that only advances `visual_random` is fine: the
+    picture may differ by a few pixels. The run's game-state lines must
+    still match the baseline's. If they do not (the function mutates
+    gameplay state), that function falls back to the fixed delay.
   - **Update functions get a fixed delay** (a busy loop of known length at
     entry). The frame grows by delay × calls, so the delay measures the call
     count, not the cost. The cost then comes from PC timing proportions,
@@ -149,7 +154,7 @@ because this plan file is deleted once it is finished.
    baseline's. Host-tested on hand-written boot outputs. Verified by two
    sanity probes on the real build:
    - calling `cart_draw` twice roughly doubles draw (within 10%) and leaves
-     the state lines identical;
+     the game-state lines identical (`visual_random` may drift);
    - a fixed delay at the entry of a function called a known number of times
      per frame gives delta ÷ delay equal to that count.
 4. A PC tool prints per-frame call counts per `cart_draw` and
