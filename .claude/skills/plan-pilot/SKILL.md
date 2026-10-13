@@ -29,6 +29,8 @@ The plan's `Step notes` section (whatever its number) is the progress record: on
 - Every item holds → `git rm` the plan file and `progress.md` in one commit (`docs:`, the hook allows the deletion once every item is `[x]`), push, report, and stop. A finished plan never stays in `docs/` (CLAUDE.md § Docs).
 - An item waits on the human (a review, a play test) → keep both files, its `[ ]` open, and report it. Whoever makes the commit that ticks it, agent or human, follows it with that same `docs:` commit removing the plan file and `progress.md`; say so in the report, with the exact commands.
 
+Either way, open the pull request before reporting (§ Pull request).
+
 ### 2. Run it
 
 **A `skill: <name> — <scope>` step** → invoke that skill in place on the given scope, following its own unattended rules. No PRD. Each of its commits adds its own `- [x]` child (the module, the unit) under the step's item. Then run `check-e2e` and push, as prd-autopilot does after a PRD.
@@ -52,7 +54,15 @@ Right after the last step of a phase: run `warn-review` on the code that phase t
 ### 6. Consult plan-review, at your discretion
 After any step that was risky or taught something new, spawn a fresh `plan-review` agent. Judge each proposal against "does this concretely improve the odds of success"; apply accepted ones to the plan file, in the step-note commit of step 4. No loop, no temp branch — that is plan-converge's job, before the run.
 
+## Pull request
+
+Whenever the run stops — the plan complete, waiting on the human, or halted on a failure — the branch has a pull request against the default branch, opened with the GitHub tools after the last push. One may already exist for the branch (opened automatically, titled after the first commit): update its title and body instead of opening another.
+
+- **Title**: `Plan <N>: <outcome>` — what the run delivered and, if it fell short, how, in under 100 characters. Never a commit subject. Example: `Plan 11: full game finishes on PSX, per-frame GPU timing, 104 KB freed — ships below 60 fps`.
+- **Body**: one line on the plan and how the run ended; one section per step with its result in figures, taken from its step note; what the reviewer must act on (a setup to rerun, a changed interface); what is left open (a human item of `Done when`, a halted step and the decision it waits on, `warn-review` warnings not acted on). Mirror the repository's PR template if it has one.
+- Never merge it (CLAUDE.md § What we don't do).
+
 ## Boundaries
 
 - Never change a step's content or scope yourself — only accepted `plan-review` proposals change the plan, and those are method-only.
-- Stop and report to the user only when the plan is complete, or when `prd-autopilot`, `check-e2e` or `fix-bug` stops with a failure.
+- Stop and report to the user only when the plan is complete, or when `prd-autopilot`, `check-e2e` or `fix-bug` stops with a failure — after opening or updating the pull request (§ Pull request).
