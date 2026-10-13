@@ -74,3 +74,9 @@ A final `.bin/.cue` in which a full game plays in the emulator at the game's fra
 - Breakdown: 70–79% of draw inside backend calls, `print` and `spr` leading (draw-5564: print 42%, spr 22%). With free backend calls every draw-5564 window frame stays over 263 hblanks (max 358); only removing all draw fits. Update spikes (frame 12: 9,074; 5500: 1,565) exceed the budget alone.
 - Delivered and committed: `devtools/draw_timing`, the cut planner and `make psx-short-runs-cut`, the `psx-gpu-replay-breakdown` PS-EXE, `tools/psx_short_run.sh`, `make psx-short-runs` (540 vsyncs / 10 s).
 - Human decision after the stop: ship as is. Steps 4.1 (chunk 5's measurement), 4.2, 4.3 and 4.4 are closed without being done; `frame-budget` stays red and is accepted. The human reported 58–62 FPS on a Miyoo Mini Flip in early game (the emulator's display rate, not game frames) with slow probe animations, consistent with ~1.7 vsyncs a frame early on.
+
+### Step 1.5
+
+- Shipped as is, on the human's decision. Final image `tmp/psx/build/slipways.bin`/`.cue` (built, not committed): 2,911,776 bytes, 1,238 sectors; `game-ram-room` 435,908 bytes left.
+- `make psx-check`: all thirty-one conditions hold. `make psx-full-game-check`: eleven of twelve conditions ok, `frame-budget` red as accepted. `make test-all` green, every `tests/e2e/*.sha256` unchanged.
+- End-of-phase `warn-review` (not acted on; no steps remain for a `plan-review` to act on): a kept `draw_timing_clock_t` pointer and a heap pointer field in `short_run_cut.h` (pointer rules); duplicated `asserts_enabled`/`write_stopped_state` across the PS-EXEs, per-prefix TTY sinks, the two per-frame tables (`frame_times`, `draw_timing`), and the done-line check in `psx_short_run.sh`; inline constants (263/249 in `psx_frame_budget.sh`, the 200-hblank wrap limit, per-width size pairs); the 2,354-line Makefile; `arena_t` exposed in `allocator.h`; a `const` cast in `largest_slots.c`.
