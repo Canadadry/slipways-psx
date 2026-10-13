@@ -1,0 +1,22 @@
+diff --git a/src/core/eventslua.cc b/src/core/eventslua.cc
+index a6a631d..645e37e 100644
+--- a/src/core/eventslua.cc
++++ b/src/core/eventslua.cc
+@@ -107,6 +107,9 @@ void createListener(PCSX::Lua L) {
+ 
+     auto listener = new PCSX::EventBus::Listener(PCSX::g_system->m_eventBus);
+     listener->listen<Event>([L = t, ref](auto e) mutable {
++        // Without restoring the top, each event left two slots on the
++        // listener's thread, which overflowed after ~32,700 events.
++        const int top = L.gettop();
+         L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
+         L.getfield(ref, true);
+         L.getfield("callback");
+@@ -118,6 +121,7 @@ void createListener(PCSX::Lua L) {
+         } catch (...) {
+             PCSX::g_system->log(PCSX::LogClass::LUA, "Unknown error in event listener");
+         }
++        lua_settop(L.getState(), top);
+     });
+ 
+     int a = L.gettop();

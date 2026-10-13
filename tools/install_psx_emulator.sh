@@ -5,6 +5,9 @@
 # user's Homebrew, no sudo; the OpenBIOS is built with the mipsel-none-elf GCC
 # of PSN00BSDK_DIR (make psn00bsdk-toolchain-setup first). Exit 0 at once when <install-dir> holds a stamp for the same
 # pins; exit 1, deleting nothing, when it is non-empty without that stamp.
+# Every pcsx-redux-*.patch next to <sources> is applied, in name order, after
+# the headless fix, and is part of the stamp; one that does not apply cleanly
+# fails the setup naming it.
 
 set -eu
 
@@ -22,6 +25,7 @@ fail() {
 }
 
 [ -f "$sources" ] || fail "missing sources list: $sources"
+sources_dir=$(cd "$(dirname "$sources")" && pwd)
 
 # Prints "<url> <pin>" of a git component; fails naming it when absent.
 source_of() {
@@ -39,6 +43,11 @@ fix_commit=${fix#* }
 
 stamp_text="emulator $base_commit
 emulator-headless-fix $fix_commit"
+for patch_file in "$sources_dir"/pcsx-redux-*.patch; do
+    [ -f "$patch_file" ] || continue
+    stamp_text="$stamp_text
+patch ${patch_file##*/} $(sha256_of "$patch_file")"
+done
 
 if [ -f "$install_dir/$STAMP" ] && [ "$(cat "$install_dir/$STAMP")" = "$stamp_text" ]; then
     echo "psx-emulator-setup: already installed in $install_dir"
@@ -87,6 +96,11 @@ if ! git apply "$patch"; then
     fail "fix $fix_commit does not apply cleanly on $base_commit"
 fi
 rm -f "$patch"
+
+for patch_file in "$sources_dir"/pcsx-redux-*.patch; do
+    [ -f "$patch_file" ] || continue
+    git apply "$patch_file" || fail "${patch_file##*/} does not apply cleanly on $base_commit with fix $fix_commit"
+done
 
 run_with_timeout "$BUILD_TIMEOUT" make -j "$(cpu_count)" pcsx-redux
 run_with_timeout "$BUILD_TIMEOUT" make -j "$(cpu_count)" -C src/mips/openbios

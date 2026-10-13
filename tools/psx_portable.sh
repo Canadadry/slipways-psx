@@ -43,3 +43,11 @@ run_with_timeout() {
     fi
     return "$command_status"
 }
+
+# Prints the command prefix that unbuffers a command's stdout and stderr, or
+# nothing when the host lacks stdbuf (macOS without coreutils).
+unbuffered_prefix() {
+    if command -v stdbuf >/dev/null 2>&1; then
+        echo "stdbuf -o0 -e0"
+    fi
+}

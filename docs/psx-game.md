@@ -16,7 +16,7 @@ in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
 
 ## Build
 
-`make psx-build [EVENTS=<events>]` builds four PS-EXEs and the game's CD
+`make psx-build [EVENTS=<events>]` builds five PS-EXEs and the game's CD
 image in `tmp/psx/build` (`PSX_BUILD_DIR`), then prints the ELF sizes and the
 image paths:
 
@@ -25,6 +25,8 @@ image paths:
 - `psx-gpu-replay.{elf,exe}`: the same replay drawing through the GPU backend;
 - `psx-pad-probe.{elf,exe}`: the pad probe;
 - `psx-game.{elf,exe}`: the game read from the pad, the EXE that ships (below);
+- `psx-largest-slots.{elf,exe}`: the largest-case scenarios of
+  `src/devtools/largest_slots.c` on MIPS (below);
 - `slipways.{bin,cue}`: the CD image holding `psx-game.exe` ("CD image" below).
 
 `psx/CMakeLists.txt` is a PSn00bSDK project. The Makefile hands it the source
@@ -40,8 +42,10 @@ replay source. The GPU replay swaps the VRAM digest for the GPU backend
 (`src/devtools/draw_filter.c`). The game takes `CORE_SRCS`, the state
 formatter, the GPU backend (`PSX_GPU_BACKEND_SRCS`, shared with the GPU
 replay), `psx_pad` and `psx_pad_map`, and no embedded replay, format self-test,
-family filter or capture code. A file added to `CORE_SRCS` is in the PSX
-build at once.
+family filter or capture code. `psx-largest-slots` takes `CORE_SRCS`, the
+state formatter, `src/devtools/largest_slots.c` and the PSX platform files,
+and no embedded replay, VRAM digest or GPU backend. A file added to
+`CORE_SRCS` is in the PSX build at once.
 
 It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
 in, as in the PC `-O0` binary. `snprintf`/`vsnprintf` are wrapped onto
@@ -162,6 +166,35 @@ frame ends, then `psx_gpu_frame_end` with the metered bytes, then
 `psx_gpu_frame_begin`. It is driven by a capture script (below): without one
 it waits forever before its first frame.
 
+**Frame timer.** The GPU replay times every frame on root counter 1, clocked
+by the horizontal blank (~63.6 µs; 263 lines a vsync in the backend's NTSC
+non-interlaced mode), free-running over 16 bits
+(`src/platform/psx_frame_timer.c`). Counter 2 (system clock / 8) was
+rejected: it wraps every ~15.5 ms, under one vsync. Before the loop the
+replay counts the hblanks between two vsyncs and prints `psx-frame:
+hblanks-per-vsync <n>` (at most two vsyncs before `start_vsync`, not counted
+in the `done` line). Each frame reads four marks: before the input step,
+after `cart_update60`, after `cart_draw`, after `psx_gpu_frame_begin`.
+**update**, **draw** and **submit** are their differences modulo 65,536;
+submit covers the meter's and the filter's frame ends, `psx_gpu_frame_end`
+(uploads, the `DrawSync` wait on the previous frame, `DrawOTag`) and
+`psx_gpu_frame_begin`. The capture handshake's time and vsyncs are taken out
+of submit and of the frame's vsyncs. The input advance and the progress line
+fall outside every part; the progress line runs while the GPU draws, so the
+next frame's submit may wait a little less (23 of `full_game`'s 6,059
+frames). Each frame also records the vsyncs it spanned, so a frame of 249
+vsyncs or more (where the 16-bit counter may wrap) is detected.
+
+The records go to a static table (`src/devtools/frame_times.c`, pure,
+host-tested by `test_frame_times`): 8 bytes a frame, `FRAME_TIMES_CAP` =
+6,848 frames, 54,784 bytes of bss in the GPU replay only. A replay longer than
+the table stops with a `p8_fatal` naming both counts before frame 0. Nothing
+is printed during the loop: after it, the replay prints `psx-frame: frame <n>
+update <u> draw <d> submit <s> total <t> vsyncs <v>` for every frame, then the
+`done` line; on a `p8_fatal`, the frames recorded so far come before the
+stopped state. The instrumentation has no build flag: `psx-check`'s GPU
+boots print frame lines too, and ignore them.
+
 The GPU backend skeleton (`src/platform/psx_gpu.c`, PSn00bSDK, no floating
 point, no `malloc`):
 
@@ -239,12 +272,28 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 
 ## Until-exit boot mode
 
-`tools/psx_boot.sh <install-dir> --until-exit [--pad-script <file>] [--capture-script <file>] --exe <exe> <ceiling> <out-prefix>`
+`tools/psx_boot.sh <install-dir> --until-exit [--pad-script <file>] [--capture-script <file>] [--save-state-at <vsync> <file> | --load-state <file>] --exe <exe> <ceiling> <out-prefix>`
 adds `-testmode`, so the program's write to the PCSX exit register quits the
 emulator with its code. No capture is written, except the frame-locked ones of
 `--capture-script` (below). `<ceiling>` is a vsync ceiling:
 reaching it, or `PSX_BOOT_TIMEOUT` seconds, fails naming the input and the last
 `psx-replay:`, `psx-pad:` or `psx-game:` line. Code 0 passes, any other fails naming it.
+`tools/psx_until_exit.lua` overwrites `<out-prefix>.progress` with
+`vsync <n>` every 60 vsyncs. An emulator that dies on a signal without a
+result fails as `emulator aborted with status <n> (signal <name>)`, naming the
+last progress line and the last vsync of `.progress`; the timeout names that
+vsync too. The emulator runs under `stdbuf -o0 -e0` when the host has it, so
+an abort keeps the whole TTY.
+`--save-state-at <vsync> <file>` writes the emulator's save state
+(`PCSX.createSaveState`) to `<file>` when the vsync count reaches `<vsync>`,
+then the boot carries on; the boot fails if the program exits first.
+`--load-state <file>` loads that state (`PCSX.loadSaveState`) at the first
+vsync and runs to the program's exit: the boot's vsync count, so its ceiling
+and its `exited with 0 after <n> vsyncs`, starts at the load, while the
+guest's own counters, so the `done` line's frame count and vsyncs, come back
+with the state. The two options exclude each other, need `--until-exit`, and are
+refused naming the argument before the emulator starts when the vsync is not a
+positive integer below the ceiling or the file to load is missing.
 Without `--until-exit`, `psx_boot.sh` behaves as `docs/psx-hello-world.md`
 describes.
 
@@ -444,25 +493,27 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the thirty conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; five boots | ~105 s |
+| `make psx-check` | the thirty-one conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
 | `make psx-game-check` | the five `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
 | `make psx-game-cd-check` | the five `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
 | `make psx-game-cd` | builds the CD image and prints its paths | build |
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | the replay proof on `worst-case/full_game.json` (outputs in `tmp/psx/full-game`) | minutes |
+| `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted, the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
+| `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
 `STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
 `tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
-script), the probe and the game's CD image (with `PSX_GAME_SCRIPT`) until
-they exit, five boots, then checks every condition before
+script), the probe, the game's CD image (with `PSX_GAME_SCRIPT`) and
+`psx-largest-slots` until they exit, six boots, then checks every condition before
 concluding, one line each (`tools/psx_check.sh`, outputs in
 `tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
-- `magic`: the four `.exe` start with `PS-X EXE`;
+- `magic`: the five `.exe` start with `PS-X EXE`;
 - `asserts-on`: the replay printed `asserts on`;
 - `format`: its self-test string equals the PC's;
 - `replay-done`: the boot exited with 0, its `done` line has the PC's frame
@@ -482,7 +533,8 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
 - `ram-room`: 65,536 (kernel area) + text + data + bss of the GPU ELF (the
   toolchain's `size`, `PSX_SIZE`; the zones and both primitive buffers
   included) + `PSX_STACK_RESERVE` (64 KiB) <= 2,097,152; the line prints the
-  bytes left;
+  bytes left (`check_ram_room` of `tools/psx_conditions.sh`, shared with
+  `game-ram-room` and `psx-full-game-check`'s `gpu-ram-room`);
 - `gpu-capture-list`: the list's replay is the PS-EXE's, the PC run wrote
   its frames to the capture script, and each label but `all` has an
   on-screen call of its family at its frame on PC;
@@ -526,17 +578,124 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   `PSX_GAME_CUE` and `psx-game.exe` (extracted disc in `run/game-cd/disc`);
   a disc that lands in the OpenBIOS shell fails `game-done` first, with "last
   progress line: (none)";
-- `game-ram-room`: `ram-room` on the game ELF.
+- `game-ram-room`: `ram-room` on the game ELF;
+- `largest-slots`: the `psx-largest-slots` boot exited with 0, printed
+  `psx-largest: asserts on`, `psx-largest: done` and no `stopped p8_fatal`,
+  and its `psx-largest: bytes_button <peak> <size>` and `bytes_row` lines
+  each have a peak no larger than the size: the largest button and row the
+  game builds fit their slot on MIPS (`check_largest_slots` of
+  `tools/psx_conditions.sh`); a failure names the missing line or the first
+  slot over its size.
 
-`measurements.txt` (in `tmp/psx/game-check/run`, and in the output directory of
-`psx-replay-check` and `psx-full-game-check`) holds the MIPS `zone`, `budget`
-and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF; `psx-check`'s
+`src/cmd/psx_largest_slots.c` loads the sprite sheet and the cart, runs
+`largest_slots_run` (the scenarios `test_button` and `test_layout_row` run on
+the host), prints the `largest_slots_format` lines behind `psx-largest: `,
+then `psx-largest: done`, and exits with 0. A `p8_fatal` prints `psx-state:
+stopped p8_fatal frame 0` and the state, then exits with 3; a failed assert
+exits with 4.
+
+`make psx-full-game-check` builds the PS-EXEs of `worst-case/full_game.json`
+in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
+`DIGEST=`, boots the replay, then the GPU replay with an empty capture script
+(the capture handshake runs, `psx_capture_frames.lua` hands `NO_FRAME` at once,
+nothing is captured), until they exit, and checks twelve conditions
+(`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
+also in `run/conditions.txt`), every one before concluding:
+
+- `replay-done`, `state-game-lines`, `sprite-sheet`, `screen` and `map` on
+  the replay, `gpu-replay-done` and `gpu-state-game-lines` on the GPU replay,
+  as `psx-check` defines them (both scripts source these conditions, and
+  `check_ram_room`, from `tools/psx_conditions.sh`);
+- `timer`, `frame-budget`, `zone-sizes` and `cap-sizes`, the verdicts of
+  `tools/psx_frame_budget.sh` on the GPU boot's TTY and MIPS state (below);
+- `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,059 embedded
+  frames and the frame table included).
+
+`tools/psx_frame_budget.sh <gpu-tty> <gpu-psx-state> <expected-frames>
+<budget-hblanks> <out-dir>` analyses a finished boot, with no boot of its own
+(host-tested by `test_psx_frame_budget` in `make psx-tools-test`). It writes
+`frames.txt` (a header, then one line a frame), `summary.txt` and
+`verdicts.txt` into `run/frame-budget`:
+
+- `timer`: the calibration line is there with 255..271 hblanks a vsync, one
+  frame line per frame from 0 to frames − 1 in order, no frame spanning 249
+  vsyncs or more;
+- `frame-budget`: no frame's total above `PSX_FRAME_BUDGET_HBLANKS` (263, one
+  NTSC vsync; fixed, plan 11's step 4 never moves it); a failure names the
+  count over and the worst frame;
+- `zone-sizes`: every `zone` line's peak (`gpu_frame`, the primitive buffer
+  against `GPU_FRAME_BUFFER_BYTES`, included) at most its limit, and `budget
+  zones <used> <total>` with used at most total;
+- `cap-sizes`: every `cap` line's peak at most its limit.
+
+The summary, integer arithmetic: `frames <n> budget <h> hblanks`; `over
+<count> frames (<‰>), worst frame <f> total <t> (+<overrun>) update <u> draw
+<d> submit <s>`; `overrun mean <m> hblanks over the over-budget frames`;
+`overrun distribution <=1/4 vsync <a> <=1/2 <b> <=1 <c> <=2 <d> >2 <e>`
+(overruns against 263 lines); `parts over-budget frames update <U> draw <D>
+submit <S> dominant <part>` (the largest sum, `-` when no frame is over);
+`parts all frames update <U> draw <D> submit <S> mean total <m>`; then each
+zone, budget and cap line, `ok margin <n>/8` or `over by <n>`. The 1/8 margin
+is information here, not a failure. The check prints every frame line behind
+`psx-full-game-check: frame ` and the summary behind `psx-full-game-check: `.
+
+The unpatched pinned emulator aborts any boot at about 32,700 vsyncs (exit
+134, `An unknown exception occured`): each Lua event listener left two slots
+on its Lua thread per event, and the `GPU::Vsync` listener's thread
+overflowed LuaJIT's 65,500-slot stack outside a protected call. An idle boot
+with no program aborted at the same vsync, and a state saved at vsync 32,100
+and loaded in a fresh emulator ran on past it, so the guest is not involved.
+`tools/pcsx-redux-event-listener-stack.patch`, applied by
+`psx-emulator-setup`, restores the thread's stack after each call; an install
+made before it must be removed and set up again.
+
+`measurements.txt` (in `tmp/psx/game-check/run`, in the output directory of
+`psx-replay-check` and in `tmp/psx/full-game/run`) holds the MIPS `zone`,
+`budget` and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF;
+`psx-full-game-check`'s adds the GPU replay's `vsyncs`, its `zone gpu_frame`
+and `cap gpu_*` lines, `ram-room <used> <limit> <left>` and its ELF `size`,
+each behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
 behind `game `, then `bin-bytes <n> sectors <n>` and `boot-vsyncs <n>`
-(from power-on, BIOS and CD load included) behind `game cd `. The MIPS figures
-are lower than the PC's (4-byte pointers): a measurement, not a limit check.
+(from power-on, BIOS and CD load included) behind `game cd `, then the
+`largest-slots` boot's `bytes_<slot> <peak> <size>` lines behind `largest `.
+The MIPS figures
+are lower than the PC's (4-byte pointers): in `measurements.txt` a
+measurement, not a limit check; `psx-full-game-check`'s `zone-sizes` and
+`cap-sizes` judge the GPU replay's against their sizes.
+
+**UI and particle slot sizes are per build, picked by pointer width.** Each
+is either a `ZONE_BYTES_BY_WIDTH(<PC>, <MIPS>)` pair (`src/engine/zone.h`:
+the MIPS column must be a whole 8-byte cell and no larger than the PC
+column, checked at compile time) or computed from the real `sizeof`s
+(`particles`, `particles_help_screen`, `ephemerals`: `ARENA_LIST_BYTES` of
+`src/engine/allocator.h`). Slot counts are shared. The MIPS column comes from:
+
+| Slot | PC | MIPS | MIPS source |
+|---|---|---|---|
+| `button` | 6,056 | 3,784 | `largest-slots` peak, no margin |
+| `row` | 1,184 | 616 | `largest-slots` peak, no margin |
+| `modal_backdrop` | 280 | 160 | MIPS `cap bytes_*` peak 136 + 1/8 |
+| `message_box` | 5,128 | 3,072 | MIPS peak 2,728 + 1/8 |
+| `toast` | 344 | 192 | MIPS peak 168 + 1/8 |
+| `burst` | 648 | 424 | MIPS peak 376 + 1/8 |
+| `particles` | 1,384 | 696 | computed |
+| `particles_help_screen` | 5,344 | 2,680 | computed |
+| `ephemerals` | 152 | 96 | computed |
+| `particle`, `transit_dots` | 32, 24 | 32, 24 | struct size, compile-time guard |
+
+The other MIPS sizes are the highest `cap bytes_<slot>` over MIPS replays
+of the five worst-case games plus 1/8, rounded up to a cell (the four
+`full_game*` games gave the same peaks; `title_idle` never opens these
+slots). `largest-slots` keeps `button` and `row` honest, and
+`psx-full-game-check`'s `cap-sizes` the others on `full_game.json`. The
+other four worst-case games are in no PSX target: to re-measure one, run
+`make psx-replay-check PSX_EVENTS=worst-case/<game>.json` with
+`PSX_REPLAY_CEILING` at frames × 12 and `PSX_REPLAY_TIMEOUT` at frames ×
+0.2 s (and its own `PSX_BUILD_DIR` and `PSX_REPLAY_OUT`), in the
+background, about 13 minutes each.
 
 Ceilings and timeouts are the first measured run plus half again:
 `PSX_REPLAY_CEILING`/`PSX_REPLAY_TIMEOUT` for `pad_slipway`,
@@ -545,13 +704,132 @@ Ceilings and timeouts are the first measured run plus half again:
 `PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
 (`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,
 20 s) for the CD boot (`psx-game-cd-check`, `psx-check`),
-`PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` for `full_game`.
+`PSX_LARGEST_SLOTS_CEILING`/`PSX_LARGEST_SLOTS_TIMEOUT` (531 vsyncs, 10 s) for
+`psx-largest-slots` (first run 354 vsyncs in 6.5 s),
+`PSX_FULL_GAME_CEILING`/`PSX_FULL_GAME_TIMEOUT` (71,834 vsyncs, 1,197 s) for
+the replay of `full_game` and `PSX_FULL_GAME_GPU_CEILING`/
+`PSX_FULL_GAME_GPU_TIMEOUT` (31,500 vsyncs, 525 s) for its GPU replay: the
+first green run's 47,889 vsyncs in 798 s for the replay, and for the GPU
+replay the first run with frame lines, 21,000 vsyncs (`.progress`, the frame
+lines printed after the loop included; `done` line 20,543) in 350 s, both
+`done` lines at 6,059 frames, the PC's count.
+`PSX_SHORT_RUN_CEILING`/`PSX_SHORT_RUN_TIMEOUT` (540 vsyncs, 10 s) for every
+boot of `psx-short-runs`: its longest first boot, the breakdown of `start`,
+282 vsyncs at `done` and 300 to 359 by `.progress`, in 6 s.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
+
+## Short runs
+
+`make psx-short-runs` measures the GPU replay on a few short recordings that
+hold the worst frames of `full_game.json`, in minutes instead of the full
+check's 20, from the program under test (an emulator save state would hold
+the old code). It judges no zone or cap: `psx-full-game-check` stays the only
+judge of sizes.
+
+**Manifest.** `psx/short_runs.txt`, one run a line, frames of
+`full_game.json`: `<name> prefix <first> <last> <end>` (its first `end + 1`
+frames) or `<name> resume <first> <last>` (a resume before the window
+`first..last`). The five runs: `start` (frames 0–99, the start spike at 12),
+`update-4737`, `update-5500`, `update-5719` (update spikes) and `draw-5564`
+(the draw cluster 5564–5578).
+
+**Cut.** `make psx-short-runs-cut` (host only) replays `full_game.json` with
+`tmp/short_run_cut` (`src/devtools/short_run_cut.c`, pure, host-tested by
+`test_short_run_cut`), which observes every storage write and writes per run
+into `tmp/psx/short-runs/<name>/`:
+
+- `run.json`: for `resume`, an `initial_save` recording whose cut W is the
+  last frame at or before `first − 9` where the game wrote a save and whose
+  next frame W+1 has an idle pad; its frames are the 13-frame title resume of
+  `tests/e2e/pad_resume_at_start.json`, then `full_game.json`'s frames W+1 to
+  `last`. A cut with no eligible save, or longer than 1,024 frames (the
+  breakdown table), is refused naming the run;
+- `reference.json`: `full_game.json`'s frames up to the frame matching the
+  run's last;
+- `map.txt`: `cut <W> first-game-frame 13 source-first <W+1> window <first>
+  <last>` (run frame 13 + k plays full frame W+1+k; run frames 0–12, the
+  resume frame included, are never compared), or `cut none first-game-frame
+  0 source-first 0 ...` for a prefix.
+
+Both recordings must pass `tmp/embed_replay` and replay with `STATE=`; the
+target then prints `short-run-match: <name> same|differs <map>` with the
+differing lines of the two `tools/end_state.sh` states. A difference is
+reported, never a failure: a save holds no camera, jump selection or
+crosshair, so a resumed run can diverge from the full game, and the game is
+not changed for it.
+
+**Breakdown PS-EXE.** `psx-gpu-replay-breakdown` (built by `psx-build`, never
+booted by `psx-check`) is the GPU replay compiled with
+`PSX_GPU_REPLAY_BREAKDOWN`: `src/devtools/draw_timing.c` (host-tested by
+`test_draw_timing`) wraps the backend outermost, after the meter, and times
+every p8 draw call per family of `draw_filter.h` on root counter 2, system
+clock / 8 (`src/platform/psx_fine_clock.c`), with counter 1's hblanks as the
+coarse clock (a call of 200 hblanks or more flags its frame `wrapped`). A
+patterned rectfill or circfill counts under its shape and again under
+`pattern`, which no total adds. After the `psx-frame:` lines it prints
+`psx-draw: clk8-per-64-hblanks <n>` then, per frame, `psx-draw: frame <n>`,
+`<family> <ticks> <calls>` for the ten families and `wrapped <0|1>`. Without
+the definition the GPU replay is the same program.
+
+**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>]` runs the cut, then
+per run configures `psx/` in `<name>/build` with `run.json` embedded and
+builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, boots the plain
+one twice and the breakdown once with an empty capture script until they
+exit (`PSX_SHORT_RUN_CEILING` vsyncs, `PSX_SHORT_RUN_TIMEOUT` s; each boot's
+wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
+(host-tested by `test_psx_short_run` in `psx-tools-test`) into
+`<name>/analysis`. One line per condition, `ok` or `failed <reason>`
+(`verdicts.txt`):
+
+- `done`: each boot printed its `done` line with the run's frame count and
+  no stopped state;
+- `deterministic`: the two plain boots' `psx-frame:` lines are byte-identical;
+- `representative`: over the window frames (mapped), the plain run's draw sum
+  and update sum each within ±10% of `PSX_SHORT_RUN_REFERENCE`'s (default
+  `tmp/psx/full-game/run/frame-budget/frames.txt`, written by
+  `psx-full-game-check`); both runs' figures side by side in `window.txt`.
+  An empty reference skips it, so a changed program can still use the runs;
+  a set path that does not exist fails the target naming
+  `make psx-full-game-check`;
+- `breakdown`: the calibration in 15,500–19,000, one `psx-draw:` record per
+  frame, no wrapped frame, and no frame's in-call time above the breakdown
+  boot's own draw.
+
+`summary.txt`, over the window frames: each family's hblanks, calls and share
+of the breakdown boot's draw (`pattern` apart), `in-calls` (everything under
+the p8 draw API: meter, filter and GPU backend) and `outside-calls` (the
+game's own code in `cart_draw`); `overhead` (breakdown draw − plain draw);
+then per frame and as the window's maximum the best cases on the first plain
+boot's parts with the breakdown's in-call share s: `backend-free` (update +
+submit + draw × (1 − s)), `game-draw-free` (update + submit + draw × s) and
+`draw-free` (update + submit), each with the frames still over
+`PSX_FRAME_BUDGET_HBLANKS`. The target fails after every run when a
+condition failed. It is not part of `psx-check`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
+
+- `make psx-full-game-check` is red on `frame-budget` until plan 11 step 4,
+  as expected; nobody raises `PSX_FRAME_BUDGET_HBLANKS` to turn it green.
+  First run: 6,047 of 6,059 frames over 263 hblanks (every frame after the
+  first 12), worst frame 12 at 9,558 (update 9,074), mean overrun 629, mean
+  frame 891 hblanks (~3.4 vsyncs), draw dominant (4,714,765 of the
+  over-budget frames' 5,399,037 hblanks). The eleven other conditions hold.
+
+- `make psx-short-runs` is red on `representative`: `done`, `deterministic`
+  and `breakdown` hold on all five runs, and `start` matches the full run
+  exactly, but the four resumed runs miss their window: the update spikes
+  are not reproduced after the resume (4737: update 125 vs 2002; 5719: 49
+  vs 1588), and draw comes out lower than in the full run (5500: −33.3%;
+  draw-5564: −13.6%, about 15% lower on every window frame although its
+  end state matches the full game's). Plan 11 step 4.1 stops on it; the
+  cut rule and the windows are not loosened.
+
+- The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
+  `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in
+  `game-ram-room`: the shipped `psx-game` is not instrumented.
 
 - Hardware renderers: DuckStation's hardware renderer samples the x2 upscale
   quad unevenly (glyph outlines of uneven width, a broken-up title logo). Use
@@ -561,9 +839,6 @@ None of these targets is in `make test-all`, and none runs a setup.
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
   checks neither, so the disc is proven in the emulator only.
-
-- The human's play: load `tmp/psx/build/slipways.cue` in a windowed
-  emulator and judge the controller by hand. No agent opens a window.
 
 - Pending human acceptance, one label at a time: run `make psx-check`,
   review each capture's report line and
@@ -615,15 +890,3 @@ None of these targets is in `make test-all`, and none runs a setup.
     nonuniform 0`, ceilings 0: every family at once, aim mode entered from
     p47 (f100), aim mode moving to the fold (f188), the aim on the already
     linked p47 in colour 2 with the forbidden sign (f265).
-
-- `make psx-full-game-check` is red, pending for plan 11. The PS-EXE builds
-  (text 412552, data 2868, bss 977224) and the PC replay runs its 4,778
-  frames, but the emulator aborts after about 9 minutes (exit 134,
-  `An unknown exception occured`, `terminate called without an active
-  exception` in `run.log`), before the ceiling or the timeout. A rerun with
-  the emulator's stdout unbuffered (`stdbuf -o0`; `psx_boot.sh` leaves it
-  block-buffered, so an abort loses the TTY) reached `psx-replay: frame 4608`
-  with no `p8_fatal` line, then aborted the same way before the `done` line.
-  The cause, in the guest or in the emulator, is not found yet. The digest
-  lines that reach the TTY before the abort equal the PC's: the sprite sheet
-  and every screen up to frame 2464.

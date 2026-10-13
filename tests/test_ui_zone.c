@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 
 #include "engine/allocator.h"
+#include "engine/entity_id_list.h"
 #include "game/ui_zone.h"
 
 #define STDERR_LOG "tmp/test_ui_zone_stderr.txt"
@@ -176,6 +177,10 @@ int main(int argc, char **argv) {
         return 2;
     }
     self_path = argv[0];
+    assert(ui_zone_slot_size(SLOT_KIND_EPHEMERALS) ==
+               ARENA_HEAD_BYTES + ZONE_BYTES(sizeof(entity_id_list_t)) +
+                   ZONE_BYTES(UI_EPHEMERALS_RESERVE * sizeof(entity_id_t)) &&
+           "an ephemerals slot is its arena head, list head and full reserve");
     expect_clean("live_slots_follow_takes");
     expect_clean("slot_alive_until_released");
     expect_clean("maxima_keep_the_peak");

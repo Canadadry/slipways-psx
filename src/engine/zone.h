@@ -12,6 +12,15 @@ typedef union {
     (((bytes) + sizeof(zone_cell_t) - 1) / sizeof(zone_cell_t))
 #define ZONE_BYTES(bytes) (ZONE_CELLS(bytes) * sizeof(zone_cell_t))
 
+typedef char zone_pointer_width_is_4_or_8_t[(sizeof(void *) == 4 || sizeof(void *) == 8) ? 1 : -1];
+
+/* bytes_32 when pointers are 4 bytes, else bytes_64. Fails to compile when
+ * bytes_32 is not a whole number of cells or exceeds bytes_64. */
+#define ZONE_BYTES_BY_WIDTH(bytes_64, bytes_32) \
+    (sizeof(void *) == 4 \
+         ? (bytes_32) + 0 * sizeof(char[((bytes_32) % sizeof(zone_cell_t) == 0 && (bytes_32) <= (bytes_64)) ? 1 : -1]) \
+         : (bytes_64))
+
 #if defined(__SANITIZE_ADDRESS__)
 #define ZONE_ASAN 1
 #elif defined(__has_feature)

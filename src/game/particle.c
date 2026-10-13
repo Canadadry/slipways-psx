@@ -13,7 +13,7 @@
 #include "game/probe.h"
 #include "game/visual_random.h"
 
-typedef char particle_fits_its_slot_t[sizeof(particle_t) <= PARTICLE_SLOT ? 1 : -1];
+typedef char particle_fills_its_slot_t[ZONE_BYTES(sizeof(particle_t)) == PARTICLE_SLOT ? 1 : -1];
 
 static int g_pixels_hidden;
 

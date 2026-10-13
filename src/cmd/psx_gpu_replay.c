@@ -4,12 +4,18 @@
  *   psx-replay: backend gpu
  * after the format line, and
  *   psx-replay: capture <frame> <mask hex>
- * at each frame the capture script (platform/psx_capture_protocol.h) asks for. Without a capture
- * script driving the handshake it waits forever before the first frame. */
+ * at each frame the capture script (platform/psx_capture_protocol.h) asks for, plus the frame times
+ * (devtools/frame_times.h) behind "psx-frame: ": the calibration line before the first frame, then
+ * every frame's line before the done line, or before the stopped state on a p8_fatal. Without a
+ * capture script driving the handshake it waits forever before the first frame.
+ * Built with PSX_GPU_REPLAY_BREAKDOWN (psx-gpu-replay-breakdown), it also times every backend call
+ * per draw family (devtools/draw_timing.h) and writes, after the "psx-frame: " lines, the fine
+ * clock's calibration then one line per frame behind "psx-draw: ". */
 
 #include "devtools/draw_filter.h"
 #include "devtools/embedded_replay.h"
 #include "devtools/format_self_test.h"
+#include "devtools/frame_times.h"
 #include "devtools/state_format.h"
 #include "engine/dispatch_context.h"
 #include "game/bindings.h"
@@ -24,12 +30,14 @@
 #include "p8/vram.h"
 #include "platform/psx_capture_protocol.h"
 #include "platform/psx_exit.h"
+#include "platform/psx_frame_timer.h"
 #include "platform/psx_gpu.h"
 #include "platform/psx_tty.h"
 
 #include <assert.h>
 #include <psxgpu.h>
 #include <stdint.h>
+#include <stdio.h>
 
 enum { PROGRESS_PERIOD = 256 };
 
@@ -63,11 +71,66 @@ static capture_request_t capture_frame(int frame, unsigned mask) {
     return capture_wait_next();
 }
 
+#ifdef PSX_GPU_REPLAY_BREAKDOWN
+#include "devtools/draw_timing.h"
+#include "platform/psx_fine_clock.h"
+
+enum { BREAKDOWN_WRAP_HBLANKS = 200 };
+
+static const draw_timing_clock_t BREAKDOWN_CLOCK = {
+    psx_fine_clock_read, psx_frame_timer_read, BREAKDOWN_WRAP_HBLANKS,
+};
+static uint32_t breakdown_calibration;
+
+/* The frame timer must be started. */
+static void breakdown_start(int frame_count) {
+    if (frame_count > DRAW_TIMING_CAP) {
+        char message[80];
+        snprintf(message, sizeof message, "replay has %d frames, draw timing capacity %d", frame_count,
+                 DRAW_TIMING_CAP);
+        p8_fatal(message);
+    }
+    psx_fine_clock_start();
+    breakdown_calibration = psx_fine_clock_calibrate();
+    draw_timing_install(&BREAKDOWN_CLOCK);
+}
+
+static void breakdown_frame_end(void) {
+    draw_timing_frame_end();
+}
+
+static void breakdown_write(void) {
+    state_sink_t sink = psx_tty_draw_sink();
+    draw_timing_write_calibration(&sink, breakdown_calibration);
+    draw_timing_write(&sink);
+}
+#else
+static void breakdown_start(int frame_count) {
+    (void)frame_count;
+}
+
+static void breakdown_frame_end(void) {
+}
+
+static void breakdown_write(void) {
+}
+#endif
+
 static void write_stopped_state(int code) {
     if (code != PSX_EXIT_FATAL) return;
+    state_sink_t frame_sink = psx_tty_frame_sink();
+    frame_times_write(&frame_sink);
+    breakdown_write();
     state_sink_t sink = psx_tty_state_sink();
     state_format_stopped(&sink, g_frame);
     state_format(&sink);
+}
+
+static void check_frame_capacity(int frame_count) {
+    if (frame_count <= FRAME_TIMES_CAP) return;
+    char message[80];
+    snprintf(message, sizeof message, "replay has %d frames, frame table capacity %d", frame_count, FRAME_TIMES_CAP);
+    p8_fatal(message);
 }
 
 static int asserts_enabled(void) {
@@ -118,6 +181,14 @@ int main(void) {
     cart_load();
     cart_init();
 
+    frame_times_init();
+    check_frame_capacity(input.frame_count);
+    psx_frame_timer_start();
+    state_sink_t frame_sink = psx_tty_frame_sink();
+    frame_times_write_calibration(&frame_sink, psx_frame_timer_calibrate());
+
+    breakdown_start(input.frame_count);
+
     capture_request_t capture = capture_start();
     int start_vsync = VSync(-1);
     input_step_t step;
@@ -125,16 +196,33 @@ int main(void) {
     input_step_set_attract_after(&step, embedded_replay_attract_after);
     int cheat_activations = 0;
     for (g_frame = 0; g_frame < input.frame_count; g_frame++) {
+        uint32_t frame_start_vsync = psx_frame_timer_vsyncs();
+        uint16_t marks[FRAME_TIMES_MARKS];
+        marks[0] = psx_frame_timer_read();
         cheat_activations += input_step_run(&step, &input.frames[input.current_frame]);
         cart_update60();
+        marks[1] = psx_frame_timer_read();
         int captured = capture.frame == (uint32_t)g_frame;
         draw_filter_set_mask(captured ? capture.mask : DRAW_FILTER_ALL);
         cart_draw();
+        marks[2] = psx_frame_timer_read();
         p8_draw_meter_frame_end();
         draw_filter_frame_end();
+        breakdown_frame_end();
         psx_gpu_frame_end(p8_draw_meter_last_frame().bytes);
-        if (captured) capture = capture_frame(g_frame, capture.mask);
+        /* The capture handshake waits on the emulator: its time and vsyncs stay out of the frame's. */
+        uint16_t capture_time = 0;
+        uint32_t capture_vsyncs = 0;
+        if (captured) {
+            uint16_t capture_start_mark = psx_frame_timer_read();
+            uint32_t capture_start_vsync = psx_frame_timer_vsyncs();
+            capture = capture_frame(g_frame, capture.mask);
+            capture_time = (uint16_t)(psx_frame_timer_read() - capture_start_mark);
+            capture_vsyncs = psx_frame_timer_vsyncs() - capture_start_vsync;
+        }
         psx_gpu_frame_begin(g_frame + 1);
+        marks[3] = (uint16_t)(psx_frame_timer_read() - capture_time);
+        frame_times_record(marks, psx_frame_timer_vsyncs() - frame_start_vsync - capture_vsyncs);
         if (g_frame < input.frame_count - 1) {
             p8_input_step(&input);
         }
@@ -145,6 +233,8 @@ int main(void) {
     int vsyncs = VSync(-1) - start_vsync;
     psx_exit_set_hook(NULL);
 
+    frame_times_write(&frame_sink);
+    breakdown_write();
     psx_tty_printf("psx-replay: done %s %d vsyncs %d\n", embedded_replay_name, input.frame_count, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);

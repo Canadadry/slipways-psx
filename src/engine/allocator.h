@@ -47,6 +47,18 @@ unsigned char *allocator_grow(const allocator_t *z, unsigned char *p,
 
 void allocator_release(const allocator_t *z, unsigned char *p);
 
+/* `handle` must stay first: arena_t is reached by casting the handle. */
+typedef struct {
+    allocator_t handle;
+    bump_zone_t bump;
+    const allocator_t *from;
+} arena_t;
+
+#define ARENA_HEAD_BYTES ZONE_BYTES(sizeof(arena_t))
+
+#define ARENA_LIST_BYTES(list_head_bytes, capacity, element_bytes) \
+    (ARENA_HEAD_BYTES + ZONE_BYTES(list_head_bytes) + ZONE_BYTES((capacity) * (element_bytes)))
+
 const allocator_t *arena_take(const allocator_t *from,
                                                      const char *name, size_t size);
 size_t arena_size_for(size_t n);

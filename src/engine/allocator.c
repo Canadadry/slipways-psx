@@ -99,14 +99,7 @@ void allocator_release(const allocator_t *z, unsigned char *p) {
     z->release(z, p);
 }
 
-/* `handle` must stay first: arena_t is reached by casting the handle. */
-typedef struct {
-    allocator_t handle;
-    bump_zone_t bump;
-    const allocator_t *from;
-} arena_t;
-
-#define ARENA_HEAD_CELLS ZONE_CELLS(sizeof(arena_t))
+#define ARENA_HEAD_CELLS (ARENA_HEAD_BYTES / sizeof(zone_cell_t))
 
 /* Not bump_zone_init: under ASan it poisons two halves, past the block. */
 const allocator_t *arena_take(const allocator_t *from,

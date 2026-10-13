@@ -2,12 +2,14 @@
 
 #include <assert.h>
 
+#include "engine/pointer_list.h"
 #include "engine/slot_group.h"
 #include "engine/zone_sizes.h"
 
-#define PARTICLES_SIZE (96u + 24u + PARTICLES_CAPACITY * 8u)
-#define PARTICLES_HELP_SCREEN_SIZE (96u + 24u + PARTICLES_HELP_SCREEN_CAPACITY * 8u)
-#define BURST_SIZE 648u
+#define PARTICLES_SIZE ARENA_LIST_BYTES(sizeof(pointer_list_t), PARTICLES_CAPACITY, sizeof(void *))
+#define PARTICLES_HELP_SCREEN_SIZE \
+    ARENA_LIST_BYTES(sizeof(pointer_list_t), PARTICLES_HELP_SCREEN_CAPACITY, sizeof(void *))
+#define BURST_SIZE ZONE_BYTES_BY_WIDTH(648u, 424u)
 #define PARTICLES_COUNT 18
 #define PARTICLES_HELP_SCREEN_COUNT 1
 #define BURST_COUNT 4

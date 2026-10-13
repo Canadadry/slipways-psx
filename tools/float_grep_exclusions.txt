@@ -32,6 +32,10 @@ src/devtools/state.c | text state of make state, host tool
 src/devtools/state.h | text state of make state, header of devtools/state.c
 src/devtools/state_format.c | text state of make state, shared by the PC and PSX adapters
 src/devtools/state_format.h | text state of make state, header of devtools/state_format.c
+src/devtools/frame_times.c | frame table of the PSX GPU replay, written through the state sink, host-tested
+src/devtools/frame_times.h | frame table of the PSX GPU replay, header of devtools/frame_times.c
+src/devtools/largest_slots.c | largest-case button and row scenarios, shared by the host tests and the PSX largest-slots boot, written through the state sink
+src/devtools/largest_slots.h | largest-case button and row scenarios, header of devtools/largest_slots.c
 src/devtools/vram_digest.c | sprite sheet, screen and map digest lines, shared by the PC and PSX replays
 src/devtools/vram_digest.h | sprite sheet, screen and map digest lines, header of devtools/vram_digest.c
 src/devtools/save_check.c | save comparison harness of the tests, writes the state dump through a FILE stream
@@ -52,8 +56,12 @@ src/platform/psx_exit.c | PSX exit module, PSX only
 src/platform/psx_exit.h | PSX exit module, header of platform/psx_exit.c
 src/platform/psx_pad.c | PSX raw pad read through the BIOS, PSX only
 src/platform/psx_pad.h | PSX raw pad read, header of platform/psx_pad.c
-src/platform/psx_tty.c | PSX TTY output and state line sink, PSX only
+src/platform/psx_tty.c | PSX TTY output and its state, frame and draw line sinks, PSX only
 src/platform/psx_tty.h | PSX TTY output, header of platform/psx_tty.c
+src/platform/psx_frame_timer.c | hblank root counter of the PSX GPU replay's frame times, PSX only
+src/platform/psx_frame_timer.h | hblank root counter, header of platform/psx_frame_timer.c
+src/platform/psx_fine_clock.c | system clock / 8 root counter of the PSX breakdown replay's draw call timing, PSX only
+src/platform/psx_fine_clock.h | system clock / 8 root counter, header of platform/psx_fine_clock.c
 src/p8/format.c | snprintf replacement of the PSX build, linked by the PSX platform and its host test
 src/p8/format.h | snprintf replacement of the PSX build, header of p8/format.c
 src/platform/format_psx.c | routes the PSX snprintf and vsnprintf to p8/format.c, PSX only
@@ -78,6 +86,8 @@ src/platform/psx_pattern.c | patterned rectfill and circfill as GPU sprites unde
 src/platform/psx_pattern.h | patterned rectfill and circfill as GPU sprites under a texture window, header of platform/psx_pattern.c
 src/devtools/draw_filter.c | family filter of the GPU captures, shared by the PC replay and the PSX GPU replay
 src/devtools/draw_filter.h | family filter of the GPU captures, header of devtools/draw_filter.c
+src/devtools/draw_timing.c | draw call timing of the PSX breakdown replay, written through the state sink, host-tested
+src/devtools/draw_timing.h | draw call timing of the PSX breakdown replay, header of devtools/draw_timing.c
 src/devtools/capture_list.c | GPU capture list parser, host tool
 src/devtools/capture_list.h | GPU capture list parser, header of devtools/capture_list.c
 src/devtools/capture_compare.c | GPU capture comparator, host tool
@@ -92,6 +102,7 @@ src/devtools/pad_log.c | PSX game pad log and pad script reader, host tool
 src/devtools/pad_log.h | PSX game pad log and pad script reader, header of devtools/pad_log.c
 src/cmd/psx_pad_log.c | entry point of psx_pad_log, which turns the PSX game's pad log into an events.json, host tool
 src/cmd/psx_game.c | entry point of the PSX game read from the pad, PSX only
+src/cmd/psx_largest_slots.c | entry point of the PSX largest-slots boot, PSX only
 src/platform/psx_pad_protocol.h | scratchpad words of the pad script handshake, PSX only
 src/cmd/pad_author.c | entry point of the worst-case game generator, host tool
 src/cmd/bindings_generate.c | entry point of the bindings table generator, host tool
@@ -105,3 +116,6 @@ src/devtools/pad_caption.h | caption rules of the generator, header of devtools/
 src/devtools/demo_source.c | demo loader of the demo generator, reads pico8/demo.json through the libc, host tool
 src/devtools/demo_source.h | demo loader of the demo generator, header of devtools/demo_source.c
 src/cmd/demo_generate.c | entry point of the demo generator, writes tmp/demo/demo.c through the libc, host tool
+src/devtools/short_run_cut.c | cut planner of make psx-short-runs-cut, host tool
+src/devtools/short_run_cut.h | cut planner of make psx-short-runs-cut, header of devtools/short_run_cut.c
+src/cmd/short_run_cut.c | entry point of short_run_cut, which cuts the short runs out of the full game, host tool

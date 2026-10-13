@@ -2,20 +2,21 @@
 
 #include <stddef.h>
 
+#include "engine/entity_id_list.h"
 #include "engine/slot_group.h"
 #include "engine/zone_sizes.h"
 
-#define BUTTON_SIZE 6056u
+#define BUTTON_SIZE ZONE_BYTES_BY_WIDTH(6056u, 3784u)
 #define BUTTON_COUNT 15u
-#define MODAL_BACKDROP_SIZE 280u
+#define MODAL_BACKDROP_SIZE ZONE_BYTES_BY_WIDTH(280u, 160u)
 #define MODAL_BACKDROP_COUNT 2u
-#define MESSAGE_BOX_SIZE 5128u
+#define MESSAGE_BOX_SIZE ZONE_BYTES_BY_WIDTH(5128u, 3072u)
 #define MESSAGE_BOX_COUNT 4u
-#define TOAST_SIZE 344u
+#define TOAST_SIZE ZONE_BYTES_BY_WIDTH(344u, 192u)
 #define TOAST_COUNT 48u
-#define ROW_SIZE 1184u
+#define ROW_SIZE ZONE_BYTES_BY_WIDTH(1184u, 616u)
 #define ROW_COUNT 66u
-#define EPHEMERALS_SIZE (96u + 24u + UI_EPHEMERALS_RESERVE * 4u)
+#define EPHEMERALS_SIZE ARENA_LIST_BYTES(sizeof(entity_id_list_t), UI_EPHEMERALS_RESERVE, sizeof(entity_id_t))
 #define EPHEMERALS_COUNT 9u
 
 typedef char ui_zone_exceeded_t[

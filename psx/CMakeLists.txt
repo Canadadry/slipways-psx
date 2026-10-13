@@ -8,23 +8,27 @@ project(
 	slipways-psx
 	LANGUAGES    C
 	VERSION      0.1.0
-	DESCRIPTION  "Slipways PSX port -- the game and its CD image, core replays and pad probe"
+	DESCRIPTION  "Slipways PSX port -- the game and its CD image, core replays, pad probe and largest-slots run"
 	HOMEPAGE_URL "https://github.com/canadadry/slipways-love"
 )
 
-foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX_PAD_PROBE_SOURCES PSX_GAME_SOURCES)
+foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX_GPU_REPLAY_BREAKDOWN_SOURCES PSX_PAD_PROBE_SOURCES PSX_GAME_SOURCES PSX_LARGEST_SLOTS_SOURCES)
 	if(NOT DEFINED ${_required})
 		message(FATAL_ERROR "${_required} is not set: build through make psx-build")
 	endif()
 endforeach()
 
-foreach(_target psx-replay psx-gpu-replay psx-pad-probe psx-game)
+foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe psx-game psx-largest-slots)
 	if(_target STREQUAL "psx-replay")
 		set(_sources ${PSX_REPLAY_SOURCES})
 	elseif(_target STREQUAL "psx-gpu-replay")
 		set(_sources ${PSX_GPU_REPLAY_SOURCES})
+	elseif(_target STREQUAL "psx-gpu-replay-breakdown")
+		set(_sources ${PSX_GPU_REPLAY_BREAKDOWN_SOURCES})
 	elseif(_target STREQUAL "psx-game")
 		set(_sources ${PSX_GAME_SOURCES})
+	elseif(_target STREQUAL "psx-largest-slots")
+		set(_sources ${PSX_LARGEST_SLOTS_SOURCES})
 	else()
 		set(_sources ${PSX_PAD_PROBE_SOURCES})
 	endif()
@@ -35,5 +39,6 @@ foreach(_target psx-replay psx-gpu-replay psx-pad-probe psx-game)
 	target_compile_options(${_target} PRIVATE -std=c99 -Wall -Wextra -Werror -UNDEBUG)
 	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort -Wl,--wrap=snprintf -Wl,--wrap=vsnprintf)
 endforeach()
+target_compile_definitions(psx-gpu-replay-breakdown PRIVATE PSX_GPU_REPLAY_BREAKDOWN)
 
 psn00bsdk_add_cd_image(psx-game-iso slipways iso.xml DEPENDS psx-game system.cnf)
