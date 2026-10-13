@@ -151,30 +151,48 @@ because this plan file is deleted once it is finished.
    experiment), applies it in a temporary worktree, runs the chosen short
    runs, and prints each run's window draw, update and submit delta against
    the baseline. It also reports whether the game-state lines match the
-   baseline's. Host-tested on hand-written boot outputs. Verified by two
-   sanity probes on the real build:
+   baseline's. Probe builds get room for the extra primitives a probe sends
+   (the GPU frame buffer is sized at the metered peak + 1/8, and an overrun is
+   `p8_fatal`), and the meter's accounting matches; a probe boot that still
+   ends in `p8_fatal` is reported as invalid, never as a delta. Host-tested on
+   hand-written boot outputs. Verified by two sanity probes on the real build,
+   neither ending in `p8_fatal`:
    - calling `cart_draw` twice roughly doubles draw (within 10%) and leaves
      the game-state lines identical (`visual_random` may drift);
    - a fixed delay at the entry of a function called a known number of times
      per frame gives delta ÷ delay equal to that count.
-4. A PC tool prints per-frame call counts per `cart_draw` and
+   - a null patch (changes the code layout, does no work at run time) gives
+     the noise floor, recorded per run in the report. It must sit clearly
+     below the 2% threshold, or the threshold or the probe method is
+     revisited before Phase 2.
+4. A PC tool prints per-frame call counts and PC time per `cart_draw` and
    `cart_update60` child, and per draw family, for any recording. It runs in
    seconds and its own test sits outside `make test`. Verified on
    `draw-5564`'s window: its per-family call counts equal the breakdown
-   boot's `calls` column.
+   boot's `calls` column. Then a coverage check: over all of
+   `full_game.json`, compare each `cart_draw` child's and family's share of
+   draw with its share in draw-5564's window. A child or family above 2% of
+   draw on a significant share of full-run frames but under 2% at 5564 gets
+   an extra draw window in `psx/short_runs.txt`, probed in steps 6–7 like
+   draw-5564. Verified when the comparison is in the report and every child
+   above 2% somewhere in the full run is covered by a probed window.
+5. Milestone: one asserts-off `make psx-full-game-check`, the only full run
+   of this plan besides step 9's fallback. Verified when its frame table is
+   recorded in the report as the judge's baseline, next to the step 2 short-run
+   baseline, so step 12's verdict can be stated against both.
 
 ### Phase 2 — Draw
 
-5. Level 1 of draw: probe each direct child of `cart_draw` with call-twice
+6. Level 1 of draw: probe each direct child of `cart_draw` with call-twice
    on `start` and `draw-5564`. Verified when the report lists each child's
    cost and calls per frame, and the children's costs add up to `cart_draw`'s
    own within 10%. The gap is explained in the report if not.
-6. Go down the draw tree. Each branch above 2% of the mean window frame is
+7. Go down the draw tree. Each branch above 2% of the mean window frame is
    probed one level deeper, until it is a leaf or under 2%. Each function
    explored gets its "do less" candidates in the report: repeated calls,
    identical redraws, recomputation. Verified when every branch above 2% is
    explored or explicitly marked as a leaf.
-7. Backend side: for each draw family, per-unit cost (hblanks per call,
+8. Backend side: for each draw family, per-unit cost (hblanks per call,
    glyph or primitive) from the breakdown boot, and the ways to do less
    inside the backend and the meter. Two experiments run here: the 9× print
    bounded by a one-print throwaway, and the meter removed from the measured
@@ -183,50 +201,57 @@ because this plan file is deleted once it is finished.
 
 ### Phase 3 — Update
 
-8. Identify the four spikes on PC (frames 12, 4737, 5500, 5719 of
+9. Identify the four spikes on PC (frames 12, 4737, 5500, 5719 of
    `full_game.json`): which `cart_update60` descendant holds the time, and
    why it runs then. If PC cannot settle it, fall back to the full run.
    Verified when the report names, for each spike, the responsible function
    and its share of that frame's update. Also given: a do-less candidate,
    and the number of frames it would take if spread out under 263 after
    draw's estimated levers.
-9. Ordinary update: the 171 frames where update alone overruns, and update's
-   share in normal frames, through the fixed-delay probes and PC
-   proportions. Verified when update's children above 2% of the mean window
-   frame have a cost, a call count and their do-less candidates in the
-   report.
+10. Ordinary update. First, a calibration: compare the PC time proportions
+    of `cart_draw`'s children with their PSX costs from step 6, and record
+    the gap. A large gap marks the PC-derived update costs as low-confidence,
+    or switches method, decided in the step note. Then the 171 frames where
+    update alone overruns, and update's share in normal frames, through the
+    fixed-delay probes and PC proportions. Verified when the calibration gap
+    is recorded and update's children above 2% of the mean window frame have
+    a cost, a call count and their do-less candidates in the report.
 
 ### Phase 4 — Global levers
 
-10. Measure on all five short runs: asserts off vs on, and `-O2` / `-O3` /
+11. Measure on all five short runs: asserts off vs on, and `-O2` / `-O3` /
     `-Os` (`-Os` can win on the R3000's 4 KB instruction cache). Also
     identify what the submit part spends its time on. Verified when each has
     a measured delta in the report.
 
 ### Phase 5 — Report
 
-11. Finish `docs/psx-perf-levers.md`. It holds:
+12. Finish `docs/psx-perf-levers.md`. It holds:
     - the decisions carried to the implementation plan (section 2 above),
       verbatim in substance;
     - one entry per lever: where it is (file:line), the measured or
       estimated gain in hblanks per short run, the cost to implement, and
       the risk (e2e hashes, PC/PSX identity, RAM);
     - the levers ranked by gain over cost;
-    - per short-run frame, the cumulative estimate against 263, with the
-      overlaps between levers named (for example, removing the 9× print also
-      shrinks the meter's share);
+    - per frame of the step 5 full-run table (the judge's frames), the
+      cumulative estimate against 263, with the overlaps between levers
+      named (for example, removing the 9× print also shrinks the meter's
+      share). Each lever's short-run delta is carried over as a relative
+      gain on its part (draw, update or submit), since the short runs read
+      low in absolute terms; frames 12, 4737, 5500 and 5719 use step 9's
+      spike figures and spreading estimates instead;
     - the spikes and their spreading estimates;
     - which stop condition ended discovery.
 
     Verified when every lever entry has all four fields, and the stop
     condition holds: either the cumulative estimated gain brings every
-    short-run window frame to 263 with about 20% extra gain to spare
+    full-run frame to 263 with about 20% extra gain to spare
     (estimates overlap, so their sum is optimistic), or every branch above
     2% is explored, whichever came first.
 
 ## 4. Done when
 
-- `docs/psx-perf-levers.md` is committed, complete per step 11, and states
+- `docs/psx-perf-levers.md` is committed, complete per step 12, and states
   whether the levers found reach 263 on paper.
 - `make test-all` and `psx-check` are green and unchanged. No game or
   shipped-path code changed, and every `*.sha256` is unchanged.
