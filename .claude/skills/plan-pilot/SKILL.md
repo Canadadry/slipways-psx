@@ -26,10 +26,8 @@ Repeat until there's no next step:
 ### 1. Find the next step
 The plan's `Step notes` section (whatever its number) is the progress record: one note per finished step, `### Step <phase>.<step>`. The next step is the first one in the plan's order without a note. Every step has one → the plan is complete: check its `Done when` list, then finish it:
 
-- Every item holds → `git rm` the plan file and `progress.md` in one commit (`docs:`, the hook allows the deletion once every item is `[x]`), push, report, and stop. A finished plan never stays in `docs/` (CLAUDE.md § Docs).
+- Every item holds → `git rm` the plan file and `progress.md` in one commit (`docs:`, the hook allows the deletion once every item is `[x]`), push, open the pull request (§ Pull request), report, and stop. A finished plan never stays in `docs/` (CLAUDE.md § Docs).
 - An item waits on the human (a review, a play test) → keep both files, its `[ ]` open, and report it. Whoever makes the commit that ticks it, agent or human, follows it with that same `docs:` commit removing the plan file and `progress.md`; say so in the report, with the exact commands.
-
-Either way, open the pull request before reporting (§ Pull request).
 
 ### 2. Run it
 
@@ -56,13 +54,13 @@ After any step that was risky or taught something new, spawn a fresh `plan-revie
 
 ## Pull request
 
-Whenever the run stops — the plan complete, waiting on the human, or halted on a failure — the branch has a pull request against the default branch, opened with the GitHub tools after the last push. One may already exist for the branch (opened automatically, titled after the first commit): update its title and body instead of opening another.
+Only when the plan is finished — the commit removing the plan file and `progress.md` pushed — open a pull request against the default branch with the GitHub tools. A run that stops on a failure or waits on the human opens none. The plan file is gone by then: write the body from the step notes as they were before that commit. One may already exist for the branch (opened automatically, titled after the first commit): update its title and body instead of opening another.
 
 - **Title**: `Plan <N>: <outcome>` — what the run delivered and, if it fell short, how, in under 100 characters. Never a commit subject. Example: `Plan 11: full game finishes on PSX, per-frame GPU timing, 104 KB freed — ships below 60 fps`.
-- **Body**: one line on the plan and how the run ended; one section per step with its result in figures, taken from its step note; what the reviewer must act on (a setup to rerun, a changed interface); what is left open (a human item of `Done when`, a halted step and the decision it waits on, `warn-review` warnings not acted on). Mirror the repository's PR template if it has one.
+- **Body**: one line on the plan and how the run ended; one section per step with its result in figures, taken from its step note; what the reviewer must act on (a setup to rerun, a changed interface); what is left open (`warn-review` warnings not acted on, an item the human waived). Mirror the repository's PR template if it has one.
 - Never merge it (CLAUDE.md § What we don't do).
 
 ## Boundaries
 
 - Never change a step's content or scope yourself — only accepted `plan-review` proposals change the plan, and those are method-only.
-- Stop and report to the user only when the plan is complete, or when `prd-autopilot`, `check-e2e` or `fix-bug` stops with a failure — after opening or updating the pull request (§ Pull request).
+- Stop and report to the user only when the plan is complete, or when `prd-autopilot`, `check-e2e` or `fix-bug` stops with a failure, opening the pull request only in the first case (§ Pull request).
