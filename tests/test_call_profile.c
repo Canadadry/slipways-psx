@@ -400,6 +400,12 @@ static int case_depth(void) {
     return 0;
 }
 
+static int case_unbalanced(void) {
+    fresh();
+    call_profile_exit(LEAF, SITE_A);
+    return 0;
+}
+
 static char *read_whole_file(const char *path) {
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -420,7 +426,7 @@ static void expect_fatal(const char *self_path, const char *name, const char *me
     char *err = read_whole_file(STDERR_LOG);
     if (WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
         fprintf(stderr, "%s: expected exit 3 and \"%s\", exit %d\n%s", name, message, WEXITSTATUS(status), err);
-        assert(0 && "a cap overrun must call p8_fatal");
+        assert(0 && "a cap overrun or an unbalanced exit must call p8_fatal");
     }
     free(err);
     remove(STDERR_LOG);
@@ -431,6 +437,7 @@ int main(int argc, char **argv) {
         if (strcmp(argv[1], "frames") == 0) return case_frames();
         if (strcmp(argv[1], "children") == 0) return case_children();
         if (strcmp(argv[1], "depth") == 0) return case_depth();
+        if (strcmp(argv[1], "unbalanced") == 0) return case_unbalanced();
         fprintf(stderr, "test_call_profile: unknown case %s\n", argv[1]);
         return 2;
     }
@@ -450,6 +457,7 @@ int main(int argc, char **argv) {
     expect_fatal(argv[0], "frames", "call profile frame table full at frame 6817, capacity 6817");
     expect_fatal(argv[0], "children", "call profile: more than 16 children under one root");
     expect_fatal(argv[0], "depth", "call profile: call stack deeper than 256");
+    expect_fatal(argv[0], "unbalanced", "call profile: exit without its entry");
     printf("test_call_profile: ok\n");
     return 0;
 }

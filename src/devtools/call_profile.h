@@ -46,8 +46,9 @@ typedef struct {
 /* Empties every table and the call stack. Root addresses are non-zero and distinct. */
 void call_profile_init(call_profile_clock_t clock, uintptr_t update_root, uintptr_t draw_root);
 
-/* The compiler hooks' bookkeeping. Nesting past CALL_PROFILE_DEPTH_CAP, or a root getting more
- * than CALL_PROFILE_CHILD_CAP children over the run, is a p8_fatal. */
+/* The compiler hooks' bookkeeping. Nesting past CALL_PROFILE_DEPTH_CAP, a root getting more
+ * than CALL_PROFILE_CHILD_CAP children over the run, or an exit that is not the innermost
+ * entry's, is a p8_fatal. */
 void call_profile_enter(uintptr_t function, uintptr_t call_site);
 void call_profile_exit(uintptr_t function, uintptr_t call_site);
 

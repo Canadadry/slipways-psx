@@ -508,6 +508,20 @@
 #                       missing or stale, or tools/psx_probe.sh says so; fails
 #                       after every run if one is invalid, outside the suite
 #                       and psx-check
+# make frame-profile [EVENTS=<events>] [REFERENCE=<end-state>] -> builds
+#                       tmp/frame_profile (`-O2`, asserts off, game, engine
+#                       and PICO-8 runtime built with -finstrument-functions)
+#                       and replays that recording (default
+#                       worst-case/full_game.json) as tmp/replay does; writes
+#                       in tmp/frame-profile/<name>/ frames.txt (per frame:
+#                       update and draw PC time, calls, time, net time and
+#                       calls below of each direct child of cart_update60 and
+#                       cart_draw, self time, calls and time per draw family,
+#                       in-call) and summary.txt (the run's totals and shares),
+#                       then checks the last state against <events>.end-state
+#                       or REFERENCE with tools/end_state.sh: prints
+#                       same-game yes, no (fails) or unchecked (no
+#                       reference), outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -591,12 +605,14 @@ TMP_DIR := tmp
 
 # One object tree per set of flags. An object compiled without -fsanitize is
 # not instrumented: sharing it with a target that is would leave the binary
-# blind on that code, silently. Do not merge the five.
+# blind on that code, silently. Do not merge the seven.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
+OBJ_PROFILE_DIR := $(TMP_DIR)/obj-profile
+OBJ_PROFILE_PLAIN_DIR := $(TMP_DIR)/obj-profile-plain
 
 # `-MMD -MP`: next to each object, the compiler writes the list of headers that
 # the translation unit actually opened. The include at the bottom of this file
@@ -606,6 +622,9 @@ ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 SANITIZE_OPT_CFLAGS := -O2
 COVERAGE_CFLAGS := --coverage -O0
+PROFILE_CFLAGS := -O2 -DNDEBUG -Wno-error=unused-variable -Wno-error=unused-but-set-variable \
+	-Wno-error=unused-function -Wno-error=unused-parameter
+PROFILE_INSTRUMENT_CFLAGS := -finstrument-functions
 
 # `$(call objs,<sources>)` -> the paths of the matching object files in the
 # tree concerned. A target names its sources once; its prerequisites and its
@@ -615,6 +634,8 @@ asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
+profile_objs = $(patsubst %.c,$(OBJ_PROFILE_DIR)/%.o,$(1))
+profile_plain_objs = $(patsubst %.c,$(OBJ_PROFILE_PLAIN_DIR)/%.o,$(1))
 
 # `mkdir -p $(@D)` in the recipe rather than a directory as a prerequisite:
 # the mtime of a directory changes with every file written into it, which would
@@ -638,6 +659,14 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_PROFILE_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(PROFILE_CFLAGS) $(PROFILE_INSTRUMENT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_PROFILE_PLAIN_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(PROFILE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 BINDINGS_CORE_UNIT := $(TMP_DIR)/bindings/core.c
 DEMO_UNIT := $(TMP_DIR)/demo/demo.c
@@ -2298,7 +2327,35 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 	if [ -n "$$invalid" ]; then echo "$@: $$label: invalid:$$invalid"; exit 1; fi; \
 	echo "$@: $$label: valid"
 
-FRAME_PROFILE_TESTS := test_call_profile
+FRAME_PROFILE_TESTS := test_call_profile test_frame_profile
+
+# Only the game, the engine and the PICO-8 runtime are instrumented: the hooks
+# must never see themselves or the replay harness.
+FRAME_PROFILE_SRCS := src/cmd/frame_profile.c src/devtools/call_profile.c src/devtools/record_start.c \
+	src/devtools/draw_filter.c src/devtools/capture_list.c src/devtools/replay_source.c $(STATE_SRCS) \
+	$(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+FRAME_PROFILE_INSTRUMENTED_SRCS := $(filter src/game/% src/engine/% src/p8/%,$(FRAME_PROFILE_SRCS))
+FRAME_PROFILE_PLAIN_SRCS := $(filter-out $(FRAME_PROFILE_INSTRUMENTED_SRCS),$(FRAME_PROFILE_SRCS))
+FRAME_PROFILE_DIR := $(TMP_DIR)/frame-profile
+FRAME_PROFILE_EVENTS := worst-case/full_game.json
+
+$(TMP_DIR)/frame_profile: $(call profile_objs,$(FRAME_PROFILE_INSTRUMENTED_SRCS)) $(call profile_plain_objs,$(FRAME_PROFILE_PLAIN_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+	nm $@ > $@.syms
+
+frame-profile: $(TMP_DIR)/frame_profile tools/end_state.sh
+	@events=$(or $(EVENTS),$(FRAME_PROFILE_EVENTS)); reference=$(or $(REFERENCE),$$events.end-state); \
+	dir=$(FRAME_PROFILE_DIR)/$$(basename $$events .json); mkdir -p $$dir; rm -f $$dir/state.txt; \
+	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms || exit $$?; \
+	if [ ! -f "$$reference" ]; then same=unchecked; \
+	elif sh tools/end_state.sh check $$events $$dir/state.txt $$reference > $$dir/end-state.txt; then same=yes; \
+	else same=no; cat $$dir/end-state.txt; fi; \
+	echo "same-game $$same" >> $$dir/summary.txt; \
+	echo "frame-profile: same-game $$same"; \
+	[ $$same != no ]
+
+$(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -2306,7 +2363,7 @@ $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools
 frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
-.PHONY: frame-profile-test
+.PHONY: frame-profile-test frame-profile
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

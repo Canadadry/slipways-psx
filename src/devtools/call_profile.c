@@ -109,8 +109,8 @@ void call_profile_enter(uintptr_t function, uintptr_t call_site) {
 }
 
 void call_profile_exit(uintptr_t function, uintptr_t call_site) {
-    (void)function, (void)call_site;
-    assert(depth > 0 && stack[depth - 1].function == function && "exit without its entry");
+    (void)call_site;
+    if (depth == 0 || stack[depth - 1].function != function) p8_fatal("call profile: exit without its entry");
     stack_entry_t *entry = &stack[--depth];
     if (entry->kind == FRAME_ROOT) {
         current.root_ns[entry->root] += clock_now() - entry->start;

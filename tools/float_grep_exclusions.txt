@@ -123,3 +123,4 @@ src/devtools/short_run_cut.h | cut planner of make psx-short-runs-cut, header of
 src/cmd/short_run_cut.c | entry point of short_run_cut, which cuts the short runs out of the full game, host tool
 src/devtools/call_profile.c | call counts and PC time per root child and draw family of the PC frame profile, host tool
 src/devtools/call_profile.h | call counts and PC time per root child and draw family of the PC frame profile, header of devtools/call_profile.c
+src/cmd/frame_profile.c | entry point of frame_profile, the PC frame profile's instrumented replay, host tool
