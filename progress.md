@@ -11,7 +11,7 @@
   - [ ] 1.4 PC call-count and timing tool, coverage check
     - [x] Chunk 1: call_profile bookkeeping module and unit test
     - [x] Chunk 2: frame_profile binary
-    - [ ] Chunk 3: breakdown and coverage check script
+    - [x] Chunk 3: breakdown and coverage check script
     - [ ] Chunk 4: draw-5564 breakdown check, full-run coverage, report
   - [ ] 1.5 Milestone: asserts-off full-game run as the judge's baseline
 - [ ] Phase 2 — Draw

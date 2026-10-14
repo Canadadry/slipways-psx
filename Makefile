@@ -522,6 +522,30 @@
 #                       or REFERENCE with tools/end_state.sh: prints
 #                       same-game yes, no (fails) or unchecked (no
 #                       reference), outside the suite
+# make frame-profile-breakdown-check [PSX_SHORT_RUNS=<names>] -> runs
+#                       psx-short-runs-cut, then per run (default draw-5564)
+#                       profiles its run.json into
+#                       tmp/frame-profile/short-runs/<name>/ (same-game
+#                       against its run.end-state) and, through
+#                       tools/frame_profile_check.sh breakdown, compares the
+#                       PC per-family calls with the psx-draw: lines of the
+#                       run's last breakdown boot frame by frame over the
+#                       window: calls-match ok with the window totals side by
+#                       side, or the first mismatch; a missing breakdown TTY
+#                       fails naming the make psx-short-runs to run; never
+#                       boots, outside the suite
+# make frame-profile-coverage [FRAME_PROFILE_THRESHOLD=<pct>] -> runs
+#                       psx-short-runs-cut, profiles full_game.json and the
+#                       start and every draw-* run of psx/short_runs.txt,
+#                       then tools/frame_profile_check.sh coverage (also in
+#                       tmp/frame-profile/coverage.txt): per cart_draw child
+#                       and draw family, frames above the threshold (default
+#                       2 %) of cart_draw's PC time, mean and max share,
+#                       share in each draw window, verdict covered, uncovered
+#                       (with a proposed 15-frame resume window), sporadic
+#                       (under 15 frames, listed) or below, then the windows
+#                       to add; fails while anything is uncovered, outside
+#                       the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2327,7 +2351,7 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 	if [ -n "$$invalid" ]; then echo "$@: $$label: invalid:$$invalid"; exit 1; fi; \
 	echo "$@: $$label: valid"
 
-FRAME_PROFILE_TESTS := test_call_profile test_frame_profile
+FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check
 
 # Only the game, the engine and the PICO-8 runtime are instrumented: the hooks
 # must never see themselves or the replay harness.
@@ -2343,18 +2367,60 @@ $(TMP_DIR)/frame_profile: $(call profile_objs,$(FRAME_PROFILE_INSTRUMENTED_SRCS)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 	nm $@ > $@.syms
 
-frame-profile: $(TMP_DIR)/frame_profile tools/end_state.sh
-	@events=$(or $(EVENTS),$(FRAME_PROFILE_EVENTS)); reference=$(or $(REFERENCE),$$events.end-state); \
-	dir=$(FRAME_PROFILE_DIR)/$$(basename $$events .json); mkdir -p $$dir; rm -f $$dir/state.txt; \
-	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms || exit $$?; \
+# usage: profile <events> <reference> <out-dir>; prints "<label>: same-game ...", fails on a stopped replay or no.
+frame_profile_function = profile() { \
+	events=$$1; reference=$$2; dir=$$3; mkdir -p $$dir; rm -f $$dir/state.txt; \
+	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms || return $$?; \
 	if [ ! -f "$$reference" ]; then same=unchecked; \
 	elif sh tools/end_state.sh check $$events $$dir/state.txt $$reference > $$dir/end-state.txt; then same=yes; \
 	else same=no; cat $$dir/end-state.txt; fi; \
 	echo "same-game $$same" >> $$dir/summary.txt; \
-	echo "frame-profile: same-game $$same"; \
-	[ $$same != no ]
+	echo "$@: $$dir same-game $$same"; \
+	[ $$same != no ]; \
+}
+
+frame-profile: $(TMP_DIR)/frame_profile tools/end_state.sh
+	@$(frame_profile_function); events=$(or $(EVENTS),$(FRAME_PROFILE_EVENTS)); \
+	profile $$events $(or $(REFERENCE),$$events.end-state) $(FRAME_PROFILE_DIR)/$$(basename $$events .json)
+
+# Each short run gets its own directory: every run's recording is named run.json.
+frame-profile-breakdown-check: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); failed=; \
+	for name in $${PSX_SHORT_RUNS:-draw-5564}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$(FRAME_PROFILE_DIR)/short-runs/$$name; \
+		if [ ! -f $$short/breakdown.tty.txt ]; then \
+			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUNS=$$name"; \
+			failed="$$failed $$name"; continue; \
+		fi; \
+		rm -f $$dir/breakdown-check.txt; profile $$short/run.json $$short/run.end-state $$dir \
+			&& sh tools/frame_profile_check.sh breakdown $$dir/frames.txt $$short/breakdown.tty.txt $$short/map.txt \
+				> $$dir/breakdown-check.txt; status=$$?; \
+		[ -f $$dir/breakdown-check.txt ] && sed "s/^/$@: $$name: /" $$dir/breakdown-check.txt; \
+		[ $$status -eq 0 ] || failed="$$failed $$name"; \
+	done; \
+	if [ -n "$$failed" ]; then echo "$@: failed:$$failed"; exit 1; fi
+
+FRAME_PROFILE_THRESHOLD ?= 2
+
+# The draw windows are start and every draw-* run of the manifest.
+frame-profile-coverage: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); \
+	full=$(FRAME_PROFILE_DIR)/$$(basename $(FRAME_PROFILE_EVENTS) .json); \
+	profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$full || exit 1; \
+	windows=; \
+	for name in $$(awk '$$1 == "start" || $$1 ~ /^draw-/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST)); do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$(FRAME_PROFILE_DIR)/short-runs/$$name; \
+		profile $$short/run.json $$short/run.end-state $$dir || exit 1; \
+		windows="$$windows $$name=$$dir/frames.txt:$$short/map.txt"; \
+	done; \
+	sh tools/frame_profile_check.sh coverage $(FRAME_PROFILE_THRESHOLD) $$full/frames.txt $$windows \
+		> $(FRAME_PROFILE_DIR)/coverage.txt; status=$$?; \
+	cat $(FRAME_PROFILE_DIR)/coverage.txt; exit $$status
 
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.c) tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
@@ -2363,7 +2429,7 @@ $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools
 frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
-.PHONY: frame-profile-test frame-profile
+.PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad
