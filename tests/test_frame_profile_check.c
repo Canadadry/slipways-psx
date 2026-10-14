@@ -211,6 +211,13 @@ enum { CHILD_COUNT = 8 };
 /* When set, k takes 5% on every fifth frame from 0 to 70: 15 frames, yet no span lifts its mean above 2%. */
 static int scattered_child;
 
+/* When set, the full profile is a noisy repeat: d spikes to 5% on frames 0..19 and h drops to 0 on
+ * frame 0. */
+static int noisy_repeat;
+
+/* h's time in the start window, so that several start profiles can differ. */
+static int start_h_ns = 30;
+
 static int between(int frame, int first, int last) { return frame >= first && frame <= last; }
 
 /* a always half of draw; b and e 10% over two overlapping 15-frame spans, g 10% over a third; c 5%
@@ -220,10 +227,10 @@ static int full_ns(const char *child, int frame) {
     case 'a': return 500;
     case 'b': return between(frame, 30, 44) ? 100 : 0;
     case 'c': return between(frame, 5, 18) ? 50 : 0;
-    case 'd': return 10;
+    case 'd': return noisy_repeat && frame < 20 ? 50 : 10;
     case 'e': return between(frame, 32, 46) ? 100 : 0;
     case 'g': return between(frame, 60, 74) ? 100 : 0;
-    case 'h': return between(frame, 0, 19) ? 30 : 0;
+    case 'h': return between(frame, noisy_repeat ? 1 : 0, 19) ? 30 : 0;
     default: return scattered_child && frame % 5 == 0 && frame <= 70 ? 50 : 0;
     }
 }
@@ -233,7 +240,7 @@ static int start_ns(const char *child, int frame) {
     switch (child[0]) {
     case 'a': return 500;
     case 'b': return between(frame, 2, 3) ? 0 : 100;
-    case 'h': return between(frame, 2, 3) ? 30 : 0;
+    case 'h': return between(frame, 2, 3) ? start_h_ns : 0;
     default: return 0;
     }
 }
@@ -373,6 +380,42 @@ static void test_coverage_threshold_is_a_parameter(void) {
     assert(strncmp(log, "coverage threshold 12% ", 23) == 0);
 }
 
+#define FULL2_TXT DIR "/full2.txt"
+#define START2_TXT DIR "/start2.txt"
+#define START3_TXT DIR "/start3.txt"
+
+/* A frame is above the threshold only when every full profile says so: d's spikes in one profile
+ * and h's missing frame 0 in the other give d below and h above 19, with the minimum's mean. */
+static void test_coverage_takes_the_per_frame_minimum_of_the_full_profiles(void) {
+    write_coverage_inputs();
+    noisy_repeat = 1;
+    write_profile(FULL2_TXT, FULL_FRAMES, full_ns);
+    noisy_repeat = 0;
+    assert(run_command(SCRIPT " coverage 2 " FULL_TXT "," FULL2_TXT WINDOWS " > " LOG " 2>&1") == 3);
+    assert(strcmp(output_line("child d"), "child d above 0 mean 1.0% max 1.0% start 0.0% draw-9 0.0% below") == 0);
+    assert(strcmp(output_line("child h"), "child h above 19 mean 0.7% max 3.0% start 3.0% draw-9 0.0% covered") == 0);
+    assert(strstr(read_file(LOG), "\ncoverage profiles 2 full, frame share = minimum over the full profiles, "
+                                  "window share = median over its profiles\n") != NULL);
+}
+
+/* Window shares 1%, 3%, 5%: median 3% with three profiles; 1% and 5%: their mean, 3%, with two. */
+static void test_coverage_takes_the_median_of_the_window_profiles(void) {
+    write_coverage_inputs();
+    start_h_ns = 10;
+    write_profile(START2_TXT, 6, start_ns);
+    start_h_ns = 50;
+    write_profile(START3_TXT, 6, start_ns);
+    start_h_ns = 30;
+    assert(run_command(SCRIPT " coverage 2 " FULL_TXT " start=" START2_TXT "," START_TXT "," START3_TXT ":" START_MAP
+                       " > " LOG " 2>&1") == 3);
+    assert(strcmp(output_line("child h"), "child h above 20 mean 0.8% max 3.0% start 3.0% covered") == 0);
+    assert(run_command(SCRIPT " coverage 2 " FULL_TXT " start=" START3_TXT "," START2_TXT ":" START_MAP " > " LOG
+                       " 2>&1") == 3);
+    assert(strcmp(output_line("child h"), "child h above 20 mean 0.8% max 3.0% start 3.0% covered") == 0);
+    assert(run_command(SCRIPT " coverage 2 " FULL_TXT " start=" START2_TXT ":" START_MAP " > " LOG " 2>&1") == 3);
+    assert(ends_with(output_line("child h"), " start 1.0% uncovered propose resume 0 14"));
+}
+
 static void test_coverage_malformed_input_exits_2(void) {
     write_coverage_inputs();
     write_file(DIR "/broken.txt", replaced(read_file(FULL_TXT), "frame 7 update 900 draw 1000\n", ""));
@@ -382,6 +425,9 @@ static void test_coverage_malformed_input_exits_2(void) {
     assert(run_coverage("2") == 2);
     write_file(DIR "/broken.txt", "nothing here\n");
     assert(run_command(SCRIPT " coverage 2 " DIR "/broken.txt" WINDOWS " > " LOG " 2>&1") == 2);
+    write_coverage_inputs();
+    write_profile(FULL2_TXT, FULL_FRAMES - 1, full_ns);
+    assert(run_command(SCRIPT " coverage 2 " FULL_TXT "," FULL2_TXT WINDOWS " > " LOG " 2>&1") == 2);
 }
 
 static void test_coverage_usage_errors_exit_1(void) {
@@ -393,6 +439,9 @@ static void test_coverage_usage_errors_exit_1(void) {
     assert(run_command(SCRIPT " coverage 2 " FULL_TXT " start=" START_TXT " > " LOG " 2>&1") == 1);
     assert(run_command(SCRIPT " coverage 2 " FULL_TXT " start=" DIR "/none.txt:" START_MAP " > " LOG " 2>&1") == 1);
     assert(run_command(SCRIPT " coverage 2 " DIR "/none.txt" WINDOWS " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " coverage 2 " FULL_TXT "," DIR "/none.txt" WINDOWS " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " coverage 2 " FULL_TXT " start=" START_TXT "," DIR "/none.txt:" START_MAP " > " LOG
+                       " 2>&1") == 1);
 }
 
 int main(void) {
@@ -409,6 +458,8 @@ int main(void) {
     test_coverage_proposes_the_best_span_and_groups_windows();
     test_coverage_item_without_a_covering_span_gets_its_own();
     test_coverage_threshold_is_a_parameter();
+    test_coverage_takes_the_per_frame_minimum_of_the_full_profiles();
+    test_coverage_takes_the_median_of_the_window_profiles();
     test_coverage_malformed_input_exits_2();
     test_coverage_usage_errors_exit_1();
     assert(system("rm -rf " DIR) == 0);

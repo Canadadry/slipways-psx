@@ -1,6 +1,6 @@
 #!/bin/sh
 # usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
-#        frame_profile_check.sh coverage <threshold> <full frames.txt> <name>=<frames.txt>:<map.txt>...
+#        frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
 # breakdown: over the window of <map.txt> (tmp/short_run_cut), the per-family
 # calls of tmp/frame_profile's <frames.txt> must equal the psx-draw: lines of
 # the run's breakdown boot. Prints "calls-match ok <n> frames" then
@@ -9,7 +9,9 @@
 # 1 usage error.
 # coverage: per cart_draw child and per family but pattern (its time is
 # inside its shapes), the share of cart_draw's PC time on each full-run frame
-# and over each window's frames (window run frames from its map). Prints one
+# (the minimum over the full profiles, which must have the same frames) and
+# over each window's frames (window run frames from its map; the median over
+# that window's profiles). Prints one
 # line per item: frames above <threshold> %, mean and max share, each
 # window's share, then the verdict: covered (above on at least 15 frames and
 # in a window), uncovered (above on 15 frames, in no window) with the
@@ -24,7 +26,7 @@ LC_ALL=C
 export LC_ALL
 
 usage="usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
-       frame_profile_check.sh coverage <threshold> <full frames.txt> <name>=<frames.txt>:<map.txt>..."
+       frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>..."
 
 fail_usage() {
     echo "frame-profile-check: $1" >&2
@@ -84,39 +86,52 @@ breakdown() {
 coverage() {
     [ $# -ge 3 ] || fail_usage "$usage"
     threshold=$1
-    full=$2
+    fulls=$(echo "$2" | tr ',' ' ')
     shift 2
     case $threshold in
         '' | *[!0-9.]* | *.*.* | . ) fail_usage "threshold is not a percentage: '$threshold'" ;;
     esac
-    [ -f "$full" ] || fail_usage "missing profile: $full"
+    [ -n "$fulls" ] || fail_usage "$usage"
+    full_count=0
+    for full in $fulls; do
+        [ -f "$full" ] || fail_usage "missing profile: $full"
+        full_count=$((full_count + 1))
+    done
     names=
     firsts=
     lasts=
     files=
+    owners=
+    window=0
     for spec in "$@"; do
         name=${spec%%=*}
         files_part=${spec#*=}
-        profile=${files_part%%:*}
+        profiles=${files_part%%:*}
         map=${files_part#*:}
-        if [ "$name" = "$spec" ] || [ -z "$name" ] || [ "$profile" = "$files_part" ] || [ -z "$profile" ] || [ -z "$map" ]; then
-            fail_usage "window is not <name>=<frames.txt>:<map.txt>: $spec"
+        if [ "$name" = "$spec" ] || [ -z "$name" ] || [ "$profiles" = "$files_part" ] || [ -z "$profiles" ] || [ -z "$map" ]; then
+            fail_usage "window is not <name>=<frames.txt>[,<frames.txt>...]:<map.txt>: $spec"
         fi
-        [ -f "$profile" ] || fail_usage "missing profile: $profile"
-        window=$(window_of "$map") || exit 1
-        set -- $window
+        window=$((window + 1))
+        for profile in $(echo "$profiles" | tr ',' ' '); do
+            [ -f "$profile" ] || fail_usage "missing profile: $profile"
+            files="$files $profile"
+            owners="$owners $window"
+        done
+        bounds=$(window_of "$map") || exit 1
+        set -- $bounds
         names="$names $name"
         firsts="$firsts $1"
         lasts="$lasts $2"
-        files="$files $profile"
     done
-    awk -v threshold="$threshold" -v names="$names" -v firsts="$firsts" -v lasts="$lasts" -v span=15 '
+    awk -v threshold="$threshold" -v names="$names" -v firsts="$firsts" -v lasts="$lasts" -v owners="$owners" \
+        -v full_count="$full_count" -v span=15 '
         BEGIN {
             window_count = split(names, window_names, " ")
             split(firsts, window_firsts, " ")
             split(lasts, window_lasts, " ")
+            split(owners, file_window, " ")
             family_count = split("cls pset line rect rectfill circ circfill spr print", families, " ")
-            file = -1
+            file = 0
         }
         function malformed(reason) {
             print "frame-profile-check: malformed " FILENAME ": " reason > "/dev/stderr"
@@ -130,50 +145,75 @@ coverage() {
         FNR == 1 {
             file++
             if ($1 != "profile" || $3 != "frames" || $4 !~ /^[0-9]+$/) malformed("no profile header")
-            if (file == 0) frames = $4
+            if (file == 1) frames = $4
+            else if (file <= full_count && $4 != frames) malformed("frames " $4 ", not " frames " as the first full profile")
+            if (file > full_count) w = file_window[file - full_count]
             next
         }
         $1 != "frame" { next }
-        file == 0 {
-            if ($3 == "update" && NF == 6) draw[$2] = $6
-            else if ($3 == "child" && $4 == "draw" && NF == 9) { item_of("child " $5); value["child " $5, $2] = $7 }
-            else if ($3 == "family" && NF == 6) value["family " $4, $2] = $6
+        file <= full_count {
+            if ($3 == "update" && NF == 6) draw[file, $2] = $6
+            else if ($3 == "child" && $4 == "draw" && NF == 9) { item_of("child " $5); value[file, "child " $5, $2] = $7 }
+            else if ($3 == "family" && NF == 6) value[file, "family " $4, $2] = $6
             next
         }
-        $2 >= window_firsts[file] && $2 <= window_lasts[file] {
+        $2 >= window_firsts[w] && $2 <= window_lasts[w] {
             if ($3 == "update" && NF == 6) { window_draw[file] += $6; window_seen[file, $2] = 1 }
             else if ($3 == "child" && $4 == "draw" && NF == 9) window_value[file, "child " $5] += $7
             else if ($3 == "family" && NF == 6) window_value[file, "family " $4] += $6
         }
         function pct(x) { return sprintf("%.1f%%", x) }
-        function share(it, f) { return draw[f] > 0 ? value[it, f] * 100 / draw[f] : 0 }
+        # Timer noise only adds time: a frame counts above the threshold only if every profile says so.
+        function share(it, f,    k, s, low) {
+            for (k = 1; k <= full_count; k++) {
+                s = draw[k, f] > 0 ? value[k, it, f] * 100 / draw[k, f] : 0
+                if (k == 1 || s < low) low = s
+            }
+            return low
+        }
+        function window_share(w, it,    n, v, x, i, j, t, file_index) {
+            n = 0
+            for (file_index = 1; file_index <= window_file_count; file_index++) {
+                if (file_window[file_index] != w) continue
+                x = full_count + file_index
+                v[++n] = window_draw[x] > 0 ? window_value[x, it] * 100 / window_draw[x] : 0
+            }
+            for (i = 1; i <= n; i++) for (j = i + 1; j <= n; j++) if (v[j] < v[i]) { t = v[i]; v[i] = v[j]; v[j] = t }
+            return n % 2 ? v[(n + 1) / 2] : (v[n / 2] + v[n / 2 + 1]) / 2
+        }
         function span_mean(it, a,    f, sum) {
-            for (f = a; f < a + span && f < frames; f++) sum += share(items[it], f)
+            for (f = a; f < a + span && f < frames; f++) sum += min_share[it, f]
             return sum / span
         }
         END {
             if (failed) exit 2
             if (frames == 0) { FILENAME = "full profile"; malformed("no frame") }
-            for (f = 0; f < frames; f++) if (!(f in draw)) { FILENAME = "full profile"; malformed("no draw line for frame " f) }
-            for (w = 1; w <= window_count; w++)
+            for (k = 1; k <= full_count; k++)
+                for (f = 0; f < frames; f++) if (!((k, f) in draw)) { FILENAME = "full profile " k; malformed("no draw line for frame " f) }
+            window_file_count = split(owners, file_window, " ")
+            for (file_index = 1; file_index <= window_file_count; file_index++) {
+                x = full_count + file_index; w = file_window[file_index]
                 for (f = window_firsts[w]; f <= window_lasts[w]; f++)
-                    if (!((w, f) in window_seen)) { FILENAME = window_names[w]; malformed("no draw line for window frame " f) }
+                    if (!((x, f) in window_seen)) { FILENAME = window_names[w]; malformed("no draw line for window frame " f) }
+            }
             for (i = 1; i <= family_count; i++) item_of("family " families[i])
+            for (it = 1; it <= item_count; it++) for (f = 0; f < frames; f++) min_share[it, f] = share(items[it], f)
 
             print "coverage threshold " threshold "% significant " span " frames, shares of cart_draw PC time (not PSX cost)"
+            print "coverage profiles " full_count " full, frame share = minimum over the full profiles, window share = median over its profiles"
             for (w = 1; w <= window_count; w++) print "coverage window " window_names[w] " run frames " window_firsts[w] ".." window_lasts[w]
             uncovered_count = 0
             for (it = 1; it <= item_count; it++) {
                 name = items[it]; above = 0; sum = 0; max = 0; listed = ""
                 for (f = 0; f < frames; f++) {
-                    s = share(name, f); sum += s
+                    s = min_share[it, f]; sum += s
                     if (s > max) max = s
                     if (s > threshold) { above++; listed = listed " " f }
                 }
                 line = name " above " above " mean " pct(sum / frames) " max " pct(max)
                 in_window = 0
                 for (w = 1; w <= window_count; w++) {
-                    s = window_draw[w] > 0 ? window_value[w, name] * 100 / window_draw[w] : 0
+                    s = window_share(w, name)
                     if (s > threshold) in_window = 1
                     line = line " " window_names[w] " " pct(s)
                 }
@@ -216,7 +256,7 @@ coverage() {
             }
             if (uncovered_count == 0) print "coverage ok"
             else { print "coverage uncovered " uncovered_count " items, " window_lines " windows"; exit 3 }
-        }' "$full" $files
+        }' $fulls $files
 }
 
 mode=${1:-}

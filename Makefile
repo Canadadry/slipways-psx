@@ -534,16 +534,20 @@
 #                       side, or the first mismatch; a missing breakdown TTY
 #                       fails naming the make psx-short-runs to run; never
 #                       boots, outside the suite
-# make frame-profile-coverage [FRAME_PROFILE_THRESHOLD=<pct>] -> runs
-#                       psx-short-runs-cut, profiles full_game.json and the
-#                       start and every draw-* run of psx/short_runs.txt,
-#                       then tools/frame_profile_check.sh coverage (also in
+# make frame-profile-coverage [FRAME_PROFILE_THRESHOLD=<pct>] [FRAME_PROFILE_REPEATS=<k>]
+#                    -> runs psx-short-runs-cut, profiles full_game.json and the
+#                       start and every draw-* run of psx/short_runs.txt k
+#                       times each (default 4, ~1 min) into
+#                       tmp/frame-profile/coverage/<name>/<k>/, then
+#                       tools/frame_profile_check.sh coverage (also in
 #                       tmp/frame-profile/coverage.txt): per cart_draw child
 #                       and draw family, frames above the threshold (default
-#                       2 %) of cart_draw's PC time, mean and max share,
-#                       share in each draw window, verdict covered, uncovered
-#                       (with a proposed 15-frame resume window), sporadic
-#                       (under 15 frames, listed) or below, then the windows
+#                       2 %) of cart_draw's PC time in all k full profiles
+#                       (per-frame minimum), mean and max share, share in
+#                       each draw window (median of its k profiles), verdict
+#                       covered, uncovered (with a proposed 15-frame resume
+#                       window), sporadic (under 15 frames, listed) or
+#                       below, then the windows
 #                       to add; fails while anything is uncovered, outside
 #                       the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
@@ -2401,19 +2405,31 @@ frame-profile-breakdown-check: $(TMP_DIR)/frame_profile tools/end_state.sh tools
 	if [ -n "$$failed" ]; then echo "$@: failed:$$failed"; exit 1; fi
 
 FRAME_PROFILE_THRESHOLD ?= 2
+FRAME_PROFILE_REPEATS ?= 4
 
-# The draw windows are start and every draw-* run of the manifest.
+# The draw windows are start and every draw-* run of the manifest; each recording is profiled
+# FRAME_PROFILE_REPEATS times into coverage/<name>/<k>.
 frame-profile-coverage: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
 	@$(frame_profile_function); \
-	full=$(FRAME_PROFILE_DIR)/$$(basename $(FRAME_PROFILE_EVENTS) .json); \
-	profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$full || exit 1; \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	repeats=$$(seq 1 $(FRAME_PROFILE_REPEATS)); \
+	full_name=$$(basename $(FRAME_PROFILE_EVENTS) .json); fulls=; \
+	for k in $$repeats; do \
+		dir=$(FRAME_PROFILE_DIR)/coverage/$$full_name/$$k; \
+		profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$dir || exit 1; \
+		fulls="$$fulls,$$dir/frames.txt"; \
+	done; \
 	windows=; \
 	for name in $$(awk '$$1 == "start" || $$1 ~ /^draw-/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST)); do \
-		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$(FRAME_PROFILE_DIR)/short-runs/$$name; \
-		profile $$short/run.json $$short/run.end-state $$dir || exit 1; \
-		windows="$$windows $$name=$$dir/frames.txt:$$short/map.txt"; \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; profiles=; \
+		for k in $$repeats; do \
+			dir=$(FRAME_PROFILE_DIR)/coverage/$$name/$$k; \
+			profile $$short/run.json $$short/run.end-state $$dir || exit 1; \
+			profiles="$$profiles,$$dir/frames.txt"; \
+		done; \
+		windows="$$windows $$name=$${profiles#,}:$$short/map.txt"; \
 	done; \
-	sh tools/frame_profile_check.sh coverage $(FRAME_PROFILE_THRESHOLD) $$full/frames.txt $$windows \
+	sh tools/frame_profile_check.sh coverage $(FRAME_PROFILE_THRESHOLD) $${fulls#,} $$windows \
 		> $(FRAME_PROFILE_DIR)/coverage.txt; status=$$?; \
 	cat $(FRAME_PROFILE_DIR)/coverage.txt; exit $$status
 

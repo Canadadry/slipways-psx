@@ -732,9 +732,12 @@ judge of sizes.
 **Manifest.** `psx/short_runs.txt`, one run a line, frames of
 `full_game.json`: `<name> prefix <first> <last> <end>` (its first `end + 1`
 frames) or `<name> resume <first> <last>` (a resume before the window
-`first..last`). The five runs: `start` (frames 0–99, the start spike at 12),
-`update-4737`, `update-5500`, `update-5719` (update spikes) and `draw-5564`
-(the draw cluster 5564–5578).
+`first..last`). The six runs: `start` (frames 0–99, the start spike at 12),
+`update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
+(the draw cluster 5564–5578) and `draw-6000` (frames 6000–6014, where
+`pset` is above 2% of draw on PC: a resume before the `pset` peak at
+5504–5552 starts without slipway transit dots, so it shows too little
+`pset`).
 
 **Cut.** `make psx-short-runs-cut` (host only) replays `full_game.json` with
 `tmp/short_run_cut` (`src/devtools/short_run_cut.c`, pure, host-tested by
@@ -873,6 +876,28 @@ and `cart_draw`) and `null.patch` (code linked next to `cart_draw`, never
 run) are the tool's fixtures; when a commit moves their context they are
 refreshed with it. Their results and the noise floor are in
 `docs/psx-perf-levers.md`.
+
+**PC frame profile.** `make frame-profile [EVENTS=] [REFERENCE=]` replays a
+recording (default `full_game.json`, about 7.5 s) with `tmp/frame_profile`.
+This build is `-O2` with asserts off, and the game, engine and PICO-8
+runtime are compiled with `-finstrument-functions`. Per frame, it writes the
+calls and PC time of each direct child of `cart_update60` and `cart_draw`
+(keyed by call site: `draw_layers#1`, `#2`) and of each draw family, counted
+as the breakdown counts them. The output goes to `tmp/frame-profile/<name>/`,
+and the end state is checked (`same-game`).
+
+- `make frame-profile-breakdown-check [PSX_SHORT_RUNS=]` (default
+  `draw-5564`) checks those call counts against each run's last breakdown
+  boot, frame by frame over its window. It never boots.
+- `make frame-profile-coverage [FRAME_PROFILE_THRESHOLD=] [FRAME_PROFILE_REPEATS=]`
+  profiles the full game and the `start` and `draw-*` runs K times (default
+  4, about 1 min). A full-run frame counts above the threshold only if it is
+  above in all K profiles. A window's share is the median of its K shares.
+  For each `cart_draw` child and family, it compares the share of draw over
+  the full game with the share in each window, and fails while an item above
+  2% on at least 15 frames is in no window.
+- Its tests are in `make frame-profile-test`. The results are in
+  `docs/psx-perf-levers.md`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
