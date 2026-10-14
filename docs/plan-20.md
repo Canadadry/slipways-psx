@@ -273,3 +273,20 @@ Deleted `docs/prd/triage/phase1-step4.1-short-runs-draw-breakdown.md` (plan
 11's step 4.1 PRD, already implemented). `docs/prd/triage/` is now empty.
 Deviation: done directly by plan-pilot, without a PRD or prd-autopilot run,
 since the step is one file removal with nothing to test.
+
+### Step 1.2
+
+`make psx-short-runs PSX_SHORT_RUN_ASSERTS=on|off` (default `on`): `off` sets
+the CMake option `PSX_MEASURED_REPLAY_ASSERTS=OFF`, which drops `-UNDEBUG`
+from `psx-gpu-replay` and `psx-gpu-replay-breakdown` only. `psx_short_run.sh`
+gained an `asserts` verdict (read from each boot's TTY) and a
+`window plain update U draw D submit S` summary line, printed without a
+reference table. Baseline recorded in `docs/psx-perf-levers.md` at
+`473bdcc`: window totals start 9451, update-4737 832, update-5500 2130,
+draw-5564 20264, update-5719 1132 hblanks; all done, deterministic, asserts
+off, game-state lines equal to the PC's.
+Deviation: asserts off under `-Werror` raised 35 unused-* warnings from
+assert-only code; the four unused-* kinds are demoted from errors in the
+asserts-off measured build only, game sources untouched (PRD decision, no
+guideline call). As known, the resumed short runs lose the update spikes at
+4737 and 5719 (update 118 and 46 hblanks).
