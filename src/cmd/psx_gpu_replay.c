@@ -10,7 +10,9 @@
  * capture script driving the handshake it waits forever before the first frame.
  * Built with PSX_GPU_REPLAY_BREAKDOWN (psx-gpu-replay-breakdown), it also times every backend call
  * per draw family (devtools/draw_timing.h) and writes, after the "psx-frame: " lines, the fine
- * clock's calibration then one line per frame behind "psx-draw: ". */
+ * clock's calibration then one line per frame behind "psx-draw: ".
+ * Built with PSX_PROBE (make psx-probe), it starts platform/psx_probe.h's delay helper and writes its
+ * "psx-probe: " lines before the done line. */
 
 #include "devtools/draw_filter.h"
 #include "devtools/embedded_replay.h"
@@ -116,6 +118,25 @@ static void breakdown_write(void) {
 }
 #endif
 
+#ifdef PSX_PROBE
+#include "platform/psx_probe.h"
+
+/* The frame timer must be started. */
+static void probe_start(void) {
+    psx_probe_start();
+}
+
+static void probe_write(void) {
+    psx_probe_write();
+}
+#else
+static void probe_start(void) {
+}
+
+static void probe_write(void) {
+}
+#endif
+
 static void write_stopped_state(int code) {
     if (code != PSX_EXIT_FATAL) return;
     state_sink_t frame_sink = psx_tty_frame_sink();
@@ -187,6 +208,7 @@ int main(void) {
     state_sink_t frame_sink = psx_tty_frame_sink();
     frame_times_write_calibration(&frame_sink, psx_frame_timer_calibrate());
 
+    probe_start();
     breakdown_start(input.frame_count);
 
     capture_request_t capture = capture_start();
@@ -235,6 +257,7 @@ int main(void) {
 
     frame_times_write(&frame_sink);
     breakdown_write();
+    probe_write();
     psx_tty_printf("psx-replay: done %s %d vsyncs %d\n", embedded_replay_name, input.frame_count, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);

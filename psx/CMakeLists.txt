@@ -19,6 +19,7 @@ foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX
 endforeach()
 
 option(PSX_MEASURED_REPLAY_ASSERTS "Keep asserts in psx-gpu-replay and psx-gpu-replay-breakdown" ON)
+option(PSX_PROBE "Build psx-gpu-replay as make psx-probe's probe build: doubled GPU frame buffer, delay helper" OFF)
 
 foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe psx-game psx-largest-slots)
 	if(_target STREQUAL "psx-replay")
@@ -50,5 +51,9 @@ foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe
 	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort -Wl,--wrap=snprintf -Wl,--wrap=vsnprintf)
 endforeach()
 target_compile_definitions(psx-gpu-replay-breakdown PRIVATE PSX_GPU_REPLAY_BREAKDOWN)
+if(PSX_PROBE)
+	target_compile_definitions(psx-gpu-replay PRIVATE PSX_PROBE)
+	target_sources(psx-gpu-replay PRIVATE ${SLIPWAYS_SRC_DIR}/platform/psx_probe.c ${SLIPWAYS_SRC_DIR}/platform/psx_fine_clock.c)
+endif()
 
 psn00bsdk_add_cd_image(psx-game-iso slipways iso.xml DEPENDS psx-game system.cnf)

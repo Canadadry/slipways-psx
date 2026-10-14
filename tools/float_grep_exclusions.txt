@@ -62,6 +62,8 @@ src/platform/psx_frame_timer.c | hblank root counter of the PSX GPU replay's fra
 src/platform/psx_frame_timer.h | hblank root counter, header of platform/psx_frame_timer.c
 src/platform/psx_fine_clock.c | system clock / 8 root counter of the PSX breakdown replay's draw call timing, PSX only
 src/platform/psx_fine_clock.h | system clock / 8 root counter, header of platform/psx_fine_clock.c
+src/platform/psx_probe.c | fixed-delay helper of the PSX probe build (make psx-probe), PSX only
+src/platform/psx_probe.h | fixed-delay helper of the PSX probe build, header of platform/psx_probe.c
 src/p8/format.c | snprintf replacement of the PSX build, linked by the PSX platform and its host test
 src/p8/format.h | snprintf replacement of the PSX build, header of p8/format.c
 src/platform/format_psx.c | routes the PSX snprintf and vsnprintf to p8/format.c, PSX only
