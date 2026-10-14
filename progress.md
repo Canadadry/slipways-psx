@@ -3,7 +3,7 @@
   - [ ] 1.2 Asserts-off option for psx-short-runs, baseline recorded
     - [x] Chunk 1: analysis script — window sums and asserts condition
     - [x] Chunk 2: PSX_SHORT_RUN_ASSERTS build option
-    - [ ] Chunk 3: asserts-off baseline in docs/psx-perf-levers.md
+    - [x] Chunk 3: asserts-off baseline in docs/psx-perf-levers.md
   - [ ] 1.3 Probe tool (call-twice, fixed delay, experiment), sanity probes, noise floor
   - [ ] 1.4 PC call-count and timing tool, coverage check
   - [ ] 1.5 Milestone: asserts-off full-game run as the judge's baseline
