@@ -310,3 +310,25 @@ per call — accepted as an explained result; Phase 2 probes
 `help_screen_draw` and any title-screen child running it with the fixed
 delay. (2) The PRD's per-part delay check uses max(2% of 20 × window frames,
 2 hblanks), since the frame timer reads whole hblanks.
+
+### Step 1.4
+
+`make frame-profile [EVENTS=]`: `tmp/frame_profile` replays a recording with
+`src/game`, `src/engine`, `src/p8` built `-O2 -DNDEBUG
+-finstrument-functions`, and prints per frame the calls and PC time of each
+`cart_draw` / `cart_update60` child (by call site) and draw family.
+`full_game.json`: 6059 frames in about 7.5 s, same game as the reference.
+`tools/frame_profile_check.sh` (tests in `make frame-profile-test`, outside
+`make test`): `breakdown` — PC and PSX family calls equal on every window
+frame of `draw-5564` and `draw-6000`; `coverage` — every `cart_draw` child
+and family covered, sporadic or below.
+Guideline decision: single PC profiles flipped verdicts on timer noise, so
+coverage takes K = 4 profiles (per-frame minimum over the full-run profiles,
+median of the window shares); thresholds unchanged.
+Window added: `draw-6000 resume 6000 6014` for `pset` (2.3% median there;
+the full-game peak at 5504–5552 under-shows `pset` after a resume because
+slipway transit dots are not saved). Window totals: update 593, draw 13987,
+submit 107. `rect` sporadic (title frames 0–11), `circ` below. The manifest
+now has six runs, so the probe baseline must be rebuilt before step 6.
+PC shares: `draw_layers#1` holds 91.7% of `cart_draw` on average,
+`draw_layers#2` 6.8%; `ui_update` holds 69.3% of `cart_update60`.

@@ -8,7 +8,7 @@
     - [x] Chunk 1: probe analysis script and host test
     - [x] Chunk 2: probe build mode (PSX_PROBE, delay helper)
     - [x] Chunk 3: probe targets, sanity patches, noise floor on the real build
-  - [ ] 1.4 PC call-count and timing tool, coverage check
+  - [x] 1.4 PC call-count and timing tool, coverage check
     - [x] Chunk 1: call_profile bookkeeping module and unit test
     - [x] Chunk 2: frame_profile binary
     - [x] Chunk 3: breakdown and coverage check script
