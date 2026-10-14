@@ -1,0 +1,30 @@
+Sanity probe of make psx-probe: a 20-hblank delay at the entry of cart_update60 and of cart_draw, each called once a frame; delta / delay should be 2 per frame.
+
+diff --git a/src/game/cart.c b/src/game/cart.c
+index e884ad8..fc525ba 100644
+--- a/src/game/cart.c
++++ b/src/game/cart.c
+@@ -4,6 +4,7 @@
+ #include <stddef.h>
+ 
+ #include "game/background.h"
++#include "platform/psx_probe.h"
+ #include "engine/bootstrap.h"
+ #include "game/main_economy.h"
+ #include "engine/entity_class.h"
+@@ -324,6 +325,7 @@ static void save_at_frame_end(void) {
+ }
+ 
+ void cart_update60(void) {
++    psx_probe_delay(20);
+     frame_zone_reset();
+     cart_flush_exit_queue();
+     update_entities();
+@@ -332,6 +334,7 @@ void cart_update60(void) {
+ }
+ 
+ void cart_draw(void) {
++    psx_probe_delay(20);
+     p8_vram_t *mem = dispatch_context_mem();
+ 
+     p8_cls(mem);

@@ -484,6 +484,30 @@
 #                       split, overhead and best cases; fails after every run
 #                       when a condition failed, ~4 min; never runs a setup,
 #                       outside the suite and psx-check
+# make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
+#                       then per run builds the probe build (psx-gpu-replay
+#                       with -DPSX_PROBE=ON, asserts off) of unpatched HEAD
+#                       from a temporary git worktree, boots it once with an
+#                       empty capture script (ceiling PSX_PROBE_CEILING
+#                       vsyncs, timeout PSX_PROBE_TIMEOUT s), checks it with
+#                       tools/psx_probe.sh against itself and, when valid,
+#                       stamps tmp/psx/probe/baseline/<name>/fingerprint.txt
+#                       with the tree ids of src/ and psx/ and the blob id of
+#                       PSX_FULL_GAME_EVENTS; fails if a run is invalid;
+#                       removes the worktree on every exit, outside the suite
+# make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
+#                    -> the same pipeline on HEAD with the patch git apply'd
+#                       in the worktree, outputs in tmp/psx/probe/<label>/
+#                       (default label: the patch's base name; baseline is
+#                       reserved), then per run tools/psx_probe.sh against
+#                       the baseline boot plus the ELF text sizes: window
+#                       draw, update, submit and total deltas, game-state
+#                       same or differs, delay / calls when the patch used
+#                       platform/psx_probe.h; a run is invalid when the patch
+#                       does not apply, the build fails, its baseline is
+#                       missing or stale, or tools/psx_probe.sh says so; fails
+#                       after every run if one is invalid, outside the suite
+#                       and psx-check
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
 #                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
 #                       (default psx/pad_probe_script.txt) from the probe's
@@ -548,7 +572,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -2185,6 +2209,91 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 	done; \
 	if [ -n "$$failed" ]; then echo "psx-short-runs: failed:$$failed"; exit 1; fi; \
 	echo "psx-short-runs: passed"
+
+PSX_PROBE_DIR := $(TMP_DIR)/psx/probe
+PSX_PROBE_CEILING ?= 1080
+PSX_PROBE_TIMEOUT ?= 20
+PATCH ?=
+PSX_PROBE_LABEL ?= $(basename $(notdir $(PATCH)))
+psx_probe_usage := usage: make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
+# Checked at parse time, before the cut and the builds start.
+ifneq ($(filter psx-probe,$(MAKECMDGOALS)),)
+ifeq ($(strip $(PATCH)),)
+$(error psx-probe: no PATCH; $(psx_probe_usage))
+endif
+ifeq ($(wildcard $(PATCH)),)
+$(error psx-probe: no patch file $(PATCH); $(psx_probe_usage))
+endif
+ifneq ($(words $(PSX_PROBE_LABEL))$(findstring /,$(PSX_PROBE_LABEL)),1)
+$(error psx-probe: PSX_PROBE_LABEL must be one word without /, not '$(PSX_PROBE_LABEL)')
+endif
+ifeq ($(PSX_PROBE_LABEL),baseline)
+$(error psx-probe: the label baseline is reserved for make psx-probe-baseline)
+endif
+endif
+psx_probe_label = $(if $(filter psx-probe,$@),$(PSX_PROBE_LABEL),baseline)
+psx_probe_worktree = $(abspath $(PSX_PROBE_DIR)/$(psx_probe_label)/worktree)
+# Sources under src/ come from the worktree; generated units and the run's recording stay the main tree's.
+psx_probe_list = $(subst $(space),;,$(strip $(patsubst $(abspath src)/%,$(psx_probe_worktree)/src/%,$(abspath $(filter-out $(PSX_EMBEDDED_REPLAY),$(1))))))
+
+# Every run is built, booted and analyzed even when an earlier one is invalid.
+psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_probe.sh
+	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "$@: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
+	@label=$(psx_probe_label); out=$(PSX_PROBE_DIR)/$$label; wt=$(psx_probe_worktree); \
+	patch='$(if $(filter psx-probe,$@),$(abspath $(PATCH)))'; \
+	fingerprint=$$(git rev-parse HEAD:src HEAD:psx HEAD:$(PSX_FULL_GAME_EVENTS) | tr '\n' ' '); \
+	remove_worktree() { git worktree remove --force "$$wt" > /dev/null 2>&1; rm -rf "$$wt"; git worktree prune; }; \
+	mkdir -p $$out; remove_worktree; trap remove_worktree EXIT; trap 'exit 130' INT TERM; \
+	git worktree add --detach "$$wt" HEAD > $$out/worktree.log 2>&1 || { cat $$out/worktree.log >&2; exit 1; }; \
+	apply_error=; \
+	if [ -n "$$patch" ] && ! git -C "$$wt" apply "$$patch" > $$out/apply.log 2>&1; then \
+		apply_error=$$(tr '\n' ' ' < $$out/apply.log); fi; \
+	invalid=; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '!/^[[:space:]]*(#|$$)/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		dir=$$out/$$name; base=$(PSX_PROBE_DIR)/baseline/$$name; short=$(PSX_SHORT_RUNS_DIR)/$$name; \
+		embedded=$(abspath $(PSX_SHORT_RUNS_DIR))/$$name/run.embedded.c; \
+		frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $$short/run.log); \
+		mkdir -p $$dir; rm -rf $$dir/analysis $$dir/boot.*; mkdir -p $$dir/analysis; reason=; \
+		[ $$label = baseline ] && rm -f $$dir/fingerprint.txt; \
+		if [ -n "$$apply_error" ]; then reason="patch does not apply: $$apply_error"; \
+		elif [ $$label != baseline ] && [ ! -f $$base/fingerprint.txt ]; then reason="no baseline for $$name: run make psx-probe-baseline"; \
+		elif [ $$label != baseline ] && [ "$$(cat $$base/fingerprint.txt)" != "$$fingerprint" ]; then reason="baseline stale: run make psx-probe-baseline"; \
+		fi; \
+		if [ -z "$$reason" ]; then \
+			echo "$@: $$label: $$name: building $$frames frames in $$dir/build"; \
+			{ cmake -S "$$wt/psx" -B $$dir/build \
+				-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
+				-DCMAKE_BUILD_TYPE=Release "-DSLIPWAYS_SRC_DIR=$$wt/src" \
+				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF \
+				"-DPSX_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_REPLAY_SRCS));$$embedded" \
+				"-DPSX_GPU_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
+				"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
+				'-DPSX_LARGEST_SLOTS_SOURCES=$(call psx_probe_list,$(PSX_LARGEST_SLOTS_SRCS))' \
+				'-DPSX_PAD_PROBE_SOURCES=$(call psx_probe_list,$(PSX_PAD_PROBE_SRCS))' \
+				'-DPSX_GAME_SOURCES=$(call psx_probe_list,$(PSX_GAME_SRCS))' \
+				&& cmake --build $$dir/build --target psx-gpu-replay --parallel $$(nproc); } > $$dir/build.log 2>&1 \
+				|| { tail -n 20 $$dir/build.log >&2; reason="build failed ($$dir/build.log)"; }; \
+		fi; \
+		if [ -z "$$reason" ]; then \
+			: > $$dir/empty_capture_script.txt; \
+			PSX_BOOT_TIMEOUT=$(PSX_PROBE_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
+				--capture-script $$dir/empty_capture_script.txt --exe $$dir/build/psx-gpu-replay.exe $(PSX_PROBE_CEILING) $$dir/boot \
+				|| echo "$@: $$label: $$name: boot failed"; \
+			sh tools/psx_probe.sh $$name $$base/boot.tty.txt $$dir/boot.tty.txt $$short/map.txt "$$frames" $$dir/analysis > /dev/null; \
+			if ! grep -q "^$$name invalid " $$dir/analysis/probe.txt; then \
+				text_base=$$($(PSX_SIZE) $$base/build/psx-gpu-replay.elf | awk 'NR == 2 {print $$1}'); \
+				text_probe=$$($(PSX_SIZE) $$dir/build/psx-gpu-replay.elf | awk 'NR == 2 {print $$1}'); \
+				echo "$$name text $$text_base -> $$text_probe ($$(printf '%+d' $$((text_probe - text_base))) bytes)" >> $$dir/analysis/probe.txt; \
+			fi; \
+		else echo "$$name invalid $$reason" > $$dir/analysis/probe.txt; \
+		fi; \
+		sed "s/^/$@: $$label: /" $$dir/analysis/probe.txt; \
+		if grep -q "^$$name invalid " $$dir/analysis/probe.txt; then invalid="$$invalid $$name"; \
+		elif [ $$label = baseline ]; then echo "$$fingerprint" > $$dir/fingerprint.txt; \
+		fi; \
+	done; \
+	if [ -n "$$invalid" ]; then echo "$@: $$label: invalid:$$invalid"; exit 1; fi; \
+	echo "$@: $$label: valid"
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

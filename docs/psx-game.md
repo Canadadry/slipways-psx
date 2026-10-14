@@ -503,6 +503,8 @@ mask.
 | `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted, the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
+| `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
+| `make psx-probe PATCH=<file>` | a throwaway patch measured on the short runs against the probe baseline, built in a temporary worktree (outputs in `tmp/psx/probe/<label>`) | ~2 min |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
@@ -819,6 +821,58 @@ submit + draw × (1 − s)), `game-draw-free` (update + submit + draw × s) and
 `draw-free` (update + submit), each with the frames still over
 `PSX_FRAME_BUDGET_HBLANKS`. The target fails after every run when a
 condition failed. It is not part of `psx-check`.
+
+**Probes.** `make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]`
+measures a throwaway patch (a unified diff against `HEAD`, what `git diff`
+prints) on the short runs. It adds a detached git worktree of `HEAD` in
+`tmp/psx/probe/<label>/worktree` (a leftover one is removed and pruned
+first; it is removed on every exit), `git apply`s the patch there, and per
+run builds the *probe build*: the same configuration as `psx-short-runs`
+with the source directory, `SLIPWAYS_SRC_DIR` and every `src/` source taken
+from the worktree (generated units and the run's `run.embedded.c` stay the
+main tree's, so a patch that needs them regenerated is out of scope),
+`-DPSX_PROBE=ON` and `-DPSX_MEASURED_REPLAY_ASSERTS=OFF`, target
+`psx-gpu-replay` only. `PSX_PROBE` doubles `GPU_FRAME_BUFFER_BYTES` (one
+constant for the backend's overrun check, the meter and the `gpu_frame`
+zone, so calling even `cart_draw` twice fits) and links the delay helper
+`platform/psx_probe.h`: `psx_probe_delay(hblanks)` busy-waits that many
+hblanks (1..200, one value per build, otherwise `p8_fatal`) on the fine
+clock calibrated at start, and counts its calls; the boot prints
+`psx-probe: clk8-per-64-hblanks <n>` and, when it was called,
+`psx-probe: delay <hblanks> calls <count>`. A patch uses it by including the
+header and calling it at a function's entry. Each run boots once with an
+empty capture script (`PSX_PROBE_CEILING` vsyncs, default 1080, and
+`PSX_PROBE_TIMEOUT` s, default 20: twice the short run's) and
+`tools/psx_probe.sh` (host-tested by `test_psx_probe`) compares it with the
+run's probe baseline over the window frames: draw, update, submit and total,
+baseline → probe, delta in hblanks and in % of the baseline window total;
+`game-state same|differs` (every `psx-state:` line but zone, budget and cap,
+first difference printed); the delay line (delta ÷ delay over the run, its
+gap to the counted calls, and per window frame); then the ELF text sizes,
+`text <baseline> -> <probe> (<delta> bytes)`. Outputs in
+`tmp/psx/probe/<label>/<run>/` (`build.log`, `boot.tty.txt`,
+`analysis/probe.txt`); the label defaults to the patch's base name.
+
+A run is `invalid <reason>` instead, never a delta, when the patch does not
+apply (git's message; nothing is built), the build fails, the run has no
+baseline or a stale one, or either boot is missing, stopped (`p8_fatal`
+message quoted), did not finish its frames, has asserts on, lacks a window
+frame line, or has a bad calibration. Every run is measured; the target
+exits 1 if one is invalid, 0 otherwise, differing game-state lines included.
+
+`make psx-probe-baseline [PSX_SHORT_RUNS=<names>]` is the same pipeline
+without a patch into `tmp/psx/probe/baseline/`: the deltas compare probe
+builds with probe builds, never with `psx-short-runs`' measured replay,
+whose asserts-off figures stay the report's absolute baseline. A valid run
+gets `fingerprint.txt`: the tree ids of `src/` and `psx/` and the blob id of
+`full_game.json` at `HEAD`; `psx-probe` calls a run stale when its own
+`HEAD` gives another, so a commit outside those paths keeps the baseline.
+The sanity patches `psx/probes/call-twice-cart-draw.patch`,
+`delay-update-and-draw.patch` (20 hblanks at the entry of `cart_update60`
+and `cart_draw`) and `null.patch` (code linked next to `cart_draw`, never
+run) are the tool's fixtures; when a commit moves their context they are
+refreshed with it. Their results and the noise floor are in
+`docs/psx-perf-levers.md`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
