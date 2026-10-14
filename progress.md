@@ -4,7 +4,7 @@
     - [x] Chunk 1: analysis script — window sums and asserts condition
     - [x] Chunk 2: PSX_SHORT_RUN_ASSERTS build option
     - [x] Chunk 3: asserts-off baseline in docs/psx-perf-levers.md
-  - [ ] 1.3 Probe tool (call-twice, fixed delay, experiment), sanity probes, noise floor
+  - [x] 1.3 Probe tool (call-twice, fixed delay, experiment), sanity probes, noise floor
     - [x] Chunk 1: probe analysis script and host test
     - [x] Chunk 2: probe build mode (PSX_PROBE, delay helper)
     - [x] Chunk 3: probe targets, sanity patches, noise floor on the real build

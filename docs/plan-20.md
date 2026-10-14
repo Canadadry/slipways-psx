@@ -290,3 +290,23 @@ assert-only code; the four unused-* kinds are demoted from errors in the
 asserts-off measured build only, game sources untouched (PRD decision, no
 guideline call). As known, the resumed short runs lose the update spikes at
 4737 and 5719 (update 118 and 46 hblanks).
+
+### Step 1.3
+
+`make psx-probe-baseline` and `make psx-probe PATCH=<file>
+[PSX_SHORT_RUNS=] [PSX_PROBE_LABEL=]`: the GPU replay built in a temporary
+worktree of HEAD with `-DPSX_PROBE=ON` (GPU frame buffer doubled, meter and
+`gpu_frame` zone on the same constant; `psx_probe_delay()` fine-clock
+busy-wait counting its calls) and asserts off, one boot per run, analysed by
+`tools/psx_probe.sh` (host-tested in `psx-tools-test`). Fixtures in
+`psx/probes/`. Probe baseline equals step 2's within 1 hblank per run.
+Sanity probes, all boots valid: call-twice `cart_draw` gives draw +4.3% to
++8.5% over double; delay probe delta/delay within 0.4% of the counted calls;
+null patch delta 0 on every run (noise floor 0.00%, but the emulator does
+not model code-layout effects).
+Guideline decisions: (1) `start`'s game state differs under call-twice
+`cart_draw` because `help_screen_draw` (`src/game/help.c:98`) ticks the RNG
+per call — accepted as an explained result; Phase 2 probes
+`help_screen_draw` and any title-screen child running it with the fixed
+delay. (2) The PRD's per-part delay check uses max(2% of 20 × window frames,
+2 hblanks), since the frame timer reads whole hblanks.
