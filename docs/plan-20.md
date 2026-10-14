@@ -266,3 +266,10 @@ because this plan file is deleted once it is finished.
 (none)
 
 ## 6. Step notes
+
+### Step 1.1
+
+Deleted `docs/prd/triage/phase1-step4.1-short-runs-draw-breakdown.md` (plan
+11's step 4.1 PRD, already implemented). `docs/prd/triage/` is now empty.
+Deviation: done directly by plan-pilot, without a PRD or prd-autopilot run,
+since the step is one file removal with nothing to test.

@@ -1,5 +1,5 @@
 - [ ] Phase 1 — Harness
-  - [ ] 1.1 Delete plan 11's leftover PRD from docs/prd/triage/
+  - [x] 1.1 Delete plan 11's leftover PRD from docs/prd/triage/
   - [ ] 1.2 Asserts-off option for psx-short-runs, baseline recorded
   - [ ] 1.3 Probe tool (call-twice, fixed delay, experiment), sanity probes, noise floor
   - [ ] 1.4 PC call-count and timing tool, coverage check
