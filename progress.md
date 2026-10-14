@@ -1,0 +1,17 @@
+- [ ] Phase 1 — Harness
+  - [ ] 1.1 Delete plan 11's leftover PRD from docs/prd/triage/
+  - [ ] 1.2 Asserts-off option for psx-short-runs, baseline recorded
+  - [ ] 1.3 Probe tool (call-twice, fixed delay, experiment), sanity probes, noise floor
+  - [ ] 1.4 PC call-count and timing tool, coverage check
+  - [ ] 1.5 Milestone: asserts-off full-game run as the judge's baseline
+- [ ] Phase 2 — Draw
+  - [ ] 2.6 Probe each direct child of cart_draw
+  - [ ] 2.7 Go down the draw tree
+  - [ ] 2.8 Backend side: per-unit costs, 9x print and meter experiments
+- [ ] Phase 3 — Update
+  - [ ] 3.9 Identify the four update spikes on PC
+  - [ ] 3.10 Ordinary update: calibration and children costs
+- [ ] Phase 4 — Global levers
+  - [ ] 4.11 Asserts, -O2/-O3/-Os, submit
+- [ ] Phase 5 — Report
+  - [ ] 5.12 Finish docs/psx-perf-levers.md
