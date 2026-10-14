@@ -500,7 +500,7 @@ mask.
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted, the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (`PSX_FULL_GAME_ASSERTS=off`: the GPU replay without asserts), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 | `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
@@ -602,7 +602,14 @@ in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
 (the capture handshake runs, `psx_capture_frames.lua` hands `NO_FRAME` at once,
 nothing is captured), until they exit, and checks twelve conditions
 (`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
-also in `run/conditions.txt`), every one before concluding:
+also in `run/conditions.txt`), every one before concluding.
+`PSX_FULL_GAME_ASSERTS=on|off` (default `on`; any other value fails before
+anything builds) picks the asserts mode: `off` has `psx-build` configure
+`PSX_MEASURED_REPLAY_ASSERTS=OFF`, so the measured GPU replays
+(`psx-gpu-replay`, `psx-gpu-replay-breakdown`) build without asserts, while
+the CPU-path replay and every other target keep them. `psx-build` passes the
+option on every configure (`ON` unless asked), so a cached `OFF` never
+carries into the next run:
 
 - `replay-done`, `state-game-lines`, `sprite-sheet`, `screen` and `map` on
   the replay, `gpu-replay-done` and `gpu-state-game-lines` on the GPU replay,
@@ -786,8 +793,9 @@ before the cut). `off` sets the CMake option `PSX_MEASURED_REPLAY_ASSERTS`
 to `OFF`: those two targets drop `-UNDEBUG`, so the SDK's `NDEBUG` applies,
 and `unused-variable`, `unused-but-set-variable`, `unused-function` and
 `unused-parameter` stay warnings, not errors (helpers, locals and parameters
-that only feed an assert); every other target, and `psx-build`, keep
-asserts. Then it boots the plain one twice and the breakdown once with an empty capture script until they
+that only feed an assert); every other target keeps asserts, and so does
+`psx-build` unless `psx-full-game-check PSX_FULL_GAME_ASSERTS=off` asks it
+not to. Then it boots the plain one twice and the breakdown once with an empty capture script until they
 exit (`PSX_SHORT_RUN_CEILING` vsyncs, `PSX_SHORT_RUN_TIMEOUT` s; each boot's
 wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
 (host-tested by `test_psx_short_run` in `psx-tools-test`) into

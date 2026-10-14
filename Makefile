@@ -429,8 +429,12 @@
 #                       psx/gpu_captures.txt, then the comparator, without the
 #                       other conditions (outputs in tmp/psx/gpu-capture,
 #                       ~20 s); outside the suite
-# make psx-full-game-check -> builds the PS-EXEs of PSX_FULL_GAME_EVENTS
+# make psx-full-game-check [PSX_FULL_GAME_ASSERTS=on|off]
+#                    -> refuses any PSX_FULL_GAME_ASSERTS but on (default) or
+#                       off; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json) in tmp/psx/full-game/build,
+#                       off building the measured GPU replays without asserts
+#                       while the CPU-path replay keeps them,
 #                       writes its PC state and digest, boots the replay
 #                       (ceiling PSX_FULL_GAME_CEILING vsyncs, timeout
 #                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
@@ -2093,6 +2097,9 @@ PSX_NM = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-nm
 psx_cmake_list = $(subst $(space),;,$(strip $(abspath $(1))))
 space := $(empty) $(empty)
 
+# Always passed: CMake caches options per build directory, and psx-build reconfigures in place.
+PSX_BUILD_MEASURED_REPLAY_ASSERTS ?= ON
+
 psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@mkdir -p $(dir $(PSX_EMBEDDED_REPLAY))
@@ -2100,6 +2107,7 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	cmake -S psx -B $(PSX_BUILD_DIR) \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS))' \
@@ -2166,9 +2174,18 @@ PSX_FULL_GAME_GPU_TIMEOUT ?= 525
 # One NTSC vsync in horizontal blanks: plan 11 step 4 must never raise it.
 PSX_FRAME_BUDGET_HBLANKS := 263
 
+PSX_FULL_GAME_ASSERTS ?= on
+# Checked at parse time: under -j a checking prerequisite would race the build.
+ifneq ($(filter psx-full-game-check,$(MAKECMDGOALS)),)
+ifneq ($(words $(PSX_FULL_GAME_ASSERTS))$(filter-out on off,$(PSX_FULL_GAME_ASSERTS)),1)
+$(error psx-full-game-check: PSX_FULL_GAME_ASSERTS must be on or off, not '$(PSX_FULL_GAME_ASSERTS)')
+endif
+endif
+
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
-	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build
+	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
+		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON)
 	@mkdir -p $(PSX_FULL_GAME_DIR)
 	STATE=$(PSX_FULL_GAME_DIR)/pc_state.txt DIGEST=$(PSX_FULL_GAME_DIR)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_FULL_GAME_EVENTS) /dev/null $(PSX_FULL_GAME_DIR)/pc.dump.txt > $(PSX_FULL_GAME_DIR)/pc.log 2>&1 \
 		|| { cat $(PSX_FULL_GAME_DIR)/pc.log >&2; exit 1; }

@@ -14,6 +14,8 @@
     - [x] Chunk 3: breakdown and coverage check script
     - [x] Chunk 4: draw-5564 breakdown check, full-run coverage, report
   - [ ] 1.5 Milestone: asserts-off full-game run as the judge's baseline
+    - [x] Chunk 1: PSX_FULL_GAME_ASSERTS option
+    - [ ] Chunk 2: asserts-off full run and report section
 - [ ] Phase 2 — Draw
   - [ ] 2.6 Probe each direct child of cart_draw
   - [ ] 2.7 Go down the draw tree
