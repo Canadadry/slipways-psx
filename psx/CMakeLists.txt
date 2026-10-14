@@ -18,6 +18,8 @@ foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX
 	endif()
 endforeach()
 
+option(PSX_MEASURED_REPLAY_ASSERTS "Keep asserts in psx-gpu-replay and psx-gpu-replay-breakdown" ON)
+
 foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe psx-game psx-largest-slots)
 	if(_target STREQUAL "psx-replay")
 		set(_sources ${PSX_REPLAY_SOURCES})
@@ -36,7 +38,15 @@ foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe
 	target_include_directories(${_target} PRIVATE ${SLIPWAYS_SRC_DIR})
 	# The SDK's release config defines NDEBUG; -U comes after its -D, so the
 	# core's asserts stay compiled in, as in the PC -O0 binary.
-	target_compile_options(${_target} PRIVATE -std=c99 -Wall -Wextra -Werror -UNDEBUG)
+	if(NOT PSX_MEASURED_REPLAY_ASSERTS AND _target MATCHES "^psx-gpu-replay(-breakdown)?$")
+		# Helpers and locals that only feed an assert go unused under NDEBUG;
+		# the sources must not change, so these kinds stay warnings only.
+		target_compile_options(${_target} PRIVATE -std=c99 -Wall -Wextra -Werror
+			-Wno-error=unused-variable -Wno-error=unused-but-set-variable
+			-Wno-error=unused-function -Wno-error=unused-parameter)
+	else()
+		target_compile_options(${_target} PRIVATE -std=c99 -Wall -Wextra -Werror -UNDEBUG)
+	endif()
 	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort -Wl,--wrap=snprintf -Wl,--wrap=vsnprintf)
 endforeach()
 target_compile_definitions(psx-gpu-replay-breakdown PRIVATE PSX_GPU_REPLAY_BREAKDOWN)

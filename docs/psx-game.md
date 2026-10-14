@@ -772,10 +772,17 @@ patterned rectfill or circfill counts under its shape and again under
 `<family> <ticks> <calls>` for the ten families and `wrapped <0|1>`. Without
 the definition the GPU replay is the same program.
 
-**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>]` runs the cut, then
-per run configures `psx/` in `<name>/build` with `run.json` embedded and
-builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, boots the plain
-one twice and the breakdown once with an empty capture script until they
+**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]`
+runs the cut, then per run configures `psx/` in `<name>/build` with
+`run.json` embedded and
+builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, with asserts
+unless `PSX_SHORT_RUN_ASSERTS=off` (default `on`; any other value fails
+before the cut). `off` sets the CMake option `PSX_MEASURED_REPLAY_ASSERTS`
+to `OFF`: those two targets drop `-UNDEBUG`, so the SDK's `NDEBUG` applies,
+and `unused-variable`, `unused-but-set-variable`, `unused-function` and
+`unused-parameter` stay warnings, not errors (helpers, locals and parameters
+that only feed an assert); every other target, and `psx-build`, keep
+asserts. Then it boots the plain one twice and the breakdown once with an empty capture script until they
 exit (`PSX_SHORT_RUN_CEILING` vsyncs, `PSX_SHORT_RUN_TIMEOUT` s; each boot's
 wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
 (host-tested by `test_psx_short_run` in `psx-tools-test`) into
@@ -796,8 +803,8 @@ wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
   frame, no wrapped frame, and no frame's in-call time above the breakdown
   boot's own draw;
 - `asserts`: each boot's first `psx-replay: asserts` line reports the
-  expected mode (`on` for now), naming any boot that says otherwise or has
-  no such line.
+  mode `PSX_SHORT_RUN_ASSERTS` asked for, naming any boot that says
+  otherwise or has no such line.
 
 `summary.txt`, over the window frames: first the plain-1 boot's sums,
 `window plain update <U> draw <D> submit <S>` (with or without a reference,

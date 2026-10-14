@@ -464,10 +464,13 @@
 #                       jump selection or crosshair); fails on a refused
 #                       cut, an embed failure, a stopped replay or a missing
 #                       file, ~25 s; never boots, outside the suite
-# make psx-short-runs [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
-#                       then per run builds psx-gpu-replay and
-#                       psx-gpu-replay-breakdown with its run.json embedded in
-#                       tmp/psx/short-runs/<name>/build, boots the plain one
+# make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]
+#                    -> refuses any PSX_SHORT_RUN_ASSERTS but on (default) or
+#                       off, runs psx-short-runs-cut, then per run builds
+#                       psx-gpu-replay and psx-gpu-replay-breakdown with its
+#                       run.json embedded in tmp/psx/short-runs/<name>/build
+#                       (off: without asserts, unused-* warnings not errors;
+#                       every other target keeps asserts), boots the plain one
 #                       twice and the breakdown once with an empty capture
 #                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, timeout
 #                       PSX_SHORT_RUN_TIMEOUT s; wall time and vsyncs in
@@ -476,9 +479,9 @@
 #                       (against PSX_SHORT_RUN_REFERENCE, default
 #                       psx-full-game-check's frames.txt; empty skips it, a
 #                       missing file fails), breakdown, asserts (every boot
-#                       reports asserts on), then the window's plain update,
-#                       draw and submit sums, draw split, overhead and best
-#                       cases; fails after every run
+#                       reports PSX_SHORT_RUN_ASSERTS's mode), then the
+#                       window's plain update, draw and submit sums, draw
+#                       split, overhead and best cases; fails after every run
 #                       when a condition failed, ~4 min; never runs a setup,
 #                       outside the suite and psx-check
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
@@ -2127,6 +2130,13 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
 PSX_SHORT_RUN_CEILING ?= 540
 PSX_SHORT_RUN_TIMEOUT ?= 10
+PSX_SHORT_RUN_ASSERTS ?= on
+# Checked at parse time: under -j a checking prerequisite would race the cut and the build.
+ifneq ($(filter psx-short-runs,$(MAKECMDGOALS)),)
+ifneq ($(words $(PSX_SHORT_RUN_ASSERTS))$(filter-out on off,$(PSX_SHORT_RUN_ASSERTS)),1)
+$(error psx-short-runs: PSX_SHORT_RUN_ASSERTS must be on or off, not '$(PSX_SHORT_RUN_ASSERTS)')
+endif
+endif
 # Each run's own embedded recording replaces psx-build's in the three lists that hold it.
 psx_short_run_list = $(call psx_cmake_list,$(filter-out $(PSX_EMBEDDED_REPLAY),$(1)))
 
@@ -2143,6 +2153,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 		if ! { cmake -S psx -B $$dir/build \
 			-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 			-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+			-DPSX_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_SHORT_RUN_ASSERTS)),OFF,ON) \
 			"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
@@ -2165,7 +2176,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 		done; \
 		sed "s/^/psx-short-runs: $$name: boot /" $$dir/boots.txt; rm -rf $$dir/analysis; \
 		sh tools/psx_short_run.sh $$dir/plain-1.tty.txt $$dir/plain-2.tty.txt $$dir/breakdown.tty.txt $$dir/map.txt "$$frames" \
-			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis on | sed "s/^/psx-short-runs: $$name: /"; \
+			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis $(PSX_SHORT_RUN_ASSERTS) | sed "s/^/psx-short-runs: $$name: /"; \
 		[ -f $$dir/analysis/verdicts.txt ] && ! grep -q '^[a-z]* failed ' $$dir/analysis/verdicts.txt || failed="$$failed $$name"; \
 	done; \
 	if [ -n "$$failed" ]; then echo "psx-short-runs: failed:$$failed"; exit 1; fi; \

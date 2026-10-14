@@ -2,7 +2,7 @@
   - [x] 1.1 Delete plan 11's leftover PRD from docs/prd/triage/
   - [ ] 1.2 Asserts-off option for psx-short-runs, baseline recorded
     - [x] Chunk 1: analysis script — window sums and asserts condition
-    - [ ] Chunk 2: PSX_SHORT_RUN_ASSERTS build option
+    - [x] Chunk 2: PSX_SHORT_RUN_ASSERTS build option
     - [ ] Chunk 3: asserts-off baseline in docs/psx-perf-levers.md
   - [ ] 1.3 Probe tool (call-twice, fixed delay, experiment), sanity probes, noise floor
   - [ ] 1.4 PC call-count and timing tool, coverage check
