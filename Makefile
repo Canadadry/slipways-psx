@@ -475,8 +475,10 @@
 #                       <name>/analysis: done, deterministic, representative
 #                       (against PSX_SHORT_RUN_REFERENCE, default
 #                       psx-full-game-check's frames.txt; empty skips it, a
-#                       missing file fails), breakdown, then the window's draw
-#                       split, overhead and best cases; fails after every run
+#                       missing file fails), breakdown, asserts (every boot
+#                       reports asserts on), then the window's plain update,
+#                       draw and submit sums, draw split, overhead and best
+#                       cases; fails after every run
 #                       when a condition failed, ~4 min; never runs a setup,
 #                       outside the suite and psx-check
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
@@ -2163,7 +2165,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 		done; \
 		sed "s/^/psx-short-runs: $$name: boot /" $$dir/boots.txt; rm -rf $$dir/analysis; \
 		sh tools/psx_short_run.sh $$dir/plain-1.tty.txt $$dir/plain-2.tty.txt $$dir/breakdown.tty.txt $$dir/map.txt "$$frames" \
-			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis | sed "s/^/psx-short-runs: $$name: /"; \
+			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis on | sed "s/^/psx-short-runs: $$name: /"; \
 		[ -f $$dir/analysis/verdicts.txt ] && ! grep -q '^[a-z]* failed ' $$dir/analysis/verdicts.txt || failed="$$failed $$name"; \
 	done; \
 	if [ -n "$$failed" ]; then echo "psx-short-runs: failed:$$failed"; exit 1; fi; \

@@ -794,9 +794,15 @@ wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
   `make psx-full-game-check`;
 - `breakdown`: the calibration in 15,500–19,000, one `psx-draw:` record per
   frame, no wrapped frame, and no frame's in-call time above the breakdown
-  boot's own draw.
+  boot's own draw;
+- `asserts`: each boot's first `psx-replay: asserts` line reports the
+  expected mode (`on` for now), naming any boot that says otherwise or has
+  no such line.
 
-`summary.txt`, over the window frames: each family's hblanks, calls and share
+`summary.txt`, over the window frames: first the plain-1 boot's sums,
+`window plain update <U> draw <D> submit <S>` (with or without a reference,
+even when the breakdown boot failed; `window plain unavailable: ...` when
+plain-1 lacks a window frame), then each family's hblanks, calls and share
 of the breakdown boot's draw (`pattern` apart), `in-calls` (everything under
 the p8 draw API: meter, filter and GPU backend) and `outside-calls` (the
 game's own code in `cart_draw`); `overhead` (breakdown draw − plain draw);
