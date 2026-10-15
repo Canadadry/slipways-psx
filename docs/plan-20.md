@@ -383,3 +383,33 @@ that run; −0.04% against the call-twice `cart_draw` delta), −0.9%.
 Hand-off: step 7 descends `draw_layers#1` on all three runs and
 `draw_layers#2` on `draw-5564` only; every other child is closed.
 
+### Step 2.7
+
+Tooling: `frame_profile` takes an optional draw-root symbol (child cap
+16 → 64), and `make frame-profile-subtree ROOT=<symbol>` summarises a
+subtree's children per short run. The profile objects' dependency files
+are now included, so a header change rebuilds the binary. Probe baseline
+rebuilt on `e97bb51`: identical to step 6's. About 240 throwaway probes,
+all valid, every game state the same, none committed.
+Findings, per frame: on `draw-5564` the 9× outlined print is 289
+`p8_print` calls, 586 hblanks (43.4% of the mean window frame), reached
+through button labels, side rows, score readouts and the message box;
+dropping the 8 outline passes bounds at 521. On `draw-6000` it is 106
+(10.8%). Other leaves above 2%: `p8_map` (221 on `draw-5564`, 224 on
+`draw-6000`), the planet-row icons' `p8_spr_default`, `circfill`/`circ`
+behind planets, slipway `p8_line`, transit-dot `rectfill`/`pset`, and
+particle `pset`. `p8_rectfill` is cheap on PSX although PC shows it
+heavy. 15 do-less candidates, each with a bound and a pixel risk.
+Every node above 2% on every run is explored or a leaf. Still open: the
+selves of the particle- and dot-ageing loops, and `draw_layers#1`'s
+self on `draw-5564` (at most 1568 over the window).
+Method additions (within the plan's rules): path-flag gating to double
+a shared function under one parent only, cross-parent groups as upper
+bounds, count-only delay probes. `slipway_draw`, `ascension_draw` and
+`emitter_update` take the fixed delay plus a PC share, since a second
+call spawns or ages dots and particles.
+Learning for step 10: PC-derived costs read low against measured
+children (slipway +17.5%, ascension at least +37% on `draw-5564` and
++47% on `draw-6000`), which is the calibration gap step 10 records.
+Also removes the implemented PRD `docs/prd/triage/phase2-step7-draw-tree.md`.
+

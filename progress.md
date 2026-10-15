@@ -20,7 +20,7 @@
   - [x] 2.6 Probe each direct child of cart_draw
     - [x] Chunk 1: baselines and cart_draw's own cost
     - [x] Chunk 2: children probes and additivity check
-  - [ ] 2.7 Go down the draw tree
+  - [x] 2.7 Go down the draw tree
     - [x] Chunk 1: subtree root in the profile binary
     - [x] Chunk 2: frame-profile-subtree target, subtree summary, probe baseline rebuild
     - [x] Chunk 3: level 2, the children of draw_layers
