@@ -1,7 +1,7 @@
 #!/bin/sh
 # usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
 #        frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
-#        frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
+#        frame_profile_check.sh subtree [part=draw|part=update] <name>=<frames.txt>[,...]:<map.txt>...
 #        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
 #        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
 #        frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
@@ -25,7 +25,9 @@
 # every uncovered item, and "coverage ok" or "coverage uncovered ...". Exit 0
 # when nothing is uncovered, 3 when something is, 2 on malformed input, 1 on
 # a usage error.
-# subtree: profiles of one draw root (their "root draw <symbol>" line), per
+# subtree: profiles of one draw root (their "root draw <symbol>" line), or
+# with part=update of one update root (its "root update" line, the frame
+# line's update time, the "child update" and "self update" lines), per
 # run over its window: "root <symbol> run <name> window-frames <n>
 # root-ns-per-frame <ns>" (median over the run's profiles of the mean), then
 # per child called in the window, by decreasing share, "child <symbol>
@@ -65,7 +67,7 @@ export LC_ALL
 
 usage="usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
        frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
-       frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
+       frame_profile_check.sh subtree [part=draw|part=update] <name>=<frames.txt>[,...]:<map.txt>...
        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
        frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
@@ -303,6 +305,11 @@ coverage() {
 }
 
 subtree() {
+    part=draw
+    case ${1:-} in
+        part=draw | part=update) part=${1#part=}; shift ;;
+        part=*) fail_usage "part is not draw or update: $1" ;;
+    esac
     [ $# -ge 1 ] || fail_usage "$usage"
     for spec in "$@"; do
         name=${spec%%=*}
@@ -322,7 +329,7 @@ subtree() {
         files_part=${spec#*=}
         profiles=$(echo "${files_part%%:*}" | tr ',' ' ')
         set -- $(window_of "${files_part#*:}")
-        awk -v run="$name" -v first="$1" -v last="$2" '
+        awk -v run="$name" -v first="$1" -v last="$2" -v part="$part" '
             function malformed(reason) {
                 print "frame-profile-check: malformed " FILENAME ": " reason > "/dev/stderr"
                 failed = 1
@@ -333,20 +340,20 @@ subtree() {
                 return n % 2 ? values[(n + 1) / 2] : (values[n / 2] + values[n / 2 + 1]) / 2
             }
             FNR == 1 {
-                if (file > 0 && !(file in root)) { FILENAME = previous; malformed("no root draw line") }
+                if (file > 0 && !(file in root)) { FILENAME = previous; malformed("no root " part " line") }
                 file++; previous = FILENAME
                 if ($1 != "profile" || $3 != "frames" || $4 !~ /^[0-9]+$/) malformed("no profile header")
                 next
             }
-            FNR == 2 && $1 == "root" && $2 == "draw" && NF == 3 {
+            (part == "update" || FNR == 2) && $1 == "root" && $2 == part && NF == 3 {
                 root[file] = $3
-                if (file > 1 && $3 != root[1]) malformed("root draw " $3 ", not " root[1] " as the first profile")
+                if (file > 1 && $3 != root[1]) malformed("root " part " " $3 ", not " root[1] " as the first profile")
                 next
             }
             $1 != "frame" || $2 < first || $2 > last { next }
-            $3 == "update" && NF == 6 { root_ns[file] += $6; seen[file, $2] = 1; next }
-            $3 == "self" && $4 == "draw" && NF == 5 { self_ns[file] += $5; next }
-            $3 == "child" && $4 == "draw" && NF == 9 {
+            $3 == "update" && NF == 6 { root_ns[file] += part == "update" ? $4 : $6; seen[file, $2] = 1; next }
+            $3 == "self" && $4 == part && NF == 5 { self_ns[file] += $5; next }
+            $3 == "child" && $4 == part && NF == 9 {
                 if (!($5 in child_index)) { child_count++; child_index[$5] = child_count; children[child_count] = $5 }
                 child_ns[file, $5] += $7
                 if (file == 1) {
@@ -357,9 +364,9 @@ subtree() {
             }
             END {
                 if (failed) exit 2
-                if (!(file in root)) { FILENAME = previous; malformed("no root draw line") }
+                if (!(file in root)) { FILENAME = previous; malformed("no root " part " line") }
                 for (k = 1; k <= file; k++)
-                    for (f = first; f <= last; f++) if (!((k, f) in seen)) malformed("no draw line for window frame " f " in profile " k)
+                    for (f = first; f <= last; f++) if (!((k, f) in seen)) malformed("no " part " line for window frame " f " in profile " k)
                 frames = last - first + 1
                 for (k = 1; k <= file; k++) v[k] = root_ns[k] / frames
                 printf "root %s run %s window-frames %d root-ns-per-frame %d\n", root[1], run, frames, median(v, file) + 0.5

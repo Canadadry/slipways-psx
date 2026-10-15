@@ -555,15 +555,17 @@
 #                       below, then the windows
 #                       to add; fails while anything is uncovered, outside
 #                       the suite
-# make frame-profile-subtree ROOT=<symbol> [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
+# make frame-profile-subtree ROOT=<symbol> [PART=draw|update] [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
 #                    -> runs psx-short-runs-cut, profiles each run's run.json
 #                       (default start and every draw-* run of
 #                       psx/short_runs.txt) k times (default 4) with that
-#                       function as the draw root into
-#                       tmp/frame-profile/subtree/<symbol>/<name>/<k>/
+#                       function as the draw root (default) into
+#                       tmp/frame-profile/subtree/<symbol>/<name>/<k>/, or
+#                       with PART=update as the update root (draw root
+#                       cart_draw) into tmp/frame-profile/subtree-update/
 #                       (same-game against its run.end-state), then
 #                       tools/frame_profile_check.sh subtree (also in
-#                       tmp/frame-profile/subtree/<symbol>/summary.txt): per
+#                       summary.txt of that <symbol> directory): per
 #                       run, the root's PC time per window frame, then per
 #                       child its calls per window frame and median share of
 #                       the root's PC time, and the root's self share; fails
@@ -2505,22 +2507,29 @@ frame-profile-coverage: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_
 		> $(FRAME_PROFILE_DIR)/coverage.txt; status=$$?; \
 	cat $(FRAME_PROFILE_DIR)/coverage.txt; exit $$status
 
-# Each run's recording is profiled FRAME_PROFILE_REPEATS times into subtree/<ROOT>/<name>/<k>.
+PART ?= draw
+
+# Each run's recording is profiled FRAME_PROFILE_REPEATS times into subtree/<ROOT>/<name>/<k>
+# (subtree-update/ with PART=update, where cart_draw stays the draw root).
 frame-profile-subtree: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
 	@$(frame_profile_function); \
 	case "$(ROOT)" in ''|*[!A-Za-z0-9_]*) echo "$@: ROOT is not a function symbol: '$(ROOT)'"; exit 1;; esac; \
 	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
-	out=$(FRAME_PROFILE_DIR)/subtree/$(ROOT); runs=; \
+	case "$(PART)" in \
+		draw) out=$(FRAME_PROFILE_DIR)/subtree/$(ROOT); roots="$(ROOT)";; \
+		update) out=$(FRAME_PROFILE_DIR)/subtree-update/$(ROOT); roots="cart_draw $(ROOT)";; \
+		*) echo "$@: PART is not draw or update: '$(PART)'"; exit 1;; \
+	esac; runs=; \
 	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 == "start" || $$1 ~ /^draw-/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
 		short=$(PSX_SHORT_RUNS_DIR)/$$name; profiles=; \
 		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
 			dir=$$out/$$name/$$k; \
-			profile $$short/run.json $$short/run.end-state $$dir $(ROOT) || exit 1; \
+			profile $$short/run.json $$short/run.end-state $$dir $$roots || exit 1; \
 			profiles="$$profiles,$$dir/frames.txt"; \
 		done; \
 		runs="$$runs $$name=$${profiles#,}:$$short/map.txt"; \
 	done; \
-	sh tools/frame_profile_check.sh subtree $$runs > $$out/summary.txt; status=$$?; \
+	sh tools/frame_profile_check.sh subtree part=$(PART) $$runs > $$out/summary.txt; status=$$?; \
 	cat $$out/summary.txt; exit $$status
 
 frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut

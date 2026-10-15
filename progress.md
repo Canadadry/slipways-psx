@@ -40,6 +40,11 @@
     - [x] Chunk 5: classification
     - [x] Chunk 6: spreading and fallback
   - [ ] 3.10 Ordinary update: calibration and children costs
+    - [x] Chunk 1: update-root subtree summary
+    - [ ] Chunk 2: ordinary mode and frame-profile-ordinary target
+    - [ ] Chunk 3: ordinary calibration
+    - [ ] Chunk 4: descent and costs
+    - [ ] Chunk 5: delay probes and candidates
 - [ ] Phase 4 — Global levers
   - [ ] 4.11 Asserts, -O2/-O3/-Os, submit
 - [ ] Phase 5 — Report

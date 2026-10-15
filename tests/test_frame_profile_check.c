@@ -610,6 +610,91 @@ static void test_subtree_usage_errors_exit_1(void) {
     assert(read_file(LOG)[0] != 'r');
 }
 
+/* Update-rooted subtree profiles (cart_draw stays the draw root), window run frames 2..3: the root
+ * takes 400 then 800 ns, pad_nav_step a quarter of it, cheat_step#2 60 ns, attract_step only
+ * outside the window; the draw child must not count. */
+#define SUBTREE_UPDATE_TXT DIR "/subtree-update.txt"
+#define SUBTREE_UPDATE2_TXT DIR "/subtree-update2.txt"
+#define SUBTREE_UPDATE " start=" SUBTREE_UPDATE_TXT ":" SUBTREE_START_MAP
+
+static void write_subtree_update_profile(const char *path, const char *root) {
+    static char text[TEXT_CAP];
+    char line[256];
+    text[0] = '\0';
+    snprintf(line, sizeof line,
+             "profile run.json frames 6 hook-pair-ns 4.6 clock monotonic-ns\nroot draw cart_draw\nroot update %s\n",
+             root);
+    append(text, TEXT_CAP, line);
+    for (int frame = 0; frame < 6; frame++) {
+        int window = between(frame, 2, 3);
+        int update = frame == 2 ? 400 : frame == 3 ? 800 : 200;
+        int pad = update / 4;
+        snprintf(line, sizeof line, "frame %d update %d draw 5000\nframe %d child draw planet_draw_method 3 2500 2400 0\n",
+                 frame, update, frame);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d child update pad_nav_step %d %d %d 0\n", frame, frame == 3 ? 5 : 3, pad,
+                 pad);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d child update attract_step %d %d %d 0\n", frame, !window,
+                 window ? 0 : 30, window ? 0 : 30);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d child update cheat_step#2 1 60 60 0\n", frame);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d self update %d\nframe %d self draw 2500\n", frame,
+                 update - pad - 60 - (window ? 0 : 30), frame);
+        append(text, TEXT_CAP, line);
+    }
+    write_file(path, text);
+}
+
+static void write_subtree_update_inputs(void) {
+    write_subtree_inputs();
+    write_subtree_update_profile(SUBTREE_UPDATE_TXT, "input_step_run");
+}
+
+static void test_subtree_update_part_lists_the_update_root_children(void) {
+    write_subtree_update_inputs();
+    write_subtree_update_profile(SUBTREE_UPDATE2_TXT, "input_step_run");
+    assert(run_command(SCRIPT " subtree part=update start=" SUBTREE_UPDATE_TXT "," SUBTREE_UPDATE2_TXT
+                       ":" SUBTREE_START_MAP " > " LOG " 2>&1") == 0);
+    assert(strcmp(read_file(LOG), "root input_step_run run start window-frames 2 root-ns-per-frame 600\n"
+                                  "child input_step_run pad_nav_step calls 3-5 share 25.0%\n"
+                                  "child input_step_run cheat_step#2 calls 1-1 share 10.0%\n"
+                                  "self input_step_run share 65.0%\n") == 0);
+}
+
+static void test_subtree_draw_part_is_the_default(void) {
+    write_subtree_update_inputs();
+    const char *expected = "root cart_draw run start window-frames 2 root-ns-per-frame 5000\n"
+                           "child cart_draw planet_draw_method calls 3-3 share 50.0%\n"
+                           "self cart_draw share 50.0%\n";
+    assert(run_command(SCRIPT " subtree" SUBTREE_UPDATE " > " LOG " 2>&1") == 0);
+    assert(strcmp(read_file(LOG), expected) == 0);
+    assert(run_command(SCRIPT " subtree part=draw" SUBTREE_UPDATE " > " LOG " 2>&1") == 0);
+    assert(strcmp(read_file(LOG), expected) == 0);
+}
+
+static void test_subtree_update_part_malformed_input_exits_2(void) {
+    write_subtree_update_inputs();
+    write_subtree_update_profile(SUBTREE_UPDATE2_TXT, "pad_nav_step");
+    assert(run_command(SCRIPT " subtree part=update start=" SUBTREE_UPDATE_TXT "," SUBTREE_UPDATE2_TXT
+                       ":" SUBTREE_START_MAP " > " LOG " 2>&1") == 2);
+    assert(strstr(read_file(LOG), "root update pad_nav_step, not input_step_run") != NULL);
+    assert(run_command(SCRIPT " subtree part=update" SUBTREE_START " > " LOG " 2>&1") == 2);
+    assert(strstr(read_file(LOG), "no root update line") != NULL);
+    write_file(SUBTREE_UPDATE2_TXT, replaced(read_file(SUBTREE_UPDATE_TXT), "frame 3 update 800 draw 5000\n", ""));
+    assert(run_command(SCRIPT " subtree part=update start=" SUBTREE_UPDATE2_TXT ":" SUBTREE_START_MAP " > " LOG
+                       " 2>&1") == 2);
+    assert(strstr(read_file(LOG), "no update line for window frame 3") != NULL);
+}
+
+static void test_subtree_update_part_usage_errors_exit_1(void) {
+    write_subtree_update_inputs();
+    assert(run_command(SCRIPT " subtree part=update > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " subtree part=submit" SUBTREE_UPDATE " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " subtree" SUBTREE_UPDATE " part=update > " LOG " 2>&1") == 1);
+}
+
 /* Returns the script's exit status; its output is in LOG. */
 static int run_unit_cost(const char *profile, const char *tty, const char *map) {
     fresh_dir();
@@ -1120,6 +1205,10 @@ int main(void) {
     test_subtree_reports_each_run_in_order();
     test_subtree_malformed_input_exits_2();
     test_subtree_usage_errors_exit_1();
+    test_subtree_update_part_lists_the_update_root_children();
+    test_subtree_draw_part_is_the_default();
+    test_subtree_update_part_malformed_input_exits_2();
+    test_subtree_update_part_usage_errors_exit_1();
     test_unit_cost_prices_each_family_over_the_window();
     test_unit_cost_refuses_a_calls_mismatch_naming_the_first();
     test_unit_cost_refuses_a_profile_without_units();
