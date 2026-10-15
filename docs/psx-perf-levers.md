@@ -2981,8 +2981,8 @@ and discarded; neither is committed:
 Plan 20 step 10: update on the judge's 5,893 frames whose update is 263
 hblanks or less, the complement of "Update spikes"' 19 classes (77% of the
 run's update). This section is being written chunk by chunk; for now it
-holds the calibration of PC update proportions on ordinary frames and its
-transfer check against step 9.
+holds the calibration of PC update proportions on ordinary frames, its
+transfer check against step 9, and the descent with each node's cost.
 
 Measured on commit `078d9664b6349cef5e5d850860e465147bf954bc` (pcsx-redux,
 asserts off), with no change to the game.
@@ -3214,6 +3214,118 @@ gave them:
   5944, C3) timed on the PSX reads `ui_update` 0.88 and the save 1.17
   against `cart_update60`, inside step 9's C3 ranges (0.78–0.90 and
   1.14–1.57).
+
+### Descent and costs
+
+Profiled on commit `f173cf1195228dfedea8fd91666e97dbd73f4890` (no code
+change since `078d966`; 40 profiles, all `same-game yes`, 6 min 22 s):
+
+```
+make frame-profile-ordinary FRAME_PROFILE_REPEATS=8 UPDATE_RATIOS=input_step_run=1.13,update_entities=1.28,ui_update=0.83:0.76-0.94,main_ui=0.83:0.76-0.94,dispatch_context_mem=0.83:0.76-0.94,save_at_frame_end=1.14:1.38-0.95
+```
+
+- `main_ui` and `dispatch_context_mem` are `cart_update60` children of
+  their own in the profile (the arguments of the `ui_update` call). The
+  calibration counted them inside the `ui_update` piece, so they get its
+  ratio and interval; they weigh 0.1 and 0.0 hblanks a frame either way.
+- The mode takes one ratio set: the 12 title frames at the run's start
+  use the in-game ratios, not `start-title`'s. Their update is 8 to 9
+  hblanks a frame, under 0.03% of the population's.
+- The descent profiled `pad_nav_step`, `ui_update` and `ui_update_hover`
+  as update roots (two levels), with nothing unresolvable, and ended
+  `nodes-above 5 leaves 2 open 0`.
+
+**Population** (judge table; threshold 2% of the mean total, the lower of
+that and the short-run threshold for the windows):
+
+| Population | Frames | Excluded | Mean total | Threshold | Mean update | Save frames | Their share |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ordinary | 5,893 | 166 | 838.0 | 16.8 | 78.3 | 0 | 0.0% |
+| `draw-5564` (5564–5578) | 15 | 0 | 1557.6 | 27.0 | 45.3 | 0 | 0.0% |
+| `draw-6000` (6000–6014) | 15 | 0 | 930.5 | 18.6 | 39.8 | 0 | 0.0% |
+
+The figures match the PRD's (5,893 frames, 838.0, 78.3, 16.8). No ordinary
+frame is a save frame: `save_at_frame_end` never holds 2% of `P` outside
+the spike classes, so every interval collapses to its point estimate and
+no label is lowered.
+
+**Tree** (hblanks a frame on the judge's update, mean and p90; PC calls a
+frame, mean–max, from the first profile of the parent's set; runs-on in
+frames; share of the population's update). Above in at least one
+population, plus the heaviest child under each leaf and the nearest
+misses:
+
+| Node | Ratio, label | Population | Cost | p90 | Share | Calls (PC) | Per call | Runs-on | Verdict |
+|---|---|---|---:|---:|---:|---|---:|---:|---|
+| `update/input_step_run` | 1.13, medium | ordinary | 34.2 | 54.2 | 43.7% | 1.0–1 | 34.2 | 5893 | above |
+| | | `draw-5564` | 13.8 | 20.5 | 30.4% | 1.0–1 | 13.8 | 15 | under |
+| | | `draw-6000` | 12.3 | 31.0 | 30.8% | 1.0–1 | 12.3 | 15 | under |
+| `…/input_step_run/pad_nav_step` | 1.13, medium | ordinary | 32.9 | 52.4 | 42.0% | 1.0–1 | 32.9 | 5893 | above, leaf |
+| | | `draw-5564` | 12.8 | 19.3 | 28.3% | 1.0–1 | 12.8 | 15 | under |
+| | | `draw-6000` | 11.2 | 29.7 | 28.2% | 1.0–1 | 11.2 | 15 | under |
+| `…/pad_nav_step/map_step` | 1.13, medium | ordinary | 8.8 | 15.8 | 11.2% | 0.9–1 | 9.5 | 5457 | under |
+| | | `draw-5564` | 0.0 | 0.0 | 0.0% | 0.0–0 | — | 0 | under |
+| | | `draw-6000` | 3.6 | 6.7 | 9.1% | 1.0–1 | 3.6 | 15 | under |
+| `update/cart_update60` | pieces' own | ordinary | 44.1 | 84.4 | 56.3% | 1.0–1 | 44.1 | 5893 | above |
+| | | `draw-5564` | 31.5 | 32.2 | 69.6% | 1.0–1 | 31.5 | 15 | above |
+| | | `draw-6000` | 27.5 | 30.0 | 69.2% | 1.0–1 | 27.5 | 15 | above |
+| `…/cart_update60/update_entities` | 1.28, low | ordinary | 16.2 | 43.6 | 20.6% | 1.0–1 | 16.2 | 5893 | under |
+| | | `draw-5564` | 14.4 | 15.0 | 31.8% | 1.0–1 | 14.4 | 15 | under |
+| | | `draw-6000` | 10.8 | 11.5 | 27.2% | 1.0–1 | 10.8 | 15 | under |
+| `…/cart_update60/ui_update` | 0.83, medium | ordinary | 26.5 | 47.6 | 33.9% | 1.0–1 | 26.5 | 5893 | above |
+| | | `draw-5564` | 16.1 | 16.7 | 35.5% | 1.0–1 | 16.1 | 15 | under |
+| | | `draw-6000` | 15.6 | 16.9 | 39.1% | 1.0–1 | 15.6 | 15 | under |
+| `…/ui_update/ui_update_hover` | 0.83, medium | ordinary | 18.7 | 26.2 | 23.9% | 1.0–1 | 18.7 | 5893 | above, leaf |
+| | | `draw-5564` | 14.9 | 15.3 | 32.9% | 1.0–1 | 14.9 | 15 | under |
+| | | `draw-6000` | 15.7 | 16.3 | 39.4% | 1.0–1 | 15.7 | 15 | under |
+| `…/ui_update_hover/planet_hit_test_method` | 0.83, medium | ordinary | 16.7 | 23.3 | 21.3% | 77.7–90 | 0.2 | 5881 | under |
+| | | `draw-5564` | 12.1 | 12.6 | 26.7% | 74.0–74 | 0.2 | 15 | under |
+| | | `draw-6000` | 13.3 | 13.8 | 33.3% | 76.0–76 | 0.2 | 15 | under |
+| `…/ui_update/ui_handle_button` | 0.83, medium | ordinary | 7.3 | 29.0 | 9.3% | 1.0–1 | 7.3 | 5893 | under |
+| | | `draw-5564` | 0.1 | 0.1 | 0.3% | 1.0–1 | 0.1 | 15 | under |
+| | | `draw-6000` | 0.1 | 0.1 | 0.3% | 1.0–1 | 0.1 | 15 | under |
+
+PSX call counts come from the delay probes. Every other node of the tree
+is at 3.7 hblanks a frame or less in every population: `frame_zone_reset` 0.1,
+`cart_flush_exit_queue` 0.2, `save_at_frame_end` 0.1, `main_ui` 0.1,
+`dispatch_context_mem` 0.0; under `pad_nav_step`, `switch_panels` 3.7,
+`finish_step` 3.4, `pause_step` 3.3, `armed_panel_open` 3.2,
+`foreign_panel_open` 3.2, `select_allowed#1` 2.9, `pad_nav_panel_open`
+2.9; under `ui_update_hover`, `structure_icon_hit_test_method` 1.5 (7
+calls), `button_hit_test_method` 1.0 (4.6 calls), `frame_zone` 0.9 and
+`entity_id_list_init` 0.8 (16 calls each). Self costs are 0.8 hblanks a
+frame at most (`input_step_run` and `cart_update60` on ordinary frames):
+no node hides a heavy body.
+
+Reading the tree:
+
+- **Five nodes are above, all on the ordinary population:**
+  `input_step_run` 34.2, `pad_nav_step` 32.9, `cart_update60` 44.1,
+  `ui_update` 26.5, `ui_update_hover` 18.7; each runs once a frame on PC.
+  On the windows only `cart_update60` is above (31.5 against 27.0, 27.5
+  against 18.6). The two leaves, `pad_nav_step` and `ui_update_hover`,
+  spread their cost over many children, none above.
+- **The input step is 43.7% of ordinary update** (34.2 of 78.3), and
+  `pad_nav_step` is 96% of it. Its weight is spread over a dozen
+  per-frame state tests of about 3 hblanks each and `map_step` (8.8, not
+  called in `draw-5564`'s window).
+- **`ui_update_hover` is almost all `planet_hit_test_method`**: 77.7 calls
+  a frame (74–90), 0.2 hblanks each, 16.7 a frame, 0.1 under the
+  threshold. That is one hit test per planet each frame, whatever the
+  cursor did.
+- **Near misses.** `update_entities` (16.2, 0.6 under) carries the "low"
+  label (per-run ρ 0.82–1.84) and a p90 of 43.6: at its `start-game` ρ it
+  would be above. `planet_hit_test_method` (16.7) is 0.1 under. Neither
+  is explored, by the rule; both are named for step 12.
+- **`ui_update_hover`'s children overshoot their parent**: they sum to
+  21.7 against its 18.7 on ordinary frames (17.0 against 14.9 and 17.4
+  against 15.7 on the windows), where every other explored node's
+  children are within 0.9 of it. The children are read from the set
+  rooted at `ui_update_hover`, whose 135-odd instrumented calls a frame
+  carry hook time that the parent's minimum, taken in `ui_update`'s set,
+  does not. Its children's costs are an upper bound by about 16%.
+- `ui_handle_button` is 7.3 on average but 29.0 at p90: a press-driven
+  node, under in both windows.
 
 ### Patches (ordinary update)
 
