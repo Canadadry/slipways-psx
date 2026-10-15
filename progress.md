@@ -27,7 +27,7 @@
 - [ ] Phase 3 — Draw, in impact order
   - [ ] Step 3.8 — D5 pre-built background and the image cache
     - [x] Chunk 1 — warn-review prerequisites: peaks helper tested, derived counts
-    - [ ] Chunk 2 — per-call costs re-measured, coverage, capture check
+    - [x] Chunk 2 — per-call costs re-measured, coverage, capture check
     - [ ] Chunk 3 — throwaway GPU copy spike
     - [ ] Chunk 4 — runtime image cache, software backend (PC)
     - [ ] Chunk 5 — PSX backend image cache
