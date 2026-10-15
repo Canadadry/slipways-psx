@@ -313,13 +313,16 @@
 #                       unless PSN00BSDK_SKIP_APT is set; exits 0 at once on a
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
-# make psx-build [EVENTS=<events>] -> builds, in tmp/psx/build, the game's
+# make psx-build [EVENTS=<events>] [PSX_BUILD_DRAW_FILTER=ON|OFF] -> builds,
+#                       in tmp/psx/build, the game's
 #                       PS-EXEs replaying that recording (default
 #                       tests/e2e/pad_slipway.json, embedded through
 #                       tmp/embed_replay), psx-replay drawing in RAM,
 #                       psx-gpu-replay through the GPU backend and
 #                       psx-gpu-replay-breakdown (the same, timing each
-#                       backend call per draw family), the pad
+#                       backend call per draw family), both with the draw
+#                       filter (PSX_GPU_REPLAY_DRAW_FILTER) unless
+#                       PSX_BUILD_DRAW_FILTER=OFF, the pad
 #                       probe, psx-game (the game read from the pad),
 #                       psx-largest-slots (the largest-case scenarios of
 #                       src/devtools/largest_slots.c on MIPS), and the
@@ -371,7 +374,8 @@
 #                       extracted by PSX_DUMPSXISO equals psx-game.exe); outputs
 #                       in tmp/psx/game-cd, never runs a setup, outside the
 #                       suite
-# make psx-check     -> the PSX check: runs psx-build, writes the PC state
+# make psx-check     -> the PSX check: runs psx-build (draw filter on, for the
+#                       masked captures), writes the PC state
 #                       and VRAM digests of PSX_EVENTS in one tmp/replay run
 #                       (STATE=, DIGEST=, and CAPTURE_LIST=psx/gpu_captures.txt
 #                       for the PC frames, family call counts and capture
@@ -433,6 +437,7 @@
 #                    -> refuses any PSX_FULL_GAME_ASSERTS but on (default) or
 #                       off; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json) in tmp/psx/full-game/build,
+#                       the GPU replays always without the draw filter,
 #                       off building the measured GPU replays without asserts
 #                       while the CPU-path replay keeps them,
 #                       writes its PC state and digest, boots the replay
@@ -476,7 +481,8 @@
 #                       SDK's level), O3 or Os, runs psx-short-runs-cut, then
 #                       per run builds psx-gpu-replay and
 #                       psx-gpu-replay-breakdown with its run.json embedded
-#                       in tmp/psx/short-runs/<name>/build (off: without
+#                       in tmp/psx/short-runs/<name>/build, both without the
+#                       draw filter (off: without
 #                       asserts, unused-* warnings not errors; O3/Os: at that
 #                       level, warnings not errors; every other target keeps
 #                       asserts and O2), fails the run unless
@@ -500,7 +506,8 @@
 #                       outside the suite and psx-check
 # make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
 #                       then per run builds the probe build (psx-gpu-replay
-#                       with -DPSX_PROBE=ON, asserts off) of unpatched HEAD
+#                       with -DPSX_PROBE=ON, asserts off, no draw filter) of
+#                       unpatched HEAD
 #                       from a temporary git worktree, boots it once with an
 #                       empty capture script (ceiling PSX_PROBE_CEILING
 #                       vsyncs, timeout PSX_PROBE_TIMEOUT s), checks it with
@@ -2210,6 +2217,7 @@ space := $(empty) $(empty)
 
 # Always passed: CMake caches options per build directory, and psx-build reconfigures in place.
 PSX_BUILD_MEASURED_REPLAY_ASSERTS ?= ON
+PSX_BUILD_DRAW_FILTER ?= ON
 
 psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
@@ -2219,6 +2227,7 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) -DPSX_MEASURED_REPLAY_OPT=O2 \
+		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS))' \
@@ -2296,7 +2305,7 @@ endif
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
-		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON)
+		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON) PSX_BUILD_DRAW_FILTER=OFF
 	@mkdir -p $(PSX_FULL_GAME_DIR)
 	STATE=$(PSX_FULL_GAME_DIR)/pc_state.txt DIGEST=$(PSX_FULL_GAME_DIR)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_FULL_GAME_EVENTS) /dev/null $(PSX_FULL_GAME_DIR)/pc.dump.txt > $(PSX_FULL_GAME_DIR)/pc.log 2>&1 \
 		|| { cat $(PSX_FULL_GAME_DIR)/pc.log >&2; exit 1; }
@@ -2374,7 +2383,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 			-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 			-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 			-DPSX_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_SHORT_RUN_ASSERTS)),OFF,ON) \
-			-DPSX_MEASURED_REPLAY_OPT=$(PSX_SHORT_RUN_OPT) \
+			-DPSX_MEASURED_REPLAY_OPT=$(PSX_SHORT_RUN_OPT) -DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
 			"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
@@ -2466,7 +2475,7 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 			{ cmake -S "$$wt/psx" -B $$dir/build \
 				-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 				-DCMAKE_BUILD_TYPE=Release "-DSLIPWAYS_SRC_DIR=$$wt/src" \
-				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF \
+				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF -DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
 				"-DPSX_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_REPLAY_SRCS));$$embedded" \
 				"-DPSX_GPU_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 				"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \

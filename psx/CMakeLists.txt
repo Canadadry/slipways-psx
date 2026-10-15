@@ -24,6 +24,7 @@ set_property(CACHE PSX_MEASURED_REPLAY_OPT PROPERTY STRINGS O2 O3 Os)
 if(NOT PSX_MEASURED_REPLAY_OPT MATCHES "^(O2|O3|Os)$")
 	message(FATAL_ERROR "PSX_MEASURED_REPLAY_OPT must be O2, O3 or Os, not '${PSX_MEASURED_REPLAY_OPT}'")
 endif()
+option(PSX_GPU_REPLAY_DRAW_FILTER "Install the draw filter in psx-gpu-replay and psx-gpu-replay-breakdown (psx-check's masked captures)" OFF)
 option(PSX_PROBE "Build psx-gpu-replay as make psx-probe's probe build: doubled GPU frame buffer, delay helper" OFF)
 
 foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe psx-game psx-largest-slots)
@@ -56,6 +57,10 @@ foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe
 	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort -Wl,--wrap=snprintf -Wl,--wrap=vsnprintf)
 endforeach()
 target_compile_definitions(psx-gpu-replay-breakdown PRIVATE PSX_GPU_REPLAY_BREAKDOWN)
+if(PSX_GPU_REPLAY_DRAW_FILTER)
+	target_compile_definitions(psx-gpu-replay PRIVATE PSX_GPU_REPLAY_DRAW_FILTER)
+	target_compile_definitions(psx-gpu-replay-breakdown PRIVATE PSX_GPU_REPLAY_DRAW_FILTER)
+endif()
 if(NOT PSX_MEASURED_REPLAY_OPT STREQUAL "O2")
 	# A target's own options come before the SDK interface's trailing -O2 and
 	# lose to it; a linked interface library's come after. make psx-short-runs

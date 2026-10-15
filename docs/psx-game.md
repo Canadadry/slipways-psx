@@ -157,14 +157,27 @@ checks they fit.
 ## GPU replay
 
 `src/cmd/psx_gpu_replay.c` is the replay loop and TTY protocol of
-`psx_replay.c`, plus `psx-replay: backend gpu` after the format line, without
-`psx-digest:` lines (the RAM screen is not drawn). It still loads the RAM
-sprite sheet, so the game sees the same memory. It installs the GPU backend
-wrapped by the draw family filter, itself wrapped by the draw meter (so the
-meter sees every call); each frame ends with the meter's and the filter's
-frame ends, then `psx_gpu_frame_end` with the metered bytes, then
-`psx_gpu_frame_begin`. It is driven by a capture script (below): without one
-it waits forever before its first frame.
+`psx_replay.c`, plus `psx-replay: backend gpu` then `psx-replay: draw-filter
+on|off` after the format line, without `psx-digest:` lines (the RAM screen is
+not drawn). It still loads the RAM sprite sheet, so the game sees the same
+memory. It installs the GPU backend wrapped by the draw meter (so the meter
+sees every call); each frame ends with the meter's frame end, then
+`psx_gpu_frame_end` with the metered bytes, then `psx_gpu_frame_begin`. It is
+driven by a capture script (below): without one it waits forever before its
+first frame.
+
+**Draw filter build.** The draw family filter, which the shipped game never
+has, sits between the GPU backend and the meter only when the replay is
+compiled with `PSX_GPU_REPLAY_DRAW_FILTER` (CMake option of the same name,
+off by default, set for both `psx-gpu-replay` and
+`psx-gpu-replay-breakdown`); the filter then sets each frame's mask and ends
+its frame after the meter's. `psx-build` passes it from
+`PSX_BUILD_DRAW_FILTER` (default `ON`: the build of `psx-check` and
+`psx-gpu-capture-report`, whose masked captures need it);
+`psx-full-game-check`, `psx-short-runs` and the probe builds always pass
+`OFF`, so they time the shipped draw. Without it, a capture request whose
+mask is not "all" stops the replay with a `p8_fatal` naming the define; an
+"all" capture, or the empty script's `NO_FRAME`, proceeds.
 
 **Frame timer.** The GPU replay times every frame on root counter 1, clocked
 by the horizontal blank (~63.6 µs; 263 lines a vsync in the backend's NTSC
@@ -176,7 +189,8 @@ hblanks-per-vsync <n>` (at most two vsyncs before `start_vsync`, not counted
 in the `done` line). Each frame reads four marks: before the input step,
 after `cart_update60`, after `cart_draw`, after `psx_gpu_frame_begin`.
 **update**, **draw** and **submit** are their differences modulo 65,536;
-submit covers the meter's and the filter's frame ends, `psx_gpu_frame_end`
+submit covers the meter's frame end (and the filter's, in the draw filter
+build), `psx_gpu_frame_end`
 (uploads, the `DrawSync` wait on the previous frame, `DrawOTag`) and
 `psx_gpu_frame_begin`. The capture handshake's time and vsyncs are taken out
 of submit and of the frame's vsyncs. The input advance and the progress line
@@ -431,7 +445,7 @@ Each GPU draw family is checked by a capture of one frame of the check replay,
 drawn with a family mask, against the PC software frame of the same frame and
 mask.
 
-- **Family filter** (`src/devtools/draw_filter.c`, PC and PSX): a backend
+- **Family filter** (`src/devtools/draw_filter.c`, PC and the PSX draw filter build): a backend
   wrapper that drops the calls outside its mask and counts, per family, the
   calls the cost model costs above 0. The mask bits, in order: `cls pset line
   rect rectfill circ circfill spr print pattern`; `cls` is always set, and a
@@ -607,8 +621,9 @@ also in `run/conditions.txt`), every one before concluding.
 anything builds) picks the asserts mode: `off` has `psx-build` configure
 `PSX_MEASURED_REPLAY_ASSERTS=OFF`, so the measured GPU replays
 (`psx-gpu-replay`, `psx-gpu-replay-breakdown`) build without asserts, while
-the CPU-path replay and every other target keep them. `psx-build` passes the
-option on every configure (`ON` unless asked), so a cached `OFF` never
+the CPU-path replay and every other target keep them. Either way it has
+`psx-build` configure `PSX_GPU_REPLAY_DRAW_FILTER=OFF`. `psx-build` passes both
+options on every configure (`ON` unless asked), so a cached `OFF` never
 carries into the next run:
 
 - `replay-done`, `state-game-lines`, `sprite-sheet`, `screen` and `map` on
