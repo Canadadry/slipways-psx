@@ -11,9 +11,9 @@
 #else
 #define GPU_FRAME_BUFFER_BYTES GPU_SHIPPED_FRAME_BUFFER_BYTES
 #endif
-/* Each frame parity's image build buffer: the GPU spike's map build peak, 8,180, + 1/8, rounded
- * up to 1 KiB, until make state measures it. */
-#define GPU_BUILD_BUFFER_BYTES 9216
+/* Each frame parity's image build buffer, sized like the frame buffer from the make state peak of
+ * zone gpu_build. */
+#define GPU_BUILD_BUFFER_BYTES 10240
 #define GPU_CLUT_SLOTS 6
 #define GPU_PATTERN_SLOTS 4
 

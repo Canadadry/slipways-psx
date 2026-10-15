@@ -15,6 +15,10 @@
 #include "game/wormhole.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
+#include "p8/image.h"
+
+#define BACKGROUND_IMAGE_SLOT 0
+#define BACKGROUND_IMAGE_SIDE (P8_MAP_WIDTH * P8_SPRITE_SIZE)
 
 static int g_background_up = 0;
 
@@ -131,6 +135,35 @@ void background_construct(p8_vram_t *memory, background_t *self) {
     }
 }
 
+typedef struct {
+    int built;
+    const p8_vram_t *mem;
+    unsigned long map_version;
+    unsigned char draw_palette[sizeof ((p8_vram_t *)0)->draw_palette];
+} background_image_key_t;
+
+static background_image_key_t g_background_image_key;
+
+static void background_draw_map(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    (void)context;
+    p8_map(gfx, mem, 0, 0, 0, 0, P8_MAP_WIDTH, P8_MAP_HEIGHT);
+}
+
+static void background_draw_map_image(p8_graphics_t *gfx, p8_vram_t *mem) {
+    background_image_key_t *key = &g_background_image_key;
+
+    if (!key->built || key->mem != mem || key->map_version != mem->map_version
+        || memcmp(key->draw_palette, mem->draw_palette, sizeof key->draw_palette) != 0) {
+        p8_image_build(gfx, mem, BACKGROUND_IMAGE_SLOT, BACKGROUND_IMAGE_SIDE, BACKGROUND_IMAGE_SIDE,
+                       background_draw_map, NULL);
+        key->built = 1;
+        key->mem = mem;
+        key->map_version = mem->map_version;
+        memcpy(key->draw_palette, mem->draw_palette, sizeof key->draw_palette);
+    }
+    p8_image_draw(gfx, mem, BACKGROUND_IMAGE_SLOT, 0, 0);
+}
+
 void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *self) {
     int xy;
 
@@ -140,7 +173,7 @@ void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *sel
         return;
     }
 
-    p8_map(gfx, mem, 0, 0, 0, 0, 32, 32);
+    background_draw_map_image(gfx, mem);
     p8_fillp(gfx, 0xA5A5u);
     for (xy = 3; xy <= BACKGROUND_GRID_EDGE; xy += 32) {
         p8_rectfill(gfx, mem, xy, 0, xy, BACKGROUND_GRID_EDGE, 1);
