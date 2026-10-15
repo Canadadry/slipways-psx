@@ -37,7 +37,7 @@
     - [x] Chunk 1 — p8_print_outlined runtime primitive (PC)
     - [x] Chunk 2 — PSX outlined font
     - [x] Chunk 3 — the switch, measured
-    - [ ] Chunk 4 — residual D2, D3, D4
+    - [x] Chunk 4 — residual D2, D3, D4
   - [ ] Step 3.10 — L1 layer lists sorted at registration
   - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
   - [ ] Step 3.12 — D6 planet row icons through the image cache
