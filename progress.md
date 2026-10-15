@@ -4,6 +4,8 @@
     - [x] Chunk 2 — replay and build wiring
     - [x] Chunk 3 — psx-check and F1 measurement
   - [ ] Step 1.2 — new judge baseline, filter off
+    - [x] Chunk 1 — judge run and validity gates
+    - [ ] Chunk 2 — commit the baseline table
 - [ ] Phase 2 — Safe gains
   - [ ] Step 2.3 — asserts off in psx-game (G1)
   - [ ] Step 2.4 — draw meter out of psx-game and the measured replays (B1)
