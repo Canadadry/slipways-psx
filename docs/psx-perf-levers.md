@@ -6,8 +6,9 @@ measured against, the judge's asserts-off full-run baseline, the probe
 tool's sanity checks, the PC frame profile's draw coverage, the split of
 `cart_draw` among its direct children ("Draw level 1"), the draw tree
 below them ("Draw tree"), the backend's cost per call and per unit of
-every draw family ("Backend: per-unit costs") and the update spikes with
-the calibration of PC update proportions ("Update spikes"). The full-run
+every draw family ("Backend: per-unit costs"), the update spikes with
+the calibration of PC update proportions ("Update spikes") and update on
+the frames outside the spikes ("Ordinary update"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
@@ -2974,3 +2975,251 @@ and discarded; neither is committed:
 |---|---|---|---|
 | `u-calibrate.patch` | `3fe4b8b` | probe `u-calibrate`, `start` and `update-5500` | see "Calibration on update code" |
 | `u-fallback.patch` | `94e6895` | one `psx-full-game-check PSX_FULL_GAME_ASSERTS=off`, temporary worktree | `psx/CMakeLists.txt`: `PSX_UPDATE_SPANS` and `platform/psx_update_spans.c` + `psx_fine_clock.c` on `psx-gpu-replay` only; `src/game/cart.c`: the five statements of `cart_update60` in `SPAN(i, …)`; new `src/platform/psx_update_spans.[ch]`: the calibration's spans, records of frames whose spans sum to 200 hblanks or more (512 max), `probe-update:` lines after the last frame; `src/cmd/psx_gpu_replay.c`: start after the frame timer, close a frame after `frame_times_record`, write before the done line |
+
+## Ordinary update
+
+Plan 20 step 10: update on the judge's 5,893 frames whose update is 263
+hblanks or less, the complement of "Update spikes"' 19 classes (77% of the
+run's update). This section is being written chunk by chunk; for now it
+holds the calibration of PC update proportions on ordinary frames and its
+transfer check against step 9.
+
+Measured on commit `078d9664b6349cef5e5d850860e465147bf954bc` (pcsx-redux,
+asserts off), with no change to the game.
+
+### Step 9, as committed
+
+- The 166 classified frames are exactly the judge frames with update > 263,
+  each in one of 19 classes; the ordinary frames are selected by
+  update ≤ 263 on the judge table.
+- PC profiles use K = 8 (step 9's deviation from 4; the Makefile's default
+  stays 4).
+- Step 9's ratios, against `cart_update60` itself: `ui_update` 1.00
+  (frame 12) and 0.95 (frame 5500), the save 1.14 (5500);
+  `update_entities`, `frame_zone_reset` and `cart_flush_exit_queue`
+  "below" on both. Per class over 165 spike frames: on event-and-save
+  frames `ui_update` 0.76–0.94 and the save 1.17–1.38, on save-only
+  frames the save 0.95–0.97 and `ui_update` 0.48–0.54, wormhole and game
+  start 1.00–1.02. Only shares carry over, not PC times.
+- About 4 hblanks of a title frame's update and about 40 of an in-game
+  frame's are outside `cart_update60`, in the replay's `input_step_run`,
+  which the shipped `psx-game` runs every frame too.
+
+### Method
+
+- **Population:** the judge frames with update ≤ 263, plus the windows
+  `draw-5564` and `draw-6000` (the only short runs with no class frame).
+- **Two roots:** the update part is `input_step_run` plus
+  `cart_update60`; on PC each is profiled as its own update root (draw
+  root `cart_draw`), and `P(f)` is the sum of their per-frame minima.
+- **Six top-level pieces:** `input_step_run`, `frame_zone_reset`,
+  `cart_flush_exit_queue`, `update_entities`, `ui_update` (with its
+  `dispatch_context_mem` and `main_ui` arguments) and
+  `save_at_frame_end`; `cart_update60`'s PC self (hook overhead, no code)
+  is a seventh piece at ratio 1.
+- **Calibration:** the PSX times the six pieces on every frame of three
+  short runs; the PC profiles the same recordings; a piece's ratio is its
+  PSX share of update over its PC share of `P`.
+- **Transfer check:** the ordinary ratios against step 9's.
+
+### Calibration on ordinary frames
+
+Commands:
+
+```
+make psx-probe-baseline PSX_SHORT_RUNS="start draw-5564 draw-6000"
+make psx-probe PATCH=tmp/plan20-ordinary/u-ordinary-calibrate.patch PSX_SHORT_RUNS="start draw-5564 draw-6000" PSX_PROBE_LABEL=u-ordinary-calibrate
+for r in start draw-5564 draw-6000; do for root in cart_update60 input_step_run; do for k in 1 2 3 4 5 6 7 8; do
+  d=tmp/frame-profile/ordinary-calibration/$r/$root/$k; mkdir -p $d
+  STATE=$d/state.txt ./tmp/frame_profile tmp/psx/short-runs/$r/run.json $d tmp/frame_profile.syms cart_draw $root
+  sh tools/end_state.sh check tmp/psx/short-runs/$r/run.json $d/state.txt tmp/psx/short-runs/$r/run.end-state
+done; done; done
+for r in start draw-5564 draw-6000; do
+  awk -f frames.awk tmp/psx/probe/u-ordinary-calibrate/$r/boot.tty.txt \
+    tmp/frame-profile/ordinary-calibration/$r/cart_update60/*/frames.txt \
+    tmp/frame-profile/ordinary-calibration/$r/input_step_run/*/frames.txt > $r.frames.txt
+done
+awk -v set=start-title -v frames=0-11 -f pool.awk start.frames.txt
+awk -v set=start-game -v frames=13-99 -v skip=58,91 -f pool.awk start.frames.txt
+awk -v set=draw-5564 -v frames=14-53 -f pool.awk draw-5564.frames.txt
+awk -v set=draw-6000 -v frames=14-122 -v skip=52 -f pool.awk draw-6000.frames.txt
+awk -v set=pooled -v frames=0-99999 -f pool.awk pooled.sel   # the three in-game selections concatenated
+```
+
+The probe baseline was rebuilt first: its fingerprint was stale (`src/`
+changed in `src/cmd/frame_profile.c` only, which the PSX does not build),
+and its window parts came back unchanged (`start` 8980 / 465 / 6,
+`draw-5564` 655 / 19491 / 118, `draw-6000` 593 / 13987 / 107, update /
+draw / submit).
+
+`frames.awk` joins per frame the boot's `psx-frame:` update, the six
+`probe-update:` spans and each PC piece's minimum over the 8 profiles of
+its root (a child absent from a profile counts 0; `ui_update` is the sum
+of its three call lines before the minimum). `pool.awk` sums a frame
+selection: PSX share = Σ span ÷ Σ PSX update (the boot's own frame
+lines), PC share = Σ piece ÷ Σ `P`, ρ = PSX share ÷ PC share, gap = PSX
+share − PC share in points, "below" when both shares are under 2%; the
+"against `cart_update60`" ratios use the five spans' sum and
+`cart_update60`'s PC time instead. Both scripts are throwaway, kept with
+the patch in `tmp/plan20-ordinary/` (git-ignored).
+
+Calibration frames (run frames):
+
+- `start-title`: 0–11; `start-game`: 13–99 less 58 (C5) and 91 (C19),
+  checked on the judge table (`start` is a prefix run: these are the
+  judge's own frames).
+- `draw-5564`: 14–53, the frames after the resume's first game frame (13,
+  from `map.txt`), lead-in and window.
+- `draw-6000`: 14–122 less 52. **Deviation:** the PRD took every frame
+  after the resume's first game frame as ordinary, but run frame 52 is
+  full-run frame 5944, a C3 frame on the judge (update 1004), and the
+  resumed run replays it (1004 on the probe boot). It is left out, so no
+  class frame enters the ratios. No other lead-in or window frame of
+  either run maps to a judge frame over 263.
+
+Validity: the three boots `valid`, `game-state same`; all 48 PC profiles
+`same-game yes`. The spans' overhead on the window update is +1 on `start`
+(8980 → 8981, one frame), +9 on `draw-5564` (655 → 664, +0.6 a frame) and
++12 on `draw-6000` (593 → 605, +0.8 a frame); draw and submit move by
+3 hblanks or less. On every calibration frame the six spans sum to the
+frame's update within the frame timer's whole-hblank resolution: the
+remainder (update − spans) is −0.57 to +1.46, mean 0.47 over the 233
+in-game frames and 0.54 over the 12 title frames; the 27 frames a little
+negative (−0.57 at worst) are the timer's truncation, never a whole hblank,
+so no span is missing or counted twice.
+
+Per run and piece, pooled over the run's calibration frames (PSX hblanks a
+frame; PSX share of the PSX update; PC share of `P`; "self" is
+`cart_update60`'s PC self):
+
+| Run (frames) | Piece | PSX hblanks a frame | PSX share | PC share | ρ | Gap |
+|---|---|---:|---:|---:|---|---:|
+| `start-title` (12) | `input_step_run` | 4.21 | 46.8% | 45.8% | 1.02 | +1.0 |
+| | `frame_zone_reset` | 0.05 | 0.6% | 1.0% | below | −0.4 |
+| | `cart_flush_exit_queue` | 0.08 | 0.9% | 1.3% | below | −0.4 |
+| | `update_entities` | 1.83 | 20.3% | 22.2% | 0.92 | −1.8 |
+| | `ui_update` | 2.24 | 24.9% | 24.2% | 1.03 | +0.7 |
+| | `save_at_frame_end` | 0.04 | 0.4% | 0.5% | below | −0.1 |
+| | self | — | — | 5.0% | 1 (rule) | — |
+| `start-game` (85) | `input_step_run` | 41.02 | 45.2% | 43.3% | 1.04 | +1.9 |
+| | `frame_zone_reset` | 0.05 | 0.1% | 0.2% | below | −0.1 |
+| | `cart_flush_exit_queue` | 0.17 | 0.2% | 0.4% | below | −0.2 |
+| | `update_entities` | 21.97 | 24.2% | 13.2% | 1.84 | +11.0 |
+| | `ui_update` | 27.01 | 29.8% | 41.8% | 0.71 | −12.0 |
+| | `save_at_frame_end` | 0.07 | 0.1% | 0.1% | below | −0.0 |
+| | self | — | — | 1.1% | 1 (rule) | — |
+| `draw-5564` (40) | `input_step_run` | 28.12 | 46.5% | 37.8% | 1.23 | +8.7 |
+| | `frame_zone_reset` | 0.05 | 0.1% | 0.2% | below | −0.1 |
+| | `cart_flush_exit_queue` | 0.12 | 0.2% | 0.4% | below | −0.3 |
+| | `update_entities` | 8.60 | 14.2% | 17.4% | 0.82 | −3.1 |
+| | `ui_update` | 23.06 | 38.1% | 42.0% | 0.91 | −3.8 |
+| | `save_at_frame_end` | 0.06 | 0.1% | 0.1% | below | −0.0 |
+| | self | — | — | 2.1% | 1 (rule) | — |
+| `draw-6000` (108) | `input_step_run` | 15.42 | 31.9% | 27.4% | 1.16 | +4.5 |
+| | `frame_zone_reset` | 0.05 | 0.1% | 0.2% | below | −0.1 |
+| | `cart_flush_exit_queue` | 0.07 | 0.1% | 0.3% | below | −0.1 |
+| | `update_entities` | 7.77 | 16.1% | 17.7% | 0.91 | −1.6 |
+| | `ui_update` | 24.53 | 50.7% | 52.8% | 0.96 | −2.1 |
+| | `save_at_frame_end` | 0.06 | 0.1% | 0.1% | below | −0.0 |
+| | self | — | — | 1.5% | 1 (rule) | — |
+| pooled in-game (233) | `input_step_run` | 26.94 | 40.9% | 36.3% | 1.13 | +4.5 |
+| | `frame_zone_reset` | 0.05 | 0.1% | 0.2% | below | −0.1 |
+| | `cart_flush_exit_queue` | 0.11 | 0.2% | 0.3% | below | −0.2 |
+| | `update_entities` | 13.09 | 19.9% | 15.6% | 1.28 | +4.3 |
+| | `ui_update` | 25.18 | 38.2% | 46.0% | 0.83 | −7.8 |
+| | `save_at_frame_end` | 0.07 | 0.1% | 0.1% | below | −0.0 |
+| | self | — | — | 1.4% | 1 (rule) | — |
+
+PSX update a frame over the selection: `start-title` 9.00, `start-game`
+90.74, `draw-5564` 60.50, `draw-6000` 48.38, pooled 65.91. None of the
+calibration frames is a save frame (`save_at_frame_end` ≥ 2% of `P`).
+
+**The input step on the PSX** (span around `input_step_run`, hblanks a
+frame, mean / min / max):
+
+| Frames | Mean | Min | Max |
+|---|---:|---:|---:|
+| `start-title` (0–11) | 4.21 | 3.20 | 7.09 |
+| `start-game` (85) | 41.02 | 11.91 | 117.62 |
+| `draw-5564` (40), of which the window 5564–5578 | 28.12; 15.04 | 13.51; 13.53 | 99.83; 20.25 |
+| `draw-6000` (108), of which the window 6000–6014 | 15.42; 12.60 | 7.01; 7.11 | 46.63; 35.16 |
+| pooled in-game (233) | 26.94 | 7.01 | 117.62 |
+
+Step 9's "about 40" is the early game: 39.7–40.6 on most of `start`'s
+frames 14–86. Late in the game the input step is smaller, 12.6 and 15.0 a
+frame on the two draw windows (28% and 34% of their update), with spikes
+to 47–118 on single frames.
+
+**`update_entities` reads differently by kind of frame.** `start-game`'s
+ρ 1.84 comes from frames 87–99 (less 91), where `update_entities` runs
+about 122 hblanks a frame on the PSX (63% of update) but 34% of `P` on
+PC; on frames 13–86 it reads 0.92, on the draw runs 0.82 and 0.91:
+
+| `start-game` subset | Frames | `input_step_run` ρ | `update_entities` ρ | `ui_update` ρ | PSX update a frame |
+|---|---:|---|---|---|---:|
+| 13–86 less 58 | 73 | 1.21 | 0.92 | 0.82 | 73.9 |
+| 87–99 less 91 | 12 | 0.66 | 1.86 | 0.46 | 193.3 |
+
+Frames 87–99 surround C19's frame 91 (`update_entities`, step 9) and run
+the same entity work at a smaller size; on them the PC understates
+`update_entities` by half and overstates the rest.
+
+**Ratios in use** (per piece, the pooled in-game ratio; label from the
+spread of `start-game`, `draw-5564`, `draw-6000` with step 9's thresholds:
+all within 0.85–1.15 high, within 0.67–1.5 medium, otherwise low; title
+frames use `start-title`'s where it is not "below"):
+
+| Piece | In game | Per-run spread | Label | Title |
+|---|---|---|---|---|
+| `input_step_run` | 1.13 | 1.04 / 1.23 / 1.16 | medium | 1.02 |
+| `frame_zone_reset` | 1 (below) | below everywhere | uncalibrated | 1 (below) |
+| `cart_flush_exit_queue` | 1 (below) | below everywhere | uncalibrated | 1 (below) |
+| `update_entities` | 1.28 | 1.84 / 0.82 / 0.91 | low | 0.92 |
+| `ui_update` | 0.83 | 0.71 / 0.91 / 0.96 | medium | 1.03 |
+| `save_at_frame_end` | 1 (below); on save frames step 9's 1.14 | below everywhere | uncalibrated (save frames: transfer band) | 1 (below) |
+| `cart_update60` self | 1 (rule) | — | — | 1 (rule) |
+
+For chunk 4's `UPDATE_RATIOS`:
+`input_step_run=1.13,update_entities=1.28,ui_update=0.83:0.76-0.94,save_at_frame_end=1.14:1.38-0.95`
+(intervals used on save frames only, from the transfer check below). The
+mode pairs interval ends by position across pieces, so the save's ends are
+written high-low: `ui_update` 0.76 goes with the save's 1.38 and 0.94 with
+0.95, as the transfer check pairs them.
+
+### Transfer check against step 9
+
+Ratios against `cart_update60` alone (input step left out), as step 9
+gave them:
+
+| Piece | `start-title` | `start-game` | `draw-5564` | `draw-6000` | Pooled in-game | Step 9: frames 12 / 5500 | Step 9: event-and-save classes | Step 9: save-only classes | Pooled against step 9 |
+|---|---|---|---|---|---|---|---|---|---|
+| `ui_update` | 1.18 | 0.74 | 1.07 | 1.04 | 0.91 | 1.00 / 0.95 | 0.76–0.94 | 0.48–0.54 | below the two frames, inside the event-and-save band, above save-only |
+| `save_at_frame_end` | below | below | below | below | below | — / 1.14 | 1.17–1.38 | 0.95–0.97 | not measurable on ordinary frames |
+| `update_entities` | 1.05 | 1.92 | 0.97 | 0.98 | 1.39 | below / below | — | — | no step 9 reference |
+| `input_step_run` | — | — | — | — | — | outside the spans (4.06 on frame 12, about 40 in game) | — | — | measured: 41.0 a frame on `start-game`, 4.2 on title |
+
+- `ui_update` on ordinary frames reads 0.74–1.07 by run, wider than step
+  9's two frames; the pooled 0.91 sits in step 9's event-and-save band.
+  Both steps agree the PC tends to overstate `ui_update`.
+- `update_entities`, "below" on step 9's frames, is a quarter to a third
+  of `cart_update60` on ordinary frames and reads from 0.97 to 1.92: near
+  1 on quiet frames, near 1.9 on entity-heavy ones. Its "low" label
+  carries into chunk 4.
+- The save does not run on any calibration frame, so its ordinary ratio
+  stays step 9's 1.14, and on save frames the `ui_update` and save costs
+  carry the interval of step 9's bands (`ui_update` 0.76–0.94 with the
+  save 1.38 at one end, 0.94 with 1.17 at the other, and the save-only
+  0.95–0.97, whichever bounds are wider: save 0.95–1.38).
+- Cross-check, outside the calibration: `draw-6000`'s run frame 52 (judge
+  5944, C3) timed on the PSX reads `ui_update` 0.88 and the save 1.17
+  against `cart_update60`, inside step 9's C3 ranges (0.78–0.90 and
+  1.14–1.57).
+
+### Patches (ordinary update)
+
+Written by hand into `tmp/plan20-ordinary/` (git-ignored), used once and
+discarded; not committed:
+
+| Patch | Base | Use | Change |
+|---|---|---|---|
+| `u-ordinary-calibrate.patch` | `078d966` | probe `u-ordinary-calibrate`, `start`, `draw-5564`, `draw-6000` | step 9's `u-calibrate.patch` (applied unchanged) plus a sixth span: `src/cmd/psx_gpu_replay.c` wraps the frame loop's `input_step_run` call in `psx_probe_span_begin` / `psx_probe_span_end(5)` under `PSX_PROBE`; `src/platform/psx_probe.c`: six spans, lines `probe-update: frame <n> input <h> zone <h> exit-queue <h> entities <h> ui <h> save <h>` (hundredths of an hblank) |
