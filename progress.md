@@ -44,7 +44,7 @@
     - [x] Chunk 2: ordinary mode and frame-profile-ordinary target
     - [x] Chunk 3: ordinary calibration
     - [x] Chunk 4: descent and costs
-    - [ ] Chunk 5: delay probes and candidates
+    - [x] Chunk 5: delay probes and candidates
 - [ ] Phase 4 — Global levers
   - [ ] 4.11 Asserts, -O2/-O3/-Os, submit
 - [ ] Phase 5 — Report

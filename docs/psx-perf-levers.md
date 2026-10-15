@@ -2980,9 +2980,10 @@ and discarded; neither is committed:
 
 Plan 20 step 10: update on the judge's 5,893 frames whose update is 263
 hblanks or less, the complement of "Update spikes"' 19 classes (77% of the
-run's update). This section is being written chunk by chunk; for now it
-holds the calibration of PC update proportions on ordinary frames, its
-transfer check against step 9, and the descent with each node's cost.
+run's update). It holds the calibration of PC update proportions on
+ordinary frames, its transfer check against step 9, the descent with each
+node's cost, the delay probes that count the calls on the PSX, the do-less
+candidates O1–O5 and the verification.
 
 Measured on commit `078d9664b6349cef5e5d850860e465147bf954bc` (pcsx-redux,
 asserts off), with no change to the game.
@@ -3255,37 +3256,41 @@ frames; share of the population's update). Above in at least one
 population, plus the heaviest child under each leaf and the nearest
 misses:
 
-| Node | Ratio, label | Population | Cost | p90 | Share | Calls (PC) | Per call | Runs-on | Verdict |
-|---|---|---|---:|---:|---:|---|---:|---:|---|
-| `update/input_step_run` | 1.13, medium | ordinary | 34.2 | 54.2 | 43.7% | 1.0–1 | 34.2 | 5893 | above |
-| | | `draw-5564` | 13.8 | 20.5 | 30.4% | 1.0–1 | 13.8 | 15 | under |
-| | | `draw-6000` | 12.3 | 31.0 | 30.8% | 1.0–1 | 12.3 | 15 | under |
-| `…/input_step_run/pad_nav_step` | 1.13, medium | ordinary | 32.9 | 52.4 | 42.0% | 1.0–1 | 32.9 | 5893 | above, leaf |
-| | | `draw-5564` | 12.8 | 19.3 | 28.3% | 1.0–1 | 12.8 | 15 | under |
-| | | `draw-6000` | 11.2 | 29.7 | 28.2% | 1.0–1 | 11.2 | 15 | under |
-| `…/pad_nav_step/map_step` | 1.13, medium | ordinary | 8.8 | 15.8 | 11.2% | 0.9–1 | 9.5 | 5457 | under |
-| | | `draw-5564` | 0.0 | 0.0 | 0.0% | 0.0–0 | — | 0 | under |
-| | | `draw-6000` | 3.6 | 6.7 | 9.1% | 1.0–1 | 3.6 | 15 | under |
-| `update/cart_update60` | pieces' own | ordinary | 44.1 | 84.4 | 56.3% | 1.0–1 | 44.1 | 5893 | above |
-| | | `draw-5564` | 31.5 | 32.2 | 69.6% | 1.0–1 | 31.5 | 15 | above |
-| | | `draw-6000` | 27.5 | 30.0 | 69.2% | 1.0–1 | 27.5 | 15 | above |
-| `…/cart_update60/update_entities` | 1.28, low | ordinary | 16.2 | 43.6 | 20.6% | 1.0–1 | 16.2 | 5893 | under |
-| | | `draw-5564` | 14.4 | 15.0 | 31.8% | 1.0–1 | 14.4 | 15 | under |
-| | | `draw-6000` | 10.8 | 11.5 | 27.2% | 1.0–1 | 10.8 | 15 | under |
-| `…/cart_update60/ui_update` | 0.83, medium | ordinary | 26.5 | 47.6 | 33.9% | 1.0–1 | 26.5 | 5893 | above |
-| | | `draw-5564` | 16.1 | 16.7 | 35.5% | 1.0–1 | 16.1 | 15 | under |
-| | | `draw-6000` | 15.6 | 16.9 | 39.1% | 1.0–1 | 15.6 | 15 | under |
-| `…/ui_update/ui_update_hover` | 0.83, medium | ordinary | 18.7 | 26.2 | 23.9% | 1.0–1 | 18.7 | 5893 | above, leaf |
-| | | `draw-5564` | 14.9 | 15.3 | 32.9% | 1.0–1 | 14.9 | 15 | under |
-| | | `draw-6000` | 15.7 | 16.3 | 39.4% | 1.0–1 | 15.7 | 15 | under |
-| `…/ui_update_hover/planet_hit_test_method` | 0.83, medium | ordinary | 16.7 | 23.3 | 21.3% | 77.7–90 | 0.2 | 5881 | under |
-| | | `draw-5564` | 12.1 | 12.6 | 26.7% | 74.0–74 | 0.2 | 15 | under |
-| | | `draw-6000` | 13.3 | 13.8 | 33.3% | 76.0–76 | 0.2 | 15 | under |
-| `…/ui_update/ui_handle_button` | 0.83, medium | ordinary | 7.3 | 29.0 | 9.3% | 1.0–1 | 7.3 | 5893 | under |
-| | | `draw-5564` | 0.1 | 0.1 | 0.3% | 1.0–1 | 0.1 | 15 | under |
-| | | `draw-6000` | 0.1 | 0.1 | 0.3% | 1.0–1 | 0.1 | 15 | under |
+| Node | Ratio, label | Population | Cost | p90 | Share | Calls (PC) | Calls (PSX) | Per call | Runs-on | Verdict |
+|---|---|---|---:|---:|---:|---|---|---:|---:|---|
+| `update/input_step_run` | 1.13, medium | ordinary | 34.2 | 54.2 | 43.7% | 1.0–1 | 1 (code) | 34.2 | 5893 | above |
+| | | `draw-5564` | 13.8 | 20.5 | 30.4% | 1.0–1 | 0.96, 1 a frame | 13.8 | 15 | under |
+| | | `draw-6000` | 12.3 | 31.0 | 30.8% | 1.0–1 | 0.97, 1 a frame | 12.3 | 15 | under |
+| `…/input_step_run/pad_nav_step` | 1.13, medium | ordinary | 32.9 | 52.4 | 42.0% | 1.0–1 | 1 (code) | 32.9 | 5893 | above, leaf |
+| | | `draw-5564` | 12.8 | 19.3 | 28.3% | 1.0–1 | 0.96, 1 a frame | 12.8 | 15 | under |
+| | | `draw-6000` | 11.2 | 29.7 | 28.2% | 1.0–1 | 0.97, 1 a frame | 11.2 | 15 | under |
+| `…/pad_nav_step/map_step` | 1.13, medium | ordinary | 8.8 | 15.8 | 11.2% | 0.9–1 | not probed (under) | 9.5 | 5457 | under |
+| | | `draw-5564` | 0.0 | 0.0 | 0.0% | 0.0–0 | not probed (under) | — | 0 | under |
+| | | `draw-6000` | 3.6 | 6.7 | 9.1% | 1.0–1 | not probed (under) | 3.6 | 15 | under |
+| `update/cart_update60` | pieces' own | ordinary | 44.1 | 84.4 | 56.3% | 1.0–1 | 1 (step 1.3) | 44.1 | 5893 | above |
+| | | `draw-5564` | 31.5 | 32.2 | 69.6% | 1.0–1 | 1 (step 1.3) | 31.5 | 15 | above |
+| | | `draw-6000` | 27.5 | 30.0 | 69.2% | 1.0–1 | 1 (step 1.3) | 27.5 | 15 | above |
+| `…/cart_update60/update_entities` | 1.28, low | ordinary | 16.2 | 43.6 | 20.6% | 1.0–1 | not probed (under) | 16.2 | 5893 | under |
+| | | `draw-5564` | 14.4 | 15.0 | 31.8% | 1.0–1 | not probed (under) | 14.4 | 15 | under |
+| | | `draw-6000` | 10.8 | 11.5 | 27.2% | 1.0–1 | not probed (under) | 10.8 | 15 | under |
+| `…/cart_update60/ui_update` | 0.83, medium | ordinary | 26.5 | 47.6 | 33.9% | 1.0–1 | 1 (code) | 26.5 | 5893 | above |
+| | | `draw-5564` | 16.1 | 16.7 | 35.5% | 1.0–1 | 1.00, 1 a frame | 16.1 | 15 | under |
+| | | `draw-6000` | 15.6 | 16.9 | 39.1% | 1.0–1 | 0.99, 1 a frame | 15.6 | 15 | under |
+| `…/ui_update/ui_update_hover` | 0.83, medium | ordinary | 18.7 | 26.2 | 23.9% | 1.0–1 | 1 (code) | 18.7 | 5893 | above, leaf |
+| | | `draw-5564` | 14.9 | 15.3 | 32.9% | 1.0–1 | 1.00, 1 a frame | 14.9 | 15 | under |
+| | | `draw-6000` | 15.7 | 16.3 | 39.4% | 1.0–1 | 1.00, 1 a frame | 15.7 | 15 | under |
+| `…/ui_update_hover/planet_hit_test_method` | 0.83, medium | ordinary | 16.7 | 23.3 | 21.3% | 77.7–90 | not probed (under) | 0.2 | 5881 | under |
+| | | `draw-5564` | 12.1 | 12.6 | 26.7% | 74.0–74 | not probed (under) | 0.2 | 15 | under |
+| | | `draw-6000` | 13.3 | 13.8 | 33.3% | 76.0–76 | not probed (under) | 0.2 | 15 | under |
+| `…/ui_update/ui_handle_button` | 0.83, medium | ordinary | 7.3 | 29.0 | 9.3% | 1.0–1 | not probed (under) | 7.3 | 5893 | under |
+| | | `draw-5564` | 0.1 | 0.1 | 0.3% | 1.0–1 | not probed (under) | 0.1 | 15 | under |
+| | | `draw-6000` | 0.1 | 0.1 | 0.3% | 1.0–1 | not probed (under) | 0.1 | 15 | under |
 
-PSX call counts come from the delay probes. Every other node of the tree
+Calls (PSX): on the windows, the delay probes' window figure (delta ÷ d ÷
+15) and the count it reads as (see "Delay probes"); on the ordinary
+population, which no probe covers (the full run is not re-run), "1 (code)"
+where the node's one call site runs unconditionally once a frame, as the
+windows' probes confirm. Every other node of the tree
 is at 3.7 hblanks a frame or less in every population: `frame_zone_reset` 0.1,
 `cart_flush_exit_queue` 0.2, `save_at_frame_end` 0.1, `main_ui` 0.1,
 `dispatch_context_mem` 0.0; under `pad_nav_step`, `switch_panels` 3.7,
@@ -3327,6 +3332,155 @@ Reading the tree:
 - `ui_handle_button` is 7.3 on average but 29.0 at p90: a press-driven
   node, under in both windows.
 
+### Delay probes
+
+Measured on commit `04c52258649092df42ccfb00b346524b42dff2b6` (no code
+change since `078d966`; the probe baseline's fingerprint still holds).
+PC calls a window frame first, then one throwaway count-only probe per node
+above:
+
+```
+make frame-profile-subtree ROOT=input_step_run PART=update PSX_SHORT_RUNS="draw-5564 draw-6000"
+make frame-profile-subtree ROOT=cart_update60 PART=update PSX_SHORT_RUNS="draw-5564 draw-6000"
+make frame-profile-subtree ROOT=ui_update PART=update PSX_SHORT_RUNS="draw-5564 draw-6000"
+make psx-probe PATCH=tmp/plan20-ordinary/<name>.patch PSX_SHORT_RUNS="draw-5564 draw-6000" PSX_PROBE_LABEL=<name>
+```
+
+- The parents' subtree summaries (K = 4, every profile `same-game yes`)
+  give `pad_nav_step` under `input_step_run`, `ui_update` under
+  `cart_update60` and `ui_update_hover` under `ui_update` at 1–1 calls
+  every window frame of both runs; `input_step_run` is called once a frame
+  by the replay loop.
+- `cart_update60` gets no probe (one call a frame, step 1.3). Every node
+  above has a single call site, so no path flag is needed.
+- `d` is 20 for all four: one call a frame adds 54 × 20 = 1,080 hblanks
+  (about 4 vsyncs) to `draw-5564`'s boot and 123 × 20 = 2,460 (about 9) to
+  `draw-6000`'s, against 180 and 420 vsyncs of a 1,080 ceiling. Step 7's
+  +3.5% artefact belongs to `d` 1 and does not apply.
+
+Every probe `valid` on both runs, every game state `same`. Deltas are
+window sums over the probe baseline (draw / update / submit); "calls" is
+the probe build's exact delay counter over the run; "PSX a window frame"
+is delta ÷ d ÷ 15:
+
+| Probe (d 20) | Run | Draw | Update | Submit | Calls (run frames) | PSX a window frame | PC a window frame |
+|---|---|---:|---:|---:|---|---|---|
+| `o-input-step-run-delay` (`input_step_run`) | `draw-5564` | 0 | +290 | −2 | 54 (54) | 0.96 → 1 | 1 (loop) |
+| | `draw-6000` | −5 | +296 | 0 | 123 (123) | 0.97 → 1 | 1 (loop) |
+| `o-pad-nav-step-delay` (`pad_nav_step`) | `draw-5564` | +1 | +289 | −2 | 54 (54) | 0.96 → 1 | 1–1 |
+| | `draw-6000` | −5 | +296 | 0 | 123 (123) | 0.97 → 1 | 1–1 |
+| `o-ui-update-delay` (`ui_update`) | `draw-5564` | −2 | +302 | 0 | 54 (54) | 1.00 → 1 | 1–1 |
+| | `draw-6000` | −7 | +303 | +2 | 123 (123) | 0.99 → 1 | 1–1 |
+| `o-ui-update-hover-delay` (`ui_update_hover`) | `draw-5564` | 0 | +301 | −1 | 54 (54) | 1.00 → 1 | 1–1 |
+| | `draw-6000` | −5 | +308 | −2 | 123 (123) | 1.00 → 1 | 1–1 |
+
+- **PSX and PC agree: each node above runs once a frame on the PSX.** The
+  delay counter equals the run's frame count on every probe, and every
+  window frame's update delta is 17 to 21 hblanks, never 0 or 40.
+- The two input-step probes read 3.6–4.2% under their counted calls over
+  the run (per-frame deltas averaging 19.3), the two `ui_update` probes
+  0.0–0.6%. The counter rules out a missing call: the shortfall is in how
+  the update timer sees a delay that runs first after its opening mark,
+  not in the count. It is inside the 5% match rule.
+- The delay lands in update. Draw moves by −7 to +1 over the window,
+  within ±2 hblanks on each frame, in both directions: the frame timer's phase,
+  not a leak (a leaked delay would add 20 a frame). On `draw-6000` this is
+  up to 5 hblanks past the 2-hblank floor, as step 7's `draw-6000` leaks
+  were; 0.5 a frame, far under the threshold.
+
+### Do-less candidates
+
+Bounds are hblanks a frame on the judge's update (ordinary population /
+`draw-5564` / `draw-6000`), from the calibrated PC shares of "Descent and
+costs", labelled **estimated** with the cost's label (all five carry
+"medium": `input_step_run`'s ρ 1.13 or `ui_update`'s 0.83). The relative
+gain is on the ordinary population's mean update (78.3). They are upper
+bounds, they overlap (O1 with O2, O3 with O4 and O5) and are not ranked
+(step 12's job).
+
+What the two leaves spend their time on, from the code and throwaway PC
+profiles of the full run rooted at `pad_panel_open`,
+`pad_panel_entity_under`, `galaxy_menu_find_button` (K = 3), `map_step`
+and `jump_step` (K = 1), costed as in "Descent and costs":
+
+- **`pad_nav_step` asks "is a panel open?" about 9 times a frame, and
+  most answers scan the hit-test bucket.** `pad_panel_open`
+  (`src/game/pad_panel.c:51`) is called 8.8 times an ordinary frame, by
+  `pad_nav_step` itself (`src/game/pad_nav.c:1108`) and through
+  `armed_panel_open`, `foreign_panel_open`, `select_allowed`, `nav_mode`
+  (in `switch_panels` and `pause_step`), `pad_nav_aim_mode` (in
+  `finish_step` and `map_step`) and `map_step`. Unless there is no economy
+  (title) or a box is open, it runs `pad_panel_entity_under(0, 0, …,
+  is_modal_backdrop)` (`src/game/pad_panel.c:34`), a pass over the whole
+  hit-test bucket looking for a modal backdrop: 7.4 scans a frame, 661
+  `is_modal_backdrop` calls (89 entities a scan). Rooted at
+  `pad_panel_open`, these calls weigh 30.8 hblanks against 36.0 for
+  `pad_nav_step` rooted on the ordinary population (3.4 of 14.8 and 8.7 of
+  13.3 on the windows), so about 28.2 of its 32.9 (2.9 of 12.8, 7.3 of
+  11.2); read from `pad_nav_step`'s own children instead (the seven
+  panel-test children plus `map_step`'s share), 27.5. The scan alone
+  (`pad_panel_entity_under`) is 22.9 / 0.0 / 3.6: `draw-5564`'s window
+  has a box open on every frame and makes no scan, `draw-6000`'s makes 1.6
+  a frame.
+- **`ui_update_hover` hit-tests every planet each frame.** It walks the
+  hit-test bucket and calls each entity's `hit_test`
+  (`src/game/ui.c:345`); `planet_hit_test_method`
+  (`src/game/planet.c:26`) runs 77.7 times an ordinary frame (74 and 76 on
+  the windows), for 16.7 / 12.1 / 13.3 hblanks, whatever the cursor did.
+  It also re-initialises its 16 per-layer lists from `frame_zone()` every
+  frame (`src/game/ui.c:336`; 16 calls each, 1.7 / 1.3 / 1.3), though
+  only the layers of hovered entities receive one.
+
+| # | Node | Kind | Location | Evidence | Upper bound (estimated, medium) | Relative to ordinary update | Risk |
+|---|---|---|---|---|---|---|---|
+| O1 | `pad_nav_step`, `input_step_run` | recomputation | `pad_panel_open`, `src/game/pad_panel.c:51` → `pad_panel_entity_under`, `src/game/pad_panel.c:34` | 7.4 scans of the 89-entity hit-test bucket a frame to find whether a modal backdrop exists; 8.8 calls a frame | 28.2 / 2.9 / 7.3 if the backdrop's presence is kept as state (set when a backdrop spawns, cleared when it dies or leaves the bucket) and read in O(1); at least the scan, 22.9 / 0.0 / 3.6 | 36.0% (at least 29.2%) | timing only if the state mirrors the scan exactly (a live backdrop in the hit-test bucket, dead ones skipped); otherwise game state, e2e decides. Holds in the shipped `psx-game`: same function, and the panel state does not depend on where the pad input comes from |
+| O2 | `pad_nav_step`, `input_step_run` | repeated calls | the twelve `pad_nav_panel_open()` sites of `src/game/pad_nav.c` (lines 65, 74, 235, 450, 456, 517, 627, 673, 902, 950, 1037, 1108) | 8.8 calls a frame of the same question in one `pad_nav_step`; nothing between most of them changes the ui's ephemerals or the backdrop | 25.0 / 2.5 / 6.6 if answered once per `pad_nav_step` (1 call kept of 8.8, 8 and 9.8) and re-asked only after the step's own changes (`back_closes_the_box`, `message_box_close_shown`, `close_panels`); not additive with O1 | 31.9% | timing only if every in-step change re-asks; a stale answer is game state. Holds in the shipped `psx-game` (same code, live pad) |
+| O3 | `ui_update_hover`, `ui_update`, `cart_update60` | identical work | `ui_update_hover`'s hit-test loop, `src/game/ui.c:345` → `planet_hit_test_method`, `src/game/planet.c:26` | 77.7 planet hit tests a frame (5,881 frames), 0.2 hblanks each; planets do not move, and the cursor is one point | 16.7 / 12.1 / 13.3 if only the entities whose box can hold the cursor are tested (a coarse grid of planet boxes built when the galaxy is), keeping the bucket's order; the children read about 16% high (see "Descent and costs"), so about 14.4 on the ordinary population | 21.3% | timing only if the pre-filter is exact and the bucket order kept (the last hit is the hovered entity); otherwise game state, e2e decides |
+| O4 | `ui_update_hover`, `ui_update`, `cart_update60` | identical work | `ui_update_hover`, `src/game/ui.c:325` | the pass reruns every frame on the same cursor, camera and bucket on frames where none of them changed | 18.7 / 14.9 / 15.7 on the frames where the cursor's screen and world positions, the hit-test bucket and every hit box are unchanged, by reusing the previous frame's `hovered` and per-layer lists; the share of such frames is not measured; overlaps O3 and O5 | 23.9% | game state unless the "unchanged" test is exact (moving entities, spawned buttons); e2e decides |
+| O5 | `ui_update_hover`, `ui_update`, `cart_update60` | repeated calls | `ui_update_hover`'s layer loop, `src/game/ui.c:336` | 16 `entity_id_list_init` and 16 `frame_zone` calls a frame for lists that mostly stay empty | 1.7 / 1.3 / 1.3 if only the hovered entity's layer is initialised (the others read as empty) | 2.2% | timing only if every reader of `hovered_by_layer` treats an uninitialised layer as empty |
+
+- **`input_step_run`** gets O1 and O2 through `pad_nav_step` (96% of it).
+  Nothing else found: its other children (`attract_frame`,
+  `input_step_attract_phase`, `cheat_step`, `cart_title_shown`,
+  `dispatch_context_set_input`, `cart_set_demo_frame`) and its self sum to
+  1.3 hblanks a frame, each under 0.4.
+- **`cart_update60`** (one call a frame, no code of its own) gets its
+  above child's candidates, O3–O5 through `ui_update`. Its near miss
+  `update_entities` (16.2, "low") is not explored, by the rule, and has no
+  candidate here.
+- **`ui_update`** gets O3–O5 through `ui_update_hover` (92% of it).
+  `ui_handle_button` (7.3, under) is press-driven; its heavy frames are
+  step 9's C3, C8, C14 and C16 (U2, U4, U5).
+- `galaxy_menu_find_button` (`src/game/menu.c:311`), another hit-test bucket
+  scan, finds a HUD button by its `on_click` whenever a cycle panel is
+  open; under 1 hblank a frame on the ordinary population. Not numbered.
+- **Cross-reference with U1–U8.** None of O1–O5 is the same change as a
+  step 9 candidate: U1–U8 act on the economy recompute, the save and
+  galaxy generation, which ordinary frames do not run (no ordinary frame
+  is a save frame). `ui_update` is C2's responsible function, but C2's
+  weight is its event branch (U2, U4, U5), not the hover. The class frames
+  run `pad_nav_step` and `ui_update_hover` too: O1–O5's gain on them is not
+  counted here or under any U candidate.
+
+### Excluded short runs
+
+`start` (window frame 12, C6), `update-4737`, `update-5500` and
+`update-5719` (C1) are left out: their window frame is a class frame, even
+where the resumed run lost the spike (`update-4737` 118, `update-5719` 46);
+`start`'s other frames serve the calibration only.
+
+### Verification
+
+| Step 10 "verified when" | Where | Result |
+|---|---|---|
+| Update's children above 2% of the mean window frame identified | "Descent and costs" | three populations (ordinary 5,893 frames, threshold 16.8; `draw-5564` 27.0; `draw-6000` 18.6); two roots; descent closed at `nodes-above 5 leaves 2 open 0`, nothing unresolvable |
+| …each has a cost | tree table | `input_step_run` 34.2 / 13.8 / 12.3, `pad_nav_step` 32.9 / 12.8 / 11.2, `cart_update60` 44.1 / 31.5 / 27.5, `ui_update` 26.5 / 16.1 / 15.6, `ui_update_hover` 18.7 / 14.9 / 15.7 (ordinary / `draw-5564` / `draw-6000`), with p90, share, per call, runs-on and label (medium; `cart_update60` from its pieces) |
+| …each has a call count | tree table, "Delay probes" | PC 1 a frame for all five; PSX 1 a frame: four delay probes valid on both windows (0.96–1.00 a window frame, exact counter = frames), `cart_update60` from step 1.3; ordinary population by code (one unconditional call site each) |
+| …each has its do-less candidates | "Do-less candidates" | `input_step_run`, `pad_nav_step`: O1, O2; `cart_update60`, `ui_update`, `ui_update_hover`: O3, O4, O5; gains a frame per population and relative to update; U1–U8 cross-referenced; none ranked |
+| Calibration on ordinary frames | "Calibration on ordinary frames", "Transfer check against step 9" | ratios per piece and run, labels, the input step on the PSX (4.2 title, 41.0 early game, 12.6–15.0 on the windows), transfer against step 9's ratios |
+| Over-budget frames never recounted | "Method", population table | ordinary = judge update ≤ 263 (166 class frames excluded); class-frame windows excluded; `draw-6000`'s run frame 52 (C3) out of the calibration |
+| Guardrails | — | no change to the game, engine, runtime, PSX code, `psx/` or e2e files; every probe patch discarded; `make test` green |
+
 ### Patches (ordinary update)
 
 Written by hand into `tmp/plan20-ordinary/` (git-ignored), used once and
@@ -3335,3 +3489,13 @@ discarded; not committed:
 | Patch | Base | Use | Change |
 |---|---|---|---|
 | `u-ordinary-calibrate.patch` | `078d966` | probe `u-ordinary-calibrate`, `start`, `draw-5564`, `draw-6000` | step 9's `u-calibrate.patch` (applied unchanged) plus a sixth span: `src/cmd/psx_gpu_replay.c` wraps the frame loop's `input_step_run` call in `psx_probe_span_begin` / `psx_probe_span_end(5)` under `PSX_PROBE`; `src/platform/psx_probe.c`: six spans, lines `probe-update: frame <n> input <h> zone <h> exit-queue <h> entities <h> ui <h> save <h>` (hundredths of an hblank) |
+| `o-input-step-run-delay.patch` | `04c5225` | probe `o-input-step-run-delay`, `draw-5564`, `draw-6000` | `src/game/input_step.c`: `#include "platform/psx_probe.h"` after the first include, `psx_probe_delay(20);` at `input_step_run`'s entry |
+| `o-pad-nav-step-delay.patch` | `04c5225` | probe `o-pad-nav-step-delay`, same runs | `src/game/pad_nav.c`: idem at `pad_nav_step`'s entry |
+| `o-ui-update-delay.patch` | `04c5225` | probe `o-ui-update-delay`, same runs | `src/game/ui.c`: idem at `ui_update`'s entry |
+| `o-ui-update-hover-delay.patch` | `04c5225` | probe `o-ui-update-hover-delay`, same runs | `src/game/ui.c`: idem at `ui_update_hover`'s entry |
+
+The PC profiles rooted at `pad_panel_open`, `pad_panel_entity_under`,
+`galaxy_menu_find_button`, `map_step` and `jump_step`
+(`./tmp/frame_profile worst-case/full_game.json <dir> tmp/frame_profile.syms
+cart_draw <root>`) and the script that costed them with the chunk 4
+formula were throwaway too, kept in the session's scratch directory only.
