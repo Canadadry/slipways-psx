@@ -864,8 +864,9 @@ selects the lever.
   Rows: draw `per-call`, group `meter`: 26.67% / 16.26% / 21.28%.
 - Cost: M — the `zone gpu_frame` and `cap gpu_*` state lines that
   `tools/psx_check.sh` and `tools/psx_full_game_check.sh` read come from
-  the meter (`src/devtools/state_format.c:282`) and must come from the
-  backend's own counts.
+  the meter (`src/devtools/state_format.c:282`); plan 21 step 4 re-sourced
+  them: the judge reads the PC state's, and `game-gpu-cost` bounds the
+  backend's own peaks by the PC's metered ones.
 - Risk: e2e unchanged (the meter draws nothing; `psx-game` alone loses
   it); PSX only, not game behaviour; the backend's `packet` check (`src/platform/psx_gpu.c:58`)
   still catches an overflow; RAM frees the meter's state (text −2152

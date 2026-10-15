@@ -314,6 +314,7 @@
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
 # make psx-build [EVENTS=<events>] [PSX_BUILD_DRAW_FILTER=ON|OFF]
+#                [PSX_BUILD_DRAW_METER=ON|OFF]
 #                [PSX_BUILD_GAME_ASSERTS=ON|OFF] -> builds,
 #                       in tmp/psx/build, the game's
 #                       PS-EXEs replaying that recording (default
@@ -323,9 +324,12 @@
 #                       psx-gpu-replay-breakdown (the same, timing each
 #                       backend call per draw family), both with the draw
 #                       filter (PSX_GPU_REPLAY_DRAW_FILTER) unless
-#                       PSX_BUILD_DRAW_FILTER=OFF, the pad
-#                       probe, psx-game (the game read from the pad, built
-#                       without asserts unless PSX_BUILD_GAME_ASSERTS=ON),
+#                       PSX_BUILD_DRAW_FILTER=OFF and with the draw meter
+#                       (PSX_GPU_REPLAY_DRAW_METER) unless
+#                       PSX_BUILD_DRAW_METER=OFF, the pad
+#                       probe, psx-game (the game read from the pad, no draw
+#                       meter, built without asserts unless
+#                       PSX_BUILD_GAME_ASSERTS=ON),
 #                       psx-largest-slots (the largest-case scenarios of
 #                       src/devtools/largest_slots.c on MIPS), and the
 #                       game's CD image (PSX_GAME_BIN, PSX_GAME_CUE:
@@ -366,20 +370,23 @@
 #                       tmp/replay with STATE=), game-title-left (difficulty
 #                       PSX_GAME_DIFFICULTY, default reasonable), game-asserts
 #                       (the TTY's asserts mode is PSX_BUILD_GAME_ASSERTS's,
-#                       off by default); outputs in
+#                       off by default), game-gpu-cost (the TTY's gpu-peak
+#                       bytes, CLUTs and patterns within the PC replay's
+#                       metered peaks); outputs in
 #                       tmp/psx/game, ~10 s; never runs a setup, outside the
 #                       suite
 # make psx-game-cd-check -> runs psx-game-cd, boots PSX_GAME_CUE until it
 #                       exits with PSX_GAME_SCRIPT as psx-game-check does
 #                       (ceiling PSX_GAME_CD_CEILING vsyncs, timeout
-#                       PSX_GAME_CD_TIMEOUT s), then the six game-*
+#                       PSX_GAME_CD_TIMEOUT s), then the seven game-*
 #                       conditions of tools/psx_game_check.sh and the cue and
 #                       cd-exe conditions of tools/psx_cd_check.sh (SLIPWAYS.EXE
 #                       extracted by PSX_DUMPSXISO equals psx-game.exe); outputs
 #                       in tmp/psx/game-cd, never runs a setup, outside the
 #                       suite
 # make psx-check     -> the PSX check: runs psx-build (draw filter on, for the
-#                       masked captures), writes the PC state
+#                       masked captures, and draw meter on, for gpu-cost),
+#                       writes the PC state
 #                       and VRAM digests of PSX_EVENTS in one tmp/replay run
 #                       (STATE=, DIGEST=, and CAPTURE_LIST=psx/gpu_captures.txt
 #                       for the PC frames, family call counts and capture
@@ -401,10 +408,10 @@
 #                       psx/gpu_capture_ceilings.txt and
 #                       psx/gpu_capture_references.txt,
 #                       no-json through PSX_NM on both replay ELFs and the game
-#                       ELF, pad-script, the six game-* conditions of
-#                       tools/psx_game_check.sh on the CD boot, game-gpu-cost:
-#                       the CD game's meter lines equal those of the PC replay
-#                       of its pad log, game-cue and game-cd-exe of
+#                       ELF, pad-script, the seven game-* conditions of
+#                       tools/psx_game_check.sh on the CD boot (game-gpu-cost:
+#                       the CD game's gpu-peak figures within the PC replay's
+#                       metered peaks for its pad log), game-cue and game-cd-exe of
 #                       tools/psx_cd_check.sh, game-ram-room: ram-room on
 #                       the game ELF, largest-slots: psx-largest-slots exits
 #                       with 0, asserts on, and each of its bytes_button and
@@ -441,7 +448,8 @@
 #                    -> refuses any PSX_FULL_GAME_ASSERTS but off (default) or
 #                       on; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json) in tmp/psx/full-game/build,
-#                       the GPU replays always without the draw filter,
+#                       the GPU replays always without the draw filter and
+#                       the draw meter,
 #                       off building the measured GPU replays without asserts
 #                       while the CPU-path replay keeps them,
 #                       writes its PC state and digest, boots the replay
@@ -449,17 +457,21 @@
 #                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
 #                       empty capture script (PSX_FULL_GAME_GPU_CEILING,
 #                       PSX_FULL_GAME_GPU_TIMEOUT) until they exit, then checks
-#                       thirteen conditions (replay-done, state-game-lines,
+#                       fourteen conditions (replay-done, state-game-lines,
 #                       sprite-sheet, screen, map, gpu-replay-done,
-#                       gpu-state-game-lines, gpu-draw-filter: the GPU boot
-#                       printed draw-filter off, then on the GPU boot's
-#                       psx-frame: lines and MIPS state through
+#                       gpu-state-game-lines, gpu-draw-filter and
+#                       gpu-draw-meter: the GPU boot printed draw-filter off
+#                       and draw-meter off, then on the GPU boot's
+#                       psx-frame: lines and MIPS state, its gpu_* lines
+#                       taken from the PC state, through
 #                       tools/psx_frame_budget.sh: timer, frame-budget: no
 #                       frame above PSX_FRAME_BUDGET_HBLANKS, zone-sizes,
 #                       cap-sizes, then gpu-ram-room: ram-room on the GPU ELF)
 #                       through tools/psx_full_game_check.sh, printing every
 #                       frame line and the frame summary; measurements.txt
-#                       gains the summary behind "gpu frame " (outputs in
+#                       gains the PC's gpu_* lines and the GPU replay's
+#                       gpu-peak line behind "gpu ", the summary behind
+#                       "gpu frame " (outputs in
 #                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
 #                       outside the suite
 # make psx-short-runs-cut [PSX_SHORT_RUNS=<names>] -> cuts each run of
@@ -486,7 +498,7 @@
 #                       per run builds psx-gpu-replay and
 #                       psx-gpu-replay-breakdown with its run.json embedded
 #                       in tmp/psx/short-runs/<name>/build, both without the
-#                       draw filter (off: without
+#                       draw filter and the draw meter (off: without
 #                       asserts, unused-* warnings not errors; O3/Os: at that
 #                       level, warnings not errors; every other target keeps
 #                       asserts and O2), fails the run unless
@@ -510,7 +522,8 @@
 #                       outside the suite and psx-check
 # make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
 #                       then per run builds the probe build (psx-gpu-replay
-#                       with -DPSX_PROBE=ON, asserts off, no draw filter) of
+#                       with -DPSX_PROBE=ON, asserts off, no draw filter, no
+#                       draw meter) of
 #                       unpatched HEAD
 #                       from a temporary git worktree, boots it once with an
 #                       empty capture script (ceiling PSX_PROBE_CEILING
@@ -2224,6 +2237,7 @@ space := $(empty) $(empty)
 # Always passed: CMake caches options per build directory, and psx-build reconfigures in place.
 PSX_BUILD_MEASURED_REPLAY_ASSERTS ?= ON
 PSX_BUILD_DRAW_FILTER ?= ON
+PSX_BUILD_DRAW_METER ?= ON
 PSX_BUILD_GAME_ASSERTS ?= OFF
 ifneq ($(words $(PSX_BUILD_GAME_ASSERTS))$(filter-out ON OFF,$(PSX_BUILD_GAME_ASSERTS)),1)
 $(error psx-build: PSX_BUILD_GAME_ASSERTS must be ON or OFF, not '$(PSX_BUILD_GAME_ASSERTS)')
@@ -2240,7 +2254,7 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) -DPSX_MEASURED_REPLAY_OPT=O2 \
 		-DPSX_GAME_ASSERTS=$(PSX_BUILD_GAME_ASSERTS) \
-		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) \
+		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) -DPSX_GPU_REPLAY_DRAW_METER=$(PSX_BUILD_DRAW_METER) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS))' \
@@ -2318,7 +2332,8 @@ endif
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
-		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON) PSX_BUILD_DRAW_FILTER=OFF
+		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON) PSX_BUILD_DRAW_FILTER=OFF \
+		PSX_BUILD_DRAW_METER=OFF
 	@mkdir -p $(PSX_FULL_GAME_DIR)
 	STATE=$(PSX_FULL_GAME_DIR)/pc_state.txt DIGEST=$(PSX_FULL_GAME_DIR)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_FULL_GAME_EVENTS) /dev/null $(PSX_FULL_GAME_DIR)/pc.dump.txt > $(PSX_FULL_GAME_DIR)/pc.log 2>&1 \
 		|| { cat $(PSX_FULL_GAME_DIR)/pc.log >&2; exit 1; }
@@ -2397,6 +2412,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 			-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 			-DPSX_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_SHORT_RUN_ASSERTS)),OFF,ON) \
 			-DPSX_MEASURED_REPLAY_OPT=$(PSX_SHORT_RUN_OPT) -DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
+			-DPSX_GPU_REPLAY_DRAW_METER=OFF \
 			"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
@@ -2489,6 +2505,7 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 				-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 				-DCMAKE_BUILD_TYPE=Release "-DSLIPWAYS_SRC_DIR=$$wt/src" \
 				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF -DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
+				-DPSX_GPU_REPLAY_DRAW_METER=OFF \
 				"-DPSX_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_REPLAY_SRCS));$$embedded" \
 				"-DPSX_GPU_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 				"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \

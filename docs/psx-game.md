@@ -163,21 +163,36 @@ checks they fit.
 ## GPU replay
 
 `src/cmd/psx_gpu_replay.c` is the replay loop and TTY protocol of
-`psx_replay.c`, plus `psx-replay: backend gpu` then `psx-replay: draw-filter
-on|off` after the format line, without `psx-digest:` lines (the RAM screen is
-not drawn). It still loads the RAM sprite sheet, so the game sees the same
-memory. It installs the GPU backend wrapped by the draw meter (so the meter
-sees every call); each frame ends with the meter's frame end, then
-`psx_gpu_frame_end` with the metered bytes, then `psx_gpu_frame_begin`. It is
+`psx_replay.c`, plus `psx-replay: backend gpu`, `psx-replay: draw-filter
+on|off` and `psx-replay: draw-meter on|off` after the format line, and
+`psx-replay: gpu-peak bytes <b> cluts <c> patterns <p>` (the backend's own
+peaks, `psx_gpu_peaks`) before the done line, never on a `p8_fatal`; it has
+no `psx-digest:` lines (the RAM screen is not drawn). It still loads the RAM
+sprite sheet, so the game sees the same memory. It installs the GPU backend;
+each frame ends with `psx_gpu_frame_end`, then `psx_gpu_frame_begin`. It is
 driven by a capture script (below): without one it waits forever before its
 first frame.
 
+**Draw meter build.** The draw meter wraps the GPU backend (outermost, so it
+sees every call) only when the replay is compiled with
+`PSX_GPU_REPLAY_DRAW_METER` (CMake option of the same name, off by default,
+set for both `psx-gpu-replay` and `psx-gpu-replay-breakdown`, independent of
+the draw filter); each frame then ends with the meter's frame end, and
+`psx_gpu_frame_end` gets the metered bytes as its limit, so `psx-check`
+proves frame by frame on MIPS that the cost model bounds the real buffer.
+Without it, the limit is `GPU_FRAME_BUFFER_BYTES` and the state's `zone
+gpu_frame` and `cap gpu_*` lines are zeros. `psx-build` passes it from
+`PSX_BUILD_DRAW_METER` (default `ON`: the build of `psx-check`, whose
+`gpu-cost` reads the meter); `psx-full-game-check`, `psx-short-runs` and the
+probe builds always pass `OFF`, so they time the shipped draw.
+
 **Draw filter build.** The draw family filter, which the shipped game never
-has, sits between the GPU backend and the meter only when the replay is
+has, sits on the GPU backend (between it and the meter when both are built)
+only when the replay is
 compiled with `PSX_GPU_REPLAY_DRAW_FILTER` (CMake option of the same name,
 off by default, set for both `psx-gpu-replay` and
 `psx-gpu-replay-breakdown`); the filter then sets each frame's mask and ends
-its frame after the meter's. `psx-build` passes it from
+its frame after the meter's, if any. `psx-build` passes it from
 `PSX_BUILD_DRAW_FILTER` (default `ON`: the build of `psx-check` and
 `psx-gpu-capture-report`, whose masked captures need it);
 `psx-full-game-check`, `psx-short-runs` and the probe builds always pass
@@ -195,8 +210,8 @@ hblanks-per-vsync <n>` (at most two vsyncs before `start_vsync`, not counted
 in the `done` line). Each frame reads four marks: before the input step,
 after `cart_update60`, after `cart_draw`, after `psx_gpu_frame_begin`.
 **update**, **draw** and **submit** are their differences modulo 65,536;
-submit covers the meter's frame end (and the filter's, in the draw filter
-build), `psx_gpu_frame_end`
+submit covers the meter's and the filter's frame ends (in the builds that
+have them), `psx_gpu_frame_end`
 (uploads, the `DrawSync` wait on the previous frame, `DrawOTag`) and
 `psx_gpu_frame_begin`. The capture handshake's time and vsyncs are taken out
 of submit and of the frame's vsyncs. The input advance and the progress line
@@ -229,8 +244,11 @@ point, no `malloc`):
   previous frame from showing through), waits for the previous frame's
   `DrawSync`, shows it and submits this one, with no `VSync` wait;
 - overflow of the buffer is a `p8_fatal` naming the frame and the bytes
-  asked; a frame that sent more bytes than the meter counted is a `p8_fatal`
-  naming the frame and both figures;
+  asked; a frame that sent more bytes than its caller's limit (the metered
+  bytes in the metered GPU replay, `GPU_FRAME_BUFFER_BYTES` elsewhere) is a
+  `p8_fatal` naming the frame and both figures; `psx_gpu_peaks` returns the
+  peaks since `psx_gpu_init` of each frame's bytes, CLUT slots and pattern
+  slots;
 - `cls` is a `FILL` of the draw area; `pset` is one `TILE_1`, `rect` up to
   four `TILE`s (its edges, or one when it has no inside) and a plain
   `rectfill` one `TILE`, after the camera and clipped to the screen
@@ -341,14 +359,16 @@ zero, which reads as every button held.
 ## Game EXE
 
 `src/cmd/psx_game.c` is the GPU replay's frame (input step, `cart_update60`,
-`cart_draw`, the meter's frame end, `psx_gpu_frame_end` with the metered
-bytes, `psx_gpu_frame_begin`) driven by port 1 instead of a recording, with
-no family filter and no capture handshake. It starts with an erased save
+`cart_draw`, `psx_gpu_frame_end` with `GPU_FRAME_BUFFER_BYTES`,
+`psx_gpu_frame_begin`) driven by port 1 instead of a recording, with no draw
+meter, no family filter and no capture handshake. It starts with an erased save
 storage and a one-frame zero input during `cart_load` and `cart_init`, as a
 PC replay of a pad recording without `initial_save`. It runs at most one frame
 a vsync: a frame that starts on the vsync the previous one started on waits
-for the next. The draw meter wraps the GPU backend, so a frame sending more
-bytes than metered is a `p8_fatal`, as in the GPU replay.
+for the next. Its state's `zone gpu_frame` and `cap gpu_*` lines are zeros
+(no meter): before its done line it prints `psx-game: gpu-peak bytes <b>
+cluts <c> patterns <p>`, the backend's own peaks, which `game-gpu-cost`
+bounds by the PC's metered peaks.
 
 **Pad map** (`src/platform/psx_pad_map.c`, pure, host-tested by
 `test_psx_pad_map`). Each frame reads `psx_pad_read_pressed()` once, before
@@ -515,13 +535,13 @@ mask.
 | Target | What it proves | Time |
 |---|---|---|
 | `make psx-check` | the thirty-two conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
-| `make psx-game-check` | the six `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
-| `make psx-game-cd-check` | the six `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
+| `make psx-game-check` | the seven `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
+| `make psx-game-cd-check` | the seven `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
 | `make psx-game-cd` | builds the CD image and prints its paths | build |
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | thirteen conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (the GPU replay without asserts unless `PSX_FULL_GAME_ASSERTS=on`), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-full-game-check` | fourteen conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (the GPU replay without asserts unless `PSX_FULL_GAME_ASSERTS=on`), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 | `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
@@ -578,7 +598,7 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   `p8_input_free` in either replay ELF or the game ELF;
 - `pad-script`: the probe's ordered pad states equal the script's
   (`tools/psx_pad_compare.sh`);
-- the six game conditions, on the CD boot, from `tools/psx_game_check.sh` (outputs in
+- the seven game conditions, on the CD boot, from `tools/psx_game_check.sh` (outputs in
   `run/game`: `game_events.json`, a pad recording `make replay EVENTS=` can
   dump, its PC state `pc_state.txt` and `game-state/`):
   - `game-done`: the game boot exited with 0, printed one `psx-replay: done
@@ -597,9 +617,12 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   - `game-asserts`: the TTY's first `psx-game: asserts` line says the mode
     `psx-build` asked for (`off` unless `PSX_BUILD_GAME_ASSERTS=ON`); a
     failure names the line read, or `psx-game: asserts (no line)`;
-- `game-gpu-cost`: `gpu-cost` on the CD game: its meter lines equal those of
-  the PC replay of its pad log (`run/game/pc_state.txt`), title frames
-  included; both use one function, so they cannot drift;
+  - `game-gpu-cost`: the TTY's `psx-game: gpu-peak` bytes, CLUTs and
+    patterns are no larger than the `zone gpu_frame`, `cap gpu_cluts` and
+    `cap gpu_patterns` peaks of the PC replay of its pad log
+    (`run/game/pc_state.txt`, title frames included); a failure names both
+    figures, `psx-game: gpu-peak (no line)`, or `skipped` when the PC replay
+    did not run;
 - `game-cue`, `game-cd-exe`: `cue` and `cd-exe` of `tools/psx_cd_check.sh` on
   `PSX_GAME_CUE` and `psx-game.exe` (extracted disc in `run/game-cd/disc`);
   a disc that lands in the OpenBIOS shell fails `game-done` first, with "last
@@ -624,7 +647,7 @@ exits with 4.
 in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
 `DIGEST=`, boots the replay, then the GPU replay with an empty capture script
 (the capture handshake runs, `psx_capture_frames.lua` hands `NO_FRAME` at once,
-nothing is captured), until they exit, and checks thirteen conditions
+nothing is captured), until they exit, and checks fourteen conditions
 (`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
 also in `run/conditions.txt`), every one before concluding.
 `PSX_FULL_GAME_ASSERTS=on|off` (default `off`; any other value fails before
@@ -633,7 +656,8 @@ anything builds) picks the asserts mode: `off` has `psx-build` configure
 (`psx-gpu-replay`, `psx-gpu-replay-breakdown`) build without asserts, while
 the CPU-path replay and every other target but `psx-game` keep them; `on`
 keeps them in the measured GPU replays too. Either way it has
-`psx-build` configure `PSX_GPU_REPLAY_DRAW_FILTER=OFF`. `psx-build` passes
+`psx-build` configure `PSX_GPU_REPLAY_DRAW_FILTER=OFF` and
+`PSX_GPU_REPLAY_DRAW_METER=OFF`. `psx-build` passes
 these options and `PSX_GAME_ASSERTS` on every configure (`ON`, and `OFF` for
 `PSX_GAME_ASSERTS`, unless asked), so a cached value never carries into the
 next run:
@@ -645,8 +669,13 @@ next run:
 - `gpu-draw-filter`: the GPU boot's TTY has `psx-replay: draw-filter off`
   (the judge never measures a replay built with the draw family filter); a
   failure quotes its `draw-filter` line, or `(no line)`;
+- `gpu-draw-meter`: the GPU boot's TTY has `psx-replay: draw-meter off` (the
+  judge never measures a metered replay); a failure quotes its `draw-meter`
+  line, or `(no line)`;
 - `timer`, `frame-budget`, `zone-sizes` and `cap-sizes`, the verdicts of
-  `tools/psx_frame_budget.sh` on the GPU boot's TTY and MIPS state (below);
+  `tools/psx_frame_budget.sh` on the GPU boot's TTY and
+  `run/gpu-state/judged_state.txt`: its MIPS state with the zero `zone
+  gpu_frame` and `cap gpu_*` lines replaced by the PC state's (below);
 - `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,059 embedded
   frames and the frame table included).
 
@@ -691,9 +720,10 @@ made before it must be removed and set up again.
 `measurements.txt` (in `tmp/psx/game-check/run`, in the output directory of
 `psx-replay-check` and in `tmp/psx/full-game/run`) holds the MIPS `zone`,
 `budget` and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF;
-`psx-full-game-check`'s adds the GPU replay's `vsyncs`, its `zone gpu_frame`
-and `cap gpu_*` lines, `ram-room <used> <limit> <left>` and its ELF `size`,
-each behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
+`psx-full-game-check`'s adds the GPU replay's `vsyncs`, the PC state's `zone
+gpu_frame` and `cap gpu_*` lines, the GPU replay's `gpu-peak bytes <b> cluts
+<c> patterns <p>`, `ram-room <used> <limit> <left>` and its ELF `size`, each
+behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
@@ -703,7 +733,8 @@ behind `game `, then `bin-bytes <n> sectors <n>` and `boot-vsyncs <n>`
 The MIPS figures
 are lower than the PC's (4-byte pointers): in `measurements.txt` a
 measurement, not a limit check; `psx-full-game-check`'s `zone-sizes` and
-`cap-sizes` judge the GPU replay's against their sizes.
+`cap-sizes` judge the GPU replay's against their sizes (the `gpu_*` ones
+taken from the PC state).
 
 **UI and particle slot sizes are per build, picked by pointer width.** Each
 is either a `ZONE_BYTES_BY_WIDTH(<PC>, <MIPS>)` pair (`src/engine/zone.h`:
@@ -805,7 +836,7 @@ not changed for it.
 **Breakdown PS-EXE.** `psx-gpu-replay-breakdown` (built by `psx-build`, never
 booted by `psx-check`) is the GPU replay compiled with
 `PSX_GPU_REPLAY_BREAKDOWN`: `src/devtools/draw_timing.c` (host-tested by
-`test_draw_timing`) wraps the backend outermost, after the meter, and times
+`test_draw_timing`) wraps the backend outermost, after the meter if built, and times
 every p8 draw call per family of `draw_filter.h` on root counter 2, system
 clock / 8 (`src/platform/psx_fine_clock.c`), with counter 1's hblanks as the
 coarse clock (a call of 200 hblanks or more flags its frame `wrapped`). A
@@ -890,8 +921,9 @@ from the worktree (generated units and the run's `run.embedded.c` stay the
 main tree's, so a patch that needs them regenerated is out of scope),
 `-DPSX_PROBE=ON` and `-DPSX_MEASURED_REPLAY_ASSERTS=OFF`, target
 `psx-gpu-replay` only. `PSX_PROBE` doubles `GPU_FRAME_BUFFER_BYTES` (one
-constant for the backend's overrun check, the meter and the `gpu_frame`
-zone, so calling even `cart_draw` twice fits) and links the delay helper
+constant for the backend's overrun check and byte limit, the meter and the
+`gpu_frame` zone, so calling even `cart_draw` twice fits; the probe build has
+no meter) and links the delay helper
 `platform/psx_probe.h`: `psx_probe_delay(hblanks)` busy-waits that many
 hblanks (1..200, one value per build, otherwise `p8_fatal`) on the fine
 clock calibrated at start, and counts its calls; the boot prints
