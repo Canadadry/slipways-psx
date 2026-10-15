@@ -7,8 +7,9 @@ tool's sanity checks, the PC frame profile's draw coverage, the split of
 `cart_draw` among its direct children ("Draw level 1"), the draw tree
 below them ("Draw tree"), the backend's cost per call and per unit of
 every draw family ("Backend: per-unit costs"), the update spikes with
-the calibration of PC update proportions ("Update spikes") and update on
-the frames outside the spikes ("Ordinary update"). The full-run
+the calibration of PC update proportions ("Update spikes"), update on
+the frames outside the spikes ("Ordinary update") and the global levers,
+asserts and the compiler level ("Global levers"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
@@ -3499,3 +3500,291 @@ The PC profiles rooted at `pad_panel_open`, `pad_panel_entity_under`,
 (`./tmp/frame_profile worst-case/full_game.json <dir> tmp/frame_profile.syms
 cart_draw <root>`) and the script that costed them with the chunk 4
 formula were throwaway too, kept in the session's scratch directory only.
+
+## Global levers
+
+Plan 20 step 11: the three global levers, asserts on vs off and the
+compiler level (`-O2` / `-O3` / `-Os`), on every short run, and what the
+submit part spends its time on.
+
+Measured on commit `3bb0feaa6d9c6746eee8f45b879d19ffc3f1f00b` (pcsx-redux,
+GPU path), with no change to the game. Four variants, run in this order in
+one session, each followed by a copy of every run's `analysis/`,
+`boots.txt`, `build.log`, the three TTYs and both measured targets'
+`flags.make` into `tmp/plan20-global/<variant>/<run>/` (the variants share
+`tmp/psx/short-runs/<run>/`):
+
+```
+make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_OPT=O2 PSX_SHORT_RUN_REFERENCE=   # base
+make psx-short-runs PSX_SHORT_RUN_ASSERTS=on  PSX_SHORT_RUN_OPT=O2 PSX_SHORT_RUN_REFERENCE=   # asserts-on
+make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_OPT=O3 PSX_SHORT_RUN_REFERENCE=   # o3
+make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_OPT=Os PSX_SHORT_RUN_REFERENCE=   # os
+```
+
+Tooling this step added to the loop:
+
+- `PSX_SHORT_RUN_OPT=O2|O3|Os` (default `O2`, today's build) sets the CMake
+  option `PSX_MEASURED_REPLAY_OPT` for `psx-gpu-replay` and
+  `psx-gpu-replay-breakdown` only. `O3` / `Os` land after the SDK's
+  trailing `-O2` on those targets' compile lines, with `-Wno-error`. Only
+  our sources change level; the prebuilt libpsn00b stays at the SDK's.
+- After building, `tools/psx_opt_level.sh` reads the last `-O` of each
+  measured target's `flags.make` and the run fails before booting when it
+  is not the level requested; the `opt` line prints it with both
+  executables' text/data/bss.
+- The default ceiling is 1080 vsyncs (timeout 20 s); a boot that fails
+  (ceiling, timeout, non-zero exit) fails its run, and `done` requires
+  each boot's state block through its `psx-state: cheat activations`
+  line.
+
+Every configure passes both options explicitly, so no variant inherits a
+cached level. `base`'s first five runs recompiled 2 objects (their build
+directories already held an asserts-off `-O2` build, with identical flags);
+every other build recompiled all 234 objects.
+
+### Variants
+
+All 24 variant runs passed: `done ok`, `deterministic ok`, `breakdown ok`,
+`asserts ok` in the variant's mode (`off`, `on` for `asserts-on`),
+`representative skipped` (no reference), every boot `exit ok`. The plain-1
+TTY's game lines equal the PC's `run.state.txt` on every run of every
+variant (`tools/psx_state_compare.sh`: `start` 103 lines, `update-4737`
+119, `update-5500` 131, `draw-5564` 131, `update-5719` 132, `draw-6000`
+138): neither asserts nor a level changes game state. All 72 TTYs hold the
+`cheat activations` line after their done line.
+
+Boot exit (the `done` line's vsyncs, plain-1 / plain-2 / breakdown), ceiling
+1080 on every boot:
+
+| Variant | `start` | `update-4737` | `update-5500` | `draw-5564` | `update-5719` | `draw-6000` |
+|---|---|---|---|---|---|---|
+| `base` | 248/248/275 | 62/62/69 | 58/58/64 | 180/180/201 | 214/214/240 | 415/415/476 |
+| `asserts-on` | 255/255/282 | 65/65/72 | 62/62/68 | 189/189/210 | 224/224/250 | 432/432/494 |
+| `o3` | 232/232/252 | 59/59/64 | 55/55/60 | 173/173/189 | 205/205/224 | 399/399/446 |
+| `os` | 304/304/333 | 79/79/87 | 77/77/83 | 231/231/254 | 272/272/300 | 518/518/585 |
+
+The slowest boot, `os` `draw-6000`'s breakdown, exits at 585 vsyncs: the
+old 540 default would have cut it. No boot needed the 2160 fallback.
+
+Level requested and effective level (`tools/psx_opt_level.sh` on
+`flags.make`, `psx-gpu-replay` / `psx-gpu-replay-breakdown`), identical on
+all six runs of each variant:
+
+| Variant | Asserts | Requested | Effective, all six runs | Opt line (`draw-6000`) |
+|---|---|---|---|---|
+| `base` | off | `O2` | `O2` / `O2` | `opt O2 psx-gpu-replay 323684/2904/1199292 psx-gpu-replay-breakdown 327428/2904/1264932` |
+| `asserts-on` | on | `O2` | `O2` / `O2` | `opt O2 psx-gpu-replay 393652/2904/1199296 psx-gpu-replay-breakdown 397972/2904/1264936` |
+| `o3` | off | `O3` | `O3` / `O3` | `opt O3 psx-gpu-replay 364128/2904/1199292 psx-gpu-replay-breakdown 369208/2904/1264932` |
+| `os` | off | `Os` | `Os` / `Os` | `opt Os psx-gpu-replay 296172/2912/1199292 psx-gpu-replay-breakdown 299352/2912/1264932` |
+
+The `o3` flags line ends `… -O2 -G8 -fno-pic -mno-abicalls -mgpopt
+-mno-extern-sdata -O3 -Wno-error`: the level lands after the SDK's `-O2`.
+
+### Drift against step 2
+
+`base` equals the "Short-run baseline (asserts off)" table on every run and
+part (`start` 8980 / 464 / 7, `update-4737` 118 / 706 / 8, `update-5500`
+1409 / 714 / 7, `draw-5564` 657 / 19489 / 118, `update-5719` 46 / 1078 / 8,
+`draw-6000` 593 / 13987 / 107, update / draw / submit), and its game-state
+line counts are step 2's: no drift, the deltas below are read against it.
+
+### Deltas
+
+Window sums in hblanks (plain-1 boot's `window plain` line), variant minus
+`base`; a delta within ±2 hblanks over the window reads "no change". The six
+runs pool to 34 window frames. For `asserts-on` the sign is "on minus off":
+the gain asserts off already takes.
+
+Pooled, asserts on cost +3.7% of the asserts-off total (+1809 over 34
+window frames); read the other way, asserts off saves 3.6% of the
+asserts-on total. The full run measured 891 → 857 (step 1.5): asserts off
+saves 3.8% of 891, asserts on cost +4.0% of 857. The short runs read the
+lever like the judge within 0.3 points. The assert cost sits in update on
+`update-5500` (+11.1%) and on the two draw windows (+9.7%, +9.3%), and in
+draw at 3.9% pooled, spread over the families (`line` +14%, `spr` and
+`print` about +3% on both draw windows).
+
+`-O3` is faster on every run and part above the noise: pooled −5.9% of the
+total, −13.8% of update (−15.2% on `start`'s title frame) and −3.4% of
+draw. Only `circfill` gets slower (+10% on both draw windows).
+
+`-Os` is slower on every run: pooled +25.9% of the total, +27.7% of draw,
++20.7% of update (+65.6% on `update-5500`). On the judge, the smaller code
+buys nothing back (see the `-Os` caveat).
+
+#### `asserts-on` against `base`
+
+| Run | Window frames | Part | `base` | `asserts-on` | Δ window | Δ per window frame | Δ % of `base` |
+|---|---:|---|---:|---:|---:|---:|---:|
+| `start` | 1 | update | 8980 | 9074 | +94 | +94.0 | +1.0% |
+| `start` | 1 | draw | 464 | 478 | +14 | +14.0 | +3.0% |
+| `start` | 1 | submit | 7 | 6 | -1 (no change) | -1.0 | -14.3% |
+| `start` | 1 | total | 9451 | 9558 | +107 | +107.0 | +1.1% |
+| `update-4737` | 1 | update | 118 | 125 | +7 | +7.0 | +5.9% |
+| `update-4737` | 1 | draw | 706 | 735 | +29 | +29.0 | +4.1% |
+| `update-4737` | 1 | submit | 8 | 9 | +1 (no change) | +1.0 | +12.5% |
+| `update-4737` | 1 | total | 832 | 869 | +37 | +37.0 | +4.4% |
+| `update-5500` | 1 | update | 1409 | 1565 | +156 | +156.0 | +11.1% |
+| `update-5500` | 1 | draw | 714 | 745 | +31 | +31.0 | +4.3% |
+| `update-5500` | 1 | submit | 7 | 7 | 0 (no change) | 0.0 | 0.0% |
+| `update-5500` | 1 | total | 2130 | 2317 | +187 | +187.0 | +8.8% |
+| `draw-5564` | 15 | update | 657 | 721 | +64 | +4.3 | +9.7% |
+| `draw-5564` | 15 | draw | 19489 | 20243 | +754 | +50.3 | +3.9% |
+| `draw-5564` | 15 | submit | 118 | 121 | +3 | +0.2 | +2.5% |
+| `draw-5564` | 15 | total | 20264 | 21085 | +821 | +54.7 | +4.1% |
+| `update-5719` | 1 | update | 46 | 49 | +3 | +3.0 | +6.5% |
+| `update-5719` | 1 | draw | 1078 | 1126 | +48 | +48.0 | +4.5% |
+| `update-5719` | 1 | submit | 8 | 7 | -1 (no change) | -1.0 | -12.5% |
+| `update-5719` | 1 | total | 1132 | 1182 | +50 | +50.0 | +4.4% |
+| `draw-6000` | 15 | update | 593 | 648 | +55 | +3.7 | +9.3% |
+| `draw-6000` | 15 | draw | 13987 | 14538 | +551 | +36.7 | +3.9% |
+| `draw-6000` | 15 | submit | 107 | 108 | +1 (no change) | +0.1 | +0.9% |
+| `draw-6000` | 15 | total | 14687 | 15294 | +607 | +40.5 | +4.1% |
+| pooled | 34 | update | 11803 | 12182 | +379 | +11.1 | +3.2% |
+| pooled | 34 | draw | 36438 | 37865 | +1427 | +42.0 | +3.9% |
+| pooled | 34 | submit | 255 | 258 | +3 | +0.1 | +1.2% |
+| pooled | 34 | total | 48496 | 50305 | +1809 | +53.2 | +3.7% |
+
+#### `o3` against `base`
+
+| Run | Window frames | Part | `base` | `o3` | Δ window | Δ per window frame | Δ % of `base` |
+|---|---:|---|---:|---:|---:|---:|---:|
+| `start` | 1 | update | 8980 | 7615 | -1365 | -1365.0 | -15.2% |
+| `start` | 1 | draw | 464 | 448 | -16 | -16.0 | -3.4% |
+| `start` | 1 | submit | 7 | 6 | -1 (no change) | -1.0 | -14.3% |
+| `start` | 1 | total | 9451 | 8069 | -1382 | -1382.0 | -14.6% |
+| `update-4737` | 1 | update | 118 | 100 | -18 | -18.0 | -15.3% |
+| `update-4737` | 1 | draw | 706 | 681 | -25 | -25.0 | -3.5% |
+| `update-4737` | 1 | submit | 8 | 8 | 0 (no change) | 0.0 | 0.0% |
+| `update-4737` | 1 | total | 832 | 789 | -43 | -43.0 | -5.2% |
+| `update-5500` | 1 | update | 1409 | 1269 | -140 | -140.0 | -9.9% |
+| `update-5500` | 1 | draw | 714 | 689 | -25 | -25.0 | -3.5% |
+| `update-5500` | 1 | submit | 7 | 7 | 0 (no change) | 0.0 | 0.0% |
+| `update-5500` | 1 | total | 2130 | 1965 | -165 | -165.0 | -7.7% |
+| `draw-5564` | 15 | update | 657 | 620 | -37 | -2.5 | -5.6% |
+| `draw-5564` | 15 | draw | 19489 | 18846 | -643 | -42.9 | -3.3% |
+| `draw-5564` | 15 | submit | 118 | 115 | -3 | -0.2 | -2.5% |
+| `draw-5564` | 15 | total | 20264 | 19581 | -683 | -45.5 | -3.4% |
+| `update-5719` | 1 | update | 46 | 43 | -3 | -3.0 | -6.5% |
+| `update-5719` | 1 | draw | 1078 | 1043 | -35 | -35.0 | -3.2% |
+| `update-5719` | 1 | submit | 8 | 7 | -1 (no change) | -1.0 | -12.5% |
+| `update-5719` | 1 | total | 1132 | 1093 | -39 | -39.0 | -3.4% |
+| `draw-6000` | 15 | update | 593 | 532 | -61 | -4.1 | -10.3% |
+| `draw-6000` | 15 | draw | 13987 | 13507 | -480 | -32.0 | -3.4% |
+| `draw-6000` | 15 | submit | 107 | 104 | -3 | -0.2 | -2.8% |
+| `draw-6000` | 15 | total | 14687 | 14143 | -544 | -36.3 | -3.7% |
+| pooled | 34 | update | 11803 | 10179 | -1624 | -47.8 | -13.8% |
+| pooled | 34 | draw | 36438 | 35214 | -1224 | -36.0 | -3.4% |
+| pooled | 34 | submit | 255 | 247 | -8 | -0.2 | -3.1% |
+| pooled | 34 | total | 48496 | 45640 | -2856 | -84.0 | -5.9% |
+
+#### `os` against `base`
+
+| Run | Window frames | Part | `base` | `os` | Δ window | Δ per window frame | Δ % of `base` |
+|---|---:|---|---:|---:|---:|---:|---:|
+| `start` | 1 | update | 8980 | 10380 | +1400 | +1400.0 | +15.6% |
+| `start` | 1 | draw | 464 | 587 | +123 | +123.0 | +26.5% |
+| `start` | 1 | submit | 7 | 7 | 0 (no change) | 0.0 | 0.0% |
+| `start` | 1 | total | 9451 | 10974 | +1523 | +1523.0 | +16.1% |
+| `update-4737` | 1 | update | 118 | 128 | +10 | +10.0 | +8.5% |
+| `update-4737` | 1 | draw | 706 | 878 | +172 | +172.0 | +24.4% |
+| `update-4737` | 1 | submit | 8 | 9 | +1 (no change) | +1.0 | +12.5% |
+| `update-4737` | 1 | total | 832 | 1015 | +183 | +183.0 | +22.0% |
+| `update-5500` | 1 | update | 1409 | 2334 | +925 | +925.0 | +65.6% |
+| `update-5500` | 1 | draw | 714 | 888 | +174 | +174.0 | +24.4% |
+| `update-5500` | 1 | submit | 7 | 7 | 0 (no change) | 0.0 | 0.0% |
+| `update-5500` | 1 | total | 2130 | 3229 | +1099 | +1099.0 | +51.6% |
+| `draw-5564` | 15 | update | 657 | 702 | +45 | +3.0 | +6.8% |
+| `draw-5564` | 15 | draw | 19489 | 25317 | +5828 | +388.5 | +29.9% |
+| `draw-5564` | 15 | submit | 118 | 123 | +5 | +0.3 | +4.2% |
+| `draw-5564` | 15 | total | 20264 | 26142 | +5878 | +391.9 | +29.0% |
+| `update-5719` | 1 | update | 46 | 54 | +8 | +8.0 | +17.4% |
+| `update-5719` | 1 | draw | 1078 | 1386 | +308 | +308.0 | +28.6% |
+| `update-5719` | 1 | submit | 8 | 8 | 0 (no change) | 0.0 | 0.0% |
+| `update-5719` | 1 | total | 1132 | 1448 | +316 | +316.0 | +27.9% |
+| `draw-6000` | 15 | update | 593 | 644 | +51 | +3.4 | +8.6% |
+| `draw-6000` | 15 | draw | 13987 | 17489 | +3502 | +233.5 | +25.0% |
+| `draw-6000` | 15 | submit | 107 | 114 | +7 | +0.5 | +6.5% |
+| `draw-6000` | 15 | total | 14687 | 18247 | +3560 | +237.3 | +24.2% |
+| pooled | 34 | update | 11803 | 14242 | +2439 | +71.7 | +20.7% |
+| pooled | 34 | draw | 36438 | 46545 | +10107 | +297.3 | +27.7% |
+| pooled | 34 | submit | 255 | 268 | +13 | +0.4 | +5.1% |
+| pooled | 34 | total | 48496 | 61055 | +12559 | +369.4 | +25.9% |
+
+#### Pooled, the three variants side by side
+
+| Part | `base` | `asserts-on` | `o3` | `os` |
+|---|---:|---:|---:|---:|
+| update | 11803 | 12182 (+379, +3.2%) | 10179 (-1624, -13.8%) | 14242 (+2439, +20.7%) |
+| draw | 36438 | 37865 (+1427, +3.9%) | 35214 (-1224, -3.4%) | 46545 (+10107, +27.7%) |
+| submit | 255 | 258 (+3, +1.2%) | 247 (-8, -3.1%) | 268 (+13, +5.1%) |
+| total | 48496 | 50305 (+1809, +3.7%) | 45640 (-2856, -5.9%) | 61055 (+12559, +25.9%) |
+
+Beside the assert pool, the full run (step 1.5, not gated): mean frame 891
+asserts on against 857 off, +34 hblanks a frame, +4.0% of 857 (−3.8% of
+891); the short runs' pool reads +3.7% of `base` (−3.6% of `asserts-on`).
+
+#### Draw split, `draw-5564` (breakdown boot, window, hblanks)
+
+| Family | `base` | `asserts-on` | `o3` | `os` |
+|---|---:|---:|---:|---:|
+| `cls` | 2.8 | 2.9 (+0.1, +3.6%) | 2.3 (-0.5, -17.9%) | 4.4 (+1.6, +57.1%) |
+| `pset` | 607.7 | 608.6 (+0.9, +0.1%) | 527.1 (-80.6, -13.3%) | 797.4 (+189.7, +31.2%) |
+| `line` | 741.4 | 847.5 (+106.1, +14.3%) | 673.0 (-68.4, -9.2%) | 896.6 (+155.2, +20.9%) |
+| `rect` | 143.7 | 142.9 (-0.8, -0.6%) | 120.1 (-23.6, -16.4%) | 187.1 (+43.4, +30.2%) |
+| `rectfill` | 647.1 | 650.0 (+2.9, +0.4%) | 575.4 (-71.7, -11.1%) | 793.0 (+145.9, +22.5%) |
+| `circ` | 388.0 | 387.1 (-0.9, -0.2%) | 364.6 (-23.4, -6.0%) | 534.3 (+146.3, +37.7%) |
+| `circfill` | 648.2 | 649.1 (+0.9, +0.1%) | 715.2 (+67.0, +10.3%) | 807.7 (+159.5, +24.6%) |
+| `spr` | 4813.4 | 4939.5 (+126.1, +2.6%) | 4435.1 (-378.3, -7.9%) | 5702.2 (+888.8, +18.5%) |
+| `print` | 9218.1 | 9556.9 (+338.8, +3.7%) | 8889.3 (-328.8, -3.6%) | 12588.5 (+3370.4, +36.6%) |
+| in-calls | 17210.4 | 17784.6 (+574.2, +3.3%) | 16302.3 (-908.1, -5.3%) | 22311.2 (+5100.8, +29.6%) |
+| outside-calls | 4574.6 | 4759.4 (+184.8, +4.0%) | 4297.7 (-276.9, -6.1%) | 5515.8 (+941.2, +20.6%) |
+| breakdown draw | 21785.0 | 22544.0 (+759.0, +3.5%) | 20600.0 (-1185.0, -5.4%) | 27827.0 (+6042.0, +27.7%) |
+
+#### Draw split, `draw-6000` (breakdown boot, window, hblanks)
+
+| Family | `base` | `asserts-on` | `o3` | `os` |
+|---|---:|---:|---:|---:|
+| `cls` | 2.8 | 2.9 (+0.1, +3.6%) | 2.3 (-0.5, -17.9%) | 4.4 (+1.6, +57.1%) |
+| `pset` | 1177.9 | 1179.8 (+1.9, +0.2%) | 1014.3 (-163.6, -13.9%) | 1525.6 (+347.7, +29.5%) |
+| `line` | 1030.9 | 1171.9 (+141.0, +13.7%) | 939.1 (-91.8, -8.9%) | 1269.5 (+238.6, +23.1%) |
+| `rect` | 92.9 | 92.9 (0.0, 0.0%) | 77.4 (-15.5, -16.7%) | 121.9 (+29.0, +31.2%) |
+| `rectfill` | 857.2 | 861.8 (+4.6, +0.5%) | 771.6 (-85.6, -10.0%) | 1051.4 (+194.2, +22.7%) |
+| `circ` | 495.8 | 495.8 (0.0, 0.0%) | 464.0 (-31.8, -6.4%) | 690.0 (+194.2, +39.2%) |
+| `circfill` | 862.7 | 863.6 (+0.9, +0.1%) | 950.9 (+88.2, +10.2%) | 1071.8 (+209.1, +24.2%) |
+| `spr` | 4991.3 | 5123.6 (+132.3, +2.7%) | 4602.9 (-388.4, -7.8%) | 5933.9 (+942.6, +18.9%) |
+| `print` | 1740.0 | 1803.0 (+63.0, +3.6%) | 1677.7 (-62.3, -3.6%) | 2323.0 (+583.0, +33.5%) |
+| in-calls | 11251.5 | 11595.3 (+343.8, +3.1%) | 10500.1 (-751.4, -6.7%) | 13991.4 (+2739.9, +24.4%) |
+| outside-calls | 5113.5 | 5325.7 (+212.2, +4.1%) | 4832.9 (-280.6, -5.5%) | 6093.6 (+980.1, +19.2%) |
+| breakdown draw | 16365.0 | 16921.0 (+556.0, +3.4%) | 15333.0 (-1032.0, -6.3%) | 20085.0 (+3720.0, +22.7%) |
+
+### Sizes and warnings
+
+Text / data / bss in bytes, from the opt lines. The delta against `base`
+is the same on all six runs (only the embedded recording differs); the
+`draw-6000` figures:
+
+| Variant | `psx-gpu-replay` | Δ text | `psx-gpu-replay-breakdown` | Δ text |
+|---|---|---:|---|---:|
+| `base` | 323684 / 2904 / 1199292 | — | 327428 / 2904 / 1264932 | — |
+| `asserts-on` | 393652 / 2904 / 1199296 | +69968 (+21.6%) | 397972 / 2904 / 1264936 | +70544 (+21.5%) |
+| `o3` | 364128 / 2904 / 1199292 | +40444 (+12.5%) | 369208 / 2904 / 1264932 | +41780 (+12.8%) |
+| `os` | 296172 / 2912 / 1199292 | −27512 (−8.5%) | 299352 / 2912 / 1264932 | −28076 (−8.6%) |
+
+`-O3` adds about 40 KB of text: text + data + bss go from 1,525,880 to
+1,566,324 bytes for `psx-gpu-replay` and from 1,595,264 to 1,637,044 for
+the breakdown replay, against the PSX's 2,097,152 bytes of RAM.
+
+Warnings in `build.log`, counted by kind on a full build (34 lines: 17
+diagnostics, each source compiled once per measured target):
+
+| Variant | `-Wunused-parameter` | `-Wunused-function` | `-Wunused-variable` | `-Wunused-but-set-variable` | Other |
+|---|---:|---:|---:|---:|---:|
+| `base` (asserts off, step 1.2's demoted kinds) | 16 | 14 | 2 | 2 | 0 |
+| `asserts-on` | 0 | 0 | 0 | 0 | 0 |
+| `o3` | 16 | 14 | 2 | 2 | 0 |
+| `os` | 16 | 14 | 2 | 2 | 0 |
+
+The `o3` and `os` diagnostics are the same 17 as `base`'s (same file, line
+and kind): they come from asserts off, and neither level raises a warning
+of its own, so `-Wno-error` caught nothing.
