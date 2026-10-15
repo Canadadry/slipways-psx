@@ -407,10 +407,13 @@ naming the report figure it comes from (section and value). Row kinds:
   no ratio gets 1.
 - `lever <id> <kind> <part> <layer> <group>/<alt> <scope> <gain%>` —
   `kind` `measured|estimated`; `part` `draw|update|submit`; `layer`
-  `work|per-call|scale`; `scope` `all|in-game|ordinary|class:<label>|range:<name>`;
+  `work|per-call|scale`; `scope` `all|in-game|in-game@<run>|ordinary|class:<label>|class:*|range:<name>`
+  (`in-game@<run>` applies only when the tool runs with `run=<run>`);
   `gain%` relative to the part on that frame, 0–100. A lever may have
-  several rows with different scopes; for a frame, the most specific
-  matching scope wins (`range` > `class` > `ordinary` > `in-game` > `all`).
+  several rows with different scopes; for a frame and part, the most specific
+  matching scope wins (`range` > `class:<label>` > `class:*` > `ordinary` >
+  `in-game@<run>` > `in-game` > `all`). A `#` starting a word starts a
+  comment; one inside a path (`ui_send_to_hovered#1`) does not.
   A lever whose gain is absolute on class frames (checklist item 7) uses
   `abs:<hblanks>` in place of `gain%`, allowed on `update` with a `class:`
   or `class:*` scope only.
@@ -447,8 +450,9 @@ How the rows are filled (chunk 1, recorded per row):
   gain; `in-game` is computed once per draw run, each with that run's
   whole lever set (`draw-5564`'s gains together, then `draw-6000`'s
   together), and the less favourable run's result is the headline, the
-  other the sensitivity table (`ESTIMATE_GAINS` alternative file, see
-  below). Never a per-lever minimum across the two runs: it would mix two
+  other the sensitivity: each in-game lever has one `in-game@draw-5564`
+  and one `in-game@draw-6000` row, and the tool's `run=` picks the set
+  (`ESTIMATE_RUN`, see below). Never a per-lever minimum across the two runs: it would mix two
   screens (the message box only exists on `draw-5564`) and drop gains
   both screens do have. The
   one-frame update runs are cross-checks shown in the entries, not inputs.
@@ -491,6 +495,7 @@ sh tools/lever_estimate.sh <judge-table> <spike-frames> <gain-table> <end> [<opt
   options: allocation=sequential|independent (default sequential)
            haircut=<pct> (default 0: every gain multiplied by 1 / (1 + pct/100))
            alone=<lever-id> (only that lever's rows, spreading kept)
+           run=<name> (the in-game@<name> rows apply; required when the table has any)
 ```
 
 Exit 1 on a usage error (missing file, bad end or option), 2 on a malformed
@@ -528,22 +533,25 @@ Output, one line a frame then summaries:
 frame <f> before <t> after <t'> update <u'> draw <d'> submit <s'> fits|over <x>
 frame <f> before <t> class <label> work <w> spread <a> frames <n>|does-not-fit [overlaps <f>,...]
 class <label> work <min>-<median>-<max> frames <min>-<median>-<max>|- does-not-fit <k>
-summary end <end> allocation <a> haircut <h> frames <n> over <k> worst <f> <t'> mean <m> spikes <s> does-not-fit <d>
+summary end <end> allocation <a> haircut <h> run <run>|- frames <n> over <k> worst <f> <t'> mean <m> saved <h> spikes <s> does-not-fit <d>
 lever <id> alone saved <hblanks> frames-fitting <n>      (one per lever, only without alone=)
 ```
 
 `lever … alone` reruns the estimate with that lever's rows only and gives
-the judge-wide hblanks saved (Σ before − Σ after over ordinary frames, plus
-the update removed on spike frames) and the frames that then fit: the
-ranking's gain.
+the judge-wide hblanks saved (Σ before − Σ after over every frame, a spike
+frame's after taken before spreading: every part the levers remove there)
+and the frames that then fit (ordinary frames at or under the budget, spike
+frames whose spread fits): the ranking's gain. `over`, `worst` and `mean`
+count the frames that are not spike frames; `saved` in the summary is the
+same sum for the whole lever set.
 
 Make targets (legend entries added at the top of the `Makefile`, next to the
 `frame-profile-*` ones; both never boot, outside `make test`, `make
 test-all`, `make e2e`):
 
-- `make lever-estimate [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=…]
+- `make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=…]
   [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]`
-  → `tmp/lever-estimate/<label>.txt` (label default `<end>`), gains default
+  → `tmp/lever-estimate/<label>.txt` (label default `<end>-<run>`), gains default
   `docs/psx-perf-levers-gains.txt`, spike frames
   `docs/psx-perf-levers-spike-frames.txt`, judge
   `$(FRAME_PROFILE_JUDGE_FRAMES)`.
@@ -580,8 +588,9 @@ written in the check, not read from the report.
 - Runs, all on the committed table: `measured` and `estimated` (sequential:
   the bracket); both again `independent` (the overlaps' cost); `estimated`
   with `haircut=20` (stop condition (a)); `estimated` with `F1`'s rows
-  removed (checklist item 3); `estimated` on the sensitivity table (in-game
-  draw gains from the more favourable run).
+  removed (checklist item 3); each of these once per draw run (`run=draw-5564`,
+  `run=draw-6000`), the less favourable run the headline, the other the
+  sensitivity.
 - **Companion file `docs/psx-perf-levers-estimate.txt`**: the `measured` and
   `estimated` sequential outputs, concatenated with a header line each,
   byte for byte from the tool. It goes when the report goes.

@@ -3,7 +3,8 @@
 # (docs/psx-perf-levers-full-run-frames.txt) and the step 9 spike frames
 # (docs/psx-perf-levers-spike-frames.txt). Part of the report, deleted with it.
 #
-# Rows, whitespace-separated, "#" to the end of a line is a comment:
+# Rows, whitespace-separated; a "#" that starts a word comments out the rest
+# of the line (a "#" inside a path, as in ui_send_to_hovered#1, does not):
 #   budget <hblanks>
 #   range <name> <first>-<last>
 #   class <label> <spikes path>
@@ -11,9 +12,11 @@
 #   ratio <default|class label> <child>=<rho>[,...]
 #   lever <id> <measured|estimated> <draw|update|submit> <work|per-call|scale> <group>/<alt> <scope> <gain%|abs:<hblanks>>
 #   spread <id> <kind> <class label|*> responsible|responsible+save:<share%>
-# Scopes: all, in-game (every frame outside the ranges), ordinary (not a
-# spike frame), class:<label>, class:*, range:<name>; for one lever on one
-# frame the most specific scope wins: range > class > ordinary > in-game > all.
+# Scopes: all, in-game (every frame outside the ranges), in-game@<run> (the
+# same, only when tools/lever_estimate.sh runs with run=<run>), ordinary (not
+# a spike frame), class:<label>, class:*, range:<name>; for one lever on one
+# frame and part the most specific scope wins: range > class:<label> >
+# class:* > ordinary > in-game@<run> > in-game > all.
 # A gain% is relative to its part on that frame.
 #
 # Composition, per frame and part: inside a layer, rows summed within an
@@ -25,8 +28,10 @@
 # Draw rows: window bound or measured delta / the run's window draw (probe
 # baseline: start 465, draw-5564 19491, draw-6000 13987; per-frame bounds
 # over 465, 1299.4 and 932.5). range:title and range:start take the start
-# run; in-game takes the smaller of draw-5564 and draw-6000 for each lever,
-# the larger is written as "sensitivity" in the row's comment.
+# run; in game, each lever has one in-game@draw-5564 and one
+# in-game@draw-6000 row, so an estimate runs once per draw run with that
+# run's whole lever set (run=draw-5564, run=draw-6000), the less favourable
+# run being the headline; never a per-lever minimum across the runs.
 
 budget 263                       # plan 20 section 2: every frame in 263 hblanks
 
@@ -92,83 +97,103 @@ ratio C19 update_entities=1         # no ratio measured ("uncalibrated")
 # D1/B4: measured one-print delta (step 8); the outlined font's upper bound. Step 7's tree bound for candidate 1 (0 / 7819 / 1410) is not a row.
 lever D1/B4 measured  draw   work     text/D1        range:title  13.76  # "Backend: per-unit costs" one-print, start 64 / 465
 lever D1/B4 measured  draw   work     text/D1        range:start  13.76  # "Backend: per-unit costs" one-print, start 64 / 465
-lever D1/B4 measured  draw   work     text/D1        in-game      10.95  # "Backend: per-unit costs" one-print, draw-6000 1532 / 13987; sensitivity draw-5564 8134 / 19491 = 41.73
+lever D1/B4 measured  draw   work     text/D1        in-game@draw-5564  41.73  # "Backend: per-unit costs" one-print, draw-5564 8134 / 19491
+lever D1/B4 measured  draw   work     text/D1        in-game@draw-6000  10.95  # "Backend: per-unit costs" one-print, draw-6000 1532 / 13987
 # D2: button rows plus the tooltip, 4268+421 on draw-5564, 607+124 on draw-6000; no text above 2% on start.
 lever D2    estimated draw   work     text/D234      range:title   0.00  # "Draw tree" candidate 2, start 0 / 465
 lever D2    estimated draw   work     text/D234      range:start   0.00  # "Draw tree" candidate 2, start 0 / 465
-lever D2    estimated draw   work     text/D234      in-game       5.23  # "Draw tree" candidate 2, draw-6000 731 / 13987; sensitivity draw-5564 4689 / 19491 = 24.06
+lever D2    estimated draw   work     text/D234      in-game@draw-5564  24.06  # "Draw tree" candidate 2, draw-5564 4689 / 19491
+lever D2    estimated draw   work     text/D234      in-game@draw-6000   5.23  # "Draw tree" candidate 2, draw-6000 731 / 13987
 # D3: the open message box; no box open on draw-6000 or start.
 lever D3    estimated draw   work     text/D234      range:title   0.00  # "Draw tree" candidate 3, start 0 / 465
 lever D3    estimated draw   work     text/D234      range:start   0.00  # "Draw tree" candidate 3, start 0 / 465
-lever D3    estimated draw   work     text/D234      in-game       0.00  # "Draw tree" candidate 3, draw-6000 0 / 13987; sensitivity draw-5564 4017 / 19491 = 20.61
+lever D3    estimated draw   work     text/D234      in-game@draw-5564  20.61  # "Draw tree" candidate 3, draw-5564 4017 / 19491
+lever D3    estimated draw   work     text/D234      in-game@draw-6000   0.00  # "Draw tree" candidate 3, draw-6000 0 / 13987
 # D4: score readouts with their formatting, 1145+51 and 1144+41.
 lever D4    estimated draw   work     text/D234      range:title   0.00  # "Draw tree" candidate 4, start 0 / 465
 lever D4    estimated draw   work     text/D234      range:start   0.00  # "Draw tree" candidate 4, start 0 / 465
-lever D4    estimated draw   work     text/D234      in-game       6.14  # "Draw tree" candidate 4, draw-5564 1196 / 19491; sensitivity draw-6000 1185 / 13987 = 8.47
+lever D4    estimated draw   work     text/D234      in-game@draw-5564   6.14  # "Draw tree" candidate 4, draw-5564 1196 / 19491
+lever D4    estimated draw   work     text/D234      in-game@draw-6000   8.47  # "Draw tree" candidate 4, draw-6000 1185 / 13987
 # D5: the pre-built background removes all of p8_map.
 lever D5    estimated draw   work     map/D5         range:title  51.83  # "Draw tree" candidate 5, start 241 / 465
 lever D5    estimated draw   work     map/D5         range:start  51.83  # "Draw tree" candidate 5, start 241 / 465
-lever D5    estimated draw   work     map/D5         in-game      17.03  # "Draw tree" candidate 5, draw-5564 3319 / 19491; sensitivity draw-6000 3354 / 13987 = 23.98
+lever D5    estimated draw   work     map/D5         in-game@draw-5564  17.03  # "Draw tree" candidate 5, draw-5564 3319 / 19491
+lever D5    estimated draw   work     map/D5         in-game@draw-6000  23.98  # "Draw tree" candidate 5, draw-6000 3354 / 13987
 # B3: map cells off screen, removed calls x 0.45 (the low end of 0.45-0.49); start 274 calls; an alternative to D5.
 lever B3    estimated draw   work     map/B3         range:title  26.52  # "Backend: per-unit costs" candidate 3, start 123.3 / 465
 lever B3    estimated draw   work     map/B3         range:start  26.52  # "Backend: per-unit costs" candidate 3, start 123.3 / 465
-lever B3    estimated draw   work     map/B3         in-game      11.49  # "Backend: per-unit costs" candidate 3, draw-5564 2240 / 19491; sensitivity draw-6000 2193 / 13987 = 15.68
+lever B3    estimated draw   work     map/B3         in-game@draw-5564  11.49  # "Backend: per-unit costs" candidate 3, draw-5564 2240 / 19491
+lever B3    estimated draw   work     map/B3         in-game@draw-6000  15.68  # "Backend: per-unit costs" candidate 3, draw-6000 2193 / 13987
 # D6: planet row icons.
 lever D6    estimated draw   work     rowicons/D6    range:title   0.00  # "Draw tree" candidate 6, start 0 / 465
 lever D6    estimated draw   work     rowicons/D6    range:start   0.00  # "Draw tree" candidate 6, start 0 / 465
-lever D6    estimated draw   work     rowicons/D6    in-game       4.26  # "Draw tree" candidate 6, draw-5564 830 / 19491; sensitivity draw-6000 1212 / 13987 = 8.67
+lever D6    estimated draw   work     rowicons/D6    in-game@draw-5564   4.26  # "Draw tree" candidate 6, draw-5564 830 / 19491
+lever D6    estimated draw   work     rowicons/D6    in-game@draw-6000   8.67  # "Draw tree" candidate 6, draw-6000 1212 / 13987
 # D8: disc and ring baked into the planet sprite, 758+472 on draw-6000.
 lever D8    estimated draw   work     discs/D8       range:title   0.00  # "Draw tree" candidate 8, start 0 / 465
 lever D8    estimated draw   work     discs/D8       range:start   0.00  # "Draw tree" candidate 8, start 0 / 465
-lever D8    estimated draw   work     discs/D8       in-game       4.74  # "Draw tree" candidate 8, draw-5564 924 / 19491; sensitivity draw-6000 1230 / 13987 = 8.79
+lever D8    estimated draw   work     discs/D8       in-game@draw-5564   4.74  # "Draw tree" candidate 8, draw-5564 924 / 19491
+lever D8    estimated draw   work     discs/D8       in-game@draw-6000   8.79  # "Draw tree" candidate 8, draw-6000 1230 / 13987
 # D9: dispatch and on-screen test of culled planets (replaces L4 for planets).
 lever D9    estimated draw   work     dispatch/D9    range:title   0.00  # "Draw tree" candidate 9, start 0 / 465
 lever D9    estimated draw   work     dispatch/D9    range:start   0.00  # "Draw tree" candidate 9, start 0 / 465
-lever D9    estimated draw   work     dispatch/D9    in-game       0.74  # "Draw tree" candidate 9, draw-5564 144 / 19491; sensitivity draw-6000 150 / 13987 = 1.07
+lever D9    estimated draw   work     dispatch/D9    in-game@draw-5564   0.74  # "Draw tree" candidate 9, draw-5564 144 / 19491
+lever D9    estimated draw   work     dispatch/D9    in-game@draw-6000   1.07  # "Draw tree" candidate 9, draw-6000 150 / 13987
 # D10: slipway end points computed once.
 lever D10   estimated draw   work     endpoints/D10  range:title   0.00  # "Draw tree" candidate 10, start 0 / 465
 lever D10   estimated draw   work     endpoints/D10  range:start   0.00  # "Draw tree" candidate 10, start 0 / 465
-lever D10   estimated draw   work     endpoints/D10  in-game       1.06  # "Draw tree" candidate 10, draw-5564 207 / 19491; sensitivity draw-6000 183 / 13987 = 1.31
+lever D10   estimated draw   work     endpoints/D10  in-game@draw-5564   1.06  # "Draw tree" candidate 10, draw-5564 207 / 19491
+lever D10   estimated draw   work     endpoints/D10  in-game@draw-6000   1.31  # "Draw tree" candidate 10, draw-6000 183 / 13987
 # D11: batched variant (3/4 of p8_line).
 lever D11   estimated draw   work     offscreen/D11  range:title   0.00  # "Draw tree" candidate 11, start 0 / 465
 lever D11   estimated draw   work     offscreen/D11  range:start   0.00  # "Draw tree" candidate 11, start 0 / 465
-lever D11   estimated draw   work     offscreen/D11  in-game       2.77  # "Draw tree" candidate 11, draw-5564 539 / 19491; sensitivity draw-6000 756 / 13987 = 5.41
+lever D11   estimated draw   work     offscreen/D11  in-game@draw-5564   2.77  # "Draw tree" candidate 11, draw-5564 539 / 19491
+lever D11   estimated draw   work     offscreen/D11  in-game@draw-6000   5.41  # "Draw tree" candidate 11, draw-6000 756 / 13987
 # D12: transit dots, 554+353 on draw-6000.
 lever D12   estimated draw   work     offscreen/D11  range:title   0.00  # "Draw tree" candidate 12, start 0 / 465
 lever D12   estimated draw   work     offscreen/D11  range:start   0.00  # "Draw tree" candidate 12, start 0 / 465
-lever D12   estimated draw   work     offscreen/D11  in-game       1.80  # "Draw tree" candidate 12, draw-5564 351 / 19491; sensitivity draw-6000 907 / 13987 = 6.48
+lever D12   estimated draw   work     offscreen/D11  in-game@draw-5564   1.80  # "Draw tree" candidate 12, draw-5564 351 / 19491
+lever D12   estimated draw   work     offscreen/D11  in-game@draw-6000   6.48  # "Draw tree" candidate 12, draw-6000 907 / 13987
 # D15: particles, 293+241 on draw-5564.
 lever D15   estimated draw   work     offscreen/D11  range:title   0.00  # "Draw tree" candidate 15, start 0 / 465
 lever D15   estimated draw   work     offscreen/D11  range:start   0.00  # "Draw tree" candidate 15, start 0 / 465
-lever D15   estimated draw   work     offscreen/D11  in-game       2.74  # "Draw tree" candidate 15, draw-5564 534 / 19491; sensitivity draw-6000 724 / 13987 = 5.18
+lever D15   estimated draw   work     offscreen/D11  in-game@draw-5564   2.74  # "Draw tree" candidate 15, draw-5564 534 / 19491
+lever D15   estimated draw   work     offscreen/D11  in-game@draw-6000   5.18  # "Draw tree" candidate 15, draw-6000 724 / 13987
 # B2: off-screen pset, line, rectfill and spr calls outside the map; no start figure; an alternative to D11+D12+D15, whose calls it holds.
 lever B2    estimated draw   work     offscreen/B2   range:title   0.00  # "Backend: per-unit costs" candidate 2, start 0 / 465
 lever B2    estimated draw   work     offscreen/B2   range:start   0.00  # "Backend: per-unit costs" candidate 2, start 0 / 465
-lever B2    estimated draw   work     offscreen/B2   in-game       1.91  # "Backend: per-unit costs" candidate 2, draw-5564 373 / 19491; sensitivity draw-6000 1129 / 13987 = 8.07
+lever B2    estimated draw   work     offscreen/B2   in-game@draw-5564   1.91  # "Backend: per-unit costs" candidate 2, draw-5564 373 / 19491
+lever B2    estimated draw   work     offscreen/B2   in-game@draw-6000   8.07  # "Backend: per-unit costs" candidate 2, draw-6000 1129 / 13987
 # D13: planet visibility retested by each slipway.
 lever D13   estimated draw   work     visibility/D13 range:title   0.00  # "Draw tree" candidate 13, start 0 / 465
 lever D13   estimated draw   work     visibility/D13 range:start   0.00  # "Draw tree" candidate 13, start 0 / 465
-lever D13   estimated draw   work     visibility/D13 in-game       0.65  # "Draw tree" candidate 13, draw-5564 126 / 19491; sensitivity draw-6000 123 / 13987 = 0.88
+lever D13   estimated draw   work     visibility/D13 in-game@draw-5564   0.65  # "Draw tree" candidate 13, draw-5564 126 / 19491
+lever D13   estimated draw   work     visibility/D13 in-game@draw-6000   0.88  # "Draw tree" candidate 13, draw-6000 123 / 13987
 # L1: a frame: start 17+6, draw-5564 137 (#1) + 16 (#2), draw-6000 95.
 lever L1    estimated draw   work     layerlists/L1  range:title   4.95  # "Draw tree" draw_layers candidate 1, start 23 a frame / 465.0
 lever L1    estimated draw   work     layerlists/L1  range:start   4.95  # "Draw tree" draw_layers candidate 1, start 23 a frame / 465.0
-lever L1    estimated draw   work     layerlists/L1  in-game      10.19  # "Draw tree" draw_layers candidate 1, draw-6000 95 a frame / 932.5; sensitivity draw-5564 153 a frame / 1299.4 = 11.77
+lever L1    estimated draw   work     layerlists/L1  in-game@draw-5564  11.77  # "Draw tree" draw_layers candidate 1, draw-5564 153 a frame / 1299.4
+lever L1    estimated draw   work     layerlists/L1  in-game@draw-6000  10.19  # "Draw tree" draw_layers candidate 1, draw-6000 95 a frame / 932.5
 # L2: a frame: 16 on draw-5564, <= 2 elsewhere; covered by L1.
 lever L2    estimated draw   work     layerlists/L2  range:title   0.43  # "Draw tree" draw_layers candidate 2, start 2 a frame / 465.0
 lever L2    estimated draw   work     layerlists/L2  range:start   0.43  # "Draw tree" draw_layers candidate 2, start 2 a frame / 465.0
-lever L2    estimated draw   work     layerlists/L2  in-game       0.21  # "Draw tree" draw_layers candidate 2, draw-6000 2 a frame / 932.5; sensitivity draw-5564 16 a frame / 1299.4 = 1.23
+lever L2    estimated draw   work     layerlists/L2  in-game@draw-5564   1.23  # "Draw tree" draw_layers candidate 2, draw-5564 16 a frame / 1299.4
+lever L2    estimated draw   work     layerlists/L2  in-game@draw-6000   0.21  # "Draw tree" draw_layers candidate 2, draw-6000 2 a frame / 932.5
 # L3: <= 1 a frame, PC-derived.
 lever L3    estimated draw   work     camera/L3      range:title   0.22  # "Draw tree" draw_layers candidate 3, start 1 a frame / 465.0
 lever L3    estimated draw   work     camera/L3      range:start   0.22  # "Draw tree" draw_layers candidate 3, start 1 a frame / 465.0
-lever L3    estimated draw   work     camera/L3      in-game       0.08  # "Draw tree" draw_layers candidate 3, draw-5564 1 a frame / 1299.4; sensitivity draw-6000 1 a frame / 932.5 = 0.11
+lever L3    estimated draw   work     camera/L3      in-game@draw-5564   0.08  # "Draw tree" draw_layers candidate 3, draw-5564 1 a frame / 1299.4
+lever L3    estimated draw   work     camera/L3      in-game@draw-6000   0.11  # "Draw tree" draw_layers candidate 3, draw-6000 1 a frame / 932.5
 # B1: measured no-meter delta (step 8).
 lever B1    measured  draw   per-call meter/B1       range:title  26.67  # "Backend: per-unit costs" no-meter, start 124 / 465
 lever B1    measured  draw   per-call meter/B1       range:start  26.67  # "Backend: per-unit costs" no-meter, start 124 / 465
-lever B1    measured  draw   per-call meter/B1       in-game      16.26  # "Backend: per-unit costs" no-meter, draw-5564 3170 / 19491; sensitivity draw-6000 2977 / 13987 = 21.28
+lever B1    measured  draw   per-call meter/B1       in-game@draw-5564  16.26  # "Backend: per-unit costs" no-meter, draw-5564 3170 / 19491
+lever B1    measured  draw   per-call meter/B1       in-game@draw-6000  21.28  # "Backend: per-unit costs" no-meter, draw-6000 2977 / 13987
 # F1: checklist item 3: step 8's no-meter delta per run as the filter's upper bound.
 lever F1    estimated draw   per-call filter/F1      range:title  26.67  # "Backend: per-unit costs" draw-filter finding, start 124 / 465
 lever F1    estimated draw   per-call filter/F1      range:start  26.67  # "Backend: per-unit costs" draw-filter finding, start 124 / 465
-lever F1    estimated draw   per-call filter/F1      in-game      16.26  # "Backend: per-unit costs" draw-filter finding, draw-5564 3170 / 19491; sensitivity draw-6000 2977 / 13987 = 21.28
+lever F1    estimated draw   per-call filter/F1      in-game@draw-5564  16.26  # "Backend: per-unit costs" draw-filter finding, draw-5564 3170 / 19491
+lever F1    estimated draw   per-call filter/F1      in-game@draw-6000  21.28  # "Backend: per-unit costs" draw-filter finding, draw-6000 2977 / 13987
 
 # Draw levers at 0, listed after the ranking with why.
 lever D7    estimated draw   work     palette/D7     all           0  # "Draw tree" candidate 7: dropped, its rows are paths 1, 3, 5, covered by D2, D6, D3 (step 9's rule)
@@ -243,10 +268,12 @@ lever U6    estimated update work     u6/U6          class:C6  44.32  # "Update 
 # submit in the submit-spans probe.
 lever G4    estimated submit work     upload/G4      range:title 71.71  # "Submit split" upload, start 5.02 / 7
 lever G4    estimated submit work     upload/G4      range:start 71.71  # "Submit split" upload, start 5.02 / 7
-lever G4    estimated submit work     upload/G4      in-game     75.88  # "Submit split" upload, draw-6000 90.30 / 119; sensitivity draw-5564 100.25 / 130 = 77.12
+lever G4    estimated submit work     upload/G4      in-game@draw-5564  77.12  # "Submit split" upload, draw-5564 100.25 / 130
+lever G4    estimated submit work     upload/G4      in-game@draw-6000  75.88  # "Submit split" upload, draw-6000 90.30 / 119
 lever F1    estimated submit work     filter/F1      range:title  1.71  # "Submit split" replay-only filter+breakdown+capture, start 0.12 / 7
 lever F1    estimated submit work     filter/F1      range:start  1.71  # "Submit split" replay-only pieces, start 0.12 / 7
-lever F1    estimated submit work     filter/F1      in-game      1.36  # "Submit split" replay-only pieces, draw-5564 1.77 / 130; sensitivity draw-6000 1.78 / 119 = 1.50
+lever F1    estimated submit work     filter/F1      in-game@draw-5564   1.36  # "Submit split" replay-only pieces, draw-5564 1.77 / 130
+lever F1    estimated submit work     filter/F1      in-game@draw-6000   1.50  # "Submit split" replay-only pieces, draw-6000 1.78 / 119
 
 # ---- Global ("Global levers", H-11-4): G2 -O3, measured, pooled over the six
 # runs. Sensitivity, the worst run per part: update 5.6 (draw-5564), draw 3.2

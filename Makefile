@@ -636,6 +636,29 @@
 #                       again, 16 levels at most; writes
 #                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
 #                       node is open; never boots, outside the suite
+# make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=sequential|independent] [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]
+#                    -> tools/lever_estimate.sh on the judge table,
+#                       docs/psx-perf-levers-spike-frames.txt and the gain
+#                       table (default docs/psx-perf-levers-gains.txt, whose
+#                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
+#                       the estimate against 263 after the end's levers
+#                       (default measured), each spike frame's work spread
+#                       (default sequential), per class, the summary and
+#                       each lever's gain alone; writes
+#                       tmp/lever-estimate/<label>.txt (label default
+#                       <end>[-<run>]) and prints all but its frame lines;
+#                       never boots, outside the suite
+# make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate
+#                       reproduces step 9's spreading on the committed judge
+#                       table and spike frames with the gain tables of
+#                       tests/fixtures/lever_estimate/ (uniform 88%: no spike
+#                       frame does-not-fit; 87%: frame 6043 does not fit;
+#                       80.7% in game, 74.8% on frame 12: exactly frame 6043,
+#                       every class's figures as step 9's) and its spike
+#                       lines equal frame_profile_check.sh spread's; fails
+#                       naming each result not reproduced; outputs in
+#                       tmp/lever-estimate/check/; never boots, outside the
+#                       suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2471,7 +2494,7 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 	if [ -n "$$invalid" ]; then echo "$@: $$label: invalid:$$invalid"; exit 1; fi; \
 	echo "$@: $$label: valid"
 
-FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check
+FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check test_lever_estimate
 
 # Only the game, the engine and the PICO-8 runtime are instrumented: the hooks
 # must never see themselves or the replay harness.
@@ -2678,10 +2701,34 @@ frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
 		|| { status=$$?; rm -f $$out; exit $$status; }; \
 	cat $$out
 
+ESTIMATE_END ?= measured
+ESTIMATE_ALLOCATION ?= sequential
+ESTIMATE_HAIRCUT ?= 0
+ESTIMATE_GAINS ?= docs/psx-perf-levers-gains.txt
+ESTIMATE_SPIKE_FRAMES := docs/psx-perf-levers-spike-frames.txt
+LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
+
+lever-estimate: tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
+	@label=$(or $(ESTIMATE_LABEL),$(ESTIMATE_END)$(if $(ESTIMATE_RUN),-$(ESTIMATE_RUN))); \
+	case "$$label" in ''|*[!A-Za-z0-9_.-]*) echo "$@: ESTIMATE_LABEL is not a file-name label: '$$label'"; exit 1;; esac; \
+	mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/$$label.txt; \
+	sh tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
+		allocation=$(ESTIMATE_ALLOCATION) haircut=$(ESTIMATE_HAIRCUT) $(if $(ESTIMATE_RUN),run=$(ESTIMATE_RUN)) > $$out \
+		|| { status=$$?; rm -f $$out; exit $$status; }; \
+	grep -v '^frame ' $$out; echo "$@: wrote $$out"
+
+lever-estimate-check: tools/lever_estimate.sh tools/lever_estimate_check.sh tools/frame_profile_check.sh \
+		$(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
+	@sh tools/lever_estimate_check.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
+		$(LEVER_ESTIMATE_DIR)/check
+
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.c) tools/frame_profile_check.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
@@ -2691,7 +2738,7 @@ frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
-	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary
+	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate lever-estimate-check
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

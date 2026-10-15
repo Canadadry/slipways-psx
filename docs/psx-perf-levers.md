@@ -238,10 +238,11 @@ per part.
     - Draw rows: window bound or measured delta ÷ the run's window draw
       (`start` 465, `draw-5564` 19491, `draw-6000` 13987; per-frame bounds
       over 465, 1299.4 and 932.5); `title` and `start` take the `start`
-      run; in game, each row carries both draw runs' gains (one as its
-      value, the other in its comment), and the estimate is computed once
-      per draw run with that run's whole lever set, the less favourable
-      run being the headline. A per-lever minimum across the two runs was
+      run; in game, each lever has one row per draw run (scopes
+      `in-game@draw-5564` and `in-game@draw-6000`), and the estimate is
+      computed once per draw run with that run's whole lever set
+      (`tools/lever_estimate.sh … run=<run>`), the less favourable run
+      being the headline. A per-lever minimum across the two runs was
       tried and rejected: it gives a draw cut of 28.0% measured and 72.3%
       estimated, below step 9's run-level `step7+8` 80.7%, because it
       drops the message box (D3, none on `draw-6000`) and most of the
