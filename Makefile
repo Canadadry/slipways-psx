@@ -520,7 +520,8 @@
 #                       in tmp/frame-profile/<name>/ frames.txt (per frame:
 #                       update and draw PC time, calls, time, net time and
 #                       calls below of each direct child of cart_update60 and
-#                       cart_draw, self time, calls and time per draw family,
+#                       cart_draw, self time, calls, time, cost-model units
+#                       and texture-window switches per draw family,
 #                       in-call) and summary.txt (the run's totals and shares),
 #                       then checks the last state against <events>.end-state
 #                       or REFERENCE with tools/end_state.sh: prints
@@ -2488,7 +2489,7 @@ $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR
 $(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.c) tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))

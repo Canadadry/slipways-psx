@@ -194,6 +194,38 @@ static void check_times_add_up(const char *frames, int frame_count) {
     assert(done == frame_count);
 }
 
+/* Every family line ends with its cost-model units and window switches; a cls is one unit. */
+static void check_family_units(const char *text, int per_frame) {
+    int lines = 0;
+    for (const char *line = text; *line != '\0';) {
+        const char *end = strchr(line, '\n');
+        assert(end != NULL);
+        char row[LINE_CAP];
+        size_t length = (size_t)(end - line);
+        assert(length < sizeof row);
+        memcpy(row, line, length);
+        row[length] = '\0';
+        int body = 0;
+        if (per_frame) sscanf(row, "frame %*d family %n", &body);
+        else if (strncmp(row, "family ", 7) == 0) body = 7;
+        if (body > 0) {
+            const char *units = strstr(row, " units ");
+            unsigned unit_count, switches;
+            int tail = 0;
+            if (units == NULL || sscanf(units, " units %u switches %u%n", &unit_count, &switches, &tail) != 2 ||
+                units[tail] != '\0') {
+                fprintf(stderr, "test_frame_profile: no trailing units and switches on \"%s\"\n", row);
+                assert(0 && "family line units");
+            }
+            unsigned calls = 0;
+            if (sscanf(row + body, "cls %u", &calls) == 1) assert(unit_count == calls && switches == 0);
+            lines++;
+        }
+        line = end + 1;
+    }
+    assert(lines > 0);
+}
+
 static void check_profile(const char *events, const char *dir) {
     char state[LINE_CAP], replay_state[LINE_CAP];
     snprintf(state, sizeof state, "mkdir -p %s", dir);
@@ -232,6 +264,7 @@ static void check_profile(const char *events, const char *dir) {
         expect_line(frames, line);
     }
     check_times_add_up(frames, frame_count);
+    check_family_units(frames, 1);
 
     char *summary = profile_file(dir, "summary.txt");
     snprintf(line, sizeof line, "profile %s frames %d hook-pair-ns ", events, frame_count);
@@ -243,6 +276,7 @@ static void check_profile(const char *events, const char *dir) {
     expect_line(summary, line);
     expect_line(summary, "self draw ");
     expect_line(summary, "in-call ");
+    check_family_units(summary, 0);
     assert(strstr(summary, "%\n") != NULL);
     free(summary);
 

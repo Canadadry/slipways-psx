@@ -27,6 +27,10 @@
     - [x] Chunk 4: levels 3 and below on draw-5564
     - [x] Chunk 5: levels 3 and below on draw-6000 and start, verification
   - [ ] 2.8 Backend side: per-unit costs, 9x print and meter experiments
+    - [x] Chunk 1: units and switches per family in the PC profile
+    - [ ] Chunk 2: unit-cost mode and frame-profile-unit-cost target
+    - [ ] Chunk 3: per-unit measurements on the six short runs
+    - [ ] Chunk 4: one-print and no-meter experiments, candidates
 - [ ] Phase 3 — Update
   - [ ] 3.9 Identify the four update spikes on PC
   - [ ] 3.10 Ordinary update: calibration and children costs

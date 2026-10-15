@@ -77,6 +77,27 @@ static const char *replaced(const char *text, const char *from, const char *to) 
     return buf;
 }
 
+/* Static buffer: <text> with " units 3 switches 1" ending every per-frame family line, as
+ * tmp/frame_profile writes them. */
+static const char *with_units(const char *text) {
+    static char buf[TEXT_CAP];
+    buf[0] = '\0';
+    for (const char *at = text; *at != '\0';) {
+        const char *end = strchr(at, '\n');
+        assert(end != NULL);
+        size_t len = strlen(buf), line_len = (size_t)(end - at);
+        assert(len + line_len + 32 < sizeof buf);
+        memcpy(buf + len, at, line_len);
+        buf[len + line_len] = '\0';
+        int family_at = 0;
+        sscanf(buf + len, "frame %*d family %n", &family_at);
+        if (family_at > 0) strcat(buf, " units 3 switches 1");
+        strcat(buf, "\n");
+        at = end + 1;
+    }
+    return buf;
+}
+
 static char breakdown_profile[TEXT_CAP];
 static char breakdown_tty[TEXT_CAP];
 
@@ -144,6 +165,14 @@ static void test_breakdown_match_over_a_resume_window(void) {
     assert(strstr(log, "\nfamily pattern pc 1 psx 1\n") != NULL);
     assert(strstr(log, "family cls ") < strstr(log, "family pset "));
     assert(strstr(log, "family print ") < strstr(log, "family pattern "));
+}
+
+static void test_breakdown_reads_family_lines_ending_with_units(void) {
+    assert(run_breakdown(breakdown_profile, breakdown_tty, MAP_RESUME) == 0);
+    char plain[TEXT_CAP];
+    snprintf(plain, sizeof plain, "%s", read_file(LOG));
+    assert(run_breakdown(with_units(breakdown_profile), breakdown_tty, MAP_RESUME) == 0);
+    assert(strcmp(read_file(LOG), plain) == 0);
 }
 
 static void test_breakdown_match_over_a_prefix_window(void) {
@@ -331,6 +360,21 @@ static void test_coverage_verdicts(void) {
     assert(ends_with(output_line("family cls"), " below"));
     assert(output_line("family pattern")[0] == '\0');
     assert(output_line("child ui_update")[0] == '\0');
+}
+
+static void test_coverage_reads_family_lines_ending_with_units(void) {
+    write_coverage_inputs();
+    assert(run_coverage("2") == 3);
+    char plain[TEXT_CAP];
+    snprintf(plain, sizeof plain, "%s", read_file(LOG));
+    const char *paths[] = {FULL_TXT, START_TXT, DRAW_TXT};
+    for (size_t p = 0; p < sizeof paths / sizeof paths[0]; p++) {
+        char text[TEXT_CAP];
+        snprintf(text, sizeof text, "%s", read_file(paths[p]));
+        write_file(paths[p], with_units(text));
+    }
+    assert(run_coverage("2") == 3);
+    assert(strcmp(read_file(LOG), plain) == 0);
 }
 
 /* 15 frames above the threshold is significant, 14 is sporadic. */
@@ -569,6 +613,7 @@ static void test_subtree_usage_errors_exit_1(void) {
 int main(void) {
     build_breakdown_inputs();
     test_breakdown_match_over_a_resume_window();
+    test_breakdown_reads_family_lines_ending_with_units();
     test_breakdown_match_over_a_prefix_window();
     test_breakdown_ignores_frames_outside_the_window();
     test_breakdown_reports_the_first_mismatch();
@@ -576,6 +621,7 @@ int main(void) {
     test_breakdown_accepts_lf_line_ends();
     test_breakdown_usage_errors_exit_1();
     test_coverage_verdicts();
+    test_coverage_reads_family_lines_ending_with_units();
     test_coverage_sporadic_below_fifteen_frames();
     test_coverage_proposes_the_best_span_and_groups_windows();
     test_coverage_item_without_a_covering_span_gets_its_own();

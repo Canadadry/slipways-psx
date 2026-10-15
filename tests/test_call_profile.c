@@ -326,6 +326,43 @@ static void test_a_patterned_fill_also_counts_as_pattern_with_its_time_inside_it
     p8_draw_backend_set(NULL);
 }
 
+static void expect_units(int frame, draw_filter_family_t family, uint32_t calls, uint32_t units, uint32_t switches) {
+    call_profile_family_figures_t figures = call_profile_family_figures(frame, family);
+    if (figures.calls != calls || figures.units != units || figures.switches != switches) {
+        fprintf(stderr, "frame %d family %d: calls %u units %u switches %u, expected %u %u %u\n", frame, family,
+                (unsigned)figures.calls, (unsigned)figures.units, (unsigned)figures.switches, (unsigned)calls,
+                (unsigned)units, (unsigned)switches);
+        assert(0 && "family units");
+    }
+}
+
+static void test_a_family_counts_the_cost_model_units_and_window_switches_of_its_calls(void) {
+    families_over(&NULL_BACKEND);
+    p8_print(&gfx, &mem, "a b ", 0, 0, 7);
+    p8_spr(&gfx, &mem, 1, 200, 0, 1, 1);
+    p8_rect(&gfx, &mem, 0, 0, 5, 5, 7);
+    p8_fillp(&gfx, 0xA5A5);
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    p8_fillp_reset(&gfx);
+    p8_spr(&gfx, &mem, 1, 0, 0, 1, 1);
+    call_profile_frame_end();
+    expect_units(0, DRAW_FILTER_PRINT, 1, 2, 0);
+    expect_units(0, DRAW_FILTER_RECT, 1, 4, 0);
+    expect_units(0, DRAW_FILTER_RECTFILL, 1, 1, 1);
+    expect_units(0, DRAW_FILTER_PATTERN, 1, 1, 1);
+    expect_units(0, DRAW_FILTER_SPR, 2, 1, 1);
+    p8_fillp(&gfx, 0xA5A5);
+    p8_circfill(&gfx, &mem, 10, 10, 0, 7);
+    p8_fillp_reset(&gfx);
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    call_profile_frame_end();
+    expect_units(1, DRAW_FILTER_CIRCFILL, 1, 4, 1);
+    expect_units(1, DRAW_FILTER_PATTERN, 1, 4, 1);
+    expect_units(1, DRAW_FILTER_RECTFILL, 1, 1, 0);
+    expect_units(1, DRAW_FILTER_SPR, 0, 0, 0);
+    p8_draw_backend_set(NULL);
+}
+
 static uint16_t timing_ticks(void) {
     return 0;
 }
@@ -464,6 +501,7 @@ int main(int argc, char **argv) {
     test_the_pair_cost_is_the_clock_span_over_the_pairs_in_tenths();
     test_a_backend_call_adds_its_time_and_one_call_to_its_family();
     test_a_patterned_fill_also_counts_as_pattern_with_its_time_inside_its_shape();
+    test_a_family_counts_the_cost_model_units_and_window_switches_of_its_calls();
     test_family_calls_equal_the_breakdown_timing_on_the_same_calls();
     test_a_dispatcher_root_keeps_forty_children();
     expect_fatal(argv[0], "frames", "call profile frame table full at frame 6817, capacity 6817");

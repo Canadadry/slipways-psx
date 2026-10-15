@@ -1,5 +1,6 @@
 #include "devtools/call_profile.h"
 
+#include "p8/draw_cost.h"
 #include "p8/fatal.h"
 
 #include <assert.h>
@@ -38,6 +39,8 @@ static frame_record_t current;
 static frame_record_t table[CALL_PROFILE_FRAME_CAP];
 static int count;
 static const p8_draw_backend_t *wrapped;
+static p8_draw_cost_window_t window;
+static int counting_units;
 
 void call_profile_init(call_profile_clock_t clock, uintptr_t update_root, uintptr_t draw_root) {
     assert(clock != NULL);
@@ -83,6 +86,7 @@ static int child_index(int root, uintptr_t function, uintptr_t call_site) {
 }
 
 void call_profile_enter(uintptr_t function, uintptr_t call_site) {
+    if (counting_units) return;
     if (depth == CALL_PROFILE_DEPTH_CAP) {
         char message[64];
         snprintf(message, sizeof message, "call profile: call stack deeper than %d", CALL_PROFILE_DEPTH_CAP);
@@ -110,6 +114,7 @@ void call_profile_enter(uintptr_t function, uintptr_t call_site) {
 
 void call_profile_exit(uintptr_t function, uintptr_t call_site) {
     (void)call_site;
+    if (counting_units) return;
     if (depth == 0 || stack[depth - 1].function != function) p8_fatal("call profile: exit without its entry");
     stack_entry_t *entry = &stack[--depth];
     if (entry->kind == FRAME_ROOT) {
@@ -132,6 +137,7 @@ void call_profile_frame_end(void) {
     }
     table[count++] = current;
     memset(&current, 0, sizeof current);
+    p8_draw_cost_frame_begin(&window);
 }
 
 int call_profile_frame_count(void) {
@@ -200,64 +206,107 @@ static uint64_t family_end(draw_filter_family_t family, uint64_t start) {
     return ns;
 }
 
+static int patterned(const p8_graphics_t *gfx) {
+    return (gfx->fillp_pattern & 0xFFFFu) != 0;
+}
+
 static void pattern_end(const p8_graphics_t *gfx, uint64_t ns) {
-    if ((gfx->fillp_pattern & 0xFFFFu) == 0) return;
+    if (!patterned(gfx)) return;
     current.families[DRAW_FILTER_PATTERN].calls++;
     current.families[DRAW_FILTER_PATTERN].ns += ns;
+}
+
+/* The cost model is instrumented code: between units_begin and units_end its hooks are ignored,
+ * so that it never counts as calls below a child. Returns the window before the call. */
+static p8_draw_cost_window_t units_begin(void) {
+    counting_units = 1;
+    return window;
+}
+
+static void units_add(draw_filter_family_t family, uint32_t units, uint32_t switches) {
+    current.families[family].units += units;
+    current.families[family].switches += switches;
+}
+
+static void units_end(draw_filter_family_t family, p8_draw_cost_window_t before, p8_draw_cost_t cost, int in_pattern) {
+    counting_units = 0;
+    uint32_t switches = before.patterned != window.patterned || before.pattern_key != window.pattern_key;
+    assert(cost.primitives >= 2 * (int)switches && "a window switch is two primitives of its call");
+    uint32_t units = (uint32_t)cost.primitives - 2 * switches;
+    units_add(family, units, switches);
+    if (in_pattern) units_add(DRAW_FILTER_PATTERN, units, switches);
 }
 
 static void family_cls(p8_vram_t *mem) {
     uint64_t start = clock_now();
     wrapped->cls(mem);
     family_end(DRAW_FILTER_CLS, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_CLS, before, p8_draw_cost_cls(), 0);
 }
 
 static void family_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
     uint64_t start = clock_now();
     wrapped->pset(gfx, mem, x, y, col);
     family_end(DRAW_FILTER_PSET, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_PSET, before, p8_draw_cost_pset(gfx, x, y), 0);
 }
 
 static void family_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     uint64_t start = clock_now();
     wrapped->line(gfx, mem, x1, y1, x2, y2, col);
     family_end(DRAW_FILTER_LINE, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_LINE, before, p8_draw_cost_line(gfx, x1, y1, x2, y2), 0);
 }
 
 static void family_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     uint64_t start = clock_now();
     wrapped->rect(gfx, mem, x1, y1, x2, y2, col);
     family_end(DRAW_FILTER_RECT, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_RECT, before, p8_draw_cost_rect(gfx, x1, y1, x2, y2), 0);
 }
 
 static void family_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     uint64_t start = clock_now();
     wrapped->rectfill(gfx, mem, x1, y1, x2, y2, col);
     pattern_end(gfx, family_end(DRAW_FILTER_RECTFILL, start));
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_RECTFILL, before, p8_draw_cost_rectfill(&window, gfx, x1, y1, x2, y2, col), patterned(gfx));
 }
 
 static void family_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
     uint64_t start = clock_now();
     wrapped->circ(gfx, mem, cx, cy, r, col);
     family_end(DRAW_FILTER_CIRC, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_CIRC, before, p8_draw_cost_circ(gfx, cx, cy, r), 0);
 }
 
 static void family_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
     uint64_t start = clock_now();
     wrapped->circfill(gfx, mem, cx, cy, r, col);
     pattern_end(gfx, family_end(DRAW_FILTER_CIRCFILL, start));
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_CIRCFILL, before, p8_draw_cost_circfill(&window, gfx, cx, cy, r, col), patterned(gfx));
 }
 
 static void family_spr(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h) {
     uint64_t start = clock_now();
     wrapped->spr(gfx, mem, n, x, y, w, h);
     family_end(DRAW_FILTER_SPR, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_SPR, before, p8_draw_cost_spr(&window, gfx, n, x, y, w, h), 0);
 }
 
 static void family_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
     uint64_t start = clock_now();
     wrapped->print(gfx, mem, str, x, y, col);
     family_end(DRAW_FILTER_PRINT, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_PRINT, before, p8_draw_cost_print(&window, gfx, str, x, y), 0);
 }
 
 static const p8_draw_backend_t FAMILIES = {
@@ -270,6 +319,7 @@ const p8_draw_backend_t *call_profile_family_install(void) {
     assert(active != &FAMILIES && "the family wrapper would wrap itself");
     assert(clock_now != NULL && "call_profile_init first");
     wrapped = active;
+    p8_draw_cost_frame_begin(&window);
     p8_draw_backend_set(&FAMILIES);
     return wrapped;
 }

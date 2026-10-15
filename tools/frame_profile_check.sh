@@ -68,7 +68,7 @@ breakdown() {
         tr -d '\r' < "$2" | sed -n 's/^psx-draw: frame /D /p'
     } | awk -v first="$3" -v last="$4" '
         BEGIN { family_count = split("cls pset line rect rectfill circ circfill spr print pattern", families, " ") }
-        $1 == "P" && NF == 5 { pc[$2, $3] = $4; next }
+        $1 == "P" && (NF == 5 || NF == 9 && $6 == "units" && $8 == "switches") { pc[$2, $3] = $4; next }
         $1 == "D" && NF == 34 && $33 == "wrapped" {
             for (i = 1; i <= family_count; i++) if ($(3 * i) != families[i]) next
             seen[$2] = 1
@@ -163,13 +163,13 @@ coverage() {
         file <= full_count {
             if ($3 == "update" && NF == 6) draw[file, $2] = $6
             else if ($3 == "child" && $4 == "draw" && NF == 9) { item_of("child " $5); value[file, "child " $5, $2] = $7 }
-            else if ($3 == "family" && NF == 6) value[file, "family " $4, $2] = $6
+            else if ($3 == "family" && (NF == 6 || NF == 10 && $7 == "units" && $9 == "switches")) value[file, "family " $4, $2] = $6
             next
         }
         $2 >= window_firsts[w] && $2 <= window_lasts[w] {
             if ($3 == "update" && NF == 6) { window_draw[file] += $6; window_seen[file, $2] = 1 }
             else if ($3 == "child" && $4 == "draw" && NF == 9) window_value[file, "child " $5] += $7
-            else if ($3 == "family" && NF == 6) window_value[file, "family " $4] += $6
+            else if ($3 == "family" && (NF == 6 || NF == 10 && $7 == "units" && $9 == "switches")) window_value[file, "family " $4] += $6
         }
         function pct(x) { return sprintf("%.1f%%", x) }
         # Timer noise only adds time: a frame counts above the threshold only if every profile says so.

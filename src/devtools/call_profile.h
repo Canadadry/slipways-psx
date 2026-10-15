@@ -38,9 +38,12 @@ typedef struct {
     uint32_t below;
 } call_profile_child_figures_t;
 
+/* units are the cost model's content primitives; a texture-window pair is one switch, never a unit. */
 typedef struct {
     uint32_t calls;
     uint64_t ns;
+    uint32_t units;
+    uint32_t switches;
 } call_profile_family_figures_t;
 
 /* Empties every table and the call stack. Root addresses are non-zero and distinct. */
@@ -84,7 +87,8 @@ uint64_t call_profile_measure_pair(int pairs);
 
 /* Wraps the backend active at the call; call after call_profile_init. Every call counts under
  * its family; a rectfill or circfill with a non-zero fill pattern also counts under
- * DRAW_FILTER_PATTERN, its time staying inside its shape's. Returns the wrapped backend:
+ * DRAW_FILTER_PATTERN, its time and units staying inside its shape's. The cost model's texture
+ * window restarts at every frame end. Returns the wrapped backend:
  * reinstalling it with p8_draw_backend_set removes the wrapper. */
 const p8_draw_backend_t *call_profile_family_install(void);
 

@@ -182,16 +182,23 @@ static void write_frames(FILE *out, const report_t *report) {
         }
         for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
             call_profile_family_figures_t figures = call_profile_family_figures(frame, (draw_filter_family_t)family);
-            fprintf(out, "frame %d family %s %lu %llu\n", frame, capture_list_family_name((draw_filter_family_t)family),
-                    (unsigned long)figures.calls, (unsigned long long)figures.ns);
+            fprintf(out, "frame %d family %s %lu %llu units %lu switches %lu\n", frame,
+                    capture_list_family_name((draw_filter_family_t)family), (unsigned long)figures.calls,
+                    (unsigned long long)figures.ns, (unsigned long)figures.units, (unsigned long)figures.switches);
         }
         fprintf(out, "frame %d in-call %llu\n", frame, (unsigned long long)call_profile_in_call_ns(frame));
     }
 }
 
-static void write_share(FILE *out, uint64_t part, uint64_t total) {
+/* Writes " <pct>%" without ending the line. */
+static void write_share_field(FILE *out, uint64_t part, uint64_t total) {
     uint64_t tenths = total == 0 ? 0 : (part * 1000 + total / 2) / total;
-    fprintf(out, " %llu.%llu%%\n", (unsigned long long)(tenths / 10), (unsigned long long)(tenths % 10));
+    fprintf(out, " %llu.%llu%%", (unsigned long long)(tenths / 10), (unsigned long long)(tenths % 10));
+}
+
+static void write_share(FILE *out, uint64_t part, uint64_t total) {
+    write_share_field(out, part, total);
+    fputc('\n', out);
 }
 
 static void write_summary(FILE *out, const report_t *report) {
@@ -230,15 +237,18 @@ static void write_summary(FILE *out, const report_t *report) {
         write_share(out, roots[root] - children[root], roots[root]);
     }
     for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
-        uint64_t calls = 0, ns = 0;
+        uint64_t calls = 0, ns = 0, units = 0, switches = 0;
         for (int frame = 0; frame < frames; frame++) {
             call_profile_family_figures_t figures = call_profile_family_figures(frame, (draw_filter_family_t)family);
             calls += figures.calls;
             ns += figures.ns;
+            units += figures.units;
+            switches += figures.switches;
         }
         fprintf(out, "family %s %llu %llu", capture_list_family_name((draw_filter_family_t)family),
                 (unsigned long long)calls, (unsigned long long)ns);
-        write_share(out, ns, roots[CALL_PROFILE_DRAW]);
+        write_share_field(out, ns, roots[CALL_PROFILE_DRAW]);
+        fprintf(out, " units %llu switches %llu\n", (unsigned long long)units, (unsigned long long)switches);
     }
     fprintf(out, "in-call %llu\n", (unsigned long long)in_call);
 }
