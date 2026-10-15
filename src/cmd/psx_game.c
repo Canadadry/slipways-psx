@@ -1,5 +1,6 @@
 /* The game as it ships on PSX: the GPU replay's frame (src/cmd/psx_gpu_replay.c) driven by the pad
  * on port 1 instead of a recording, at most one frame a vsync. Its TTY:
+ *   psx-game: asserts on|off
  *   psx-game: ready
  *   psx-game: pad <frame> <pad_buttons hex>   on frame 0 and on each change
  * Under check only, once tools/psx_pad_play.lua writes the pad script's end word, it ends with the
@@ -39,8 +40,15 @@ static void write_stopped_state(int code) {
     state_format(&sink);
 }
 
+static int asserts_enabled(void) {
+    int enabled = 0;
+    assert((enabled = 1) != 0);
+    return enabled;
+}
+
 int main(void) {
     ResetGraph(0);
+    psx_tty_write(asserts_enabled() ? "psx-game: asserts on\n" : "psx-game: asserts off\n");
 
     static p8_vram_t memory;
     p8_vram_init(&memory);

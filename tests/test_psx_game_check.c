@@ -1,4 +1,4 @@
-/* tools/psx_game_check.sh (the game EXE's five post-boot conditions) on crafted TTY files built
+/* tools/psx_game_check.sh (the game EXE's six post-boot conditions) on crafted TTY files built
  * from tests/e2e/pad_title.json and its PC state, with the real tmp/psx_pad_log and tmp/replay:
  * no emulator. */
 
@@ -41,14 +41,28 @@ static const char *read_file(const char *path) {
     return buf;
 }
 
-/* The PSX TTY: header, pad lines, done line, then the PC state behind "psx-state: ". */
-static void write_tty(const char *pad_lines, const char *done_line, const char *state_path) {
+/* The PSX TTY: header with this asserts line ("" for none), pad lines, done line, then the PC state
+ * behind "psx-state: ". */
+static void write_tty_asserts(const char *asserts_line, const char *pad_lines, const char *done_line,
+                              const char *state_path) {
     static char tty[1 << 16];
-    snprintf(tty, sizeof tty, "PS-X Control PAD Driver\r\npsx-game: ready\r\n%s%s", pad_lines, done_line);
+    snprintf(tty, sizeof tty, "PS-X Control PAD Driver\r\n%spsx-game: ready\r\n%s%s", asserts_line, pad_lines,
+             done_line);
     write_file(TTY, tty);
     char command[512];
     snprintf(command, sizeof command, "sed 's/^/psx-state: /' %s >> " TTY, state_path);
     assert(system(command) == 0);
+}
+
+static void write_tty(const char *pad_lines, const char *done_line, const char *state_path) {
+    write_tty_asserts("psx-game: asserts off\r\n", pad_lines, done_line, state_path);
+}
+
+static void assert_line(const char *line) {
+    if (strstr(read_file(LOG), line) == NULL) {
+        fprintf(stderr, "missing \"%s\" in:\n%s", line, read_file(LOG));
+        assert(0);
+    }
 }
 
 /* Runs the check with this boot status and difficulty; returns its exit status, output in LOG. */
@@ -60,11 +74,21 @@ static int run_check(int boot_status, const char *difficulty) {
     return system(command);
 }
 
-static void assert_line(const char *line) {
-    if (strstr(read_file(LOG), line) == NULL) {
-        fprintf(stderr, "missing \"%s\" in:\n%s", line, read_file(LOG));
-        assert(0);
-    }
+static int run_check_expecting(const char *asserts) {
+    char command[512];
+    snprintf(command, sizeof command,
+             "PSX_GAME_ASSERTS=%s sh tools/psx_game_check.sh " TTY " 0 'boot output'" TOOLS "reasonable " OUT " > " LOG
+             " 2>&1",
+             asserts);
+    return system(command);
+}
+
+static void assert_other_conditions_pass(void) {
+    assert_line("psx-game-check: game-done: ok, 30 frames, 1 vsyncs");
+    assert_line("psx-game-check: game-pad-log: ok, 30 frames");
+    assert_line("psx-game-check: game-pad-states: ok, 11 states");
+    assert_line("psx-game-check: game-state-game-lines: ok");
+    assert_line("psx-game-check: game-title-left: ok, difficulty reasonable, clock year 3401 month 1");
 }
 
 static void setup(void) {
@@ -83,6 +107,7 @@ static void test_a_pad_title_run_passes_every_condition(void) {
     assert_line("psx-game-check: game-pad-states: ok, 11 states");
     assert_line("psx-game-check: game-state-game-lines: ok");
     assert_line("psx-game-check: game-title-left: ok, difficulty reasonable, clock year 3401 month 1");
+    assert_line("psx-game-check: game-asserts: ok, off");
     assert(strstr(read_file(OUT "/game_events.json"), "\"input\": \"pad\"") != NULL);
     assert(strstr(read_file(OUT "/pc_state.txt"), "difficulty reasonable") != NULL);
 }
@@ -149,6 +174,40 @@ static void test_another_expected_difficulty_fails_title_left(void) {
     assert_line("psx-game-check: game-state-game-lines: ok");
 }
 
+static void test_an_asserts_on_game_fails_game_asserts(void) {
+    setup();
+    write_tty_asserts("psx-game: asserts on\r\n", PAD_LINES, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-asserts: psx-game: asserts on");
+    assert_other_conditions_pass();
+}
+
+static void test_a_missing_asserts_line_fails_game_asserts(void) {
+    setup();
+    write_tty_asserts("", PAD_LINES, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-asserts: psx-game: asserts (no line)");
+    assert_other_conditions_pass();
+}
+
+static void test_an_asserts_on_expectation_wants_asserts_on(void) {
+    setup();
+    write_tty_asserts("psx-game: asserts on\r\n", PAD_LINES, DONE, PC_STATE);
+    assert(run_check_expecting("on") == 0);
+    assert_line("psx-game-check: game-asserts: ok, on");
+    assert_other_conditions_pass();
+    write_tty(PAD_LINES, DONE, PC_STATE);
+    assert(run_check_expecting("on") != 0);
+    assert_line("psx-game-check: game-asserts: psx-game: asserts off");
+    assert_other_conditions_pass();
+}
+
+static void test_an_unknown_expectation_is_refused(void) {
+    setup();
+    assert(run_check_expecting("maybe") != 0);
+    assert_line("PSX_GAME_ASSERTS must be on or off, not 'maybe'");
+}
+
 int main(void) {
     test_a_pad_title_run_passes_every_condition();
     test_a_failed_boot_fails_game_done();
@@ -158,6 +217,10 @@ int main(void) {
     test_an_altered_state_line_is_named();
     test_a_log_cut_before_cross_never_leaves_the_title();
     test_another_expected_difficulty_fails_title_left();
+    test_an_asserts_on_game_fails_game_asserts();
+    test_a_missing_asserts_line_fails_game_asserts();
+    test_an_asserts_on_expectation_wants_asserts_on();
+    test_an_unknown_expectation_is_refused();
     printf("test_psx_game_check: ok\n");
     return 0;
 }

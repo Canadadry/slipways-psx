@@ -18,6 +18,7 @@ foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX
 	endif()
 endforeach()
 
+option(PSX_GAME_ASSERTS "Keep asserts in psx-game, the game on the CD image" OFF)
 option(PSX_MEASURED_REPLAY_ASSERTS "Keep asserts in psx-gpu-replay and psx-gpu-replay-breakdown" ON)
 set(PSX_MEASURED_REPLAY_OPT O2 CACHE STRING "Optimization level of psx-gpu-replay and psx-gpu-replay-breakdown: O2, O3 or Os")
 set_property(CACHE PSX_MEASURED_REPLAY_OPT PROPERTY STRINGS O2 O3 Os)
@@ -43,9 +44,11 @@ foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe
 	endif()
 	psn00bsdk_add_executable(${_target} GPREL ${_sources})
 	target_include_directories(${_target} PRIVATE ${SLIPWAYS_SRC_DIR})
-	# The SDK's release config defines NDEBUG; -U comes after its -D, so the
-	# core's asserts stay compiled in, as in the PC -O0 binary.
-	if(NOT PSX_MEASURED_REPLAY_ASSERTS AND _target MATCHES "^psx-gpu-replay(-breakdown)?$")
+	# The SDK's release config defines NDEBUG; -U comes after its -D and keeps
+	# the asserts. Only psx-game (PSX_GAME_ASSERTS OFF) and the two measured
+	# replays (PSX_MEASURED_REPLAY_ASSERTS OFF) drop it.
+	if((NOT PSX_GAME_ASSERTS AND _target STREQUAL "psx-game")
+		OR (NOT PSX_MEASURED_REPLAY_ASSERTS AND _target MATCHES "^psx-gpu-replay(-breakdown)?$"))
 		# Helpers and locals that only feed an assert go unused under NDEBUG;
 		# the sources must not change, so these kinds stay warnings only.
 		target_compile_options(${_target} PRIVATE -std=c99 -Wall -Wextra -Werror

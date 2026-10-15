@@ -313,7 +313,8 @@
 #                       unless PSN00BSDK_SKIP_APT is set; exits 0 at once on a
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
-# make psx-build [EVENTS=<events>] [PSX_BUILD_DRAW_FILTER=ON|OFF] -> builds,
+# make psx-build [EVENTS=<events>] [PSX_BUILD_DRAW_FILTER=ON|OFF]
+#                [PSX_BUILD_GAME_ASSERTS=ON|OFF] -> builds,
 #                       in tmp/psx/build, the game's
 #                       PS-EXEs replaying that recording (default
 #                       tests/e2e/pad_slipway.json, embedded through
@@ -323,7 +324,8 @@
 #                       backend call per draw family), both with the draw
 #                       filter (PSX_GPU_REPLAY_DRAW_FILTER) unless
 #                       PSX_BUILD_DRAW_FILTER=OFF, the pad
-#                       probe, psx-game (the game read from the pad),
+#                       probe, psx-game (the game read from the pad, built
+#                       without asserts unless PSX_BUILD_GAME_ASSERTS=ON),
 #                       psx-largest-slots (the largest-case scenarios of
 #                       src/devtools/largest_slots.c on MIPS), and the
 #                       game's CD image (PSX_GAME_BIN, PSX_GAME_CUE:
@@ -362,13 +364,15 @@
 #                       game_events.json by tmp/psx_pad_log), game-pad-states,
 #                       game-state-game-lines (that recording replayed by
 #                       tmp/replay with STATE=), game-title-left (difficulty
-#                       PSX_GAME_DIFFICULTY, default reasonable); outputs in
+#                       PSX_GAME_DIFFICULTY, default reasonable), game-asserts
+#                       (the TTY's asserts mode is PSX_BUILD_GAME_ASSERTS's,
+#                       off by default); outputs in
 #                       tmp/psx/game, ~10 s; never runs a setup, outside the
 #                       suite
 # make psx-game-cd-check -> runs psx-game-cd, boots PSX_GAME_CUE until it
 #                       exits with PSX_GAME_SCRIPT as psx-game-check does
 #                       (ceiling PSX_GAME_CD_CEILING vsyncs, timeout
-#                       PSX_GAME_CD_TIMEOUT s), then the five game-*
+#                       PSX_GAME_CD_TIMEOUT s), then the six game-*
 #                       conditions of tools/psx_game_check.sh and the cue and
 #                       cd-exe conditions of tools/psx_cd_check.sh (SLIPWAYS.EXE
 #                       extracted by PSX_DUMPSXISO equals psx-game.exe); outputs
@@ -386,7 +390,7 @@
 #                       (as psx-game-cd-check does) and psx-largest-slots
 #                       (ceiling PSX_LARGEST_SLOTS_CEILING vsyncs, timeout
 #                       PSX_LARGEST_SLOTS_TIMEOUT s) until they exit, six
-#                       boots, then prints one line per condition, thirty-one
+#                       boots, then prints one line per condition, thirty-two
 #                       (magic, asserts-on, format against
 #                       tmp/format_self_test, replay-done, state-game-lines, sprite-sheet, screen, map,
 #                       gpu-replay-done, gpu-state-game-lines, gpu-cost: its
@@ -397,7 +401,7 @@
 #                       psx/gpu_capture_ceilings.txt and
 #                       psx/gpu_capture_references.txt,
 #                       no-json through PSX_NM on both replay ELFs and the game
-#                       ELF, pad-script, the five game-* conditions of
+#                       ELF, pad-script, the six game-* conditions of
 #                       tools/psx_game_check.sh on the CD boot, game-gpu-cost:
 #                       the CD game's meter lines equal those of the PC replay
 #                       of its pad log, game-cue and game-cd-exe of
@@ -2220,6 +2224,12 @@ space := $(empty) $(empty)
 # Always passed: CMake caches options per build directory, and psx-build reconfigures in place.
 PSX_BUILD_MEASURED_REPLAY_ASSERTS ?= ON
 PSX_BUILD_DRAW_FILTER ?= ON
+PSX_BUILD_GAME_ASSERTS ?= OFF
+ifneq ($(words $(PSX_BUILD_GAME_ASSERTS))$(filter-out ON OFF,$(PSX_BUILD_GAME_ASSERTS)),1)
+$(error psx-build: PSX_BUILD_GAME_ASSERTS must be ON or OFF, not '$(PSX_BUILD_GAME_ASSERTS)')
+endif
+# The mode tools/psx_game_check.sh's game-asserts expects on the TTY.
+PSX_GAME_ASSERTS_MODE := $(if $(filter ON,$(PSX_BUILD_GAME_ASSERTS)),on,off)
 
 psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
@@ -2229,6 +2239,7 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) -DPSX_MEASURED_REPLAY_OPT=O2 \
+		-DPSX_GAME_ASSERTS=$(PSX_BUILD_GAME_ASSERTS) \
 		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
@@ -2777,7 +2788,7 @@ psx-game-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_lo
 	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_GAME_SCRIPT) --exe $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_CEILING) $(PSX_GAME_OUT)/run 2>&1); \
 		status=$$?; echo "$$boot"; \
-		sh tools/psx_game_check.sh $(PSX_GAME_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
+		PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_game_check.sh $(PSX_GAME_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
 			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_OUT)
 
 PSX_GAME_CD_OUT := $(TMP_DIR)/psx/game-cd
@@ -2790,7 +2801,7 @@ psx-game-cd-check: psx-tools-test psx-game-cd $(TMP_DIR)/replay $(TMP_DIR)/psx_p
 	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_CD_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_GAME_SCRIPT) --iso $(PSX_GAME_CUE) $(PSX_GAME_CD_CEILING) $(PSX_GAME_CD_OUT)/run 2>&1); \
 		status=$$?; echo "$$boot"; failed=0; \
-		sh tools/psx_game_check.sh $(PSX_GAME_CD_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
+		PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_game_check.sh $(PSX_GAME_CD_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
 			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_CD_OUT) || failed=1; \
 		sh tools/psx_cd_check.sh $(PSX_GAME_CUE) $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_DISC_EXE) $(PSX_DUMPSXISO) \
 			$(PSX_GAME_CD_OUT)/cd || failed=1; \
@@ -2813,7 +2824,7 @@ psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_tes
 		STATE=$(PSX_CHECK_OUT)/pc_state.txt DIGEST=$(PSX_CHECK_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CHECK_OUT)/pc.dump.txt > $(PSX_CHECK_OUT)/pc.log 2>&1 \
 		|| { cat $(PSX_CHECK_OUT)/pc.log >&2; exit 1; }
 	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_CHECK_OUT)/pc.log) \
-		&& sh tools/psx_check.sh $(PSX_EMULATOR_DIR) $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_BUILD_DIR)/psx-gpu-replay.exe \
+		&& PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_check.sh $(PSX_EMULATOR_DIR) $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_BUILD_DIR)/psx-gpu-replay.exe \
 			$(PSX_BUILD_DIR)/psx-pad-probe.exe $(PSX_CHECK_OUT)/pc_state.txt $(PSX_CHECK_OUT)/pc_digest.txt "$$frames" \
 			"$$(./$(TMP_DIR)/format_self_test)" $(PSX_PAD_SCRIPT) $(PSX_REPLAY_CEILING) $(PSX_REPLAY_TIMEOUT) \
 			$(PSX_GPU_CEILING) $(PSX_GPU_TIMEOUT) $(PSX_PAD_CEILING) $(PSX_PAD_TIMEOUT) $(PSX_SIZE) $(PSX_NM) \

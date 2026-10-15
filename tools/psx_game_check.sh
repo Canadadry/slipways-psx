@@ -1,8 +1,10 @@
 #!/bin/sh
 # usage: psx_game_check.sh <tty> <boot-status> <boot-output> <pad-script> <pad-log-tool> <replay-tool>
 #                          <difficulty> <out-dir>
-# The game EXE's conditions after its boot with <pad-script>: game-done,
-# game-pad-log, game-pad-states, game-state-game-lines, game-title-left.
+# The game EXE's six conditions after its boot with <pad-script>: game-done,
+# game-pad-log, game-pad-states, game-state-game-lines, game-title-left,
+# game-asserts (the TTY's "psx-game: asserts on|off" line equals
+# PSX_GAME_ASSERTS, on or off, default off).
 # Every condition is checked before concluding, one "psx-game-check:
 # <condition>: ok[, detail]" line each, failures on stderr, exit 1 if any
 # failed. Writes into <out-dir>: game_events.json (the TTY's pad log as a
@@ -23,6 +25,11 @@ replay_tool=$6
 difficulty=$7
 out_dir=$8
 script_dir=$(cd "$(dirname "$0")" && pwd)
+expected_asserts=${PSX_GAME_ASSERTS:-off}
+case $expected_asserts in
+    on | off) ;;
+    *) echo "psx-game-check: PSX_GAME_ASSERTS must be on or off, not '$expected_asserts'" >&2; exit 1 ;;
+esac
 
 mkdir -p "$out_dir"
 rm -rf "$out_dir/tty.txt" "$out_dir/game_events.json" "$out_dir/pc_state.txt" "$out_dir/pc.dump.txt" "$out_dir/game-state"
@@ -101,6 +108,13 @@ if [ "$difficulty_line" = "difficulty $difficulty" ] && [ -n "$clock_line" ] \
     pass game-title-left "$found"
 else
     report game-title-left "expected difficulty $difficulty: $found"
+fi
+
+asserts_mode=$(sed -n 's/^psx-game: asserts \(.*\)$/\1/p' "$out_dir/tty.txt" | head -n 1)
+if [ "$asserts_mode" = "$expected_asserts" ]; then
+    pass game-asserts "$asserts_mode"
+else
+    report game-asserts "psx-game: asserts ${asserts_mode:-(no line)}"
 fi
 
 [ "$failed" -eq 0 ] || exit 1
