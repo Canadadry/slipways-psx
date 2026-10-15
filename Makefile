@@ -643,12 +643,14 @@
 #                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
 #                       the estimate against 263 after the end's levers
 #                       (default measured), each spike frame's work spread
-#                       (default sequential), per class, the summary and
+#                       (default sequential; a spike frame fits only if its
+#                       own leftover is within 263 too), per class, the summary and
 #                       each lever's gain alone; writes
 #                       tmp/lever-estimate/<label>.txt (label default
 #                       <end>[-<run>]) and prints all but its frame lines;
 #                       never boots, outside the suite
-# make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate
+# make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate,
+#                       under step 9's spike rule (spike-rule=step9),
 #                       reproduces step 9's spreading on the committed judge
 #                       table and spike frames with the gain tables of
 #                       tests/fixtures/lever_estimate/ (uniform 88%: no spike

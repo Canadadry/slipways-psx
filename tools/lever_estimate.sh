@@ -4,6 +4,7 @@
 #            haircut=<pct> (default 0: every gain divided by 1 + pct/100)
 #            alone=<lever id> (that lever's rows only, spreading kept)
 #            run=<name> (the in-game@<name> rows apply; required when the table has any)
+#            spike-rule=strict|step9 (default strict)
 # Per judge frame, the frame after the levers of the gain table (rows of the
 # end's kind; the measured end reads measured rows only), then per spike
 # frame its class's work spread over the frames that follow, as
@@ -15,6 +16,7 @@
 #   ratio default|<label> <child>=<rho>[,...]
 #   lever <id> measured|estimated draw|update|submit work|per-call|scale <group>/<alt> <scope> <gain%>|abs:<hblanks>
 #   spread <id> measured|estimated <label>|* responsible|responsible+save:<share%>
+#   cap draw|update|submit work|per-call|scale <scope> <max%>
 # Scopes, most specific first: range:<name>, class:<label>, class:*,
 # ordinary (not a spike frame), in-game@<run>, in-game (outside every range),
 # all; one lever's most specific matching row counts on each part. abs: is
@@ -22,34 +24,41 @@
 # the spreadable work, rounded half up, floored at 0. A "#" that starts a word
 # comments out the rest of a gain table line; one inside a path does not.
 # Composition per part: inside a layer, rows summed within an alt, the
-# largest alt of a group, groups summed, capped at 100; across layers
+# largest alt of a group, groups summed, capped at the most specific
+# matching cap row of that part and layer (haircut applies to it too), then
+# at 100; across layers
 # part x (1 - work)(1 - per-call)(1 - scale), rounded half up.
 # A spike frame's work is ceil(share x rho x update) (rho: the class's ratio
 # for the path's cart_update60 child, else default's, else 1; the portion
 # capped at 1), shrunk in proportion to update's relative gains; with a
 # responsible+save row, ceil(share x update) more, capped at the rest. A
-# spike frame without a spread row fits only on its own.
+# spike frame without a spread row fits only on its own. Its leftover is
+# what stays on it: update - spread work + draw + submit after levers. strict:
+# a spike frame fits when its spread work is placed and its leftover is at
+# most the budget; step9 (frame_profile_check.sh spread): placed is enough.
 # independent: each spread counts the frames that follow at their own total
 # (frame_profile_check.sh spread). sequential: spike frames in order consume
 # one shared room array, the room of a spike frame counted without its
 # spread work; a spread that does not fit consumes nothing.
 # Output, frame lines in frame order:
 #   frame <f> before <t> after <t'> update <u'> draw <d'> submit <s'> fits|over <x>
-#   frame <f> before <t> class <label> work <w> spread <a> frames <n>|does-not-fit [overlaps <f>,...]
-#   class <label> work <min>-<median>-<max> frames <min>-<median>-<max>|- does-not-fit <k>
-#   summary end <end> allocation <a> haircut <h> run <run>|- frames <n> over <k> worst <f> <t'> mean <m> saved <h> spikes <s> does-not-fit <d>
+#   frame <f> before <t> class <label> work <w> spread <a> frames <n>|does-not-fit [overlaps <f>,...] [leftover-over <x>]
+#   class <label> work <min>-<median>-<max> frames <min>-<median>-<max>|- does-not-fit <k> [leftover-over <k>]
+#   summary end <end> allocation <a> haircut <h> run <run>|- frames <n> over <k> worst <f> <t'> mean <m> saved <h> spikes <s> does-not-fit <d> [leftover-over <k> leftover-max <f> <l>]
+# The leftover-over fields are strict only: spike frames whose leftover is
+# over the budget, placed or not, and the largest leftover.
 #   lever <id> alone saved <hblanks> frames-fitting <n>    (without alone=, one per lever id)
 # over, worst and mean are over the frames that are not spike frames; saved
 # sums before - after over every frame, a spike frame's after taken before
 # spreading; frames-fitting counts the frames that fit and the spike frames
-# whose spread fits. Exit 0 whatever the verdict, 2 on a malformed input
+# whose spread fits (strict: and whose leftover is within the budget). Exit 0 whatever the verdict, 2 on a malformed input
 # (naming the file and line), 1 on a usage error.
 
 set -u
 LC_ALL=C
 export LC_ALL
 
-usage="usage: lever_estimate.sh <judge-frames.txt> <spike-frames.txt> <gain-table> measured|estimated [allocation=sequential|independent] [haircut=<pct>] [alone=<lever id>] [run=<name>]"
+usage="usage: lever_estimate.sh <judge-frames.txt> <spike-frames.txt> <gain-table> measured|estimated [allocation=sequential|independent] [haircut=<pct>] [alone=<lever id>] [run=<name>] [spike-rule=strict|step9]"
 
 fail_usage() {
     echo "lever-estimate: $1" >&2
@@ -73,6 +82,7 @@ allocation=sequential
 haircut=0
 alone=
 run=
+spike_rule=strict
 for option in "$@"; do
     case $option in
         allocation=sequential | allocation=independent) allocation=${option#*=} ;;
@@ -82,11 +92,12 @@ for option in "$@"; do
             ;;
         alone=?*) alone=${option#*=} ;;
         run=?*) run=${option#*=} ;;
+        spike-rule=strict | spike-rule=step9) spike_rule=${option#*=} ;;
         *) fail_usage "unknown option: '$option'" ;;
     esac
 done
 
-awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$alone" -v run="$run" \
+awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$alone" -v run="$run" -v spike_rule="$spike_rule" \
     -v judge_name="$judge" -v spikes_name="$spikes" -v gains_name="$gains" '
     BEGIN {
         cap = 600
@@ -177,6 +188,8 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
             }
         } else if ($1 == "lever") {
             read_lever()
+        } else if ($1 == "cap") {
+            read_cap()
         } else if ($1 == "spread") {
             if (NF != 5 || ($3 != "measured" && $3 != "estimated") || $5 !~ /^responsible(\+save:[0-9]+(\.[0-9]+)?)?$/)
                 malformed("not spread <id> <kind> <label>|* responsible|responsible+save:<share%>")
@@ -190,6 +203,39 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
         }
         next
     }
+    function scope_type(scope) {
+        if (scope == "all" || scope == "in-game" || scope == "ordinary" || scope == "class:*") return scope
+        if (scope ~ /^in-game@./) return "in-game@"
+        if (scope ~ /^class:./) return "class"
+        if (scope ~ /^range:./) return "range"
+        malformed("scope " scope " is unknown")
+    }
+    function scope_arg(scope, type) {
+        return substr(scope, index(scope, type == "in-game@" ? "@" : ":") + 1)
+    }
+    # The level of a scope on a frame of that range and class label, 0 when it does not match.
+    function scope_level(type, arg, range_name, label) {
+        if (type == "range") return range_name == arg ? level["range"] : 0
+        if (type == "class") return label == arg ? level["class"] : 0
+        if (type == "class:*") return label != "" ? level["class:*"] : 0
+        if (type == "ordinary") return label == "" ? level["ordinary"] : 0
+        if (type == "in-game@") return range_name == "" && arg == run ? level["in-game@"] : 0
+        if (type == "in-game") return range_name == "" ? level["in-game"] : 0
+        return level["all"]
+    }
+    function read_cap(    type) {
+        if (NF != 5) malformed("not cap <part> <layer> <scope> <max%>")
+        if ($2 != "draw" && $2 != "update" && $2 != "submit") malformed("part " $2 " is not draw, update or submit")
+        if ($3 != "work" && $3 != "per-call" && $3 != "scale") malformed("layer " $3 " is not work, per-call or scale")
+        type = scope_type($4)
+        if (!is_number($5) || $5 + 0 > 100) malformed("cap " $5 " is not a percentage from 0 to 100")
+        if (($2, $3, $4) in cap_of) malformed("cap " $2 " " $3 " " $4 " twice")
+        cap_of[$2, $3, $4] = 1
+        cap_count++
+        cap_part[cap_count] = $2; cap_layer[cap_count] = $3; cap_type[cap_count] = type
+        cap_arg[cap_count] = scope_arg($4, type); cap_value[cap_count] = ($5 + 0) / (1 + haircut / 100)
+        if (type == "class" || type == "range") reference[++reference_count] = (type == "range" ? "range:" : "") cap_arg[cap_count] SUBSEP FNR
+    }
     function read_lever(    scope, type, gain) {
         if (NF != 8) malformed("not lever <id> <kind> <part> <layer> <group>/<alt> <scope> <gain>")
         if ($3 != "measured" && $3 != "estimated") malformed("kind " $3 " is not measured or estimated")
@@ -197,11 +243,7 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
         if ($5 != "work" && $5 != "per-call" && $5 != "scale") malformed("layer " $5 " is not work, per-call or scale")
         if ($6 !~ /^[^\/]+\/[^\/]+$/) malformed("group " $6 " is not <group>/<alt>")
         scope = $7
-        if (scope == "all" || scope == "in-game" || scope == "ordinary" || scope == "class:*") type = scope
-        else if (scope ~ /^in-game@./) type = "in-game@"
-        else if (scope ~ /^class:./) type = "class"
-        else if (scope ~ /^range:./) type = "range"
-        else malformed("scope " scope " is unknown")
+        type = scope_type(scope)
         gain = $8
         if (gain ~ /^abs:/) {
             sub(/^abs:/, "", gain)
@@ -216,25 +258,18 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
         row_of[$2, $4, scope] = row_count
         row_line[row_count] = FNR; row_id[row_count] = $2; row_kind[row_count] = $3; row_part[row_count] = $4
         row_layer[row_count] = $5; split($6, ga, "/"); row_group[row_count] = ga[1]; row_alt[row_count] = ga[2]
-        row_type[row_count] = type; row_arg[row_count] = substr(scope, index(scope, type == "in-game@" ? "@" : ":") + 1)
+        row_type[row_count] = type; row_arg[row_count] = scope_arg(scope, type)
         row_gain[row_count] = gain / (1 + haircut / 100)
         if (type == "in-game@") has_run[row_arg[row_count]] = 1
         if (type == "class" || type == "range") reference[++reference_count] = (type == "range" ? "range:" : "") row_arg[row_count] SUBSEP FNR
         if (!($2 in lever_index)) { lever_index[$2] = ++lever_count; lever_ids[lever_count] = $2 }
     }
     # Fills fac[part] (the kept fraction) and absolute[part] for one frame signature.
-    function gains_of(range_name, label, only,    i, key, best, p, l, g, a, alt_sum, group_best, layer_sum, abs_alt, abs_group, abs_sum, lv) {
+    function gains_of(range_name, label, only,    i, key, best, p, l, g, a, alt_sum, group_best, layer_sum, abs_alt, abs_group, abs_sum, lv, cap_best, cap_level) {
         for (i = 1; i <= row_count; i++) {
             if (only != "" && row_id[i] != only) continue
             if (end == "measured" && row_kind[i] != "measured") continue
-            lv = 0
-            if (row_type[i] == "range") { if (range_name == row_arg[i]) lv = level["range"] }
-            else if (row_type[i] == "class") { if (label == row_arg[i]) lv = level["class"] }
-            else if (row_type[i] == "class:*") { if (label != "") lv = level["class:*"] }
-            else if (row_type[i] == "ordinary") { if (label == "") lv = level["ordinary"] }
-            else if (row_type[i] == "in-game@") { if (range_name == "" && row_arg[i] == run) lv = level["in-game@"] }
-            else if (row_type[i] == "in-game") { if (range_name == "") lv = level["in-game"] }
-            else lv = level["all"]
+            lv = scope_level(row_type[i], row_arg[i], range_name, label)
             if (lv == 0) continue
             key = row_id[i] SUBSEP row_part[i]
             if (!(key in best) || lv > best_level[key]) { best[key] = i; best_level[key] = lv }
@@ -248,6 +283,12 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
             if (!((k[1], k[2], k[3]) in group_best) || alt_sum[key] > group_best[k[1], k[2], k[3]]) group_best[k[1], k[2], k[3]] = alt_sum[key]
         }
         for (key in group_best) { split(key, k, SUBSEP); layer_sum[k[1], k[2]] += group_best[key] }
+        for (i = 1; i <= cap_count; i++) {
+            lv = scope_level(cap_type[i], cap_arg[i], range_name, label)
+            key = cap_part[i] SUBSEP cap_layer[i]
+            if (lv > 0 && (!(key in cap_level) || lv > cap_level[key])) { cap_best[key] = cap_value[i]; cap_level[key] = lv }
+        }
+        for (key in cap_best) if ((key in layer_sum) && layer_sum[key] > cap_best[key]) layer_sum[key] = cap_best[key]
         for (p in parts) {
             fac[p] = 1
             for (l = 1; l <= 3; l++) {
@@ -296,13 +337,14 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
             dp[f] = d2; sp[f] = s2
             after[f] = up[f] + d2 + s2
             saved += before[f] - after[f]
-            room[f] = budget - after[f] + spread[f]
+            leftover[f] = after[f] - spread[f]
+            room[f] = budget - leftover[f]
             if (room[f] < 0) room[f] = 0
         }
         for (s = 1; s <= spike_count; s++) {
             f = spike_frames[s]
             if (!(frame_label[f] in permitted || "*" in permitted)) {
-                fits[f] = after[f] <= budget; frames_used[f] = 1
+                placed[f] = after[f] <= budget; fits[f] = placed[f]; frames_used[f] = 1
                 continue
             }
             need = spread[f]
@@ -312,8 +354,9 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
                 total += allocation == "independent" ? (budget - after[g] > 0 ? budget - after[g] : 0) : room[g]
                 frames++
             }
-            fits[f] = total >= need; frames_used[f] = frames
-            if (fits[f] && allocation == "sequential") {
+            placed[f] = total >= need; frames_used[f] = frames
+            fits[f] = placed[f] && (spike_rule == "step9" || leftover[f] <= budget)
+            if (placed[f] && allocation == "sequential") {
                 for (g = f; g < f + frames && need > 0; g++) { take = room[g] < need ? room[g] : need; room[g] -= take; need -= take }
             }
         }
@@ -322,6 +365,10 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
             else fitting += after[f] <= budget
         }
         return saved
+    }
+    function c_of(label) {
+        if (!(label in class_index)) { class_index[label] = ++class_count; class_labels[class_count] = label }
+        return class_index[label]
     }
     END {
         if (failed) exit failed
@@ -359,7 +406,7 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
             work[f] = ceil_work(portion * update[f])
         }
         saved = estimate(alone)
-        worst = -1; over = 0; ordinary = 0; sum = 0; misses = 0
+        worst = -1; left_max = -1; left_over = 0; over = 0; ordinary = 0; sum = 0; misses = 0
         for (f = 0; f < frame_count; f++) {
             if (!(f in is_spike)) {
                 line = sprintf("frame %d before %d after %d update %d draw %d submit %d %s", f, before[f], after[f], up[f], dp[f], sp[f],
@@ -370,18 +417,20 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
                 continue
             }
             line = sprintf("frame %d before %d class %s work %d spread %d frames %s", f, before[f], frame_label[f], work_after[f], spread[f],
-                fits[f] ? frames_used[f] : "does-not-fit")
-            if (fits[f]) {
+                placed[f] ? frames_used[f] : "does-not-fit")
+            if (placed[f]) {
                 overlaps = ""
                 for (g = f + 1; g < f + frames_used[f]; g++) if (g in is_spike) overlaps = overlaps (overlaps == "" ? "" : ",") g
                 if (overlaps != "") line = line " overlaps " overlaps
             }
+            if (spike_rule == "strict") {
+                if (leftover[f] > budget) { line = line " leftover-over " leftover[f] - budget; class_left_over[c_of(frame_label[f])]++; left_over++ }
+                if (left_max < 0 || leftover[f] > leftover[left_max]) left_max = f
+            }
             print line
-            label = frame_label[f]
-            if (!(label in class_index)) { class_index[label] = ++class_count; class_labels[class_count] = label }
-            c = class_index[label]
+            c = c_of(frame_label[f])
             class_works[c, ++class_size[c]] = work_after[f]
-            if (fits[f]) class_fits[c, ++class_fit_count[c]] = frames_used[f]
+            if (placed[f]) class_fits[c, ++class_fit_count[c]] = frames_used[f]
             else { class_misses[c]++; misses++ }
         }
         for (c = 1; c <= class_count; c++) {
@@ -398,11 +447,13 @@ awk -v end="$end" -v allocation="$allocation" -v haircut="$haircut" -v alone="$a
                 for (j = 2; j <= m; j++) { if (v[j] < low) low = v[j]; if (v[j] > high) high = v[j] }
                 frame_range_text = low "-" median(v, m) "-" high
             }
-            print "class " class_labels[c] " work " work_range " frames " frame_range_text " does-not-fit " class_misses[c] + 0
+            print "class " class_labels[c] " work " work_range " frames " frame_range_text " does-not-fit " class_misses[c] + 0 \
+                (spike_rule == "strict" ? " leftover-over " class_left_over[c] + 0 : "")
         }
-        printf "summary end %s allocation %s haircut %s run %s frames %d over %d worst %s mean %s saved %d spikes %d does-not-fit %d\n", \
+        printf "summary end %s allocation %s haircut %s run %s frames %d over %d worst %s mean %s saved %d spikes %d does-not-fit %d%s\n", \
             end, allocation, haircut + 0, run == "" ? "-" : run, frame_count, over, worst < 0 ? "- -" : worst " " after[worst], \
-            ordinary ? sprintf("%.2f", sum / ordinary) : "-", saved, spike_count, misses
+            ordinary ? sprintf("%.2f", sum / ordinary) : "-", saved, spike_count, misses, \
+            spike_rule == "strict" ? " leftover-over " left_over " leftover-max " (left_max < 0 ? "- -" : left_max " " leftover[left_max]) : ""
         if (alone != "") exit 0
         for (i = 1; i <= lever_count; i++) {
             saved = estimate(lever_ids[i])

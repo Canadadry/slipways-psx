@@ -55,5 +55,5 @@
   - [ ] 5.12 Finish docs/psx-perf-levers.md
     - [x] Chunk 1: pre-checks, checklist, companions, gain table
     - [x] Chunk 2: the estimate tool, test-first, with the known-answer check
-    - [ ] Chunk 3: the bracket
+    - [x] Chunk 3: the bracket
     - [ ] Chunk 4: entries, ranking, verdict, stop condition

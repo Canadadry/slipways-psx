@@ -165,6 +165,11 @@ static void test_malformed_gain_rows_exit_2_naming_the_line(void) {
     assert_malformed_row("spread S measured * everything");
     assert_malformed_row("range r 5-2");
     assert_malformed_row("budget 300");
+    assert_malformed_row("cap draw work all 101");
+    assert_malformed_row("cap draw sideways all 10");
+    assert_malformed_row("cap paint work all 10");
+    assert_malformed_row("cap draw work everywhere 10");
+    assert_malformed_row("cap draw work all");
 }
 
 static void test_malformed_inputs_exit_2(void) {
@@ -229,7 +234,7 @@ static void test_the_most_specific_scope_wins_and_measured_reads_measured_rows(v
     assert(strcmp(output_line("frame 0"), "frame 0 before 2000 after 1450 update 950 draw 500 submit 0 over 1187") == 0);
     assert(strcmp(output_line("frame 1"), "frame 1 before 2000 after 1600 update 900 draw 700 submit 0 over 1337") == 0);
     /* Update 600 under class:C1: the work 500 shrinks to 300; draw 800 under in-game. */
-    assert(strcmp(output_line("frame 2"), "frame 2 before 2000 class C1 work 300 spread 300 frames does-not-fit") == 0);
+    assert(strcmp(output_line("frame 2"), "frame 2 before 2000 class C1 work 300 spread 300 frames does-not-fit leftover-over 837") == 0);
     assert(strstr(output_line("summary"), " saved 1550 ") != NULL);
     assert(estimate(FILES " estimated") == 0);
     assert(strcmp(output_line("frame 1"), "frame 1 before 2000 after 1100 update 900 draw 200 submit 0 over 837") == 0);
@@ -242,7 +247,7 @@ static void test_spike_work_takes_the_share_the_ratio_and_the_override(void) {
     write_inputs(SMALL_JUDGE, spike_line(1, 300, "cart_update60/ui_update", "50.0%"),
                  with_rows(BASE_GAINS, "ratio default ui_update=0.5,save_at_frame_end=2\n"));
     assert(estimate(FILES " measured") == 0);
-    assert(strcmp(output_line("frame 1"), "frame 1 before 353 class C1 work 75 spread 75 frames 3") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 before 353 class C1 work 75 spread 75 frames 3 leftover-over 15") == 0);
     write_file(GAINS, with_rows(BASE_GAINS, "ratio default ui_update=0.5\nratio C1 ui_update=0.8\n"));
     assert(estimate(FILES " measured") == 0);
     assert(strcmp(output_line("frame 1"), "frame 1 before 353 class C1 work 120 spread 120 frames 3") == 0);
@@ -260,8 +265,8 @@ static void test_spike_work_takes_the_share_the_ratio_and_the_override(void) {
     write_file(GAINS, with_rows(BASE_GAINS, "ratio default save_at_frame_end=0.5\n"
                                             "override 1 cart_update60/save_at_frame_end 40.0\n"));
     assert(estimate(FILES " measured") == 0);
-    assert(strcmp(output_line("frame 1"), "frame 1 before 353 class C1 work 60 spread 60 frames 2") == 0);
-    assert(strcmp(output_line("class"), "class C1 work 60-60-60 frames 2-2-2 does-not-fit 0") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 before 353 class C1 work 60 spread 60 frames 2 leftover-over 30") == 0);
+    assert(strcmp(output_line("class"), "class C1 work 60-60-60 frames 2-2-2 does-not-fit 0 leftover-over 1") == 0);
 }
 
 /* Work 150 of update 300. */
@@ -302,7 +307,7 @@ static void test_a_save_permission_adds_the_save_capped_at_the_rest(void) {
                  "budget 263\nclass C1 cart_update60/ui_update\nspread U8 estimated C2 responsible\n"
                  "class C2 cart_update60/update_entities\n");
     assert(estimate(FILES " estimated") == 0);
-    assert(strcmp(output_line("frame 1"), "frame 1 before 353 class C1 work 150 spread 0 frames does-not-fit") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 before 353 class C1 work 150 spread 0 frames does-not-fit leftover-over 90") == 0);
 }
 
 /* Label to path, the "before" and "spread" tokens dropped: spread's lines. */
@@ -322,7 +327,7 @@ static void test_independent_allocation_equals_spread(void) {
                  with_rows(BASE_GAINS, "range r 2-2\nratio default ui_update=0.5\n"
                                        "lever K measured draw work k/k in-game 13\nlever K measured draw work k/k range:r 50\n"));
     write_file(DIR "/normalize.awk", NORMALIZE_AWK);
-    assert(estimate(FILES " measured allocation=independent") == 0);
+    assert(estimate(FILES " measured allocation=independent spike-rule=step9") == 0);
     assert(run_command("awk -f " DIR "/normalize.awk " GAINS " " LOG " > " DIR "/estimate.txt") == 0);
     assert(run_command(SPREAD_SCRIPT " 263 " JUDGE " " SPIKES " default=13,2-2=50 ui_update=0.5 > " DIR "/spread.txt") == 0);
     const char *expected = "frame 1 class cart_update60/ui_update work 75 frames 2 overlaps 2\n"
@@ -378,7 +383,7 @@ static void test_does_not_fit_past_600_frames_or_the_table(void) {
         write_long_judge(700, 859);
         assert(estimate(args) == 0);
         assert(strcmp(output_line("frame 0"), "frame 0 before 863 class C2 work 859 spread 859 frames does-not-fit") == 0);
-        assert(strcmp(output_line("class"), "class C2 work 859-859-859 frames - does-not-fit 1") == 0);
+        assert(strcmp(output_line("class"), "class C2 work 859-859-859 frames - does-not-fit 1 leftover-over 0") == 0);
         write_long_judge(10, 268);
         assert(estimate(args) == 0);
         assert(strcmp(output_line("frame 0"), "frame 0 before 272 class C2 work 268 spread 268 frames 10") == 0);
@@ -421,9 +426,9 @@ static void test_summary_counts_frames_and_spikes(void) {
                  spikes, BASE_GAINS);
     assert(estimate(FILES " measured") == 0);
     assert(strcmp(output_line("summary"), "summary end measured allocation sequential haircut 0 run - frames 6 over 1 "
-                                          "worst 2 270 mean 221.50 saved 0 spikes 2 does-not-fit 1") == 0);
+                                          "worst 2 270 mean 221.50 saved 0 spikes 2 does-not-fit 1 leftover-over 0 leftover-max 3 203") == 0);
     assert(strcmp(output_line("frame 5"), "frame 5 before 300 class C1 work 150 spread 150 frames does-not-fit") == 0);
-    assert(strcmp(output_line("class"), "class C1 work 150-150-150 frames 2-2-2 does-not-fit 1") == 0);
+    assert(strcmp(output_line("class"), "class C1 work 150-150-150 frames 2-2-2 does-not-fit 1 leftover-over 0") == 0);
 }
 
 /* in-game@<run> rows apply only under run=<run>, over in-game rows. */
@@ -441,6 +446,48 @@ static void test_run_selects_the_in_game_rows_of_one_draw_run(void) {
     assert(estimate(FILES " measured") == 1);
     assert(strstr(read_file(LOG), "run=") != NULL);
     assert(estimate(FILES " measured run=r3") == 1);
+}
+
+/* Frame 1's work 150 is placed in frames 1-3, but update 150 + draw 200 + submit 3 stay on it. */
+#define LEFTOVER_JUDGE JUDGE_HEADER "0 100 100 3 203 0\n1 300 200 3 503 1\n2 100 100 3 203 0\n3 50 100 3 153 0\n4 100 100 3 203 0\n"
+
+static void test_a_spike_frame_fits_only_with_its_leftover_within_budget(void) {
+    write_inputs(LEFTOVER_JUDGE, spike_line(1, 300, "cart_update60/ui_update", "50.0%"),
+                 with_rows(BASE_GAINS, "lever K measured draw work k/k ordinary 0\n"));
+    assert(estimate(FILES " measured") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 before 503 class C1 work 150 spread 150 frames 3 leftover-over 90") == 0);
+    assert(strcmp(output_line("class"), "class C1 work 150-150-150 frames 3-3-3 does-not-fit 0 leftover-over 1") == 0);
+    assert(strcmp(output_line("summary"), "summary end measured allocation sequential haircut 0 run - frames 5 over 0 "
+                                          "worst 0 203 mean 190.50 saved 0 spikes 1 does-not-fit 0 "
+                                          "leftover-over 1 leftover-max 1 353") == 0);
+    assert(strcmp(output_line("lever K alone"), "lever K alone saved 0 frames-fitting 4") == 0);
+    /* Step 9's rule: placing the work is enough. */
+    assert(estimate(FILES " measured spike-rule=step9") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 before 503 class C1 work 150 spread 150 frames 3") == 0);
+    assert(strcmp(output_line("class"), "class C1 work 150-150-150 frames 3-3-3 does-not-fit 0") == 0);
+    assert(strcmp(output_line("summary"), "summary end measured allocation sequential haircut 0 run - frames 5 over 0 "
+                                          "worst 0 203 mean 190.50 saved 0 spikes 1 does-not-fit 0") == 0);
+    assert(strcmp(output_line("lever K alone"), "lever K alone saved 0 frames-fitting 5") == 0);
+    assert(estimate(FILES " measured spike-rule=loose") == 1);
+}
+
+/* Work rows sum to 60%, the cap holds the layer at 40%. */
+static void test_a_cap_bounds_a_layer_of_one_part(void) {
+    const char *rows = "range t 0-0\nlever A measured draw work a/a all 30\nlever B measured draw work b/b all 30\n"
+                       "lever P measured draw per-call p/p all 10\nlever U measured update work u/u all 60\n";
+    char gains[1024];
+    snprintf(gains, sizeof gains, "%scap draw work all 40\ncap draw work range:t 50\n", rows);
+    write_inputs(JUDGE_HEADER "0 0 1000 0 1000 0\n1 1000 1000 0 2000 0\n", "", with_rows(BASE_GAINS, gains));
+    assert(estimate(FILES " measured") == 0);
+    assert(strcmp(output_line("frame 0"), "frame 0 before 1000 after 450 update 0 draw 450 submit 0 over 187") == 0);
+    /* Draw 1000 x 0.6 x 0.9; update untouched by a draw cap. */
+    assert(strcmp(output_line("frame 1"), "frame 1 before 2000 after 940 update 400 draw 540 submit 0 over 677") == 0);
+    /* The haircut divides the capped cut: 40 / 1.25 = 32. */
+    assert(estimate(FILES " measured haircut=25") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 before 2000 after 1146 update 520 draw 626 submit 0 over 883") == 0);
+    /* Under its cap, a layer is unchanged. */
+    assert(estimate(FILES " measured alone=A") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 before 2000 after 1700 update 1000 draw 700 submit 0 over 1437") == 0);
 }
 
 int main(void) {
@@ -461,6 +508,8 @@ int main(void) {
     test_alone_keeps_one_lever_and_lever_lines_rank_each();
     test_summary_counts_frames_and_spikes();
     test_run_selects_the_in_game_rows_of_one_draw_run();
+    test_a_spike_frame_fits_only_with_its_leftover_within_budget();
+    test_a_cap_bounds_a_layer_of_one_part();
     assert(system("rm -rf " DIR) == 0);
     printf("test_lever_estimate: all tests passed\n");
     return 0;

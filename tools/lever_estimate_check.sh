@@ -1,7 +1,8 @@
 #!/bin/sh
 # usage: lever_estimate_check.sh <judge-frames.txt> <spike-frames.txt> <fixtures dir> <output dir>
 # Known-answer check of tools/lever_estimate.sh against step 9's "Spreading"
-# results (docs/psx-perf-levers.md), independent allocation, on the
+# results (docs/psx-perf-levers.md), independent allocation and step 9's
+# spike rule (spike-rule=step9: placing the work is enough), on the
 # fixtures uniform-88, uniform-87 and step78-low: a uniform 88% draw cut
 # leaves 0 of 166 spike frames does-not-fit; 87% leaves frame 6043 among
 # them; 80.7% in game with 74.8% on frame 12 leaves exactly frame 6043 (C15)
@@ -42,7 +43,7 @@ for pair in uniform-88:default=88 uniform-87:default=87 step78-low:default=80.7,
     name=${pair%%:*}
     gains=${pair#*:}
     table=$fixtures/$name.txt
-    if ! sh "$tools/lever_estimate.sh" "$judge" "$spikes" "$table" measured allocation=independent > "$out/$name.txt"; then
+    if ! sh "$tools/lever_estimate.sh" "$judge" "$spikes" "$table" measured allocation=independent spike-rule=step9 > "$out/$name.txt"; then
         not_reproduced "$name: lever_estimate.sh failed"
         continue
     fi

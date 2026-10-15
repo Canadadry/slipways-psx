@@ -17,7 +17,8 @@ part of this report and deleted with it.
 
 Every item the report and the plan's step notes hand to "step 12", each
 with where it was raised, the rule that resolves it and the figure it
-changes. Figures the estimate tool computes read "pending chunk 3".
+changes. Figures the estimate tool computes come from chunk 3's runs
+("Cumulative estimate" and "Spikes and spreading" below).
 
 **Pre-check.** `HEAD` is `4306e41` (step 11's plan note);
 `git diff --stat 4306e41 HEAD` is empty, so no file this step reads moved
@@ -38,7 +39,13 @@ it:
   each lever row ending with the report figure it comes from. It holds the
   budget, the `title` (0–11) and `start` (12) ranges, the 19 class rows,
   C13's three overrides, the per-class ratios, 121 lever rows (draw, update,
-  submit, global) and 16 spreading rows.
+  submit, global), 16 spreading rows and, from chunk 3, four `cap` rows
+  (item 15).
+- `docs/psx-perf-levers-estimate.txt`: the estimate on the headline draw
+  run (`draw-6000`), the `measured` then the `estimated` end, sequential
+  allocation, each after a header line naming its command; trimmed to the
+  summary, class and lever lines, every spike-frame line and the estimated
+  end's over-263 frames (the command regenerates the full output).
 
 **Sweep** (one command; plan section 6 starts at line 299):
 
@@ -128,7 +135,10 @@ per part.
    draw 26.67% (`title`, `start`), 16.26% (in game; 21.28% on `draw-6000`
    as sensitivity); submit 1.71% (`start`: 0.12 of 7), 1.36% in game
    (1.77 of 130 on `draw-5564`; 1.50% on `draw-6000`). The estimated end
-   with and without `F1`: pending chunk 3.
+   with and without `F1`: on `draw-6000` (headline) 2 frames over 263
+   with `F1` (spike frames 113 +16 and 1349 +14, by leftover) → 3 without
+   (frame 5563 +7, 113 +46, 1349 +36); on `draw-5564` 0 → 2 (113 +6,
+   1349 +7). Item 16 says why `F1`'s gain is an optimistic bound.
 4. **Per-class save and `ui_update` ratios** (report 2882–2923,
    "the calibration over every spike frame"; plan 382, 516–517).
    *Rule:* on class frames, the class's ratio is the fallback table's
@@ -142,7 +152,19 @@ per part.
    `override` rows, label C13 kept). The known-answer check keeps step 9's
    original inputs. Every class frame uses its class's figures and
    spreading. *Figure:* each class's work min / median / max, before (step
-   9's "Spreading" table, C13 its measured row) → after: pending chunk 3.
+   9's "Spreading" table, C13 its measured row) → after (the per-class
+   ratios, no lever: the tool on the table without its `lever` and `cap`
+   rows): C1 474-722.5-1195 → 455-692.5-1145; C2 321-392-518 →
+   274-335-443; C3 355-445-532 → 311-389.5-465; C4 189-245-377 →
+   199-258-396; C5 397-498.5-535 → 347-435.5-468; C6 8980 → 8980; C7
+   291-316-351 → 249-271-300; C8 349-417-522 → 316-378-473; C9 415-537-795
+   → 393-509-753; C10 613-642-660 → 562-589-605; C11 434-475-508 →
+   371-405-434; C12 273-343-418 → 236-296-361; C13 373-373-374 →
+   373-374-375 (the tool rounds each share up, step 9's re-spread to the
+   nearest); C14 376-414-452 → 337-371-405; C15 405-446.5-488 → 396-437-478;
+   C16 347-360.5-374 → 293-304-315; C17 631 → 585; C18 424 → 389; C19 194
+   → 194. Every class but C4 (ratio 1.01 against 0.96) and C6, C13, C19
+   (unchanged) does less work than under step 9's 0.96 / 1.11.
 5. **Step 10's ratios differ from step 9's** (report 3191–3218,
    "Transfer check"). *Rule:* ordinary frames use step 10's ratios
    (`input_step_run` 1.13, `update_entities` 1.28, `ui_update` 0.83),
@@ -166,7 +188,19 @@ per part.
    28.2 + 16.1 = 44.3 a frame), taken off the frame's update outside the
    class's spreadable work, never below 0; not as relative gains. Draw and
    submit levers apply to class frames as to ordinary frames. *Figure:*
-   class frames' update after levers: pending chunk 3.
+   class frames' update after the estimated end's update levers (the
+   class's `work` rows, G2's 13.8% scale, then 44.3 off the rest),
+   min-median-max: C1 918-1284-1783 → 290-422.5-604; C2 638-755-986 →
+   353-425.5-569; C3 686-839.5-1004 → 383-478-581; C4 266-327-450 →
+   12-17-25 (U3's 92.86%); C5 485-541-634 → 297-336.5-402; C6 8980 → 4310;
+   C7 507-533-554 → 312-331-346; C8 719-843-1063 → 403-480.5-617; C9
+   560-936.5-1299 → 316-558.5-791; C10 1065-1118-1148 → 641-675-694; C11
+   862-871-998 → 269-273-319; C12 393-424-701 → 209-229-407; C13
+   623-639-744 → 362-372-440; C14 726-824.5-923 → 408-469-530; C15
+   503-734-965 → 248-382-516; C16 675-715-755 → 376-401-426; C17 1130 →
+   668; C18 879 → 467; C19 266 → 185. Over the 166 class frames, update
+   135,691 → 59,748 (−56.0%). Computed by a throwaway script from the
+   table's rows and the tool's work figures, not committed.
 8. **U candidates overlapping and unranked** (report 2655–2660). *Rule:*
    U1 (the first recompute) and U2 (planet rows) are both `work`, separate
    groups; U2 ⊂ U3 on C4, one group `recompute` with alternatives U2 / U3;
@@ -259,7 +293,303 @@ per part.
       O4 (item 9).
     - Spreading rows: `S` on every class, U7 (C6) and U8 (C19), U5 on C1–C3,
       C8–C12, C14–C18 at the class's PSX median save share (C12's is 0.0%).
-      *Figure:* the table's rows themselves; the estimate: pending chunk 3.
+      *Figure:* the table's rows themselves; the estimate: "Cumulative
+      estimate" and "Spikes and spreading" below.
+14. **The strict spike-frame rule** (chunk 2's verification of the tool).
+    *Question:* step 9's `spread` mode, and the tool in its image, call a
+    spike frame fitting once its spread work is placed in its own and the
+    following frames' room, whatever stays on the frame itself. *Rule:* a
+    spike frame is within budget only if its spread work is placed **and**
+    its own leftover (update − spread work + draw′ + submit′) is at most
+    263. It is the tool's default (`spike-rule=strict`), which prints the
+    leftover's excess on each spike frame line (`leftover-over <x>`), per
+    class and in the summary (count, and the largest leftover). Step 9's
+    rule stays as `spike-rule=step9`, used only by `make
+    lever-estimate-check`, whose results are unchanged. *Figure:* step 9's
+    "only frame 6043 does-not-fit" (`step7+8`, 80.7%) overstated what fits:
+    by leftover, 109 of its 165 "fitting" frames stayed above 263 (max 922,
+    frame 5719; 110 of 166 with frame 6043). In this step's bracket: the
+    measured end, 166 of 166 spike frames fail both ways; the estimated end,
+    2 spike frames fail by leftover alone on `draw-6000` (113, 1349) and
+    none on `draw-5564`.
+15. **The cap on the draw work layer** (chunk 2's verification). *Question:*
+    the work rows are bounds, and alternatives and overlaps aside, their
+    composed sum may claim more of a run's draw than the tree holds:
+    estimated end, in game, 98.45% on `draw-5564`, 85.77% on `draw-6000`,
+    70.76% on `start`. *Rule:* the composed work layer on a draw run may
+    not exceed (run draw − the tree's measured costs no lever removes) ÷
+    run draw, one `cap draw work <scope>` row per scope; the haircut
+    divides the cap as it divides every gain. A group bound mixing
+    removable and drawing members counts the drawing members at their PC
+    share of the group ("Map of `draw_layers`"); unmeasured selves count 0,
+    so each cap is an upper bound. *Figure:* uncovered costs, window sums:
+    - `draw-5564`, 2244 of 19491 → cap **88.49%**: background beyond
+      `p8_map` 3463 − 3319 = 144; buttons beyond D2's rows 4603 − 4268 =
+      335 (frame `p8_rect` and three `p8_rectfill`); tooltip overlay 428 −
+      421 = 7; planet draw beyond D6/D8/D9 2203 − 830 − 924 − 144 = 305;
+      slipway beyond D10–D13 1872 − 207 − 539 − 351 − 126 = 649; score
+      panel beyond D4 1303 − 1196 = 107; `ascension_draw`'s `planet_draw`
+      243 and particle arithmetic 219 = 462 (its `p8_pset` 293 is D15's);
+      `emitter_update_method`'s measured children 241 at the arithmetic's
+      share under `ascension_draw` on the same run (219 / 512) = 103;
+      `group-draw-layers-2-3`'s overlay methods, 133 × 0.4 / 0.8 = 67;
+      `group-draw-layers-1-1`'s `structure_icon_draw_method`, 179 × 0.4 /
+      1.1 = 65.
+    - `draw-6000`, 2673 of 13987 → cap **80.89%**: background 3503 − 3354
+      = 149; planet draw 3049 − 1212 − 1230 − 150 = 457; slipway at the
+      low end of its measured range ("about 2540–2770") 2540 − 183 − 756 −
+      907 − 123 = 571; score panel 1296 − 1185 = 111; buttons 897 − 731 =
+      166; `ascension_draw`'s `planet_draw` 276, motion 288 and colour 154
+      = 718; `emitter_update_method`'s arithmetic 203; structure icons
+      217 × 0.7 / 1.6 = 95; `draw_layers#2` (closed at level 1) 233 − L2's
+      30 = 203.
+    - `start` (and `title`), 139 of 465 → cap **70.11%**: background 251 −
+      241 = 10; `planet_draw_method` 93 (no lever on `start`); score panel
+      and buttons 84 + 12 less one-print's 64 = 32; structure icons
+      6 × 0.4 / 1.3 = 2; `cart_draw`'s other children 465 − 463 = 2.
+    The verifier's quick estimate for `draw-5564` (about 1,500: background
+    144, planet 305, slipway 649, score panel 107, `emitter_update_method`
+    175, the `#2` group 133) is recomputed above: it left out the buttons'
+    frame (335), the tooltip's rest (7), `ascension_draw`'s measured
+    children outside D15 (462) and the structure icons (65), and counted
+    `emitter_update_method` and the `#2` group whole although D15 removes
+    the method's `p8_pset` and L1 the group's getters. The caps bind on the
+    three scopes (98.45 → 88.49, 85.77 → 80.89, 70.76 → 70.11). Without
+    them the estimated end fits every frame on both runs (largest spike
+    leftover 262) and the `haircut=20` run leaves 2 spike frames over by
+    leftover on `draw-5564` and 55 ordinary frames, 13 spike frames by
+    leftover and frame 6043 on `draw-6000`.
+16. **Two bounds read as optimistic** (chunk 2's verification). *L1*:
+    its bound (`draw_layers`' self, the bookkeeping children and the
+    getters' group) also holds the dispatch loop, which stays, the
+    unmeasured particle-ageing self on `draw-5564` and
+    `structure_icon_draw_method`; it overlaps D9 slightly (D9 counts the
+    dispatch of culled planets, which sits in that self). The cap (item 15)
+    takes the structure icons out of what L1 may remove; the dispatch loop
+    is unmeasured and stays inside L1's bound. *F1*: it reuses B1's
+    measured no-meter delta as the filter's upper bound (step 8: "of the
+    order of, and below"), so the estimated end with `F1` is optimistic by
+    the gap between the two, which no run measures; item 3 prints the end
+    without `F1` beside it. *Figure:* no row changes; both bounds are
+    named in their entries (chunk 4).
+
+## Cumulative estimate
+
+Every judge frame (step 5's asserts-off full run, 6,059 frames) after the
+levers of `docs/psx-perf-levers-gains.txt`, computed by
+`tools/lever_estimate.sh` at chunk 3 of step 12, no emulator boot:
+
+```
+make lever-estimate ESTIMATE_RUN=<run> ESTIMATE_END=measured|estimated [ESTIMATE_ALLOCATION=independent] [ESTIMATE_HAIRCUT=20]
+grep -v '^lever F1 ' docs/psx-perf-levers-gains.txt > tmp/lever-estimate/gains-without-f1.txt
+make lever-estimate ESTIMATE_RUN=<run> ESTIMATE_END=estimated ESTIMATE_GAINS=tmp/lever-estimate/gains-without-f1.txt ESTIMATE_LABEL=estimated-noF1-<run>
+```
+
+each once with `<run>` = `draw-6000` and `draw-5564`: twelve runs. The
+headline run's `measured` and `estimated` outputs are the companion
+`docs/psx-perf-levers-estimate.txt`.
+
+**How a frame is estimated.** Each lever is a row of one part and one
+layer; inside a layer, rows of one alternative are summed, the largest
+alternative of a group is taken, groups are summed, then capped by the
+scope's `cap` row (draw `work` only: 70.11% on `title` and `start`,
+88.49% in game on `draw-5564`, 80.89% on `draw-6000`; checklist item 15)
+and at 100%; across layers `part' = part × (1 − work)(1 − per-call)(1 −
+scale)`, rounded half up. `title` (0–11) and `start` (12) take the `start`
+run's rows; every other frame the in-game rows of the run named by
+`run=`, the whole lever set of that run together. A spike frame's work
+(its class's share × ratio × update) shrinks with the update levers and is
+spread over its own and the following frames' room (sequential: spike
+frames in order, each frame's room consumed once); it fits only if the
+work is placed **and** its leftover (update − spread work + draw′ +
+submit′) is at most 263 (checklist item 14). The `measured` end reads
+D1/B4, B1 and G2 only; the `estimated` end every row.
+
+**Overlap rules applied** (each once, with the levers it joins):
+
+- D1/B4 removes print calls → B1's and F1's per-call gains apply to what
+  the work layer leaves (checklist items 1–3).
+- Text: D1/B4 against D2 + D3 + D4, the larger alternative (in game the
+  D2 + D3 + D4 side on both runs: 50.81% against 41.73% on `draw-5564`,
+  13.70% against 10.95% on `draw-6000`; `start` takes D1/B4, 13.76%).
+- Map: D5 against B3 (D5 counts). Off-screen calls: D11 + D12 + D15
+  against B2 (D11 + D12 + D15 count). Layer lists: L1 against L2 (L1).
+- Draw work layer capped per scope (item 15): the composed 98.45%,
+  85.77% and 70.76% become 88.49%, 80.89% and 70.11%.
+- G2 (`-O3`) scales every part after the work and per-call layers.
+- Update, ordinary frames: O1 against O2 (O1), {O3, O5} against {O4} (O3
+  + O5): 56.58% work, then G2's 13.8%. Class frames: the class's U rows
+  (U2 against U3 on C4, U3 counts) shrink update and the spreadable work
+  in proportion, then O1 + O3 + O5 = 44.3 hblanks come off the rest,
+  floored at 0 (items 7–9).
+- Submit: G4 (upload) and F1's replay-only pieces, separate groups, then
+  G2.
+- Spreading: S on every class, U5 adds the save's share on its classes,
+  U7 and U8 are C6's and C19's spread (permissions, in both ends).
+
+**Headline and sensitivity.** In each end the less favourable draw run is
+`draw-6000`: the measured end leaves the same 6,047 frames over 263 on
+both runs, with a mean ordinary frame of 584.31 against 429.59; the
+estimated end leaves 2 frames over on `draw-6000`, none on `draw-5564`.
+`draw-6000` is the headline, `draw-5564` the sensitivity line.
+
+### Frames over 263
+
+"Spike, placed" counts the spike frames whose work does not fit in the
+following room (does-not-fit); "spike, leftover" those whose own leftover
+stays above 263, placed or not; a frame is over when it is an ordinary
+frame above 263 or a spike frame failing either way.
+
+| End (run) | Frames over 263 | Ordinary over (of 5,893) | Spike does-not-fit (of 166) | Spike over by leftover | Worst ordinary frame | Mean ordinary frame | Saved, judge-wide |
+|---|---:|---:|---:|---:|---|---:|---:|
+| No lever (the judge) | 6,047 | 5,881 | 166 | 166 | 5563, 1629 | 837.96 | 0 |
+| Measured (`draw-6000`, headline) | **6,047** | 5,881 | 166 | 166 (max 963, frame 5719) | 5563, 1131 | 584.31 | 1,551,617 (29.9%) |
+| Measured (`draw-5564`) | 6,047 | 5,881 | 166 | 166 (max 731, frame 5719) | 5563, 826 | 429.59 | 2,487,571 (47.9%) |
+| Measured + estimated (`draw-6000`, headline) | **2** | 0 | 0 | 2 (113: 279, 1349: 277) | 5563, 211 | 111.05 | 4,465,982 (86.0%) |
+| Measured + estimated (`draw-5564`) | 0 | 0 | 0 | 0 (max 258, frame 1349) | 101, 166 | 87.08 | 4,610,983 (88.8%) |
+
+Saved is Σ before − Σ after over every frame (a spike frame's after taken
+before spreading), against the judge's 5,192,992 hblanks (update 597,148,
+draw 4,550,826, submit 45,018).
+
+**Measured end.** D1/B4, B1 and G2 bring no frame under 263 that the
+judge did not already have (the same twelve ordinary frames fit). Excess
+of the 5,881 ordinary frames over, in vsyncs (263 hblanks):
+`draw-6000` ≤ 1/4: 0, ≤ 1/2: 61, ≤ 1: 1,964, > 1: 3,856; `draw-5564`
+350, 1,796, 3,110, 625. Draw dominates the over-budget time: 87.2% on
+`draw-6000` (update 397,809, draw 3,000,067, submit 43,784), 82.5% on
+`draw-5564` (397,809 / 2,088,303 / 43,784). No spike frame's work is
+placed, and every spike frame's leftover is above 263 too. Ten worst
+frames, `draw-6000` (after: update / draw / submit):
+
+| Frame | Before | After | Update | Draw | Submit | Over |
+|---:|---:|---:|---:|---:|---:|---:|
+| 5563 | 1629 | 1131 | 119 | 1004 | 8 | 868 |
+| 5564 | 1625 | 1112 | 38 | 1064 | 10 | 849 |
+| 5575 | 1624 | 1112 | 43 | 1060 | 9 | 849 |
+| 5576 | 1615 | 1105 | 39 | 1057 | 9 | 842 |
+| 5577 | 1607 | 1101 | 44 | 1047 | 10 | 838 |
+| 5578 | 1603 | 1097 | 39 | 1049 | 9 | 834 |
+| 5886 | 1555 | 1064 | 37 | 1018 | 9 | 801 |
+| 5885 | 1530 | 1063 | 113 | 943 | 7 | 800 |
+| 5570 | 1539 | 1053 | 39 | 1007 | 7 | 790 |
+| 5566 | 1535 | 1050 | 38 | 1004 | 8 | 787 |
+
+**Measured + estimated end.** Every ordinary frame fits on both runs and
+every spike frame's work is placed; on `draw-6000` two spike frames keep a
+leftover above 263, both on update that stays on the frame rather than on
+draw:
+
+| Frame | Class | Before | Update′ (spread / left) | Draw′ | Submit′ | Leftover | Over |
+|---:|---|---:|---|---:|---:|---:|---:|
+| 113 | C13 (save, measured share 50.3%) | 1514 (744 / 763 / 7) | 484 (244 / 196) | 81 | 2 | 279 | 16 |
+| 1349 | C12 (project recompute, 51.2% × ρ 0.83; U5's save share 0.0%) | 1272 (701 / 564 / 7) | 451 (192 / 215) | 60 | 2 | 277 | 14 |
+
+Their parts are recomputed by hand from the table's rows (the tool prints
+a spike frame's work and leftover excess, not its parts). The next worst
+frames, all ordinary and fitting (after: update / draw / submit): 5563
+211 (52 / 157 / 2), 5885 199 (49 / 148 / 2), 101 196 (92 / 103 / 1),
+5438 190 (53 / 135 / 2), 5553 188 (52 / 134 / 2), 5575 187 (19 / 166 /
+2), 5454 185 (49 / 134 / 2), 5564 185 (16 / 167 / 2). The excess is
+spike-frame update: no ordinary frame is over, so the distribution of the
+excess is two frames at ≤ 1/4 vsync. The end-of-game screen (frames near
+6043, draw 947–1235 on the judge), covered by no short run, takes the
+in-game rows: it is the least supported region of the estimate.
+
+### Allocation, haircut, `F1`
+
+- **Independent against sequential.** The verdict figures are the same in
+  both allocations, on both ends and runs (the frames over, the spike
+  frames failing, the saved hblanks). Only the frames a spread uses
+  move, where two spreads share room: on the estimated end 3 spreads
+  overlap a following spike frame on each run (229 → 230, 2005 → 2006,
+  3475 → 3476, on both runs), and the
+  first takes one frame fewer or more by allocation (sequential counts a
+  following spike frame's room without its own spread work, independent
+  at its full update). The measured end places no spread, so it has no
+  overlap.
+- **`haircut=20`** (stop condition (a): every gain divided by 1.2, the cap
+  too): the estimated end leaves **245 frames over 263 on `draw-6000`**
+  (227 ordinary, 218 of them ≤ 1/4 vsync and 9 ≤ 1/2, worst 5563 at 371;
+  17 spike frames by leftover, max 380 at frame 113; frame 6043 (C15)
+  does-not-fit) and **106 on `draw-5564`** (91 ordinary, 90 ≤ 1/4 vsync,
+  worst 5563 at 344; 14 spike frames by leftover, max 366 at 113; 6043
+  does-not-fit). Draw dominates the over-budget ordinary frames (55,161 of
+  their 64,948 hblanks on `draw-6000`). Stop condition (a) does not hold.
+- **With and without `F1`** (checklist item 3): without the draw filter's
+  lever the estimated end leaves 3 frames over on `draw-6000` (5563 at 270,
+  and spike frames 113 and 1349 by leftover, 309 and 299) and 2 on
+  `draw-5564` (113 at 269, 1349 at 270). `F1` alone is worth 2 to 3
+  frames; it is an optimistic bound (item 16).
+- **Without the cap** (item 15, for the record): the estimated end fits
+  every frame on both runs (largest spike leftover 262 on `draw-6000`,
+  frame 1349), and `haircut=20` leaves 2 frames over on `draw-5564` (spike
+  frames by leftover, max 321 at 113) and 69 on `draw-6000` (55 ordinary,
+  13 spike frames by leftover, 6043 does-not-fit). The cap moves the
+  headline from 0 to 2 frames and the haircut run from 69 to 245
+  (`draw-5564`: 0 to 0, 2 to 106).
+
+**Bracket, summary.** Measured levers only: **6,047 of 6,059 frames over
+263** on both draw runs (unchanged from the judge). Measured + estimated:
+**2 frames over 263 on `draw-6000`** (spike frames 113 and 1349, by 16
+and 14 hblanks of leftover), **0 on `draw-5564`** (sensitivity). With
+every gain cut by a fifth, 245 and 106 frames stay over: 263 is reached
+on paper on `draw-5564` only, and nowhere with 20% to spare.
+
+## Spikes and spreading
+
+Step 9's 166 spike frames (`docs/psx-perf-levers-spike-frames.txt`), each
+in its class, with the class's figures (checklist item 4: per-class ratio;
+C13 its measured save share). Work is the class's spreadable work,
+min-median-max over its frames, in hblanks: with no lever (per-class
+ratios), after the measured end's levers (G2 only on update) and after
+the estimated end's. Frames is how many frames the spread takes under the
+estimated end (`draw-6000` / `draw-5564`); under the measured end no
+class's work is placed (every frame does-not-fit, and every leftover is
+above 263). Failing: spike frames over 263 under the estimated end
+(`draw-6000` / `draw-5564`).
+
+| Class | Responsible function | Frames | Work, no lever | Work, measured | Work, estimated | Frames, estimated | Failing | Update levers (relative gain on the class) | Spreading |
+|---|---|---:|---|---|---|---|---|---|---|
+| C1 slipway drop | `slipway_drop` | 36 | 455-692.5-1145 | 393-597.5-988 | 166-252.5-417 | 2-3-5 / 2-3-4 | 0 / 0 | U1 27.93%, U2 23.62%, U4 6.27% | S, U5 35.2% |
+| C2 shallow `ui_update` | `ui_update` | 16 | 274-335-443 | 237-289.5-382 | 171-209-276 | 2-3-5 / 2-3-4 | 0 / 0 | U2 18.49%, U4 9.34% | S, U5 54.8% |
+| C3 shallow button | `ui_handle_button` | 14 | 311-389.5-465 | 268-336-401 | 194-243-290 | 3-3-5 / 2-3-4 | 0 / 0 | U2 18.49%, U4 9.34% | S, U5 52.8% |
+| C4 wormhole recompute | `economy_recompute` | 33 | 199-258-396 | 172-223-342 | 12-17-25 | 1-1-1 / 1-1-1 | 0 / 0 | U3 92.86% (U2 32.49% its alternative) | S |
+| C5 save | `save_at_frame_end` | 18 | 347-435.5-468 | 300-376-404 | 244-307-330 | 2-2-3 / 2-2-3 | 0 / 0 | U4 18.43% | S |
+| C6 game start | `entity_geom_nearest` | 1 | 8980 | 7741 | 4310 | 24 / 22 | 0 / 0 | U6 44.32% | S, U7 |
+| C7 save encode | `save_state_encode` | 13 | 249-271-300 | 215-234-259 | 175-191-212 | 2-2-2 / 2-2-2 | 0 / 0 | U4 18.43% | S |
+| C8 hovered send | `ui_send_to_hovered` | 8 | 316-378-473 | 273-326.5-408 | 197-236-295 | 3-3.5-6 / 2-3-4 | 0 / 0 | U2 18.49%, U4 9.34% | S, U5 52.1% |
+| C9 project, clock | `economy_advance_clock` | 4 | 393-509-753 | 339-439.5-650 | 253-327.5-485 | 2-4-5 / 2-3.5-5 | 0 / 0 | U2 20.07%, U4 5.32% | S, U5 35.4% |
+| C10 project | `planet_apply_project` | 3 | 562-589-605 | 485-508-522 | 362-379-389 | 4-5-6 / 4-4-5 | 0 / 0 | U2 20.07%, U4 5.32% | S, U5 41.9% |
+| C11 slipway drop method | `slipway_drop_method` | 3 | 371-405-434 | 320-350-374 | 135-148-158 | 2-2-3 / 2-2-2 | 0 / 0 | U1 27.93%, U2 23.62%, U4 6.27% | S, U5 46.3% |
+| C12 project recompute | `economy_recompute` | 5 | 236-296-361 | 204-255-312 | 153-191-233 | 2-2-3 / 1-2-2 | **1** (1349) / 0 | U2 20.07%, U4 5.32% | S, U5 0.0% |
+| C13 save (measured) | `save_at_frame_end` | 3 | 373-374-375 | 322-323-324 | 244-244-244 | 3-3-3 / 2-2-3 | **1** (113) / 0 | U2 15.40%, U4 9.06% | S |
+| C14 button press method | `button_left_press_method` | 2 | 337-371-405 | 291-320.5-350 | 210-231-252 | 3-3-3 / 3-3-3 | 0 / 0 | U2 18.49%, U4 9.34% | S, U5 49.9% |
+| C15 year skip recompute | `economy_recompute` | 2 | 396-437-478 | 342-377.5-413 | 230-254-278 | 2-3-4 / 2-2.5-3 | 0 / 0 | U2 23.56%, U4 9.06% | S, U5 25.5% |
+| C16 button press | `button_left_press` | 2 | 293-304-315 | 253-262.5-272 | 183-190-197 | 3-3-3 / 2-2.5-3 | 0 / 0 | U2 18.49%, U4 9.34% | S, U5 53.1% |
+| C17 structure recompute | `economy_recompute` | 1 | 585 | 505 | 369 | 5 / 4 | 0 / 0 | U2 17.88%, U4 9.06% | S, U5 44.0% |
+| C18 year skip | `economy_new_year` | 1 | 389 | 336 | 227 | 4 / 3 | 0 / 0 | U2 23.56%, U4 9.06% | S, U5 51.9% |
+| C19 entity update | `update_entities` | 1 | 194 | 168 | 168 | 1 / 1 | 0 / 0 | none | S, U8 |
+
+Every class frame also takes G2's 13.8% on update and, outside its
+spreadable work, O1 + O3 + O5's 44.3 hblanks (checklist item 7); the
+spread column adds the save's share of update where U5 has a row. Under
+the measured end the work shrinks by G2 only and no class places it.
+
+**The four named frames** (step 9), and step 9's last does-not-fit:
+
+| Frame | Class | Before | Measured: work / spread, verdict | Estimated `draw-6000`: work / spread, frames | Estimated `draw-5564` |
+|---:|---|---:|---|---|---|
+| 12 | C6 | 9451 | 7741 / 7741, does-not-fit, leftover +27 | 4310 / 4310, 24 | 22 |
+| 4737 | C1 | 2624 | 988 / 1530, does-not-fit, leftover +316 | 417 / 604, 5 | 4 |
+| 5500 | C1 | 2503 | 604 / 1034, does-not-fit, leftover +662 | 255 / 437, 5 | 4 |
+| 5719 | C1 | 2566 | 607 / 1042, does-not-fit, leftover +700 | 256 / 440, 5 | 4 |
+| 6043 | C15 | 1457 | 342 / 434, does-not-fit, leftover +385 | 230 / 248, 2 | 2 |
+
+Frame 12's galaxy generation, the largest spike, spreads over 24 frames
+once U6 halves it; frame 6043, the one step 9 left does-not-fit, fits in
+2 frames under the estimated end and becomes the haircut run's only
+does-not-fit again.
 
 ## Short-run baseline (asserts off)
 

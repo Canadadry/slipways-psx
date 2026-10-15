@@ -12,6 +12,7 @@
 #   ratio <default|class label> <child>=<rho>[,...]
 #   lever <id> <measured|estimated> <draw|update|submit> <work|per-call|scale> <group>/<alt> <scope> <gain%|abs:<hblanks>>
 #   spread <id> <kind> <class label|*> responsible|responsible+save:<share%>
+#   cap <draw|update|submit> <work|per-call|scale> <scope> <max%>
 # Scopes: all, in-game (every frame outside the ranges), in-game@<run> (the
 # same, only when tools/lever_estimate.sh runs with run=<run>), ordinary (not
 # a spike frame), class:<label>, class:*, range:<name>; for one lever on one
@@ -32,6 +33,17 @@
 # in-game@draw-6000 row, so an estimate runs once per draw run with that
 # run's whole lever set (run=draw-5564, run=draw-6000), the less favourable
 # run being the headline; never a per-lever minimum across the runs.
+#
+# Two decisions from chunk 2's verification (report, checklist items 14-15):
+# - Strict spike-frame rule (tool default, spike-rule=strict): a spike frame
+#   is within budget only if its spread work is placed AND its own leftover
+#   (update - spread work + draw' + submit') is at most 263. Step 9's rule
+#   (placed is enough) is spike-rule=step9, used only by
+#   make lever-estimate-check; by leftover it left 109 of the 165 frames it
+#   called fitting above 263 (max 922, frame 5719).
+# - Cap rows: the composed draw work layer of a run may not exceed
+#   (run draw - the tree's measured costs no lever removes) / run draw; the
+#   derivation sits above the cap rows below.
 
 budget 263                       # plan 20 section 2: every frame in 263 hblanks
 
@@ -194,6 +206,35 @@ lever F1    estimated draw   per-call filter/F1      range:title  26.67  # "Back
 lever F1    estimated draw   per-call filter/F1      range:start  26.67  # "Backend: per-unit costs" draw-filter finding, start 124 / 465
 lever F1    estimated draw   per-call filter/F1      in-game@draw-5564  16.26  # "Backend: per-unit costs" draw-filter finding, draw-5564 3170 / 19491
 lever F1    estimated draw   per-call filter/F1      in-game@draw-6000  21.28  # "Backend: per-unit costs" draw-filter finding, draw-6000 2977 / 13987
+
+# Cap on the composed draw work layer (verification of chunk 2): bounds and
+# alternatives overlap, so the work rows may claim more than the tree holds.
+# cap = (run draw - the tree's measured costs no work lever removes) / run
+# draw; group bounds that mix removable and drawing members count the
+# drawing members at their PC share of the group ("Map of draw_layers").
+# Unmeasured selves (draw_layers' dispatch loop, the particle- and
+# dot-ageing loops) count 0, so each cap is an upper bound.
+# draw-5564, 2244 of 19491: background beyond p8_map 3463-3319 = 144;
+# buttons beyond D2's rows 4603-4268 = 335; tooltip overlay 428-421 = 7;
+# planet_draw_method beyond D6/D8/D9 2203-830-924-144 = 305; slipway beyond
+# D10-D13 1872-207-539-351-126 = 649; score panel beyond D4 1303-1196 = 107;
+# ascension's planet_draw 243 + particle arithmetic 219 = 462 (its pset 293
+# is D15's); emitter_update_method's children 241 x 219/512 arithmetic = 103;
+# group-draw-layers-2-3's overlay methods 133 x 0.4/0.8 = 67;
+# group-draw-layers-1-1's structure icons 179 x 0.4/1.1 = 65.
+cap draw work in-game@draw-5564 88.49   # (19491 - 2244) / 19491
+# draw-6000, 2673 of 13987: background 3503-3354 = 149; planet
+# 3049-1212-1230-150 = 457; slipway at its measured range's low end 2540
+# ("about 2540-2770") - 183-756-907-123 = 571; score panel 1296-1185 = 111;
+# buttons 897-731 = 166; ascension's planet_draw 276 + motion 288 + colour
+# 154 = 718; emitter_update_method's arithmetic 203; structure icons
+# 217 x 0.7/1.6 = 95; draw_layers#2 233 - L2's 30 = 203.
+cap draw work in-game@draw-6000 80.89   # (13987 - 2673) / 13987
+# start, 139 of 465: background 251-241 = 10; planet_draw_method 93 (no
+# lever on start); score panel and buttons 84+12 less one-print's 64 = 32;
+# structure icons 6 x 0.4/1.3 = 2; cart_draw's other children 465-463 = 2.
+cap draw work range:title 70.11          # (465 - 139) / 465, the start run's
+cap draw work range:start 70.11          # (465 - 139) / 465
 
 # Draw levers at 0, listed after the ranking with why.
 lever D7    estimated draw   work     palette/D7     all           0  # "Draw tree" candidate 7: dropped, its rows are paths 1, 3, 5, covered by D2, D6, D3 (step 9's rule)
