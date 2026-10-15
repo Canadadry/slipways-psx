@@ -33,7 +33,7 @@ static void elapse(void) {
     coarse_now = (uint16_t)(coarse_now + coarse_step);
 }
 
-enum { KINDS = 9 };
+enum { KINDS = 9, KIND_PRINT_OUTLINED = KINDS, RECEIVED_KINDS };
 
 typedef struct {
     int calls;
@@ -43,7 +43,7 @@ typedef struct {
     const char *str;
 } received_t;
 
-static received_t received[KINDS];
+static received_t received[RECEIVED_KINDS];
 
 static void seen(int kind, const p8_graphics_t *gfx, p8_vram_t *mem, int a, int b, int c, int d, int e, int f) {
     received_t *r = &received[kind];
@@ -92,6 +92,11 @@ static void slow_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str
     received[8].str = str;
 }
 
+static void slow_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    seen(KIND_PRINT_OUTLINED, gfx, mem, x, y, col, 0, 0, 0);
+    received[KIND_PRINT_OUTLINED].str = str;
+}
+
 static int image_calls;
 
 static void slow_image_begin(int slot, int w, int h) {
@@ -120,7 +125,7 @@ static void slow_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, 
 
 static const p8_draw_backend_t SLOW = {
     slow_cls, slow_pset, slow_line, slow_rect, slow_rectfill,
-    slow_circ, slow_circfill, slow_spr, slow_print,
+    slow_circ, slow_circfill, slow_spr, slow_print, slow_print_outlined,
     slow_image_begin, slow_image_window, slow_image_end, slow_image_draw,
 };
 
@@ -209,6 +214,19 @@ static void test_each_call_counts_under_its_own_family(void) {
     }
     assert(frame.ticks[DRAW_FILTER_PATTERN] == 0 && frame.calls[DRAW_FILTER_PATTERN] == 0);
     assert(frame.in_call == 90);
+    timing_removed();
+}
+
+static void test_an_outlined_print_reaches_the_backend_and_counts_once_under_print(void) {
+    timing_over(&SLOW);
+    fine_step = 12;
+    p8_print_outlined(&gfx, &mem, TEXT, 3, 4, 7);
+    draw_timing_frame_end();
+    assert(received[KIND_PRINT_OUTLINED].calls == 1 && received[KIND_PRINT_OUTLINED].str == TEXT);
+    assert(received[KIND_PRINT_OUTLINED].args[0] == 3 && received[KIND_PRINT_OUTLINED].args[2] == 7);
+    draw_timing_frame_t frame = draw_timing_get(0);
+    assert(frame.ticks[DRAW_FILTER_PRINT] == 12 && frame.calls[DRAW_FILTER_PRINT] == 1);
+    assert(frame.in_call == 12);
     timing_removed();
 }
 
@@ -430,6 +448,7 @@ int main(int argc, char **argv) {
     test_a_call_adds_its_fine_ticks_and_one_call_to_its_family();
     test_every_call_reaches_the_backend_with_its_arguments();
     test_each_call_counts_under_its_own_family();
+    test_an_outlined_print_reaches_the_backend_and_counts_once_under_print();
     test_the_fine_delta_is_taken_modulo_65536();
     test_a_sum_past_16_bits_is_kept();
     test_a_coarse_delta_at_the_limit_flags_the_frame_wrapped();

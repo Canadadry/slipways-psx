@@ -290,7 +290,7 @@ static void null_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, 
 
 static const p8_draw_backend_t NULL_BACKEND = {
     null_cls, null_pset, null_line, null_rect, null_rect,
-    null_circ, null_circ, null_spr, null_print,
+    null_circ, null_circ, null_spr, null_print, null_print,
     null_image_begin, null_image_window, null_image_end, null_image_draw,
 };
 
@@ -385,6 +385,17 @@ static void test_a_family_counts_the_cost_model_units_and_window_switches_of_its
     p8_draw_backend_set(NULL);
 }
 
+static void test_an_outlined_print_is_one_print_call_with_its_glyph_sprites_as_units(void) {
+    families_over(&NULL_BACKEND);
+    backend_cost = 4;
+    p8_print_outlined(&gfx, &mem, "a b ", -7, 0, 7);
+    p8_print_outlined(&gfx, &mem, "ab", -8, 0, 7);
+    call_profile_frame_end();
+    expect_units(0, DRAW_FILTER_PRINT, 2, 2, 0);
+    assert(call_profile_family_figures(0, DRAW_FILTER_PRINT).ns == 2 * 4);
+    p8_draw_backend_set(NULL);
+}
+
 static void two_sprites(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
     (void)context;
     p8_spr(build_gfx, build_mem, 1, 0, 0, 1, 1);
@@ -424,6 +435,7 @@ static void draw_every_family_with_and_without_pattern(void) {
         p8_circfill(&gfx, &mem, 12, 13, 4, 9);
         p8_spr(&gfx, &mem, 5, 6, 7, 1, 2);
         p8_print(&gfx, &mem, "ab", 8, 9, 10);
+        p8_print_outlined(&gfx, &mem, "ab", 8, 9, 10);
         p8_circfill(&gfx, &mem, 12, 13, 0, 9);
         p8_fillp(&gfx, 0x5A5A);
     }
@@ -549,6 +561,7 @@ int main(int argc, char **argv) {
     test_a_backend_call_adds_its_time_and_one_call_to_its_family();
     test_a_patterned_fill_also_counts_as_pattern_with_its_time_inside_its_shape();
     test_a_family_counts_the_cost_model_units_and_window_switches_of_its_calls();
+    test_an_outlined_print_is_one_print_call_with_its_glyph_sprites_as_units();
     test_build_calls_count_under_their_families_and_a_copy_is_one_spr_unit();
     test_family_calls_equal_the_breakdown_timing_on_the_same_calls();
     test_a_dispatcher_root_keeps_forty_children();

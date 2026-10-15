@@ -52,6 +52,8 @@ p8_draw_cost_t p8_draw_cost_circ(const p8_graphics_t *gfx, int cx, int cy, int r
 p8_draw_cost_t p8_draw_cost_circfill(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int cx, int cy, int r, int col);
 p8_draw_cost_t p8_draw_cost_spr(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int n, int x, int y, int w, int h);
 p8_draw_cost_t p8_draw_cost_print(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, const char *str, int x, int y);
+/* One outlined sprite per non-space glyph; the box reaches one pixel further than print's on each side. */
+p8_draw_cost_t p8_draw_cost_print_outlined(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, const char *str, int x, int y);
 
 /* A build's own packets, all in the build buffer: the clear and the mask bit on, each window's draw
  * area and offset, then the frame's area and offset, the mask bit off and the texture cache flush. */

@@ -333,6 +333,15 @@ static void software_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char 
     }
 }
 
+static void software_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            if (dx != 0 || dy != 0) software_print(gfx, mem, str, x + dx, y + dy, 0);
+        }
+    }
+    software_print(gfx, mem, str, x, y, col);
+}
+
 static void software_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     int xmin = min(x1, x2);
     int xmax = max(x1, x2);
@@ -402,7 +411,7 @@ static void software_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int sl
 
 static const p8_draw_backend_t SOFTWARE_BACKEND = {
     software_cls, software_pset, software_line, software_rect, software_rectfill,
-    software_circ, software_circfill, software_spr, software_print,
+    software_circ, software_circfill, software_spr, software_print, software_print_outlined,
     software_image_begin, software_image_window, software_image_end, software_image_draw,
 };
 

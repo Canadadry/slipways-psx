@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { KINDS = 9 };
+enum { KINDS = 10, KIND_PRINT = 8, KIND_PRINT_OUTLINED = 9 };
 
 typedef struct {
     int calls;
@@ -67,6 +67,11 @@ static void recording_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char
     received[8].str = str;
 }
 
+static void recording_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    seen(KIND_PRINT_OUTLINED, gfx, mem, x, y, col, 0, 0, 0);
+    received[KIND_PRINT_OUTLINED].str = str;
+}
+
 enum { IMAGE_BEGIN, IMAGE_WINDOW, IMAGE_END, IMAGE_DRAW, IMAGE_KINDS };
 
 static int image_calls[IMAGE_KINDS];
@@ -93,7 +98,7 @@ static void recording_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int s
 
 static const p8_draw_backend_t RECORDING = {
     recording_cls, recording_pset, recording_line, recording_rect, recording_rectfill,
-    recording_circ, recording_circfill, recording_spr, recording_print,
+    recording_circ, recording_circfill, recording_spr, recording_print, recording_print_outlined,
     recording_image_begin, recording_image_window, recording_image_end, recording_image_draw,
 };
 
@@ -127,6 +132,7 @@ static void draw_one_of_each_on_screen(void) {
     p8_circfill(&gfx, &mem, 12, 13, 4, 9);
     p8_spr(&gfx, &mem, 5, 6, 7, 1, 2);
     p8_print(&gfx, &mem, TEXT, 8, 9, 10);
+    p8_print_outlined(&gfx, &mem, TEXT, 11, 12, 13);
 }
 
 static void test_all_forwards_every_call_with_its_arguments_and_pointers(void) {
@@ -142,12 +148,14 @@ static void test_all_forwards_every_call_with_its_arguments_and_pointers(void) {
     assert(received[6].args[0] == 12 && received[6].args[2] == 4 && received[6].args[3] == 9);
     assert(received[7].args[0] == 5 && received[7].args[3] == 1 && received[7].args[4] == 2);
     assert(received[8].str == TEXT && received[8].args[2] == 10);
+    assert(received[KIND_PRINT_OUTLINED].str == TEXT && received[KIND_PRINT_OUTLINED].args[0] == 11);
+    assert(received[KIND_PRINT_OUTLINED].args[1] == 12 && received[KIND_PRINT_OUTLINED].args[2] == 13);
     filter_removed();
 }
 
 static const draw_filter_family_t KIND_FAMILY[KINDS] = {
     DRAW_FILTER_CLS, DRAW_FILTER_PSET, DRAW_FILTER_LINE, DRAW_FILTER_RECT, DRAW_FILTER_RECTFILL,
-    DRAW_FILTER_CIRC, DRAW_FILTER_CIRCFILL, DRAW_FILTER_SPR, DRAW_FILTER_PRINT,
+    DRAW_FILTER_CIRC, DRAW_FILTER_CIRCFILL, DRAW_FILTER_SPR, DRAW_FILTER_PRINT, DRAW_FILTER_PRINT,
 };
 
 static void test_a_mask_passes_cls_and_its_families_only(void) {
@@ -156,7 +164,7 @@ static void test_a_mask_passes_cls_and_its_families_only(void) {
         draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(KIND_FAMILY[kind]));
         draw_one_of_each_on_screen();
         for (int other = 0; other < KINDS; other++) {
-            int expected = other == 0 || other == kind;
+            int expected = other == 0 || KIND_FAMILY[other] == KIND_FAMILY[kind];
             assert(received[other].calls == expected);
         }
         filter_removed();
@@ -200,7 +208,9 @@ static void test_counts_are_on_screen_calls_before_the_mask(void) {
     draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS));
     draw_one_of_each_on_screen();
     for (int kind = 0; kind < KINDS; kind++) {
-        assert(draw_filter_count(KIND_FAMILY[kind]) == 1);
+        int same_family = 0;
+        for (int other = 0; other < KINDS; other++) same_family += KIND_FAMILY[other] == KIND_FAMILY[kind];
+        assert(draw_filter_count(KIND_FAMILY[kind]) == same_family);
     }
     assert(draw_filter_count(DRAW_FILTER_PATTERN) == 0);
 
@@ -209,7 +219,12 @@ static void test_counts_are_on_screen_calls_before_the_mask(void) {
     p8_print(&gfx, &mem, TEXT, 300, 9, 10);
     assert(draw_filter_count(DRAW_FILTER_PSET) == 1 && "an off-screen call counts 0");
     assert(draw_filter_count(DRAW_FILTER_RECTFILL) == 1);
-    assert(draw_filter_count(DRAW_FILTER_PRINT) == 1);
+    assert(draw_filter_count(DRAW_FILTER_PRINT) == 2);
+
+    p8_print_outlined(&gfx, &mem, TEXT, -8, 9, 10);
+    assert(draw_filter_count(DRAW_FILTER_PRINT) == 2 && "the outline column is off screen too");
+    p8_print_outlined(&gfx, &mem, TEXT, -7, 9, 10);
+    assert(draw_filter_count(DRAW_FILTER_PRINT) == 3 && "the outline column alone is on screen");
 
     p8_camera(&gfx, 400, 0);
     p8_pset(&gfx, &mem, 401, 2, 3);

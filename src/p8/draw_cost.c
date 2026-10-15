@@ -133,18 +133,27 @@ p8_draw_cost_t p8_draw_cost_spr(p8_draw_cost_window_t *window, const p8_graphics
     return cost_add(unpatterned_window(window), cost_of(P8_GPU_SPRT_BYTES, 1));
 }
 
-/* Only the space glyph has no lit row. */
-p8_draw_cost_t p8_draw_cost_print(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, const char *str, int x, int y) {
+/* Only the space glyph has no lit row. margin widens the box on every side. */
+static p8_draw_cost_t text_cost(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, const char *str, int x, int y, int margin) {
     int length = 0;
     int glyphs = 0;
     for (const char *p = str; *p != '\0'; p++) {
         length++;
         glyphs += *p != ' ';
     }
-    if (glyphs == 0 || !on_screen(gfx, x, y, x + (length - 1) * P8_FONT_CELL_WIDTH + P8_FONT_GLYPH_WIDTH - 1, y + P8_FONT_GLYPH_HEIGHT - 1)) {
+    int right = x + (length - 1) * P8_FONT_CELL_WIDTH + P8_FONT_GLYPH_WIDTH - 1;
+    if (glyphs == 0 || !on_screen(gfx, x - margin, y - margin, right + margin, y + P8_FONT_GLYPH_HEIGHT - 1 + margin)) {
         return FREE;
     }
     return cost_add(unpatterned_window(window), cost_of(P8_GPU_SPRT_BYTES, glyphs));
+}
+
+p8_draw_cost_t p8_draw_cost_print(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, const char *str, int x, int y) {
+    return text_cost(window, gfx, str, x, y, 0);
+}
+
+p8_draw_cost_t p8_draw_cost_print_outlined(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, const char *str, int x, int y) {
+    return text_cost(window, gfx, str, x, y, 1);
 }
 
 p8_draw_cost_t p8_draw_cost_image_begin(void) {

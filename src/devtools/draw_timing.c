@@ -98,6 +98,12 @@ static void timing_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     call_end(DRAW_FILTER_PRINT, start);
 }
 
+static void timing_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    reading_t start = call_begin();
+    wrapped->print_outlined(gfx, mem, str, x, y, col);
+    call_end(DRAW_FILTER_PRINT, start);
+}
+
 static void timing_image_begin(int slot, int w, int h) {
     wrapped->image_begin(slot, w, h);
 }
@@ -119,7 +125,7 @@ static void timing_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot
 
 static const p8_draw_backend_t TIMING = {
     timing_cls, timing_pset, timing_line, timing_rect, timing_rectfill,
-    timing_circ, timing_circfill, timing_spr, timing_print,
+    timing_circ, timing_circfill, timing_spr, timing_print, timing_print_outlined,
     timing_image_begin, timing_image_window, timing_image_end, timing_image_draw,
 };
 

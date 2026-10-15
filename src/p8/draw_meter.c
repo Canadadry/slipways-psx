@@ -109,6 +109,11 @@ static void meter_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *st
     wrapped->print(gfx, mem, str, x, y, col);
 }
 
+static void meter_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    add(p8_draw_cost_print_outlined(&window, gfx, str, x, y));
+    wrapped->print_outlined(gfx, mem, str, x, y, col);
+}
+
 static void meter_image_begin(int slot, int w, int h) {
     building = 1;
     built[slot].width = w;
@@ -135,7 +140,7 @@ static void meter_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot,
 
 static const p8_draw_backend_t METER = {
     meter_cls, meter_pset, meter_line, meter_rect, meter_rectfill,
-    meter_circ, meter_circfill, meter_spr, meter_print,
+    meter_circ, meter_circfill, meter_spr, meter_print, meter_print_outlined,
     meter_image_begin, meter_image_window, meter_image_end, meter_image_draw,
 };
 

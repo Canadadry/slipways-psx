@@ -311,6 +311,14 @@ static void family_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     units_end(DRAW_FILTER_PRINT, before, p8_draw_cost_print(&window, gfx, str, x, y), 0);
 }
 
+static void family_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    uint64_t start = clock_now();
+    wrapped->print_outlined(gfx, mem, str, x, y, col);
+    family_end(DRAW_FILTER_PRINT, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_PRINT, before, p8_draw_cost_print_outlined(&window, gfx, str, x, y), 0);
+}
+
 static void family_image_begin(int slot, int w, int h) {
     image_sizes[slot].width = w;
     image_sizes[slot].height = h;
@@ -339,7 +347,7 @@ static void family_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot
 
 static const p8_draw_backend_t FAMILIES = {
     family_cls, family_pset, family_line, family_rect, family_rectfill,
-    family_circ, family_circfill, family_spr, family_print,
+    family_circ, family_circfill, family_spr, family_print, family_print_outlined,
     family_image_begin, family_image_window, family_image_end, family_image_draw,
 };
 

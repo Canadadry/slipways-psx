@@ -64,6 +64,10 @@ static void guard_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *st
     guarded->print(gfx, mem, str, x, y, col);
 }
 
+static void guard_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    guarded->print_outlined(gfx, mem, str, x, y, col);
+}
+
 static void guard_image_begin(int slot, int w, int h) {
     (void)w, (void)h;
     slot_fatal(slot, "build inside a build");
@@ -86,7 +90,7 @@ static void guard_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot,
 /* Stands in front of the backend during a build, which p8_cls cannot otherwise see. */
 static const p8_draw_backend_t GUARD = {
     guard_cls, guard_pset, guard_line, guard_rect, guard_rectfill,
-    guard_circ, guard_circfill, guard_spr, guard_print,
+    guard_circ, guard_circfill, guard_spr, guard_print, guard_print_outlined,
     guard_image_begin, guard_image_window, guard_image_end, guard_image_draw,
 };
 

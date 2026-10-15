@@ -377,6 +377,17 @@ static void gpu_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str,
     psx_text_place(gfx, str, x, y, add_glyph, &clut);
 }
 
+/* TODO: one outlined sprite per glyph (step 9 chunk 2). Until then nine passes emit nine times
+ * p8_draw_cost_print_outlined's bound, so nothing may call it on the GPU. */
+static void gpu_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            if (dx != 0 || dy != 0) gpu_print(gfx, mem, str, x + dx, y + dy, 0);
+        }
+    }
+    gpu_print(gfx, mem, str, x, y, col);
+}
+
 /* While on, every pixel drawn gets the mask bit: an untextured black is then 0x8000, which the copy
  * keeps opaque, where 0x0000 (the clear) is transparent. */
 static void add_mask_bit(int on) {
@@ -425,7 +436,7 @@ static void gpu_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, i
 }
 
 static const p8_draw_backend_t GPU_BACKEND = {
-    gpu_cls, gpu_pset, gpu_line, gpu_rect, gpu_rectfill, gpu_circ, gpu_circfill, gpu_spr, gpu_print,
+    gpu_cls, gpu_pset, gpu_line, gpu_rect, gpu_rectfill, gpu_circ, gpu_circfill, gpu_spr, gpu_print, gpu_print_outlined,
     gpu_image_begin, gpu_image_window, gpu_image_end, gpu_image_draw,
 };
 

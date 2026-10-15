@@ -79,6 +79,12 @@ static void filter_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     if (note(DRAW_FILTER_PRINT, p8_draw_cost_print(&window, gfx, str, x, y))) wrapped->print(gfx, mem, str, x, y, col);
 }
 
+static void filter_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    if (note(DRAW_FILTER_PRINT, p8_draw_cost_print_outlined(&window, gfx, str, x, y))) {
+        wrapped->print_outlined(gfx, mem, str, x, y, col);
+    }
+}
+
 static void filter_image_begin(int slot, int w, int h) {
     building_slot = slot;
     image_families[slot] = 0;
@@ -109,7 +115,7 @@ static void filter_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot
 
 static const p8_draw_backend_t FILTER = {
     filter_cls, filter_pset, filter_line, filter_rect, filter_rectfill,
-    filter_circ, filter_circfill, filter_spr, filter_print,
+    filter_circ, filter_circfill, filter_spr, filter_print, filter_print_outlined,
     filter_image_begin, filter_image_window, filter_image_end, filter_image_draw,
 };
 

@@ -94,8 +94,33 @@ static void test_print_is_one_sprt_per_glyph_but_spaces(void) {
     assert_cost(p8_draw_cost_print(&window, &gfx, "ab", 0, -5), 0, 0);
 }
 
-
 enum { WINDOW_PAIR_BYTES = P8_GPU_DR_TPAGE_BYTES + P8_GPU_DR_TWIN_BYTES };
+
+static void test_print_outlined_is_one_sprt_per_glyph_but_spaces_over_its_outlined_box(void) {
+    reset();
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "a b!", 0, 0), 3 * P8_GPU_SPRT_BYTES, 3);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "   ", 0, 0), 0, 0);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "", 0, 0), 0, 0);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", -7, 0), 2 * P8_GPU_SPRT_BYTES, 2);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", -8, 0), 0, 0);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", 0, -5), 2 * P8_GPU_SPRT_BYTES, 2);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", 0, -6), 0, 0);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", P8_SCREEN_WIDTH, 0), 2 * P8_GPU_SPRT_BYTES, 2);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", P8_SCREEN_WIDTH + 1, 0), 0, 0);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", 0, P8_SCREEN_HEIGHT), 2 * P8_GPU_SPRT_BYTES, 2);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", 0, P8_SCREEN_HEIGHT + 1), 0, 0);
+    p8_camera(&gfx, -8, 0);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", -15, 0), 2 * P8_GPU_SPRT_BYTES, 2);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "ab", -16, 0), 0, 0);
+}
+
+static void test_print_outlined_resets_the_window_after_a_pattern(void) {
+    reset();
+    p8_fillp(&gfx, 0xA5A5);
+    assert_cost(p8_draw_cost_rectfill(&window, &gfx, 0, 0, 10, 10, 1), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES + WINDOW_PAIR_BYTES, 3);
+    assert_cost(p8_draw_cost_print_outlined(&window, &gfx, "a", 0, 0), P8_GPU_SPRT_BYTES, 1);
+}
 
 static void test_patterned_fill_is_a_sprt_with_its_window_pair_once(void) {
     reset();
@@ -194,6 +219,8 @@ int main(void) {
     test_print_is_one_sprt_per_glyph_but_spaces();
     test_patterned_fill_is_a_sprt_with_its_window_pair_once();
     test_spr_and_print_reset_the_window_after_a_pattern();
+    test_print_outlined_is_one_sprt_per_glyph_but_spaces_over_its_outlined_box();
+    test_print_outlined_resets_the_window_after_a_pattern();
     test_untextured_and_culled_calls_keep_the_window();
     test_frame_begin_returns_the_overhead_and_resets_the_window();
     test_pattern_key_tells_pattern_colour_and_transparency_apart();

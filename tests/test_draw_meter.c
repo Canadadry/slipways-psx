@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { KINDS = 13 };
+enum { KINDS = 14, KIND_PRINT_OUTLINED = 13 };
 
 static int forwarded[KINDS];
 static const p8_graphics_t *forwarded_gfx;
@@ -66,6 +66,11 @@ static void counting_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char 
     seen(8, gfx, mem);
 }
 
+static void counting_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    (void)str, (void)x, (void)y, (void)col;
+    seen(KIND_PRINT_OUTLINED, gfx, mem);
+}
+
 static void counting_image_begin(int slot, int w, int h) {
     (void)slot, (void)w, (void)h;
     forwarded[9]++;
@@ -88,7 +93,7 @@ static void counting_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int sl
 
 static const p8_draw_backend_t COUNTING = {
     counting_cls, counting_pset, counting_line, counting_rect, counting_rectfill,
-    counting_circ, counting_circfill, counting_spr, counting_print,
+    counting_circ, counting_circfill, counting_spr, counting_print, counting_print_outlined,
     counting_image_begin, counting_image_window, counting_image_end, counting_image_draw,
 };
 
@@ -124,6 +129,7 @@ static void draw_one_of_each(void) {
     p8_circfill(&gfx, &mem, 10, 10, 3, 5);
     p8_spr(&gfx, &mem, 1, 0, 0, 1, 1);
     p8_print(&gfx, &mem, "ab", 0, 0, 7);
+    p8_print_outlined(&gfx, &mem, "ab", 0, 0, 7);
     p8_image_build(&gfx, &mem, 0, 16, 16, draw_nothing, NULL);
     p8_image_draw(&gfx, &mem, 0, 0, 0);
 }
@@ -171,6 +177,20 @@ static void test_frame_end_folds_the_frame_into_the_peaks_and_resets_it(void) {
     meter_removed();
 }
 
+static void test_an_outlined_print_costs_one_sprt_per_glyph_over_its_outlined_box(void) {
+    meter_over_counting();
+    unsigned long base = overhead().bytes;
+    int base_primitives = overhead().primitives;
+
+    p8_print_outlined(&gfx, &mem, "a b", 0, 0, 7);
+    p8_print_outlined(&gfx, &mem, "ab", -7, 0, 7);
+    p8_print_outlined(&gfx, &mem, "ab", -8, 0, 7);
+    p8_draw_meter_frame_end();
+
+    assert(p8_draw_meter_last_frame().bytes == base + 4 * P8_GPU_SPRT_BYTES);
+    assert(p8_draw_meter_last_frame().primitives == base_primitives + 4);
+    meter_removed();
+}
 
 static void test_distinct_palettes_and_patterns_are_counted_once_per_frame(void) {
     meter_over_counting();
@@ -266,6 +286,7 @@ static void test_a_copy_costs_frame_bytes_on_screen_and_nothing_off_screen(void)
 int main(void) {
     test_every_call_reaches_the_wrapped_backend();
     test_frame_end_folds_the_frame_into_the_peaks_and_resets_it();
+    test_an_outlined_print_costs_one_sprt_per_glyph_over_its_outlined_box();
     test_distinct_palettes_and_patterns_are_counted_once_per_frame();
     test_a_count_past_the_table_is_clamped_above_the_limit();
     test_build_bytes_go_to_the_build_count_and_its_palettes_to_the_frame();

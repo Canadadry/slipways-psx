@@ -9,7 +9,7 @@
 #include <string.h>
 
 enum call_kind {
-    CALL_CLS, CALL_PSET, CALL_LINE, CALL_RECT, CALL_RECTFILL, CALL_CIRC, CALL_CIRCFILL, CALL_SPR, CALL_PRINT,
+    CALL_CLS, CALL_PSET, CALL_LINE, CALL_RECT, CALL_RECTFILL, CALL_CIRC, CALL_CIRCFILL, CALL_SPR, CALL_PRINT, CALL_PRINT_OUTLINED,
     CALL_IMAGE_BEGIN, CALL_IMAGE_WINDOW, CALL_IMAGE_END, CALL_IMAGE_DRAW
 };
 
@@ -103,6 +103,14 @@ static void record_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     call->args[2] = col;
 }
 
+static void record_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    recorded_call_t *call = record(CALL_PRINT_OUTLINED, gfx, mem);
+    call->str = str;
+    call->args[0] = x;
+    call->args[1] = y;
+    call->args[2] = col;
+}
+
 static recorded_call_t *record_image(enum call_kind kind, int slot, int a, int b) {
     assert(call_count < MAX_CALLS && "recording backend: raise MAX_CALLS");
     recorded_call_t *call = &calls[call_count++];
@@ -134,7 +142,7 @@ static void record_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot
 
 static const p8_draw_backend_t RECORDING_BACKEND = {
     record_cls, record_pset, record_line, record_rect, record_rectfill,
-    record_circ, record_circfill, record_spr, record_print,
+    record_circ, record_circfill, record_spr, record_print, record_print_outlined,
     record_image_begin, record_image_window, record_image_end, record_image_draw,
 };
 
@@ -197,6 +205,19 @@ static void test_each_draw_call_reaches_its_own_entry_once(void) {
     assert_call(6, CALL_SPR, 20, 21, 22, 2, 3);
     assert_call(7, CALL_PRINT, 23, 24, 0x18, 0, 0);
     assert(calls[7].str == text);
+    stop_recording(previous);
+}
+
+static void test_print_outlined_reaches_its_own_entry_once(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    static const char text[] = "A B";
+    p8_camera(&gfx, 5, -6);
+
+    p8_print_outlined(&gfx, &mem, text, -2, 117, 0x1b);
+
+    assert(call_count == 1);
+    assert_call(0, CALL_PRINT_OUTLINED, -2, 117, 0x1b, 0, 0);
+    assert(calls[0].str == text);
     stop_recording(previous);
 }
 
@@ -430,6 +451,7 @@ static void test_a_build_frames_its_windowed_calls_and_a_copy_reaches_its_entry(
 int main(void) {
     test_pset_reaches_its_entry_once_with_its_arguments();
     test_each_draw_call_reaches_its_own_entry_once();
+    test_print_outlined_reaches_its_own_entry_once();
     test_calls_reach_the_backend_in_world_coordinates();
     test_map_gives_one_spr_per_non_empty_cell();
     test_map_skips_cells_off_screen_after_the_camera();

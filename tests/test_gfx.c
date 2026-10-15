@@ -735,6 +735,79 @@ static void test_font_has_glyph_is_one_only_for_a_drawn_glyph(void) {
     assert(!p8_font_has_glyph((char)0xc3));
 }
 
+static void paint_background(p8_vram_t *mem) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) mem->screen[y][x] = (unsigned char)(1 + (x + 3 * y) % 15);
+    }
+}
+
+static p8_vram_t outlined_mem;
+static p8_vram_t nine_pass_mem;
+
+static void assert_outlined_is_nine_prints(const p8_graphics_t *gfx, const char *str, int x, int y, int col) {
+    static const int offsets[8][2] = { {-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1} };
+    paint_background(&outlined_mem);
+    paint_background(&nine_pass_mem);
+
+    p8_print_outlined(gfx, &outlined_mem, str, x, y, col);
+    for (int i = 0; i < 8; i++) p8_print(gfx, &nine_pass_mem, str, x + offsets[i][0], y + offsets[i][1], 0);
+    p8_print(gfx, &nine_pass_mem, str, x, y, col);
+
+    assert(memcmp(outlined_mem.screen, nine_pass_mem.screen, sizeof outlined_mem.screen) == 0);
+}
+
+static void test_print_outlined_is_the_nine_prints_for_every_character(void) {
+    p8_graphics_t gfx;
+    p8_vram_init(&outlined_mem);
+    p8_vram_init(&nine_pass_mem);
+    p8_gfx_init(&gfx);
+    for (int code = 1; code < 256; code++) {
+        char str[4] = { 'a', (char)code, 'b', '\0' };
+        assert_outlined_is_nine_prints(&gfx, str, 40, 50, 7);
+    }
+    assert_outlined_is_nine_prints(&gfx, "a b@ ~", 10, 10, 12);
+    assert_outlined_is_nine_prints(&gfx, "   ", 10, 10, 12);
+    assert_outlined_is_nine_prints(&gfx, "", 10, 10, 12);
+    assert_outlined_is_nine_prints(&gfx, "zero", 10, 10, 0);
+}
+
+static void test_print_outlined_is_the_nine_prints_at_every_edge_and_camera(void) {
+    static const int xs[] = { -14, -13, -12, -9, -8, -7, -4, -1, 0, 1, 70, 148, 149, 150, 156, 158, 159, 160, 161 };
+    static const int ys[] = { -7, -6, -5, -4, -1, 0, 1, 60, 113, 114, 115, 118, 119, 120, 121 };
+    static const int cameras[][2] = { {0, 0}, {-5, 3}, {37, -21}, {-160, 0}, {0, 120} };
+    p8_graphics_t gfx;
+    p8_vram_init(&outlined_mem);
+    p8_vram_init(&nine_pass_mem);
+    p8_gfx_init(&gfx);
+    for (size_t c = 0; c < sizeof cameras / sizeof cameras[0]; c++) {
+        p8_camera(&gfx, cameras[c][0], cameras[c][1]);
+        for (size_t i = 0; i < sizeof xs / sizeof xs[0]; i++) {
+            for (size_t j = 0; j < sizeof ys / sizeof ys[0]; j++) {
+                assert_outlined_is_nine_prints(&gfx, "w8%", xs[i] + cameras[c][0], ys[j] + cameras[c][1], 9);
+            }
+        }
+    }
+}
+
+static void test_print_outlined_shows_its_outline_over_a_coloured_background(void) {
+    p8_graphics_t gfx;
+    p8_vram_init(&outlined_mem);
+    p8_gfx_init(&gfx);
+    paint_background(&outlined_mem);
+
+    p8_print_outlined(&gfx, &outlined_mem, "a", 10, 20, 7);
+
+    assert(outlined_mem.screen[19][11] == 0 && "above the top lit pixel");
+    assert(outlined_mem.screen[20][10] == 0 && "beside the top lit pixel, inside the cell");
+    assert(outlined_mem.screen[22][9] == 0 && "left of the glyph");
+    assert(outlined_mem.screen[22][13] == 0 && "the gap column");
+    assert(outlined_mem.screen[25][12] == 0 && "below the bottom row");
+    assert(outlined_mem.screen[21][11] == 0 && "an unlit pixel inside the glyph");
+    assert(outlined_mem.screen[20][11] == 7);
+    assert(outlined_mem.screen[18][11] != 0 && "two pixels away keeps the background");
+    assert(outlined_mem.screen[22][14] != 0);
+}
+
 int main(void) {
     test_cls_clears_whole_screen_to_zero();
     test_pset_plots_pixel_at_coordinate();
@@ -775,6 +848,9 @@ int main(void) {
     test_print_space_is_blank();
     test_print_respects_camera_offset();
     test_print_digit_and_punctuation_glyphs();
+    test_print_outlined_is_the_nine_prints_for_every_character();
+    test_print_outlined_is_the_nine_prints_at_every_edge_and_camera();
+    test_print_outlined_shows_its_outline_over_a_coloured_background();
     test_font_has_glyph_is_one_only_for_a_drawn_glyph();
 
     printf("test_gfx: all tests passed\n");

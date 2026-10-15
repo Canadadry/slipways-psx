@@ -163,3 +163,7 @@ void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int 
 void p8_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
     backend()->print(gfx, mem, str, x, y, col);
 }
+
+void p8_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    backend()->print_outlined(gfx, mem, str, x, y, col);
+}

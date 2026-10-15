@@ -137,6 +137,31 @@ static void test_empty_cells_and_transparent_colours_show_what_was_underneath(vo
     assert(mem.screen[20][20] == 5 && "an empty cell");
 }
 
+static void outlined_labels(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    (void)context;
+    p8_print_outlined(gfx, mem, "ab9", 156, 118, 7);
+    p8_print_outlined(gfx, mem, "x y", 1, 1, 12);
+}
+
+static void test_an_outlined_print_in_a_build_copies_like_the_print_drawn_directly(void) {
+    static p8_vram_t direct, cached;
+    p8_graphics_t gfx;
+    p8_vram_init(&direct);
+    cached = direct;
+    p8_gfx_init(&gfx);
+
+    p8_image_build(&gfx, &cached, 0, 256, 256, outlined_labels, NULL);
+
+    for (size_t i = 0; i < sizeof CAMERAS / sizeof CAMERAS[0]; i++) {
+        p8_camera(&gfx, CAMERAS[i][0], CAMERAS[i][1]);
+        fill_screen(&direct, 5);
+        fill_screen(&cached, 5);
+        outlined_labels(&gfx, &direct, NULL);
+        p8_image_draw(&gfx, &cached, 0, 0, 0);
+        assert(memcmp(direct.screen, cached.screen, sizeof direct.screen) == 0 && "the copy matches the outlined prints");
+    }
+}
+
 static void test_every_map_write_on_any_vram_gives_a_map_version_never_seen(void) {
     static p8_vram_t first, second;
     p8_vram_init(&first);
@@ -233,6 +258,7 @@ int main(int argc, char **argv) {
     test_a_full_build_runs_six_windows_row_major_and_restores_the_camera();
     test_a_partial_image_clips_at_its_edge_and_leaves_the_rest_transparent();
     test_empty_cells_and_transparent_colours_show_what_was_underneath();
+    test_an_outlined_print_in_a_build_copies_like_the_print_drawn_directly();
     test_every_map_write_on_any_vram_gives_a_map_version_never_seen();
     expect_fatal(argv[0], "cls", "image slot 0: cls during a build");
     expect_fatal(argv[0], "nested", "image slot 0: build inside a build");

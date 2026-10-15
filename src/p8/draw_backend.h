@@ -16,6 +16,7 @@ typedef struct {
     void (*circfill)(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col);
     void (*spr)(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h);
     void (*print)(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col);
+    void (*print_outlined)(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col);
     /* Clears the slot's w x h, then routes the draw calls to it until image_end. */
     void (*image_begin)(int slot, int w, int h);
     /* The next calls draw at image origin (x, y): clipped to the screen size, then to the image. */
