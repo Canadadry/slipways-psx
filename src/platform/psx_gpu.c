@@ -51,6 +51,7 @@ static psx_clut_cache_t clut_caches[2];
 static psx_pattern_cache_t pattern_caches[2];
 /* The pattern slot the frame's last DR_TWIN repeats, NO_WINDOW for none. */
 static int window_slot;
+static psx_gpu_peaks_t peaks;
 
 enum { NO_WINDOW = -1 };
 
@@ -153,6 +154,7 @@ void psx_gpu_init(void) {
     upload_sprite_sheet();
     upload_font();
     current = 0;
+    peaks = (psx_gpu_peaks_t){ 0, 0, 0 };
     PutDispEnv(&displays[1]);
     SetDispMask(1);
 }
@@ -375,7 +377,19 @@ static void upload_slots(const psx_clut_cache_t *cluts, const psx_pattern_cache_
     }
 }
 
-void psx_gpu_frame_end(unsigned long metered_bytes) {
+static void record_peaks(void) {
+    if (used > peaks.bytes) peaks.bytes = used;
+    int cluts = psx_clut_cache_count(&clut_caches[current]);
+    if (cluts > peaks.cluts) peaks.cluts = cluts;
+    int patterns = psx_pattern_cache_count(&pattern_caches[current]);
+    if (patterns > peaks.patterns) peaks.patterns = patterns;
+}
+
+psx_gpu_peaks_t psx_gpu_peaks(void) {
+    return peaks;
+}
+
+void psx_gpu_frame_end(unsigned long limit_bytes) {
     psx_vram_rect_t display = psx_vram_layout_region(current == 0 ? PSX_VRAM_DISPLAY_0 : PSX_VRAM_DISPLAY_1);
     add_draw_target(display);
     add_no_texture_window();
@@ -383,12 +397,13 @@ void psx_gpu_frame_end(unsigned long metered_bytes) {
      * this clear, black pixels would show the display buffer's previous frame. */
     add_black_fill(display);
     add_upscale();
-    if (used > metered_bytes) {
+    if (used > limit_bytes) {
         static char message[128];
-        snprintf(message, sizeof message, "psx_gpu: frame %d sent %u bytes, metered %lu", frame_number, (unsigned)used,
-                 metered_bytes);
+        snprintf(message, sizeof message, "psx_gpu: frame %d sent %u bytes, limit %lu", frame_number, (unsigned)used,
+                 limit_bytes);
         p8_fatal(message);
     }
+    record_peaks();
     DrawSync(0);
     upload_slots(&clut_caches[current], &pattern_caches[current]);
     PutDispEnv(&displays[current ^ 1]);

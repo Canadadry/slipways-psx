@@ -1,10 +1,11 @@
 #!/bin/sh
 # usage: psx_game_check.sh <tty> <boot-status> <boot-output> <pad-script> <pad-log-tool> <replay-tool>
 #                          <difficulty> <out-dir>
-# The game EXE's six conditions after its boot with <pad-script>: game-done,
+# The game EXE's seven conditions after its boot with <pad-script>: game-done,
 # game-pad-log, game-pad-states, game-state-game-lines, game-title-left,
 # game-asserts (the TTY's "psx-game: asserts on|off" line equals
-# PSX_GAME_ASSERTS, on or off, default off).
+# PSX_GAME_ASSERTS, on or off, default off), game-gpu-cost (the TTY's
+# "psx-game: gpu-peak" figures are no larger than pc_state.txt's metered peaks).
 # Every condition is checked before concluding, one "psx-game-check:
 # <condition>: ok[, detail]" line each, failures on stderr, exit 1 if any
 # failed. Writes into <out-dir>: game_events.json (the TTY's pad log as a
@@ -115,6 +116,40 @@ if [ "$asserts_mode" = "$expected_asserts" ]; then
     pass game-asserts "$asserts_mode"
 else
     report game-asserts "psx-game: asserts ${asserts_mode:-(no line)}"
+fi
+
+peak_line=$(grep '^psx-game: gpu-peak ' "$out_dir/tty.txt" | head -n 1)
+set -- $peak_line
+peak_bytes=${4:-}; peak_cluts=${6:-}; peak_patterns=${8:-}
+# usage: pc_peak <zone|cap> <name>; prints field 4 of that PC state line, nothing when there is none
+pc_peak() {
+    awk -v kind="$1" -v name="$2" '$1 == kind && $2 == name { print $4; exit }' "$out_dir/pc_state.txt"
+}
+[ $# -eq 8 ] && [ "$3 $5 $7" = "bytes cluts patterns" ] || peak_bytes=
+case $peak_bytes$peak_cluts$peak_patterns in *[!0-9]*) peak_bytes= ;; esac
+if [ -z "$peak_bytes" ] || [ "$peak_bytes" -eq 0 ]; then
+    report game-gpu-cost "psx-game: gpu-peak (no line)"
+elif [ ! -f "$out_dir/pc_state.txt" ]; then
+    report game-gpu-cost "skipped, game-state-game-lines failed"
+else
+    metered_bytes=$(pc_peak zone gpu_frame)
+    metered_cluts=$(pc_peak cap gpu_cluts)
+    metered_patterns=$(pc_peak cap gpu_patterns)
+    over=
+    for figure in "bytes $peak_bytes $metered_bytes zone gpu_frame" "cluts $peak_cluts $metered_cluts cap gpu_cluts" \
+        "patterns $peak_patterns $metered_patterns cap gpu_patterns"; do
+        set -- $figure
+        if [ $# -ne 5 ]; then
+            over="${over}PC state has no $(echo $figure | awk '{print $(NF - 1), $NF}'); "
+        elif [ "$2" -gt "$3" ]; then
+            over="$over$1 $2 above the PC's metered $3; "
+        fi
+    done
+    if [ -n "$over" ]; then
+        report game-gpu-cost "${over%; }"
+    else
+        pass game-gpu-cost "bytes $peak_bytes of $metered_bytes metered, cluts $peak_cluts of $metered_cluts, patterns $peak_patterns of $metered_patterns"
+    fi
 fi
 
 [ "$failed" -eq 0 ] || exit 1

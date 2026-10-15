@@ -3,8 +3,9 @@
  *   psx-game: asserts on|off
  *   psx-game: ready
  *   psx-game: pad <frame> <pad_buttons hex>   on frame 0 and on each change
- * Under check only, once tools/psx_pad_play.lua writes the pad script's end word, it ends with the
- * replays' protocol: "psx-replay: done game <frames> vsyncs <n>", the "psx-state: " block, code 0.
+ * Under check only, once tools/psx_pad_play.lua writes the pad script's end word, it ends with
+ * "psx-game: gpu-peak bytes <b> cluts <c> patterns <p>" (psx_gpu_peaks), then the replays' protocol:
+ * "psx-replay: done game <frames> vsyncs <n>", the "psx-state: " block, code 0.
  * On a console nothing writes that word, so the game never ends. A p8_fatal prints
  * "psx-state: stopped p8_fatal frame <n>" and the state, code 3. */
 
@@ -15,8 +16,8 @@
 #include "game/input_step.h"
 #include "game/save_storage.h"
 #include "p8/draw_backend.h"
-#include "p8/draw_meter.h"
 #include "p8/gfx.h"
+#include "p8/gpu_sizes.h"
 #include "p8/input.h"
 #include "p8/sprite_sheet.h"
 #include "p8/vram.h"
@@ -73,7 +74,6 @@ int main(void) {
 
     psx_exit_set_hook(write_stopped_state);
     p8_draw_backend_set(psx_gpu_backend());
-    p8_draw_meter_install();
     psx_gpu_frame_begin(0);
     cart_load();
     cart_init();
@@ -100,13 +100,14 @@ int main(void) {
         cheat_activations += input_step_run(&step, &raw);
         cart_update60();
         cart_draw();
-        p8_draw_meter_frame_end();
-        psx_gpu_frame_end(p8_draw_meter_last_frame().bytes);
+        psx_gpu_frame_end(GPU_FRAME_BUFFER_BYTES);
         psx_gpu_frame_begin(g_frame + 1);
     }
     int vsyncs = VSync(-1) - start_vsync;
     psx_exit_set_hook(NULL);
 
+    psx_gpu_peaks_t peaks = psx_gpu_peaks();
+    psx_tty_printf("psx-game: gpu-peak bytes %lu cluts %d patterns %d\n", peaks.bytes, peaks.cluts, peaks.patterns);
     psx_tty_printf("psx-replay: done game %d vsyncs %d\n", g_frame, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);
