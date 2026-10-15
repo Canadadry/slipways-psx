@@ -25,7 +25,7 @@
   - [x] Step 2.7 — end of phase full-game check
     - [x] Judge run, table replaced
 - [ ] Phase 3 — Draw, in impact order
-  - [ ] Step 3.8 — D5 pre-built background and the image cache
+  - [x] Step 3.8 — D5 pre-built background and the image cache
     - [x] Chunk 1 — warn-review prerequisites: peaks helper tested, derived counts
     - [x] Chunk 2 — per-call costs re-measured, coverage, capture check
     - [x] Chunk 3 — throwaway GPU copy spike
