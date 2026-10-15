@@ -32,7 +32,7 @@
     - [x] Chunk 3: per-unit measurements on the six short runs
     - [x] Chunk 4: one-print and no-meter experiments, candidates
 - [ ] Phase 3 — Update
-  - [ ] 3.9 Identify the four update spikes on PC
+  - [x] 3.9 Identify the four update spikes on PC
     - [x] Chunk 1: calibration of PC update shares on the PSX
     - [x] Chunk 2: update root in frame_profile
     - [x] Chunk 3: spikes mode and frame-profile-spikes target

@@ -465,3 +465,35 @@ to the remaining steps:
 Also removes the implemented PRD
 `docs/prd/triage/phase2-step8-backend-unit-costs.md`.
 
+### Step 3.9
+
+Tooling: `frame_profile` takes an optional update root (fifth argument,
+`root update <symbol>` header); `frame_profile_check.sh spikes` /
+`make frame-profile-spikes` walk each update-over-263 frame down to the
+child holding at least half of its PC update and group frames by path;
+`spread` / `make frame-profile-spread` fit a class's work into the room
+under 263 on the following judge frames.
+Calibration (throwaway timing patch, `start` and `update-5500`): PSX/PC
+share ratios `ui_update` 1.00 and 0.92, `save_at_frame_end` 1.11, all
+high; only shares carry over (hblanks per PC µs differ 1.9×). About 40
+hblanks of every in-game frame's update sit outside `cart_update60`, in
+the replay's input step.
+Classification at K=8 (deviation: K=4 left one class at 119.3% from
+timing noise): 166 frames, 42 over 1000, 19 classes. Slipway drop 39
+frames (economy recomputed twice), wormhole launch 33
+(`economy_recompute`), deferred save 31 (27–29 frames after a launch),
+event and save in one frame 42, planet projects 12, galaxy start
+(frame 12, rejection sampling in `entity_geom_nearest`). 4737, 5500 and
+5719 are slipway drops. Candidates U1–U8 with estimated upper bounds.
+Spreading: with no draw lever, or step 8's measured gains alone, every
+spike frame is does-not-fit (draw's median is 717 hblanks); with the
+step 7 + 8 estimated draw gains (80.7–88.8%) one frame still fails;
+all 166 fit from a uniform 88% draw cut.
+Fallback (PRD rule, C13 unsettled): one asserts-off full run with a
+throwaway timing patch settled it (the save holds 50–60%). The same run
+shows the PC overstating `ui_update` and understating the save on
+frames holding both (ratios 0.76–0.94 and 1.17–1.38): flagged for
+step 12, no class reclassified.
+Also removes the implemented PRD
+`docs/prd/triage/phase3-step9-update-spikes.md`.
+
