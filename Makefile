@@ -315,7 +315,8 @@
 #                       without its stamp, outside the suite
 # make psx-build [EVENTS=<events>] [PSX_BUILD_DRAW_FILTER=ON|OFF]
 #                [PSX_BUILD_DRAW_METER=ON|OFF]
-#                [PSX_BUILD_GAME_ASSERTS=ON|OFF] -> builds,
+#                [PSX_BUILD_GAME_ASSERTS=ON|OFF] [PSX_BUILD_OPT=O2|O3|Os]
+#                    -> builds,
 #                       in tmp/psx/build, the game's
 #                       PS-EXEs replaying that recording (default
 #                       tests/e2e/pad_slipway.json, embedded through
@@ -336,7 +337,14 @@
 #                       slipways.bin/.cue from psx/iso.xml and
 #                       psx/system.cnf, booting SLIPWAYS.EXE, a copy of
 #                       psx-game.exe), against
-#                       PSN00BSDK_DIR, then prints their ELF sizes and the
+#                       PSN00BSDK_DIR, psx-game and both GPU replays at
+#                       PSX_BUILD_OPT (default O3, refused unless O2, O3 or
+#                       Os), the other targets at the SDK's O2; then reads
+#                       those three levels with tools/psx_opt_level.sh,
+#                       prints "psx-build: opt psx-game <l> psx-gpu-replay
+#                       <l> psx-gpu-replay-breakdown <l>" and fails naming
+#                       a target whose level is not PSX_BUILD_OPT, then
+#                       prints their ELF sizes and the
 #                       image paths; never boots them; fails naming a missing
 #                       image file, or pointing at
 #                       psn00bsdk-toolchain-setup when the SDK is missing,
@@ -449,7 +457,7 @@
 #                       on; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json) in tmp/psx/full-game/build,
 #                       the GPU replays always without the draw filter and
-#                       the draw meter,
+#                       the draw meter and always at O3 (PSX_BUILD_OPT=O3),
 #                       off building the measured GPU replays without asserts
 #                       while the CPU-path replay keeps them,
 #                       writes its PC state and digest, boots the replay
@@ -493,15 +501,15 @@
 # make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]
 #                       [PSX_SHORT_RUN_OPT=O2|O3|Os]
 #                    -> refuses any PSX_SHORT_RUN_ASSERTS but off (default) or
-#                       on and any PSX_SHORT_RUN_OPT but O2 (default, the
-#                       SDK's level), O3 or Os, runs psx-short-runs-cut, then
+#                       on and any PSX_SHORT_RUN_OPT but O3 (default), O2
+#                       (the SDK's level) or Os, runs psx-short-runs-cut, then
 #                       per run builds psx-gpu-replay and
 #                       psx-gpu-replay-breakdown with its run.json embedded
 #                       in tmp/psx/short-runs/<name>/build, both without the
 #                       draw filter and the draw meter (off: without
 #                       asserts, unused-* warnings not errors; O3/Os: at that
-#                       level, warnings not errors; every other target keeps
-#                       asserts and O2), fails the run unless
+#                       level; every other target keeps asserts and O2),
+#                       fails the run unless
 #                       tools/psx_opt_level.sh reads PSX_SHORT_RUN_OPT as the
 #                       last -O of both targets' flags, prints "opt <level>"
 #                       and both ELFs' text/data/bss, boots the plain one
@@ -522,16 +530,19 @@
 #                       outside the suite and psx-check
 # make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
 #                       then per run builds the probe build (psx-gpu-replay
-#                       with -DPSX_PROBE=ON, asserts off, no draw filter, no
-#                       draw meter) of
+#                       with -DPSX_PROBE=ON, asserts off, O3, no draw filter,
+#                       no draw meter) of
 #                       unpatched HEAD
 #                       from a temporary git worktree, boots it once with an
 #                       empty capture script (ceiling PSX_PROBE_CEILING
-#                       vsyncs, timeout PSX_PROBE_TIMEOUT s), checks it with
+#                       vsyncs, timeout PSX_PROBE_TIMEOUT s) unless
+#                       tools/psx_opt_level.sh reads another level than O3
+#                       (invalid "opt <level>, not O3"), checks it with
 #                       tools/psx_probe.sh against itself and, when valid,
 #                       stamps tmp/psx/probe/baseline/<name>/fingerprint.txt
-#                       with the tree ids of src/ and psx/ and the blob id of
-#                       PSX_FULL_GAME_EVENTS; fails if a run is invalid;
+#                       with the tree ids of src/ and psx/, the blob id of
+#                       PSX_FULL_GAME_EVENTS and "opt O3"; fails if a run is
+#                       invalid;
 #                       removes the worktree on every exit, outside the suite
 # make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
 #                    -> the same pipeline on HEAD with the patch git apply'd
@@ -542,8 +553,9 @@
 #                       draw, update, submit and total deltas, game-state
 #                       same or differs, delay / calls when the patch used
 #                       platform/psx_probe.h; a run is invalid when the patch
-#                       does not apply, the build fails, its baseline is
-#                       missing or stale, or tools/psx_probe.sh says so; fails
+#                       does not apply, the build fails or is not at O3, its
+#                       baseline is missing or stale, or tools/psx_probe.sh
+#                       says so; fails
 #                       after every run if one is invalid, outside the suite
 #                       and psx-check
 # make frame-profile [EVENTS=<events>] [REFERENCE=<end-state>] -> builds
@@ -2347,7 +2359,7 @@ endif
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
 		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON) PSX_BUILD_DRAW_FILTER=OFF \
-		PSX_BUILD_DRAW_METER=OFF
+		PSX_BUILD_DRAW_METER=OFF PSX_BUILD_OPT=O3
 	@mkdir -p $(PSX_FULL_GAME_DIR)
 	STATE=$(PSX_FULL_GAME_DIR)/pc_state.txt DIGEST=$(PSX_FULL_GAME_DIR)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_FULL_GAME_EVENTS) /dev/null $(PSX_FULL_GAME_DIR)/pc.dump.txt > $(PSX_FULL_GAME_DIR)/pc.log 2>&1 \
 		|| { cat $(PSX_FULL_GAME_DIR)/pc.log >&2; exit 1; }
@@ -2398,7 +2410,7 @@ PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
 PSX_SHORT_RUN_CEILING ?= 1080
 PSX_SHORT_RUN_TIMEOUT ?= 20
 PSX_SHORT_RUN_ASSERTS ?= off
-PSX_SHORT_RUN_OPT ?= O2
+PSX_SHORT_RUN_OPT ?= O3
 # Checked at parse time: under -j a checking prerequisite would race the cut and the build.
 ifneq ($(filter psx-short-runs,$(MAKECMDGOALS)),)
 ifneq ($(words $(PSX_SHORT_RUN_ASSERTS))$(filter-out on off,$(PSX_SHORT_RUN_ASSERTS)),1)
@@ -2467,6 +2479,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 PSX_PROBE_DIR := $(TMP_DIR)/psx/probe
 PSX_PROBE_CEILING ?= 1080
 PSX_PROBE_TIMEOUT ?= 20
+PSX_PROBE_OPT := O3
 PATCH ?=
 PSX_PROBE_LABEL ?= $(basename $(notdir $(PATCH)))
 psx_probe_usage := usage: make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
@@ -2491,11 +2504,11 @@ psx_probe_worktree = $(abspath $(PSX_PROBE_DIR)/$(psx_probe_label)/worktree)
 psx_probe_list = $(subst $(space),;,$(strip $(patsubst $(abspath src)/%,$(psx_probe_worktree)/src/%,$(abspath $(filter-out $(PSX_EMBEDDED_REPLAY),$(1))))))
 
 # Every run is built, booted and analyzed even when an earlier one is invalid.
-psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_probe.sh
+psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_probe.sh tools/psx_opt_level.sh
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "$@: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@label=$(psx_probe_label); out=$(PSX_PROBE_DIR)/$$label; wt=$(psx_probe_worktree); \
 	patch='$(if $(filter psx-probe,$@),$(abspath $(PATCH)))'; \
-	fingerprint=$$(git rev-parse HEAD:src HEAD:psx HEAD:$(PSX_FULL_GAME_EVENTS) | tr '\n' ' '); \
+	fingerprint=$$(git rev-parse HEAD:src HEAD:psx HEAD:$(PSX_FULL_GAME_EVENTS) | tr '\n' ' ')"opt $(PSX_PROBE_OPT)"; \
 	remove_worktree() { git worktree remove --force "$$wt" > /dev/null 2>&1; rm -rf "$$wt"; git worktree prune; }; \
 	mkdir -p $$out; remove_worktree; trap remove_worktree EXIT; trap 'exit 130' INT TERM; \
 	git worktree add --detach "$$wt" HEAD > $$out/worktree.log 2>&1 || { cat $$out/worktree.log >&2; exit 1; }; \
@@ -2518,7 +2531,8 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 			{ cmake -S "$$wt/psx" -B $$dir/build \
 				-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 				-DCMAKE_BUILD_TYPE=Release "-DSLIPWAYS_SRC_DIR=$$wt/src" \
-				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF -DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
+				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF -DPSX_MEASURED_REPLAY_OPT=$(PSX_PROBE_OPT) \
+				-DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
 				-DPSX_GPU_REPLAY_DRAW_METER=OFF \
 				"-DPSX_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_REPLAY_SRCS));$$embedded" \
 				"-DPSX_GPU_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
@@ -2528,6 +2542,10 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 				'-DPSX_GAME_SOURCES=$(call psx_probe_list,$(PSX_GAME_SRCS))' \
 				&& cmake --build $$dir/build --target psx-gpu-replay --parallel $$(nproc); } > $$dir/build.log 2>&1 \
 				|| { tail -n 20 $$dir/build.log >&2; reason="build failed ($$dir/build.log)"; }; \
+		fi; \
+		if [ -z "$$reason" ]; then \
+			level=$$(sh tools/psx_opt_level.sh $$dir/build/CMakeFiles/psx-gpu-replay.dir/flags.make) || level=unreadable; \
+			[ "$$level" = $(PSX_PROBE_OPT) ] || reason="opt $$level, not $(PSX_PROBE_OPT)"; \
 		fi; \
 		if [ -z "$$reason" ]; then \
 			: > $$dir/empty_capture_script.txt; \

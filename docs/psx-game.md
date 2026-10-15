@@ -47,7 +47,21 @@ state formatter, `src/devtools/largest_slots.c` and the PSX platform files,
 and no embedded replay, VRAM digest or GPU backend. A file added to
 `CORE_SRCS` is in the PSX build at once.
 
-It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
+It is built `GPREL`, Release, with `-UNDEBUG`. `psx-game` and the two GPU
+replays (`psx-gpu-replay`, `psx-gpu-replay-breakdown`) are built at `-O3`:
+the CMake options `PSX_GAME_OPT` and `PSX_MEASURED_REPLAY_OPT` (`O2`, `O3`
+or `Os`, default `O3`; any other value fails the configure) link one
+interface library per level, `psx-opt-<level>`, after the SDK's, because a
+target's own options come before the SDK interface's trailing `-O2` and lose
+to it; `O2` links nothing. `psx-build` sets both from `PSX_BUILD_OPT`
+(default `O3`) on every configure, then reads the three targets' levels with
+`tools/psx_opt_level.sh`, prints `psx-build: opt psx-game <l> psx-gpu-replay
+<l> psx-gpu-replay-breakdown <l>` and fails naming a target at another level.
+Every other target (`psx-replay`, the pad probe, `psx-largest-slots`) keeps
+the SDK's `-O2`, and the prebuilt libpsn00b libraries keep their level.
+`-O3`'s gain rests on pcsx-redux's timing model, which charges no
+instruction-cache miss or data wait, so its larger text is not promised to
+pay on real hardware. Asserts stay compiled
 in, as in the PC `-O0` binary, in every target but `psx-game`. `psx-game`, the
 program on the CD image, is built without asserts: the CMake option
 `PSX_GAME_ASSERTS` (default `OFF`; Makefile `PSX_BUILD_GAME_ASSERTS=ON|OFF`,
@@ -657,7 +671,9 @@ anything builds) picks the asserts mode: `off` has `psx-build` configure
 the CPU-path replay and every other target but `psx-game` keep them; `on`
 keeps them in the measured GPU replays too. Either way it has
 `psx-build` configure `PSX_GPU_REPLAY_DRAW_FILTER=OFF` and
-`PSX_GPU_REPLAY_DRAW_METER=OFF`. `psx-build` passes
+`PSX_GPU_REPLAY_DRAW_METER=OFF`, and always passes `PSX_BUILD_OPT=O3`, so
+the judge measures at `O3` whatever the caller's environment and
+`psx-build`'s `opt` line shows it. `psx-build` passes
 these options and `PSX_GAME_ASSERTS` on every configure (`ON`, and `OFF` for
 `PSX_GAME_ASSERTS`, unless asked), so a cached value never carries into the
 next run:
@@ -858,14 +874,11 @@ and `unused-variable`, `unused-but-set-variable`, `unused-function` and
 that only feed an assert); `on` keeps `-UNDEBUG` in them. Every other
 target but `psx-game` keeps asserts, and `psx-build` keeps them in the
 measured GPU replays unless `psx-full-game-check` (default
-`PSX_FULL_GAME_ASSERTS=off`) asks it not to. `PSX_SHORT_RUN_OPT` (default `O2`, the SDK's level; any other value
-than `O2`, `O3` or `Os` fails before the cut) sets the CMake option
-`PSX_MEASURED_REPLAY_OPT`, which `psx-build` always sets to `O2`. `O2` adds
-nothing to the compile lines; `O3` and `Os` add `-O3` / `-Os` and
-`-Wno-error` to those two targets only, through an interface library linked
-after the SDK's: a target's own options come before the SDK interface's
-trailing `-O2` and lose to it. The prebuilt libpsn00b libraries keep the
-SDK's level. After the build, `tools/psx_opt_level.sh` (host-tested by
+`PSX_FULL_GAME_ASSERTS=off`) asks it not to. `PSX_SHORT_RUN_OPT` (default `O3`, the level
+`psx-build` ships and measures at; `O2`, the SDK's level, and `Os` stay
+accepted for a before/after comparison; any other value fails before the
+cut) sets the CMake option `PSX_MEASURED_REPLAY_OPT` of those two targets
+only. After the build, `tools/psx_opt_level.sh` (host-tested by
 `test_psx_opt_level`) reads the last `-O` of each target's `flags.make`; a
 level other than the one asked for fails the run before any boot, naming the
 target and both levels. Each run prints `opt <level> psx-gpu-replay
@@ -919,8 +932,11 @@ run builds the *probe build*: the same configuration as `psx-short-runs`
 with the source directory, `SLIPWAYS_SRC_DIR` and every `src/` source taken
 from the worktree (generated units and the run's `run.embedded.c` stay the
 main tree's, so a patch that needs them regenerated is out of scope),
-`-DPSX_PROBE=ON` and `-DPSX_MEASURED_REPLAY_ASSERTS=OFF`, target
-`psx-gpu-replay` only. `PSX_PROBE` doubles `GPU_FRAME_BUFFER_BYTES` (one
+`-DPSX_PROBE=ON`, `-DPSX_MEASURED_REPLAY_ASSERTS=OFF` and, always,
+`-DPSX_MEASURED_REPLAY_OPT=O3` (the build directory is kept and CMake caches
+the option), target `psx-gpu-replay` only. After the build
+`tools/psx_opt_level.sh` reads its level: anything but `O3` makes the run
+`invalid opt <level>, not O3`, and it is not booted. `PSX_PROBE` doubles `GPU_FRAME_BUFFER_BYTES` (one
 constant for the backend's overrun check and byte limit, the meter and the
 `gpu_frame` zone, so calling even `cart_draw` twice fits; the probe build has
 no meter) and links the delay helper
@@ -953,8 +969,9 @@ exits 1 if one is invalid, 0 otherwise, differing game-state lines included.
 without a patch into `tmp/psx/probe/baseline/`: the deltas compare probe
 builds with probe builds, never with `psx-short-runs`' measured replay,
 whose asserts-off figures stay the report's absolute baseline. A valid run
-gets `fingerprint.txt`: the tree ids of `src/` and `psx/` and the blob id of
-`full_game.json` at `HEAD`; `psx-probe` calls a run stale when its own
+gets `fingerprint.txt`: the tree ids of `src/` and `psx/`, the blob id of
+`full_game.json` at `HEAD` and `opt O3`, so a baseline built at another
+level is stale; `psx-probe` calls a run stale when its own
 `HEAD` gives another, so a commit outside those paths keeps the baseline.
 The sanity patches `psx/probes/call-twice-cart-draw.patch`,
 `delay-update-and-draw.patch` (20 hblanks at the entry of `cart_update60`
