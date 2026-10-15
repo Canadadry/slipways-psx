@@ -130,10 +130,10 @@ The drawing API of `src/p8/gfx.h` keeps its names and signatures. Each draw
 call (`cls`, `pset`, `line`, `rect`, `rectfill`, `circ`, `circfill`, `spr`,
 `print`) goes to the active `p8_draw_backend_t` (`src/p8/draw_backend.h`),
 with the graphics state and the VRAM struct as they are at call time and the
-API's own arguments (world coordinates, full colour byte). `map` (one `spr` a
-non-empty cell) and `spr_default` stay in the front end, as do the state calls
-(`camera`, `fillp`, `palt`, `mset`, the draw palette): a backend reads them,
-never writes them. `p8_draw_backend_set` installs one process-wide and returns
+API's own arguments (world coordinates, full colour byte). `map` (one `spr` per
+non-empty cell whose 8×8 box meets the screen after the camera) and
+`spr_default` stay in the front end, as do the state calls (`camera`, `fillp`,
+`palt`, `mset`, the draw palette): a backend reads them, never writes them. `p8_draw_backend_set` installs one process-wide and returns
 the previous one; NULL, the default, is the software backend
 (`src/p8/gfx_software.c`), which rasterises into `p8_vram_t.screen` for the
 PC game, the e2e and every test.

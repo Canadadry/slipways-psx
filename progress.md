@@ -20,6 +20,8 @@
     - [x] Chunk 1 — O3 in every psx-build, level checked
     - [x] Chunk 2 — measuring harness at O3, short-run delta
   - [ ] Step 2.6 — p8_map skips off-screen cells (B3)
+    - [x] Chunk 0 — before-figures
+    - [x] Chunk 1 — p8_map loops over visible cells only
   - [ ] Step 2.7 — end of phase full-game check
 - [ ] Phase 3 — Draw, in impact order
   - [ ] Step 3.8 — D5 pre-built background and the image cache

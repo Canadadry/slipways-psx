@@ -130,9 +130,26 @@ static unsigned char map_cell_get(const p8_vram_t *mem, int x, int y) {
     return mem->map_cells[y][x];
 }
 
+static int floor_div_sprite(int a) {
+    return a >= 0 ? a / P8_SPRITE_SIZE : -((-a + P8_SPRITE_SIZE - 1) / P8_SPRITE_SIZE);
+}
+
+static int clamp_cells(int i, int count) {
+    return i < 0 ? 0 : (i > count ? count : i);
+}
+
+/* Half-open [*first, *end) of the cells 0..count-1 whose 8-pixel span, drawn from origin, meets 0..extent-1 after camera. */
+static void visible_cells(int origin, int camera, int extent, int count, int *first, int *end) {
+    *first = clamp_cells(floor_div_sprite(camera - origin), count);
+    *end = clamp_cells(floor_div_sprite(camera - origin + extent - 1) + 1, count);
+}
+
 void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h) {
-    for (int r = 0; r < cel_h; r++) {
-        for (int c = 0; c < cel_w; c++) {
+    int c_first, c_end, r_first, r_end;
+    visible_cells(sx, gfx->camera_x, P8_SCREEN_WIDTH, cel_w, &c_first, &c_end);
+    visible_cells(sy, gfx->camera_y, P8_SCREEN_HEIGHT, cel_h, &r_first, &r_end);
+    for (int r = r_first; r < r_end; r++) {
+        for (int c = c_first; c < c_end; c++) {
             unsigned char sprite_n = map_cell_get(mem, cel_x + c, cel_y + r);
             if (sprite_n == 0) {
                 continue;

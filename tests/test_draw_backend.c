@@ -1,4 +1,5 @@
 #include "p8/draw_backend.h"
+#include "p8/draw_cost.h"
 #include "p8/gfx.h"
 #include "p8/vram.h"
 
@@ -8,7 +9,7 @@
 
 enum call_kind { CALL_CLS, CALL_PSET, CALL_LINE, CALL_RECT, CALL_RECTFILL, CALL_CIRC, CALL_CIRCFILL, CALL_SPR, CALL_PRINT };
 
-#define MAX_CALLS 64
+#define MAX_CALLS 1024
 
 typedef struct {
     enum call_kind kind;
@@ -192,6 +193,117 @@ static void test_map_gives_one_spr_per_non_empty_cell(void) {
     stop_recording(previous);
 }
 
+static void fill_map(void) {
+    for (int r = 0; r < 32; r++) {
+        for (int c = 0; c < 32; c++) {
+            p8_mset(&mem, c, r, 1 + (r * 32 + c) % 255);
+        }
+    }
+}
+
+static void test_map_skips_cells_off_screen_after_the_camera(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    fill_map();
+    p8_camera(&gfx, -(P8_SCREEN_WIDTH - 2 * P8_SPRITE_SIZE), -(P8_SCREEN_HEIGHT - 2 * P8_SPRITE_SIZE));
+
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 32, 32);
+
+    assert(call_count == 4);
+    assert_call(0, CALL_SPR, 1, 0, 0, 1, 1);
+    assert_call(1, CALL_SPR, 2, P8_SPRITE_SIZE, 0, 1, 1);
+    assert_call(2, CALL_SPR, 33, 0, P8_SPRITE_SIZE, 1, 1);
+    assert_call(3, CALL_SPR, 34, P8_SPRITE_SIZE, P8_SPRITE_SIZE, 1, 1);
+    stop_recording(previous);
+}
+
+static unsigned char map_cell_or_zero(int x, int y) {
+    if (x < 0 || x >= 32 || y < 0 || y >= 32) {
+        return 0;
+    }
+    return mem.map_cells[y][x];
+}
+
+/* The pre-culling loop, filtered by the cost model: the calls p8_map must give, in order. */
+static void assert_map_matches_the_old_loop_filtered_by_cost(int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h) {
+    call_count = 0;
+    p8_map(&gfx, &mem, cel_x, cel_y, sx, sy, cel_w, cel_h);
+    int expected = 0;
+    for (int r = 0; r < cel_h; r++) {
+        for (int c = 0; c < cel_w; c++) {
+            int n = map_cell_or_zero(cel_x + c, cel_y + r);
+            if (n == 0) {
+                continue;
+            }
+            int x = sx + c * P8_SPRITE_SIZE;
+            int y = sy + r * P8_SPRITE_SIZE;
+            p8_draw_cost_window_t window = {0, 0};
+            if (p8_draw_cost_spr(&window, &gfx, n, x, y, 1, 1).bytes == 0) {
+                continue;
+            }
+            assert(expected < call_count);
+            assert_call(expected, CALL_SPR, n, x, y, 1, 1);
+            expected++;
+        }
+    }
+    assert(call_count == expected);
+}
+
+static void assert_map_matches_at_cameras(const int *xs, int x_count, const int *ys, int y_count) {
+    static const int origins[][4] = {{0, 0, 0, 0}, {0, 0, -13, 21}, {20, 25, 5, -3}};
+    for (int o = 0; o < 3; o++) {
+        for (int i = 0; i < x_count; i++) {
+            for (int j = 0; j < y_count; j++) {
+                p8_camera(&gfx, xs[i], ys[j]);
+                assert_map_matches_the_old_loop_filtered_by_cost(origins[o][0], origins[o][1], origins[o][2], origins[o][3], 32, 32);
+            }
+        }
+    }
+}
+
+static int camera_sweep(int *out, int extent) {
+    const int map_end = 32 * P8_SPRITE_SIZE;
+    const int centres[] = {-extent - P8_SPRITE_SIZE, -P8_SPRITE_SIZE, map_end - extent, map_end};
+    int count = 0;
+    for (int k = 0; k < 4; k++) {
+        for (int d = -10; d <= 10; d++) {
+            out[count++] = centres[k] + d;
+        }
+    }
+    out[count++] = -5000;
+    out[count++] = 5000;
+    return count;
+}
+
+static void test_map_gives_the_old_loops_on_screen_calls_at_every_edge(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    fill_map();
+    p8_mset(&mem, 4, 3, 0);
+    int xs[90];
+    int ys[90];
+    int x_count = camera_sweep(xs, P8_SCREEN_WIDTH);
+    int y_count = camera_sweep(ys, P8_SCREEN_HEIGHT);
+    const int fixed[] = {0, -5, 60};
+
+    assert_map_matches_at_cameras(xs, x_count, fixed, 3);
+    assert_map_matches_at_cameras(fixed, 3, ys, y_count);
+    stop_recording(previous);
+}
+
+static void test_map_with_no_cell_on_screen_gives_no_call(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    fill_map();
+
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 0, 32);
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 32, -1);
+    p8_map(&gfx, &mem, 0, 0, P8_SCREEN_WIDTH, 0, 32, 32);
+    p8_map(&gfx, &mem, 0, 0, 0, -32 * P8_SPRITE_SIZE, 32, 32);
+    p8_camera(&gfx, 0, 32 * P8_SPRITE_SIZE);
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 32, 32);
+
+    assert(call_count == 0);
+    stop_recording(previous);
+}
+
 static void test_spr_default_gives_a_one_by_one_spr(void) {
     const p8_draw_backend_t *previous = start_recording();
 
@@ -256,6 +368,9 @@ int main(void) {
     test_each_draw_call_reaches_its_own_entry_once();
     test_calls_reach_the_backend_in_world_coordinates();
     test_map_gives_one_spr_per_non_empty_cell();
+    test_map_skips_cells_off_screen_after_the_camera();
+    test_map_gives_the_old_loops_on_screen_calls_at_every_edge();
+    test_map_with_no_cell_on_screen_gives_no_call();
     test_spr_default_gives_a_one_by_one_spr();
     test_state_calls_reach_no_entry();
     test_spr_sees_a_draw_palette_copied_with_memcpy();

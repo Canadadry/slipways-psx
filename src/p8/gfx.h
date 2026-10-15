@@ -51,6 +51,7 @@ void p8_spr_default(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int 
 
 void p8_mset(p8_vram_t *mem, int x, int y, int val);
 
+/* Issues no spr for a cell whose 8x8 box lies wholly off screen after the camera. */
 void p8_map(const p8_graphics_t *gfx, p8_vram_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h);
 
 #define P8_FONT_GLYPH_WIDTH 3

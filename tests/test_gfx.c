@@ -504,6 +504,42 @@ static void test_map_draws_cells_via_sprite_drawing_logic(void) {
     assert(mem.screen[0][0] == 0);
 }
 
+static void test_map_draws_the_same_screen_as_one_spr_per_cell(void) {
+    static p8_vram_t culled;
+    static p8_vram_t reference;
+    static const int cameras[][2] = {{-153, -113}, {-7, -7}, {3, 5}, {97, 137}, {251, 249}, {-160, 120}};
+    p8_graphics_t gfx;
+    p8_vram_init(&culled);
+    for (int y = 0; y < P8_SPRITE_SHEET_HEIGHT; y++) {
+        for (int x = 0; x < P8_SPRITE_SHEET_WIDTH; x++) {
+            culled.sprite_sheet[y][x] = (unsigned char)((x * 7 + y * 3) % 16);
+        }
+    }
+    for (int r = 0; r < 32; r++) {
+        for (int c = 0; c < 32; c++) {
+            p8_mset(&culled, c, r, (r * 5 + c) % 64);
+        }
+    }
+    for (int i = 0; i < 6; i++) {
+        p8_gfx_init(&gfx);
+        p8_camera(&gfx, cameras[i][0], cameras[i][1]);
+        memset(culled.screen, 1, sizeof(culled.screen));
+        reference = culled;
+
+        p8_map(&gfx, &culled, 0, 0, 0, 0, 32, 32);
+        for (int r = 0; r < 32; r++) {
+            for (int c = 0; c < 32; c++) {
+                int n = (r * 5 + c) % 64;
+                if (n != 0) {
+                    p8_spr(&gfx, &reference, n, c * P8_SPRITE_SIZE, r * P8_SPRITE_SIZE, 1, 1);
+                }
+            }
+        }
+
+        assert(memcmp(culled.screen, reference.screen, sizeof(culled.screen)) == 0);
+    }
+}
+
 static void test_map_treats_sprite_0_cells_as_empty(void) {
     /* Real PICO-8's map() "takes sprite 0 to mean empty and does not draw
      * it" (PICO-8 manual, MAP()); the opt-out POKE(0x5F36,0x8) is never
@@ -730,6 +766,7 @@ int main(void) {
     test_mset_outside_32x32_changes_no_cell();
     test_mset_out_of_range_is_noop();
     test_map_draws_cells_via_sprite_drawing_logic();
+    test_map_draws_the_same_screen_as_one_spr_per_cell();
     test_map_treats_sprite_0_cells_as_empty();
     test_map_and_mset_round_trip_against_real_sheet();
     test_print_draws_known_glyph_pixels();
