@@ -3,7 +3,8 @@
 This file will become plan 20's ranked inventory of the ways to make each PSX
 frame do less work. For now it holds the baseline every lever is
 measured against, the judge's asserts-off full-run baseline, the probe
-tool's sanity checks and the PC frame profile's draw coverage. The full-run
+tool's sanity checks, the PC frame profile's draw coverage and the split of
+`cart_draw` among its direct children ("Draw level 1"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
@@ -440,3 +441,99 @@ PC's (138 lines), and its window sums are in the baseline table above.
 
 The PC `cart_update60` child figures at frames 12, 4737, 5500 and 5719 are
 step 9's to analyze.
+
+## Draw level 1: `cart_draw`'s children
+
+Plan 20 step 6. Measured on commit
+`e5d54ab18e1be917c682c3c59eda29e394b63afd` (pcsx-redux, probe build,
+asserts off) with:
+
+```
+make psx-probe-baseline
+make frame-profile-coverage
+make psx-probe PATCH=psx/probes/call-twice-cart-draw.patch PSX_SHORT_RUNS="start draw-5564 draw-6000" PSX_PROBE_LABEL=l1-cart-draw-twice
+```
+
+Each direct child of `cart_draw` is probed with call-twice by default, its
+cost being the window draw-part delta. Where a second call would change the
+game state (`draw_layers#1` on `start`, by step 1.3's decision, and any
+child whose call-twice gives `game-state differs`), the child gets the
+20-hblank fixed delay for its call count, and its cost is its PC share of
+`cart_draw` times the run's PSX `cart_draw` cost, marked PC-derived.
+
+Pre-checks, all held: `git log b7d8226..HEAD -- src psx
+worst-case/full_game.json` is empty, so the probe fingerprint is the code
+steps 2–4 measured; the only `Makefile` change since `b7d8226` (`7eb512f`)
+touches `psx-build` and `psx-full-game-check`, not the probe recipe, which
+still configures with `-DPSX_MEASURED_REPLAY_ASSERTS=OFF`; `tools/` is
+unchanged; step 5's full run is committed and no emulator ran alongside;
+`psx/short_runs.txt` still has the six runs. Probed runs: `start`,
+`draw-5564`, `draw-6000`.
+
+### Rebuilt probe baseline
+
+Window sums in hblanks; every boot `valid`, `game-state same`. Mean window
+frame is the window total ÷ window frames, rounded; 2% of it is step 7's
+threshold. Step 3's probe baseline is the "Probe tool" table above
+(`cb3cf01`); the measured replay is the "Short-run baseline" table (step 2,
+`draw-6000` from step 4).
+
+| Run | Update | Draw | Submit | Total | Window frames | Mean window frame | 2% of it | Step 3 probe total | Gap | Measured replay total | Gap |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `start` | 8980 | 465 | 6 | 9451 | 1 | 9451 | 189.0 | 9451 | 0 | 9451 | 0 |
+| `update-4737` | 118 | 706 | 8 | 832 | 1 | 832 | 16.6 | 832 | 0 | 832 | 0 |
+| `update-5500` | 1409 | 714 | 7 | 2130 | 1 | 2130 | 42.6 | 2130 | 0 | 2130 | 0 |
+| `draw-5564` | 655 | 19491 | 118 | 20264 | 15 | 1351 | 27.0 | 20264 | 0 | 20264 | 0 |
+| `update-5719` | 46 | 1078 | 7 | 1131 | 1 | 1131 | 22.6 | 1131 | 0 | 1132 | −1 |
+| `draw-6000` | 593 | 13987 | 107 | 14687 | 15 | 979 | 19.6 | — | — | 14687 | 0 |
+
+Every part equals step 3's probe baseline exactly on the five runs it had.
+`draw-6000`'s first probe baseline equals step 4's measured replay part for
+part. Nothing moved since step 3, so the deltas below are read against this
+table with no shift to account for.
+
+### `cart_draw`'s own cost
+
+The baseline draw part brackets the one `cart_draw` call of each frame, so it
+is `cart_draw`'s cost. The `call-twice-cart-draw` fixture measures the
+method's bias: bias = draw delta ÷ baseline draw − 1.
+
+| Run | Baseline draw (window) | Per frame | % of mean window frame | Call-twice draw | Draw delta | Bias | Update delta | Submit delta | Text | Game state |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| `start` | 465 | 465 | 4.9% | 956 | +491 | +5.6% | −409 | 0 | +16 bytes | **differs** (known, not used) |
+| `draw-5564` | 19491 | 1299 | 96.2% | 40410 | +20919 | +7.3% | +1 | +1 | +16 bytes | same |
+| `draw-6000` | 13987 | 932 | 95.2% | 27872 | +13885 | −0.7% | +1 | +1 | +16 bytes | same |
+
+- `start` and `draw-5564` reproduce step 3's figures to the hblank (956 and
+  40410 probe draw), with the same `start` mismatch: the second
+  `help_screen_draw` ticks the RNG, p1 lands elsewhere, frame 12's update
+  moves by −409.
+- `draw-6000`, probed for the first time, is the first run where the second
+  `cart_draw` costs less than the first (−102 hblanks over 15 frames). Its
+  game state is the same, and its update and submit leaks are within the
+  2-hblank floor. The children's call-twice deltas on this run are read
+  against a bias near zero, not the +4–9% of the other runs.
+
+### PC shares and calls per child
+
+From `make frame-profile-coverage` on the same commit (`coverage ok`, every
+profile `same-game yes`). Share is **PC time**: the child's inclusive time
+over the window ÷ `cart_draw`'s, median of the K = 4 profiles of the run.
+Calls per frame is the child's calls column on each window frame of
+`tmp/frame-profile/coverage/<run>/<k>/frames.txt`, min–max over all window
+frames of the four profiles.
+
+| Child | `start` share | `start` calls / frame | `draw-5564` share | `draw-5564` calls / frame | `draw-6000` share | `draw-6000` calls / frame |
+|---|---:|---:|---:|---:|---:|---:|
+| `dispatch_context_mem` | 0.0% | 1–1 | 0.0% | 1–1 | 0.0% | 1–1 |
+| `p8_cls` | 0.1% | 1–1 | 0.0% | 1–1 | 0.0% | 1–1 |
+| `hud_select_palette_block_default` | 0.0% | 1–1 | 0.0% | 1–1 | 0.0% | 1–1 |
+| `draw_layers#1` | 99.6% | 1–1 | 75.4% | 1–1 | 99.2% | 1–1 |
+| `draw_layers#2` | 0.2% | 1–1 | 24.6% | 1–1 | 0.8% | 1–1 |
+| `dispatch_context_gfx` | 0.0% | 1–1 | 0.0% | 1–1 | 0.0% | 1–1 |
+| `demo_overlay_draw` | 0.0% | 1–1 | 0.0% | 1–1 | 0.0% | 1–1 |
+
+The four profiles' `draw_layers#1` shares are 99.52 / 99.58 / 99.62 / 99.75%
+on `start`, 69.53 / 75.25 / 75.48 / 75.87% on `draw-5564` and 98.99 / 99.11 /
+99.20 / 99.22% on `draw-6000`. The medians move by at most 0.1 point from
+step 4's coverage table (PC timer noise); this step uses its own run's.

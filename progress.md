@@ -18,6 +18,8 @@
     - [x] Chunk 2: asserts-off full run and report section
 - [ ] Phase 2 — Draw
   - [ ] 2.6 Probe each direct child of cart_draw
+    - [x] Chunk 1: baselines and cart_draw's own cost
+    - [ ] Chunk 2: children probes and additivity check
   - [ ] 2.7 Go down the draw tree
   - [ ] 2.8 Backend side: per-unit costs, 9x print and meter experiments
 - [ ] Phase 3 — Update
