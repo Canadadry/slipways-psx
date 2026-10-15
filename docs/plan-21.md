@@ -297,3 +297,10 @@ by judge-wide gain (the report's `draw-6000` figure):
 - Short runs (asserts off, O2), draw per frame: `draw-5564` −210.9 (report −211.3), `draw-6000` −198.5 (−198.5); update and submit unchanged. `representative` fails on every run (draw moved >10% against step 2's table), other conditions hold.
 - Judge (asserts off, no meter, no filter): all conditions ok but `frame-budget`; zones and caps equal step 2's; backend peak 62,328 of 65,028 metered bytes. Frames over **6,047** (unchanged); worst frame 12 at **9,268** (update 8,981, draw 281); mean **604** (765); overrun mean 341. Draw total 3,019,047, −161 a frame. Table replaced.
 - `psx-game` text 313,664 → 309,548; `game-ram-room` 509,352 bytes left. The meter's code stays linked in the replays (`state_format` reads it), so their text shrank 4,052, not the report's 2,152-and-more.
+
+### Step 2.5
+
+- `psx-build` takes `PSX_BUILD_OPT` (O2/O3/Os, default O3) for `psx-game` (new `PSX_GAME_OPT`) and both GPU replays (`PSX_MEASURED_REPLAY_OPT`, default O3 now), through one `psx-opt-<level>` interface library linked after the SDK; `psx-build` reads every one back with `psx_opt_level.sh` and fails on a mismatch. `-Wno-error` dropped; O3 raised no new warning. Other targets stay O2.
+- Harness: `PSX_SHORT_RUN_OPT` defaults to O3, `psx-full-game-check` passes O3, the probe builds O3 explicitly (another level makes a run invalid; fingerprint gains `opt O3`). New O3 probe baseline taken.
+- `psx-check` green at O3, captures unchanged. RAM: `ram-room` 371,160 → 326,412, `game-ram-room` 509,352 → 469,652; full-game GPU replay at O3 (built, not booted) 316,256 bytes left. Text +40 KB per binary.
+- Short runs, asserts off, O2 → O3, pooled window totals **−7.6%** (report −5.9%): update −13.8%, draw −4.7%, submit −3.2%. Draw per frame: `draw-5564` −42.4 (report −45.5), `draw-6000` −31.2 (−36.3); `start` −1,381 (−1,382). `representative` fails on every run, other conditions hold.

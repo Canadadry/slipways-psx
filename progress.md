@@ -15,7 +15,7 @@
     - [x] Chunk 1 — psx-game unmetered, game-gpu-cost from backend peaks
     - [x] Chunk 2 — measured replays unmetered, gpu-draw-meter, PC-sourced lines
     - [x] Chunk 3 — judge run and table
-  - [ ] Step 2.5 — -O3 for psx-game and the measured replays (G2)
+  - [x] Step 2.5 — -O3 for psx-game and the measured replays (G2)
     - [x] Chunk 0 — O2 baseline before the change
     - [x] Chunk 1 — O3 in every psx-build, level checked
     - [x] Chunk 2 — measuring harness at O3, short-run delta
