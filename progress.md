@@ -32,7 +32,7 @@
     - [x] Chunk 4 — runtime image cache, software backend (PC)
     - [x] Chunk 5 — PSX backend image cache
     - [x] Chunk 6 — D5 background through the cache
-  - [ ] Step 3.9 — D1/B4 outlined font, one primitive per glyph
+  - [x] Step 3.9 — D1/B4 outlined font, one primitive per glyph
     - [x] Chunk 0 — gross target probe and capture check
     - [x] Chunk 1 — p8_print_outlined runtime primitive (PC)
     - [x] Chunk 2 — PSX outlined font

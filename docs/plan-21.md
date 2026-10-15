@@ -348,3 +348,12 @@ by judge-wide gain (the report's `draw-6000` figure):
 - **Image cache delivered** (reusable for steps 12, 13, 15): runtime API `p8_image_build`/`p8_image_draw`, map version stamped by `p8_mset`, software store (64 KiB, paid by the PSX ELFs too), PSX region (704,0) on its own 15-bit page with a double build buffer, meter `zone gpu_build`, filter rule (a copy passes only when the mask holds every family of its image). Pixel-identical on every capture.
 - **D5 kept:** steady draw a frame without the build frame `draw-5564` −31.3, `draw-6000` −34.8, pooled **−33.0** (report 221/224; about 0.15 of it). One-off build about +130–150 draw (≈180 gross), landing on **judge frame 12 only** (galaxy generation; draw 231 → ≈358): input for phase 4's spike list. `GPU_BUILD_BUFFER_BYTES` 10,240 (make state peak 8,800). `zone gpu_frame` peak 63,652.
 - RAM: `ram-room` 229,460, `game-ram-room` 376,244.
+
+### Step 3.9
+
+- D1/B4 taken first (no image cache needed, reaches every outlined string); D2/D3/D4 judged afterwards on their residual cost (PRD decision).
+- Gross target (throwaway colour-pass-only probe): `draw-5564` −431.7, `draw-6000` −76.5 a frame. Captures all 100, all 188, all 265 already show the outline over non-black pixels; none added.
+- `p8_print_outlined` (runtime, backend entry, software nine passes, cost model one SPRT a glyph over a box one pixel wider, every wrapper under `print`); PSX: outlined 5×7 cells on the font texture's unused lines 48–124, CLUT entry 2 black, `psx_text_place_outlined` tested on PC against the software output. `hud_print_outlined` makes one call.
+- **Kept:** draw a frame `draw-5564` **−438.2**, `draw-6000` **−78.4**, pooled −258.3 (report −542.3 / −102.1; unit-cost estimate −398.1 / −113.9); one-frame runs −46 to −229. No one-off cost. `zone gpu_frame` peak 63,652 → 26,288. E2e hashes and every capture unchanged. `ram-room` 226,008, `game-ram-room` 373,596.
+- Unit costs after (pooled): print 1.522 a call, 0.268 a glyph; others as step 8's within noise (cls 0.106, pset 0.129, line 0.157, rect 0.314, rectfill 0.190, circ 3.454, circfill 3.137, spr 0.448, pattern 0.253).
+- Residuals (throwaway probes on top of the switch, `draw-5564` / `draw-6000`): **D2** −43.9 / −8.9, not covered; **D3** −36.1 / 0, not covered; **D4** −9.5 / −9.3, **covered** (under 10.6 on both): step 13 skips it citing this note.
