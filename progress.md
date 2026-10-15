@@ -56,4 +56,4 @@
     - [x] Chunk 1: pre-checks, checklist, companions, gain table
     - [x] Chunk 2: the estimate tool, test-first, with the known-answer check
     - [x] Chunk 3: the bracket
-    - [ ] Chunk 4: entries, ranking, verdict, stop condition
+    - [x] Chunk 4: entries, ranking, verdict, stop condition

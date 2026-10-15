@@ -1,17 +1,27 @@
 # PSX performance levers
 
-This file will become plan 20's ranked inventory of the ways to make each PSX
-frame do less work. For now it holds the baseline every lever is
-measured against, the judge's asserts-off full-run baseline, the probe
-tool's sanity checks, the PC frame profile's draw coverage, the split of
-`cart_draw` among its direct children ("Draw level 1"), the draw tree
-below them ("Draw tree"), the backend's cost per call and per unit of
-every draw family ("Backend: per-unit costs"), the update spikes with
-the calibration of PC update proportions ("Update spikes"), update on
-the frames outside the spikes ("Ordinary update") and the global levers,
-asserts, the compiler level and the submit split ("Global levers"). The full-run
-frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
-part of this report and deleted with it.
+This file is plan 20's ranked inventory of the ways to make each PSX frame
+do less work: every lever found, with where it is, its measured or
+estimated gain, its cost and its risk, the levers ranked by gain over cost,
+and a per-frame estimate of the judge's 6,059 frames against the
+263-hblank budget. **Verdict:** with the measured levers alone (D1/B4
+one-print, B1 no meter, G2 `-O3`), 6,047 of the 6,059 judge frames stay
+over 263, as many as today; with the estimated levers too, 2 frames stay
+over on the headline draw run (`draw-6000`: spike frames 113 and 1349, by
+16 and 14 hblanks of update left on the frame) and none on `draw-5564`, so
+263 is reached on paper on the sensitivity run only, and nowhere with 20%
+to spare (245 and 106 frames over with every gain cut by a fifth). The
+bracket is relative to pcsx-redux's timing model, an interpreter charging a
+flat 2 cycles per instruction with no instruction-cache miss or data wait,
+so it is a statement about the judge, not about real hardware or the Miyoo,
+and the levers whose Risk opens with "Timing model" are the ones most
+exposed to that difference. The sections from "Short-run baseline" on are
+the evidence, one per plan step. Four companion files are part of this
+report: the judge's frame table `docs/psx-perf-levers-full-run-frames.txt`,
+step 9's spike frames `docs/psx-perf-levers-spike-frames.txt`, the
+lever-gain table `docs/psx-perf-levers-gains.txt` and the estimate
+`docs/psx-perf-levers-estimate.txt`. The report and its companions are
+deleted once the implementation plan exists.
 
 ## Step 12 checklist
 
@@ -257,7 +267,7 @@ per part.
       pre-check above (`HEAD` = `4306e41`).
     - H-11-8, `DrawSync` (0.04–0.05 a frame, never waits): no figure; the
       verdict says GPU-side cost is invisible to the judge.
-    - H-11-9, opening paragraph: rewritten in chunk 4.
+    - H-11-9, opening paragraph: rewritten (chunk 4).
 12. **The timing-model label** (plan 594; report "The `-Os` caveat").
     *Rule:* "The timing-model label" of the PRD: the Risk field of every
     lever whose gain comes from, or whose cost includes, code size or
@@ -265,8 +275,21 @@ per part.
     GPU-side work the judge does not charge, opens with "Timing model:
     rests on pcsx-redux charging no instruction-cache miss or data wait";
     the verdict carries one sentence on it. *Figure:* no estimate figure
-    changes (the label qualifies gains, it does not cut them); the labelled
-    entries (at least G2 and G3) and the sentence: pending chunk 4.
+    changes (the label qualifies gains, it does not cut them). The rule,
+    applied to all 45 lever entries, selects 14, each labelled: (1) code
+    size or layout: G2 (+40 KB text), G3 (its cache argument); (2)
+    instructions traded for memory traffic or larger tables: L1 and L2
+    (kept sorted lists), B5 (per-glyph table), B8 (radius table), U4 (1 KB
+    CRC table), D2, D3, D4, D5, D6 (off-screen images and the pre-built
+    background, copied from VRAM); (3) GPU-side work the judge does not
+    charge: D1/B4 and D8 (larger sprites), and D2–D6's copies. Not
+    labelled: the levers that only remove instructions, calls or uploads
+    (B1–B3, B6, B7, D7, D9–D13, D15, L3, L4, F1, G1, G4, O1–O5, U1–U3, U6;
+    D12 replaces two primitives by one, O1's flag, O3's grid and D13's
+    per-planet flag replace scans by a few bytes, not a table traded for
+    instructions), the spreading permissions (S, U5, U7, U8) and D14 (no
+    candidate). The sentence is in "Verdict and stop condition", echoed in
+    the opening paragraph.
 13. **Gain-table rules beyond the seed items** (the sweep's own; recorded
     so every row is traceable):
     - Draw rows: window bound or measured delta ÷ the run's window draw
@@ -371,7 +394,796 @@ per part.
     order of, and below"), so the estimated end with `F1` is optimistic by
     the gap between the two, which no run measures; item 3 prints the end
     without `F1` beside it. *Figure:* no row changes; both bounds are
-    named in their entries (chunk 4).
+    named in their entries (L1, F1).
+
+## Decisions carried to the implementation plan
+
+Locked by plan 20 (section 2), restated here because the plan file is
+deleted once it is finished; the implementation plan inherits them as they
+are.
+
+**What "60 fps" means.**
+
+- **Strict.** Every frame (update, draw and submit) fits in 263 hblanks. No
+  percentile and no tolerance for rare spikes. The loading frames are no
+  exception: a frame that cannot fit is split across several frames.
+- **The judge is pcsx-redux at 263 hblanks, with no margin.**
+  `frame-budget` green in `make psx-full-game-check` is the contract.
+- **The Miyoo is never measured.** The human runs nothing on the device,
+  and PCSX-ReARMed is not added to the harness (both were rejected). The
+  two emulators count cycles differently, so "60 fps on the Miyoo" stays
+  unverified; the implementation plan says so plainly in the `README` and
+  in `docs/psx-game.md`.
+- **PCSX-ReARMed at default settings.** Raising its "PSX CPU clock" core
+  option (`pcsx_rearmed_psxclock`) or shipping a `.opt` file is rejected:
+  the pcsx-redux budget cannot model it, and every gain has to come from
+  the code.
+
+**Decisions.**
+
+- **Spreading work across frames is allowed on PC and PSX alike**, for
+  galaxy generation and the update spikes. The `tests/e2e/*.sha256` files
+  are then re-recorded once, explicitly. The game stays identical on both
+  platforms: a PSX-only divergence was rejected.
+- **The PSX picture stays pixel-identical to the PC's.** Every capture
+  keeps its 0-pixel tolerance. Changes that alter pixels are not on the
+  table unless the human reopens the question after getting stuck. One
+  exception: a lever that only changes how much `visual_random` is
+  consumed (for example a removed redundant draw call) may change e2e
+  `*.sha256`; it is accepted after checking that each changed screen
+  differs from the old one by only a few pixels of visual noise, with the
+  game state unchanged.
+- **Asserts go off** in `psx-game` and in the measured GPU replay, and stay
+  on in the PC build and the tests. The PC with asserts on plays the same
+  game, as `psx-check` proves.
+
+## Verdict and stop condition
+
+**Against the judge** (step 5's asserts-off full run, 6,059 frames;
+"Cumulative estimate" below):
+
+| End | Frames over 263, `draw-6000` (headline) | Frames over 263, `draw-5564` (sensitivity) | Mean ordinary frame (`draw-6000` / `draw-5564`) | Judge-wide saved (`draw-6000`) |
+|---|---:|---:|---|---:|
+| No lever (the judge) | 6,047 | 6,047 | 837.96 | 0 |
+| Measured levers only (D1/B4, B1, G2) | 6,047 | 6,047 | 584.31 / 429.59 | 1,551,617 (29.9%) |
+| Measured + estimated | **2** (spike frames 113 +16, 1349 +14, by leftover) | **0** | 111.05 / 87.08 | 4,465,982 (86.0%) |
+| Measured + estimated, every gain ÷ 1.2 (`haircut=20`) | 245 | 106 | — | — |
+| Measured + estimated without `F1` | 3 | 2 | — | — |
+
+The measured levers cut a third of the judge's time but bring no frame
+under 263 that was not already there: the bracket's answer rests on the
+estimated levers. With them, every ordinary frame fits on both runs (worst
+5563 at 211 on `draw-6000`), every spike frame's work is placed, and what
+is left over is update that stays on two event frames (C13's save at 113,
+C12's project recompute at 1349). Draw dominates the measured end's excess
+(87.2% of the over-budget time on `draw-6000`); spike-frame update is all
+that remains under the estimated end.
+
+**Against the step 2 short runs** ("Short-run baseline", window sums, here
+per window frame), each run's sums put through the same rows: the run's own
+draw rows (`start`'s for `start`; `draw-5564`'s and `draw-6000`'s for
+those; the headline's in-game rows for the one-frame update runs), the
+ordinary update rows where the window frame is no spike in the short run,
+the class's rows where it is (`start` C6, `update-5500` C1, whose spike the
+resume keeps), before any spreading:
+
+| Run | Window frames | Per frame, baseline | Measured end | Measured + estimated | Note |
+|---|---:|---:|---:|---:|---|
+| `start` | 1 | 9451 | 8031 | 4330 | frame 12, C6: spread over 24 frames on the judge (22 on `draw-5564`) |
+| `update-4737` | 1 | 832 | 588 | 121 | spike lost on resume (update 118) |
+| `update-5500` | 1 | 2130 | 1705 | 545 | C1 kept (update 1409): spread over 5 frames on the judge |
+| `draw-5564` | 15 | 1351 | 658 | 116 | |
+| `update-5719` | 1 | 1132 | 777 | 133 | spike lost on resume (update 46) |
+| `draw-6000` | 15 | 979 | 672 | 115 | |
+
+The short runs say the same: measured levers alone leave every window
+over 263 (588 to 8031 a frame), the estimated end brings every window that
+is not a spike under it (115 to 133 a frame) and leaves the two kept
+spikes to spreading. They read about 15% off the judge and lose two of the
+spikes on resume ("Against the step 2 short runs"), so the judge's figures
+above are the verdict; these are the cross-check (computed by a throwaway
+script from the gain table's rows, not committed).
+
+**Reached on paper?** On `draw-5564`, yes: every judge frame at or under
+263. On the headline `draw-6000`, no: two spike frames keep 16 and 14
+hblanks of their own update after their work is spread (C13's save and
+C12's project recompute, the first places to look for a further update
+lever). With 20% to spare, no on either run.
+
+**Stop condition (a)**, the cumulative estimated gain brings every judge
+frame to 263 with about 20% to spare: **does not hold.** With every gain
+and cap divided by 1.2, 245 frames stay over on `draw-6000` (227 ordinary,
+218 of them by ≤ 1/4 vsync; 17 spike frames by leftover; 6043
+does-not-fit) and 106 on `draw-5564` ("Allocation, haircut, `F1`").
+
+**Stop condition (b)**, every branch above 2% explored: **holds, and is
+the one that ended discovery.** Draw: step 7's "Verification across runs"
+("Every node above 2% on every run is explored or a leaf" on `start`,
+`draw-5564` and `draw-6000`), and step 8's "Verification" (every family
+has a per-unit cost, each experiment a measured delta). Update: step 9's
+"Verification" (every one of the 166 spike frames in a class, each class
+with a responsible function and a do-less candidate) and step 10's
+"Verification" (descent closed at `nodes-above 5 leaves 2 open 0`, every
+node with its candidates). Submit and global: step 11's "Verification" and
+"Submit split" ("Above 2% of a run's mean window frame: none"). (b) held
+for draw and update at the end of step 10, and for submit at step 11's
+split, before any estimate existed; (a) has not held since.
+
+**Where to look if discovery is reopened** (checklist items 6 and 10):
+the near miss `update_entities` (16.2 a frame on ordinary frames, 20.6% of
+ordinary update, "low" label, above 2% at its `start-game` ratio, no
+candidate; `planet_hit_test_method`, 16.7, is O3's node); the selves no
+clean probe reaches inside explored nodes, `draw_layers#1`'s self on
+`draw-5564` (≤ 105 a frame, flagged), `emitter_update`'s particle-ageing
+loop and `slipway_draw`'s dot-ageing loop; the end-of-game screen (frames
+near 6043, draw 947–1235 on the judge), covered by no short run and the
+least supported region of the estimate; and the update of the two event
+frames still over.
+
+**Timing model.** The bracket is relative to pcsx-redux's timing model —
+an interpreter charging a flat 2 cycles per instruction, with no
+instruction-cache miss or data wait — so it is a statement about the
+judge, not about real hardware or the Miyoo, and the labelled levers
+(Risk opening with "Timing model") are the ones most exposed to that
+difference; and since `DrawSync` never waits on the judge (0.04–0.05 a
+frame), GPU-side cost is invisible to it too.
+
+**The plan stops here for the human's choice** of the levers to pull; the
+implementation plan is written from this report in a new grilling session.
+
+## Levers ranked
+
+Gain is the judge-wide hblanks saved by the lever alone, measured +
+estimated end (`lever <id> alone saved …` of `tools/lever_estimate.sh`,
+the headline `draw-6000` set; `draw-5564`'s in brackets): Σ before − Σ after
+over the 6,059 frames, a spike frame's after taken before spreading.
+Cost points: S 1, M 2, L 4. Gain ÷ cost ranks on the headline run; ties
+are broken by lower risk (no re-record before re-record). No lever alone
+brings a frame under 263 that the judge did not already have: every
+`lever … alone` line reads `frames-fitting 12` (the judge's twelve), on
+both runs, so that column is left out. The judge's total is 5,192,992
+hblanks.
+
+| Rank | Id | Lever | Kind | Gain alone (`draw-5564`) | Cost | Gain ÷ cost (`draw-5564`) | Risk summary |
+|---:|---|---|---|---:|---|---:|---|
+| 1 | B3 | Cull the map's off-screen cells | estimated | 713,883 (523,332) | S | 713,883 (523,332) | e2e unchanged (PC throwaway); pixels identical |
+| 2 | B1 | Drop the draw meter from `psx-game` | measured | 968,555 (740,277) | M | 484,278 (370,139) | e2e unchanged; `psx-check` state lines to re-source |
+| 3 | D5 | Pre-built background copied each frame | estimated | 1,092,090 (776,055) | L | 273,023 (194,014) | timing model; VRAM for the map image |
+| 4 | F1 | Time the judge's replay without the draw filter | estimated | 968,555 (740,277) | L | 242,139 (185,069) | changes the judge's harness: the human's agreement |
+| 5 | G2 | `-O3` | measured | 236,990 (236,990) | S | 236,990 (236,990) | timing model; RAM +40 KB text |
+| 6 | L1 | Layer lists kept sorted at registration | estimated | 463,559 (535,520) | M | 231,780 (267,760) | timing model; per-layer order must stay registration order |
+| 7 | B2 | Reject off-screen calls at the first test | estimated | 367,034 (86,811) | M | 183,517 (43,406) | e2e unchanged; pixels identical |
+| 8 | O2 | Ask "is a panel open?" once per pad step | estimated | 151,138 (151,138) | S | 151,138 (151,138) | game state if an in-step change does not re-ask; e2e decides |
+| 9 | D12 | One 2×2 sprite per transit dot | estimated | 294,659 (81,882) | M | 147,330 (40,941) | pixels identical |
+| 10 | D1/B4 | Outlined font, one primitive per glyph | measured | 498,398 (1,898,219) | L | 124,600 (474,555) | timing model; VRAM for the font; pixels identical only with an equivalent outline |
+| 11 | D11 | One primitive for a slipway's four lines | estimated | 246,059 (125,988) | M | 123,030 (62,994) | pixels identical only if batched; a thick line changes pixels |
+| 12 | D15 | One runtime call per emitter's particles | estimated | 235,580 (124,640) | M | 117,790 (62,320) | pixels identical |
+| 13 | D8 | Disc and ring baked into the planet sprite | estimated | 399,725 (215,537) | L | 99,931 (53,884) | timing model; pixels identical only if baked exactly |
+| 14 | D6 | Planet row icons drawn once | estimated | 394,277 (193,761) | L | 98,569 (48,440) | timing model; VRAM for the image |
+| 15 | D4 | Score panel readouts drawn once | estimated | 385,237 (279,234) | L | 96,309 (69,809) | timing model; VRAM for the image |
+| 16 | O1 | Keep "a modal backdrop exists" as state | estimated | 170,896 (170,896) | M | 85,448 (85,448) | game state unless it mirrors the scan exactly; e2e decides |
+| 17 | D2 | Button rows and tooltip drawn once | estimated | 237,813 (1,094,215) | L | 59,453 (273,554) | timing model; VRAM for the images |
+| 18 | D10 | Slipway end points computed once | estimated | 59,443 (48,360) | S | 59,443 (48,360) | pixels identical |
+| 19 | D9 | Cull off-screen planets before dispatch | estimated | 48,803 (33,559) | S | 48,803 (33,559) | pixels identical; `visual_random` untouched |
+| 20 | O3 | Hit-test only planets whose box can hold the cursor | estimated | 87,169 (87,169) | M | 43,585 (43,585) | game state unless the pre-filter is exact; e2e decides |
+| 21 | D13 | Reuse planet visibility in `slipway_draw` | estimated | 40,042 (29,656) | S | 40,042 (29,656) | pixels identical |
+| 22 | G4 | Upload only the slots that changed | estimated | 32,982 (32,982) | M | 16,491 (16,491) | a wrong palette if a needed upload is skipped |
+| 23 | U2 | Rebuild a planet row only when it changed | estimated | 24,577 (24,577) | M | 12,289 (12,289) | timing only if exact; e2e decides |
+| 24 | U4 | Table-driven CRC-32 for the save | estimated | 10,375 (10,375) | S | 10,375 (10,375) | timing model; RAM 1 KB table |
+| 25 | O5 | Initialise only the hovered layer's list | estimated | 9,720 (9,720) | S | 9,720 (9,720) | timing only if readers treat an uninitialised layer as empty |
+| 26 | U1 | Skip the first recompute of a slipway drop | estimated | 13,478 (13,478) | M | 6,739 (6,739) | game state unless the second recompute reaches the same side effects; e2e decides |
+| 27 | L3 | Parallax camera computed once per camera move | estimated | 6,077 (4,434) | S | 6,077 (4,434) | pixels identical |
+| 28 | U3 | No economy recompute on a wormhole launch | estimated | 10,892 (10,892) | M | 5,446 (5,446) | game state if a recomputed figure changes; e2e decides |
+| 29 | L2 | Overlay pass reuses the draw pass's sort | estimated | 9,238 (56,090) | M | 4,619 (28,045) | timing model; alternative inside L1 |
+| 30 | U6 | Stop a nearest-planet scan at the first close planet | estimated | 3,980 (3,980) | S | 3,980 (3,980) | timing only (same draws, same planets) |
+| 31 | D3 | Open message box drawn once | estimated | 0 (937,309) | L | 0 (234,327) | timing model; no message box on `draw-6000` |
+
+Reading the ranking:
+
+- **Alone, the gains overlap and are not additive**: B1 and F1 are each
+  worth 968,555 alone, but per-call gains apply to what the work levers
+  leave; D5 and B3 are alternatives (D5 counts in the estimate), as are
+  D11 + D12 + D15 against B2, L1 against L2, O1 against O2, and D1/B4
+  against D2 + D3 + D4 ("Cumulative estimate", overlap rules). The
+  composed estimated end saves 4,465,982, not the sum.
+- **The update levers rank low judge-wide and still decide the verdict**:
+  U1–U6 act on the 166 spike frames only, and the two frames still over
+  are spike frames whose leftover is update. Spreading (S, U5, U7, U8,
+  below) is what makes spike frames fit at all.
+- **The `draw-5564` order differs**: there D1/B4 (1,898,219) and D2
+  (1,094,215) lead in gain and D3 is worth 937,309, because that screen
+  holds the message box and eleven labelled buttons; `draw-6000` is
+  geometry (map, discs, lines, points).
+
+**Not ranked**, with why:
+
+- **G1, asserts off: taken.** In the baseline (the judge table is asserts
+  off), so in neither end; the implementation plan applies it to
+  `psx-game`. Measured gain of asserts off: +3.7% pooled (update +3.2%,
+  draw +3.9%, submit +1.2%; full run +4.0% of 857).
+- **G3, `-Os`: negative.** +25.9% slower pooled on the judge; no row.
+- **At 0, not separable or not measured:** D7 (covered by D2, D6, D3), D14
+  (no candidate that keeps pixels), L4 (planets replaced by D9; the
+  slipways' and ascension's off-screen fraction not measured), B5–B8
+  (not separable inside the backend's per-unit costs), O4 (the share of
+  unchanged frames not measured).
+- **Spreading permissions, not gains:** S (every class), U5 (the save one
+  frame later), U7 (galaxy generation), U8 (`update_entities`). They save
+  no hblank; they place a spike frame's work in the following frames'
+  room, and are in both ends because section 2 allows spreading. With no
+  spreading, no spike frame fits under either end.
+
+## Lever entries
+
+One entry per lever, by family: `draw_layers` (L), the draw tree (D), the
+backend (B), the draw filter (F), update spikes (U and S), ordinary update
+(O), global (G). Every `file:line` was re-checked at this commit (no file
+under `src/` or `psx/` changed since step 11's `3bb0fea`, whose only
+source change is `psx/CMakeLists.txt`). Gains are window sums in hblanks
+per short run (per window frame in brackets for the 15-frame runs), in the
+order `start`, `update-4737`, `update-5500`, `draw-5564`, `update-5719`,
+`draw-6000`; negative is faster where a figure is a measured delta. Draw
+bounds come from step 7's tree, which was descended on `start`,
+`draw-5564` and `draw-6000` only, so the one-frame update runs read "—,
+not descended" for them. "Rows" names the gain-table rows the lever
+contributes (`docs/psx-perf-levers-gains.txt`; title and `start` frames
+take the `start` figure, in-game frames `draw-5564`'s / `draw-6000`'s).
+Cost: S one PRD chunk, a local change; M one PRD, several modules or a new
+data structure; L several PRDs, a new subsystem or asset pipeline, or a
+harness or judge change needing the human's agreement. Risk names the e2e
+hashes, PC/PSX identity, RAM and, where step 7 gave one, the pixel risk;
+the timing-model label opens it where the rule of checklist item 12
+selects the lever.
+
+### `draw_layers` (step 7, level 2)
+
+**L1, layer lists kept sorted at registration** (estimated)
+- Where: `draw_layers`, `src/engine/entity_registry.c:199`; the 15 lists
+  built at `:208` and the bucket pass at `:212`.
+- Gain: `start` ≤ 23; `update-4737`, `update-5500`, `update-5719` —, not
+  descended; `draw-5564` ≤ 2295 (153: `#1` 137 + `#2` 16); `draw-6000` ≤
+  1425 (95). An upper bound: it also holds the dispatch loop, which stays,
+  the unmeasured particle-ageing self and `structure_icon_draw_method`
+  (checklist item 16; the cap of item 15 takes the icons out). Rows: draw
+  `work`, group `layerlists`, 4.95% / 11.77% / 10.19%.
+- Cost: M — the registry keeps per-message, per-layer lists, updated on
+  register, unregister and layer change.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; kept lists trade the per-frame pass for memory reads
+  of a standing structure, which real data waits would make dearer. e2e
+  unchanged and pixels identical provided the per-layer order stays the
+  registration order; both platforms alike (engine); RAM a few hundred
+  bytes (about 190 entity pointers over the two passes).
+
+**L2, the overlay pass reuses the draw pass's sort** (estimated)
+- Where: the second `draw_layers` call (`ENTITY_MESSAGE_DRAW_OVERLAY`),
+  `src/engine/entity_registry.c:199`.
+- Gain: `start` ≤ 2; one-frame update runs —, not descended; `draw-5564`
+  ≤ 240 (16); `draw-6000` ≤ 30 (2). Covered by L1; listed because alone it
+  halves the bucket work. Rows: draw `work`, group `layerlists`, alternative
+  to L1: 0.43% / 1.23% / 0.21%.
+- Cost: M — one sorted structure kept from the draw pass to the overlay
+  pass of the same frame.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; it keeps a sorted list in memory between passes. e2e
+  unchanged, pixels identical; both alike; RAM about 60 pointers a frame.
+
+**L3, parallax camera computed once per camera move** (estimated)
+- Where: `camera_apply_method`, `src/game/scroll.c:21`, called from
+  `src/engine/entity_registry.c:233`.
+- Gain: ≤ 1 a frame on every descended run (`start` ≤ 1, `draw-5564` ≤ 15
+  (1), `draw-6000` ≤ 15 (1)); one-frame update runs —. Rows: draw `work`,
+  group `camera`, 0.22% / 0.08% / 0.11%.
+- Cost: S — cache the per-layer offsets until the camera moves.
+- Risk: e2e unchanged, pixels identical; both alike; RAM 15 offsets.
+
+**L4, skip off-screen entities at dispatch** (estimated, at 0)
+- Where: the dispatch loop of `draw_layers`,
+  `src/engine/entity_registry.c:237`–`:239`.
+- Gain: the off-screen fraction is not measured; at most `start` 93,
+  `draw-5564` (147 + 125 + 37 a frame), `draw-6000` (203 + 162 + 55 a
+  frame); for planets replaced by D9 (they already return early). Rows:
+  draw `work`, group `dispatch`, 0.
+- Cost: M — a screen-bounds test per class, before the call.
+- Risk: e2e `visual_random` only (a skipped planet shifts
+  `visual_random`, `src/game/planet_display.c:367`), checked per section
+  2's exception; both alike; RAM none.
+
+### Draw tree (step 7, levels 3 and below)
+
+**D1/B4, outlined font: one primitive per glyph** (measured upper bound)
+- Where: `hud_print_outlined`, `src/game/hud.c:85` (the nine-pass loop,
+  `p8_print` at `:86`), over `gpu_print`, `src/platform/psx_gpu.c:326`.
+- Gain, measured (step 8's one-print, an upper bound of the font): `start`
+  −64, `update-4737` −65, `update-5500` −74, `draw-5564` −8134 (−542.3),
+  `update-5719` −287, `draw-6000` −1532 (−102.1). Step 7's tree bound:
+  7819 (521) and 1410 (94). Rows: draw `work`, group `text`, alternative
+  to D2 + D3 + D4: 13.76% / 41.73% / 10.95% (measured end).
+- Cost: L — a pre-drawn outlined font in VRAM (5×7 cells, a CLUT per text
+  colour) and a print path on both backends that draws it.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; larger glyph sprites and their CLUTs are GPU-side
+  work and VRAM traffic the judge does not charge. e2e unchanged and
+  pixels identical only with an equivalent outline (the outline colour is
+  always 0; neighbours' outlines meet in the gap column only); both
+  alike; VRAM for the font page and CLUTs.
+
+**D2, button rows and tooltip drawn once** (estimated)
+- Where: `button_draw`, `src/game/ui_button.c:254` and `:271`;
+  `tooltip_draw_at`, `src/game/layout.c:264` (rows at `:285`).
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 4689 (313:
+  rows 4268, tooltip 421), less the copy; `draw-6000` 731 (49). Rows:
+  draw `work`, group `text`, side D2 + D3 + D4: 0 / 24.06% / 5.23%.
+- Cost: L — an off-screen image cache in the runtime and both backends
+  (drawn on refresh, copied each frame); M once D3, D4, D5 or D6 has
+  built it.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; the per-frame copy from VRAM is GPU-side work the
+  judge does not charge. e2e unchanged, pixels identical; both alike;
+  VRAM for eleven buttons' rows.
+
+**D3, open message box drawn once** (estimated)
+- Where: `message_box_draw_overlay`, `src/game/message_box.c:128` (the
+  per-article camera shake at `:126`).
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 4017 (268), less
+  a copy; `draw-6000` 0 (no box open). Rows: draw `work`, group `text`,
+  side D2 + D3 + D4: 0 / 20.61% / 0.
+- Cost: L — as D2 (the image cache).
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; the copy is GPU-side. Pixels identical if the shake
+  offsets are kept; e2e unchanged; both alike; VRAM for one box image.
+
+**D4, score panel readouts drawn once** (estimated)
+- Where: `print_outlined_entry`, `src/game/draw_functions.c:54`
+  (formatting at `:56`).
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 1196 (80: redraw
+  1145, formatting 51); `draw-6000` 1185 (79: 1144 + 41). Rows: draw
+  `work`, group `text`, side D2 + D3 + D4: 0 / 6.14% / 8.47%.
+- Cost: L — as D2, plus redrawing a readout only when its value changes.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; the copy is GPU-side. e2e unchanged, pixels
+  identical; both alike; VRAM for seven readouts.
+
+**D5, pre-built background copied each frame** (estimated)
+- Where: `background_draw`, `src/game/background.c:143` (`p8_map`,
+  `src/p8/gfx.c:133`).
+- Gain: `start` 241; one-frame update runs —; `draw-5564` 3319 (221);
+  `draw-6000` 3354 (224); less the copy. Rows: draw `work`, group `map`,
+  alternative to B3: 51.83% / 17.03% / 23.98% (D5 counts).
+- Cost: L — the map drawn once into a VRAM image (rebuilt when map memory
+  changes) and copied with the camera offset, on both backends.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; the copy from VRAM is GPU-side. Pixels identical
+  while the map memory does not change; e2e unchanged; both alike; VRAM
+  for a 256×256 image.
+
+**D6, planet row icons drawn once** (estimated)
+- Where: `row_draw_at_item_draw` on path 3, `src/game/layout.c:196`.
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 830 (55);
+  `draw-6000` 1212 (81). Rows: draw `work`, group `rowicons`: 0 / 4.26% /
+  8.67%.
+- Cost: L — as D2, redrawn when the row is rebuilt.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; the copy is GPU-side. e2e unchanged, pixels
+  identical; both alike; VRAM for the rows' images.
+
+**D7, skip palette selects that change nothing** (estimated, at 0)
+- Where: `row_draw_at_item_draw`, `src/game/layout.c:195` and `:199`.
+- Gain: ≤ 379 (25) on `draw-5564`, ≤ 312 (21) on `draw-6000`; `start` and
+  one-frame runs —. Dropped as covered: its rows sit on paths 1, 3 and 5,
+  which D2, D6 and D3 remove. Rows: 0.
+- Cost: S — compare the block with the current one before copying.
+- Risk: e2e unchanged, pixels identical; both alike; RAM none.
+
+**D8, disc and ring baked into the planet sprite** (estimated)
+- Where: `planet_draw`, `src/game/planet_display.c:375` (`p8_circfill`)
+  and `:393` (`p8_circ`).
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 924 (62);
+  `draw-6000` 1230 (82); less the larger sprites. Rows: draw `work`, group
+  `discs`: 0 / 4.74% / 8.79%.
+- Cost: L — pre-rendered planet sprites with disc and ring, per size and
+  colour, built into VRAM on both backends.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; larger sprites are GPU-side work the judge does not
+  charge. Pixels identical only if the baked sprite reproduces the disc
+  exactly, otherwise e2e re-record and section 2 rules it out; both alike;
+  VRAM for the baked sprites.
+
+**D9, cull off-screen planets before dispatch** (estimated)
+- Where: `planet_draw`'s early return, `src/game/planet_display.c:358`;
+  the dispatch in `src/engine/entity_registry.c:239`.
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 144 (10);
+  `draw-6000` 150 (10). Rows: draw `work`, group `dispatch`: 0 / 0.74% /
+  1.07%.
+- Cost: S — the same on-screen test before the call.
+- Risk: e2e unchanged (the early return already precedes
+  `visual_random`, `:367`), pixels identical; both alike; RAM none.
+
+**D10, slipway end points computed once** (estimated)
+- Where: `slipway_draw_line`, `src/game/slipway_display.c:72` and `:74`.
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 207 (14);
+  `draw-6000` 183 (12). Rows: draw `work`, group `endpoints`: 0 / 1.06% /
+  1.31%.
+- Cost: S — compute both end points once per slipway and pass them to both
+  passes.
+- Risk: e2e unchanged, pixels identical; both alike; RAM none.
+
+**D11, one primitive for a slipway's four lines** (estimated)
+- Where: `slipway_draw_line`, `src/game/slipway_display.c:83`.
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 539 (36);
+  `draw-6000` 756 (50). Rows: draw `work`, group `offscreen` (with D12 and
+  D15, alternative to B2): 0 / 2.77% / 5.41%.
+- Cost: M — a batched four-line call in the runtime and both backends.
+- Risk: e2e unchanged and pixels identical if the backend batches the same
+  four lines; as a thick line it would change pixels (ruled out); both
+  alike; RAM none.
+
+**D12, one 2×2 sprite per transit dot** (estimated)
+- Where: `slipway_draw`, `src/game/slipway_display.c:162`.
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 351 (23);
+  `draw-6000` 907 (60); less the sprite. Rows: draw `work`, group
+  `offscreen`: 0 / 1.80% / 6.48%.
+- Cost: M — a 2×2 sprite per dot colour and its draw path on both
+  backends.
+- Risk: e2e unchanged, pixels identical; both alike; RAM a few sprite
+  cells.
+
+**D13, reuse planet visibility in `slipway_draw`** (estimated)
+- Where: `slipway_draw`, `src/game/slipway_display.c:99`.
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 126 (8);
+  `draw-6000` 123 (8). Rows: draw `work`, group `visibility`: 0 / 0.65% /
+  0.88%.
+- Cost: S — `planet_draw` records its on-screen result for the frame.
+- Risk: e2e unchanged, pixels identical; both alike; RAM one flag per
+  planet.
+
+**D14, `emitter_update`'s simulation** (no candidate, at 0)
+- Where: `emitter_update`, `src/game/particle.c:119`.
+- Gain: — on every run: every particle moves every frame, the work itself
+  (219 and 293 over the `draw-5564` window). Rows: 0.
+- Cost: — (no candidate that keeps pixels).
+- Risk: — (moving the simulation to the update is not a "do less").
+
+**D15, one runtime call per emitter's particles** (estimated)
+- Where: `emitter_update`, `src/game/particle.c:190` (`p8_pset`).
+- Gain: `start` 0; one-frame update runs —; `draw-5564` 534 (36: 293 +
+  241); `draw-6000` ≤ 724 (48). Rows: draw `work`, group `offscreen`: 0 /
+  2.74% / 5.18%.
+- Cost: M — a point-list call in the runtime and both backends.
+- Risk: e2e unchanged, pixels identical; both alike; RAM a point list in
+  the frame zone.
+
+### Backend (step 8)
+
+**B1, drop the draw meter from `psx-game`** (measured)
+- Where: `p8_draw_meter_install`, `src/cmd/psx_game.c:68`, and
+  `psx_gpu_frame_end(p8_draw_meter_last_frame().bytes)`, `:96`; the meter
+  `src/p8/draw_meter.c:57`–`:103`.
+- Gain, measured (no-meter, the measured replay as stand-in): `start`
+  −124, `update-4737` −165, `update-5500` −164, `draw-5564` −3170
+  (−211.3), `update-5719` −199, `draw-6000` −2977 (−198.5). The meter's
+  frame end (0.13 a frame, 1.6% of submit) stays: the no-meter
+  experiment kept `p8_draw_meter_frame_end` (`:125`), so it is not counted.
+  Rows: draw `per-call`, group `meter`: 26.67% / 16.26% / 21.28%.
+- Cost: M — the `zone gpu_frame` and `cap gpu_*` state lines that
+  `tools/psx_check.sh` and `tools/psx_full_game_check.sh` read come from
+  the meter (`src/devtools/state_format.c:282`) and must come from the
+  backend's own counts.
+- Risk: e2e unchanged (the meter draws nothing; `psx-game` alone loses
+  it); PSX only, not game behaviour; the backend's `packet` check (`src/platform/psx_gpu.c:58`)
+  still catches an overflow; RAM frees the meter's state (text −2152
+  bytes).
+
+**B2, reject off-screen calls at the first test** (estimated)
+- Where: the meter's `meter_*` (`src/p8/draw_meter.c:57`–`:103`) and the
+  runtime's `p8_<family>` (`src/p8/gfx.c`).
+- Gain: `start` 0; one-frame update runs —; `draw-5564` ≤ 373 (25),
+  `draw-6000` ≤ 1129 (75), less the one test kept (off-screen `pset`,
+  `line`, `rectfill`, `spr` outside the map). Rows: draw `work`, group
+  `offscreen`, alternative to D11 + D12 + D15: 0 / 1.91% / 8.07%.
+- Cost: M — one off-screen test in the runtime, its result honoured by the
+  meter and both backends.
+- Risk: e2e unchanged, pixels identical; both alike; RAM none.
+
+**B3, cull the map's off-screen cells** (estimated)
+- Where: `p8_map`, `src/p8/gfx.c:133`, from `background_draw`,
+  `src/game/background.c:143`.
+- Gain: removed calls (a PC throwaway) × 0.45–0.49: `start` 123–134,
+  `update-4737` 139–151, `update-5500` 143–156, `draw-5564` 2240–2433
+  (149–162), `update-5719` 94–102, `draw-6000` 2193–2381 (146–159). Rows:
+  draw `work`, group `map`, alternative to D5 (low end): 26.52% / 11.49% /
+  15.68%.
+- Cost: S — a `continue` for cells whose 8×8 box is off screen, in the
+  runtime.
+- Risk: e2e unchanged (the PC throwaway kept all 20 replays' `*.sha256`),
+  pixels identical; both alike; RAM none.
+
+**B5, lit-row test and font cell from a table** (estimated, at 0)
+- Where: `glyph_lit` and `psx_text_place`, `src/platform/psx_text.c:5`
+  and `:18`–`:21`.
+- Gain: not separable: part of the 0.327–0.393 per glyph, inside
+  `print`'s 9218 (615) on `draw-5564` and 1740 (116) on `draw-6000`;
+  other runs —. Overlaps D1/B4. Rows: 0.
+- Cost: S — a 256-entry table built at boot.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; a table read replaces row reads, so data waits would
+  eat part of it. e2e unchanged, pixels identical; PSX only, not game
+  behaviour; RAM 256 bytes.
+
+**B6, skip the CLUT lookup when the palette did not change** (estimated,
+at 0)
+- Where: `clut_slot`, `src/platform/psx_gpu.c:301`;
+  `psx_clut_cache_slot`, `src/platform/psx_clut_cache.c:10`; `count_clut`,
+  `src/p8/draw_meter.c:21`.
+- Gain: not separable; loose ceiling `draw-5564` 1102–1389 (73–93),
+  `draw-6000` 1183–1490 (79–99); other runs —. Rows: 0.
+- Cost: S — a "same palette as last call" path.
+- Risk: e2e unchanged, pixels identical; PSX only, not game behaviour;
+  RAM none.
+
+**B7, hoist page and region lookups** (estimated, at 0)
+- Where: `add_textured_sprite` and `add_glyph`,
+  `src/platform/psx_gpu.c:294` and `:321`.
+- Gain: not separable, part of `spr`'s and `print`'s per unit; every run
+  —. Rows: 0.
+- Cost: S — read the boot-time values once.
+- Risk: e2e unchanged, pixels identical; PSX only, not game behaviour;
+  RAM none.
+
+**B8, circle iterations from a radius table** (estimated, at 0)
+- Where: `circle_iterations`, `src/p8/draw_cost.c:97`, in the filter and
+  the meter.
+- Gain: not separable; ceiling (`circ` + `circfill`) `draw-5564` 1036
+  (69), `draw-6000` 1359 (91), of which the model loops are a part;
+  other runs —. B1 removes the meter's loop and F1 the filter's. Rows: 0.
+- Cost: S — a table indexed by radius.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; a table read replaces the loop. e2e unchanged,
+  pixels identical; both alike (cost model); RAM a table of radii.
+
+### Draw filter (step 8 finding)
+
+**F1, time the judge's replay without the draw filter** (estimated)
+- Where: `draw_filter_install`, `src/cmd/psx_gpu_replay.c:199`; its frame
+  end at `:232`, the breakdown's at `:233`.
+- Gain, estimated as B1's measured no-meter delta per run (an upper bound,
+  step 8: "of the order of, and below"): `start` −124, `update-4737` −165,
+  `update-5500` −164, `draw-5564` −3170 (−211.3), `update-5719` −199,
+  `draw-6000` −2977 (−198.5); plus the replay-only submit pieces (filter,
+  breakdown and capture frame ends): 0.12, 0.11, 0.11, 1.77 (0.12), 0.12,
+  1.78 (0.12). Rows: draw `per-call`, group `filter`, 26.67% / 16.26% /
+  21.28%; submit `work`, 1.71% / 1.36% / 1.50%.
+- Cost: L — a change to the judge's harness (the filter only serves the
+  capture masks) that needs the human's agreement.
+- Risk: no game, e2e or RAM effect (`psx-game` has no filter); it changes
+  what the judge measures: the estimated end is optimistic by the gap
+  between the filter's cost and the meter's, which no run measures
+  (checklist item 16); without F1 the estimated end leaves 3 frames over
+  on `draw-6000` and 2 on `draw-5564`.
+
+### Update spikes (step 9)
+
+U gains are judge hblanks over the class frames (step 9's bounds); among
+the short runs only `start` (frame 12, C6) and `update-5500` (frame 5500,
+C1, update 1409) hold a class frame, and no short-run figure exists for
+them: `update-4737` and `update-5719` lose their spike on resume.
+
+**U1, skip the first recompute of a slipway drop** (estimated)
+- Where: `slipway_drop`'s `targeting_confirm`, `src/game/slipway.c:165` →
+  `economy_advance_clock`, `src/game/probe.c:322` (the second at
+  `src/game/slipway.c:190`).
+- Gain: 13,479 judge hblanks on 39 frames (C1, C11); short runs: `start`
+  —, `update-5500` holds a C1 frame (in the class bound), others —. Rows:
+  update `work`, group `u1`, C1 and C11 27.93%.
+- Cost: M — the economy's clock and recompute reached once per drop, with
+  every side effect of the first kept.
+- Risk: game state unless the first recompute's side effects (tier
+  increases, refreshed rows) are reached by the second; e2e decides
+  (possible re-record); both alike; RAM none.
+
+**U2, rebuild a planet row only when it changed** (estimated)
+- Where: `planet_refresh_method` in `economy_recompute`,
+  `src/game/economy.c:257` → `planet_refresh`,
+  `src/game/planet_display.c:41`.
+- Gain: 24,576 judge hblanks (slipway 11,398, wormhole 3,811, project
+  1,911, year skip 553, structure 202, shallow 6,392, C13 309); short runs
+  as U1. Rows: update `work`, group `recompute`, per class 15.40% (C13) to
+  32.49% (C4; there U3 counts).
+- Cost: M — per-planet dirty tracking of needs, output and routes, or rows
+  built when shown.
+- Risk: timing only if a row is rebuilt only when its inputs changed (same
+  pixels); e2e decides; both alike; RAM a flag per planet.
+
+**U3, no economy recompute on a wormhole launch** (estimated)
+- Where: `wormhole_drop`, `src/game/wormhole.c:115` → `targeting_confirm`,
+  `src/game/probe.c:296` → `economy_recompute`, `src/game/economy.c:193`.
+- Gain: 10,891 judge hblanks on 33 frames (C4); short runs —. Rows:
+  update `work`, group `recompute`, alternative to U2, C4 92.86%.
+- Cost: M — a recompute path for a credits-and-clock change only.
+- Risk: game state if any recomputed figure does change; e2e decides;
+  both alike; RAM none.
+
+**U4, table-driven CRC-32 for the save** (estimated)
+- Where: `save_state_crc32`, `src/game/save_state.c:601`.
+- Gain: bound 11,851 judge hblanks (save 3,557, slipway 3,459, shallow
+  3,688, project 579, others 568), taken at 7/8 (a table keeps about 1/8):
+  10,370; short runs as U1. Rows: update `work`, group `crc`, per class
+  5.32% to 18.43%.
+- Cost: S — a 256-entry table and the byte-wise loop.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; a 1 KB table read per byte replaces 8 shift steps.
+  e2e unchanged (same bytes); both alike; RAM 1 KB.
+
+**U5, the save one frame later** (spreading permission)
+- Where: `save_at_frame_end`, `src/game/cart.c:331`.
+- Gain: 32,554 judge hblanks moved off the event frames (slipway 13,431,
+  shallow 14,617, project 2,379, year skip 810, structure 411, C13 906);
+  short runs as U1. Rows: `spread U5 … responsible+save:<share>` on C1–C3,
+  C8–C12, C14–C18 at the class's PSX median save share (0.0% on C12).
+- Cost: S — the save waits one more frame, as it already does for
+  wormholes.
+- Risk: e2e re-record (the save lands one frame later), allowed by section
+  2's spreading decision; both alike; RAM none.
+
+**U6, stop a nearest-planet scan at the first close planet** (estimated)
+- Where: `entity_geom_nearest` in `galaxy_populate`,
+  `src/game/galaxy.c:31`.
+- Gain: 3,980 judge hblanks on frame 12 (about half; ceiling 7,963);
+  `start` holds it (window update 8980), other runs —. Rows: update
+  `work`, group `u6`, C6 44.32%.
+- Cost: S — a threshold-aware scan that returns at the first point within
+  0.05.
+- Risk: e2e unchanged (same draws, same planets); both alike; RAM none.
+
+**U7, spread galaxy generation** (spreading permission)
+- Where: `galaxy_populate`, `src/game/galaxy.c:14`.
+- Gain: none in hblanks; frame 12's 8,980 (4,310 after U6 and G2) placed
+  over 24 frames on `draw-6000`, 22 on `draw-5564`; `start` holds it.
+  Rows: `spread U7 estimated C6 responsible`.
+- Cost: L — galaxy generation resumable across frames, on both platforms.
+- Risk: e2e re-record (section 2); both alike; RAM the generator's state.
+
+**U8, spread `update_entities`** (spreading permission)
+- Where: `update_entities`, `src/engine/bootstrap.c:53`.
+- Gain: none in hblanks; C19's one frame needs 3 hblanks moved (work 168
+  under the measured end), placed in 1 frame; short runs —. Rows: `spread
+  U8 estimated C19 responsible`.
+- Cost: M — an update split over two frames in the engine.
+- Risk: e2e re-record (section 2); both alike; RAM none.
+
+**S, spread each class's responsible work** (spreading permission)
+- Where: each class's responsible function ("Spikes and spreading" table:
+  `slipway_drop`, `ui_update`, `economy_recompute`, `save_at_frame_end`, …).
+- Gain: none in hblanks; it places every spike frame's work in the room of
+  the following frames (frames per class in "Spikes and spreading"); with
+  no spreading no spike frame fits. Rows: `spread S estimated *
+  responsible`.
+- Cost: L — the responsible work of 19 classes made resumable across
+  frames.
+- Risk: e2e re-record (section 2); both alike; RAM the state carried
+  between frames. The estimate assumes the work divisible at any grain,
+  with no cost to split it.
+
+### Ordinary update (step 10)
+
+O gains are judge hblanks a frame on the ordinary population (5,893
+frames) / the `draw-5564` window / the `draw-6000` window (×15 for the
+window sums); `start`, `update-4737`, `update-5500` and `update-5719` are
+excluded (class frames). On class frames they enter as the same hblanks a
+frame, off the update outside the spreadable work (checklist item 7).
+
+**O1, keep "a modal backdrop exists" as state** (estimated)
+- Where: `pad_panel_open`, `src/game/pad_panel.c:51` →
+  `pad_panel_entity_under`, `src/game/pad_panel.c:34`.
+- Gain: 28.2 / 2.9 (43.5) / 7.3 (109.5) a frame; at least the scan, 22.9 /
+  0.0 / 3.6. Rows: update `work`, group `padpanel`, ordinary 36.02%,
+  class frames `abs:28.2`.
+- Cost: M — a flag set when a backdrop spawns and cleared when it dies or
+  leaves the hit-test bucket.
+- Risk: timing only if the state mirrors the scan exactly; otherwise game
+  state, e2e decides; both alike; RAM one flag.
+
+**O2, ask "is a panel open?" once per pad step** (estimated)
+- Where: the twelve `pad_nav_panel_open()` sites of `src/game/pad_nav.c`
+  (65, 74, 235, 450, 456, 517, 627, 673, 902, 950, 1037, 1108).
+- Gain: 25.0 / 2.5 (37.5) / 6.6 (99.0) a frame. Not additive with O1.
+  Rows: update `work`, group `padpanel`, alternative to O1 (O1 counts),
+  ordinary 31.93%, class `abs:25.0`.
+- Cost: S — one answer per `pad_nav_step`, re-asked after the step's own
+  changes.
+- Risk: timing only if every in-step change re-asks; a stale answer is
+  game state, e2e decides; both alike; RAM none.
+
+**O3, hit-test only planets whose box can hold the cursor** (estimated)
+- Where: `ui_update_hover`'s hit-test loop, `src/game/ui.c:345` →
+  `planet_hit_test_method`, `src/game/planet.c:26`.
+- Gain: 14.4 (16.7 less its 16% overstatement) / 12.1 (181.5) / 13.3
+  (199.5) a frame. Rows: update `work`, group `hover`, with O5 against O4,
+  ordinary 18.39%, class `abs:14.4`.
+- Cost: M — a coarse grid of planet boxes built with the galaxy, the
+  bucket's order kept.
+- Risk: timing only if the pre-filter is exact and the bucket order kept;
+  otherwise game state, e2e decides; both alike; RAM a small grid.
+
+**O4, reuse last frame's hover when nothing changed** (estimated, at 0)
+- Where: `ui_update_hover`, `src/game/ui.c:325`.
+- Gain: 18.7 / 14.9 / 15.7 a frame on the frames where cursor, camera,
+  bucket and hit boxes are unchanged, whose share is not measured; enters
+  at 0. Rows: update `work`, group `hover`, 0.
+- Cost: M — an exact "unchanged" test over moving entities and spawned
+  buttons.
+- Risk: game state unless the test is exact; e2e decides; both alike;
+  RAM the previous frame's lists.
+
+**O5, initialise only the hovered layer's list** (estimated)
+- Where: `ui_update_hover`'s layer loop, `src/game/ui.c:336`.
+- Gain: 1.7 / 1.3 (19.5) / 1.3 (19.5) a frame. Rows: update `work`, group
+  `hover`, with O3, ordinary 2.17%, class `abs:1.7`.
+- Cost: S — initialise one list, read the others as empty.
+- Risk: timing only if every reader of `hovered_by_layer` treats an
+  uninitialised layer as empty; both alike; RAM none.
+
+### Global (step 11)
+
+**G1, asserts off** (measured; taken)
+- Where: `PSX_MEASURED_REPLAY_ASSERTS` (`psx/CMakeLists.txt:21`, applied
+  at `:47`) for the measured replays; for `psx-game`, the same switch on
+  its target (it keeps `-UNDEBUG` today, `:54`).
+- Gain, measured (on minus off, what asserts off takes): `start` +107,
+  `update-4737` +37, `update-5500` +187, `draw-5564` +821 (+54.7),
+  `update-5719` +50, `draw-6000` +607 (+40.5); pooled update +3.2%, draw
+  +3.9%, submit +1.2%, total +3.7%; full run +4.0% of 857. Already in the
+  judge's baseline: no row.
+- Cost: S — the build option on `psx-game`; 17 unused-* diagnostics to
+  clear or keep demoted.
+- Risk: none on game state (six runs equal the PC's both ways); e2e
+  untouched (PC unchanged); PSX only, not game behaviour (section 2's
+  decision); text −70 KB; a fault an assert would catch goes silent on the
+  PSX, still caught on PC.
+
+**G2, `-O3`** (measured)
+- Where: `PSX_MEASURED_REPLAY_OPT=O3`, `psx/CMakeLists.txt:22`, through
+  the `psx-measured-replay-opt` interface library after the SDK's `-O2`;
+  for `psx-game`, the same mechanism on its target.
+- Gain, measured: `start` −1382, `update-4737` −43, `update-5500` −165,
+  `draw-5564` −683 (−45.5), `update-5719` −39, `draw-6000` −544 (−36.3);
+  pooled update −13.8%, draw −3.4%, submit −3.1%, total −5.9%. Rows:
+  `scale`, group `optlevel`, all frames, update 13.8%, draw 3.4%, submit
+  3.1% (both ends; worst run per part 5.6%, 3.2%, 0.0% as sensitivity).
+- Cost: S — the interface library on `psx-game`; no warning of its own.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; real cache misses on its +40 KB of text would eat
+  part of its −5.9%. Game state equal to the PC's on all six runs; e2e
+  untouched; PSX only, not game behaviour; PC/PSX identity rests on the
+  six runs and `psx-check`, not a full run; RAM +40 KB text (1.53 → 1.57
+  MB of 2 MB for `psx-gpu-replay`).
+
+**G3, `-Os`** (measured; negative)
+- Where: `PSX_MEASURED_REPLAY_OPT=Os`, `psx/CMakeLists.txt:22`.
+- Gain, measured (slower): `start` +1523, `update-4737` +183,
+  `update-5500` +1099, `draw-5564` +5878 (+391.9), `update-5719` +316,
+  `draw-6000` +3560 (+237.3); pooled update +20.7%, draw +27.7%, submit
+  +5.1%, total +25.9%. No row.
+- Cost: S — as G2.
+- Risk: Timing model: rests on pcsx-redux charging no instruction-cache
+  miss or data wait; its only argument, a smaller text fitting the cache
+  better, is invisible to the judge and unmeasured on the Miyoo, so real
+  hardware could read it less slow. Game state as G2; e2e untouched; RAM
+  text −28 KB.
+
+**G4, upload only the slots that changed** (estimated)
+- Where: `upload_slots`, `src/platform/psx_gpu.c:368`, and the cache
+  resets in `psx_gpu_frame_begin`, `:344`.
+- Gain: at most the upload piece: `start` 5.02, `update-4737` 7.01,
+  `update-5500` 6.02, `draw-5564` 100.25 (6.68), `update-5719` 6.02,
+  `draw-6000` 90.30 (6.02); the share of slots that keep their content is
+  not measured. Rows: submit `work`, group `upload`, 71.71% / 77.12% /
+  75.88%.
+- Cost: M — remember what each VRAM slot last received, per slot across
+  the double-buffered caches.
+- Risk: a skipped upload that was needed shows a wrong palette or pattern
+  (caught by the capture comparison, not by game state); e2e untouched;
+  PSX only, not game behaviour; RAM a record per slot.
 
 ## Cumulative estimate
 
@@ -590,6 +1402,16 @@ Frame 12's galaxy generation, the largest spike, spreads over 24 frames
 once U6 halves it; frame 6043, the one step 9 left does-not-fit, fits in
 2 frames under the estimated end and becomes the haircut run's only
 does-not-fit again.
+
+## Step 12 verification
+
+| Plan step 12 "verified when" | Where | Result |
+|---|---|---|
+| The checklist items are each resolved with their figure | "Step 12 checklist" | 16 items, each with where it was raised, its rule and the figure it changes (or "none" with why); item 12's labelled entries and sentence filled at chunk 4, no item pending |
+| The tool reproduces step 9's two known results | `make lever-estimate-check` | `lever-estimate-check ok: uniform 88% does-not-fit 0 of 166; uniform 87% does-not-fit 1, frame 6043 among them; 80.7% in game, 74.8% on frame 12: does-not-fit 1 (frame 6043, C15), 19 classes equal step 9's; spike lines equal spread's on the 3 tables` |
+| Every lever entry has all four fields | "Lever entries" | 45 entries (L1–L4, D1/B4, D2–D15, B1–B3, B5–B8, F1, U1–U8, S, O1–O5, G1–G4); 45 with Where, 45 with Gain, 45 with Cost, 45 with Risk (D14, which holds no candidate, says so in its Cost and Risk) |
+| The verdict states its dependence on pcsx-redux's timing model, the affected levers labelled | "Verdict and stop condition", "Lever entries" | sentence: "The bracket is relative to pcsx-redux's timing model — an interpreter charging a flat 2 cycles per instruction, with no instruction-cache miss or data wait — so it is a statement about the judge, not about real hardware or the Miyoo, and the labelled levers (Risk opening with "Timing model") are the ones most exposed to that difference; and since `DrawSync` never waits on the judge (0.04–0.05 a frame), GPU-side cost is invisible to it too." Labelled: L1, L2, D1/B4, D2, D3, D4, D5, D6, D8, B5, B8, U4, G2, G3; 14 labelled of the 14 the rule selects (checklist item 12), G2 and G3 among them |
+| The stop condition holds | "Verdict and stop condition" | (b), every branch above 2% explored: step 7's "Verification across runs", step 8's, step 9's and step 10's "Verification", step 11's "Verification" and "Submit split"; it held before any estimate. (a) does not hold: with `haircut=20`, 245 frames over on `draw-6000`, 106 on `draw-5564` |
 
 ## Short-run baseline (asserts off)
 
@@ -2929,6 +3751,9 @@ used once and discarded; none is committed.
 | `pc-map-cull.patch` | PC profile and `make e2e` only, never booted (candidate 3's evidence) | `src/p8/gfx.c` `p8_map`: `continue` when the cell's 8×8 box less the camera is off the screen |
 
 ## Update spikes
+
+The final figures, under the levers and the per-class ratios, are in
+"Spikes and spreading" above.
 
 Plan 20 step 9: the judge's 166 frames whose update alone is over 263
 hblanks (42 of them over 1000), which `cart_update60` descendant each comes
