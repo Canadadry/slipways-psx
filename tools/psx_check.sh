@@ -150,7 +150,7 @@ check_game_lines gpu-state-game-lines "$gpu_compare"
 
 # usage: check_meter <condition> <what> <psx-state-tty> <pc-state>; sets psx_meter (the PSX side's meter lines)
 check_meter() {
-    meter_lines='^(zone gpu_frame|cap gpu_cluts|cap gpu_patterns) '
+    meter_lines='^(zone gpu_frame|zone gpu_build|cap gpu_cluts|cap gpu_patterns) '
     psx_meter=$(sed -n 's/^psx-state: //p' "$3" 2>/dev/null | grep -E "$meter_lines")
     pc_meter=$(grep -E "$meter_lines" "$4" 2>/dev/null)
     if [ -n "$pc_meter" ] && [ "$psx_meter" = "$pc_meter" ]; then

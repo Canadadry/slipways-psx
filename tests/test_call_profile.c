@@ -3,6 +3,7 @@
 #include "devtools/draw_timing.h"
 #include "p8/draw_backend.h"
 #include "p8/gfx.h"
+#include "p8/image.h"
 #include "p8/vram.h"
 
 #include <assert.h>
@@ -267,9 +268,30 @@ static void null_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str
     now += backend_cost;
 }
 
+static void null_image_begin(int slot, int w, int h) {
+    (void)slot, (void)w, (void)h;
+    now += backend_cost;
+}
+
+static void null_image_window(int slot, int x, int y) {
+    (void)slot, (void)x, (void)y;
+    now += backend_cost;
+}
+
+static void null_image_end(int slot) {
+    (void)slot;
+    now += backend_cost;
+}
+
+static void null_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    (void)gfx, (void)mem, (void)slot, (void)x, (void)y;
+    now += backend_cost;
+}
+
 static const p8_draw_backend_t NULL_BACKEND = {
     null_cls, null_pset, null_line, null_rect, null_rect,
     null_circ, null_circ, null_spr, null_print,
+    null_image_begin, null_image_window, null_image_end, null_image_draw,
 };
 
 static p8_vram_t mem;
@@ -363,6 +385,28 @@ static void test_a_family_counts_the_cost_model_units_and_window_switches_of_its
     p8_draw_backend_set(NULL);
 }
 
+static void two_sprites(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_spr(build_gfx, build_mem, 1, 0, 0, 1, 1);
+    p8_spr(build_gfx, build_mem, 1, 160, 0, 1, 1);
+}
+
+static void test_build_calls_count_under_their_families_and_a_copy_is_one_spr_unit(void) {
+    families_over(&NULL_BACKEND);
+    backend_cost = 5;
+    p8_image_build(&gfx, &mem, 0, 256, 16, two_sprites, NULL);
+    p8_fillp(&gfx, 0xA5A5);
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    p8_fillp_reset(&gfx);
+    p8_image_draw(&gfx, &mem, 0, 0, 0);
+    p8_image_draw(&gfx, &mem, 0, 0, 200);
+    call_profile_frame_end();
+    expect_units(0, DRAW_FILTER_SPR, 4 + 2, 2 + 1, 0 + 1);
+    assert(call_profile_family_figures(0, DRAW_FILTER_SPR).ns == 6 * 5 && "the build's switches are not timed");
+    expect_units(0, DRAW_FILTER_RECTFILL, 1, 1, 1);
+    p8_draw_backend_set(NULL);
+}
+
 static uint16_t timing_ticks(void) {
     return 0;
 }
@@ -388,6 +432,9 @@ static void draw_every_family_with_and_without_pattern(void) {
     p8_fillp(&gfx, 0x10000);
     p8_circfill(&gfx, &mem, 12, 13, 4, 9);
     p8_fillp_reset(&gfx);
+    p8_image_build(&gfx, &mem, 0, 256, 16, two_sprites, NULL);
+    p8_image_draw(&gfx, &mem, 0, 0, 0);
+    p8_image_draw(&gfx, &mem, 0, 0, 200);
     p8_cls(&mem);
 }
 
@@ -502,6 +549,7 @@ int main(int argc, char **argv) {
     test_a_backend_call_adds_its_time_and_one_call_to_its_family();
     test_a_patterned_fill_also_counts_as_pattern_with_its_time_inside_its_shape();
     test_a_family_counts_the_cost_model_units_and_window_switches_of_its_calls();
+    test_build_calls_count_under_their_families_and_a_copy_is_one_spr_unit();
     test_family_calls_equal_the_breakdown_timing_on_the_same_calls();
     test_a_dispatcher_root_keeps_forty_children();
     expect_fatal(argv[0], "frames", "call profile frame table full at frame 6817, capacity 6817");

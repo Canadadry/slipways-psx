@@ -1,6 +1,7 @@
 #include "devtools/draw_filter.h"
 
 #include "p8/draw_cost.h"
+#include "p8/image.h"
 
 #include <assert.h>
 #include <string.h>
@@ -9,6 +10,9 @@ static const p8_draw_backend_t *wrapped;
 static unsigned mask = DRAW_FILTER_ALL;
 static int counts[DRAW_FILTER_FAMILY_COUNT];
 static p8_draw_cost_window_t window;
+static int building_slot = -1;
+static unsigned image_families[P8_IMAGE_SLOT_COUNT];
+static p8_image_size_t image_sizes[P8_IMAGE_SLOT_COUNT];
 
 static int passes(draw_filter_family_t family) {
     return (mask & DRAW_FILTER_BIT(family)) != 0;
@@ -18,8 +22,13 @@ static int patterned(const p8_graphics_t *gfx) {
     return (gfx->fillp_pattern & 0xFFFFu) != 0;
 }
 
-/* Returns whether the call reaches the wrapped backend. */
+/* Returns whether the call reaches the wrapped backend: always during a build, whose image must
+ * hold its full content. */
 static int note(draw_filter_family_t family, p8_draw_cost_t cost) {
+    if (building_slot >= 0) {
+        if (cost.bytes > 0) image_families[building_slot] |= DRAW_FILTER_BIT(family);
+        return 1;
+    }
     if (cost.bytes > 0) counts[family]++;
     return passes(family);
 }
@@ -70,9 +79,38 @@ static void filter_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     if (note(DRAW_FILTER_PRINT, p8_draw_cost_print(&window, gfx, str, x, y))) wrapped->print(gfx, mem, str, x, y, col);
 }
 
+static void filter_image_begin(int slot, int w, int h) {
+    building_slot = slot;
+    image_families[slot] = 0;
+    image_sizes[slot].width = w;
+    image_sizes[slot].height = h;
+    wrapped->image_begin(slot, w, h);
+}
+
+static void filter_image_window(int slot, int x, int y) {
+    wrapped->image_window(slot, x, y);
+}
+
+static void filter_image_end(int slot) {
+    building_slot = -1;
+    wrapped->image_end(slot);
+}
+
+static void filter_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    p8_image_size_t size = image_sizes[slot];
+    unsigned families = image_families[slot];
+    if (p8_draw_cost_image_draw(&window, gfx, x, y, size.width, size.height).bytes > 0) {
+        for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+            if (families & DRAW_FILTER_BIT(family)) counts[family]++;
+        }
+    }
+    if ((mask & families) == families) wrapped->image_draw(gfx, mem, slot, x, y);
+}
+
 static const p8_draw_backend_t FILTER = {
     filter_cls, filter_pset, filter_line, filter_rect, filter_rectfill,
     filter_circ, filter_circfill, filter_spr, filter_print,
+    filter_image_begin, filter_image_window, filter_image_end, filter_image_draw,
 };
 
 const p8_draw_backend_t *draw_filter_install(void) {
@@ -80,6 +118,7 @@ const p8_draw_backend_t *draw_filter_install(void) {
     assert(active != &FILTER && "the filter would wrap itself");
     wrapped = active;
     mask = DRAW_FILTER_ALL;
+    building_slot = -1;
     draw_filter_frame_end();
     p8_draw_backend_set(&FILTER);
     return wrapped;

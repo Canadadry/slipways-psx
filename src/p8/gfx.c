@@ -121,6 +121,7 @@ void p8_mset(p8_vram_t *mem, int x, int y, int val) {
         return;
     }
     mem->map_cells[y][x] = (unsigned char)val;
+    mem->map_version = p8_vram_next_map_version();
 }
 
 static unsigned char map_cell_get(const p8_vram_t *mem, int x, int y) {

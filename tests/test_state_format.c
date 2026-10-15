@@ -12,6 +12,7 @@
 #include "p8/draw_backend.h"
 #include "p8/draw_meter.h"
 #include "p8/gpu_sizes.h"
+#include "p8/image.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -111,6 +112,11 @@ static void test_cheat_activations_line(void) {
 }
 
 
+static void one_sprite(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_spr(build_gfx, build_mem, 1, 0, 0, 1, 1);
+}
+
 static void test_gpu_lines_carry_the_meter_peaks_and_the_limits(void) {
     static p8_vram_t mem;
     static p8_graphics_t gfx;
@@ -120,6 +126,7 @@ static void test_gpu_lines_carry_the_meter_peaks_and_the_limits(void) {
     p8_fillp(&gfx, 0xA5A5);
     p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 0x15);
     p8_spr(&gfx, &mem, 1, 0, 0, 1, 1);
+    p8_image_build(&gfx, &mem, 0, 16, 16, one_sprite, NULL);
     p8_draw_meter_frame_end();
     p8_cls(&mem);
     p8_draw_meter_frame_end();
@@ -127,6 +134,7 @@ static void test_gpu_lines_carry_the_meter_peaks_and_the_limits(void) {
     p8_draw_meter_counts_t last = p8_draw_meter_last_frame();
     p8_draw_meter_counts_t peak = p8_draw_meter_peak();
     assert(last.bytes < peak.bytes && peak.cluts == 1 && peak.patterns == 1);
+    assert(last.build_bytes == 0 && peak.build_bytes > 0);
 
     state_format(fresh_sink());
     char expected[256];
@@ -136,6 +144,10 @@ static void test_gpu_lines_carry_the_meter_peaks_and_the_limits(void) {
     assert(gpu != NULL && gpu > budget && strchr(budget + 1, '\n') == gpu && "right after the budget line");
     snprintf(expected, sizeof expected, "\nzone gpu_frame %lu %lu %d\n", last.bytes, peak.bytes, GPU_FRAME_BUFFER_BYTES);
     assert(strncmp(gpu, expected, strlen(expected)) == 0);
+    const char *build = strstr(g_sink_text.text, "\nzone gpu_build ");
+    assert(build != NULL && strchr(gpu + 1, '\n') == build && "right after the gpu_frame line");
+    snprintf(expected, sizeof expected, "\nzone gpu_build 0 %lu %d\n", peak.build_bytes, GPU_BUILD_BUFFER_BYTES);
+    assert(strncmp(build, expected, strlen(expected)) == 0);
     snprintf(expected, sizeof expected, "\ncap gpu_cluts - 1 %d\ncap gpu_patterns - 1 %d\n", GPU_CLUT_SLOTS, GPU_PATTERN_SLOTS);
     size_t length = strlen(expected);
     assert(g_sink_text.length >= length);

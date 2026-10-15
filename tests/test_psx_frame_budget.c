@@ -39,7 +39,8 @@
     "zone game 52096 52912 466616\n" \
     "zone ui 27936 52854 208080\n" \
     "budget zones 793195 794584\n" \
-    "zone gpu_frame 10388 25328 73728\n"
+    "zone gpu_frame 10388 25328 73728\n" \
+    "zone gpu_build 0 8180 9216\n"
 #define STATE_CAPS \
     "cap button 4 8 15\n" \
     "cap modal_backdrop 0 0 2\n" \
@@ -224,6 +225,16 @@ static void test_primitive_buffer_over_its_size_fails_zone_sizes(void) {
     assert(verdict_failed("zone-sizes", "zone gpu_frame peak 73729 limit 73728"));
 }
 
+static void test_build_buffer_over_its_size_fails_zone_sizes(void) {
+    const char *state = STATE_GAME
+        "zone game 52096 52912 466616\n"
+        "budget zones 793195 794584\n"
+        "zone gpu_frame 10388 25328 73728\n"
+        "zone gpu_build 0 9217 9216\n" STATE_CAPS;
+    assert(run(TTY_OK, state, FRAMES) == 0);
+    assert(verdict_failed("zone-sizes", "zone gpu_build peak 9217 limit 9216"));
+}
+
 static void test_budget_over_its_total_fails_zone_sizes(void) {
     const char *state = STATE_GAME
         "zone game 52096 52912 466616\n"
@@ -354,6 +365,7 @@ int main(void) {
     test_one_frame_over_budget_fails_frame_budget_naming_the_worst();
     test_zone_over_its_size_fails_zone_sizes_naming_it();
     test_primitive_buffer_over_its_size_fails_zone_sizes();
+    test_build_buffer_over_its_size_fails_zone_sizes();
     test_budget_over_its_total_fails_zone_sizes();
     test_state_without_budget_line_fails_zone_sizes();
     test_cap_over_its_size_fails_cap_sizes_naming_it();

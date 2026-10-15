@@ -2,6 +2,7 @@
 
 #include "p8/draw_cost.h"
 #include "p8/gpu_sizes.h"
+#include "p8/image.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -12,6 +13,8 @@ static p8_draw_cost_window_t window;
 static p8_draw_meter_counts_t frame;
 static p8_draw_meter_counts_t last_frame;
 static p8_draw_meter_counts_t peak;
+static int building;
+static p8_image_size_t built[P8_IMAGE_SLOT_COUNT];
 
 enum { CLUT_TABLE = 2 * GPU_CLUT_SLOTS, PATTERN_TABLE = 2 * GPU_PATTERN_SLOTS };
 
@@ -45,6 +48,10 @@ static void count_pattern(const p8_graphics_t *gfx, int col) {
 }
 
 static void add(p8_draw_cost_t cost) {
+    if (building) {
+        frame.build_bytes += cost.bytes;
+        return;
+    }
     frame.bytes += cost.bytes;
     frame.primitives += cost.primitives;
 }
@@ -102,9 +109,34 @@ static void meter_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *st
     wrapped->print(gfx, mem, str, x, y, col);
 }
 
+static void meter_image_begin(int slot, int w, int h) {
+    building = 1;
+    built[slot].width = w;
+    built[slot].height = h;
+    add(p8_draw_cost_image_begin());
+    wrapped->image_begin(slot, w, h);
+}
+
+static void meter_image_window(int slot, int x, int y) {
+    add(p8_draw_cost_image_window());
+    wrapped->image_window(slot, x, y);
+}
+
+static void meter_image_end(int slot) {
+    add(p8_draw_cost_image_end());
+    building = 0;
+    wrapped->image_end(slot);
+}
+
+static void meter_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    add(p8_draw_cost_image_draw(&window, gfx, x, y, built[slot].width, built[slot].height));
+    wrapped->image_draw(gfx, mem, slot, x, y);
+}
+
 static const p8_draw_backend_t METER = {
     meter_cls, meter_pset, meter_line, meter_rect, meter_rectfill,
     meter_circ, meter_circfill, meter_spr, meter_print,
+    meter_image_begin, meter_image_window, meter_image_end, meter_image_draw,
 };
 
 const p8_draw_backend_t *p8_draw_meter_install(void) {
@@ -113,6 +145,7 @@ const p8_draw_backend_t *p8_draw_meter_install(void) {
     wrapped = active;
     memset(&last_frame, 0, sizeof last_frame);
     memset(&peak, 0, sizeof peak);
+    building = 0;
     frame_begin();
     p8_draw_backend_set(&METER);
     return wrapped;
@@ -125,6 +158,7 @@ static int larger(int a, int b) {
 void p8_draw_meter_frame_end(void) {
     last_frame = frame;
     peak.bytes = frame.bytes > peak.bytes ? frame.bytes : peak.bytes;
+    peak.build_bytes = frame.build_bytes > peak.build_bytes ? frame.build_bytes : peak.build_bytes;
     peak.primitives = larger(peak.primitives, frame.primitives);
     peak.cluts = larger(peak.cluts, frame.cluts);
     peak.patterns = larger(peak.patterns, frame.patterns);

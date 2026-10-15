@@ -118,7 +118,7 @@ draws. Its TTY:
   file with `cheat activations <n>` (the frames `input_step_run` fired the
   cheat on); the three PSX drivers print it
 
-It also installs the draw meter (below), so its `zone gpu_frame` and `cap
+It also installs the draw meter (below), so its `zone gpu_*` and `cap
 gpu_*` lines are measured like the PC's. It then leaves the emulator with
 code 0. A `p8_fatal` prints its message,
 `stopped p8_fatal frame <n>` and the state, then exits with 3; a failed assert
@@ -137,6 +137,19 @@ non-empty cell whose 8×8 box meets the screen after the camera) and
 the previous one; NULL, the default, is the software backend
 (`src/p8/gfx_software.c`), which rasterises into `p8_vram_t.screen` for the
 PC game, the e2e and every test.
+
+**Image cache** (`src/p8/image.h`). `p8_image_build` runs a draw function once
+per 160×120 window of an image slot (slot 0 is 256×256), with the camera at
+the window's origin, through the backend's `image_begin`, `image_window` and
+`image_end`; `p8_image_draw` copies the last build at a world position under
+the camera, pixels the build never wrote staying transparent (`image_draw`).
+`p8_mset` stamps a process-wide map version into the vram, so a caller can
+tell the map changed. The software backend keeps each slot as colour indices
+in a static store (64 KiB for slot 0, linked into every ELF). The GPU
+backend's four entries are a `p8_fatal` until its image cache lands; nothing
+in the game builds an image yet. The meter, filter, breakdown timing and call
+profile follow the copy as one `spr` and the build's calls under their own
+families.
 
 **`fillp`, `palt` and the draw palette on the GPU: per-texture CLUT and
 pattern textures, no software fallback** (decided; implemented in step 4).
@@ -165,10 +178,12 @@ gives each call's GPU bytes and primitives (PSn00bSDK 0.24 packet sizes, an
 upper bound; a call whose screen box misses 160x120 costs 0), and the draw
 meter (`src/p8/draw_meter.c`) wraps the active backend and adds them up a
 frame, with the distinct draw palettes and fill patterns. The PC replay
-installs it under `STATE=`, so `make state` reports `zone gpu_frame` and `cap
+installs it under `STATE=`, so `make state` reports `zone gpu_frame`, `zone
+gpu_build` (an image build's own buffer) and `cap
 gpu_cluts`/`cap gpu_patterns` over every e2e and worst-case game, judged by
 the 1/8 margin. `src/p8/gpu_sizes.h` holds the sizes:
-`GPU_FRAME_BUFFER_BYTES`, `GPU_CLUT_SLOTS`, `GPU_PATTERN_SLOTS`. The GPU
+`GPU_FRAME_BUFFER_BYTES`, `GPU_BUILD_BUFFER_BYTES`, `GPU_CLUT_SLOTS`,
+`GPU_PATTERN_SLOTS`. The GPU
 backend reserves two buffers (the CPU fills one while the GPU draws the
 other) as static data, counted in no zone; `make state` prints their total
 after the bytes left under `ZONE_BUDGET_BYTES`, and `psx-check`'s `ram-room`
@@ -585,8 +600,8 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   MIPS;
 - `gpu-replay-done`, `gpu-state-game-lines`: `replay-done` and
   `state-game-lines` on the GPU replay;
-- `gpu-cost`: its `zone gpu_frame`, `cap gpu_cluts` and `cap gpu_patterns`
-  lines equal the PC's: the backend gets the PC's exact draw calls on MIPS;
+- `gpu-cost`: its `zone gpu_frame`, `zone gpu_build`, `cap gpu_cluts` and `cap
+  gpu_patterns` lines equal the PC's: the backend gets the PC's exact draw calls on MIPS;
 - `ram-room`: 65,536 (kernel area) + text + data + bss of the GPU ELF (the
   toolchain's `size`, `PSX_SIZE`; the zones and both primitive buffers
   included) + `PSX_STACK_RESERVE` (64 KiB) <= 2,097,152; the line prints the
@@ -691,7 +706,8 @@ next run:
 - `timer`, `frame-budget`, `zone-sizes` and `cap-sizes`, the verdicts of
   `tools/psx_frame_budget.sh` on the GPU boot's TTY and
   `run/gpu-state/judged_state.txt`: its MIPS state with the zero `zone
-  gpu_frame` and `cap gpu_*` lines replaced by the PC state's (below);
+  gpu_frame`, `zone gpu_build` and `cap gpu_*` lines replaced by the PC
+  state's (below);
 - `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,059 embedded
   frames and the frame table included).
 
@@ -708,7 +724,8 @@ next run:
   NTSC vsync; fixed, plan 11's step 4 never moves it); a failure names the
   count over and the worst frame;
 - `zone-sizes`: every `zone` line's peak (`gpu_frame`, the primitive buffer
-  against `GPU_FRAME_BUFFER_BYTES`, included) at most its limit, and `budget
+  against `GPU_FRAME_BUFFER_BYTES`, and `gpu_build` against
+  `GPU_BUILD_BUFFER_BYTES` included) at most its limit, and `budget
   zones <used> <total>` with used at most total;
 - `cap-sizes`: every `cap` line's peak at most its limit.
 
@@ -737,7 +754,7 @@ made before it must be removed and set up again.
 `psx-replay-check` and in `tmp/psx/full-game/run`) holds the MIPS `zone`,
 `budget` and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF;
 `psx-full-game-check`'s adds the GPU replay's `vsyncs`, the PC state's `zone
-gpu_frame` and `cap gpu_*` lines, the GPU replay's `gpu-peak bytes <b> cluts
+gpu_frame`, `zone gpu_build` and `cap gpu_*` lines, the GPU replay's `gpu-peak bytes <b> cluts
 <c> patterns <p>`, `ram-room <used> <limit> <left>` and its ELF `size`, each
 behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`

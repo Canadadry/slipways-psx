@@ -98,9 +98,29 @@ static void timing_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     call_end(DRAW_FILTER_PRINT, start);
 }
 
+static void timing_image_begin(int slot, int w, int h) {
+    wrapped->image_begin(slot, w, h);
+}
+
+static void timing_image_window(int slot, int x, int y) {
+    wrapped->image_window(slot, x, y);
+}
+
+static void timing_image_end(int slot) {
+    wrapped->image_end(slot);
+}
+
+/* Under spr: one textured sprite on the GPU, as call_profile.c counts it. */
+static void timing_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    reading_t start = call_begin();
+    wrapped->image_draw(gfx, mem, slot, x, y);
+    call_end(DRAW_FILTER_SPR, start);
+}
+
 static const p8_draw_backend_t TIMING = {
     timing_cls, timing_pset, timing_line, timing_rect, timing_rectfill,
     timing_circ, timing_circfill, timing_spr, timing_print,
+    timing_image_begin, timing_image_window, timing_image_end, timing_image_draw,
 };
 
 const p8_draw_backend_t *draw_timing_install(const draw_timing_clock_t *new_clock) {

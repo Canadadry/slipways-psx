@@ -32,6 +32,9 @@ SIZE_CHECK(dr_tpage_size_check, sizeof(DR_TPAGE) == P8_GPU_DR_TPAGE_BYTES);
 SIZE_CHECK(dr_twin_size_check, sizeof(DR_TWIN) == P8_GPU_DR_TWIN_BYTES);
 SIZE_CHECK(dr_env_size_check, sizeof(DR_ENV) == P8_GPU_DR_ENV_BYTES);
 SIZE_CHECK(poly_ft4_size_check, sizeof(POLY_FT4) == P8_GPU_POLY_FT4_BYTES);
+SIZE_CHECK(dr_area_size_check, sizeof(DR_AREA) == P8_GPU_DR_AREA_BYTES);
+SIZE_CHECK(dr_offset_size_check, sizeof(DR_OFFSET) == P8_GPU_DR_OFFSET_BYTES);
+SIZE_CHECK(dr_stp_size_check, sizeof(DR_STP) == P8_GPU_DR_STP_BYTES);
 /* What frame_begin and frame_end add must fit what p8_draw_cost_frame_begin meters. */
 SIZE_CHECK(frame_overhead_size_check,
            2 * (sizeof(DR_AREA) + sizeof(DR_OFFSET) + sizeof(DR_TWIN)) + sizeof(DR_TPAGE) + sizeof(FILL) + sizeof(POLY_FT4)
@@ -331,8 +334,35 @@ static void gpu_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str,
     psx_text_place(gfx, str, x, y, add_glyph, &clut);
 }
 
+/* TODO: the image cache on the GPU (plan 21 step 8, chunk 5). */
+static void gpu_image_missing(int slot) {
+    char message[64];
+    snprintf(message, sizeof message, "image slot %d: no GPU image cache yet", slot);
+    p8_fatal(message);
+}
+
+static void gpu_image_begin(int slot, int w, int h) {
+    (void)w, (void)h;
+    gpu_image_missing(slot);
+}
+
+static void gpu_image_window(int slot, int x, int y) {
+    (void)x, (void)y;
+    gpu_image_missing(slot);
+}
+
+static void gpu_image_end(int slot) {
+    gpu_image_missing(slot);
+}
+
+static void gpu_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    (void)gfx, (void)mem, (void)x, (void)y;
+    gpu_image_missing(slot);
+}
+
 static const p8_draw_backend_t GPU_BACKEND = {
     gpu_cls, gpu_pset, gpu_line, gpu_rect, gpu_rectfill, gpu_circ, gpu_circfill, gpu_spr, gpu_print,
+    gpu_image_begin, gpu_image_window, gpu_image_end, gpu_image_draw,
 };
 
 const p8_draw_backend_t *psx_gpu_backend(void) {

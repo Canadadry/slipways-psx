@@ -14,12 +14,12 @@
 #define PC_DIGEST DIR "/pc_digest.txt"
 
 #define STATE_LINES                                                                                 \
-    "zone game 10 20 100\nbudget zones 300 400\nzone gpu_frame 100 150 200\ncap gpu_cluts - 3 8\n" \
-    "cap gpu_patterns - 2 8\nscore 40\nframe 30 ok\n"
+    "zone game 10 20 100\nbudget zones 300 400\nzone gpu_frame 100 150 200\nzone gpu_build 0 70 90\n" \
+    "cap gpu_cluts - 3 8\ncap gpu_patterns - 2 8\nscore 40\nframe 30 ok\n"
 /* The GPU boot's MIPS state: no meter is installed, so its gpu_* lines are zeros. */
 #define GPU_STATE_LINES                                                                           \
-    "zone game 10 20 100\nbudget zones 300 400\nzone gpu_frame 0 0 200\ncap gpu_cluts - 0 8\n" \
-    "cap gpu_patterns - 0 8\nscore 40\nframe 30 ok\n"
+    "zone game 10 20 100\nbudget zones 300 400\nzone gpu_frame 0 0 200\nzone gpu_build 0 0 90\n" \
+    "cap gpu_cluts - 0 8\ncap gpu_patterns - 0 8\nscore 40\nframe 30 ok\n"
 #define DIGEST_LINES "sprite-sheet 0a1b2c3d\nscreen 0 11111111\nmap 0000beef\n"
 #define DONE "psx-replay: done full_game 30 vsyncs 250\r\n"
 #define GPU_DONE "psx-replay: done full_game 30 vsyncs 300\r\n"
@@ -146,7 +146,7 @@ static void test_both_replays_reaching_the_pc_frame_count_within_budget_pass_eve
     assert_has(LOG, "psx-full-game-check: gpu-draw-meter: ok\n");
     assert_has(LOG, "psx-full-game-check: timer: ok, hblanks-per-vsync 263, 30 frames\n");
     assert_has(LOG, "psx-full-game-check: frame-budget: ok, worst frame 0 total 180\n");
-    assert_has(LOG, "psx-full-game-check: zone-sizes: ok, 2 zones and the budget fit\n");
+    assert_has(LOG, "psx-full-game-check: zone-sizes: ok, 3 zones and the budget fit\n");
     assert_has(LOG, "psx-full-game-check: cap-sizes: ok, 2 caps fit\n");
     assert_has(LOG, "psx-full-game-check: gpu-ram-room: ok, 1964580 bytes left in 2097152 (kernel 65536 + ELF + "
                     "stack 65536 = 132572)\n");
@@ -169,7 +169,8 @@ static void test_measurements_carry_the_gpu_replay_vsyncs_the_pc_meter_lines_and
     assert_has(OUT "/measurements.txt", "vsyncs 250\n");
     assert_has(OUT "/measurements.txt", "gpu vsyncs 300\n");
     assert_has(OUT "/measurements.txt",
-               "gpu zone gpu_frame 100 150 200\ngpu cap gpu_cluts - 3 8\ngpu cap gpu_patterns - 2 8\n");
+               "gpu zone gpu_frame 100 150 200\ngpu zone gpu_build 0 70 90\ngpu cap gpu_cluts - 3 8\n"
+               "gpu cap gpu_patterns - 2 8\n");
     assert_has(OUT "/measurements.txt",
                "gpu    1000     200     300    1500     5dc " DIR "/build/psx-gpu-replay.elf\n");
 }
@@ -282,6 +283,16 @@ static void test_a_pc_gpu_frame_peak_above_its_limit_fails_zone_sizes(void) {
     assert_has(OUT "/measurements.txt", "gpu zone gpu_frame 100 250 200\n");
 }
 
+static void test_a_pc_gpu_build_peak_above_its_limit_fails_zone_sizes(void) {
+    setup();
+    write_file(PC_STATE, "zone game 10 20 100\nbudget zones 300 400\nzone gpu_frame 100 150 200\n"
+                         "zone gpu_build 0 95 90\ncap gpu_cluts - 3 8\ncap gpu_patterns - 2 8\nscore 40\nframe 30 ok\n");
+    assert(run_check("0") != 0);
+    assert_has(LOG, "zone gpu_build peak 95 limit 90");
+    assert_has(OUT "/conditions.txt", "zone-sizes failed\n");
+    assert_has(OUT "/measurements.txt", "gpu zone gpu_build 0 95 90\n");
+}
+
 static void test_the_gpu_replay_backend_peaks_are_measured_behind_gpu_gpu_peak(void) {
     setup();
     write_tty(DIR "/gpu.tty", FILTER_OFF, frame_lines(-1), GPU_STATE_LINES, "",
@@ -351,6 +362,7 @@ int main(void) {
     test_a_gpu_boot_built_with_the_draw_meter_fails_gpu_draw_meter();
     test_a_gpu_boot_without_a_draw_meter_line_fails_gpu_draw_meter();
     test_a_pc_gpu_frame_peak_above_its_limit_fails_zone_sizes();
+    test_a_pc_gpu_build_peak_above_its_limit_fails_zone_sizes();
     test_the_gpu_replay_backend_peaks_are_measured_behind_gpu_gpu_peak();
     test_a_differing_screen_digest_fails_screen();
     test_an_over_budget_frame_fails_only_frame_budget_and_every_condition_is_still_printed();

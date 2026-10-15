@@ -1,13 +1,17 @@
 #include "p8/draw_backend.h"
 #include "p8/draw_cost.h"
 #include "p8/gfx.h"
+#include "p8/image.h"
 #include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
-enum call_kind { CALL_CLS, CALL_PSET, CALL_LINE, CALL_RECT, CALL_RECTFILL, CALL_CIRC, CALL_CIRCFILL, CALL_SPR, CALL_PRINT };
+enum call_kind {
+    CALL_CLS, CALL_PSET, CALL_LINE, CALL_RECT, CALL_RECTFILL, CALL_CIRC, CALL_CIRCFILL, CALL_SPR, CALL_PRINT,
+    CALL_IMAGE_BEGIN, CALL_IMAGE_WINDOW, CALL_IMAGE_END, CALL_IMAGE_DRAW
+};
 
 #define MAX_CALLS 1024
 
@@ -99,9 +103,39 @@ static void record_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     call->args[2] = col;
 }
 
+static recorded_call_t *record_image(enum call_kind kind, int slot, int a, int b) {
+    assert(call_count < MAX_CALLS && "recording backend: raise MAX_CALLS");
+    recorded_call_t *call = &calls[call_count++];
+    memset(call, 0, sizeof(*call));
+    call->kind = kind;
+    call->args[0] = slot;
+    call->args[1] = a;
+    call->args[2] = b;
+    return call;
+}
+
+static void record_image_begin(int slot, int w, int h) {
+    record_image(CALL_IMAGE_BEGIN, slot, w, h);
+}
+
+static void record_image_window(int slot, int x, int y) {
+    record_image(CALL_IMAGE_WINDOW, slot, x, y);
+}
+
+static void record_image_end(int slot) {
+    record_image(CALL_IMAGE_END, slot, 0, 0);
+}
+
+static void record_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    recorded_call_t *call = record_image(CALL_IMAGE_DRAW, slot, x, y);
+    call->gfx = gfx;
+    call->mem = mem;
+}
+
 static const p8_draw_backend_t RECORDING_BACKEND = {
     record_cls, record_pset, record_line, record_rect, record_rectfill,
     record_circ, record_circfill, record_spr, record_print,
+    record_image_begin, record_image_window, record_image_end, record_image_draw,
 };
 
 static p8_vram_t mem;
@@ -363,6 +397,36 @@ static void test_set_returns_the_previous_backend_and_null_restores_software(voi
     assert(mem.screen[20][10] == 7);
 }
 
+static void spr_at_origin(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_spr(build_gfx, build_mem, 9, 0, 0, 1, 1);
+}
+
+static void assert_image_call(int index, enum call_kind kind, int slot, int a, int b) {
+    const recorded_call_t *call = &calls[index];
+    assert(call->kind == kind && call->args[0] == slot && call->args[1] == a && call->args[2] == b);
+}
+
+static void test_a_build_frames_its_windowed_calls_and_a_copy_reaches_its_entry(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    p8_camera(&gfx, 7, 9);
+
+    p8_image_build(&gfx, &mem, 0, 200, 100, spr_at_origin, NULL);
+    p8_image_draw(&gfx, &mem, 0, -3, 4);
+
+    assert(call_count == 7);
+    assert_image_call(0, CALL_IMAGE_BEGIN, 0, 200, 100);
+    assert_image_call(1, CALL_IMAGE_WINDOW, 0, 0, 0);
+    assert_call(2, CALL_SPR, 9, 0, 0, 1, 1);
+    assert_image_call(3, CALL_IMAGE_WINDOW, 0, 160, 0);
+    assert_call(4, CALL_SPR, 9, 0, 0, 1, 1);
+    assert_image_call(5, CALL_IMAGE_END, 0, 0, 0);
+    assert_image_call(6, CALL_IMAGE_DRAW, 0, -3, 4);
+    assert(calls[6].gfx == &gfx && calls[6].mem == &mem && gfx.camera_x == 7 && gfx.camera_y == 9);
+    assert(p8_draw_backend_get() == &RECORDING_BACKEND && "the build gave the backend back");
+    stop_recording(previous);
+}
+
 int main(void) {
     test_pset_reaches_its_entry_once_with_its_arguments();
     test_each_draw_call_reaches_its_own_entry_once();
@@ -375,6 +439,7 @@ int main(void) {
     test_state_calls_reach_no_entry();
     test_spr_sees_a_draw_palette_copied_with_memcpy();
     test_set_returns_the_previous_backend_and_null_restores_software();
+    test_a_build_frames_its_windowed_calls_and_a_copy_reaches_its_entry();
     printf("test_draw_backend: ok\n");
     return 0;
 }

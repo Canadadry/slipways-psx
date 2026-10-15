@@ -2,6 +2,7 @@
 
 #include "p8/draw_backend.h"
 #include "p8/gfx.h"
+#include "p8/image.h"
 #include "p8/vram.h"
 
 #include <assert.h>
@@ -66,9 +67,34 @@ static void recording_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char
     received[8].str = str;
 }
 
+enum { IMAGE_BEGIN, IMAGE_WINDOW, IMAGE_END, IMAGE_DRAW, IMAGE_KINDS };
+
+static int image_calls[IMAGE_KINDS];
+
+static void recording_image_begin(int slot, int w, int h) {
+    (void)slot, (void)w, (void)h;
+    image_calls[IMAGE_BEGIN]++;
+}
+
+static void recording_image_window(int slot, int x, int y) {
+    (void)slot, (void)x, (void)y;
+    image_calls[IMAGE_WINDOW]++;
+}
+
+static void recording_image_end(int slot) {
+    (void)slot;
+    image_calls[IMAGE_END]++;
+}
+
+static void recording_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    (void)gfx, (void)mem, (void)slot, (void)x, (void)y;
+    image_calls[IMAGE_DRAW]++;
+}
+
 static const p8_draw_backend_t RECORDING = {
     recording_cls, recording_pset, recording_line, recording_rect, recording_rectfill,
     recording_circ, recording_circfill, recording_spr, recording_print,
+    recording_image_begin, recording_image_window, recording_image_end, recording_image_draw,
 };
 
 static p8_vram_t mem;
@@ -76,6 +102,7 @@ static p8_graphics_t gfx;
 
 static void filter_over_recording(void) {
     memset(received, 0, sizeof received);
+    memset(image_calls, 0, sizeof image_calls);
     p8_vram_init(&mem);
     p8_gfx_init(&gfx);
     p8_draw_backend_set(&RECORDING);
@@ -229,6 +256,61 @@ static void test_the_filter_writes_no_graphics_or_vram_state(void) {
     filter_removed();
 }
 
+static void sprite_and_patterned_fill(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_spr(build_gfx, build_mem, 1, 0, 0, 1, 1);
+    p8_fillp(build_gfx, 0xA5A5);
+    p8_rectfill(build_gfx, build_mem, 0, 0, 5, 5, 7);
+    p8_fillp_reset(build_gfx);
+    p8_line(build_gfx, build_mem, 1000, 1000, 1001, 1001, 7);
+}
+
+static void test_a_build_passes_every_call_whatever_the_mask_and_counts_none(void) {
+    filter_over_recording();
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS));
+    p8_image_build(&gfx, &mem, 0, 256, 256, sprite_and_patterned_fill, NULL);
+    assert(image_calls[IMAGE_BEGIN] == 1 && image_calls[IMAGE_WINDOW] == 6 && image_calls[IMAGE_END] == 1);
+    assert(received[7].calls == 6 && received[4].calls == 6 && received[2].calls == 6);
+    for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+        assert(draw_filter_count((draw_filter_family_t)family) == 0 && "a build adds no frame bytes");
+    }
+    filter_removed();
+}
+
+static void test_a_copy_passes_only_when_the_mask_holds_every_family_drawn_into_its_image(void) {
+    unsigned image_families = DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_SPR)
+        | DRAW_FILTER_BIT(DRAW_FILTER_RECTFILL) | DRAW_FILTER_BIT(DRAW_FILTER_PATTERN);
+    filter_over_recording();
+    p8_image_build(&gfx, &mem, 0, 256, 256, sprite_and_patterned_fill, NULL);
+
+    unsigned short_of_one[] = {
+        image_families & ~DRAW_FILTER_BIT(DRAW_FILTER_SPR),
+        image_families & ~DRAW_FILTER_BIT(DRAW_FILTER_RECTFILL),
+        image_families & ~DRAW_FILTER_BIT(DRAW_FILTER_PATTERN),
+    };
+    for (size_t i = 0; i < sizeof short_of_one / sizeof short_of_one[0]; i++) {
+        draw_filter_set_mask(short_of_one[i]);
+        p8_image_draw(&gfx, &mem, 0, 0, 0);
+        assert(image_calls[IMAGE_DRAW] == 0);
+    }
+    draw_filter_set_mask(image_families);
+    p8_image_draw(&gfx, &mem, 0, 0, 0);
+    assert(image_calls[IMAGE_DRAW] == 1 && "the off-screen line drew nothing into the image");
+    filter_removed();
+}
+
+static void test_an_on_screen_copy_counts_once_under_each_family_of_its_image(void) {
+    filter_over_recording();
+    p8_image_build(&gfx, &mem, 0, 256, 256, sprite_and_patterned_fill, NULL);
+    p8_image_draw(&gfx, &mem, 0, 0, 0);
+    p8_image_draw(&gfx, &mem, 0, 0, -256);
+    assert(draw_filter_count(DRAW_FILTER_SPR) == 1);
+    assert(draw_filter_count(DRAW_FILTER_RECTFILL) == 1);
+    assert(draw_filter_count(DRAW_FILTER_PATTERN) == 1);
+    assert(draw_filter_count(DRAW_FILTER_LINE) == 0);
+    filter_removed();
+}
+
 int main(void) {
     test_all_forwards_every_call_with_its_arguments_and_pointers();
     test_a_mask_passes_cls_and_its_families_only();
@@ -238,6 +320,9 @@ int main(void) {
     test_a_patterned_fill_counts_under_its_shape_and_pattern();
     test_frame_end_resets_the_counts_and_keeps_the_mask();
     test_the_filter_writes_no_graphics_or_vram_state();
+    test_a_build_passes_every_call_whatever_the_mask_and_counts_none();
+    test_a_copy_passes_only_when_the_mask_holds_every_family_drawn_into_its_image();
+    test_an_on_screen_copy_counts_once_under_each_family_of_its_image();
     printf("test_draw_filter: ok\n");
     return 0;
 }

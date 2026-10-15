@@ -46,8 +46,11 @@ static void test_gfx_json_values_past_the_sheet_touch_nothing_else(void) {
         }
     }
 
+    unsigned long map_version = mem.map_version;
     assert(p8_load_gfx_json(&mem, "tests/fixtures/gfx_oversized.json"));
 
+    assert(mem.map_version == map_version && "the sheet is not the map");
+    expected.map_version = map_version;
     assert(memcmp(&mem, &expected, sizeof(mem)) == 0);
 }
 

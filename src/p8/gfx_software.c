@@ -1,7 +1,23 @@
 #include "p8/draw_backend.h"
+#include "p8/image.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+/* Holds only while callers draw colours 0..15: pset, line, rect, circ and print store col unmasked, and only dump.c asserts it. */
+#define IMAGE_EMPTY 0xFF
+
+#define SLOT_PIXELS(width, height) (width) * (height),
+static const int SLOT_PIXELS[P8_IMAGE_SLOT_COUNT] = {P8_IMAGE_SLOTS(SLOT_PIXELS)};
+
+static unsigned char image_store[P8_IMAGE_PIXELS];
+static p8_image_size_t image_built[P8_IMAGE_SLOT_COUNT];
+
+/* NULL while drawing to the screen. */
+static unsigned char *target;
+static p8_image_size_t target_size;
+static int window_x;
+static int window_y;
 
 static void software_cls(p8_vram_t *mem) {
     memset(mem->screen, 0, sizeof(mem->screen));
@@ -13,7 +29,15 @@ static void plot(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col
     if (sx < 0 || sx >= P8_SCREEN_WIDTH || sy < 0 || sy >= P8_SCREEN_HEIGHT) {
         return;
     }
-    mem->screen[sy][sx] = (unsigned char)col;
+    if (target == NULL) {
+        mem->screen[sy][sx] = (unsigned char)col;
+        return;
+    }
+    int ix = window_x + sx;
+    int iy = window_y + sy;
+    if (ix < target_size.width && iy < target_size.height) {
+        target[iy * target_size.width + ix] = (unsigned char)col;
+    }
 }
 
 static void software_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
@@ -329,9 +353,57 @@ static void software_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y
     plot(gfx, mem, x, y, col);
 }
 
+static unsigned char *slot_pixels(int slot) {
+    unsigned char *pixels = image_store;
+    for (int before = 0; before < slot; before++) {
+        pixels += SLOT_PIXELS[before];
+    }
+    return pixels;
+}
+
+static void software_image_begin(int slot, int w, int h) {
+    target = slot_pixels(slot);
+    target_size.width = w;
+    target_size.height = h;
+    image_built[slot] = target_size;
+    memset(target, IMAGE_EMPTY, (size_t)w * (size_t)h);
+}
+
+static void software_image_window(int slot, int x, int y) {
+    (void)slot;
+    window_x = x;
+    window_y = y;
+}
+
+static void software_image_end(int slot) {
+    (void)slot;
+    target = NULL;
+}
+
+static void software_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    const unsigned char *pixels = slot_pixels(slot);
+    p8_image_size_t size = image_built[slot];
+    int left = x - gfx->camera_x;
+    int top = y - gfx->camera_y;
+    int ix_first = max(0, -left);
+    int ix_end = min(size.width, P8_SCREEN_WIDTH - left);
+    int iy_first = max(0, -top);
+    int iy_end = min(size.height, P8_SCREEN_HEIGHT - top);
+    for (int iy = iy_first; iy < iy_end; iy++) {
+        const unsigned char *row = pixels + iy * size.width;
+        unsigned char *screen_row = mem->screen[top + iy];
+        for (int ix = ix_first; ix < ix_end; ix++) {
+            if (row[ix] != IMAGE_EMPTY) {
+                screen_row[left + ix] = row[ix];
+            }
+        }
+    }
+}
+
 static const p8_draw_backend_t SOFTWARE_BACKEND = {
     software_cls, software_pset, software_line, software_rect, software_rectfill,
     software_circ, software_circfill, software_spr, software_print,
+    software_image_begin, software_image_window, software_image_end, software_image_draw,
 };
 
 const p8_draw_backend_t *p8_gfx_software_backend(void) {

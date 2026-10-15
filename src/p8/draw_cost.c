@@ -146,3 +146,28 @@ p8_draw_cost_t p8_draw_cost_print(p8_draw_cost_window_t *window, const p8_graphi
     }
     return cost_add(unpatterned_window(window), cost_of(P8_GPU_SPRT_BYTES, glyphs));
 }
+
+p8_draw_cost_t p8_draw_cost_image_begin(void) {
+    p8_draw_cost_t cost = { P8_GPU_FILL_BYTES + P8_GPU_DR_STP_BYTES, 2 };
+    return cost;
+}
+
+p8_draw_cost_t p8_draw_cost_image_window(void) {
+    p8_draw_cost_t cost = { P8_GPU_DR_AREA_BYTES + P8_GPU_DR_OFFSET_BYTES, 2 };
+    return cost;
+}
+
+p8_draw_cost_t p8_draw_cost_image_end(void) {
+    p8_draw_cost_t cost = { P8_GPU_DR_AREA_BYTES + P8_GPU_DR_OFFSET_BYTES + P8_GPU_DR_STP_BYTES + P8_GPU_COMMAND_BYTES, 4 };
+    return cost;
+}
+
+p8_draw_cost_t p8_draw_cost_image_draw(p8_draw_cost_window_t *window, const p8_graphics_t *gfx, int x, int y, int w, int h) {
+    if (w <= 0 || h <= 0 || !on_screen(gfx, x, y, x + w - 1, y + h - 1)) {
+        return FREE;
+    }
+    window->patterned = 0;
+    window->pattern_key = 0;
+    p8_draw_cost_t cost = { P8_GPU_DR_TWIN_BYTES + 2 * P8_GPU_DR_TPAGE_BYTES + P8_GPU_SPRT_BYTES, 4 };
+    return cost;
+}

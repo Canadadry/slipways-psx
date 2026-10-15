@@ -90,7 +90,7 @@ else
     report gpu-draw-meter "expected psx-replay: draw-meter off, got: ${meter_line:-(no line)}"
 fi
 
-pc_gpu_lines='^(zone gpu_frame|cap gpu_[a-z_]*) '
+pc_gpu_lines='^(zone gpu_frame|zone gpu_build|cap gpu_[a-z_]*) '
 judged_state=$out_dir/gpu-state/judged_state.txt
 mkdir -p "$out_dir/gpu-state"
 {

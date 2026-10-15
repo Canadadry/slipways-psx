@@ -2,6 +2,7 @@
 
 #include "p8/draw_backend.h"
 #include "p8/gfx.h"
+#include "p8/image.h"
 #include "p8/vram.h"
 
 #include <assert.h>
@@ -91,9 +92,36 @@ static void slow_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str
     received[8].str = str;
 }
 
+static int image_calls;
+
+static void slow_image_begin(int slot, int w, int h) {
+    (void)slot, (void)w, (void)h;
+    image_calls++;
+    elapse();
+}
+
+static void slow_image_window(int slot, int x, int y) {
+    (void)slot, (void)x, (void)y;
+    image_calls++;
+    elapse();
+}
+
+static void slow_image_end(int slot) {
+    (void)slot;
+    image_calls++;
+    elapse();
+}
+
+static void slow_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    (void)gfx, (void)mem, (void)slot, (void)x, (void)y;
+    image_calls++;
+    elapse();
+}
+
 static const p8_draw_backend_t SLOW = {
     slow_cls, slow_pset, slow_line, slow_rect, slow_rectfill,
     slow_circ, slow_circfill, slow_spr, slow_print,
+    slow_image_begin, slow_image_window, slow_image_end, slow_image_draw,
 };
 
 static p8_vram_t mem;
@@ -245,6 +273,26 @@ static void test_a_patterned_fill_counts_under_its_shape_and_pattern_outside_the
     timing_removed();
 }
 
+static void one_line(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_line(build_gfx, build_mem, 0, 0, 5, 5, 7);
+}
+
+static void test_build_calls_count_under_their_families_and_a_copy_under_spr(void) {
+    timing_over(&SLOW);
+    image_calls = 0;
+    fine_step = 3;
+    p8_image_build(&gfx, &mem, 0, 160, 240, one_line, NULL);
+    p8_image_draw(&gfx, &mem, 0, 0, 0);
+    draw_timing_frame_end();
+    assert(image_calls == 5 && "begin, two windows, end and the copy reached the backend");
+    draw_timing_frame_t frame = draw_timing_get(0);
+    assert(frame.calls[DRAW_FILTER_LINE] == 2 && frame.ticks[DRAW_FILTER_LINE] == 6);
+    assert(frame.calls[DRAW_FILTER_SPR] == 1 && frame.ticks[DRAW_FILTER_SPR] == 3);
+    assert(frame.in_call == 9 && "the build's own switches are not a family's");
+    timing_removed();
+}
+
 static void test_frame_end_starts_an_empty_frame(void) {
     timing_over(&SLOW);
     draw_one_of_each();
@@ -386,6 +434,7 @@ int main(int argc, char **argv) {
     test_a_sum_past_16_bits_is_kept();
     test_a_coarse_delta_at_the_limit_flags_the_frame_wrapped();
     test_a_patterned_fill_counts_under_its_shape_and_pattern_outside_the_total();
+    test_build_calls_count_under_their_families_and_a_copy_under_spr();
     test_frame_end_starts_an_empty_frame();
     test_install_empties_the_table();
     test_reinstalling_the_returned_backend_removes_the_wrapper();

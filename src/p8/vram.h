@@ -17,8 +17,13 @@ typedef struct {
     unsigned char sprite_sheet[P8_SPRITE_SHEET_HEIGHT][P8_SPRITE_SHEET_WIDTH];
     unsigned char map_cells[P8_MAP_HEIGHT][P8_MAP_WIDTH];
     unsigned char screen[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
+    /* Process-wide: no two map states of any vram share a version. */
+    unsigned long map_version;
 } p8_vram_t;
 
 void p8_vram_init(p8_vram_t *mem);
+
+/* A version never returned before. */
+unsigned long p8_vram_next_map_version(void);
 
 #endif

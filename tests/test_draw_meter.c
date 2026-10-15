@@ -3,13 +3,14 @@
 #include "p8/draw_meter.h"
 #include "p8/gfx.h"
 #include "p8/gpu_sizes.h"
+#include "p8/image.h"
 #include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
-enum { KINDS = 9 };
+enum { KINDS = 13 };
 
 static int forwarded[KINDS];
 static const p8_graphics_t *forwarded_gfx;
@@ -65,9 +66,30 @@ static void counting_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char 
     seen(8, gfx, mem);
 }
 
+static void counting_image_begin(int slot, int w, int h) {
+    (void)slot, (void)w, (void)h;
+    forwarded[9]++;
+}
+
+static void counting_image_window(int slot, int x, int y) {
+    (void)slot, (void)x, (void)y;
+    forwarded[10]++;
+}
+
+static void counting_image_end(int slot) {
+    (void)slot;
+    forwarded[11]++;
+}
+
+static void counting_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    (void)slot, (void)x, (void)y;
+    seen(12, gfx, mem);
+}
+
 static const p8_draw_backend_t COUNTING = {
     counting_cls, counting_pset, counting_line, counting_rect, counting_rectfill,
     counting_circ, counting_circfill, counting_spr, counting_print,
+    counting_image_begin, counting_image_window, counting_image_end, counting_image_draw,
 };
 
 static p8_vram_t mem;
@@ -88,6 +110,10 @@ static void meter_removed(void) {
     p8_draw_backend_set(NULL);
 }
 
+static void draw_nothing(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    (void)gfx, (void)mem, (void)context;
+}
+
 static void draw_one_of_each(void) {
     p8_cls(&mem);
     p8_pset(&gfx, &mem, 1, 2, 3);
@@ -98,6 +124,8 @@ static void draw_one_of_each(void) {
     p8_circfill(&gfx, &mem, 10, 10, 3, 5);
     p8_spr(&gfx, &mem, 1, 0, 0, 1, 1);
     p8_print(&gfx, &mem, "ab", 0, 0, 7);
+    p8_image_build(&gfx, &mem, 0, 16, 16, draw_nothing, NULL);
+    p8_image_draw(&gfx, &mem, 0, 0, 0);
 }
 
 static void test_every_call_reaches_the_wrapped_backend(void) {
@@ -191,11 +219,57 @@ static void test_a_count_past_the_table_is_clamped_above_the_limit(void) {
     meter_removed();
 }
 
+static void two_sprites_and_a_palette(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_spr(build_gfx, build_mem, 1, 0, 0, 1, 1);
+    p8_spr(build_gfx, build_mem, 1, 200, 130, 1, 1);
+    p8_spr(build_gfx, build_mem, 1, 500, 0, 1, 1);
+}
+
+static void test_build_bytes_go_to_the_build_count_and_its_palettes_to_the_frame(void) {
+    meter_over_counting();
+    unsigned long base = overhead().bytes;
+    mem.draw_palette[5] = 9;
+
+    p8_image_build(&gfx, &mem, 0, 256, 256, two_sprites_and_a_palette, NULL);
+    p8_draw_meter_frame_end();
+
+    p8_draw_meter_counts_t built = p8_draw_meter_last_frame();
+    unsigned long windows = 6 * p8_draw_cost_image_window().bytes;
+    assert(built.bytes == base && "nothing of the build in the frame");
+    assert(built.build_bytes ==
+           p8_draw_cost_image_begin().bytes + windows + 2 * P8_GPU_SPRT_BYTES + p8_draw_cost_image_end().bytes);
+    assert(built.cluts == 1 && "the build's palette is a frame CLUT, as on the GPU");
+
+    p8_draw_meter_frame_end();
+    assert(p8_draw_meter_last_frame().build_bytes == 0 && "the build count restarts each frame");
+    assert(p8_draw_meter_peak().build_bytes == built.build_bytes);
+    meter_removed();
+}
+
+static void test_a_copy_costs_frame_bytes_on_screen_and_nothing_off_screen(void) {
+    meter_over_counting();
+    unsigned long base = overhead().bytes;
+    p8_image_build(&gfx, &mem, 0, 64, 32, draw_nothing, NULL);
+    p8_draw_meter_frame_end();
+
+    p8_image_draw(&gfx, &mem, 0, 10, 10);
+    p8_image_draw(&gfx, &mem, 0, -64, 0);
+    p8_draw_meter_frame_end();
+    p8_draw_cost_window_t window;
+    (void)p8_draw_cost_frame_begin(&window);
+    assert(p8_draw_meter_last_frame().bytes == base + p8_draw_cost_image_draw(&window, &gfx, 10, 10, 64, 32).bytes);
+    assert(p8_draw_meter_last_frame().build_bytes == 0);
+    meter_removed();
+}
+
 int main(void) {
     test_every_call_reaches_the_wrapped_backend();
     test_frame_end_folds_the_frame_into_the_peaks_and_resets_it();
     test_distinct_palettes_and_patterns_are_counted_once_per_frame();
     test_a_count_past_the_table_is_clamped_above_the_limit();
+    test_build_bytes_go_to_the_build_count_and_its_palettes_to_the_frame();
+    test_a_copy_costs_frame_bytes_on_screen_and_nothing_off_screen();
     printf("test_draw_meter: ok\n");
     return 0;
 }
