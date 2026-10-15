@@ -1,9 +1,9 @@
-- [ ] Phase 1 — Measure what ships
+- [x] Phase 1 — Measure what ships
   - [x] Step 1.1 — draw filter behind a compile-time define
     - [x] Chunk 1 — gpu-draw-filter judge condition
     - [x] Chunk 2 — replay and build wiring
     - [x] Chunk 3 — psx-check and F1 measurement
-  - [ ] Step 1.2 — new judge baseline, filter off
+  - [x] Step 1.2 — new judge baseline, filter off
     - [x] Chunk 1 — judge run and validity gates
     - [x] Chunk 2 — commit the baseline table
 - [ ] Phase 2 — Safe gains

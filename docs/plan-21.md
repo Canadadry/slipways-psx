@@ -274,3 +274,11 @@ by judge-wide gain (the report's `draw-6000` figure):
 - F1 measured (asserts off, O2), filter removed, per frame: `draw-5564` draw −136.7 (−11.3%), `draw-6000` −121.3 (−14.1%); update and submit within ±0.3. Both under the report's upper bounds (−211.3 / −198.5). Game state same, runs valid.
 - Deviation: chunk 2 was committed before the probe, so F1 was measured in reverse (baseline HEAD without the filter, a patch restoring it), sign flipped.
 - The PSn00bSDK toolchain and pcsx-redux were installed in this session (`make psn00bsdk-toolchain-setup`, `make psx-emulator-setup`).
+
+### Step 1.2
+
+- Judge run `make psx-full-game-check PSX_FULL_GAME_ASSERTS=off` on `ad152e8`: asserts off, O2, draw filter off, 1,132 s. Every condition ok but `frame-budget` (13 conditions, `gpu-draw-filter` ok).
+- Frames over 263: **6,047** of 6,059 (plan 20: 6,047). Worst: frame 12 at **9,392** (update 8,981, draw 404) vs 9,451. Mean frame **765** vs 857; overrun mean 503 vs 595.
+- Draw total 3,994,334 vs 4,550,826: −12.2%, −91.8 a frame (F1 on the judge). Update and submit unchanged within timer jitter (≤3 hblanks a frame). The ten worst frames keep plan 20's order; the four spikes (12, 4737, 5500, 5719) only lost draw.
+- `psx/perf/full-run-frames.txt` is this run's table. Plan 20's table moved to `psx/perf/report-judge-frames.txt`, read by `lever-estimate` and `lever-estimate-check` through `ESTIMATE_JUDGE_FRAMES` (PRD decision: their figures are plan 20's and break on a table whose update moved by a hblank). Delete it with the report in step 22.
+- Zones and caps all ok; `gpu_frame` 65,028 of 73,728 (margin 0/8). `gpu-ram-room` 351,872 bytes left.
