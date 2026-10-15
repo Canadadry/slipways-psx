@@ -9,7 +9,7 @@
 
 /* full_game.json's 6,059 frames plus 1/8. */
 #define CALL_PROFILE_FRAME_CAP 6817
-#define CALL_PROFILE_CHILD_CAP 16
+#define CALL_PROFILE_CHILD_CAP 64
 #define CALL_PROFILE_DEPTH_CAP 256
 
 typedef enum {

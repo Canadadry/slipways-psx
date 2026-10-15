@@ -892,7 +892,10 @@ runtime are compiled with `-finstrument-functions`. Per frame, it writes the
 calls and PC time of each direct child of `cart_update60` and `cart_draw`
 (keyed by call site: `draw_layers#1`, `#2`) and of each draw family, counted
 as the breakdown counts them. The output goes to `tmp/frame-profile/<name>/`,
-and the end state is checked (`same-game`).
+and the end state is checked (`same-game`). The binary takes an optional
+fourth argument, a draw root other than `cart_draw` (for example
+`draw_layers`), named on the `root draw <symbol>` header line; an unknown or
+ambiguous symbol, or `cart_update60`, exits 1.
 
 - `make frame-profile-breakdown-check [PSX_SHORT_RUNS=]` (default
   `draw-5564`) checks those call counts against each run's last breakdown

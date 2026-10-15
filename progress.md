@@ -21,6 +21,11 @@
     - [x] Chunk 1: baselines and cart_draw's own cost
     - [x] Chunk 2: children probes and additivity check
   - [ ] 2.7 Go down the draw tree
+    - [x] Chunk 1: subtree root in the profile binary
+    - [ ] Chunk 2: frame-profile-subtree target, subtree summary, probe baseline rebuild
+    - [ ] Chunk 3: level 2, the children of draw_layers
+    - [ ] Chunk 4: levels 3 and below on draw-5564
+    - [ ] Chunk 5: levels 3 and below on draw-6000 and start, verification
   - [ ] 2.8 Backend side: per-unit costs, 9x print and meter experiments
 - [ ] Phase 3 — Update
   - [ ] 3.9 Identify the four update spikes on PC

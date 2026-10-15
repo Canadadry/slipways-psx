@@ -2646,4 +2646,5 @@ raylib: $(TMP_DIR)/game
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d $(OBJ_SANITIZE_DIR)/tmp/demo/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d $(OBJ_COVERAGE_DIR)/tmp/demo/*.d)
+-include $(wildcard $(OBJ_PROFILE_DIR)/src/*/*.d $(OBJ_PROFILE_PLAIN_DIR)/src/*/*.d $(OBJ_PROFILE_PLAIN_DIR)/tmp/bindings/*.d $(OBJ_PROFILE_PLAIN_DIR)/tmp/demo/*.d)
 

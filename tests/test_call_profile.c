@@ -384,6 +384,17 @@ static int case_frames(void) {
     return 0;
 }
 
+static void test_a_dispatcher_root_keeps_forty_children(void) {
+    fresh();
+    call_profile_enter(DRAW, MAIN);
+    for (int child = 0; child < 40; child++) call(LEAF, SITE_A + (uintptr_t)child);
+    call_profile_exit(DRAW, MAIN);
+    call_profile_frame_end();
+    assert(call_profile_child_count(CALL_PROFILE_DRAW) == 40);
+    assert(call_profile_child_info(CALL_PROFILE_DRAW, 39).site == 40);
+    assert(call_profile_child_figures(0, CALL_PROFILE_DRAW, 39).calls == 1);
+}
+
 static int case_children(void) {
     fresh();
     call_profile_enter(DRAW, MAIN);
@@ -454,8 +465,9 @@ int main(int argc, char **argv) {
     test_a_backend_call_adds_its_time_and_one_call_to_its_family();
     test_a_patterned_fill_also_counts_as_pattern_with_its_time_inside_its_shape();
     test_family_calls_equal_the_breakdown_timing_on_the_same_calls();
+    test_a_dispatcher_root_keeps_forty_children();
     expect_fatal(argv[0], "frames", "call profile frame table full at frame 6817, capacity 6817");
-    expect_fatal(argv[0], "children", "call profile: more than 16 children under one root");
+    expect_fatal(argv[0], "children", "call profile: more than 64 children under one root");
     expect_fatal(argv[0], "depth", "call profile: call stack deeper than 256");
     expect_fatal(argv[0], "unbalanced", "call profile: exit without its entry");
     printf("test_call_profile: ok\n");

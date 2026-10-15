@@ -78,13 +78,18 @@ static int replay_frames(const char *events, const char *state) {
     return frames;
 }
 
-static void profile(const char *events, const char *dir, const char *state) {
+/* root NULL profiles the default draw root. */
+static void profile_rooted(const char *events, const char *dir, const char *state, const char *root) {
     char command[LINE_CAP];
-    snprintf(command, sizeof command, "mkdir -p %s && STATE=%s " TOOL " %s %s " SYMBOLS " > %s/log.txt", dir, state,
-             events, dir, dir);
+    snprintf(command, sizeof command, "mkdir -p %s && STATE=%s " TOOL " %s %s " SYMBOLS " %s > %s/log.txt", dir, state,
+             events, dir, root != NULL ? root : "", dir);
     int status = run(command);
     if (status != 0) fprintf(stderr, "test_frame_profile: %s exited %d\n", events, status);
     assert(status == 0);
+}
+
+static void profile(const char *events, const char *dir, const char *state) {
+    profile_rooted(events, dir, state, NULL);
 }
 
 static char *profile_file(const char *dir, const char *name) {
@@ -203,6 +208,7 @@ static void check_profile(const char *events, const char *dir) {
     snprintf(line, sizeof line, "profile %s frames %d hook-pair-ns ", events, frame_count);
     expect_line(frames, line);
     assert(strstr(frames, " clock monotonic-ns\n") != NULL);
+    expect_line(frames, "root draw cart_draw\n");
     for (int i = 0; i < frame_count; i++) {
         snprintf(line, sizeof line, "frame %d update ", i);
         expect_line(frames, line);
@@ -230,6 +236,7 @@ static void check_profile(const char *events, const char *dir) {
     char *summary = profile_file(dir, "summary.txt");
     snprintf(line, sizeof line, "profile %s frames %d hook-pair-ns ", events, frame_count);
     expect_line(summary, line);
+    expect_line(summary, "root draw cart_draw\n");
     snprintf(line, sizeof line, "child draw draw_layers#2 %d ", frame_count);
     expect_line(summary, line);
     snprintf(line, sizeof line, "family cls %d ", frame_count);
@@ -268,6 +275,20 @@ static void test_a_resume_start_recording(void) {
     check_profile(RESUME_EVENTS, OUT "/resume");
 }
 
+static void test_a_draw_layers_root_lists_the_draw_methods_it_dispatches(void) {
+    const char *dir = OUT "/draw_layers";
+    profile_rooted(TITLE_EVENTS, dir, OUT "/draw_layers_state.txt", "draw_layers");
+    char *frames = profile_file(dir, "frames.txt");
+    expect_line(frames, "root draw draw_layers\n");
+    expect_line(frames, "frame 0 child draw button_draw_method ");
+    expect_line(frames, "frame 0 child update update_entities ");
+    assert(!has_line_starting(frames, "frame 0 child draw draw_layers"));
+    char *summary = profile_file(dir, "summary.txt");
+    expect_line(summary, "root draw draw_layers\n");
+    expect_line(summary, "child draw background_draw_method ");
+    free(summary), free(frames);
+}
+
 static void expect_usage_error(const char *arguments, const char *message) {
     char command[LINE_CAP];
     snprintf(command, sizeof command, TOOL " %s > /dev/null 2> " STDERR_LOG, arguments);
@@ -288,6 +309,10 @@ static void test_usage_errors_exit_1(void) {
     expect_usage_error(TITLE_EVENTS " " OUT "/usage tmp/no_such_symbols.syms", "tmp/no_such_symbols.syms");
     expect_usage_error("tmp/no_such_events.json " OUT "/usage " SYMBOLS, "tmp/no_such_events.json");
     expect_usage_error(TITLE_EVENTS " " OUT "/no_such_dir/deeper " SYMBOLS, OUT "/no_such_dir/deeper");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " no_such_function", "no text symbol 'no_such_function'");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " min", "several text symbols 'min'");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " cart_update60", "the draw root cannot be cart_update60");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " draw_layers extra", "usage: frame_profile");
 }
 
 int main(void) {
@@ -295,6 +320,7 @@ int main(void) {
     test_usage_errors_exit_1();
     test_a_title_start_recording();
     test_a_resume_start_recording();
+    test_a_draw_layers_root_lists_the_draw_methods_it_dispatches();
     printf("test_frame_profile: ok\n");
     return 0;
 }
