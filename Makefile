@@ -569,6 +569,19 @@
 #                       the root's PC time, and the root's self share; fails
 #                       on an unknown or ambiguous symbol; never boots,
 #                       outside the suite
+# make frame-profile-unit-cost [PSX_SHORT_RUNS=<names>] -> runs
+#                       psx-short-runs-cut, then per run (default every run of
+#                       psx/short_runs.txt) profiles its run.json into
+#                       tmp/frame-profile/unit-cost/<name>/ (same-game against
+#                       its run.end-state) and, through
+#                       tools/frame_profile_check.sh unit-cost, joins the PC
+#                       units with the run's last breakdown boot over the
+#                       window into <name>/unit-cost.txt: per family calls,
+#                       units, switches, hblanks, hblanks per call and per
+#                       unit, or the first calls mismatch; then the runs
+#                       summed in tmp/frame-profile/unit-cost/pooled.txt; a
+#                       missing breakdown TTY fails naming the make
+#                       psx-short-runs to run; never boots, outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2483,6 +2496,24 @@ frame-profile-subtree: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_p
 	sh tools/frame_profile_check.sh subtree $$runs > $$out/summary.txt; status=$$?; \
 	cat $$out/summary.txt; exit $$status
 
+frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); failed=; outputs=; out=$(FRAME_PROFILE_DIR)/unit-cost; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 !~ /^#/ && NF {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$$out/$$name; \
+		if [ ! -f $$short/breakdown.tty.txt ]; then \
+			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_REFERENCE="; \
+			failed="$$failed $$name"; continue; \
+		fi; \
+		rm -f $$dir/unit-cost.txt; profile $$short/run.json $$short/run.end-state $$dir \
+			&& sh tools/frame_profile_check.sh unit-cost $$dir/frames.txt $$short/breakdown.tty.txt $$short/map.txt \
+				> $$dir/unit-cost.txt; status=$$?; \
+		[ -f $$dir/unit-cost.txt ] && sed "s/^/$@: $$name: /" $$dir/unit-cost.txt; \
+		if [ $$status -eq 0 ]; then outputs="$$outputs $$dir/unit-cost.txt"; else failed="$$failed $$name"; fi; \
+	done; \
+	if [ -n "$$failed" ]; then echo "$@: failed:$$failed"; exit 1; fi; \
+	sh tools/frame_profile_check.sh unit-cost-pooled $$outputs > $$out/pooled.txt || exit 1; \
+	sed "s/^/$@: pooled: /" $$out/pooled.txt
+
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -2495,7 +2526,8 @@ $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools
 frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
-.PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree
+.PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
+	frame-profile-unit-cost
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

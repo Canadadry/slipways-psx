@@ -610,6 +610,110 @@ static void test_subtree_usage_errors_exit_1(void) {
     assert(read_file(LOG)[0] != 'r');
 }
 
+/* Returns the script's exit status; its output is in LOG. */
+static int run_unit_cost(const char *profile, const char *tty, const char *map) {
+    fresh_dir();
+    write_file(FRAMES_TXT, profile);
+    write_file(TTY, tty);
+    write_file(MAP, map);
+    return run_command(SCRIPT " unit-cost " FRAMES_TXT " " TTY " " MAP " > " LOG " 2>&1");
+}
+
+/* Window run frames 15 and 16: spr 51 calls 2652 ticks, print 62 calls 3224 ticks, cls 2 calls 104
+ * ticks, every family 3 units and 1 switch per frame; 64 / 17170 hblanks per tick. */
+static void test_unit_cost_prices_each_family_over_the_window(void) {
+    assert(run_unit_cost(with_units(breakdown_profile), breakdown_tty, MAP_RESUME) == 0);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "family cls calls 2 units 6 switches 2 hblanks 0.4 per-call 0.194 per-unit 0.065\n") == log);
+    assert(strstr(log, "\nfamily pset calls 0 units 6 switches 2 hblanks 0.0 per-call - per-unit 0.000\n") != NULL);
+    assert(strstr(log, "\nfamily spr calls 51 units 6 switches 2 hblanks 9.9 per-call 0.194 per-unit 1.648\n") != NULL);
+    assert(strstr(log, "\nfamily print calls 62 units 6 switches 2 hblanks 12.0 per-call 0.194 per-unit 2.003\n")
+           != NULL);
+    assert(strstr(log, "\nfamily pattern calls 1 units 6 switches 2 hblanks 0.2 per-call 0.194 per-unit 0.032\n")
+           != NULL);
+    assert(strstr(log, "family print ") < strstr(log, "family pattern "));
+    assert(strstr(log, "\nin-calls 22.3\nwindow-frames 2\n") != NULL);
+    assert(strstr(log, "window-frames 2\n")[strlen("window-frames 2\n")] == '\0');
+}
+
+static void test_unit_cost_refuses_a_calls_mismatch_naming_the_first(void) {
+    const char *tty = replaced(breakdown_tty, " print 1664 32 ", " print 1664 33 ");
+    assert(run_unit_cost(with_units(breakdown_profile), tty, MAP_RESUME) == 2);
+    assert(strcmp(read_file(LOG), "calls-match differs frame 16 family print pc 32 psx 33\n") == 0);
+    tty = replaced(breakdown_tty, "psx-draw: frame 15 ", "psx-elsewhere: frame 15 ");
+    assert(run_unit_cost(with_units(breakdown_profile), tty, MAP_RESUME) == 2);
+    assert(strcmp(read_file(LOG), "calls-match differs frame 15 no psx-draw line\n") == 0);
+}
+
+static void test_unit_cost_refuses_a_profile_without_units(void) {
+    assert(run_unit_cost(breakdown_profile, breakdown_tty, MAP_RESUME) == 2);
+    assert(strstr(read_file(LOG), "calls-match differs frame 15 no pc family cls line with units") != NULL);
+}
+
+static void test_unit_cost_refuses_a_tty_without_calibration(void) {
+    const char *tty = replaced(breakdown_tty, "psx-draw: clk8-per-64-hblanks 17170\r\n", "");
+    assert(run_unit_cost(with_units(breakdown_profile), tty, MAP_RESUME) == 2);
+    assert(strstr(read_file(LOG), "clk8-per-64-hblanks") != NULL);
+}
+
+static void test_unit_cost_over_a_prefix_window(void) {
+    assert(run_unit_cost(with_units(breakdown_profile), breakdown_tty, MAP_PREFIX) == 0);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "\nfamily spr calls 22 units 3 switches 1 hblanks 4.3 per-call 0.194 per-unit 1.421\n") != NULL);
+    assert(strstr(log, "\nwindow-frames 1\n") != NULL);
+}
+
+static void test_unit_cost_usage_errors_exit_1(void) {
+    run_unit_cost(with_units(breakdown_profile), breakdown_tty, MAP_RESUME);
+    assert(run_command(SCRIPT " unit-cost " FRAMES_TXT " " TTY " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " unit-cost " DIR "/none.txt " TTY " " MAP " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " unit-cost " FRAMES_TXT " " DIR "/none.tty " MAP " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " unit-cost " FRAMES_TXT " " TTY " " DIR "/none.map > " LOG " 2>&1") == 1);
+    assert(strstr(read_file(LOG), "family ") == NULL);
+}
+
+#define RESUME_COST DIR "/resume-cost.txt"
+#define PREFIX_COST DIR "/prefix-cost.txt"
+
+/* Writes the unit-cost outputs of the resume and prefix windows to RESUME_COST and PREFIX_COST. */
+static void write_unit_cost_outputs(void) {
+    static char resume[TEXT_CAP];
+    assert(run_unit_cost(with_units(breakdown_profile), breakdown_tty, MAP_RESUME) == 0);
+    snprintf(resume, sizeof resume, "%s", read_file(LOG));
+    assert(run_unit_cost(with_units(breakdown_profile), breakdown_tty, MAP_PREFIX) == 0);
+    write_file(PREFIX_COST, read_file(LOG));
+    write_file(RESUME_COST, resume);
+}
+
+static void test_unit_cost_pooled_sums_the_runs(void) {
+    write_unit_cost_outputs();
+    assert(run_command(SCRIPT " unit-cost-pooled " RESUME_COST " " PREFIX_COST " > " LOG " 2>&1") == 0);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "family cls calls 3 units 9 switches 3 hblanks 0.6 per-call 0.200 per-unit 0.067\n") == log);
+    assert(strstr(log, "\nfamily pset calls 0 units 9 switches 3 hblanks 0.0 per-call - per-unit 0.000\n") != NULL);
+    assert(strstr(log, "\nfamily spr calls 73 units 9 switches 3 hblanks 14.2 per-call 0.195 per-unit 1.578\n") != NULL);
+    assert(strstr(log, "family print ") < strstr(log, "family pattern "));
+    assert(strstr(log, "\nin-calls 31.4\nwindow-frames 3\n") != NULL);
+}
+
+static void test_unit_cost_pooled_malformed_input_exits_2(void) {
+    write_unit_cost_outputs();
+    write_file(PREFIX_COST, replaced(read_file(PREFIX_COST), "family spr ", "family sprite "));
+    assert(run_command(SCRIPT " unit-cost-pooled " RESUME_COST " " PREFIX_COST " > " LOG " 2>&1") == 2);
+    write_file(PREFIX_COST, "calls-match differs frame 12 no psx-draw line\n");
+    assert(run_command(SCRIPT " unit-cost-pooled " RESUME_COST " " PREFIX_COST " > " LOG " 2>&1") == 2);
+    assert(strstr(read_file(LOG), PREFIX_COST) != NULL);
+    write_unit_cost_outputs();
+    write_file(RESUME_COST, replaced(read_file(RESUME_COST), "window-frames 2\n", ""));
+    assert(run_command(SCRIPT " unit-cost-pooled " RESUME_COST " " PREFIX_COST " > " LOG " 2>&1") == 2);
+    assert(strstr(read_file(LOG), RESUME_COST ": truncated") != NULL);
+}
+
+static void test_unit_cost_pooled_usage_errors_exit_1(void) {
+    assert(run_command(SCRIPT " unit-cost-pooled > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " unit-cost-pooled " DIR "/none.txt > " LOG " 2>&1") == 1);
+}
+
 int main(void) {
     build_breakdown_inputs();
     test_breakdown_match_over_a_resume_window();
@@ -635,6 +739,15 @@ int main(void) {
     test_subtree_reports_each_run_in_order();
     test_subtree_malformed_input_exits_2();
     test_subtree_usage_errors_exit_1();
+    test_unit_cost_prices_each_family_over_the_window();
+    test_unit_cost_refuses_a_calls_mismatch_naming_the_first();
+    test_unit_cost_refuses_a_profile_without_units();
+    test_unit_cost_refuses_a_tty_without_calibration();
+    test_unit_cost_over_a_prefix_window();
+    test_unit_cost_usage_errors_exit_1();
+    test_unit_cost_pooled_sums_the_runs();
+    test_unit_cost_pooled_malformed_input_exits_2();
+    test_unit_cost_pooled_usage_errors_exit_1();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frame_profile_check: all tests passed\n");
     return 0;

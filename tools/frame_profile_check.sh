@@ -2,6 +2,8 @@
 # usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
 #        frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
 #        frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
+#        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
+#        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
 # breakdown: over the window of <map.txt> (tmp/short_run_cut), the per-family
 # calls of tmp/frame_profile's <frames.txt> must equal the psx-draw: lines of
 # the run's breakdown boot. Prints "calls-match ok <n> frames" then
@@ -28,6 +30,12 @@
 # <child> calls <min>-<max> share <pct>" (calls per window frame in the
 # first profile, median share of the root's PC time), then "self <symbol>
 # share <pct>". Exit 0, 2 on malformed input, 1 on a usage error.
+# unit-cost: over the window, per family "family <f> calls <c> units <u>
+# switches <s> hblanks <h> per-call <x> per-unit <y>" (PC units, PSX time
+# from the breakdown boot's fine ticks and calibration; "-" for a zero
+# divisor), then "in-calls <h>" and "window-frames <n>"; a calls mismatch
+# prints the first one as breakdown does. unit-cost-pooled sums such outputs.
+# Exit 0, 2 on a mismatch or malformed input, 1 on a usage error.
 
 set -u
 LC_ALL=C
@@ -35,7 +43,9 @@ export LC_ALL
 
 usage="usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
        frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
-       frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>..."
+       frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
+       frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
+       frame_profile_check.sh unit-cost-pooled <unit-cost output>..."
 
 fail_usage() {
     echo "frame-profile-check: $1" >&2
@@ -346,11 +356,104 @@ subtree() {
     done
 }
 
+unit_cost() {
+    [ $# -eq 3 ] || fail_usage "$usage"
+    [ -f "$1" ] || fail_usage "missing profile: $1"
+    [ -f "$2" ] || fail_usage "missing breakdown tty: $2"
+    window=$(window_of "$3") || exit 1
+    set -- "$1" "$2" $window
+    {
+        sed -n 's/^frame \([0-9]*\) family /P \1 /p' "$1"
+        tr -d '\r' < "$2" | sed -n 's/^psx-draw: frame /D /p; s/^psx-draw: clk8-per-64-hblanks /C /p'
+    } | awk -v first="$3" -v last="$4" '
+        BEGIN { family_count = split("cls pset line rect rectfill circ circfill spr print pattern", families, " ") }
+        $1 == "C" && NF == 2 { if (calibration == "") calibration = $2; next }
+        $1 == "P" && NF == 9 && $6 == "units" && $8 == "switches" {
+            pc[$2, $3] = $4; units[$2, $3] = $7; switches[$2, $3] = $9; next
+        }
+        $1 == "D" && NF == 34 && $33 == "wrapped" {
+            for (i = 1; i <= family_count; i++) if ($(3 * i) != families[i]) next
+            seen[$2] = 1
+            for (i = 1; i <= family_count; i++) { ticks[$2, families[i]] = $(3 * i + 1); psx[$2, families[i]] = $(3 * i + 2) }
+        }
+        function ratio(part, whole) { return whole > 0 ? sprintf("%.3f", part / whole) : "-" }
+        END {
+            if (calibration == "" || calibration !~ /^[0-9]+$/ || calibration == 0) {
+                print "frame-profile-check: no clk8-per-64-hblanks line in the breakdown tty" > "/dev/stderr"
+                exit 2
+            }
+            for (r = first; r <= last; r++) {
+                if (!(r in seen)) { print "calls-match differs frame " r " no psx-draw line"; exit 2 }
+                for (i = 1; i <= family_count; i++) {
+                    f = families[i]
+                    if (!((r, f) in pc)) { print "calls-match differs frame " r " no pc family " f " line with units"; exit 2 }
+                    if (pc[r, f] != psx[r, f]) {
+                        print "calls-match differs frame " r " family " f " pc " pc[r, f] " psx " psx[r, f]
+                        exit 2
+                    }
+                    calls_total[f] += pc[r, f]; units_total[f] += units[r, f]; switches_total[f] += switches[r, f]
+                    ticks_total[f] += ticks[r, f]
+                    if (f != "pattern") in_call_ticks += ticks[r, f]
+                }
+            }
+            for (i = 1; i <= family_count; i++) {
+                f = families[i]; h = ticks_total[f] * 64 / calibration
+                printf "family %s calls %d units %d switches %d hblanks %.1f per-call %s per-unit %s\n", f, calls_total[f], \
+                    units_total[f], switches_total[f], h, ratio(h, calls_total[f]), ratio(h, units_total[f])
+            }
+            printf "in-calls %.1f\n", in_call_ticks * 64 / calibration
+            print "window-frames " (last - first + 1)
+        }'
+}
+
+unit_cost_pooled() {
+    [ $# -ge 1 ] || fail_usage "$usage"
+    for output in "$@"; do
+        [ -f "$output" ] || fail_usage "missing unit-cost output: $output"
+    done
+    awk '
+        BEGIN { family_count = split("cls pset line rect rectfill circ circfill spr print pattern", families, " ") }
+        function malformed(reason) {
+            print "frame-profile-check: malformed " FILENAME ": " reason > "/dev/stderr"
+            failed = 1
+            exit 2
+        }
+        FNR == 1 {
+            if (previous != "" && line_index != family_count + 2) { FILENAME = previous; malformed("truncated") }
+            previous = FILENAME; line_index = 0
+        }
+        {
+            line_index++
+            if (line_index <= family_count) {
+                f = families[line_index]
+                if (NF != 14 || $1 != "family" || $2 != f || $3 != "calls" || $5 != "units" || $7 != "switches" || $9 != "hblanks")
+                    malformed("line " FNR " is not family " f)
+                calls[f] += $4; units[f] += $6; switches[f] += $8; hblanks[f] += $10
+            } else if (line_index == family_count + 1 && $1 == "in-calls" && NF == 2) in_calls += $2
+            else if (line_index == family_count + 2 && $1 == "window-frames" && NF == 2) frames += $2
+            else malformed("line " FNR " is not a unit-cost line")
+        }
+        function ratio(part, whole) { return whole > 0 ? sprintf("%.3f", part / whole) : "-" }
+        END {
+            if (failed) exit 2
+            if (line_index != family_count + 2) { FILENAME = previous; malformed("truncated") }
+            for (i = 1; i <= family_count; i++) {
+                f = families[i]
+                printf "family %s calls %d units %d switches %d hblanks %.1f per-call %s per-unit %s\n", f, calls[f], \
+                    units[f], switches[f], hblanks[f], ratio(hblanks[f], calls[f]), ratio(hblanks[f], units[f])
+            }
+            printf "in-calls %.1f\n", in_calls
+            print "window-frames " frames
+        }' "$@"
+}
+
 mode=${1:-}
 [ $# -gt 0 ] && shift
 case $mode in
     breakdown) breakdown "$@" ;;
     coverage) coverage "$@" ;;
     subtree) subtree "$@" ;;
+    unit-cost) unit_cost "$@" ;;
+    unit-cost-pooled) unit_cost_pooled "$@" ;;
     *) fail_usage "$usage" ;;
 esac
