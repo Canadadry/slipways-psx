@@ -5,6 +5,7 @@
 #        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
 #        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
 #        frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
+#        frame_profile_check.sh spread <budget> <judge-frames.txt> <spikes.txt> <gains> [<ratios>]
 # breakdown: over the window of <map.txt> (tmp/short_run_cut), the per-family
 # calls of tmp/frame_profile's <frames.txt> must equal the psx-draw: lines of
 # the run's breakdown boot. Prints "calls-match ok <n> frames" then
@@ -46,6 +47,17 @@
 # lines and "spike-frames <n> over-1000 <m> classes <c> open <o>" (o: open
 # frames). Exit 0, 3 when a frame is open, 2 on malformed input, 1 on a
 # usage error.
+# spread: per frame of a closed class in a spikes output, "frame <f> class
+# <path> work <W> frames <N|does-not-fit> [overlaps <f2>,...]": W is the
+# share times the ratio of the path's cart_update60 child (<ratios>
+# "<child>=<ratio>,...", 1 when missing), capped at 1, times the judge
+# update; N the fewest frames from f whose room under <budget> sums to W
+# (frame f keeping update - W, draw cut by <gains> "default=<pct>[,<first>-
+# <last>=<pct>]...", the last range wins), does-not-fit past 600 frames or
+# the run's end; overlaps lists the other spike frames in the N frames. Then
+# "class <path> work <min>-<median>-<max> frames <min>-<median>-<max>
+# does-not-fit <n>" ("-" when nothing fits). Exit 0, 2 on malformed input, 1
+# on a usage error.
 
 set -u
 LC_ALL=C
@@ -56,7 +68,8 @@ usage="usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> 
        frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
-       frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]..."
+       frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
+       frame_profile_check.sh spread <budget> <judge-frames.txt> <spikes.txt> <gains> [<ratios>]"
 
 fail_usage() {
     echo "frame-profile-check: $1" >&2
@@ -638,6 +651,132 @@ spikes() {
         }' "$judge" $files
 }
 
+spread() {
+    [ $# -eq 4 ] || [ $# -eq 5 ] || fail_usage "$usage"
+    budget=$1
+    judge=$2
+    spike_list=$3
+    gains=$4
+    ratios=${5:-}
+    case $budget in
+        '' | *[!0-9]*) fail_usage "budget is not a count of hblanks: '$budget'" ;;
+    esac
+    [ -f "$judge" ] || fail_usage "missing judge table: $judge"
+    [ -f "$spike_list" ] || fail_usage "missing spikes output: $spike_list"
+    echo "$gains" | grep -Eq '^default=[0-9]+(\.[0-9]+)?(,[0-9]+-[0-9]+=[0-9]+(\.[0-9]+)?)*$' \
+        || fail_usage "gains are not default=<pct>[,<first>-<last>=<pct>]...: '$gains'"
+    echo "$gains" | tr ',' '\n' | awk -F= '$2 > 100 { exit 1 } $1 ~ /-/ { split($1, r, "-"); if (r[1] + 0 > r[2] + 0) exit 1 }' \
+        || fail_usage "a gain above 100 or a range backwards: '$gains'"
+    if [ -n "$ratios" ]; then
+        echo "$ratios" | grep -Eq '^[A-Za-z0-9_]+=[0-9]+(\.[0-9]+)?(,[A-Za-z0-9_]+=[0-9]+(\.[0-9]+)?)*$' \
+            || fail_usage "ratios are not <child>=<ratio>[,...]: '$ratios'"
+    fi
+    awk -v budget="$budget" -v gains="$gains" -v ratios="$ratios" '
+        BEGIN {
+            cap = 600
+            n = split(gains, specs, ",")
+            for (i = 1; i <= n; i++) {
+                split(specs[i], kv, "=")
+                if (kv[1] == "default") { default_gain = kv[2] + 0; continue }
+                split(kv[1], range, "-")
+                range_count++; range_first[range_count] = range[1] + 0; range_last[range_count] = range[2] + 0
+                range_gain[range_count] = kv[2] + 0
+            }
+            n = split(ratios, specs, ",")
+            for (i = 1; i <= n; i++) { split(specs[i], kv, "="); ratio_of[kv[1]] = kv[2] + 0 }
+            file = 0
+        }
+        function malformed(reason) {
+            print "frame-profile-check: malformed " FILENAME ": " reason > "/dev/stderr"
+            failed = 1
+            exit 2
+        }
+        function gain(f,    i, g) {
+            g = default_gain
+            for (i = 1; i <= range_count; i++) if (f >= range_first[i] && f <= range_last[i]) g = range_gain[i]
+            return g
+        }
+        function room(f, update,    r) {
+            r = budget - submit[f] - int(draw[f] * (100 - gain(f)) / 100 + 0.5 + 1e-9) - update
+            return r > 0 ? r : 0
+        }
+        function median(values, n,    i, j, t) {
+            for (i = 1; i <= n; i++) for (j = i + 1; j <= n; j++) if (values[j] < values[i]) { t = values[i]; values[i] = values[j]; values[j] = t }
+            return n % 2 ? values[(n + 1) / 2] : (values[n / 2] + values[n / 2 + 1]) / 2
+        }
+        FNR == 1 { file++ }
+        file == 1 && FNR == 1 {
+            if ($1 != "frame" || $2 != "update" || $3 != "draw" || $4 != "submit") malformed("no judge header")
+            next
+        }
+        file == 1 {
+            if (NF < 4 || $1 != judge_frames || $2 !~ /^[0-9]+$/ || $3 !~ /^[0-9]+$/ || $4 !~ /^[0-9]+$/)
+                malformed("line " FNR " is not frame " judge_frames)
+            update[$1] = $2; draw[$1] = $3; submit[$1] = $4
+            judge_frames++
+            next
+        }
+        $1 != "frame" { next }
+        {
+            if (NF < 10 || $2 !~ /^[0-9]+$/ || $3 != "update" || $5 != "pc-update-ns" || $7 != "path" || $9 != "share" \
+                || $10 !~ /^[0-9]+(\.[0-9]+)?%$/)
+                malformed("line " FNR " is not a spikes frame line")
+            f = $2 + 0
+            if (f >= judge_frames) malformed("frame " f " is not in the judge table")
+            if ($4 != update[f]) malformed("frame " f " update " $4 ", not " update[f] " as the judge table")
+            is_spike[f] = 1
+            for (i = 11; i <= NF; i++) if ($i == "open") next
+            closed_count++; closed_frame[closed_count] = f; closed_path[closed_count] = $8
+            share = $10; sub(/%$/, "", share); closed_share[closed_count] = share + 0
+        }
+        END {
+            if (failed) exit 2
+            if (file < 2) malformed("no spikes output")
+            for (s = 1; s <= closed_count; s++) {
+                f = closed_frame[s]; path = closed_path[s]
+                child = ""
+                if (split(path, parts, "/") > 1) { child = parts[2]; sub(/#.*/, "", child) }
+                rho = (child in ratio_of) ? ratio_of[child] : 1
+                portion = closed_share[s] * rho / 100
+                if (portion > 1) portion = 1
+                work = portion * update[f]
+                work = int(work - 1e-9) + (work - 1e-9 > int(work - 1e-9) ? 1 : 0)
+                if (work < 0) work = 0
+                total = room(f, update[f] - work); frames = 1
+                while (total < work && frames < cap && f + frames < judge_frames) { total += room(f + frames, update[f + frames]); frames++ }
+                fits = total >= work
+                line = sprintf("frame %d class %s work %d frames %s", f, path, work, fits ? frames : "does-not-fit")
+                if (fits) {
+                    overlaps = ""
+                    for (i = f + 1; i < f + frames; i++) if (i in is_spike) overlaps = overlaps (overlaps == "" ? "" : ",") i
+                    if (overlaps != "") line = line " overlaps " overlaps
+                }
+                print line
+                if (!(path in class_index)) { class_index[path] = ++class_count; class_paths[class_count] = path }
+                c = class_index[path]
+                class_works[c, ++class_size[c]] = work
+                if (fits) class_fits[c, ++class_fit_count[c]] = frames
+                else class_misses[c]++
+            }
+            for (c = 1; c <= class_count; c++) {
+                m = class_size[c]
+                for (j = 1; j <= m; j++) w[j] = class_works[c, j]
+                low = w[1]; high = w[1]
+                for (j = 2; j <= m; j++) { if (w[j] < low) low = w[j]; if (w[j] > high) high = w[j] }
+                work_range = low "-" median(w, m) "-" high
+                m = class_fit_count[c] + 0
+                if (m == 0) frame_range = "-"
+                else {
+                    for (j = 1; j <= m; j++) w[j] = class_fits[c, j]
+                    low = w[1]; high = w[1]
+                    for (j = 2; j <= m; j++) { if (w[j] < low) low = w[j]; if (w[j] > high) high = w[j] }
+                    frame_range = low "-" median(w, m) "-" high
+                }
+                print "class " class_paths[c] " work " work_range " frames " frame_range " does-not-fit " class_misses[c] + 0
+            }
+        }' "$judge" "$spike_list"
+}
+
 mode=${1:-}
 [ $# -gt 0 ] && shift
 case $mode in
@@ -647,5 +786,6 @@ case $mode in
     unit-cost) unit_cost "$@" ;;
     unit-cost-pooled) unit_cost_pooled "$@" ;;
     spikes) spikes "$@" ;;
+    spread) spread "$@" ;;
     *) fail_usage "$usage" ;;
 esac

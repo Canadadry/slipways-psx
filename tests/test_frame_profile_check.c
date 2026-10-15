@@ -900,6 +900,201 @@ static void test_spikes_usage_errors_exit_1(void) {
     assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" UI_TXT " ui_update=unresolvable") == 1);
 }
 
+#define SPREAD_JUDGE DIR "/spread_judge.txt"
+#define SPREAD_SPIKES DIR "/spikes.txt"
+
+/* Frame 1 spikes on update 300; frames 2 and 3 leave 60 and 110 of room under 263. */
+#define SPREAD_JUDGE_TEXT                                                                                         \
+    "frame update draw submit total vsyncs\n0 100 100 3 203 0\n1 300 50 3 353 1\n2 100 100 3 203 0\n"            \
+    "3 50 100 3 153 0\n4 100 100 3 203 0\n"
+
+static int run_spread(const char *args) {
+    char cmd[1024];
+    snprintf(cmd, sizeof cmd, SCRIPT " spread %s > " LOG " 2>&1", args);
+    return run_command(cmd);
+}
+
+/* Work 150: frame 1 keeps 300 - 150 of its update (room 60), frame 2 adds 60, frame 3 adds 110. */
+static void test_spread_fills_the_spike_frame_then_the_following_frames(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, SPREAD_JUDGE_TEXT);
+    write_file(SPREAD_SPIKES, "frame 1 update 300 pc-update-ns 1000 path cart_update60/ui_update share 50.0%\n"
+                              "class cart_update60/ui_update frames 1 over-1000 0 update-sum 300 share 50.0%-50.0%-50.0% "
+                              "runs-on 5 spike-runs 1 hblanks-per-pc-us 300.000 list 1\n"
+                              "spike-frames 1 over-1000 0 classes 1 open 0\n");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(read_file(LOG), "frame 1 class cart_update60/ui_update work 150 frames 3\n"
+                                  "class cart_update60/ui_update work 150-150-150 frames 3-3-3 does-not-fit 0\n") == 0);
+}
+
+static void write_spread_spike(int frame, int update, const char *path, const char *share) {
+    char line[512];
+    snprintf(line, sizeof line, "frame %d update %d pc-update-ns 1000 path %s share %s\n", frame, update, path, share);
+    write_file(SPREAD_SPIKES, line);
+}
+
+/* Work 100 on update 400: frame 1's room is 263 - 3 - 100 - 300 < 0, counted as 0, not as -140. */
+static void test_spread_counts_negative_room_as_zero(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, replaced(SPREAD_JUDGE_TEXT, "1 300 50 3 353 1", "1 400 100 3 503 1"));
+    write_spread_spike(1, 400, "cart_update60/ui_update", "25.0%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 100 frames 3") == 0);
+}
+
+/* Halving frame 2's draw gives it 110 of room, enough with frame 1's 60. */
+static void test_spread_cuts_draw_by_the_gain_of_each_frame(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, SPREAD_JUDGE_TEXT);
+    write_spread_spike(1, 300, "cart_update60/ui_update", "50.0%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0,2-2=50") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 150 frames 2") == 0);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0,3-9=50") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 150 frames 3") == 0);
+    /* Default 60 on frame 1 only: draw 20, room 90, plus frame 2's 60. */
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=60,2-3=0") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 150 frames 2") == 0);
+    /* The last range wins. */
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0,2-2=50,2-3=0") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 150 frames 3") == 0);
+    /* Draw 50 * 0.87 = 43.5 rounds to 44, 100 * 0.87 to 87: rooms 268 - 197 and 268 - 190 sum to 149. */
+    assert(run_spread("268 " SPREAD_JUDGE " " SPREAD_SPIKES " default=13") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 150 frames 3") == 0);
+    assert(run_spread("269 " SPREAD_JUDGE " " SPREAD_SPIKES " default=13") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 150 frames 2") == 0);
+}
+
+/* The ratio is keyed by the path's cart_update60 child (its site dropped) and the work never exceeds
+ * the update. */
+static void test_spread_applies_the_child_ratio_capped_at_the_update(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, SPREAD_JUDGE_TEXT);
+    write_spread_spike(1, 300, "cart_update60/ui_update#2/ui_handle_button", "50.0%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 ui_update=0.5") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update#2/ui_handle_button work 75 frames 3") == 0);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 save_at_frame_end=0.5,ui_update=1.2") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update#2/ui_handle_button work 180 frames 3") == 0);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 ui_update=3") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update#2/ui_handle_button work 300 frames 3") == 0);
+    /* A missing child, or a path without one, takes 1. */
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 save_at_frame_end=0.5") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update#2/ui_handle_button work 150 frames 3") == 0);
+    write_spread_spike(1, 300, "cart_update60", "100.0% unsettled");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 cart_update60=0.5") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60 work 300 frames 3") == 0);
+    /* Shares above 100% happen (a child's minimum against the root's): rounded up, capped. */
+    write_spread_spike(1, 300, "cart_update60/ui_update", "117.8%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 300 frames 3") == 0);
+    write_spread_spike(1, 300, "cart_update60/ui_update", "60.0%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 180 frames 3") == 0);
+    write_spread_spike(1, 300, "cart_update60/ui_update", "60.1%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 1"), "frame 1 class cart_update60/ui_update work 181 frames 3") == 0);
+}
+
+/* Frame 0 spikes with work <update>; it keeps 263 - 3 - 1 = 259 of room, every later frame 1. */
+static void write_long_judge(int frames, int spike_update) {
+    static char text[TEXT_CAP];
+    char line[64];
+    text[0] = '\0';
+    append(text, TEXT_CAP, "frame update draw submit total vsyncs\n");
+    for (int frame = 0; frame < frames; frame++) {
+        int update = frame == 0 ? spike_update : 258;
+        snprintf(line, sizeof line, "%d %d 1 3 %d 0\n", frame, update, update + 4);
+        append(text, TEXT_CAP, line);
+    }
+    write_file(SPREAD_JUDGE, text);
+    write_spread_spike(0, spike_update, "cart_update60/save_at_frame_end", "100.0%");
+}
+
+static void test_spread_does_not_fit_past_600_frames_or_the_run(void) {
+    fresh_dir();
+    write_long_judge(700, 858);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 0"), "frame 0 class cart_update60/save_at_frame_end work 858 frames 600") == 0);
+    write_long_judge(700, 859);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 0"), "frame 0 class cart_update60/save_at_frame_end work 859 frames does-not-fit") == 0);
+    assert(strcmp(output_line("class"), "class cart_update60/save_at_frame_end work 859-859-859 frames - does-not-fit 1") == 0);
+    write_long_judge(10, 268);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 0"), "frame 0 class cart_update60/save_at_frame_end work 268 frames 10") == 0);
+    write_long_judge(10, 269);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("frame 0"), "frame 0 class cart_update60/save_at_frame_end work 269 frames does-not-fit") == 0);
+}
+
+/* Frame 1 spreads over frames 1..3, where frames 2 (closed) and 3 (open) are spikes too. */
+static void test_spread_names_the_spike_frames_its_window_overlaps(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, SPREAD_JUDGE_TEXT);
+    write_file(SPREAD_SPIKES, "frame 1 update 300 pc-update-ns 1000 path cart_update60/ui_update share 50.0%\n"
+                              "frame 2 update 100 pc-update-ns 1000 path cart_update60/ui_update share 10.0%\n"
+                              "frame 3 update 50 pc-update-ns 1000 path cart_update60/ui_update share 60.0% open ui_update\n"
+                              "frame 4 update 100 pc-update-ns 1000 path cart_update60/ui_update share 10.0%\n");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(read_file(LOG), "frame 1 class cart_update60/ui_update work 150 frames 3 overlaps 2,3\n"
+                                  "frame 2 class cart_update60/ui_update work 10 frames 1\n"
+                                  "frame 4 class cart_update60/ui_update work 10 frames 1\n"
+                                  "class cart_update60/ui_update work 10-10-150 frames 1-1-3 does-not-fit 0\n") == 0);
+}
+
+/* Budget 200: frames 1 and 4 run out of room before the run ends. Classes in order of their first
+ * frame; medians over every frame for work, over the fitting ones for
+ * frames. */
+static void test_spread_summarizes_each_class(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, SPREAD_JUDGE_TEXT);
+    write_file(SPREAD_SPIKES, "frame 0 update 100 pc-update-ns 1000 path cart_update60/save_at_frame_end share 50.0%\n"
+                              "frame 1 update 300 pc-update-ns 1000 path cart_update60/ui_update share 50.0%\n"
+                              "frame 2 update 100 pc-update-ns 1000 path cart_update60/save_at_frame_end share 100.0%\n"
+                              "frame 3 update 50 pc-update-ns 1000 path cart_update60/ui_update share 100.0%\n"
+                              "frame 4 update 100 pc-update-ns 1000 path cart_update60/ui_update share 100.0%\n");
+    assert(run_spread("200 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 0);
+    assert(strcmp(output_line("class cart_update60/save_at_frame_end"),
+                  "class cart_update60/save_at_frame_end work 50-75-100 frames 2-3-4 does-not-fit 0") == 0);
+    assert(strcmp(output_line("class cart_update60/ui_update"),
+                  "class cart_update60/ui_update work 50-100-150 frames 1-1-1 does-not-fit 2") == 0);
+    assert(strstr(read_file(LOG), "frame 4 class cart_update60/ui_update work 100 frames does-not-fit\n"
+                                  "class cart_update60/save_at_frame_end ") != NULL);
+}
+
+static void test_spread_malformed_input_exits_2(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, SPREAD_JUDGE_TEXT);
+    write_spread_spike(5, 300, "cart_update60/ui_update", "50.0%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 2);
+    write_spread_spike(1, 299, "cart_update60/ui_update", "50.0%");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 2);
+    write_spread_spike(1, 300, "cart_update60/ui_update", "half");
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 2);
+    write_spread_spike(1, 300, "cart_update60/ui_update", "50.0%");
+    write_file(SPREAD_JUDGE, replaced(SPREAD_JUDGE_TEXT, "frame update draw submit", "frame draw update submit"));
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 2);
+    write_file(SPREAD_JUDGE, replaced(SPREAD_JUDGE_TEXT, "2 100 100 3", "7 100 100 3"));
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 2);
+}
+
+static void test_spread_usage_errors_exit_1(void) {
+    fresh_dir();
+    write_file(SPREAD_JUDGE, SPREAD_JUDGE_TEXT);
+    write_spread_spike(1, 300, "cart_update60/ui_update", "50.0%");
+    assert(run_spread("") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES) == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 ui_update=1 extra") == 1);
+    assert(run_spread("abc " SPREAD_JUDGE " " SPREAD_SPIKES " default=0") == 1);
+    assert(run_spread("263 " DIR "/none.txt " SPREAD_SPIKES " default=0") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " DIR "/none.txt default=0") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " 2-3=50") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=101") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0,3-2=50") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0,3=50") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 ui_update") == 1);
+    assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 ui_update=-1") == 1);
+}
+
 int main(void) {
     build_breakdown_inputs();
     test_breakdown_match_over_a_resume_window();
@@ -943,6 +1138,15 @@ int main(void) {
     test_spikes_closes_on_an_unresolvable_symbol();
     test_spikes_malformed_input_exits_2();
     test_spikes_usage_errors_exit_1();
+    test_spread_fills_the_spike_frame_then_the_following_frames();
+    test_spread_counts_negative_room_as_zero();
+    test_spread_cuts_draw_by_the_gain_of_each_frame();
+    test_spread_applies_the_child_ratio_capped_at_the_update();
+    test_spread_does_not_fit_past_600_frames_or_the_run();
+    test_spread_names_the_spike_frames_its_window_overlaps();
+    test_spread_summarizes_each_class();
+    test_spread_malformed_input_exits_2();
+    test_spread_usage_errors_exit_1();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frame_profile_check: all tests passed\n");
     return 0;

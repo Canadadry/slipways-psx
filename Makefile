@@ -597,6 +597,17 @@
 #                       most; writes tmp/frame-profile/spikes/spikes.txt,
 #                       fails while a frame is open; never boots, outside the
 #                       suite
+# make frame-profile-spread DRAW_GAINS=<gains> [UPDATE_RATIOS=<ratios>] [SPREAD_LABEL=<label>]
+#                    -> tools/frame_profile_check.sh spread on the judge table
+#                       and tmp/frame-profile/spikes/spikes.txt: per spike frame,
+#                       its class's work (PC share times the ratio of its
+#                       cart_update60 child, <child>=<ratio>,...) and the frames
+#                       it takes under 263 hblanks with draw cut by the gains
+#                       (default=<pct>[,<first>-<last>=<pct>]...), or
+#                       does-not-fit past 600 frames; writes
+#                       spikes/spread-<label>.txt (label default "default");
+#                       a missing spikes.txt fails naming make
+#                       frame-profile-spikes; never boots, outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2568,6 +2579,18 @@ frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_pr
 	done; \
 	cat $$out/spikes.txt; exit $$status
 
+SPREAD_LABEL ?= default
+
+frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+	@spikes=$(FRAME_PROFILE_DIR)/spikes/spikes.txt; \
+	[ -f $$spikes ] || { echo "$@: missing $$spikes: run make frame-profile-spikes first"; exit 1; }; \
+	[ -n "$(DRAW_GAINS)" ] || { echo "$@: DRAW_GAINS is required: default=<pct>[,<first>-<last>=<pct>]..."; exit 1; }; \
+	case "$(SPREAD_LABEL)" in ''|*[!A-Za-z0-9_.-]*) echo "$@: SPREAD_LABEL is not a file-name label: '$(SPREAD_LABEL)'"; exit 1;; esac; \
+	out=$(FRAME_PROFILE_DIR)/spikes/spread-$(SPREAD_LABEL).txt; \
+	sh tools/frame_profile_check.sh spread 263 $(FRAME_PROFILE_JUDGE_FRAMES) $$spikes "$(DRAW_GAINS)" $(UPDATE_RATIOS) > $$out \
+		|| { status=$$?; rm -f $$out; exit $$status; }; \
+	cat $$out
+
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -2581,7 +2604,7 @@ frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
-	frame-profile-unit-cost frame-profile-spikes
+	frame-profile-unit-cost frame-profile-spikes frame-profile-spread
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad
