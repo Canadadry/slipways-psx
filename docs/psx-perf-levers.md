@@ -2353,8 +2353,8 @@ used once and discarded; none is committed.
 Plan 20 step 9: the judge's 166 frames whose update alone is over 263
 hblanks (42 of them over 1000), which `cart_update60` descendant each comes
 from, why it runs then, how far the PC's update proportions hold on the
-PSX, and how many frames each spike's work would take if spread out. This
-first part is the calibration on update code.
+PSX, and how many frames each spike's work would take if spread out. It
+opens with the calibration on update code, then the classification.
 
 Measured on commit `3fe4b8bbcf62f611247fcd853b0b6da31b2c56fe` (pcsx-redux,
 asserts off), with no change to the game.
@@ -2458,3 +2458,227 @@ Patch, written by hand on `3fe4b8b` into `tmp/plan20-update/`
 | Patch | Use | Change |
 |---|---|---|
 | `u-calibrate.patch` | probe, label `u-calibrate`, `start` and `update-5500` | `src/game/cart.c`: each statement of `cart_update60` in a `SPAN(i, …)` under `PSX_PROBE`; `src/platform/psx_probe.[ch]`: span begin/end on the fine clock and frame timer, per-frame records (1024 frames), `probe-update:` lines; `src/cmd/psx_gpu_replay.c`: closes the record after `frame_times_record`, writes the lines in `probe_write` |
+
+### Classification
+
+Commands (at `42c5f2c`; the game is unchanged since `3fe4b8b`):
+
+```
+make frame-profile-spikes FRAME_PROFILE_REPEATS=8
+```
+
+K = 8, not the PRD's 4. At K = 4 (18 m 45 s) one class maximum read
+119.3% (frame 2558, the wormhole class): `cart_update60`'s minimum over 4
+profiles was 210,643 ns while the minimum of `economy_recompute` in
+`economy_advance_clock`'s set was 251,365 ns, the same frame read 2× apart
+between runs. At K = 8 (31 m 03 s) that class's maximum is 87.7%. The one
+share still above 100% is frame 12's `nearest_step` at 106.4%, and more
+profiles would not move it: it is the profiler, not timer noise. Rooted at
+`entity_geom_nearest`, the frame reads 12.9 ms against 6.4 ms for the same
+calls inside `galaxy_populate`'s set, because its 51,499 `nearest_step`
+calls become direct children, each booked by call site. Frame 12's
+responsible function is therefore read one level up (below).
+
+Result: 166 spike frames, 42 over 1000, 19 classes, none open, nothing
+unresolvable. Between K = 4 and K = 8, 58 frames changed path, always
+deeper or shallower on the same branch, never to another branch. A frame
+whose branch holds 50–55% flips depth with noise, but the event behind it
+stays the same.
+
+Columns: frames, frames over 1000, summed judge update (hblanks), PC share
+of update min / median / max, calibrated interval (`p_median × ρ`, capped at
+100%), label, `runs-on` / `spike-runs`, median PSX hblanks per PC µs.
+Abbreviations: `U` = `cart_update60/ui_update/ui_handle_button`, `B` =
+`U/ui_send_to_hovered#1/button_left_press_method/button_left_press`.
+Ratios: `ui_update` 1.00 (`start`) and 0.92 (`update-5500`),
+`save_at_frame_end` 1.11 (`update-5500`; "below" on `start`),
+`update_entities` "below" on both runs.
+
+| Class | Path | Responsible function | Fr. | >1000 | Update | PC share | Calibrated | Label | Runs-on / spike | hb/µs | Flags |
+|---|---|---|---:|---:|---:|---|---|---|---|---:|---|
+| C1 | `U/slipway_drop_method/slipway_drop` | `slipway_drop`, `src/game/slipway.c:157` | 36 | 33 | 45523 | 51.8 / 59.2 / 69.8% | 54.5% (ρ 0.92, has 5500) | high | 97 / 40 | 2.178 | — |
+| C2 | `cart_update60/ui_update` | `ui_update`, `src/game/ui.c:266` | 16 | 0 | 12964 | 52.3 / 53.9 / 54.8% | 49.6–53.9% | high | 6059 / 166 | 2.092 | — |
+| C3 | `U` | `ui_handle_button`, `src/game/ui.c:387` | 14 | 1 | 11806 | 50.3 / 53.9 / 61.0% | 49.6–53.9% | high | 6059 / 166 | 2.186 | — |
+| C4 | `U/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute` | `economy_recompute`, `src/game/economy.c:193` | 33 | 0 | 11728 | 69.6 / 76.6 / 87.7% | 70.5–76.6% | high | 110 / 108 | 1.852 | — |
+| C5 | `cart_update60/save_at_frame_end` | `save_at_frame_end`, `src/game/cart.c:312` | 18 | 0 | 9961 | 58.4 / 82.1 / 87.9% | 91.1% | high | 6059 / 166 | 2.767 | — |
+| C6 | `B/cart_start_game/galaxy_populate/entity_geom_nearest/nearest_step` | `entity_geom_nearest`, `src/engine/entity_geom.c:74` (tool leaf `nearest_step`, :62) | 1 | 1 | 8980 | 106.4% (tool leaf); 96.2% at `entity_geom_nearest` | 96.2% (ρ 1.00, `start`) | high | 1 / 1 | 1.353 | multi-site |
+| C7 | `cart_update60/save_at_frame_end/save_state_encode` | `save_state_encode`, `src/game/save_state.c:243` | 13 | 0 | 6929 | 50.0 / 54.1 / 58.1% | 60.1% | high | 125 / 125 | 3.082 | — |
+| C8 | `U/ui_send_to_hovered#1` | `ui_send_to_hovered`, `src/game/ui.c:434` | 8 | 1 | 6719 | 50.5 / 51.7 / 55.2% | 47.6–51.7% | high | 343 / 52 | 2.255 | multi-site |
+| C9 | `B/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock` | `economy_advance_clock`, `src/game/economy.c:95` | 4 | 2 | 3732 | 51.1 / 62.7 / 86.2% | 57.7–62.7% | high | 24 / 24 | 2.046 | multi-site |
+| C10 | `B/planet_projects_panel_on_click_method/planet_apply_project` | `planet_apply_project`, `src/game/planet_display.c:474` | 3 | 3 | 3331 | 59.8 / 59.8 / 59.9% | 55.0–59.8% | high | 24 / 24 | 1.929 | multi-site |
+| C11 | `U/slipway_drop_method` | `slipway_drop_method`, `src/game/slipway.c:325` | 3 | 0 | 2731 | 52.4 / 53.0 / 56.7% | 48.8–53.0% | high | 58 / 40 | 2.149 | — |
+| C12 | `B/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute` | `economy_recompute`, `src/game/economy.c:193` | 5 | 0 | 2459 | 51.2 / 79.9 / 84.1% | 73.5–79.9% | high | 110 / 108 | 2.135 | multi-site |
+| C13 | `cart_update60` | none (no child reaches 50%) | 3 | 0 | 2006 | 100.0% | — | uncalibrated | 6059 / 166 | 2.167 | unsettled |
+| C14 | `U/ui_send_to_hovered#1/button_left_press_method` | `button_left_press_method`, `src/game/ui_button.c:52` | 2 | 0 | 1649 | 51.0 / 52.5 / 53.9% | 48.3–52.5% | high | 120 / 51 | 2.148 | multi-site |
+| C15 | `B/galaxy_menu_button1_on_click_method/economy_new_year/economy_recompute` | `economy_recompute`, `src/game/economy.c:193` | 2 | 0 | 1468 | 52.6 / 68.2 / 83.7% | 62.7–68.2% | high | 25 / 25 | 2.091 | multi-site |
+| C16 | `B` | `button_left_press`, `src/game/ui_button.c:276` | 2 | 0 | 1430 | 51.5 / 52.5 / 53.5% | 48.3–52.5% | high | 120 / 51 | 2.220 | multi-site |
+| C17 | `U/targeting_confirm_method/targeting_confirm/economy_advance_clock/economy_recompute` | `economy_recompute`, `src/game/economy.c:193` | 1 | 1 | 1130 | 58.1% | 53.5–58.1% | high | 110 / 108 | 2.236 | — |
+| C18 | `B/galaxy_menu_button1_on_click_method/economy_new_year` | `economy_new_year`, `src/game/economy.c:118` | 1 | 0 | 879 | 50.2% | 46.2–50.2% | high | 17 / 17 | 2.223 | multi-site |
+| C19 | `cart_update60/update_entities` | `update_entities`, `src/engine/bootstrap.c:53` | 1 | 0 | 266 | 72.6% | 72.6% (no ratio) | uncalibrated | 6059 / 166 | 4.530 | — |
+
+Frames per class:
+
+- C1: 383, 512, 1244, 1258, 1449, 1751, 1860, 2074, 2176, 2190, 2365, 2377, 2395, 2434, 3231, 3243, 3275, 3313, 3525, 3618, 3634, 4238, 4250, 4374, 4709, 4721, 4737, 5022, 5086, 5098, 5110, 5133, 5387, 5500, 5719, 5727
+- C2: 145, 352, 741, 1786, 2312, 2802, 2980, 3150, 3224, 4145, 5303, 5422, 5579, 5610, 5667, 5842
+- C3: 159, 1486, 2228, 2260, 2358, 3053, 3338, 3386, 4696, 5077, 5168, 5810, 5904, 5944
+- C4: 320, 433, 553, 604, 658, 710, 951, 996, 1043, 1098, 1145, 1320, 1568, 1620, 1661, 1928, 1977, 2558, 2642, 2715, 2771, 3022, 3449, 3720, 3817, 3907, 4001, 4067, 4106, 4483, 4521, 4590, 4627
+- C5: 58, 230, 461, 978, 1173, 1595, 1689, 2005, 2742, 3050, 3476, 3747, 3844, 3934, 4028, 4134, 4549, 4655
+- C6: 12
+- C7: 347, 582, 632, 685, 737, 1024, 1071, 1125, 1347, 1955, 2585, 2669, 2798
+- C8: 1413, 2414, 2471, 2924, 3303, 4912, 4929, 5470
+- C9: 229, 2147, 3265, 4300
+- C10: 4952, 5339, 5488
+- C11: 245, 259, 1386
+- C12: 456, 1165, 1349, 1684, 3475
+- C13: 113, 825, 901
+- C14: 2006, 3567
+- C15: 5537, 6043
+- C16: 1226, 2108
+- C17: 5781
+- C18: 4774
+- C19: 91
+
+Every applicable ratio is in 0.85–1.15, so every calibrated class is
+high. Seven of them (C2, C3, C8, C11, C14, C16, C18) have an interval that
+straddles 50%, but a high label does not trigger the "cannot settle" rule.
+The same ratio is applied at every depth: it is the best measured
+correction for the child the path goes through, not a measurement of the
+deeper function.
+
+**PC cannot settle C13 only** (`unsettled`, frames 113, 825, 901). That
+leaves C13 to the fallback, chunk 6's decision. On PC each of its frames is
+an event branch under `ui_update` (a project on 113, a year skip on 825, a
+tech-tree invention on 901) beside the save, at 43–48% each. C19 is
+uncalibrated, but its 72.6% point share does not straddle 50%, so it is
+settled.
+
+### What triggers each class
+
+The tool's classes are kept as they are. Six merges, each of the same
+cause, name their paths and keep each class's figures above. Below, "event
+branch" is the largest child at each level of the descent, without the 50%
+rule: a reading aid for the shallow classes, not a split. One thing is
+common to all but C6 and C19: a player action that changes the economy
+runs `economy_recompute` (`src/game/economy.c:193`) once or more, and
+`economy_recompute` walks every planet (79 `economy_score_net_income` and
+79 `planet_refresh_method` calls on frame 2558). The action also sets
+`save_pending`, so `save_at_frame_end` (`src/game/cart.c:312`) saves the
+game in the same frame, unless a wormhole is live.
+
+**Slipway drop: C1 + C11** (39 frames, 33 over 1000, 48,254 hblanks).
+The player drags a slipway from a settled planet and releases it on
+another. On release, `ui_handle_button` calls the held slipway's `drop`.
+`slipway_drop` first calls `targeting_confirm`, which charges the cost and
+runs `economy_advance_clock` with the slipway's 0 clock ticks. That
+recomputes the economy before the slipway is attached. Then
+`slipway_drop` attaches both ends and calls `economy_advance_clock(1)`
+(`src/game/slipway.c:190`), which recomputes again. On 5 frames (512,
+1244, 3313, 3634, 4737) that tick crosses the year, and `economy_new_year`
+recomputes a third time. On frame 4737, `targeting_confirm` takes 21.1%
+of update and the second `economy_advance_clock` 47.1%, of which
+`economy_new_year` is 22.9%. The save runs in the same frame at 21–34%,
+the class's second-largest node. These are the heaviest spikes: 33 of the
+42 frames over 1000. `slipway_drop` runs on 97 frames, 40 of them spikes:
+a refused drop (no planet under the cursor) is cheap. C3's frame 159 is a
+slipway drop too (event branch), kept in C3.
+
+**Wormhole launch: C4** (33 frames, 0 over 1000, 11,728 hblanks).
+Releasing a wormhole after its 15th tick runs `wormhole_drop` →
+`targeting_confirm`, which charges 3 credits and calls
+`economy_advance_clock` with 1 tick, so the whole economy is recomputed
+(`economy_recompute` 69.6–87.7% of update). No save runs in this frame:
+`save_at_frame_end` waits while `wormhole_live_count()` is non-zero. In
+the recording, a wormhole is launched about every 50 frames. The C4
+frames are the small regular spikes of 266–450 hblanks that the PRD
+expected as "periodic". `economy_recompute` runs on 110 frames, 108 of
+them spikes.
+
+**Deferred save: C5 + C7** (31 frames, 0 over 1000, 16,890 hblanks).
+These are `save_at_frame_end` (C5) and its `save_state_encode` (C7).
+30 of the 31 frames come 27–29 frames after a wormhole launch (202 → 230,
+553 → 582, 604 → 632, 658 → 685, 710 → 737, …): the save the launch made
+pending runs on the first frame without a live wormhole. Frame 58 is a
+structure placement whose save runs in the same frame (save 58%). The save
+is `save_state_capture` plus `save_state_encode`. The encoding's
+`save_state_crc32` (`src/game/save_state.c:601`, bit by bit, 8 steps a
+byte) takes 11–27% of update on these frames. `save_state_encode` runs
+on 125 frames, all spikes: no save fits in 263.
+
+**Project on a planet: C9 + C10 + C12** (12 frames, 5 over 1000, 9,522
+hblanks). Clicking a project in a known planet's projects panel runs
+`planet_projects_panel_on_click_method` → `economy_spend` →
+`planet_apply_project`. That calls `economy_advance_clock` with 2 or 3
+ticks (`src/game/planet_display.c:512`), and on 2147 and 4300
+`economy_new_year` as well. The save follows in the same frame (0–41%),
+except on 229, where a wormhole launched on 202 was still live. Its save
+is frame 230 (C5).
+
+**Year skip: C15 + C18** (3 frames, 2,347 hblanks). HUD button 1
+(`galaxy_menu_button1_on_click_method`, `src/game/menu.c:187`) sets the
+year's ticks and calls `economy_new_year`, which recomputes and sends
+`new_year` to every listener. The save follows in the same frame.
+
+**Structure placement: C17** (frame 5781, 1,130 hblanks). Dropping a
+structure runs `targeting_confirm_method` → `economy_advance_clock` with
+2 ticks → `economy_recompute` (58.1%). The save follows (36%).
+
+**Event and save in one frame: C2, C3, C8, C14, C16** (42 frames,
+2 over 1000, 34,568 hblanks), **and C13** (3 frames). The event branches
+are 11 project clicks, 13 year skips, 8 tech-tree inventions
+(`tech_tree_screen_row_on_click_method` → `economy_invent` →
+`economy_recompute`), 9 structure placements and 1 slipway drop, all
+under `ui_update`. Each is followed in the same frame by the save at
+29–46% of update. The event's branch (`ui_update`) holds 52–69%, so the 50% rule stops
+wherever that branch first drops under half, and the depth flickers with
+noise. When neither half reaches 50%, the frame is C13.
+
+**Game start: C6** (frame 12, 8,980 hblanks). The title's "new game"
+press runs `cart_start_game` → `galaxy_populate`
+(`src/game/galaxy.c:14`). That places 90 planets by rejection sampling: a
+random point is redrawn while `entity_geom_nearest` finds a planet within
+0.05. Here `entity_geom_nearest` runs 727 times, for 51,499
+`nearest_step` calls. `galaxy_populate` is 86.8% of update in
+`cart_start_game`'s set, and `entity_geom_nearest` 96.2% in
+`galaxy_populate`'s set. Accepted points account for 4,005 of the steps
+(0 + 1 + … + 89), so 92.2% of the steps are spent on points that are
+rejected.
+
+**Entities: C19** (frame 91, 266 hblanks, 3 over). On this early in-game
+frame, `update_entities` runs `score_panel_update_method` (36% of update)
+and a wormhole's `wormhole_update_unfolding_method` (30%). Both run every
+frame; this is their sum crossing the budget by 3 hblanks, not an event.
+
+### Do-less candidates
+
+Bounds are judge hblanks summed over the named frames, from per-frame PC
+shares (K = 8 minimum) times the judge update, labelled **estimated**. A
+node profiled as its own root can read high (see frame 12 above), so
+these are upper bounds. They overlap and are not ranked (step 12's job).
+Every class also gets the spread candidate, whose count is chunk 6's
+spreading table.
+
+| # | Classes | Kind | Location | Evidence | Upper bound (estimated) | Risk |
+|---|---|---|---|---|---|---|
+| U1 | C1, C11 | recomputation | `slipway_drop`'s `targeting_confirm`, `src/game/slipway.c:165` → `src/game/probe.c:322` | the first `economy_advance_clock` (0 ticks) recomputes the economy before the slipway exists; the second (`slipway.c:190`) recomputes it again; `targeting_confirm` is 20–33% of update (median 29%) | 13,479 on 39 frames | game state unless the first recompute's side effects (tier increases, refreshed rows) are also reached by the second; e2e decides |
+| U2 | C1, C4, C9–C12, C15, C17, C18, and the event branches of C2, C3, C8, C13, C14, C16 | recomputation | `planet_refresh_method` in `economy_recompute`, `src/game/economy.c:257` → `planet_refresh`, `src/game/planet_display.c:41` | every recompute rebuilds the layout row of all 79 planets; 12–37% of update on these frames | 24,576 (slipway 11,398, wormhole 3,811, project 1,911, year skip 553, structure 202, shallow 6,392, C13 309) | timing only if a row is rebuilt only when its needs, output or routes changed, or built when shown (same pixels) |
+| U3 | C4 | identical work | `wormhole_drop` → `targeting_confirm` → `economy_recompute` | a wormhole launch changes credits and one clock tick, not routes or production; the tiers, production and per-planet passes recompute the same figures | 10,891 on 33 frames (whole `economy_recompute`, less what the credit-dependent `end_status` test needs) | game state if any recomputed figure does change; e2e decides |
+| U4 | C5, C7, and the save of every event frame | identical work | `save_state_crc32`, `src/game/save_state.c:601` | bitwise CRC-32, 8 shift steps per byte; 11–27% of update on save frames | 11,851 (save 3,557, slipway 3,459, shallow 3,688, project 579, others 568), bound of the whole CRC; a 256-entry table keeps about 1/8 of it | timing only (same bytes) |
+| U5 | C1–C3, C8–C18 | spread across frames | `save_at_frame_end`, `src/game/cart.c:331` | the save shares the event's frame at 21–48% of update; it already waits for wormholes, so waiting one more frame splits the frame in two | 32,554 moved off the event frames (slipway 13,431, shallow 14,617, project 2,379, year skip 810, structure 411, C13 906, on the next frame) | e2e re-record (the save lands one frame later) |
+| U6 | C6 | identical work | `entity_geom_nearest` in `galaxy_populate`, `src/game/galaxy.c:31` | the loop only tests "nearest ≤ 0.05", but each scan finds the true nearest; 92.2% of the 51,499 steps are spent on rejected points | 7,963 if a rejected scan stopped at once; about half (3,980) for a close planet met halfway on average | timing only (same draws, same planets) |
+| U7 | C6 | spread across frames | `galaxy_populate`, `src/game/galaxy.c:14` | galaxy generation is one frame of 8,980 hblanks; spreading it is allowed by the plan | chunk 6's count | e2e re-record |
+| U8 | C19 | spread across frames | `update_entities`, `src/engine/bootstrap.c:53` | 3 hblanks over the budget, two always-running updates (36% + 30%) | 3 hblanks needed | e2e re-record |
+
+### The four named frames
+
+| Frame | Judge update | Class | Responsible function | PC share | Calibrated |
+|---:|---:|---|---|---|---|
+| 12 | 8980 | C6 game start | `entity_geom_nearest` (tool leaf `nearest_step`) | 96.2% (tool leaf 106.4%, a profiler artifact) | 96.2%, high |
+| 4737 | 1783 | C1 slipway drop (with `economy_new_year`) | `slipway_drop` | 69.8% | 64.2%, high (ρ 0.92) |
+| 5500 | 1416 | C1 slipway drop | `slipway_drop` | 53.7% | 49.4%, high (ρ 0.92) |
+| 5719 | 1430 | C1 slipway drop | `slipway_drop` | 53.4% | 49.1%, high (ρ 0.92) |
+
+Frames 4737, 5500 and 5719 are the same event: a slipway drop with two
+economy recomputes and the save in the same frame. 4737 is the heaviest
+of the three because its tick also crosses the year (a third recompute).
+The class does not explain why the resumed short runs keep 5500's spike
+and lose the other two: all three are C1.

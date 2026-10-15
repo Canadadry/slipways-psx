@@ -37,7 +37,7 @@
     - [x] Chunk 2: update root in frame_profile
     - [x] Chunk 3: spikes mode and frame-profile-spikes target
     - [x] Chunk 4: spread mode and frame-profile-spread target
-    - [ ] Chunk 5: classification
+    - [x] Chunk 5: classification
     - [ ] Chunk 6: spreading and fallback
   - [ ] 3.10 Ordinary update: calibration and children costs
 - [ ] Phase 4 — Global levers
