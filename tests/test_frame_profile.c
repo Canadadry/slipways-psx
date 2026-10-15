@@ -78,11 +78,11 @@ static int replay_frames(const char *events, const char *state) {
     return frames;
 }
 
-/* root NULL profiles the default draw root. */
-static void profile_rooted(const char *events, const char *dir, const char *state, const char *root) {
+/* roots NULL profiles the default draw and update roots; an update root follows its draw root. */
+static void profile_rooted(const char *events, const char *dir, const char *state, const char *roots) {
     char command[LINE_CAP];
     snprintf(command, sizeof command, "mkdir -p %s && STATE=%s " TOOL " %s %s " SYMBOLS " %s > %s/log.txt", dir, state,
-             events, dir, root != NULL ? root : "", dir);
+             events, dir, roots != NULL ? roots : "", dir);
     int status = run(command);
     if (status != 0) fprintf(stderr, "test_frame_profile: %s exited %d\n", events, status);
     assert(status == 0);
@@ -240,7 +240,7 @@ static void check_profile(const char *events, const char *dir) {
     snprintf(line, sizeof line, "profile %s frames %d hook-pair-ns ", events, frame_count);
     expect_line(frames, line);
     assert(strstr(frames, " clock monotonic-ns\n") != NULL);
-    expect_line(frames, "root draw cart_draw\n");
+    expect_line(frames, "root draw cart_draw\nroot update cart_update60\n");
     for (int i = 0; i < frame_count; i++) {
         snprintf(line, sizeof line, "frame %d update ", i);
         expect_line(frames, line);
@@ -269,7 +269,7 @@ static void check_profile(const char *events, const char *dir) {
     char *summary = profile_file(dir, "summary.txt");
     snprintf(line, sizeof line, "profile %s frames %d hook-pair-ns ", events, frame_count);
     expect_line(summary, line);
-    expect_line(summary, "root draw cart_draw\n");
+    expect_line(summary, "root draw cart_draw\nroot update cart_update60\n");
     snprintf(line, sizeof line, "child draw draw_layers#2 %d ", frame_count);
     expect_line(summary, line);
     snprintf(line, sizeof line, "family cls %d ", frame_count);
@@ -323,6 +323,29 @@ static void test_a_draw_layers_root_lists_the_draw_methods_it_dispatches(void) {
     free(summary), free(frames);
 }
 
+static void test_a_ui_update_root_lists_the_functions_ui_update_calls(void) {
+    const char *dir = OUT "/ui_update";
+    profile_rooted(TITLE_EVENTS, dir, OUT "/ui_update_state.txt", "cart_draw ui_update");
+    char *frames = profile_file(dir, "frames.txt");
+    expect_line(frames, "root draw cart_draw\nroot update ui_update\n");
+    static const char *const UI_UPDATE_CHILDREN[] = {"main_mouse_typed", "main_camera_typed", "ui_update_hover",
+                                                      "ui_handle_button", "ui_main_mouse_button"};
+    for (int c = 0; c < COUNT(UI_UPDATE_CHILDREN); c++) {
+        char child[LINE_CAP];
+        snprintf(child, sizeof child, "frame 0 child update %s 1 ", UI_UPDATE_CHILDREN[c]);
+        expect_line(frames, child);
+    }
+    expect_line(frames, "frame 0 child draw draw_layers#2 1 ");
+    assert(!has_line_starting(frames, "frame 0 child update ui_update "));
+    assert(!has_line_starting(frames, "frame 0 child update update_entities "));
+    char *summary = profile_file(dir, "summary.txt");
+    expect_line(summary, "root draw cart_draw\nroot update ui_update\n");
+    char line[LINE_CAP];
+    snprintf(line, sizeof line, "child update ui_update_hover %d ", replay_frames(TITLE_EVENTS, OUT "/ui_update_replay_state.txt"));
+    expect_line(summary, line);
+    free(summary), free(frames);
+}
+
 static void expect_usage_error(const char *arguments, const char *message) {
     char command[LINE_CAP];
     snprintf(command, sizeof command, TOOL " %s > /dev/null 2> " STDERR_LOG, arguments);
@@ -346,7 +369,13 @@ static void test_usage_errors_exit_1(void) {
     expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " no_such_function", "no text symbol 'no_such_function'");
     expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " min", "several text symbols 'min'");
     expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " cart_update60", "the draw root cannot be cart_update60");
-    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " draw_layers extra", "usage: frame_profile");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " cart_draw ui_update extra", "usage: frame_profile");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " draw_layers cart_draw", "the update root cannot be cart_draw");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " draw_layers draw_layers",
+                       "the update root cannot be draw_layers");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " cart_draw no_such_update",
+                       "no text symbol 'no_such_update'");
+    expect_usage_error(TITLE_EVENTS " " OUT "/usage " SYMBOLS " cart_draw min", "several text symbols 'min'");
 }
 
 int main(void) {
@@ -355,6 +384,7 @@ int main(void) {
     test_a_title_start_recording();
     test_a_resume_start_recording();
     test_a_draw_layers_root_lists_the_draw_methods_it_dispatches();
+    test_a_ui_update_root_lists_the_functions_ui_update_calls();
     printf("test_frame_profile: ok\n");
     return 0;
 }

@@ -99,11 +99,7 @@ static int symbols_read(const char *path) {
 }
 
 /* Returns 0 after naming the failure. */
-static int root_resolve(const char *path, const char *name, uintptr_t *address) {
-    if (strcmp(name, "cart_update60") == 0) {
-        fprintf(stderr, "frame_profile: the draw root cannot be cart_update60\n");
-        return 0;
-    }
+static int symbol_resolve(const char *path, const char *name, uintptr_t *address) {
     int found = 0;
     for (int s = 0; s < symbol_count; s++) {
         if (strcmp(symbols[s].name, name) != 0) continue;
@@ -116,6 +112,20 @@ static int root_resolve(const char *path, const char *name, uintptr_t *address) 
     }
     if (!found) fprintf(stderr, "frame_profile: '%s' has no text symbol '%s'\n", path, name);
     return found;
+}
+
+/* Returns 0 after naming the failure. */
+static int roots_resolve(const char *path, const char *draw_name, const char *update_name, uintptr_t *draw,
+                         uintptr_t *update) {
+    if (strcmp(draw_name, "cart_update60") == 0) {
+        fprintf(stderr, "frame_profile: the draw root cannot be cart_update60\n");
+        return 0;
+    }
+    if (strcmp(update_name, "cart_draw") == 0 || strcmp(update_name, draw_name) == 0) {
+        fprintf(stderr, "frame_profile: the update root cannot be %s\n", update_name);
+        return 0;
+    }
+    return symbol_resolve(path, draw_name, draw) && symbol_resolve(path, update_name, update);
 }
 
 static void symbol_name(uintptr_t function, char *buffer, size_t size) {
@@ -141,6 +151,7 @@ typedef struct {
     uint64_t pair_tenths_ns;
     const char *events;
     const char *draw_root;
+    const char *update_root;
 } report_t;
 
 static void name_children(report_t *report) {
@@ -159,6 +170,7 @@ static void write_header(FILE *out, const report_t *report) {
             call_profile_frame_count(), (unsigned long long)(report->pair_tenths_ns / 10),
             (unsigned long long)(report->pair_tenths_ns % 10));
     fprintf(out, "root draw %s\n", report->draw_root);
+    fprintf(out, "root update %s\n", report->update_root);
 }
 
 static void write_frames(FILE *out, const report_t *report) {
@@ -302,20 +314,22 @@ static int write_state(const char *path, int cheat_activations) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4 && argc != 5) {
-        fprintf(stderr, "usage: frame_profile <events.json> <out-dir> <symbols> [<draw-root>]\n");
+    if (argc < 4 || argc > 6) {
+        fprintf(stderr, "usage: frame_profile <events.json> <out-dir> <symbols> [<draw-root> [<update-root>]]\n");
         return 1;
     }
     static report_t report;
     report.events = argv[1];
-    report.draw_root = argc == 5 ? argv[4] : "cart_draw";
+    report.draw_root = argc >= 5 ? argv[4] : "cart_draw";
+    report.update_root = argc == 6 ? argv[5] : "cart_update60";
     const char *out_dir = argv[2];
-    uintptr_t draw_root = 0;
-    if (!symbols_read(argv[3]) || !root_resolve(argv[3], report.draw_root, &draw_root) || !prepare_out_dir(out_dir)) {
+    uintptr_t draw_root = 0, update_root = 0;
+    if (!symbols_read(argv[3]) || !roots_resolve(argv[3], report.draw_root, report.update_root, &draw_root, &update_root) ||
+        !prepare_out_dir(out_dir)) {
         return 1;
     }
 
-    call_profile_init(monotonic_ns, (uintptr_t)cart_update60, draw_root);
+    call_profile_init(monotonic_ns, update_root, draw_root);
     report.pair_tenths_ns = call_profile_measure_pair(MEASURED_PAIRS);
 
     static replay_source_t source;
