@@ -606,3 +606,37 @@ harmless to step 12:
 Also removes the implemented PRD
 `docs/prd/triage/phase4-step11-asserts-opt-levels-submit.md`.
 
+### Step 5.12
+
+The report opens with the checklist of 16 step-12 hand-offs, each
+resolved with its figure, then the carried decisions, the verdict, the
+ranking and 45 lever entries. Companions: the lever-gain table, step 9's
+spike frames, and the estimate (trimmed to the cited lines).
+`tools/lever_estimate.sh` applies the table to every judge frame and
+`make lever-estimate-check` reproduces step 9's results.
+Two rules were tightened, test-first:
+- a spike frame is within budget only if its own leftover is also ≤ 263
+  (step 9's rule had counted 109 of its "fitting" frames that stayed
+  over);
+- the draw work layer is capped per run by the tree's costs no lever
+  removes (88.5% on `draw-5564`, 80.9% on `draw-6000`, 70.1% on
+  `start`), since the bounds summed to about 98%.
+One PRD rule was corrected: in-game draw gains are taken per draw run
+with its whole lever set, never as a per-lever minimum across runs,
+which mixed two screens.
+Verdict, judge frames over 263:
+- measured levers alone: 6,047 of 6,059, as with no lever;
+- measured plus estimated: 2 on `draw-6000`, the headline (frames 113
+  and 1349, 14–16 hblanks over), and 0 on `draw-5564`;
+- with every gain cut by a fifth: 245 and 106.
+263 is reached on paper only on one draw run's lever set, and never
+with 20% to spare. Discovery ended on condition (b): every branch above
+2% explored. The verdict states that it is relative to pcsx-redux's
+timing model, and 14 entries carry that label.
+Top of the ranking: map off-screen cells, the meter out of `psx-game`,
+a pre-built background, the judge without the draw filter, `-O3`,
+sorted layer lists. `make test-all` and `psx-check` are green and
+unchanged.
+Also removes the implemented PRD
+`docs/prd/triage/phase5-step12-ranked-levers-and-verdict.md`.
+

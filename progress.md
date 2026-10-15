@@ -51,8 +51,8 @@
     - [x] Chunk 2: optimization level option and check
     - [x] Chunk 3: four variants on every short run
     - [x] Chunk 4: submit breakdown and global levers
-- [ ] Phase 5 — Report
-  - [ ] 5.12 Finish docs/psx-perf-levers.md
+- [x] Phase 5 — Report
+  - [x] 5.12 Finish docs/psx-perf-levers.md
     - [x] Chunk 1: pre-checks, checklist, companions, gain table
     - [x] Chunk 2: the estimate tool, test-first, with the known-answer check
     - [x] Chunk 3: the bracket
