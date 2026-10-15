@@ -28,7 +28,7 @@
   - [ ] Step 3.8 — D5 pre-built background and the image cache
     - [x] Chunk 1 — warn-review prerequisites: peaks helper tested, derived counts
     - [x] Chunk 2 — per-call costs re-measured, coverage, capture check
-    - [ ] Chunk 3 — throwaway GPU copy spike
+    - [x] Chunk 3 — throwaway GPU copy spike
     - [ ] Chunk 4 — runtime image cache, software backend (PC)
     - [ ] Chunk 5 — PSX backend image cache
     - [ ] Chunk 6 — D5 background through the cache
