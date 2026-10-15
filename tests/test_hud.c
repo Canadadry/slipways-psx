@@ -1,5 +1,6 @@
 #include "game/hud.h"
 #include "p8/assets.h"
+#include "p8/draw_backend.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -106,6 +107,52 @@ static void test_half_alignment_shifts_by_two_pixels_per_letter(void) {
     assert(screen_equal(&centered, &shifted));
 }
 
+typedef struct {
+    int prints;
+    int outlined_prints;
+    const char *str;
+    int x, y, col;
+} outlined_record_t;
+
+static outlined_record_t outlined_record;
+
+static void count_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    (void)gfx, (void)mem, (void)str, (void)x, (void)y, (void)col;
+    outlined_record.prints++;
+}
+
+static void record_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    (void)gfx, (void)mem;
+    outlined_record.outlined_prints++;
+    outlined_record.str = str;
+    outlined_record.x = x;
+    outlined_record.y = y;
+    outlined_record.col = col;
+}
+
+static void test_outlined_text_is_one_outlined_print_at_the_aligned_position(void) {
+    static p8_draw_backend_t recording;
+    p8_vram_t mem;
+    p8_graphics_t gfx;
+    p8_gfx_init(&gfx);
+    p8_vram_init(&mem);
+    recording = *p8_gfx_software_backend();
+    recording.print = count_print;
+    recording.print_outlined = record_print_outlined;
+    memset(&outlined_record, 0, sizeof outlined_record);
+    const p8_draw_backend_t *previous = p8_draw_backend_set(&recording);
+    static const char text[] = "ore";
+
+    hud_print_outlined(&gfx, &mem, text, p8_fixed_from_int(40), p8_fixed_from_int(30), 0x1b, P8_FIXED_LIT(0x00008000, 0.5));
+
+    p8_draw_backend_set(previous);
+    assert(outlined_record.prints == 0);
+    assert(outlined_record.outlined_prints == 1);
+    assert(outlined_record.str == text);
+    assert(outlined_record.x == 34 && outlined_record.y == 30);
+    assert(outlined_record.col == 0x0b);
+}
+
 int main(void) {
     test_each_block_matches_the_sprite_sheet_pixels();
     test_select_needs_no_sprite_sheet();
@@ -113,6 +160,7 @@ int main(void) {
     test_bar_reaches_the_right_edge();
     test_alignment_zero_prints_as_the_default();
     test_half_alignment_shifts_by_two_pixels_per_letter();
+    test_outlined_text_is_one_outlined_print_at_the_aligned_position();
 
     printf("test_hud: OK\n");
     return 0;

@@ -36,7 +36,7 @@
     - [x] Chunk 0 — gross target probe and capture check
     - [x] Chunk 1 — p8_print_outlined runtime primitive (PC)
     - [x] Chunk 2 — PSX outlined font
-    - [ ] Chunk 3 — the switch, measured
+    - [x] Chunk 3 — the switch, measured
     - [ ] Chunk 4 — residual D2, D3, D4
   - [ ] Step 3.10 — L1 layer lists sorted at registration
   - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
