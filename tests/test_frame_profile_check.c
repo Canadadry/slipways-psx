@@ -714,6 +714,192 @@ static void test_unit_cost_pooled_usage_errors_exit_1(void) {
     assert(run_command(SCRIPT " unit-cost-pooled " DIR "/none.txt > " LOG " 2>&1") == 1);
 }
 
+/* A judge table of SPIKE_FRAMES frames: frame 0 sits on the 263 threshold, frames 1, 2, 4, 5 and 7 are
+ * above it, 2 and 7 above 1000. */
+#define JUDGE DIR "/judge.txt"
+#define BASE_TXT DIR "/base.txt"
+#define BASE2_TXT DIR "/base2.txt"
+#define UI_TXT DIR "/ui.txt"
+#define PLANET_TXT DIR "/planet.txt"
+#define SPIKE_FRAMES 8
+
+static void write_judge(void) {
+    write_file(JUDGE, "frame update draw submit total vsyncs\n"
+                      "0 263 100 2 365 1\n1 264 100 2 366 1\n2 1500 100 2 1602 6\n3 100 100 2 202 0\n"
+                      "4 300 100 2 402 1\n5 400 100 2 502 1\n6 50 100 2 152 0\n7 2000 100 2 2102 7\n");
+}
+
+/* <children> are "frame <f> child update ..." lines; every frame's update root takes <update_ns>. */
+static void write_spike_profile(const char *path, const char *root, int frames, int update_ns, const char *children) {
+    static char text[TEXT_CAP];
+    char line[256];
+    text[0] = '\0';
+    snprintf(line, sizeof line,
+             "profile full_game.json frames %d hook-pair-ns 4.6 clock monotonic-ns\nroot draw cart_draw\n"
+             "root update %s\n",
+             frames, root);
+    append(text, TEXT_CAP, line);
+    for (int frame = 0; frame < frames; frame++) {
+        snprintf(line, sizeof line, "frame %d update %d draw 5000\nframe %d child update main_ui 1 50 50 0\n", frame,
+                 update_ns, frame);
+        append(text, TEXT_CAP, line);
+    }
+    append(text, TEXT_CAP, children);
+    write_file(path, text);
+}
+
+static int run_spikes(const char *args) {
+    char cmd[1024];
+    snprintf(cmd, sizeof cmd, SCRIPT " spikes %s > " LOG " 2>&1", args);
+    return run_command(cmd);
+}
+
+static void test_spikes_selects_frames_strictly_above_the_threshold(void) {
+    fresh_dir();
+    write_judge();
+    write_spike_profile(BASE_TXT, "cart_update60", SPIKE_FRAMES, 1000, "");
+    assert(run_spikes("263 " JUDGE " " BASE_TXT) == 0);
+    assert(strcmp(read_file(LOG),
+                  "frame 1 update 264 pc-update-ns 1000 path cart_update60 share 100.0% unsettled\n"
+                  "frame 2 update 1500 pc-update-ns 1000 path cart_update60 share 100.0% unsettled\n"
+                  "frame 4 update 300 pc-update-ns 1000 path cart_update60 share 100.0% unsettled\n"
+                  "frame 5 update 400 pc-update-ns 1000 path cart_update60 share 100.0% unsettled\n"
+                  "frame 7 update 2000 pc-update-ns 1000 path cart_update60 share 100.0% unsettled\n"
+                  "class cart_update60 frames 5 over-1000 2 update-sum 4464 share 100.0%-100.0%-100.0% runs-on 8 "
+                  "spike-runs 5 hblanks-per-pc-us 400.000 list 1,2,4,5,7 unsettled\n"
+                  "spike-frames 5 over-1000 2 classes 1 open 0\n") == 0);
+    assert(run_spikes("299 " JUDGE " " BASE_TXT) == 0);
+    assert(strstr(read_file(LOG), "\nspike-frames 4 over-1000 2 classes 1 open 0\n") != NULL);
+}
+
+/* Frame 1: ui_update takes 600 of 1000 ns in BASE_TXT, 450 of 1200 in BASE2_TXT. */
+static void test_spikes_takes_the_per_frame_minimum_of_each_set(void) {
+    fresh_dir();
+    write_judge();
+    write_spike_profile(BASE_TXT, "cart_update60", SPIKE_FRAMES, 1000, "frame 1 child update ui_update 1 600 100 9\n");
+    write_spike_profile(BASE2_TXT, "cart_update60", SPIKE_FRAMES, 1200, "frame 1 child update ui_update 1 450 100 9\n");
+    assert(run_spikes("263 " JUDGE " " BASE_TXT) == 3);
+    assert(strcmp(output_line("frame 1"),
+                  "frame 1 update 264 pc-update-ns 1000 path cart_update60/ui_update share 60.0% open ui_update") == 0);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT "," BASE2_TXT) == 0);
+    assert(strcmp(output_line("frame 1"),
+                  "frame 1 update 264 pc-update-ns 1000 path cart_update60 share 100.0% unsettled") == 0);
+    /* A child missing from one profile of the set counts as 0 there. */
+    write_spike_profile(BASE2_TXT, "cart_update60", SPIKE_FRAMES, 1000, "");
+    assert(run_spikes("263 " JUDGE " " BASE_TXT "," BASE2_TXT) == 0);
+}
+
+/* Exactly half steps in, one ns less stops. */
+static void test_spikes_steps_in_from_half_of_the_update(void) {
+    fresh_dir();
+    write_judge();
+    write_spike_profile(BASE_TXT, "cart_update60", SPIKE_FRAMES, 1000,
+                        "frame 1 child update ui_update 1 500 100 9\nframe 2 child update ui_update 1 499 100 9\n"
+                        "frame 2 child update update_entities 1 300 100 9\n");
+    assert(run_spikes("263 " JUDGE " " BASE_TXT) == 3);
+    assert(ends_with(output_line("frame 1"), " path cart_update60/ui_update share 50.0% open ui_update"));
+    assert(ends_with(output_line("frame 2"), " path cart_update60 share 100.0% unsettled"));
+    assert(strcmp(output_line("open ui_update"), "open ui_update frames 1") == 0);
+    assert(ends_with(read_file(LOG), "\nspike-frames 5 over-1000 2 classes 1 open 1\n"));
+}
+
+/* ui_update holds 800 ns of frames 2 and 5; inside it planet_update holds 700 then 600 ns and stops there,
+ * and runs on frames 2, 3 and 5. */
+static void write_descent_inputs(void) {
+    fresh_dir();
+    write_judge();
+    write_spike_profile(BASE_TXT, "cart_update60", SPIKE_FRAMES, 1000,
+                        "frame 2 child update ui_update 1 800 100 9\nframe 5 child update ui_update 1 800 100 9\n");
+    write_spike_profile(UI_TXT, "ui_update", SPIKE_FRAMES, 800,
+                        "frame 2 child update planet_update 1 700 100 9\nframe 3 child update planet_update 2 70 10 9\n"
+                        "frame 5 child update planet_update 1 600 100 9\nframe 2 child update hud_update 1 50 50 0\n");
+    write_spike_profile(PLANET_TXT, "planet_update", SPIKE_FRAMES, 700,
+                        "frame 2 child update planet_tick 3 300 100 9\nframe 5 child update planet_tick 3 200 100 9\n");
+}
+
+static void test_spikes_descends_through_a_symbol_set(void) {
+    write_descent_inputs();
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" UI_TXT) == 3);
+    assert(strcmp(output_line("frame 2"), "frame 2 update 1500 pc-update-ns 1000 path cart_update60/ui_update/"
+                                          "planet_update share 70.0% open planet_update") == 0);
+    assert(strcmp(output_line("open planet_update"), "open planet_update frames 2") == 0);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" UI_TXT " planet_update=" PLANET_TXT) == 0);
+    assert(strcmp(output_line("frame 2"), "frame 2 update 1500 pc-update-ns 1000 path cart_update60/ui_update/"
+                                          "planet_update share 70.0%") == 0);
+    assert(strcmp(output_line("frame 5"), "frame 5 update 400 pc-update-ns 1000 path cart_update60/ui_update/"
+                                          "planet_update share 60.0%") == 0);
+}
+
+/* hblanks per PC us: 1500 and 400 over 1 us, median 950. */
+static void test_spikes_class_lines_count_the_runs(void) {
+    write_descent_inputs();
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" UI_TXT " planet_update=" PLANET_TXT) == 0);
+    assert(strcmp(output_line("class cart_update60/ui_update/planet_update"),
+                  "class cart_update60/ui_update/planet_update frames 2 over-1000 1 update-sum 1900 "
+                  "share 60.0%-65.0%-70.0% runs-on 3 spike-runs 2 hblanks-per-pc-us 950.000 list 2,5") == 0);
+    assert(strcmp(output_line("class cart_update60"), "class cart_update60 frames 3 over-1000 1 update-sum 2564 "
+                                                      "share 100.0%-100.0%-100.0% runs-on 8 spike-runs 5 "
+                                                      "hblanks-per-pc-us 300.000 list 1,4,7 unsettled") == 0);
+    assert(strstr(read_file(LOG), "class cart_update60 ") < strstr(read_file(LOG), "class cart_update60/"));
+    assert(ends_with(read_file(LOG), "\nspike-frames 5 over-1000 2 classes 2 open 0\n"));
+    /* runs-on reads the first profile of the set only. */
+    assert(run_spikes("263 " JUDGE " " BASE_TXT "," BASE_TXT " ui_update=" UI_TXT "," UI_TXT " planet_update=" PLANET_TXT
+                      "," PLANET_TXT) == 0);
+    assert(strstr(read_file(LOG), " runs-on 3 spike-runs 2 ") != NULL);
+}
+
+static void test_spikes_marks_a_multi_site_walk(void) {
+    write_descent_inputs();
+    write_spike_profile(BASE_TXT, "cart_update60", SPIKE_FRAMES, 1000,
+                        "frame 2 child update ui_update#2 1 800 100 9\nframe 5 child update ui_update#1 1 800 100 9\n");
+    assert(run_spikes("263 " JUDGE " " BASE_TXT) == 3);
+    assert(ends_with(output_line("frame 2"), " path cart_update60/ui_update#2 share 80.0% open ui_update"));
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" UI_TXT " planet_update=" PLANET_TXT) == 0);
+    assert(ends_with(output_line("frame 2"), " path cart_update60/ui_update#2/planet_update share 70.0% multi-site"));
+    assert(strcmp(output_line("class cart_update60/ui_update#1/planet_update"),
+                  "class cart_update60/ui_update#1/planet_update frames 1 over-1000 0 update-sum 400 "
+                  "share 60.0%-60.0%-60.0% runs-on 3 spike-runs 2 hblanks-per-pc-us 400.000 list 5 multi-site") == 0);
+}
+
+static void test_spikes_closes_on_an_unresolvable_symbol(void) {
+    write_descent_inputs();
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" UI_TXT " planet_update=unresolvable") == 0);
+    assert(ends_with(output_line("frame 2"), " path cart_update60/ui_update/planet_update share 70.0% unresolvable"));
+    assert(ends_with(output_line("class cart_update60/ui_update/planet_update"), " list 2,5 unresolvable"));
+}
+
+static void test_spikes_malformed_input_exits_2(void) {
+    write_descent_inputs();
+    write_spike_profile(BASE2_TXT, "cart_update60", SPIKE_FRAMES - 1, 1000, "");
+    assert(run_spikes("263 " JUDGE " " BASE_TXT "," BASE2_TXT) == 2);
+    assert(strstr(read_file(LOG), "frames 7, not 8") != NULL);
+    write_spike_profile(BASE2_TXT, "ui_update", SPIKE_FRAMES, 1000, "");
+    assert(run_spikes("263 " JUDGE " " BASE2_TXT) == 2);
+    assert(strstr(read_file(LOG), "root update ui_update, not cart_update60") != NULL);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " planet_update=" UI_TXT) == 2);
+    write_file(BASE2_TXT, replaced(read_file(BASE_TXT), "root update cart_update60\n", ""));
+    assert(run_spikes("263 " JUDGE " " BASE2_TXT) == 2);
+    assert(strstr(read_file(LOG), "no root update line") != NULL);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT "," BASE_TXT " ui_update=" UI_TXT) == 2);
+    write_file(BASE2_TXT, replaced(read_file(BASE_TXT), "frame 6 update 1000 draw 5000\n", ""));
+    assert(run_spikes("263 " JUDGE " " BASE2_TXT) == 2);
+    write_file(DIR "/judge2.txt", replaced(read_file(JUDGE), "3 100 100 2 202 0\n", ""));
+    assert(run_spikes("263 " DIR "/judge2.txt " BASE_TXT) == 2);
+}
+
+static void test_spikes_usage_errors_exit_1(void) {
+    write_descent_inputs();
+    assert(run_spikes("") == 1);
+    assert(run_spikes("263 " JUDGE) == 1);
+    assert(run_spikes("abc " JUDGE " " BASE_TXT) == 1);
+    assert(run_spikes("263 " DIR "/none.txt " BASE_TXT) == 1);
+    assert(run_spikes("263 " JUDGE " " DIR "/none.txt") == 1);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update") == 1);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" DIR "/none.txt") == 1);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " cart_update60=" UI_TXT) == 1);
+    assert(run_spikes("263 " JUDGE " " BASE_TXT " ui_update=" UI_TXT " ui_update=unresolvable") == 1);
+}
+
 int main(void) {
     build_breakdown_inputs();
     test_breakdown_match_over_a_resume_window();
@@ -748,6 +934,15 @@ int main(void) {
     test_unit_cost_pooled_sums_the_runs();
     test_unit_cost_pooled_malformed_input_exits_2();
     test_unit_cost_pooled_usage_errors_exit_1();
+    test_spikes_selects_frames_strictly_above_the_threshold();
+    test_spikes_takes_the_per_frame_minimum_of_each_set();
+    test_spikes_steps_in_from_half_of_the_update();
+    test_spikes_descends_through_a_symbol_set();
+    test_spikes_class_lines_count_the_runs();
+    test_spikes_marks_a_multi_site_walk();
+    test_spikes_closes_on_an_unresolvable_symbol();
+    test_spikes_malformed_input_exits_2();
+    test_spikes_usage_errors_exit_1();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frame_profile_check: all tests passed\n");
     return 0;

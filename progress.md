@@ -35,7 +35,7 @@
   - [ ] 3.9 Identify the four update spikes on PC
     - [x] Chunk 1: calibration of PC update shares on the PSX
     - [x] Chunk 2: update root in frame_profile
-    - [ ] Chunk 3: spikes mode and frame-profile-spikes target
+    - [x] Chunk 3: spikes mode and frame-profile-spikes target
     - [ ] Chunk 4: spread mode and frame-profile-spread target
     - [ ] Chunk 5: classification
     - [ ] Chunk 6: spreading and fallback

@@ -582,6 +582,21 @@
 #                       summed in tmp/frame-profile/unit-cost/pooled.txt; a
 #                       missing breakdown TTY fails naming the make
 #                       psx-short-runs to run; never boots, outside the suite
+# make frame-profile-spikes [FRAME_PROFILE_REPEATS=<k>] [FRAME_PROFILE_SPIKE_THRESHOLD=<hblanks>]
+#                    -> profiles full_game.json k times (default 4) with
+#                       cart_update60 as the update root into
+#                       tmp/frame-profile/spikes/cart_update60/<k>/, then
+#                       tools/frame_profile_check.sh spikes on the judge table
+#                       docs/psx-perf-levers-full-run-frames.txt: every frame
+#                       whose update exceeds the threshold (default 263) walked
+#                       down to the child holding half its PC time; while a
+#                       frame is open on a symbol, profiles that symbol k
+#                       times as update root into spikes/<symbol>/<k>/ (one
+#                       that does not resolve goes to spikes/unresolvable.txt
+#                       and closes the walk) and runs it again, 16 levels at
+#                       most; writes tmp/frame-profile/spikes/spikes.txt,
+#                       fails while a frame is open; never boots, outside the
+#                       suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2416,10 +2431,11 @@ $(TMP_DIR)/frame_profile: $(call profile_objs,$(FRAME_PROFILE_INSTRUMENTED_SRCS)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 	nm $@ > $@.syms
 
-# usage: profile <events> <reference> <out-dir> [<draw-root>]; prints "<label>: same-game ...", fails on a stopped replay or no.
+# usage: profile <events> <reference> <out-dir> [<draw-root> [<update-root>]]; prints "<label>: same-game ...", fails on a stopped replay or no.
 frame_profile_function = profile() { \
 	events=$$1; reference=$$2; dir=$$3; mkdir -p $$dir; rm -f $$dir/state.txt; \
-	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms $${4:+"$$4"} || return $$?; \
+	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms $${4:+"$$4"} $${5:+"$$5"} \
+		|| return $$?; \
 	if [ ! -f "$$reference" ]; then same=unchecked; \
 	elif sh tools/end_state.sh check $$events $$dir/state.txt $$reference > $$dir/end-state.txt; then same=yes; \
 	else same=no; cat $$dir/end-state.txt; fi; \
@@ -2514,6 +2530,44 @@ frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame
 	sh tools/frame_profile_check.sh unit-cost-pooled $$outputs > $$out/pooled.txt || exit 1; \
 	sed "s/^/$@: pooled: /" $$out/pooled.txt
 
+FRAME_PROFILE_SPIKE_THRESHOLD ?= 263
+FRAME_PROFILE_JUDGE_FRAMES := docs/psx-perf-levers-full-run-frames.txt
+FRAME_PROFILE_SPIKE_LEVELS := 16
+
+# Each update root (cart_update60, then every open symbol) is profiled FRAME_PROFILE_REPEATS times
+# into spikes/<symbol>/<k>; a symbol frame_profile cannot resolve (no text symbol, or several
+# addresses) goes to spikes/unresolvable.txt and closes the walk.
+frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+	@$(frame_profile_function); \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	case "$(FRAME_PROFILE_SPIKE_THRESHOLD)" in ''|*[!0-9]*) echo "$@: FRAME_PROFILE_SPIKE_THRESHOLD is not a count of hblanks: '$(FRAME_PROFILE_SPIKE_THRESHOLD)'"; exit 1;; esac; \
+	out=$(FRAME_PROFILE_DIR)/spikes; rm -rf $$out; mkdir -p $$out; : > $$out/unresolvable.txt; \
+	profile_set() { \
+		profiles=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$out/$$1/$$k cart_draw $$1 >&2 || return 1; \
+			profiles="$$profiles,$$out/$$1/$$k/frames.txt"; \
+		done; \
+		echo "$${profiles#,}"; \
+	}; \
+	base=$$(profile_set cart_update60) || exit 1; sets=; level=0; \
+	while :; do \
+		sh tools/frame_profile_check.sh spikes $(FRAME_PROFILE_SPIKE_THRESHOLD) $(FRAME_PROFILE_JUDGE_FRAMES) $$base $$sets \
+			> $$out/spikes.txt; status=$$?; \
+		[ $$status -eq 3 ] || break; \
+		level=$$((level + 1)); \
+		if [ $$level -gt $(FRAME_PROFILE_SPIKE_LEVELS) ]; then echo "$@: still open after $(FRAME_PROFILE_SPIKE_LEVELS) levels"; break; fi; \
+		for symbol in $$(awk '$$1 == "open" && NF == 4 {print $$2}' $$out/spikes.txt); do \
+			addresses=$$(awk -v name=$$symbol '$$3 == name && $$2 ~ /^[TtWw]$$/ {print $$1}' $(TMP_DIR)/frame_profile.syms | sort -u | wc -l); \
+			if [ $$addresses -ne 1 ]; then \
+				echo "$$symbol text-symbols $$addresses" >> $$out/unresolvable.txt; sets="$$sets $$symbol=unresolvable"; continue; \
+			fi; \
+			profiles=$$(profile_set $$symbol) || exit 1; \
+			sets="$$sets $$symbol=$$profiles"; \
+		done; \
+	done; \
+	cat $$out/spikes.txt; exit $$status
+
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -2527,7 +2581,7 @@ frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
-	frame-profile-unit-cost
+	frame-profile-unit-cost frame-profile-spikes
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

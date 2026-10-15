@@ -4,6 +4,7 @@
 #        frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
 #        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
 #        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
+#        frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
 # breakdown: over the window of <map.txt> (tmp/short_run_cut), the per-family
 # calls of tmp/frame_profile's <frames.txt> must equal the psx-draw: lines of
 # the run's breakdown boot. Prints "calls-match ok <n> frames" then
@@ -36,6 +37,15 @@
 # divisor), then "in-calls <h>" and "window-frames <n>"; a calls mismatch
 # prints the first one as breakdown does. unit-cost-pooled sums such outputs.
 # Exit 0, 2 on a mismatch or malformed input, 1 on a usage error.
+# spikes: the frames whose judge update exceeds <threshold> hblanks, each
+# walked down from cart_update60 (base profiles) through the <symbol>= sets
+# (profiles rooted at that update symbol; "unresolvable" closes the walk on
+# it) into the child holding at least 50 % of cart_update60's PC time
+# (per-frame minimums over each set's K profiles). Prints "frame" lines,
+# "class" lines (frames sharing a closed path), "open <symbol> frames <n>"
+# lines and "spike-frames <n> over-1000 <m> classes <c> open <o>" (o: open
+# frames). Exit 0, 3 when a frame is open, 2 on malformed input, 1 on a
+# usage error.
 
 set -u
 LC_ALL=C
@@ -45,7 +55,8 @@ usage="usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> 
        frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
        frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
-       frame_profile_check.sh unit-cost-pooled <unit-cost output>..."
+       frame_profile_check.sh unit-cost-pooled <unit-cost output>...
+       frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]..."
 
 fail_usage() {
     echo "frame-profile-check: $1" >&2
@@ -447,6 +458,186 @@ unit_cost_pooled() {
         }' "$@"
 }
 
+spikes() {
+    [ $# -ge 3 ] || fail_usage "$usage"
+    threshold=$1
+    judge=$2
+    case $threshold in
+        '' | *[!0-9]*) fail_usage "threshold is not a count of hblanks: '$threshold'" ;;
+    esac
+    [ -f "$judge" ] || fail_usage "missing judge table: $judge"
+    files=
+    file_sets=
+    set_names=cart_update60
+    unresolvable=
+    for profile in $(echo "$3" | tr ',' ' '); do
+        [ -f "$profile" ] || fail_usage "missing profile: $profile"
+        files="$files $profile"
+        file_sets="$file_sets cart_update60"
+    done
+    [ -n "$files" ] || fail_usage "$usage"
+    shift 3
+    for spec in "$@"; do
+        symbol=${spec%%=*}
+        profiles=${spec#*=}
+        case $symbol in
+            '' | *[!A-Za-z0-9_]*) fail_usage "set is not <symbol>=<frames.txt>[,...] or <symbol>=unresolvable: $spec" ;;
+        esac
+        if [ "$symbol" = "$spec" ] || [ -z "$profiles" ] || [ "$symbol" = cart_update60 ]; then
+            fail_usage "set is not <symbol>=<frames.txt>[,...] or <symbol>=unresolvable: $spec"
+        fi
+        case " $set_names $unresolvable " in
+            *" $symbol "*) fail_usage "set given twice: $symbol" ;;
+        esac
+        if [ "$profiles" = unresolvable ]; then
+            unresolvable="$unresolvable $symbol"
+            continue
+        fi
+        set_names="$set_names $symbol"
+        for profile in $(echo "$profiles" | tr ',' ' '); do
+            [ -f "$profile" ] || fail_usage "missing profile: $profile"
+            files="$files $profile"
+            file_sets="$file_sets $symbol"
+        done
+    done
+    awk -v threshold="$threshold" -v file_sets="$file_sets" -v set_names="$set_names" -v unresolvable="$unresolvable" '
+        BEGIN {
+            split(file_sets, set_of_file, " ")
+            set_count = split(set_names, sets, " ")
+            for (i = 1; i <= set_count; i++) is_set[sets[i]] = 1
+            n = split(unresolvable, list, " ")
+            for (i = 1; i <= n; i++) is_unresolvable[list[i]] = 1
+            file = 0
+        }
+        function malformed(reason) {
+            print "frame-profile-check: malformed " FILENAME ": " reason > "/dev/stderr"
+            failed = 1
+            exit 2
+        }
+        function check_root(    s) {
+            if (file > 1 && !((file - 1) in root)) { FILENAME = previous; malformed("no root update line") }
+        }
+        function median(values, n,    i, j, t) {
+            for (i = 1; i <= n; i++) for (j = i + 1; j <= n; j++) if (values[j] < values[i]) { t = values[i]; values[i] = values[j]; values[j] = t }
+            return n % 2 ? values[(n + 1) / 2] : (values[n / 2] + values[n / 2 + 1]) / 2
+        }
+        FNR == 1 {
+            check_root()
+            file++; previous = FILENAME
+            if (file == 1) {
+                if ($1 != "frame" || $2 != "update" || $3 != "draw") malformed("no judge header")
+                next
+            }
+            if ($1 != "profile" || $3 != "frames" || $4 !~ /^[0-9]+$/) malformed("no profile header")
+            if ($4 != judge_frames) malformed("frames " $4 ", not " judge_frames " as the judge table")
+            set = set_of_file[file - 1]
+            set_k[set]++; k = set_k[set]
+            next
+        }
+        file == 1 {
+            if (NF < 2 || $1 != judge_frames || $2 !~ /^[0-9]+$/) malformed("line " FNR " is not frame " judge_frames)
+            judge_update[$1] = $2
+            if ($2 > threshold) { spike[$1] = 1; spike_count++ }
+            judge_frames++
+            next
+        }
+        $1 == "root" && $2 == "update" && NF == 3 {
+            if ($3 != set) malformed("root update " $3 ", not " set)
+            root[file - 1] = $3
+            next
+        }
+        $1 != "frame" { next }
+        $3 == "update" && NF == 6 {
+            if (set == "cart_update60") {
+                update_seen[k, $2] = 1
+                if (spike[$2] && (k == 1 || $4 < pc_update[$2])) pc_update[$2] = $4
+            }
+            next
+        }
+        $3 == "child" && $4 == "update" && NF == 9 {
+            if (k == 1 && $6 > 0) { runs[set, $5]++; if (spike[$2]) spike_runs[set, $5]++ }
+            if (!spike[$2]) next
+            key = set SUBSEP $2 SUBSEP $5
+            if (!(key in seen_count)) { child_list[set, $2] = child_list[set, $2] " " $5; seen_count[key] = 0 }
+            if (seen_count[key] == 0 || $7 < low[key]) low[key] = $7
+            seen_count[key]++
+        }
+        function child_ns(s, f, name,    key) {
+            key = s SUBSEP f SUBSEP name
+            return seen_count[key] == set_k[s] ? low[key] : 0
+        }
+        END {
+            if (failed) exit 2
+            check_root()
+            if (file < 2) { FILENAME = previous; malformed("no profile") }
+            for (i = 2; i <= set_count; i++)
+                if (set_k[sets[i]] != set_k["cart_update60"])
+                    { FILENAME = sets[i]; malformed(set_k[sets[i]] " profiles, not " set_k["cart_update60"] " as the base set") }
+            for (k = 1; k <= set_k["cart_update60"]; k++)
+                for (f = 0; f < judge_frames; f++)
+                    if (!((k, f) in update_seen)) { FILENAME = "base profile " k; malformed("no update line for frame " f) }
+            class_count = 0; open_frames = 0; over = 0
+            for (f = 0; f < judge_frames; f++) {
+                if (!spike[f]) continue
+                if (judge_update[f] > 1000) over++
+                d = pc_update[f]; node = "cart_update60"; path = node; share = 100
+                parent = ""; last = ""; tags = ""; open = ""; multi = 0; delete visited; visited[node] = 1
+                while (1) {
+                    n = split(child_list[node, f], names, " ")
+                    best = ""; best_ns = -1
+                    for (i = 1; i <= n; i++) { t = child_ns(node, f, names[i]); if (t > best_ns) { best_ns = t; best = names[i] } }
+                    if (best == "" || d <= 0 || best_ns * 2 < d) break
+                    path = path "/" best; share = best_ns * 100 / d; parent = node; last = best
+                    symbol = best; sub(/#.*/, "", symbol)
+                    if (symbol in is_unresolvable) { tags = tags " unresolvable"; break }
+                    if (!(symbol in is_set)) { open = symbol; break }
+                    if (symbol in visited) break
+                    if (symbol != best) multi = 1
+                    visited[symbol] = 1; node = symbol
+                }
+                if (multi) tags = " multi-site" tags
+                if (path == "cart_update60") tags = tags " unsettled"
+                line = sprintf("frame %d update %d pc-update-ns %d path %s share %.1f%%%s", f, judge_update[f], d, path, share, tags)
+                if (open != "") {
+                    print line " open " open
+                    open_frames++
+                    if (!(open in open_count)) open_symbols[++open_symbol_count] = open
+                    open_count[open]++
+                    continue
+                }
+                print line
+                if (!(path in class_index)) {
+                    class_index[path] = ++class_count; class_paths[class_count] = path; class_tags[class_count] = tags
+                    if (parent == "") { class_runs[class_count] = judge_frames; class_spike_runs[class_count] = spike_count }
+                    else { class_runs[class_count] = runs[parent, last] + 0; class_spike_runs[class_count] = spike_runs[parent, last] + 0 }
+                }
+                c = class_index[path]
+                m = ++class_frames[c]
+                class_share[c, m] = share
+                class_ratio[c, m] = d > 0 ? judge_update[f] * 1000 / d : 0
+                class_list[c] = class_list[c] (m > 1 ? "," : "") f
+                class_sum[c] += judge_update[f]
+                if (judge_update[f] > 1000) class_over[c]++
+            }
+            for (i = 1; i <= class_count; i++) order[i] = i
+            for (i = 2; i <= class_count; i++)
+                for (j = i; j > 1 && (class_sum[order[j]] > class_sum[order[j - 1]] || class_sum[order[j]] == class_sum[order[j - 1]] && class_paths[order[j]] < class_paths[order[j - 1]]); j--)
+                    { t = order[j]; order[j] = order[j - 1]; order[j - 1] = t }
+            for (i = 1; i <= class_count; i++) {
+                c = order[i]; m = class_frames[c]
+                for (j = 1; j <= m; j++) { v[j] = class_share[c, j]; r[j] = class_ratio[c, j] }
+                low_share = v[1]; high_share = v[1]
+                for (j = 2; j <= m; j++) { if (v[j] < low_share) low_share = v[j]; if (v[j] > high_share) high_share = v[j] }
+                printf "class %s frames %d over-1000 %d update-sum %d share %.1f%%-%.1f%%-%.1f%% runs-on %d spike-runs %d hblanks-per-pc-us %.3f list %s%s\n", \
+                    class_paths[c], m, class_over[c], class_sum[c], low_share, median(v, m), high_share, class_runs[c], \
+                    class_spike_runs[c], median(r, m), class_list[c], class_tags[c]
+            }
+            for (i = 1; i <= open_symbol_count; i++) print "open " open_symbols[i] " frames " open_count[open_symbols[i]]
+            print "spike-frames " spike_count + 0 " over-1000 " over " classes " class_count " open " open_frames
+            if (open_frames > 0) exit 3
+        }' "$judge" $files
+}
+
 mode=${1:-}
 [ $# -gt 0 ] && shift
 case $mode in
@@ -455,5 +646,6 @@ case $mode in
     subtree) subtree "$@" ;;
     unit-cost) unit_cost "$@" ;;
     unit-cost-pooled) unit_cost_pooled "$@" ;;
+    spikes) spikes "$@" ;;
     *) fail_usage "$usage" ;;
 esac
