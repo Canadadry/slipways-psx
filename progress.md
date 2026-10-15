@@ -16,6 +16,9 @@
     - [x] Chunk 2 — measured replays unmetered, gpu-draw-meter, PC-sourced lines
     - [x] Chunk 3 — judge run and table
   - [ ] Step 2.5 — -O3 for psx-game and the measured replays (G2)
+    - [x] Chunk 0 — O2 baseline before the change
+    - [x] Chunk 1 — O3 in every psx-build, level checked
+    - [ ] Chunk 2 — measuring harness at O3, short-run delta
   - [ ] Step 2.6 — p8_map skips off-screen cells (B3)
   - [ ] Step 2.7 — end of phase full-game check
 - [ ] Phase 3 — Draw, in impact order

@@ -2244,15 +2244,21 @@ $(error psx-build: PSX_BUILD_GAME_ASSERTS must be ON or OFF, not '$(PSX_BUILD_GA
 endif
 # The mode tools/psx_game_check.sh's game-asserts expects on the TTY.
 PSX_GAME_ASSERTS_MODE := $(if $(filter ON,$(PSX_BUILD_GAME_ASSERTS)),on,off)
+PSX_BUILD_OPT ?= O3
+ifneq ($(words $(PSX_BUILD_OPT))$(filter-out O2 O3 Os,$(PSX_BUILD_OPT)),1)
+$(error psx-build: PSX_BUILD_OPT must be O2, O3 or Os, not '$(PSX_BUILD_OPT)')
+endif
+PSX_BUILD_OPT_TARGETS := psx-game psx-gpu-replay psx-gpu-replay-breakdown
 
-psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
+psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS) tools/psx_opt_level.sh
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@mkdir -p $(dir $(PSX_EMBEDDED_REPLAY))
 	./$(TMP_DIR)/embed_replay $(PSX_EVENTS) $(PSX_REPLAY_NAME) $(PSX_EMBEDDED_REPLAY)
 	cmake -S psx -B $(PSX_BUILD_DIR) \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
-		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) -DPSX_MEASURED_REPLAY_OPT=O2 \
+		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) \
+		-DPSX_GAME_OPT=$(PSX_BUILD_OPT) -DPSX_MEASURED_REPLAY_OPT=$(PSX_BUILD_OPT) \
 		-DPSX_GAME_ASSERTS=$(PSX_BUILD_GAME_ASSERTS) \
 		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) -DPSX_GPU_REPLAY_DRAW_METER=$(PSX_BUILD_DRAW_METER) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
@@ -2262,6 +2268,14 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))' \
 		'-DPSX_GAME_SOURCES=$(call psx_cmake_list,$(PSX_GAME_SRCS))'
 	+cmake --build $(PSX_BUILD_DIR)
+	@opt_failed=; levels=; \
+	for target in $(PSX_BUILD_OPT_TARGETS); do \
+		level=$$(sh tools/psx_opt_level.sh $(PSX_BUILD_DIR)/CMakeFiles/$$target.dir/flags.make) || level=unreadable; \
+		[ "$$level" = $(PSX_BUILD_OPT) ] || { echo "psx-build: $$target effective level $$level, not $(PSX_BUILD_OPT) as requested"; opt_failed=yes; }; \
+		levels="$$levels $$target $$level"; \
+	done; \
+	echo "psx-build: opt$$levels"; \
+	[ -z "$$opt_failed" ]
 	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-gpu-replay.elf \
 		$(PSX_BUILD_DIR)/psx-gpu-replay-breakdown.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf $(PSX_BUILD_DIR)/psx-game.elf \
 		$(PSX_BUILD_DIR)/psx-largest-slots.elf
