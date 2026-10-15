@@ -17,11 +17,11 @@ so it is a statement about the judge, not about real hardware or the Miyoo,
 and the levers whose Risk opens with "Timing model" are the ones most
 exposed to that difference. The sections from "Short-run baseline" on are
 the evidence, one per plan step. Four companion files are part of this
-report: the judge's frame table `docs/psx-perf-levers-full-run-frames.txt`,
-step 9's spike frames `docs/psx-perf-levers-spike-frames.txt`, the
-lever-gain table `docs/psx-perf-levers-gains.txt` and the estimate
-`docs/psx-perf-levers-estimate.txt`. The report and its companions are
-deleted once the implementation plan exists.
+report, kept as measuring inputs in `psx/perf/`: the judge's frame table
+`psx/perf/full-run-frames.txt`, step 9's spike frames
+`psx/perf/spike-frames.txt` and the lever-gain table `psx/perf/gains.txt`.
+`make lever-estimate` regenerates the estimate the report quotes. The
+report is deleted once the implementation plan exists.
 
 ## Step 12 checklist
 
@@ -35,27 +35,24 @@ changes. Figures the estimate tool computes come from chunk 3's runs
 and no figure is re-read. Line numbers below are the report's at `4306e41`,
 before this section was inserted.
 
-**Companions written for step 12**, part of this report and deleted with
-it:
+**Companions written for step 12**, kept in `psx/perf/`:
 
-- `docs/psx-perf-levers-spike-frames.txt`: step 9's K = 8 classification
+- `psx/perf/spike-frames.txt`: step 9's K = 8 classification
   (`tmp/frame-profile/spikes/spikes.txt`), copied byte for byte (sha256
   `8eb608e1…77bcbe5`). Checked before copying: 166 `frame` lines, every
   frame's update equal to the judge table's, 19 `class` lines, and each
   class's frame list equal to the "Frames per class" list of the class with
   the same path (C1 … C19); the frames of the 19 lists are exactly the 166.
   No fallback run was needed.
-- `docs/psx-perf-levers-gains.txt`: the lever-gain table, one row a line,
+- `psx/perf/gains.txt`: the lever-gain table, one row a line,
   each lever row ending with the report figure it comes from. It holds the
   budget, the `title` (0–11) and `start` (12) ranges, the 19 class rows,
   C13's three overrides, the per-class ratios, 121 lever rows (draw, update,
   submit, global), 16 spreading rows and, from chunk 3, four `cap` rows
   (item 15).
-- `docs/psx-perf-levers-estimate.txt`: the estimate on the headline draw
-  run (`draw-6000`), the `measured` then the `estimated` end, sequential
-  allocation, each after a header line naming its command; trimmed to the
-  summary, class and lever lines, every spike-frame line and the estimated
-  end's over-263 frames (the command regenerates the full output).
+- The estimate on the headline draw run (`draw-6000`), `measured` then
+  `estimated`, sequential allocation: not kept as a file, `make
+  lever-estimate ESTIMATE_RUN=draw-6000 ESTIMATE_END=<end>` regenerates it.
 
 **Sweep** (one command; plan section 6 starts at line 299):
 
@@ -124,7 +121,7 @@ per part.
    share of the calls the work levers remove, which the multiplicative form
    excludes up to the proportionality assumption (meter cost ∝ draw time)
    that item 1's cross-check bounds. **Cross-check of the gain table**
-   (throwaway awk over `docs/psx-perf-levers-gains.txt`, not committed):
+   (throwaway awk over `psx/perf/gains.txt`, not committed):
    with step 9's levers only (the text group, D5, D6, D8–D13, D15, and B1
    for `step7+8`; `step7` takes step 7's tree bound for candidate 1, 0 /
    7819 / 1410, in place of one-print), each run's composition reproduces
@@ -626,7 +623,7 @@ order `start`, `update-4737`, `update-5500`, `draw-5564`, `update-5719`,
 bounds come from step 7's tree, which was descended on `start`,
 `draw-5564` and `draw-6000` only, so the one-frame update runs read "—,
 not descended" for them. "Rows" names the gain-table rows the lever
-contributes (`docs/psx-perf-levers-gains.txt`; title and `start` frames
+contributes (`psx/perf/gains.txt`; title and `start` frames
 take the `start` figure, in-game frames `draw-5564`'s / `draw-6000`'s).
 Cost: S one PRD chunk, a local change; M one PRD, several modules or a new
 data structure; L several PRDs, a new subsystem or asset pipeline, or a
@@ -1188,18 +1185,18 @@ frame, off the update outside the spreadable work (checklist item 7).
 ## Cumulative estimate
 
 Every judge frame (step 5's asserts-off full run, 6,059 frames) after the
-levers of `docs/psx-perf-levers-gains.txt`, computed by
+levers of `psx/perf/gains.txt`, computed by
 `tools/lever_estimate.sh` at chunk 3 of step 12, no emulator boot:
 
 ```
 make lever-estimate ESTIMATE_RUN=<run> ESTIMATE_END=measured|estimated [ESTIMATE_ALLOCATION=independent] [ESTIMATE_HAIRCUT=20]
-grep -v '^lever F1 ' docs/psx-perf-levers-gains.txt > tmp/lever-estimate/gains-without-f1.txt
+grep -v '^lever F1 ' psx/perf/gains.txt > tmp/lever-estimate/gains-without-f1.txt
 make lever-estimate ESTIMATE_RUN=<run> ESTIMATE_END=estimated ESTIMATE_GAINS=tmp/lever-estimate/gains-without-f1.txt ESTIMATE_LABEL=estimated-noF1-<run>
 ```
 
 each once with `<run>` = `draw-6000` and `draw-5564`: twelve runs. The
-headline run's `measured` and `estimated` outputs are the companion
-`docs/psx-perf-levers-estimate.txt`.
+headline run's `measured` and `estimated` outputs are not kept as files:
+these commands regenerate them.
 
 **How a frame is estimated.** Each lever is a row of one part and one
 layer; inside a layer, rows of one alternative are summed, the largest
@@ -1350,7 +1347,7 @@ on paper on `draw-5564` only, and nowhere with 20% to spare.
 
 ## Spikes and spreading
 
-Step 9's 166 spike frames (`docs/psx-perf-levers-spike-frames.txt`), each
+Step 9's 166 spike frames (`psx/perf/spike-frames.txt`), each
 in its class, with the class's figures (checklist item 4: per-class ratio;
 C13 its measured save share). Work is the class's spreadable work,
 min-median-max over its frames, in hblanks: with no lever (per-class
@@ -1512,7 +1509,7 @@ non-zero.
 ### Frame table
 
 The whole per-frame table is the companion file
-`docs/psx-perf-levers-full-run-frames.txt`: the run's
+`psx/perf/full-run-frames.txt`: the run's
 `run/frame-budget/frames.txt`, byte for byte. Header `frame update draw
 submit total vsyncs`, then one line a frame, in hblanks. Frames are 0-based as
 the judge writes them, so frame 12 is the 13th line after the header.
@@ -1610,7 +1607,7 @@ next to the short-run sums of the baseline table above (step 2's runs on
 The sums come from:
 
 ```
-awk -v f=<first> -v l=<last> 'NR > 1 && $1 >= f && $1 <= l { u += $2; d += $3; s += $4; t += $5 } END { print u, d, s, t }' docs/psx-perf-levers-full-run-frames.txt
+awk -v f=<first> -v l=<last> 'NR > 1 && $1 >= f && $1 <= l { u += $2; d += $3; s += $4; t += $5 } END { print u, d, s, t }' psx/perf/full-run-frames.txt
 ```
 
 | Run | Frames | Full update | Full draw | Full submit | Full total | Short update | Short draw | Short submit | Short total |

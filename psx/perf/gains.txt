@@ -1,7 +1,7 @@
 # Lever-gain table of docs/psx-perf-levers.md (plan 20, step 12): the one
 # input of the per-frame estimate besides the judge table
-# (docs/psx-perf-levers-full-run-frames.txt) and the step 9 spike frames
-# (docs/psx-perf-levers-spike-frames.txt). Part of the report, deleted with it.
+# (psx/perf/full-run-frames.txt) and the step 9 spike frames
+# (psx/perf/spike-frames.txt). Part of the report, deleted with it.
 #
 # Rows, whitespace-separated; a "#" that starts a word comments out the rest
 # of the line (a "#" inside a path, as in ui_send_to_hovered#1, does not):

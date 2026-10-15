@@ -598,7 +598,7 @@
 #                       cart_update60 as the update root into
 #                       tmp/frame-profile/spikes/cart_update60/<k>/, then
 #                       tools/frame_profile_check.sh spikes on the judge table
-#                       docs/psx-perf-levers-full-run-frames.txt: every frame
+#                       psx/perf/full-run-frames.txt: every frame
 #                       whose update exceeds the threshold (default 263) walked
 #                       down to the child holding half its PC time; while a
 #                       frame is open on a symbol, profiles that symbol k
@@ -638,8 +638,8 @@
 #                       node is open; never boots, outside the suite
 # make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=sequential|independent] [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]
 #                    -> tools/lever_estimate.sh on the judge table,
-#                       docs/psx-perf-levers-spike-frames.txt and the gain
-#                       table (default docs/psx-perf-levers-gains.txt, whose
+#                       psx/perf/spike-frames.txt and the gain
+#                       table (default psx/perf/gains.txt, whose
 #                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
 #                       the estimate against 263 after the end's levers
 #                       (default measured), each spike frame's work spread
@@ -2619,7 +2619,7 @@ frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame
 	sed "s/^/$@: pooled: /" $$out/pooled.txt
 
 FRAME_PROFILE_SPIKE_THRESHOLD ?= 263
-FRAME_PROFILE_JUDGE_FRAMES := docs/psx-perf-levers-full-run-frames.txt
+FRAME_PROFILE_JUDGE_FRAMES := psx/perf/full-run-frames.txt
 FRAME_PROFILE_SPIKE_LEVELS := 16
 
 # Each update root (cart_update60, then every open symbol) is profiled FRAME_PROFILE_REPEATS times
@@ -2706,8 +2706,8 @@ frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
 ESTIMATE_END ?= measured
 ESTIMATE_ALLOCATION ?= sequential
 ESTIMATE_HAIRCUT ?= 0
-ESTIMATE_GAINS ?= docs/psx-perf-levers-gains.txt
-ESTIMATE_SPIKE_FRAMES := docs/psx-perf-levers-spike-frames.txt
+ESTIMATE_GAINS ?= psx/perf/gains.txt
+ESTIMATE_SPIKE_FRAMES := psx/perf/spike-frames.txt
 LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
 
 lever-estimate: tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
