@@ -2354,7 +2354,8 @@ Plan 20 step 9: the judge's 166 frames whose update alone is over 263
 hblanks (42 of them over 1000), which `cart_update60` descendant each comes
 from, why it runs then, how far the PC's update proportions hold on the
 PSX, and how many frames each spike's work would take if spread out. It
-opens with the calibration on update code, then the classification.
+opens with the calibration on update code, then the classification, the
+spreading, the fallback full run that settles C13, and the verification.
 
 Measured on commit `3fe4b8bbcf62f611247fcd853b0b6da31b2c56fe` (pcsx-redux,
 asserts off), with no change to the game.
@@ -2508,7 +2509,7 @@ Ratios: `ui_update` 1.00 (`start`) and 0.92 (`update-5500`),
 | C10 | `B/planet_projects_panel_on_click_method/planet_apply_project` | `planet_apply_project`, `src/game/planet_display.c:474` | 3 | 3 | 3331 | 59.8 / 59.8 / 59.9% | 55.0–59.8% | high | 24 / 24 | 1.929 | multi-site |
 | C11 | `U/slipway_drop_method` | `slipway_drop_method`, `src/game/slipway.c:325` | 3 | 0 | 2731 | 52.4 / 53.0 / 56.7% | 48.8–53.0% | high | 58 / 40 | 2.149 | — |
 | C12 | `B/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute` | `economy_recompute`, `src/game/economy.c:193` | 5 | 0 | 2459 | 51.2 / 79.9 / 84.1% | 73.5–79.9% | high | 110 / 108 | 2.135 | multi-site |
-| C13 | `cart_update60` | none (no child reaches 50%) | 3 | 0 | 2006 | 100.0% | — | uncalibrated | 6059 / 166 | 2.167 | unsettled |
+| C13 | `cart_update60` (PC); `cart_update60/save_at_frame_end` (full run) | none on PC (no child reaches 50%); `save_at_frame_end`, `src/game/cart.c:312`, measured | 3 | 0 | 2006 | 100.0% on PC; measured 50.3 / 58.4 / 59.8% | 50.3–59.8% (measured on the full run) | high (measured) | 6059 / 166 | 2.167 | unsettled on PC, settled by the fallback |
 | C14 | `U/ui_send_to_hovered#1/button_left_press_method` | `button_left_press_method`, `src/game/ui_button.c:52` | 2 | 0 | 1649 | 51.0 / 52.5 / 53.9% | 48.3–52.5% | high | 120 / 51 | 2.148 | multi-site |
 | C15 | `B/galaxy_menu_button1_on_click_method/economy_new_year/economy_recompute` | `economy_recompute`, `src/game/economy.c:193` | 2 | 0 | 1468 | 52.6 / 68.2 / 83.7% | 62.7–68.2% | high | 25 / 25 | 2.091 | multi-site |
 | C16 | `B` | `button_left_press`, `src/game/ui_button.c:276` | 2 | 0 | 1430 | 51.5 / 52.5 / 53.5% | 48.3–52.5% | high | 120 / 51 | 2.220 | multi-site |
@@ -2546,9 +2547,10 @@ correction for the child the path goes through, not a measurement of the
 deeper function.
 
 **PC cannot settle C13 only** (`unsettled`, frames 113, 825, 901). That
-leaves C13 to the fallback, chunk 6's decision. On PC each of its frames is
-an event branch under `ui_update` (a project on 113, a year skip on 825, a
-tech-tree invention on 901) beside the save, at 43–48% each. C19 is
+leaves C13 to the fallback, which settles it ("Fallback" below). On PC
+each of its frames is an event branch under `ui_update` (a project on
+113, a year skip on 825, a tech-tree invention on 901) beside the save,
+at 43–48% each. C19 is
 uncalibrated, but its 72.6% point share does not straddle 50%, so it is
 settled.
 
@@ -2654,8 +2656,8 @@ Bounds are judge hblanks summed over the named frames, from per-frame PC
 shares (K = 8 minimum) times the judge update, labelled **estimated**. A
 node profiled as its own root can read high (see frame 12 above), so
 these are upper bounds. They overlap and are not ranked (step 12's job).
-Every class also gets the spread candidate, whose count is chunk 6's
-spreading table.
+Every class also gets the spread candidate, whose count is in the
+spreading table below.
 
 | # | Classes | Kind | Location | Evidence | Upper bound (estimated) | Risk |
 |---|---|---|---|---|---|---|
@@ -2665,7 +2667,7 @@ spreading table.
 | U4 | C5, C7, and the save of every event frame | identical work | `save_state_crc32`, `src/game/save_state.c:601` | bitwise CRC-32, 8 shift steps per byte; 11–27% of update on save frames | 11,851 (save 3,557, slipway 3,459, shallow 3,688, project 579, others 568), bound of the whole CRC; a 256-entry table keeps about 1/8 of it | timing only (same bytes) |
 | U5 | C1–C3, C8–C18 | spread across frames | `save_at_frame_end`, `src/game/cart.c:331` | the save shares the event's frame at 21–48% of update; it already waits for wormholes, so waiting one more frame splits the frame in two | 32,554 moved off the event frames (slipway 13,431, shallow 14,617, project 2,379, year skip 810, structure 411, C13 906, on the next frame) | e2e re-record (the save lands one frame later) |
 | U6 | C6 | identical work | `entity_geom_nearest` in `galaxy_populate`, `src/game/galaxy.c:31` | the loop only tests "nearest ≤ 0.05", but each scan finds the true nearest; 92.2% of the 51,499 steps are spent on rejected points | 7,963 if a rejected scan stopped at once; about half (3,980) for a close planet met halfway on average | timing only (same draws, same planets) |
-| U7 | C6 | spread across frames | `galaxy_populate`, `src/game/galaxy.c:14` | galaxy generation is one frame of 8,980 hblanks; spreading it is allowed by the plan | chunk 6's count | e2e re-record |
+| U7 | C6 | spread across frames | `galaxy_populate`, `src/game/galaxy.c:14` | galaxy generation is one frame of 8,980 hblanks; spreading it is allowed by the plan | 104–285 frames (`step7`), 68–162 (`step7+8`), does-not-fit with no draw lever (spreading table) | e2e re-record |
 | U8 | C19 | spread across frames | `update_entities`, `src/engine/bootstrap.c:53` | 3 hblanks over the budget, two always-running updates (36% + 30%) | 3 hblanks needed | e2e re-record |
 
 ### The four named frames
@@ -2682,3 +2684,293 @@ economy recomputes and the save in the same frame. 4737 is the heaviest
 of the three because its tick also crosses the year (a third recompute).
 The class does not explain why the resumed short runs keep 5500's spike
 and lose the other two: all three are C1.
+
+### Spreading
+
+Commands (at `94e6895`; `spikes.txt` is the K = 8 classification above):
+
+```
+R=ui_update=0.96,save_at_frame_end=1.11
+make frame-profile-spread SPREAD_LABEL=none        DRAW_GAINS=default=0                 UPDATE_RATIOS=$R
+make frame-profile-spread SPREAD_LABEL=step7-low   DRAW_GAINS=default=75.5,12-12=51.8   UPDATE_RATIOS=$R
+make frame-profile-spread SPREAD_LABEL=step7-high  DRAW_GAINS=default=86.6,12-12=51.8   UPDATE_RATIOS=$R
+make frame-profile-spread SPREAD_LABEL=step78-low  DRAW_GAINS=default=80.7,12-12=74.8   UPDATE_RATIOS=$R
+make frame-profile-spread SPREAD_LABEL=step78-high DRAW_GAINS=default=88.8,12-12=74.8   UPDATE_RATIOS=$R
+```
+
+**Ratios:** the calibration's mean ratio per child: `ui_update` (1.00 +
+0.92) / 2 = 0.96, `save_at_frame_end` 1.11 (its only ratio; "below" on
+`start`). `update_entities` is "below" on both runs and left out (ratio
+1), and so is C13's empty child (path `cart_update60` alone, share 100%).
+
+**Draw gains,** by the PRD's rule: a run's gain is the sum of the
+window bounds of step 7's candidates whose pixel risk is "identical" or
+"identical if/only …", over the run's window draw (`start` 465,
+`draw-5564` 19491, `draw-6000` 13987). The text group counts the larger
+of candidate 1 and 2 + 3 + 4; 2 includes the tooltip (421 on
+`draw-5564`); 4 includes the formatting (51, 41); 7 is dropped on both
+runs (its rows are paths 1, 3 and 5, covered by 2, 6 and 3); 9 counts its
+dispatch (144, 150); 11 counts its batched variant; 12 counts the dots,
+15 the particles (534 = 293 + 241 on `draw-5564`); 14 counts 0; "less a
+copy" is ignored. `start`'s tree has the map alone (candidate 5, 241).
+`step7+8` replaces candidate 1 by step 8's measured one-print delta and
+then combines the no-meter gain `m` as `1 − (1 − g)(1 − m)`.
+
+| Run | Text group (1 against 2+3+4) | Other candidates | `step7` | One-print (step 8) | Text group, `step7+8` | No-meter `m` | `step7+8` |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `start` | 0 (no text above 2%) | 241 (5) | 51.8% | 64 | 64 | 26.7% | 74.8% |
+| `draw-5564` | 9902 (2+3+4 > 7819) | 6974 (5 3319, 6 830, 8 924, 9 144, 10 207, 11 539, 12 351, 13 126, 15 534) | 86.6% | 8134 | 9902 (still 2+3+4) | 16.3% | 88.8% |
+| `draw-6000` | 1916 (2+3+4 > 1410) | 8639 (5 3354, 6 1212, 8 1230, 9 150, 10 183, 11 756, 12 907, 13 123, 15 724) | 75.5% | 1532 | 1916 (still 2+3+4) | 21.3% | 80.7% |
+
+Frame 12 gets `start`'s gain (`12-12=`); every other frame gets the
+smaller in-game gain (`-low`, giving `N_high`) or the larger (`-high`,
+giving `N_low`). Frame 12's own gain is the same in both halves of a
+bracket; its count still moves because the frames after it take the
+default gain. On the in-game runs step 8's one-print delta is smaller
+than candidates 2 + 3 + 4, so `step7+8` differs from `step7` by the meter
+alone; it reads optimistic by the meter's share of the calls the other
+levers remove (counted twice, step 12 settles it). All these gains are
+upper bounds, and step 8's estimated candidates are not in them.
+
+**The spreading estimate is optimistic:** the work is assumed divisible
+at any grain, with no cost to split it or to carry state between frames.
+`frames` counts the spike frame itself.
+
+Per class: work in hblanks (min / median / max, the same in every
+scenario) and frames (min / median / max over the frames that fit,
+`does-not-fit` count in brackets). `—` means no frame of the class fits.
+Bracketed scenarios read `N_high` (smaller gain) then `N_low` (larger
+gain).
+
+| Class | Work | `none` | `step7`, gain 75.5% | `step7`, gain 86.6% | `step7+8`, gain 80.7% | `step7+8`, gain 88.8% |
+|---|---|---|---|---|---|---|
+| C1 | 474 / 722.5 / 1195 | — (36) | 16 / 57.5 / 220 (4) | 7 / 12 / 22 (0) | 10 / 24.5 / 67 (0) | 7 / 10 / 20 (0) |
+| C2 | 321 / 392 / 518 | — (16) | 9 / 19 / 137 (6) | 4 / 6.5 / 14 (0) | 6 / 18 / 108 (0) | 4 / 5.5 / 9 (0) |
+| C3 | 355 / 445 / 532 | — (14) | 11 / 43 / 160 (3) | 5 / 6.5 / 12 (0) | 6 / 11.5 / 55 (0) | 4 / 5.5 / 8 (0) |
+| C4 | 189 / 245 / 377 | — (33) | 31 / 37 / 98 (0) | 2 / 6 / 22 (0) | 11 / 30 / 33 (0) | 2 / 5 / 11 (0) |
+| C5 | 397 / 498.5 / 535 | — (18) | 7 / 22 / 94 (0) | 4 / 5 / 8 (0) | 5 / 8.5 / 22 (0) | 4 / 5 / 7 (0) |
+| C6 | 8980 | — (1) | 285 (0) | 104 (0) | 162 (0) | 68 (0) |
+| C7 | 291 / 316 / 351 | — (13) | 7 / 9 / 47 (0) | 4 / 4 / 6 (0) | 5 / 6 / 7 (0) | 4 / 4 / 5 (0) |
+| C8 | 349 / 417 / 522 | — (8) | 26 / 55 / 174 (1) | 5 / 7 / 12 (0) | 11 / 26.5 / 54 (0) | 5 / 6 / 9 (0) |
+| C9 | 415 / 537 / 795 | — (4) | 21 / 45.5 / 69 (0) | 5 / 9 / 13 (0) | 13 / 19.5 / 53 (0) | 5 / 8 / 10 (0) |
+| C10 | 613 / 642 / 660 | — (3) | 58 (2) | 8 / 10 / 23 (0) | 25 / 36 / 46 (0) | 7 / 8 / 19 (0) |
+| C11 | 434 / 475 / 508 | — (3) | 14 / 18 / 24 (0) | 7 / 8 / 9 (0) | 10 / 13 / 13 (0) | 7 / 8 / 8 (0) |
+| C12 | 273 / 343 / 418 | — (5) | 17 / 69 / 98 (0) | 5 / 10 / 12 (0) | 10 / 15 / 19 (0) | 5 / 8 / 11 (0) |
+| C13 (PC, superseded below) | 623 / 639 / 744 | — (3) | 14 / 64 / 87 (0) | 6 / 7 / 9 (0) | 8 / 16 / 22 (0) | 5 / 6 / 8 (0) |
+| C14 | 376 / 414 / 452 | — (2) | 15 / 45.5 / 76 (0) | 5 / 5.5 / 6 (0) | 8 / 9.5 / 11 (0) | 5 / 5 / 5 (0) |
+| C15 | 405 / 446.5 / 488 | — (2) | — (2) | 9 (1) | 134 (1) | 7 / 9 / 11 (0) |
+| C16 | 347 / 360.5 / 374 | — (2) | 42 / 70 / 98 (0) | 6 / 7 / 8 (0) | 13 / 16.5 / 20 (0) | 5 / 5 / 5 (0) |
+| C17 | 631 | — (1) | — (1) | 9 (0) | 20 (0) | 8 (0) |
+| C18 | 424 | — (1) | 53 (0) | 7 (0) | 21 (0) | 6 (0) |
+| C19 | 194 | — (1) | 77 (0) | 25 (0) | 28 (0) | 24 (0) |
+| All | | 166 does-not-fit | 19 does-not-fit | 1 | 1 | 0 |
+
+- **With no draw lever, no spike frame fits** (166 of 166 does-not-fit).
+  Draw's median over the judge's frames is 717 hblanks, and no frame from
+  12 onward has room under 263 on its own, so nothing can be spread into
+  the frames that follow until draw shrinks. Step 8's two measured gains
+  alone (one-print and no-meter combined: 36.8% `start`, 51.2%
+  `draw-5564`, 30.0% `draw-6000`) are below the 64% threshold of the sweep
+  below, so they leave every spike frame does-not-fit too.
+- **C6 (frame 12)** uses the tool leaf's 106.4%, capped at 100%: work
+  8980. At the report's 96.2% (`entity_geom_nearest`) the work is 8639
+  and the counts drop to 273, 70, 156 and 64 (same columns).
+- **Does-not-fit under a lever:** `step7` at 75.5% leaves 19 frames (C1 4,
+  C2 6, C3 3, C8 1, C10 2, C15 2, C17 1); at 86.6% and at `step7+8` 80.7%
+  only frame 6043 (C15), 16 frames before the run's end, where the
+  end-of-game screen's draw (947–1235 a frame) leaves no room; at 88.8%
+  it fits in 11.
+
+Overlaps (spreads whose window holds another spike frame, so both cannot
+count the same room as free), `spike -> other spikes in its window`:
+
+- `step7+8`, gain 88.8% (13): 12->58, 91->113, 229->230, 456->461,
+  1165->1173, 1347->1349, 1684->1689, 2005->2006, 3050->3053, 3475->3476,
+  5098->5110, 5488->5500, 5719->5727.
+- `step7`, gain 86.6% (18): 12->58,91,113, 91->113, 229->230, 456->461,
+  1165->1173, 1347->1349, 1684->1689, 2005->2006, 2358->2365, 3050->3053,
+  3224->3231, 3475->3476, 4238->4250, 5077->5086, 5086->5098, 5098->5110,
+  5488->5500, 5719->5727.
+- `step7+8`, gain 80.7% (72 frames) and `step7`, gain 75.5% (92 frames):
+  the windows chain across most of the run (for example 5077 -> 5086,
+  5098, 5110 and 5422 -> 5470, 5488, 5500 at 80.7%; 2312 -> 2358 … 2434
+  and 5022 -> 5077 … 5168 at 75.5%); each frame's list is in
+  `tmp/frame-profile/spikes/spread-step78-low.txt` and
+  `spread-step7-low.txt`, reproduced by the commands above.
+
+Most overlaps are a save frame right after its event frame (C5/C7 frames
+27–29 frames after a wormhole, or the save following an event): spreading
+both draws on the same room, so the later frame's count reads low.
+
+**Addition beyond the PRD: the gain at which each class first fits.** The
+same tool, uniform gain `default=<g>` for `g` = 0 … 100 in steps of 1
+(frame 12 included), same ratios. First: the smallest gain at which one
+frame of the class fits; all: at which every frame fits.
+
+| Class | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C10 | C11 | C12 | C13 (PC) | C14 | C15 | C16 | C17 | C18 | C19 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| First | 67 | 66 | 65 | 64 | 65 | 72 | 66 | 66 | 66 | 70 | 66 | 65 | 67 | 66 | 76 | 68 | 77 | 68 | 65 |
+| All | 77 | 77 | 77 | 70 | 71 | 72 | 70 | 77 | 69 | 77 | 68 | 68 | 69 | 71 | 88 | 68 | 77 | 68 | 65 |
+
+Over all 166 frames: none fits below 64%, 7 fit at 65%, 141 at 70%,
+147 at 75%, 165 at 80%, and all 166 from 88% (frame 6043 last). Spreading
+is therefore conditional on draw losing about two thirds of its cost
+first; below that, only "do less" on the update side can bring a spike
+frame under 263.
+
+### Fallback: C13 on the full run
+
+C13 is `unsettled` (no child reaches 50% on PC), so the PRD's rule
+requires the fallback. One asserts-off full run on a throwaway patch,
+made in a temporary worktree of `94e6895` (the game is unchanged since
+`3fe4b8b`):
+
+```
+git apply tmp/plan20-update/u-fallback.patch
+make psx-full-game-check PSX_FULL_GAME_ASSERTS=off PSN00BSDK_DIR=<main tree>/third_party/psn00bsdk PSX_EMULATOR_DIR=<main tree>/third_party/pcsx-redux
+```
+
+Suspects: C13's path is `cart_update60` alone, so its suspects are
+`cart_update60`'s five children, timed by the calibration's span
+mechanism (fine clock unwrapped by the hblank counter; `clk8-per-64-hblanks`
+17170). The patch keeps a frame's record when its spans sum to 200
+hblanks or more and prints the records after the last frame, outside every
+frame. It is built into `psx-gpu-replay` only, without `PSX_PROBE`, so the
+GPU frame buffer keeps its shipped size.
+
+Conditions: 19 m 29 s. Eleven of the twelve conditions `ok`, among them
+`gpu-replay-done` and `gpu-state-game-lines` (game state the same as the
+PC); `frame-budget` failed, as on the judge run (6047 frames over 263,
+worst frame 12 at 9451). Against the judge table, the boot's update
+differs by −2 to +3 hblanks a frame (mean +0.38 over 6059 frames) and its
+draw by −3 to +3: the spans' overhead is within the timer's resolution.
+169 frames were recorded, 165 of the 166 spike frames among them (frame
+91, C19, sums to under 200 in `cart_update60`: 266 with the replay's input
+step).
+
+Per C13 frame, PSX hblanks per child (`frame_zone_reset` and
+`cart_flush_exit_queue` 0.05 and 0.06 on all three), the boot's update
+(judge in brackets) and the PC shares (K = 8 minimum) for comparison:
+
+| Frame | Update | `update_entities` | `ui_update` | `save_at_frame_end` | Outside the spans | PC `ui_update` / save | Responsible | Share of update |
+|---:|---:|---:|---:|---:|---:|---|---|---:|
+| 113 | 744 (744) | 121.21 | 239 | 374 | 9.68 | 47.9% / 44.5% | `save_at_frame_end` | 50.3% |
+| 825 | 639 (639) | 5.43 | 229 | 373 | 31.46 | 49.4% / 43.1% | `save_at_frame_end` | 58.4% |
+| 901 | 622 (623) | 6.55 | 231 | 372 | 12.34 | 48.0% / 48.0% | `save_at_frame_end` | 59.8% |
+
+**C13 is settled: `save_at_frame_end` (`src/game/cart.c:312`) holds
+50.3–59.8% of update on the PSX, measured on the full run, confidence
+high.** The event branch under `ui_update` (a project on 113, a year skip
+on 825, an invention on 901) holds 32.1–37.1%. On PC the two halves read
+about equal; the PSX gives the save the larger part. Its do-less
+candidates are U4 (the bitwise CRC) and U5 (the save one frame later),
+both already listed with C13's figures.
+
+C13's spread with the measured share (work 374, 373, 373; spikes file
+with C13's path set to `cart_update60/save_at_frame_end` and its measured
+shares, no ratio applied, same gains):
+
+| Class | Work | `none` | `step7`, 75.5% | `step7`, 86.6% | `step7+8`, 80.7% | `step7+8`, 88.8% | First / all fit (sweep) |
+|---|---|---|---|---|---|---|---|
+| C13 (measured) | 373 / 373 / 374 | — (3) | 9 / 58 / 82 (0) | 5 / 6 / 7 (0) | 6 / 12 / 13 (0) | 4 / 5 / 6 (0) | 66 / 68 |
+
+Overlaps: at 75.5%, 113's spread covers 145 and 159, and 901's covers 951
+and 978; none at the other gains.
+
+**Addition beyond the PRD: the calibration over every spike frame.** The
+same run times the five children on 165 spike frames, so the calibration
+ratio can be read per class, not only on frames 12 and 5500. ρ per frame
+is PSX share ÷ PC share, both against `cart_update60` itself (the spans'
+sum; the PC's K = 8 minimum), "below" when both are under 2%; min /
+median / max over the class's frames, with the PSX's median shares:
+
+| Class | Frames | ρ `ui_update` | ρ `save_at_frame_end` | PSX `ui_update` | PSX save |
+|---|---:|---|---|---:|---:|
+| C1 | 36 | 0.82 / 0.92 / 0.96 | 1.17 / 1.25 / 1.43 | 64.3% | 35.2% |
+| C2 | 16 | 0.70 / 0.82 / 0.98 | 1.16 / 1.28 / 1.37 | 44.4% | 54.8% |
+| C3 | 14 | 0.78 / 0.84 / 0.90 | 1.14 / 1.24 / 1.57 | 46.4% | 52.8% |
+| C4 | 33 | 1.00 / 1.01 / 1.02 | below | 97.7% | 0.0% |
+| C5 | 18 | 0.46 / 0.54 / 0.92 | 0.93 / 0.97 / 1.12 | 3.8% | 79.8% |
+| C6 | 1 | 1.00 | below | 100.0% | 0.0% |
+| C7 | 13 | 0.44 / 0.48 / 0.54 | 0.93 / 0.95 / 1.00 | 4.0% | 75.3% |
+| C8 | 8 | 0.81 / 0.87 / 0.90 | 1.17 / 1.21 / 1.27 | 47.0% | 52.1% |
+| C9 | 4 | 0.85 / 0.91 / 0.92 | 1.19 / 1.22 / 1.30 | 64.0% | 35.4% |
+| C10 | 3 | 0.87 / 0.88 / 0.89 | 1.26 / 1.27 / 1.29 | 57.5% | 41.9% |
+| C11 | 3 | 0.81 / 0.82 / 0.88 | 1.35 / 1.38 / 1.38 | 52.9% | 46.3% |
+| C12 | 5 | 0.77 / 0.83 / 0.93 | 1.35 | 74.4% | 0.0% |
+| C13 | 3 | 0.68 / 0.76 / 0.79 | 1.14 / 1.27 / 1.42 | 37.7% | 61.0% |
+| C14 | 2 | 0.80 / 0.86 / 0.92 | 1.13 / 1.21 / 1.30 | 49.3% | 49.9% |
+| C15 | 2 | 0.88 / 0.94 / 1.01 | 1.17 | 73.3% | 25.5% |
+| C16 | 2 | 0.78 / 0.81 / 0.84 | 1.25 / 1.27 / 1.30 | 45.9% | 53.1% |
+| C17 | 1 | 0.89 | 1.21 | 55.3% | 44.0% |
+| C18 | 1 | 0.88 | 1.17 | 47.2% | 51.9% |
+
+- On frames that hold an event and the save, the PC overstates the event
+  (ρ `ui_update` 0.76–0.94 by class median) and understates the save
+  (ρ 1.17–1.38). The calibration's two frames (12 with no save, 5500 at
+  0.92 / 1.11) read inside 0.85–1.15 and gave every class "high"; over all
+  spike frames the save's ratio is outside it, which would make those
+  classes "medium".
+- Where the event branch and the save are near half each, the PSX gives
+  the majority to the save: C2, C3, C8, C16 and C18 (median save 51.9–54.8%),
+  C14 at an even split. By the PRD's rule these classes are settled (high
+  label) and keep their PC paths; on the PSX their responsible
+  `cart_update60` child is the save, as for C13. Their spread work changes
+  little (the event branch and the save are each about half), but a
+  do-less ranking should read U4 and U5 as at least as heavy as the event
+  branch on them. Step 12 decides; step 10 can use these per-class ratios
+  in place of the two-frame ones.
+- On save-only frames (C5, C7) the save's ratio is 0.95–0.97, and
+  `ui_update` (4% of update) reads half its PC share, a small node.
+- Wormhole (C4) and game start (C6) are exact: ρ 1.00–1.02.
+
+### Verification
+
+| Step 9 "verified when" | Where | Result |
+|---|---|---|
+| Calibration gap recorded | "Calibration on update code" | per child and run: PSX hblanks, shares, ρ (`ui_update` 1.00 and 0.92, `save_at_frame_end` 1.11), gap in points (−5.5 to +3.2); overhead +2 / +1; PSX hblanks per PC µs 1.127 / 2.144; hand-off line for step 10; plus the per-class ratios over 165 spike frames above (addition) |
+| Every spike frame in a class | "Classification" | 166 frames (judge update > 263), 42 over 1000, each in exactly one of 19 classes (list per class); none open, none unresolvable; C13 unsettled on PC, settled by the full run |
+| Per class: responsible function, share with confidence | class table | 18 classes from PC with calibrated interval and label (17 high; C19 uncalibrated but settled; C6 read one level up); C13 measured on the full run (50.3–59.8%, high) |
+| Per class: do-less candidate | "Do-less candidates" | U1–U8 cover every class; every class also has the spread candidate |
+| Per class: frames if spread under 263 after draw's estimated levers | "Spreading" | every class does-not-fit with no lever; per-class counts under `step7` and `step7+8` below |
+| Fallback | "Fallback: C13 on the full run" | one asserts-off full run (the step's only one), game state same, C13 settled |
+
+Spread count per class, the median frame count of each bracket
+(`N_low` at the larger in-game gain – `N_high` at the smaller), with the
+does-not-fit frames in brackets; with no draw lever every class is
+does-not-fit:
+
+| Class | Responsible function | Share (confidence) | Candidates | `step7` | `step7+8` |
+|---|---|---|---|---|---|
+| C1 | `slipway_drop` | 54.5%, high | U1, U2, U4, U5, spread | 12 – 57.5 (4) | 10 – 24.5 |
+| C2 | `ui_update` | 49.6–53.9%, high | U2, U4, U5, spread | 6.5 – 19 (6) | 5.5 – 18 |
+| C3 | `ui_handle_button` | 49.6–53.9%, high | U2, U4, U5, spread | 6.5 – 43 (3) | 5.5 – 11.5 |
+| C4 | `economy_recompute` (wormhole) | 70.5–76.6%, high | U2, U3, spread | 6 – 37 | 5 – 30 |
+| C5 | `save_at_frame_end` | 91.1%, high | U4, spread | 5 – 22 | 5 – 8.5 |
+| C6 | `entity_geom_nearest` | 96.2%, high | U6, U7 | 104 – 285 | 68 – 162 |
+| C7 | `save_state_encode` | 60.1%, high | U4, spread | 4 – 9 | 4 – 6 |
+| C8 | `ui_send_to_hovered` | 47.6–51.7%, high | U2, U4, U5, spread | 7 – 55 (1) | 6 – 26.5 |
+| C9 | `economy_advance_clock` (project) | 57.7–62.7%, high | U2, U4, U5, spread | 9 – 45.5 | 8 – 19.5 |
+| C10 | `planet_apply_project` | 55.0–59.8%, high | U2, U4, U5, spread | 10 – 58 (2) | 8 – 36 |
+| C11 | `slipway_drop_method` | 48.8–53.0%, high | U1, U2, U4, U5, spread | 8 – 18 | 8 – 13 |
+| C12 | `economy_recompute` (project) | 73.5–79.9%, high | U2, U5, spread | 10 – 69 | 8 – 15 |
+| C13 | `save_at_frame_end` (measured) | 50.3–59.8%, high (measured) | U4, U5, U2 (event branch), spread | 6 – 58 | 5 – 12 |
+| C14 | `button_left_press_method` | 48.3–52.5%, high | U2, U4, U5, spread | 5.5 – 45.5 | 5 – 9.5 |
+| C15 | `economy_recompute` (year skip) | 62.7–68.2%, high | U2, U4, U5, spread | 9 (1) – none fits (2) | 9 – 134 (1) |
+| C16 | `button_left_press` | 48.3–52.5%, high | U2, U4, U5, spread | 7 – 70 | 5 – 16.5 |
+| C17 | `economy_recompute` (structure) | 53.5–58.1%, high | U2, U4, U5, spread | 9 – none fits (1) | 8 – 20 |
+| C18 | `economy_new_year` | 46.2–50.2%, high | U2, U4, U5, spread | 7 – 53 | 6 – 21 |
+| C19 | `update_entities` | 72.6%, uncalibrated | U8 (spread) | 25 – 77 | 24 – 28 |
+
+The one frame left does-not-fit under the larger gains (6043, C15) is 16
+frames from the run's end; that is the run's end, not the class.
+
+### Patches (update spikes)
+
+Both written by hand into `tmp/plan20-update/` (git-ignored), used once
+and discarded; neither is committed:
+
+| Patch | Base | Use | Change |
+|---|---|---|---|
+| `u-calibrate.patch` | `3fe4b8b` | probe `u-calibrate`, `start` and `update-5500` | see "Calibration on update code" |
+| `u-fallback.patch` | `94e6895` | one `psx-full-game-check PSX_FULL_GAME_ASSERTS=off`, temporary worktree | `psx/CMakeLists.txt`: `PSX_UPDATE_SPANS` and `platform/psx_update_spans.c` + `psx_fine_clock.c` on `psx-gpu-replay` only; `src/game/cart.c`: the five statements of `cart_update60` in `SPAN(i, …)`; new `src/platform/psx_update_spans.[ch]`: the calibration's spans, records of frames whose spans sum to 200 hblanks or more (512 max), `probe-update:` lines after the last frame; `src/cmd/psx_gpu_replay.c`: start after the frame timer, close a frame after `frame_times_record`, write before the done line |

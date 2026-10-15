@@ -38,7 +38,7 @@
     - [x] Chunk 3: spikes mode and frame-profile-spikes target
     - [x] Chunk 4: spread mode and frame-profile-spread target
     - [x] Chunk 5: classification
-    - [ ] Chunk 6: spreading and fallback
+    - [x] Chunk 6: spreading and fallback
   - [ ] 3.10 Ordinary update: calibration and children costs
 - [ ] Phase 4 — Global levers
   - [ ] 4.11 Asserts, -O2/-O3/-Os, submit
