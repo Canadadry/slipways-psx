@@ -23,6 +23,7 @@
     - [x] Chunk 0 — before-figures
     - [x] Chunk 1 — p8_map loops over visible cells only
   - [ ] Step 2.7 — end of phase full-game check
+    - [x] Judge run, table replaced
 - [ ] Phase 3 — Draw, in impact order
   - [ ] Step 3.8 — D5 pre-built background and the image cache
   - [ ] Step 3.9 — D1/B4 outlined font, one primitive per glyph
