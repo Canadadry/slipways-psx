@@ -39,6 +39,38 @@ static int font_texel(int u, int v) {
     return (unit >> (4 * (u % 4))) & 0x0F;
 }
 
+static int glyph_lit_at(const unsigned char *rows, int column, int row) {
+    if (column < 0 || column >= P8_FONT_GLYPH_WIDTH || row < 0 || row >= P8_FONT_GLYPH_HEIGHT) {
+        return 0;
+    }
+    return (rows[row] >> (P8_FONT_GLYPH_WIDTH - 1 - column)) & 1;
+}
+
+/* The outlined cell, one texel wider on every side: 1 lit, 2 an unlit texel with a lit 8-neighbour. */
+static void expect_outlined_cells(void) {
+    for (int code = 0; code < 256; code++) {
+        psx_gpu_textures_texel_t cell = psx_gpu_textures_outlined_font_cell((char)code);
+        assert(cell.u >= 0 && cell.u + P8_FONT_GLYPH_WIDTH + 2 <= PSX_GPU_TEXTURES_FONT_SIZE);
+        assert(cell.v >= 0 && cell.v + P8_FONT_GLYPH_HEIGHT + 2 <= PSX_GPU_TEXTURES_FONT_SIZE);
+        const unsigned char *rows = p8_font_glyph_rows((char)code);
+        for (int row = -1; row <= P8_FONT_GLYPH_HEIGHT; row++) {
+            for (int column = -1; column <= P8_FONT_GLYPH_WIDTH; column++) {
+                int texel = glyph_lit_at(rows, column, row);
+                for (int dy = -1; dy <= 1 && texel == 0; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (glyph_lit_at(rows, column + dx, row + dy)) {
+                            texel = 2;
+                        }
+                    }
+                }
+                unsigned char *expected = &expected_texels[cell.v + 1 + row][cell.u + 1 + column];
+                assert(*expected == 0 && "two cells overlap");
+                *expected = (unsigned char)texel;
+            }
+        }
+    }
+}
+
 static void test_each_character_cell_holds_its_glyph_and_nothing_else_is_lit(void) {
     memset(font, 0xFF, sizeof font);
     psx_gpu_textures_font(font);
@@ -55,6 +87,7 @@ static void test_each_character_cell_holds_its_glyph_and_nothing_else_is_lit(voi
             }
         }
     }
+    expect_outlined_cells();
     for (int v = 0; v < PSX_GPU_TEXTURES_FONT_SIZE; v++) {
         for (int u = 0; u < PSX_GPU_TEXTURES_FONT_SIZE; u++) {
             assert(font_texel(u, v) == expected_texels[v][u]);
@@ -70,14 +103,15 @@ static void test_a_cell_is_found_by_its_character_code_signed_or_not(void) {
     assert(high.u != other.u || high.v != other.v);
 }
 
-static void test_a_font_clut_lights_texel_one_in_its_colour(void) {
+static void test_a_font_clut_lights_texel_one_in_its_colour_and_outlines_texel_two_in_black(void) {
     for (int colour = 0; colour < 16; colour++) {
         uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES];
         memset(clut, 0xFF, sizeof clut);
         psx_gpu_textures_font_clut(colour, clut);
         assert(clut[0] == 0x0000 && "a clear texel is transparent");
         assert(clut[1] == psx_colour_rgb555(colour));
-        for (int i = 2; i < PSX_GPU_TEXTURES_CLUT_ENTRIES; i++) {
+        assert(clut[2] == psx_colour_rgb555(0) && "an outline is the pixel a colour-0 print writes");
+        for (int i = 3; i < PSX_GPU_TEXTURES_CLUT_ENTRIES; i++) {
             assert(clut[i] == 0x0000);
         }
     }
@@ -149,7 +183,7 @@ int main(void) {
     test_each_entry_follows_its_draw_palette_byte();
     test_each_character_cell_holds_its_glyph_and_nothing_else_is_lit();
     test_a_cell_is_found_by_its_character_code_signed_or_not();
-    test_a_font_clut_lights_texel_one_in_its_colour();
+    test_a_font_clut_lights_texel_one_in_its_colour_and_outlines_texel_two_in_black();
     test_a_pattern_tile_holds_the_software_bit_at_each_world_phase();
     test_a_pattern_clut_maps_clear_bits_to_the_low_nibble_and_set_ones_to_the_high();
     test_a_transparent_pattern_clut_skips_set_bits();

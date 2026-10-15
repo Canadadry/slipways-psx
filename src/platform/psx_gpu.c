@@ -377,15 +377,10 @@ static void gpu_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str,
     psx_text_place(gfx, str, x, y, add_glyph, &clut);
 }
 
-/* TODO: one outlined sprite per glyph (step 9 chunk 2). Until then nine passes emit nine times
- * p8_draw_cost_print_outlined's bound, so nothing may call it on the GPU. */
 static void gpu_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
-    for (int dy = -1; dy <= 1; dy++) {
-        for (int dx = -1; dx <= 1; dx++) {
-            if (dx != 0 || dy != 0) gpu_print(gfx, mem, str, x + dx, y + dy, 0);
-        }
-    }
-    gpu_print(gfx, mem, str, x, y, col);
+    (void)mem;
+    psx_vram_rect_t clut = psx_vram_layout_font_clut(col & 0x0F);
+    psx_text_place_outlined(gfx, str, x, y, add_glyph, &clut);
 }
 
 /* While on, every pixel drawn gets the mask bit: an untextured black is then 0x8000, which the copy

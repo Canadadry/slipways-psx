@@ -317,12 +317,17 @@ point, no `malloc`):
   frame; `print` is one `SPRT` per glyph with a lit texel that shows, walked
   as the software walks the string, after the camera and clipped to the
   screen (`src/platform/psx_text.c`, host-tested pixel for pixel by
-  `test_psx_text`), from the font texture `psx_gpu_init` uploads once: the
-  256 character codes' glyphs from `p8_font_glyph_rows`, each in a 4x6 cell
-  (texel 1 lit), and the 16 font CLUTs (entry 1 the colour, every other
-  entry transparent), built by `psx_gpu_textures_font` and
-  `psx_gpu_textures_font_clut` (host-tested by `test_psx_gpu_textures`);
-  the CLUT is the font line of `col & 0x0F`; a patterned `rectfill` box or
+  `test_psx_text`), and `print_outlined` is one 5x7 `SPRT` per such glyph,
+  placed one pixel up and left of it, from the outlined font; both fonts
+  are in the one font texture `psx_gpu_init` uploads once: the 256
+  character codes' glyphs from `p8_font_glyph_rows`, each in a 4x6 cell
+  (texel 1 lit) on lines 0..47, then each again in a 5x7 outlined cell
+  (texel 1 lit, texel 2 an unlit texel with a lit 8-neighbour) on lines
+  48..124; and the 16 font CLUTs (entry 1 the colour, entry 2 the black a
+  colour-0 `print` writes, every other entry transparent), built by
+  `psx_gpu_textures_font` and `psx_gpu_textures_font_clut` (host-tested by
+  `test_psx_gpu_textures`); the CLUT is the font line of `col & 0x0F`; a
+  patterned `rectfill` box or
   `circfill` span is a raw-textured `SPRT` whose (u, v) is its top-left
   pixel's world coordinates mod 8, under a texture window repeating its
   pattern slot's 8x8 tile (`src/platform/psx_pattern.c`, host-tested pixel
