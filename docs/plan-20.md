@@ -201,13 +201,16 @@ because this plan file is deleted once it is finished.
 
 ### Phase 3 — Update
 
-9. Identify the four spikes on PC (frames 12, 4737, 5500, 5719 of
-   `full_game.json`): which `cart_update60` descendant holds the time, and
-   why it runs then. If PC cannot settle it, fall back to the full run.
-   Verified when the report names, for each spike, the responsible function
-   and its share of that frame's update. Also given: a do-less candidate,
-   and the number of frames it would take if spread out under 263 after
-   draw's estimated levers.
+9. Identify the update spikes on PC: every full-run frame whose update
+   alone exceeds 263 hblanks (166 frames in the step 1.5 judge table, 42 of
+   them over 1000), not only the named frames 12, 4737, 5500 and 5719. The
+   PC frame profile groups them by responsible `cart_update60` descendant
+   into a few classes, and says why each runs then. If PC cannot settle a
+   class, fall back to the full run. Verified when the report lists every
+   such frame in a class and gives, per class, the responsible function and
+   its share of update. Also given: a do-less candidate, and the number of
+   frames it would take if spread out under 263 after draw's estimated
+   levers.
 10. Ordinary update. First, a calibration: compare the PC time proportions
     of `cart_draw`'s children with their PSX costs from step 6, and record
     the gap. A large gap marks the PC-derived update costs as low-confidence,
@@ -238,8 +241,8 @@ because this plan file is deleted once it is finished.
       named (for example, removing the 9× print also shrinks the meter's
       share). Each lever's short-run delta is carried over as a relative
       gain on its part (draw, update or submit), since the short runs read
-      low in absolute terms; frames 12, 4737, 5500 and 5719 use step 9's
-      spike figures and spreading estimates instead;
+      low in absolute terms; every frame in a step 9 spike class uses its
+      class's figures and spreading estimate instead;
     - the spikes and their spreading estimates;
     - which stop condition ended discovery.
 
@@ -332,3 +335,31 @@ submit 107. `rect` sporadic (title frames 0–11), `circ` below. The manifest
 now has six runs, so the probe baseline must be rebuilt before step 6.
 PC shares: `draw_layers#1` holds 91.7% of `cart_draw` on average,
 `draw_layers#2` 6.8%; `ui_update` holds 69.3% of `cart_update60`.
+
+### Step 1.5
+
+`make psx-full-game-check PSX_FULL_GAME_ASSERTS=on|off` (default `on`;
+`off` drops asserts from the measured GPU replays only, and `psx-build` now
+passes the option on every configure). One asserts-off full run on
+`7eb512f`, 19 min: every condition ok but `frame-budget`. 6,047 of 6,059
+frames over 263 hblanks, mean 857 (891 with asserts on), draw 87.6% of the
+over-budget time, worst frame 12 at 9,451 (update 8,980). Spikes 4737, 5500
+and 5719 at 2,624, 2,503 and 2,566. The resumed short runs keep the 5500
+spike but lose 4737 and 5719. Report section "Full-run baseline (asserts
+off)". Frame table in `docs/psx-perf-levers-full-run-frames.txt`, not
+inlined (6,060 lines); it goes when the report goes.
+Plan change (plan-review after phase 1): the judge table holds 166 frames
+with update alone over 263, 42 of them over 1000, which neither the four
+named spikes nor step 10's 2% mean threshold would cover. Step 9 now
+classifies every such frame, and step 12 applies the class figures to each.
+End-of-phase warn-review (phase 1 tooling), not acted on, judged harmless to
+the remaining steps:
+- duplicated replay setup in `src/cmd/frame_profile.c`, with its symbol
+  reader and report writers kept in `cmd/`;
+- the PSX cmake configure block pasted three times, the on|off check
+  repeated per target, and the `-Wno-error` list held in both the Makefile
+  and `psx/CMakeLists.txt`;
+- `draw-5564` and the 15-frame window hard-coded in the breakdown check;
+- `CALL_PROFILE_FRAME_CAP` sized by hand;
+- probe patches pinned to line numbers;
+- the throwaway delay patch making `cart.c` include `platform/psx_probe.h`.

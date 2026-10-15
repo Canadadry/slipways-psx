@@ -1,4 +1,4 @@
-- [ ] Phase 1 — Harness
+- [x] Phase 1 — Harness
   - [x] 1.1 Delete plan 11's leftover PRD from docs/prd/triage/
   - [x] 1.2 Asserts-off option for psx-short-runs, baseline recorded
     - [x] Chunk 1: analysis script — window sums and asserts condition
@@ -13,7 +13,7 @@
     - [x] Chunk 2: frame_profile binary
     - [x] Chunk 3: breakdown and coverage check script
     - [x] Chunk 4: draw-5564 breakdown check, full-run coverage, report
-  - [ ] 1.5 Milestone: asserts-off full-game run as the judge's baseline
+  - [x] 1.5 Milestone: asserts-off full-game run as the judge's baseline
     - [x] Chunk 1: PSX_FULL_GAME_ASSERTS option
     - [x] Chunk 2: asserts-off full run and report section
 - [ ] Phase 2 — Draw
