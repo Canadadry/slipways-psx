@@ -3,8 +3,9 @@
 This file will become plan 20's ranked inventory of the ways to make each PSX
 frame do less work. For now it holds the baseline every lever is
 measured against, the judge's asserts-off full-run baseline, the probe
-tool's sanity checks, the PC frame profile's draw coverage and the split of
-`cart_draw` among its direct children ("Draw level 1"). The full-run
+tool's sanity checks, the PC frame profile's draw coverage, the split of
+`cart_draw` among its direct children ("Draw level 1") and the draw tree
+below them ("Draw tree"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
@@ -689,3 +690,333 @@ and from `draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY)` on `draw-5564` only.
 `dispatch_context_gfx` and `demo_overlay_draw` are closed everywhere. On
 `start`, `draw_layers#1` is the help screen's draw, so step 7 keeps the fixed
 delay below it wherever a call-twice would tick the RNG.
+
+## Draw tree
+
+Plan 20 step 7: below `cart_draw`'s level-1 branches, every node above 2%
+of the run's mean window frame is opened one level deeper, down to a leaf
+or a node under 2%. This section holds level 2 (the children of
+`draw_layers#1` and `draw_layers#2`); levels 3 and below follow.
+
+Measured on commit `93c106491d24e07a079032bfe2e0f6e19159c513` (pcsx-redux,
+probe build, asserts off) with:
+
+```
+make psx-probe-baseline
+make frame-profile-subtree ROOT=draw_layers PSX_SHORT_RUNS="start draw-5564 draw-6000"
+make psx-probe PATCH=tmp/plan20-draw-tree/<probe>.patch PSX_SHORT_RUNS="<runs>" PSX_PROBE_LABEL=l2-<probe>
+```
+
+Method, per node opened on a run:
+
+- **Map.** `make frame-profile-subtree ROOT=<function>` lists the node's
+  children (direct and function-pointer calls, by call site) with their PC
+  calls per window frame and their median PC share of the root (K = 4).
+  The map never closes a branch.
+- **Call-twice** (default): a method reached only through `draw_layers` is
+  doubled in its own file (body renamed `<method>_once`, the method calls
+  it twice: *wrapper*); a direct call is duplicated at its call site
+  (*site*). The node's cost is the window draw delta. An update delta
+  beyond max(2% of the draw delta, 2 hblanks) is marked **leak**.
+- **Fixed delay + PC share** where a second call is not clean: the
+  help screen (RNG tick), bookkeeping (list adds, frame-zone allocations,
+  `apply_camera`), and methods whose second call spawns or ages dots and
+  particles (it changes what later frames draw). `psx_probe_delay(d)` at the
+  method's entry or the call site, d = clamp(⌊200 ÷ PC calls per window
+  frame⌋, 1, 20), gives the PSX call count; the cost is the node's PC share
+  of its parent times the parent's PSX cost, marked **PC-derived**.
+- **Groups.** Children estimated under 2% by PC (PC share × parent's PSX
+  cost) are doubled together in one patch. A group delta under 2% closes
+  every member at "≤ group delta"; a group at or above 2% is split in two
+  by PC estimate until each piece is under 2% or one function. PC only
+  chooses the groups.
+- **Leaves:** a PICO-8 runtime call (`p8_` prefix), or a game function with
+  no instrumented child. **Self** = node cost − Σ measured children, a
+  difference, flagged when above 2%.
+
+Pre-checks (step 6's hypotheses H-6-1 to H-6-9), all held: "Draw level 1"
+is committed with its hand-off table and is the last section; the manifest
+still has six runs and step 6 probed `start`, `draw-5564`, `draw-6000`; the
+branches above 2% are `draw_layers#1` on the three runs and
+`draw_layers#2` on `draw-5564` only; `draw_layers#1` on `start` is
+PC-derived (463 a frame); step 6's additivity held within 10% on every run,
+no open item; `psx/probes/` holds only the three sanity fixtures. Since
+step 6's probes (`2458bad`), the only commits under `src/` are
+`e97bb51` (`src/cmd/frame_profile.c`, `src/devtools/call_profile.h`, PC
+profile tooling, not compiled into the PSX build) and `93c1064` (nothing
+under `src/` or `psx/`): `src/` has the same tree id at both, so the
+baseline below, built at `e97bb51`, carries `HEAD`'s fingerprint.
+
+### Rebuilt probe baseline
+
+Window sums in hblanks, every boot `valid` and `game-state same`; text is
+the probe build's ELF text size.
+
+| Run | Update | Draw | Submit | Total | Text | Step 6 total | Gap | Mean window frame | 2% of it |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `start` | 8980 | 465 | 6 | 9451 | 319192 | 9451 | 0 | 9451 | 189.0 |
+| `update-4737` | 118 | 706 | 8 | 832 | 322128 | 832 | 0 | 832 | 16.6 |
+| `update-5500` | 1409 | 714 | 7 | 2130 | 322308 | 2130 | 0 | 2130 | 42.6 |
+| `draw-5564` | 655 | 19491 | 118 | 20264 | 322796 | 20264 | 0 | 1351 | 27.0 |
+| `update-5719` | 46 | 1078 | 7 | 1131 | 322972 | 1131 | 0 | 1131 | 22.6 |
+| `draw-6000` | 593 | 13987 | 107 | 14687 | 324024 | 14687 | 0 | 979 | 19.6 |
+
+Every part equals step 6's baseline exactly. Over the 15-frame windows the
+2% threshold is 405 hblanks on `draw-5564` and 294 on `draw-6000`.
+
+### Map of `draw_layers` (PC)
+
+`draw_layers` is one function called twice a frame; the subtree root sums
+both calls, so the profile's shares are of `draw_layers#1` + `#2`. A draw
+method runs only under `#1`, an overlay method only under `#2`. The
+compiler split the dispatch loop by message, so `entity_has` and
+`entity_pos` show one call site per pass (`#1` draw, `#2` overlay);
+`entity_list_add`, `p8_fixed_flr_int`, `frame_zone` and `entity_list_init`
+are shared and split by call count (the bucket sizes; 15 each for the two
+init calls). Share of `#1` = share of the root ÷ `#1`'s share of
+`#1` + `#2` (step 6's coverage medians: 99.84% `start`, 75.42%
+`draw-5564`, 99.23% `draw-6000`). Calls per window frame, min–max.
+
+| Child | Pass | `start` calls | `start` share of root | `draw-5564` calls | `draw-5564` share | `draw-6000` calls | `draw-6000` share |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `background_draw_method` | #1 | 1 | 64.6% | 1 | 31.2% | 1 | 40.5% |
+| `planet_draw_method` | #1 | 90 | 17.0% | 70 | 9.0% | 72 | 16.3% |
+| `score_panel_draw_method` | #1 | 1 | 9.8% | 1 | 4.7% | 1 | 6.3% |
+| `button_draw_method` | #1 | 4 | 2.5% | 11 | 14.6% | 4–6 | 4.3% |
+| `slipway_draw_method` | #1 | — | — | 38 | 8.7% | 40 | 17.7% |
+| `ascension_draw_method` | #1 | — | — | 3 | 2.6% | 4 | 5.9% |
+| `emitter_update_method` | #1 | — | — | 1 | 0.8% | 1 | 1.6% |
+| `structure_icon_draw_method` | #1 | 7 | 0.4% | 7 | 0.4% | 7 | 0.7% |
+| `camera_apply_method` | #1 | 5 | 0.1% | 7 | 0.1% | 7–8 | 0.1% |
+| `game_data_fixed_seq_at` | #1 | 5 | 0.0% | 7 | 0.0% | 7–8 | 0.0% |
+| `entity_has#1`, `entity_pos#1` | #1 | 103 | 0.9% | 132 | 0.7% | 130–132 | 0.9% |
+| `message_box_draw_overlay_method` | #2 | — | — | 1 | 21.3% | — | — |
+| `button_draw_overlay_method` | #2 | 4 | 0.0% | 11 | 1.8% | 4–6 | 0.0% |
+| `slipway_draw_overlay_method` | #2 | — | — | 38 | 0.3% | 40 | 0.4% |
+| `targeting_tooltip_method` | #2 | — | — | 11 | 0.1% | 14 | 0.1% |
+| `ui_draw_overlay_method` | #2 | 1 | 0.0% | 1 | 0.0% | 1 | 0.0% |
+| `entity_has#2`, `entity_pos#2` | #2 | 5 | 0.1% | 62 | 0.4% | 59–61 | 0.5% |
+| `entity_list_add`, `p8_fixed_flr_int` | both | 108 | 1.1% | 194 | 1.0% | 189–193 | 1.3% |
+| `frame_zone`, `entity_list_init` | both | 30 | 0.3% | 30 | 0.1% | 30 | 0.2% |
+| `entities_by_message` (#1, #2) | both | 1 + 1 | 0.0% | 1 + 1 | 0.0% | 1 + 1 | 0.0% |
+| self | both | | 2.7% | | 2.6% | | 3.3% |
+
+`help_screen_draw_method` is not called on `start`'s window frame (12): the
+help screen draws on run frames 0–11 only. No level-2 child on `start`
+runs it, and every wrapper probe there doubles its method over the whole
+run with `game-state same`, so step 1.3's RNG exclusion applied to no
+level-2 node.
+
+### Probes run (level 2)
+
+Every probe `valid` on every run, every game state `same`. Deltas are
+window sums over the probe baseline. A delay probe's "PSX calls / frame" is
+the tool's window figure (delta ÷ d ÷ frames).
+
+| Probe | Run | Draw delta | Update | Submit | Text | Delay check |
+|---|---|---:|---:|---:|---:|---|
+| `background-draw-method-twice` | `start` / `draw-5564` / `draw-6000` | +251 / +3463 / +3503 | 0 / +1 / +5 | 0 / −3 / 0 | +36 | |
+| `planet-draw-method-twice` | same | +93 / +2203 / +3049 | 0 / +5 / +6 | 0 / −2 / +1 | +68 | |
+| `score-panel-draw-method-twice` | same | +84 / +1303 / +1296 | 0 / −2 / +4 | 0 / −1 / −1 | +32 | |
+| `button-draw-method-twice` | same | +12 / +4603 / +897 | +1 / +1 / 0 | 0 / −2 / −1 | +68 | |
+| `group-draw-layers-1-1` | same | +6 / +179 / +217 | +1 / +2 / +3 | 0 / −2 / +1 | +328 | |
+| `slipway-draw-method-twice` | `draw-5564` / `draw-6000` | +2422 / +2668 (not used) | +2 / 0 | −1 / +1 | +40 | |
+| `slipway-draw-method-delay` (d 5) | same | +2869 / +3020 | +2 / +3 | 0 / +1 | +460 | 38.28 / 40.32 a frame (PC 38 / 40); run +0.7% vs counted calls |
+| `ascension-draw-method-twice` | same | +1418 / +860 (not used) | +2 / +3 | −2 / +2 | +164 | |
+| `ascension-draw-method-delay` (d 20) | same | +899 / +1200 | +1 / +3 | +1 / 0 | +460 | 3.00 / 4.01 (PC 3 / 4); +0.2% |
+| `emitter-update-method-delay` (d 20) | same | +299 / +302 | +2 / +2 | −1 / −2 | +460 | 1.00 / 1.01 (PC 1 / 1); ≤ +0.1% |
+| `entity-list-add-1-delay` (d 1) | same | +2049 / +2043 | +5 / +3 | −3 / 0 | +476 | 136.73 / 136.40 (PC 132 / 130–132); +3.5% / +3.6% |
+| `entity-list-init-frame-zone-1-delay` (d 13) | same | +2931 / +2932 | +6 / +4 | 0 / −1 | +500 | 15.06 / 15.05 (PC 15 / 15); +0.3% |
+| `camera-apply-method-delay` (d 20) | same | +2106 / +2342 | +2 / +3 | −3 / +3 | +476 | 7.02 / 7.83 (PC 7 / 7–8); +0.2% |
+| `message-box-draw-overlay-method-twice` | `draw-5564` | +4016 | +2 | 0 | +40 | |
+| `group-draw-layers-2-1` | `draw-5564` | +564 (≥ 405: split) | +8 | −1 | +484 | |
+| `button-draw-overlay-method-twice` | `draw-5564` | +428 | +9 **leak** | −1 | +32 | |
+| `group-draw-layers-2-3` | `draw-5564` | +133 | 0 | −1 | +452 | |
+
+- Every delay probe counts the PC calls on the PSX. The 1-hblank delay
+  over-runs by 3.5% on both runs and over the whole run as well (5641
+  hblanks for 5448 counted calls on `draw-5564`): the call's own overhead
+  at the shortest delay, not extra calls. The tables below divide it out
+  (132.1 and 131.6 calls a frame).
+- `button-draw-overlay-method-twice`'s update delta (+9) is just over its
+  bound (8.6); its group (`group-draw-layers-2-1`, +8 for a bound of 11) and
+  every other probe stay within theirs. Like step 6's `draw-6000` leaks, it
+  is a few hblanks over 15 frames (0.6 a frame), far under the threshold.
+- **Call-twice not used for the spawning methods.** `slipway_draw`
+  (`src/game/slipway_display.c:88`) ages its transit dots, frees the expired
+  ones and spawns two more on every call; `ascension_draw`
+  (`src/game/planet_family.c:170`) runs `emitter_update`, which advances and
+  spawns particles, as `emitter_update_method` does alone. Their second call
+  changes what the following frames draw, so they take the delay and a PC
+  share. Their call-twice deltas are kept above, unused: 2422 against a
+  PC-derived 1872 on `draw-5564` (the dots, not saved by the resume, build
+  up faster when doubled), and 1418 against 550 for `ascension`.
+
+### `start` (1 window frame, `draw_layers#1` 463 PC-derived, mean window frame 9451, 2% = 189.0)
+
+Rooted on a PC-derived cost (step 6). Statuses: **open** = above 2%,
+opened at level 3; **under** = closed under 2%; **≤ group** = closed by
+the group bound.
+
+| Node | Method | Calls / frame (PC; PSX) | Cost / frame | % of parent | % of mean window frame | Status |
+|---|---|---|---:|---:|---:|---|
+| `draw_layers#1` | fixed delay, PC-derived (step 6) | 1; 1.00 | 463 | — | 4.9% | explored |
+| · `background_draw_method` | wrapper call-twice | 1 | 251 | 54.2% | 2.7% | **open** |
+| · `planet_draw_method` | wrapper call-twice | 90 | 93 | 20.1% | 1.0% | under |
+| · `score_panel_draw_method` | wrapper call-twice | 1 | 84 | 18.1% | 0.9% | under |
+| · `button_draw_method` | wrapper call-twice | 4 | 12 | 2.6% | 0.1% | under |
+| · `structure_icon_draw_method`, `entities_by_message#1`, `entity_has#1`, `p8_fixed_flr_int`, `game_data_fixed_seq_at`, `entity_pos#1` | group `group-draw-layers-1-1` | 7; 1; 103; 108; 5; 103 | ≤ 6 | ≤ 1.3% | ≤ 0.1% | ≤ group |
+| · `entity_list_add`, `frame_zone`, `entity_list_init`, `camera_apply_method` | bookkeeping, left in self (PC: 0.9% of `#1`, about 4) | 103; 15; 15; 5 | in self | | | under |
+| · self | difference | | 17 | 3.7% | 0.2% | under |
+
+Σ measured children 446 against the node's 463: gap −3.7%, within 10%.
+
+### `draw-5564` (15 window frames, mean window frame 1351, 2% = 27.0)
+
+`draw_layers#1` (call-twice, 16225 over the window, 1082 a frame):
+
+| Node | Method | Calls / frame (PC; PSX) | Window | Cost / frame | % of parent | % of mean window frame | Status |
+|---|---|---|---:|---:|---:|---:|---|
+| · `button_draw_method` | wrapper call-twice | 11 | 4603 | 307 | 28.4% | 22.7% | **open** |
+| · `background_draw_method` | wrapper call-twice | 1 | 3463 | 231 | 21.3% | 17.1% | **open** |
+| · `planet_draw_method` | wrapper call-twice | 70 | 2203 | 147 | 13.6% | 10.9% | **open** |
+| · `slipway_draw_method` | delay 5, **PC-derived** (11.54% × 16225) | 38; 38.28 | 1872 | 125 | 11.5% | 9.2% | **open** |
+| · `score_panel_draw_method` | wrapper call-twice | 1 | 1303 | 87 | 8.0% | 6.4% | **open** |
+| · `ascension_draw_method` | delay 20, **PC-derived** (3.39%) | 3; 3.00 | 550 | 37 | 3.4% | 2.7% | **open** |
+| · `emitter_update_method` | delay 20, **PC-derived** (1.08%) | 1; 1.00 | 175 | 12 | 1.1% | 0.9% | under |
+| · `structure_icon_draw_method` + `#1` getters (as on `start`) | group `group-draw-layers-1-1` | 7; 132 | ≤ 179 | ≤ 12 | ≤ 1.1% | ≤ 0.9% | ≤ group |
+| · `entity_list_add` (`#1` part) | delay 1, **PC-derived** (0.47%) | 132; 132.1 | 76 | 5 | 0.5% | 0.4% | under |
+| · `entity_list_init`, `frame_zone` (`#1` part) | delay 13, **PC-derived** (0.04%, 0.05%) | 15; 15.06 | 7 + 8 | 1 | 0.1% | 0.1% | under |
+| · `camera_apply_method` | delay 20, **PC-derived** (0.08%) | 7; 7.02 | 13 | 1 | 0.1% | 0.1% | under |
+| · self | difference | | 1773 | 118 | 10.9% | 8.7% | **flagged** |
+
+`draw_layers#2` (call-twice, 4686 over the window, 312 a frame):
+
+| Node | Method | Calls / frame | Window | Cost / frame | % of parent | % of mean window frame | Status |
+|---|---|---|---:|---:|---:|---:|---|
+| · `message_box_draw_overlay_method` | wrapper call-twice | 1 | 4016 | 268 | 85.7% | 19.8% | **open** |
+| · `button_draw_overlay_method` | wrapper call-twice (split out of `group-draw-layers-2-1`, +564) | 11 | 428 | 29 | 9.1% | 2.1% | **open** |
+| · `slipway_draw_overlay_method`, `targeting_tooltip_method`, `ui_draw_overlay_method`, `entities_by_message#2`, `entity_has#2`, `p8_fixed_flr_int`, `entity_pos#2` | group `group-draw-layers-2-3` | 38; 11; 1; 1; 62; 62; 62 | ≤ 133 | ≤ 9 | ≤ 2.8% | ≤ 0.7% | ≤ group |
+| · `entity_list_add`, `frame_zone`, `entity_list_init` (`#2` part) | bookkeeping, left in self (PC: about 44) | 62; 15; 15 | in self | | | | under |
+| · self | difference | | 109 | 7 | 2.3% | 0.5% | under |
+
+Gaps, Σ measured children against the node: `#2` 4577 vs 4686, −2.3%.
+`#1` 14452 vs 16225, **−10.9%**, explained: the three PC-derived spawning
+methods carry PC proportions, not PSX costs. With their call-twice deltas
+instead (unused, upward-biased), Σ is 15870 (−2.2%) and the self 355 (24 a
+frame). PC time puts `draw_layers`' own self at 3.49% of `#1`, about 566
+(38 a frame). The PSX self is therefore somewhere between about 355 and 1773
+over the window; it stays flagged, and step 7's level 3 replaces the
+PC-derived terms with measured children of `slipway_draw_method` and
+`ascension_draw_method`.
+
+### `draw-6000` (15 window frames, mean window frame 979, 2% = 19.6)
+
+`draw_layers#1` (call-twice, 13642 over the window, 909 a frame); `#2` is
+closed at level 1 (16 a frame).
+
+| Node | Method | Calls / frame (PC; PSX) | Window | Cost / frame | % of parent | % of mean window frame | Status |
+|---|---|---|---:|---:|---:|---:|---|
+| · `background_draw_method` | wrapper call-twice | 1 | 3503 | 234 | 25.7% | 23.9% | **open** |
+| · `planet_draw_method` | wrapper call-twice | 72 | 3049 | 203 | 22.4% | 20.8% | **open** |
+| · `slipway_draw_method` | delay 5, **PC-derived** (17.84% × 13642) | 40; 40.32 | 2434 | 162 | 17.8% | 16.6% | **open** |
+| · `score_panel_draw_method` | wrapper call-twice | 1 | 1296 | 86 | 9.5% | 8.8% | **open** |
+| · `button_draw_method` | wrapper call-twice | 4–6 | 897 | 60 | 6.6% | 6.1% | **open** |
+| · `ascension_draw_method` | delay 20, **PC-derived** (5.99%) | 4; 4.01 | 818 | 55 | 6.0% | 5.6% | **open** |
+| · `emitter_update_method` | delay 20, **PC-derived** (1.57%) | 1; 1.01 | 214 | 14 | 1.6% | 1.5% | under |
+| · `structure_icon_draw_method` + `#1` getters | group `group-draw-layers-1-1` | 7; 130–132 | ≤ 217 | ≤ 14 | ≤ 1.6% | ≤ 1.5% | ≤ group |
+| · `entity_list_add` (`#1` part) | delay 1, **PC-derived** (0.47%) | 130–132; 131.6 | 64 | 4 | 0.5% | 0.4% | under |
+| · `entity_list_init`, `frame_zone` (`#1` part) | delay 13, **PC-derived** (0.04%, 0.05%) | 15; 15.05 | 6 + 6 | 1 | 0.1% | 0.1% | under |
+| · `camera_apply_method` | delay 20, **PC-derived** (0.09%) | 7–8; 7.83 | 12 | 1 | 0.1% | 0.1% | under |
+| · self | difference | | 1126 | 75 | 8.3% | 7.7% | **flagged** |
+
+Gap: Σ 12516 vs 13642, −8.3%, within 10%. With the unused call-twice
+deltas of the two spawning methods, Σ is 12792 and the self 850 (57 a
+frame); PC time puts the self at 3.36% of `#1`, about 458 (31 a frame).
+Either way it is above the 294 threshold.
+
+### `draw_layers`: "do less" candidates
+
+Explored on the three runs (`#1`) and on `draw-5564` (`#2`). Gains are
+upper bounds per window frame, from the measured figures above.
+
+1. **Recomputation: the fifteen layer lists rebuilt on every call**
+   (`src/engine/entity_registry.c:199`). Each call allocates 15 lists from
+   the frame zone and walks its whole message bucket (103 / 132 / 130–132
+   entities for the draw pass, 5 / 62 / 59–61 for the overlay pass) to
+   re-sort it by `flr(layer)`, then throws the lists away. An entity's layer
+   is set at construction and rarely changes, and the buckets change only on
+   register/unregister. Lists kept sorted by layer at registration (and
+   re-sorted on a layer change) would remove the bucket pass entirely.
+   Bound: the self plus the bookkeeping children plus the getters' group
+   bound (which also holds `structure_icon_draw_method`), per frame:
+   `start` ≤ 17 + 6; `draw-5564` `#1` ≤ 118 + 7 + 12 = 137 and `#2` ≤ 7 + 9
+   = 16; `draw-6000` `#1` ≤ 75 + 6 + 14 = 95. The self also holds the
+   dispatch loop, which stays. Pixel risk: identical, provided the per-layer
+   order stays the registration order.
+2. **Repeated calls: the overlay pass sorts again what the draw pass just
+   sorted.** On `draw-5564`, 62 overlay entities (planets' tooltips,
+   buttons, slipways) are bucketed a second time each frame. Covered by (1)
+   when the sorted lists are per message; listed apart because it alone
+   halves the bucket work if only one structure is kept. Bound: `#2`'s
+   self and group, ≤ 16 a frame on `draw-5564`, ≤ 2 elsewhere (`#2` closed
+   at level 1). Pixel risk: identical.
+3. **Recomputation: the parallax camera recomputed per non-empty layer.**
+   `camera_apply_method` (`src/game/scroll.c:21`) runs 5 / 7 / 7–8 times a
+   frame, each time looking up the layer's factor in `layer_fades_table`
+   and multiplying the camera position by it, though both only change when
+   the camera moves. Bound: ≤ 1 a frame (PC-derived). Pixel risk:
+   identical. Too small to matter; recorded for completeness.
+4. **Repeated calls: every entity of a pass is dispatched whether or not it
+   is on screen.** `planet_draw_method` (70–90 calls), `slipway_draw_method`
+   (38–40) and `ascension_draw_method` draw every entity each frame and
+   leave clipping to the primitives. Skipping entities whose bounds miss the
+   screen saves their whole call. Bound: those methods' measured cost times
+   the off-screen fraction, which this step does not measure; at most
+   147 + 125 + 37 a frame on `draw-5564`, 203 + 162 + 55 on `draw-6000`,
+   93 on `start`. Pixel risk: identical pixels, but `planet_draw` draws
+   from `visual_random` (`src/game/planet_display.c:367`), so a skipped
+   planet shifts it: `visual_random` only.
+
+The known items are not at level 2: `hud_print_outlined`'s 9 prints sit
+below the methods that print text (opened at level 3), and the draw meter
+sits inside every runtime call (step 8).
+
+### Level 2 hand-off
+
+| Run | Opened at level 3 | Flagged self | Closed at level 2 |
+|---|---|---|---|
+| `start` | `background_draw_method` | — | `planet_draw_method`, `score_panel_draw_method`, `button_draw_method`, the group, the bookkeeping, self 17 |
+| `draw-5564` | `#1`: `button_draw_method`, `background_draw_method`, `planet_draw_method`, `slipway_draw_method`, `score_panel_draw_method`, `ascension_draw_method`; `#2`: `message_box_draw_overlay_method`, `button_draw_overlay_method` | `draw_layers#1` (118 a frame, candidates 1–2) | `emitter_update_method`, the two groups, the bookkeeping, `#2`'s self 7 |
+| `draw-6000` | `background_draw_method`, `planet_draw_method`, `slipway_draw_method`, `score_panel_draw_method`, `button_draw_method`, `ascension_draw_method` | `draw_layers#1` (75 a frame, candidates 1–2) | `emitter_update_method`, the group, the bookkeeping |
+
+### Patches (level 2)
+
+Generated from `93c1064` by a throwaway script into `tmp/plan20-draw-tree/`
+(git-ignored), used once and discarded; none is committed. Wrapper: the
+method's body renamed `<method>_once` (static), the method made to call it
+twice with the same arguments. Delay: `#include "platform/psx_probe.h"`
+after the file's first include, plus the statement.
+
+| Probe label | Node(s) | Shape | Inserted statement |
+|---|---|---|---|
+| `l2-background-draw-method-twice` | `background_draw_method` (`src/game/background.c`) | wrapper | `background_draw_method_once(self, screen_pos);` twice |
+| `l2-planet-draw-method-twice` | `planet_draw_method` (`src/game/planet_display.c`) | wrapper | idem |
+| `l2-score-panel-draw-method-twice` | `score_panel_draw_method` (`src/game/score_panel.c`) | wrapper | idem |
+| `l2-button-draw-method-twice` | `button_draw_method` (`src/game/ui_button.c`) | wrapper | idem |
+| `l2-slipway-draw-method-twice` | `slipway_draw_method` (`src/game/slipway_display.c`) | wrapper (not used) | idem |
+| `l2-ascension-draw-method-twice` | `ascension_draw_method` (`src/game/planet_family.c`) | wrapper (not used) | idem |
+| `l2-message-box-draw-overlay-method-twice` | `message_box_draw_overlay_method` (`src/game/message_box.c`) | wrapper | idem |
+| `l2-button-draw-overlay-method-twice` | `button_draw_overlay_method` (`src/game/ui_button.c`) | wrapper | idem |
+| `l2-slipway-draw-method-delay` | `slipway_draw_method` | delay 5 at entry | `psx_probe_delay(5);` |
+| `l2-ascension-draw-method-delay` | `ascension_draw_method` | delay 20 at entry | `psx_probe_delay(20);` |
+| `l2-emitter-update-method-delay` | `emitter_update_method` (`src/game/particle.c`) | delay 20 at entry | `psx_probe_delay(20);` |
+| `l2-entity-list-add-1-delay` | `entity_list_add` in `draw_layers` (`src/engine/entity_registry.c`) | delay 1 at site | `if (is_draw) psx_probe_delay(1);` before `entity_list_add(&layers[layer - 1], qc);` |
+| `l2-entity-list-init-frame-zone-1-delay` | `entity_list_init`, `frame_zone` in `draw_layers` | delay 13 at site | `if (is_draw) psx_probe_delay(13);` before `entity_list_init(&layers[index], frame_zone());` |
+| `l2-camera-apply-method-delay` | `camera_apply_method` via `apply_camera` in `draw_layers` | delay 20 at site | `psx_probe_delay(20);` before `g_main_camera->class->apply_camera(g_main_camera, ci);` |
+| `l2-group-draw-layers-1-1` | `structure_icon_draw_method` (wrapper) and the `#1` getters | group | wrapper, plus in `draw_layers` under `if (is_draw)`: a second `entities_by_message`, `entity_has`, `p8_fixed_flr_int`, `game_data_fixed_seq_at` and `entity_pos` call on `volatile` copies of the arguments into `volatile` results, each before the original |
+| `l2-group-draw-layers-2-1` | `button_draw_overlay_method`, `slipway_draw_overlay_method` (`src/game/slipway.c`), `targeting_tooltip_method` (`src/game/probe.c`), `ui_draw_overlay_method` (`src/game/ui.c`) (wrappers) and the `#2` getters | group | wrappers, plus the getters under `if (!is_draw)` (no `game_data_fixed_seq_at`, draw pass only) |
+| `l2-group-draw-layers-2-3` | `group-draw-layers-2-1` without `button_draw_overlay_method` | group (split) | idem |
+
+The `volatile` copies keep the compiler from merging the doubled
+`static inline` getters with the originals.

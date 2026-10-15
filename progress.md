@@ -23,7 +23,7 @@
   - [ ] 2.7 Go down the draw tree
     - [x] Chunk 1: subtree root in the profile binary
     - [x] Chunk 2: frame-profile-subtree target, subtree summary, probe baseline rebuild
-    - [ ] Chunk 3: level 2, the children of draw_layers
+    - [x] Chunk 3: level 2, the children of draw_layers
     - [ ] Chunk 4: levels 3 and below on draw-5564
     - [ ] Chunk 5: levels 3 and below on draw-6000 and start, verification
   - [ ] 2.8 Backend side: per-unit costs, 9x print and meter experiments
