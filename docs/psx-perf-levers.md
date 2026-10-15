@@ -4,8 +4,9 @@ This file will become plan 20's ranked inventory of the ways to make each PSX
 frame do less work. For now it holds the baseline every lever is
 measured against, the judge's asserts-off full-run baseline, the probe
 tool's sanity checks, the PC frame profile's draw coverage, the split of
-`cart_draw` among its direct children ("Draw level 1") and the draw tree
-below them ("Draw tree"). The full-run
+`cart_draw` among its direct children ("Draw level 1"), the draw tree
+below them ("Draw tree") and the backend's cost per call and per unit of
+every draw family ("Backend: per-unit costs"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
@@ -1895,3 +1896,211 @@ and `start` is the map alone. `p8_rectfill` and `p8_rect` stay cheap on
 the PSX wherever PC time made them look heavy (`button_draw`'s rectangles,
 the message box bars, the score panel's help frames: 134 against 39.8% of
 `draw_rows_dispatch_one` on PC).
+
+## Backend: per-unit costs
+
+Plan 20 step 8: what one call, and one glyph or primitive, of each draw
+family costs inside the backend, and what the two backend-side levers (the
+9× outlined print, the shipped draw meter) are worth. This section holds
+the per-unit tables; the one-print and no-meter experiments, the backend
+and meter "do less" candidates and the verification table are still to do.
+
+Measured on commit `17c2602dab38e4e369c54e579c6b9c96f2e9bbb1` (pcsx-redux,
+asserts off) with:
+
+```
+make psx-probe-baseline
+make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_REFERENCE=
+make frame-profile-unit-cost
+```
+
+Method: time and calls per family come from each run's breakdown boot
+(`psx-gpu-replay-breakdown`, window frames only, fine-clock ticks converted
+to hblanks with the boot's calibration line); units come from the PC frame
+profile of the same `run.json`, counted with the draw meter's cost model
+(`p8_draw_cost_*`). `make frame-profile-unit-cost` joins the two per window
+frame and refuses a frame where PC and PSX calls differ: it accepted all six
+runs, and the PC replay reached the same game on each (`same-game yes`).
+
+- **Unit, per family:** `cls` 1 fill; `pset` 1 pixel; `line` 1 line;
+  `rect` 4 tiles; `rectfill` 1 tile or patterned sprite; `circ` 8 ×
+  midpoint iterations; `circfill` 4 × midpoint iterations (spans); `spr` 1
+  sprite; `print` 1 glyph (non-space character); `pattern` the spans of
+  patterned fills, inside `rectfill` and `circfill` and never added to them.
+  A call off screen is 1 call and 0 units. A **switch** is the
+  texture-window pair (`DR_TPAGE` + `DR_TWIN`) the model charges when a call
+  changes window; switches are counted, not priced, and their time is inside
+  the family that causes them.
+- **Per call and per unit are two divisions of one total**, never to be
+  added. Per unit is the family's whole time over its units, so off-screen
+  calls (time, no unit) push it up: on `spr`, only a third of the calls are
+  on screen (below).
+- **Units are an upper bound** of what the GPU backend emits (it clips per
+  glyph, span and rect edge; the model counts whole on-screen calls), so
+  the per-unit figures are slight lower bounds.
+- **Timer bias:** the breakdown boot's in-call time includes the timer
+  wrapper's own per-call work. `cls` (one fill packet, the cheapest call)
+  is the floor reference at 0.186 per call; no correction is applied. The
+  breakdown-vs-plain draw overhead is 0.129 to 0.133 hblanks per backend
+  call on every run (table below), split between in-call and outside-call
+  time.
+- **Wrappers inside every figure:** breakdown timer (breakdown boot only),
+  draw meter, draw filter (not in `psx-game`), GPU backend.
+
+Pre-checks (H-7-1 to H-7-8), all held:
+
+- H-7-1, H-7-6: "Draw tree" is committed (`6aad8ab`, plan note `b6fd2f8`)
+  and was the last section; this one follows it.
+- H-7-2: step 7's tooling is the subtree root (`e97bb51`, `93c1064`); this
+  step's tooling (`1e4015a`, `17c2602`) appends `units <u> switches <s>` to
+  the family lines and adds the `unit-cost` mode and target.
+- H-7-3, H-7-4: step 7's hand-off locates `p8_print` through
+  `hud_print_outlined` (289 calls, 586 hblanks a frame on `draw-5564`; 78
+  and 106 on `draw-6000`) and names the leaves and their parents.
+- H-7-5: since `93c1064`, the only commit under `src/` or `psx/` is
+  `1e4015a` (`src/cmd/frame_profile.c`, `src/devtools/call_profile.*`), none
+  compiled by `psx/CMakeLists.txt`; the probe tool and the six-run manifest
+  are unchanged.
+- H-7-7: step 7 recorded no per-unit cost and ran no backend experiment.
+- H-7-8: `psx/probes/` still holds only the three sanity fixtures
+  (`bb5f9be`).
+
+### Rebuilt probe baseline and short runs
+
+Window sums in hblanks. Every probe boot `valid`, `game-state same`, text
+size equal to step 7's. Short-run verdicts: `done`, `deterministic`,
+`breakdown` and `asserts` ok on all six runs, `representative` skipped (no
+reference, on purpose).
+
+| Run | Probe update | Probe draw | Probe submit | Probe total | Step 7 total | Gap | Short-run update | Short-run draw | Short-run submit | Short-run total | Step 2/4 total | Gap |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `start` | 8980 | 465 | 6 | 9451 | 9451 | 0 | 8980 | 464 | 7 | 9451 | 9451 | 0 |
+| `update-4737` | 118 | 706 | 8 | 832 | 832 | 0 | 118 | 706 | 8 | 832 | 832 | 0 |
+| `update-5500` | 1409 | 714 | 7 | 2130 | 2130 | 0 | 1409 | 714 | 7 | 2130 | 2130 | 0 |
+| `draw-5564` | 655 | 19491 | 118 | 20264 | 20264 | 0 | 657 | 19489 | 118 | 20264 | 20264 | 0 |
+| `update-5719` | 46 | 1078 | 7 | 1131 | 1131 | 0 | 46 | 1078 | 8 | 1132 | 1132 | 0 |
+| `draw-6000` | 593 | 13987 | 107 | 14687 | 14687 | 0 | 593 | 13987 | 107 | 14687 | 14687 | 0 |
+
+Every part equals the previous figures exactly, as expected from a tooling
+commit that changes nothing the PSX build compiles.
+
+`draw-6000`'s breakdown boot reached the default ceiling of 540 vsyncs
+after its `done` line (476 vsyncs) and before exiting, cutting the end of
+its state dump; its 123 breakdown records were complete and the verdicts
+ok. It was re-run alone with `PSX_SHORT_RUN_CEILING=720
+PSX_SHORT_RUN_TIMEOUT=20`: exit after 542 vsyncs, `analysis/summary.txt`
+identical to the first boot's.
+
+### Breakdown boot per run
+
+| Run | Window frames | Backend calls | In-calls | Outside-calls | Breakdown draw | Plain draw | Overhead | Overhead per call |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `start` | 1 | 549 | 422 (78.6%) | 115 | 537 | 464 | 73 | 0.133 |
+| `update-4737` | 1 | 833 | 583 (71.5%) | 232 | 815 | 706 | 109 | 0.131 |
+| `update-5500` | 1 | 856 | 577 (69.8%) | 249 | 826 | 714 | 112 | 0.131 |
+| `draw-5564` | 15 | 17769 | 17210 (79.0%) | 4575 | 21785 | 19489 | 2296 | 0.129 |
+| `update-5719` | 1 | 1072 | 926 (76.0%) | 293 | 1219 | 1078 | 141 | 0.132 |
+| `draw-6000` | 15 | 18469 | 11252 (68.8%) | 5114 | 16365 | 13987 | 2378 | 0.129 |
+
+Backend calls are the nine families' calls (`pattern` is inside its
+shapes). Percentages are of the breakdown draw.
+
+### Per-unit costs, `draw-5564` (15 window frames)
+
+Hblanks summed over the window; "per frame" is hblanks ÷ 15.
+
+| Family | Calls | Units | Switches | Hblanks | Per frame | Per call | Per unit | Note |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| `cls` | 15 | 15 | 0 | 2.8 | 0.2 | 0.185 | 0.185 | low count; floor |
+| `pset` | 2083 | 1689 | 0 | 607.7 | 40.5 | 0.292 | 0.360 | |
+| `line` | 1800 | 1732 | 0 | 741.4 | 49.4 | 0.412 | 0.428 | |
+| `rect` | 225 | 900 | 0 | 143.7 | 9.6 | 0.639 | 0.160 | |
+| `rectfill` | 1383 | 1075 | 20 | 647.1 | 43.1 | 0.468 | 0.602 | |
+| `circ` | 90 | 2880 | 0 | 388.0 | 25.9 | 4.311 | 0.135 | |
+| `circfill` | 195 | 3600 | 0 | 648.2 | 43.2 | 3.324 | 0.180 | |
+| `spr` | 7541 | 2471 | 15 | 4813.4 | 320.9 | 0.638 | 1.948 | 32.8% of calls on screen |
+| `print` | 4437 | 28215 | 5 | 9218.1 | 614.5 | 2.078 | 0.327 per glyph | 6.4 glyphs a call |
+| `pattern` | 275 | 125 | 20 | 166.9 | 11.1 | 0.607 | 1.335 | inside its shapes |
+
+### Per-unit costs, `draw-6000` (15 window frames)
+
+| Family | Calls | Units | Switches | Hblanks | Per frame | Per call | Per unit | Note |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| `cls` | 15 | 15 | 0 | 2.8 | 0.2 | 0.186 | 0.186 | low count; floor |
+| `pset` | 4327 | 2411 | 0 | 1177.9 | 78.5 | 0.272 | 0.489 | 55.7% of calls on screen |
+| `line` | 2640 | 2196 | 0 | 1030.9 | 68.7 | 0.390 | 0.469 | |
+| `rect` | 144 | 576 | 0 | 92.9 | 6.2 | 0.645 | 0.161 | |
+| `rectfill` | 1959 | 1299 | 15 | 857.2 | 57.1 | 0.438 | 0.660 | |
+| `circ` | 123 | 3984 | 0 | 495.8 | 33.1 | 4.031 | 0.124 | |
+| `circfill` | 285 | 4800 | 0 | 862.7 | 57.5 | 3.027 | 0.180 | |
+| `spr` | 7707 | 2652 | 15 | 4991.3 | 332.8 | 0.648 | 1.882 | 34.4% of calls on screen |
+| `print` | 1269 | 4779 | 0 | 1740.0 | 116.0 | 1.371 | 0.364 per glyph | 3.8 glyphs a call |
+| `pattern` | 270 | 135 | 15 | 160.6 | 10.7 | 0.595 | 1.189 | inside its shapes |
+
+### Per-unit costs, one-frame runs
+
+Per call / per unit; "low" marks a family under 30 window calls on that run
+(its ratio is a few hblanks over a few calls).
+
+| Family | `start` | `update-4737` | `update-5500` | `update-5719` |
+|---|---|---|---|---|
+| `cls` | 0.186 / 0.186 (1, low) | 0.186 / 0.186 (1, low) | 0.186 / 0.186 (1, low) | 0.186 / 0.186 (1, low) |
+| `pset` | — (0) | 0.301 / 0.332 (32) | 0.277 / 0.416 (51) | 0.277 / 0.438 (68) |
+| `line` | — (0) | 0.420 / 0.420 (160) | 0.406 / 0.451 (160) | 0.407 / 0.446 (184) |
+| `rect` | 0.630 / 0.158 (8, low) | 0.630 / 0.158 (8, low) | 0.630 / 0.158 (8, low) | 0.630 / 0.157 (8, low) |
+| `rectfill` | 0.563 / 0.793 (31) | 0.498 / 0.668 (47) | 0.487 / 0.715 (47) | 0.463 / 0.613 (86) |
+| `circ` | — (0) | 3.984 / 0.140 (9, low) | 3.398 / 0.142 (8, low) | 3.617 / 0.126 (10, low) |
+| `circfill` | 3.046 / 0.185 (17, low) | 3.035 / 0.175 (15, low) | 3.181 / 0.188 (13, low) | 3.018 / 0.174 (15, low) |
+| `spr` | 0.645 / 1.796 (429) | 0.646 / 1.883 (498) | 0.640 / 1.946 (496) | 0.730 / 1.292 (520) |
+| `print` | 1.124 / 0.393 (63) | 1.176 / 0.392 (63) | 1.163 / 0.388 (72) | 1.811 / 0.335 (180) |
+| `pattern` | 0.642 / 1.285 (18, low) | 0.595 / 1.190 (18, low) | 0.577 / 1.297 (18, low) | 0.595 / 1.190 (18, low) |
+
+### Per-unit costs, pooled over the six runs (34 window frames)
+
+From `tmp/frame-profile/unit-cost/pooled.txt` (sums of the six runs, then
+the ratios).
+
+| Family | Calls | Units | Switches | Hblanks | Per call | Per unit | Runs' per-call range |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `cls` | 34 | 34 | 0 | 6.4 | 0.188 | 0.188 | 0.185–0.186 |
+| `pset` | 6561 | 4206 | 0 | 1828.1 | 0.279 | 0.435 | 0.272–0.301 |
+| `line` | 4944 | 4400 | 0 | 1979.4 | 0.400 | 0.450 | 0.390–0.420 |
+| `rect` | 401 | 1604 | 0 | 256.6 | 0.640 | 0.160 | 0.630–0.645 |
+| `rectfill` | 3553 | 2528 | 39 | 1607.8 | 0.453 | 0.636 | 0.438–0.563 |
+| `circ` | 240 | 7600 | 0 | 983.1 | 4.096 | 0.129 | 3.398–4.311 |
+| `circfill` | 540 | 9420 | 0 | 1694.9 | 3.139 | 0.180 | 3.018–3.324 |
+| `spr` | 17191 | 5905 | 34 | 11100.3 | 0.646 | 1.880 | 0.638–0.730 |
+| `print` | 6084 | 34551 | 5 | 11512.7 | 1.892 | 0.333 per glyph | 1.124–2.078 |
+| `pattern` | 617 | 295 | 39 | 370.9 | 0.601 | 1.257 (inside its shapes) | 0.577–0.642 |
+
+In-calls pooled: 30969.5 hblanks.
+
+### Reading the tables
+
+- **`print` is priced by the glyph.** Per glyph is steady (0.327 to 0.393
+  over the six runs); per call follows the text length (6.4 glyphs a call
+  on `draw-5564`, 3.8 on `draw-6000`, 2.9 on the title screen). A lever
+  that removes whole calls is priced with the run's own per-call figure, a
+  lever that removes glyphs with the per-glyph one; never both.
+- **`spr` is priced by the call.** Per call is flat (0.64, 0.73 on
+  `update-5719`), while on the two draw runs two thirds of the calls draw
+  nothing on screen (43% on `update-5719`): per sprite drawn is about 1.9 because the off-screen calls' time lands on
+  the third that is drawn. `p8_map` (`src/p8/gfx.c:133`) issues one
+  `p8_spr` per non-empty cell of the whole 32×32 map
+  (`src/game/background.c:143`), wherever the camera is, which is the
+  likely source of the off-screen calls; step 7 measured `p8_map` at 221
+  hblanks a frame on `draw-5564`, 224 on `draw-6000`.
+- **`pset` and `line`** cost 0.27–0.30 and 0.39–0.42 per call; `pset`'s
+  off-screen calls (44% on `draw-6000`) raise its per-pixel figure the same
+  way.
+- **`circ` and `circfill`** are the dearest calls (about 4.1 and 3.1), in
+  line with their many spans; per model unit they are the cheapest (0.13,
+  0.18).
+- **`rect` and `rectfill`** are cheap per call (0.64, 0.45) and per tile
+  (0.16, 0.64), which confirms step 7's finding that their PC weight does
+  not carry over to the PSX.
+- **Switches** are rare (34 on `spr`, 39 on patterned fills, 5 on `print`
+  over 34 window frames): texture-window changes are not a lever here.
+- **Floor:** `cls` at 0.186 a call is the cheapest call measured, with the
+  timer's per-call work inside it; every family's per-call figure reads high
+  by part of that floor and of the 0.13-per-call breakdown overhead.
