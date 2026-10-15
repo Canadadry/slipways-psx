@@ -1,5 +1,8 @@
 - [ ] Phase 1 — Measure what ships
   - [ ] Step 1.1 — draw filter behind a compile-time define
+    - [x] Chunk 1 — gpu-draw-filter judge condition
+    - [ ] Chunk 2 — replay and build wiring
+    - [ ] Chunk 3 — psx-check and F1 measurement
   - [ ] Step 1.2 — new judge baseline, filter off
 - [ ] Phase 2 — Safe gains
   - [ ] Step 2.3 — asserts off in psx-game (G1)

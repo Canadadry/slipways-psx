@@ -4,9 +4,10 @@
 #                               <size-tool> <stack-reserve> <out-dir>
 # Boots the replay PS-EXE, then the GPU replay PS-EXE with an empty capture
 # script (the capture handshake runs, nothing is captured), until they exit,
-# then checks the twelve conditions of make psx-full-game-check through
+# then checks the thirteen conditions of make psx-full-game-check through
 # tools/psx_conditions.sh: replay-done, state-game-lines, sprite-sheet,
-# screen, map, gpu-replay-done, gpu-state-game-lines, then timer,
+# screen, map, gpu-replay-done, gpu-state-game-lines, gpu-draw-filter (the GPU
+# boot printed "psx-replay: draw-filter off"), then timer,
 # frame-budget (no frame above <budget-hblanks>), zone-sizes and cap-sizes of
 # tools/psx_frame_budget.sh on the GPU boot (outputs in <out-dir>/frame-budget)
 # and gpu-ram-room (64 KiB kernel area + GPU ELF + stack reserve <= 2 MiB). Every
@@ -72,6 +73,12 @@ gpu_tty=$out_dir/gpu.tty.txt
 gpu_compare=$(sh "$script_dir/psx_state_compare.sh" "$gpu_tty" "$pc_state" "$out_dir/gpu-state" "$pc_frames" 2>&1)
 check_replay_done gpu-replay-done "$gpu_status" "$gpu_boot" "$gpu_tty" "$pc_frames"
 check_game_lines gpu-state-game-lines "$gpu_compare"
+filter_line=$(tr -d '\r' < "$gpu_tty" | grep '^psx-replay: draw-filter ' | tail -n 1)
+if [ "$filter_line" = "psx-replay: draw-filter off" ]; then
+    pass gpu-draw-filter
+else
+    report gpu-draw-filter "expected psx-replay: draw-filter off, got: ${filter_line:-(no line)}"
+fi
 
 frame_dir=$out_dir/frame-budget
 frame_budget=$(sh "$script_dir/psx_frame_budget.sh" "$gpu_tty" "$out_dir/gpu-state/psx_state.txt" "$pc_frames" \
@@ -105,4 +112,4 @@ check_ram_room gpu-ram-room "${gpu_exe%.exe}.elf"
 
 echo "psx-full-game-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-full-game-check: all twelve conditions hold"
+echo "psx-full-game-check: all thirteen conditions hold"

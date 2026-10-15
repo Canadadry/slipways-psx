@@ -440,9 +440,10 @@
 #                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
 #                       empty capture script (PSX_FULL_GAME_GPU_CEILING,
 #                       PSX_FULL_GAME_GPU_TIMEOUT) until they exit, then checks
-#                       twelve conditions (replay-done, state-game-lines,
+#                       thirteen conditions (replay-done, state-game-lines,
 #                       sprite-sheet, screen, map, gpu-replay-done,
-#                       gpu-state-game-lines, then on the GPU boot's
+#                       gpu-state-game-lines, gpu-draw-filter: the GPU boot
+#                       printed draw-filter off, then on the GPU boot's
 #                       psx-frame: lines and MIPS state through
 #                       tools/psx_frame_budget.sh: timer, frame-budget: no
 #                       frame above PSX_FRAME_BUDGET_HBLANKS, zone-sizes,
