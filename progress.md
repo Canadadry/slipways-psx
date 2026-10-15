@@ -10,7 +10,7 @@
   - [x] Step 2.3 — asserts off in psx-game (G1)
     - [x] Chunk 1 — PSX_GAME_ASSERTS switch, game-asserts condition
     - [x] Chunk 2 — harness defaults asserts off, docs, short run
-  - [ ] Step 2.4 — draw meter out of psx-game and the measured replays (B1)
+  - [x] Step 2.4 — draw meter out of psx-game and the measured replays (B1)
     - [x] Chunk 0 — short-run baseline before the change
     - [x] Chunk 1 — psx-game unmetered, game-gpu-cost from backend peaks
     - [x] Chunk 2 — measured replays unmetered, gpu-draw-meter, PC-sourced lines
