@@ -13,6 +13,253 @@ asserts, the compiler level and the submit split ("Global levers"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
+## Step 12 checklist
+
+Every item the report and the plan's step notes hand to "step 12", each
+with where it was raised, the rule that resolves it and the figure it
+changes. Figures the estimate tool computes read "pending chunk 3".
+
+**Pre-check.** `HEAD` is `4306e41` (step 11's plan note);
+`git diff --stat 4306e41 HEAD` is empty, so no file this step reads moved
+and no figure is re-read. Line numbers below are the report's at `4306e41`,
+before this section was inserted.
+
+**Companions written for step 12**, part of this report and deleted with
+it:
+
+- `docs/psx-perf-levers-spike-frames.txt`: step 9's K = 8 classification
+  (`tmp/frame-profile/spikes/spikes.txt`), copied byte for byte (sha256
+  `8eb608e1…77bcbe5`). Checked before copying: 166 `frame` lines, every
+  frame's update equal to the judge table's, 19 `class` lines, and each
+  class's frame list equal to the "Frames per class" list of the class with
+  the same path (C1 … C19); the frames of the 19 lists are exactly the 166.
+  No fallback run was needed.
+- `docs/psx-perf-levers-gains.txt`: the lever-gain table, one row a line,
+  each lever row ending with the report figure it comes from. It holds the
+  budget, the `title` (0–11) and `start` (12) ranges, the 19 class rows,
+  C13's three overrides, the per-class ratios, 121 lever rows (draw, update,
+  submit, global) and 16 spreading rows.
+
+**Sweep** (one command; plan section 6 starts at line 299):
+
+```
+grep -n -i -E 'step 12|not ranked|left to|settles|flagged|discount|near miss' docs/psx-perf-levers.md docs/plan-20.md | awk -F: '$1 != "docs/plan-20.md" || $2 >= 299'
+```
+
+plus "Global levers"' own hand-offs (its lever entries, the submit split
+and the `-Os` caveat, which the patterns do not reach) and step 10's
+"Cross-reference with U1–U8" ("counted nowhere"). Hits, each an item or
+"not a hand-off":
+
+| Where (line) | Hit | Item |
+|---|---|---|
+| report 68 | "the baseline step 12's verdict is stated against" | not a hand-off: the judge table is the estimate's input |
+| report 741 | "flagged when above 2%" (step 7's method) | not a hand-off |
+| report 897, 915, 937, 993, 1307, 1521, 1791 | `draw_layers#1`'s self flagged | 10 |
+| report 2202–2203 | one-print and no-meter overlap, "step 12 settles the overlap" | 1 |
+| report 2321 | the draw filter, "step 12 and the human should discount it" | 3 |
+| report 2360, 2552 | the fallback "settles C13" | not a hand-off: settled in step 9 (C13's path enters as item 4's override) |
+| report 2660 | U candidates "not ranked (step 12's job)" | 8 |
+| report 2734 | the meter "counted twice, step 12 settles it" | 2 |
+| report 2923 | per-class save and `ui_update` ratios, "Step 12 decides" | 4 |
+| report 3322, 3325, 3449 | near misses `update_entities`, `planet_hit_test_method` | 6 |
+| report 3399–3400 | O candidates "not ranked (step 12's job)" | 9 |
+| report "Ordinary update", Cross-reference | O1–O5 on class frames "not counted here or under any U candidate" | 7 |
+| report "Global levers" | G1–G4, the meter's frame end, `DrawSync`, the replay-only submit pieces | 11 |
+| report "Global levers", "The `-Os` caveat" | gains resting on the timing model | 12 |
+| plan 382 | "step 12 applies the class figures to each" | 4 (and the estimate's class-frame rule) |
+| plan 459 | one-print / no-meter "overlap is left to step 12" | 1 |
+| plan 516–517 | ratios on event-and-save frames "flagged for step 12" | 4 |
+| plan 544 | "Near misses for step 12" | 6 |
+| plan 554 | step 12 "opens with a checklist …" | not a hand-off: this section's own form |
+| plan 594 | "step 12's verdict states its dependence on pcsx-redux's timing model" | 12 |
+| plan 598 | warn-review "judged harmless to step 12" | not a hand-off |
+| plan 573–608, "Step 4.11" | step 11's facts H-11-1 to H-11-9 | 11 |
+| step 7's "What stays open" (report 1826–1830) | the particle- and dot-ageing selves | 10 |
+
+**Composition rule** (items 1, 2, 3, 7, 8, 9 apply it): every lever is a
+row of one part (draw, update, submit) and one layer. `work` levers remove
+calls or work, `per-call` levers shrink each remaining call (the meter, the
+filter), `scale` levers shrink everything (a compiler level). Inside a
+layer, rows of one alternative are summed, the largest alternative of a
+group is taken, groups are summed, capped at 100%. Across layers,
+`part' = part × (1 − g_work)(1 − g_per-call)(1 − g_scale)`, rounded half up
+per part.
+
+1. **One-print with no-meter** (report 2197–2203, "Overlap"; plan 459).
+   *Question:* both measured deltas hold the meter's work on the calls the
+   one-print removes. *Rule:* the composition rule; one-print (`D1/B4`) is
+   `work`, the meter (`B1`) `per-call`, so the meter's gain is never taken
+   on calls the one-print removes. *Figure:* window draw `draw-5564` 41.73%
+   and 16.26% → 51.2%, not 58.0% added; `draw-6000` 10.95% and 21.28% →
+   29.9% (step 9's 30.0% came from the rounded 11.0% and 21.3%), not 32.2%;
+   `start` 13.76% and 26.67% → 36.8%, not 40.4%. *Cross-check:* re-pricing
+   the meter at its pooled 0.172 hblanks per remaining backend call on
+   `draw-5564` (17769 − 3944 = 13825 calls, 2378 hblanks) gives it 20.9% of
+   the draw left after one-print (11357) and the pair 53.9%, 2.7 points above
+   the proportional rule's 51.2%. The removed calls are prints, whose
+   meter work (a string walk) is dearer than the average call, so the
+   per-call re-pricing over-charges what remains; the proportional rule
+   stays, as the conservative one.
+2. **The meter counted twice** (report 2734, "Spreading"). *Rule:* the same
+   composition; the meter is `per-call`, every other draw lever `work`.
+   *Figure:* none changes: the double count step 9 flagged is the meter's
+   share of the calls the work levers remove, which the multiplicative form
+   excludes up to the proportionality assumption (meter cost ∝ draw time)
+   that item 1's cross-check bounds. **Cross-check of the gain table**
+   (throwaway awk over `docs/psx-perf-levers-gains.txt`, not committed):
+   with step 9's levers only (the text group, D5, D6, D8–D13, D15, and B1
+   for `step7+8`; `step7` takes step 7's tree bound for candidate 1, 0 /
+   7819 / 1410, in place of one-print), each run's composition reproduces
+   step 9's run gains: `step7` 51.83% / 86.60% / 75.47% (step 9: 51.8 /
+   86.6 / 75.5), `step7+8` 74.77% / 88.78% / 80.69% (74.8 / 88.8 / 80.7),
+   for `start` / `draw-5564` / `draw-6000`: every gap under 0.05 point.
+3. **The draw filter's discount** (report 2313–2321, "Finding, not
+   measured"). *Question:* the judge's replay runs `draw_filter_install`,
+   `psx-game` does not; every figure and the judge read high by it.
+   *Rule:* the judge is the contract, so the filter is not subtracted from
+   it. It is a separate lever `F1`, "time the judge's replay without the
+   draw filter" (a harness change that needs the human's agreement, since
+   the filter only serves the capture masks), **estimated**, `per-call` on
+   draw at step 8's no-meter delta per run as its upper bound ("of the
+   order of, and below"), plus the replay-only submit pieces of step 11
+   (filter, breakdown and capture frame ends, 0.12 a frame) as `work` on
+   submit. It enters the measured + estimated end only. *Figure:* rows
+   draw 26.67% (`title`, `start`), 16.26% (in game; 21.28% on `draw-6000`
+   as sensitivity); submit 1.71% (`start`: 0.12 of 7), 1.36% in game
+   (1.77 of 130 on `draw-5564`; 1.50% on `draw-6000`). The estimated end
+   with and without `F1`: pending chunk 3.
+4. **Per-class save and `ui_update` ratios** (report 2882–2923,
+   "the calibration over every spike frame"; plan 382, 516–517).
+   *Rule:* on class frames, the class's ratio is the fallback table's
+   per-class median ρ for the class's `cart_update60` child, in place of
+   step 9's two-frame 0.96 / 1.11: `ui_update` C1 0.92, C2 0.82, C3 0.84,
+   C4 1.01, C6 1.00, C8 0.87, C9 0.91, C10 0.88, C11 0.82, C12 0.83,
+   C14 0.86, C15 0.94, C16 0.81, C17 0.89, C18 0.88; `save_at_frame_end`
+   C5 0.97, C7 0.95; C19 (`update_entities`, no ratio) 1. C13 takes its
+   measured path `cart_update60/save_at_frame_end` and shares (113 50.3%,
+   825 58.4%, 901 59.8%) with ratio 1, as step 9's C13 re-spread did (three
+   `override` rows, label C13 kept). The known-answer check keeps step 9's
+   original inputs. Every class frame uses its class's figures and
+   spreading. *Figure:* each class's work min / median / max, before (step
+   9's "Spreading" table, C13 its measured row) → after: pending chunk 3.
+5. **Step 10's ratios differ from step 9's** (report 3191–3218,
+   "Transfer check"). *Rule:* ordinary frames use step 10's ratios
+   (`input_step_run` 1.13, `update_entities` 1.28, `ui_update` 0.83),
+   class frames step 9's per-class ratios (item 4); never both on one
+   frame. *Figure:* none changes: O1–O5's bounds (28.2, 25.0, 14.4, 18.7,
+   1.7 a frame) are already judge-calibrated with step 10's set and are
+   carried as they are; U1–U8's bounds are per-frame PC shares times the
+   judge update, with no ratio; only the spreading work (item 4) takes a
+   ratio, and it takes the per-class one.
+6. **The near misses** (report 3322–3325, 3449; plan 544). *Rule:* a near
+   miss enters no estimate; it is named in the stop-condition section as the
+   first place to look if discovery is reopened. `planet_hit_test_method`
+   (16.7, 0.1 under the 16.8 threshold) is O3's node, so it is covered;
+   `update_entities` (16.2, "low" label, p90 43.6, above at its
+   `start-game` ratio) has no candidate. *Figure:* none; `update_entities`
+   holds 20.6% of ordinary update.
+7. **Candidates' gains on class frames** (report "Ordinary update",
+   Cross-reference). *Rule:* O levers apply on a class frame as their
+   ordinary-population gain in hblanks a frame (`abs:` rows on `class:*`:
+   O1 28.2, O2 25.0, O3 14.4, O4 0, O5 1.7), with item 9's groups (at most
+   28.2 + 16.1 = 44.3 a frame), taken off the frame's update outside the
+   class's spreadable work, never below 0; not as relative gains. Draw and
+   submit levers apply to class frames as to ordinary frames. *Figure:*
+   class frames' update after levers: pending chunk 3.
+8. **U candidates overlapping and unranked** (report 2655–2660). *Rule:*
+   U1 (the first recompute) and U2 (planet rows) are both `work`, separate
+   groups; U2 ⊂ U3 on C4, one group `recompute` with alternatives U2 / U3;
+   U4 (shrinks the save) `work` in group `crc`, at 7/8 of its bound; U5
+   (moves the save) a spreading permission on what is left
+   (`responsible+save` at the class's PSX median save share); U6 `work` at
+   its "about half" 3,980, U7 C6's spreading; U8 C19's spreading. A class's
+   gain is the bound over its frames ÷ the class's summed judge update; a
+   bound given for a group of classes applies to each class of the group.
+   U4's "others" (568) are C13, C15, C17 and C18, the save-holding classes
+   its other figures do not name. U5 has no C13 row: under its override
+   C13's responsible work already is the save. *Figure:* relative update
+   gains — U1 C1, C11 27.93%; U2 C1, C11 23.62%, C4 32.49%, C9, C10, C12
+   20.07%, C15, C18 23.56%, C17 17.88%, C2, C3, C8, C14, C16 18.49%, C13
+   15.40%; U3 C4 92.86% (the alternative that counts on C4); U4 C5, C7
+   18.43%, C1, C11 6.27%, C2, C3, C8, C14, C16 9.34%, C9, C10, C12 5.32%,
+   C13, C15, C17, C18 9.06%; U6 C6 44.32%.
+9. **O candidates overlapping** (report 3392–3400). *Rule:* O1 and O2, one
+   group, alternatives (O1 36.0% against O2 31.9%: O1 counts); O3, O4, O5,
+   one group: {O3 at 14.4 (its 16% overstatement removed), O5} against
+   {O4}; O4's share of unchanged frames is not measured, so O4 enters at 0.
+   *Figure:* ordinary update's relative gain, estimated end: 36.02 + 18.39
+   + 2.17 = 56.58% (`work`), 62.6% with G2's −13.8% scale; measured end:
+   G2 alone, 13.8%.
+10. **`draw_layers#1`'s flagged self and the open selves** (report 897–937,
+    1280–1316, 1721–1733, 1791, 1826–1830). *Rule:* they hold no candidate
+    beyond L1–L2 (its bucket pass) and D15 (the particles); they are named
+    in the stop-condition section as unexplored selves inside explored
+    nodes. *Figure:* none.
+11. **Step 11's facts** (plan "Step 4.11"; report "Global levers"), each
+    re-checked at `4306e41`:
+    - H-11-1, step 11 committed and last: holds ("Global levers" is the
+      last section, its PRD is gone). No figure.
+    - H-11-2, ids G1–G4: kept.
+    - H-11-3, G1 asserts off: the judge table is asserts off, so G1 has no
+      row (neither end); listed after the ranking as taken, with its
+      measured +3.7% pooled (update +3.2%, draw +3.9%, submit +1.2%; full
+      run +4.0% of 857).
+    - H-11-4, G2 `-O3`: measured `scale` rows on all three parts, group
+      `optlevel`, both ends: update 13.8%, draw 3.4%, submit 3.1% (pooled).
+      Sensitivity, the worst run per part: update 5.6% (`draw-5564`), draw
+      3.2% (`update-5719`), submit 0.0%. G3 `-Os` has no row (+25.9%
+      slower).
+    - H-11-5, submit: G4 is an estimated `work` row on submit at upload's
+      share of the run's submit in the submit-spans probe: `title` and
+      `start` 71.71% (5.02 of 7), in game 75.88% (`draw-6000`, 90.30 of
+      119; `draw-5564` 77.12% as sensitivity; the one-frame runs read
+      75.25–77.89%, cross-checks only). The replay-only pieces join F1
+      (item 3).
+    - H-11-6, the meter's frame end (0.13 a frame, 1.6% of submit) is
+      outside step 8's no-meter delta: B1 carries no submit gain; the 0.13
+      is named in B1's entry, not counted.
+    - H-11-7, nothing the estimate uses changed after step 11: the
+      pre-check above (`HEAD` = `4306e41`).
+    - H-11-8, `DrawSync` (0.04–0.05 a frame, never waits): no figure; the
+      verdict says GPU-side cost is invisible to the judge.
+    - H-11-9, opening paragraph: rewritten in chunk 4.
+12. **The timing-model label** (plan 594; report "The `-Os` caveat").
+    *Rule:* "The timing-model label" of the PRD: the Risk field of every
+    lever whose gain comes from, or whose cost includes, code size or
+    layout, trading instructions for memory traffic or larger tables, or
+    GPU-side work the judge does not charge, opens with "Timing model:
+    rests on pcsx-redux charging no instruction-cache miss or data wait";
+    the verdict carries one sentence on it. *Figure:* no estimate figure
+    changes (the label qualifies gains, it does not cut them); the labelled
+    entries (at least G2 and G3) and the sentence: pending chunk 4.
+13. **Gain-table rules beyond the seed items** (the sweep's own; recorded
+    so every row is traceable):
+    - Draw rows: window bound or measured delta ÷ the run's window draw
+      (`start` 465, `draw-5564` 19491, `draw-6000` 13987; per-frame bounds
+      over 465, 1299.4 and 932.5); `title` and `start` take the `start`
+      run; in game, each row carries both draw runs' gains (one as its
+      value, the other in its comment), and the estimate is computed once
+      per draw run with that run's whole lever set, the less favourable
+      run being the headline. A per-lever minimum across the two runs was
+      tried and rejected: it gives a draw cut of 28.0% measured and 72.3%
+      estimated, below step 9's run-level `step7+8` 80.7%, because it
+      drops the message box (D3, none on `draw-6000`) and most of the
+      button rows (D2) together, mixing two screens.
+    - Groups added to step 9's: `map` (D5 against B3, B3 at removed calls ×
+      0.45, the low end); `offscreen` (D11 + D12 + D15 against B2, whose
+      off-screen `pset`, `line` and `rectfill` calls they hold);
+      `layerlists` (L1 against L2, which L1 covers); L3 (≤ 1 a frame) its
+      own group. B2 has no `start` figure (0 there).
+    - Rows at 0, listed after the ranking with why: D7 (covered by D2, D6,
+      D3), D14 (no pixel-keeping candidate), L4 (planets replaced by D9;
+      the slipways' and ascension's off-screen fraction not measured),
+      B5–B8 (not separable; their loose ceilings stay in their entries),
+      O4 (item 9).
+    - Spreading rows: `S` on every class, U7 (C6) and U8 (C19), U5 on C1–C3,
+      C8–C12, C14–C18 at the class's PSX median save share (C12's is 0.0%).
+      *Figure:* the table's rows themselves; the estimate: pending chunk 3.
+
 ## Short-run baseline (asserts off)
 
 Measured on commit `473bdccfdb35829420f7e12ed6d1c2cc5a678ee3` (pcsx-redux,

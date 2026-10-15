@@ -53,3 +53,7 @@
     - [x] Chunk 4: submit breakdown and global levers
 - [ ] Phase 5 — Report
   - [ ] 5.12 Finish docs/psx-perf-levers.md
+    - [x] Chunk 1: pre-checks, checklist, companions, gain table
+    - [ ] Chunk 2: the estimate tool, test-first, with the known-answer check
+    - [ ] Chunk 3: the bracket
+    - [ ] Chunk 4: entries, ranking, verdict, stop condition

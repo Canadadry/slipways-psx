@@ -1,0 +1,278 @@
+# Lever-gain table of docs/psx-perf-levers.md (plan 20, step 12): the one
+# input of the per-frame estimate besides the judge table
+# (docs/psx-perf-levers-full-run-frames.txt) and the step 9 spike frames
+# (docs/psx-perf-levers-spike-frames.txt). Part of the report, deleted with it.
+#
+# Rows, whitespace-separated, "#" to the end of a line is a comment:
+#   budget <hblanks>
+#   range <name> <first>-<last>
+#   class <label> <spikes path>
+#   override <frame> <path> <share%>
+#   ratio <default|class label> <child>=<rho>[,...]
+#   lever <id> <measured|estimated> <draw|update|submit> <work|per-call|scale> <group>/<alt> <scope> <gain%|abs:<hblanks>>
+#   spread <id> <kind> <class label|*> responsible|responsible+save:<share%>
+# Scopes: all, in-game (every frame outside the ranges), ordinary (not a
+# spike frame), class:<label>, class:*, range:<name>; for one lever on one
+# frame the most specific scope wins: range > class > ordinary > in-game > all.
+# A gain% is relative to its part on that frame.
+#
+# Composition, per frame and part: inside a layer, rows summed within an
+# alt, the largest alt of a group taken, groups summed, capped at 100;
+# across layers part' = part x (1 - work)(1 - per-call)(1 - scale), rounded
+# half up. The measured end reads measured rows only, the estimated end
+# every row. Spreading is a permission, allowed in both ends.
+#
+# Draw rows: window bound or measured delta / the run's window draw (probe
+# baseline: start 465, draw-5564 19491, draw-6000 13987; per-frame bounds
+# over 465, 1299.4 and 932.5). range:title and range:start take the start
+# run; in-game takes the smaller of draw-5564 and draw-6000 for each lever,
+# the larger is written as "sensitivity" in the row's comment.
+
+budget 263                       # plan 20 section 2: every frame in 263 hblanks
+
+range title 0-11                 # title frames, covered by the start run
+range start 12-12                # galaxy start, start run's window frame
+
+# Step 9's classes ("Update spikes", "Classification"), one row each.
+class C1   cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop
+class C2   cart_update60/ui_update
+class C3   cart_update60/ui_update/ui_handle_button
+class C4   cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute
+class C5   cart_update60/save_at_frame_end
+class C6   cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/cart_start_game/galaxy_populate/entity_geom_nearest/nearest_step
+class C7   cart_update60/save_at_frame_end/save_state_encode
+class C8   cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1
+class C9   cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock
+class C10  cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project
+class C11  cart_update60/ui_update/ui_handle_button/slipway_drop_method
+class C12  cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute
+class C13  cart_update60
+class C14  cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method
+class C15  cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/galaxy_menu_button1_on_click_method/economy_new_year/economy_recompute
+class C16  cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press
+class C17  cart_update60/ui_update/ui_handle_button/targeting_confirm_method/targeting_confirm/economy_advance_clock/economy_recompute
+class C18  cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/galaxy_menu_button1_on_click_method/economy_new_year
+class C19  cart_update60/update_entities
+
+# C13 on the PSX ("Fallback: C13 on the full run"): the save holds 50.3 /
+# 58.4 / 59.8% of update; checklist item 4. The frames keep the label C13.
+override 113 cart_update60/save_at_frame_end 50.3   # "Fallback", frame 113 save 374 of 744
+override 825 cart_update60/save_at_frame_end 58.4   # "Fallback", frame 825 save 373 of 639
+override 901 cart_update60/save_at_frame_end 59.8   # "Fallback", frame 901 save 372 of 623
+
+# Per-class ratios, checklist item 4: the fallback table's median rho for the
+# class's cart_update60 child ("Fallback", "the calibration over every spike
+# frame"), in place of step 9's two-frame 0.96 / 1.11 (which stay in the
+# known-answer fixtures only). No default row: every class has its own.
+ratio C1  ui_update=0.92            # "Fallback" per-class table, C1 median
+ratio C2  ui_update=0.82            # C2 median
+ratio C3  ui_update=0.84            # C3 median
+ratio C4  ui_update=1.01            # C4 median
+ratio C5  save_at_frame_end=0.97    # C5 median
+ratio C6  ui_update=1.00            # C6
+ratio C7  save_at_frame_end=0.95    # C7 median
+ratio C8  ui_update=0.87            # C8 median
+ratio C9  ui_update=0.91            # C9 median
+ratio C10 ui_update=0.88            # C10 median
+ratio C11 ui_update=0.82            # C11 median
+ratio C12 ui_update=0.83            # C12 median
+ratio C13 save_at_frame_end=1       # measured path and shares, no ratio (step 9's C13 re-spread)
+ratio C14 ui_update=0.86            # C14 median
+ratio C15 ui_update=0.94            # C15 median
+ratio C16 ui_update=0.81            # C16 median
+ratio C17 ui_update=0.89            # C17
+ratio C18 ui_update=0.88            # C18
+ratio C19 update_entities=1         # no ratio measured ("uncalibrated")
+
+# ---- Draw levers. Groups: text (alternatives D1/B4 against D2+D3+D4), map
+# (D5 against B3), offscreen (D11+D12+D15 against B2), layerlists (L1 against
+# L2); every other draw lever is its own group. B1 (the meter) and F1 (the
+# draw filter) are per-call: they apply to what the work layer leaves
+# (checklist items 1 to 3).
+# D1/B4: measured one-print delta (step 8); the outlined font's upper bound. Step 7's tree bound for candidate 1 (0 / 7819 / 1410) is not a row.
+lever D1/B4 measured  draw   work     text/D1        range:title  13.76  # "Backend: per-unit costs" one-print, start 64 / 465
+lever D1/B4 measured  draw   work     text/D1        range:start  13.76  # "Backend: per-unit costs" one-print, start 64 / 465
+lever D1/B4 measured  draw   work     text/D1        in-game      10.95  # "Backend: per-unit costs" one-print, draw-6000 1532 / 13987; sensitivity draw-5564 8134 / 19491 = 41.73
+# D2: button rows plus the tooltip, 4268+421 on draw-5564, 607+124 on draw-6000; no text above 2% on start.
+lever D2    estimated draw   work     text/D234      range:title   0.00  # "Draw tree" candidate 2, start 0 / 465
+lever D2    estimated draw   work     text/D234      range:start   0.00  # "Draw tree" candidate 2, start 0 / 465
+lever D2    estimated draw   work     text/D234      in-game       5.23  # "Draw tree" candidate 2, draw-6000 731 / 13987; sensitivity draw-5564 4689 / 19491 = 24.06
+# D3: the open message box; no box open on draw-6000 or start.
+lever D3    estimated draw   work     text/D234      range:title   0.00  # "Draw tree" candidate 3, start 0 / 465
+lever D3    estimated draw   work     text/D234      range:start   0.00  # "Draw tree" candidate 3, start 0 / 465
+lever D3    estimated draw   work     text/D234      in-game       0.00  # "Draw tree" candidate 3, draw-6000 0 / 13987; sensitivity draw-5564 4017 / 19491 = 20.61
+# D4: score readouts with their formatting, 1145+51 and 1144+41.
+lever D4    estimated draw   work     text/D234      range:title   0.00  # "Draw tree" candidate 4, start 0 / 465
+lever D4    estimated draw   work     text/D234      range:start   0.00  # "Draw tree" candidate 4, start 0 / 465
+lever D4    estimated draw   work     text/D234      in-game       6.14  # "Draw tree" candidate 4, draw-5564 1196 / 19491; sensitivity draw-6000 1185 / 13987 = 8.47
+# D5: the pre-built background removes all of p8_map.
+lever D5    estimated draw   work     map/D5         range:title  51.83  # "Draw tree" candidate 5, start 241 / 465
+lever D5    estimated draw   work     map/D5         range:start  51.83  # "Draw tree" candidate 5, start 241 / 465
+lever D5    estimated draw   work     map/D5         in-game      17.03  # "Draw tree" candidate 5, draw-5564 3319 / 19491; sensitivity draw-6000 3354 / 13987 = 23.98
+# B3: map cells off screen, removed calls x 0.45 (the low end of 0.45-0.49); start 274 calls; an alternative to D5.
+lever B3    estimated draw   work     map/B3         range:title  26.52  # "Backend: per-unit costs" candidate 3, start 123.3 / 465
+lever B3    estimated draw   work     map/B3         range:start  26.52  # "Backend: per-unit costs" candidate 3, start 123.3 / 465
+lever B3    estimated draw   work     map/B3         in-game      11.49  # "Backend: per-unit costs" candidate 3, draw-5564 2240 / 19491; sensitivity draw-6000 2193 / 13987 = 15.68
+# D6: planet row icons.
+lever D6    estimated draw   work     rowicons/D6    range:title   0.00  # "Draw tree" candidate 6, start 0 / 465
+lever D6    estimated draw   work     rowicons/D6    range:start   0.00  # "Draw tree" candidate 6, start 0 / 465
+lever D6    estimated draw   work     rowicons/D6    in-game       4.26  # "Draw tree" candidate 6, draw-5564 830 / 19491; sensitivity draw-6000 1212 / 13987 = 8.67
+# D8: disc and ring baked into the planet sprite, 758+472 on draw-6000.
+lever D8    estimated draw   work     discs/D8       range:title   0.00  # "Draw tree" candidate 8, start 0 / 465
+lever D8    estimated draw   work     discs/D8       range:start   0.00  # "Draw tree" candidate 8, start 0 / 465
+lever D8    estimated draw   work     discs/D8       in-game       4.74  # "Draw tree" candidate 8, draw-5564 924 / 19491; sensitivity draw-6000 1230 / 13987 = 8.79
+# D9: dispatch and on-screen test of culled planets (replaces L4 for planets).
+lever D9    estimated draw   work     dispatch/D9    range:title   0.00  # "Draw tree" candidate 9, start 0 / 465
+lever D9    estimated draw   work     dispatch/D9    range:start   0.00  # "Draw tree" candidate 9, start 0 / 465
+lever D9    estimated draw   work     dispatch/D9    in-game       0.74  # "Draw tree" candidate 9, draw-5564 144 / 19491; sensitivity draw-6000 150 / 13987 = 1.07
+# D10: slipway end points computed once.
+lever D10   estimated draw   work     endpoints/D10  range:title   0.00  # "Draw tree" candidate 10, start 0 / 465
+lever D10   estimated draw   work     endpoints/D10  range:start   0.00  # "Draw tree" candidate 10, start 0 / 465
+lever D10   estimated draw   work     endpoints/D10  in-game       1.06  # "Draw tree" candidate 10, draw-5564 207 / 19491; sensitivity draw-6000 183 / 13987 = 1.31
+# D11: batched variant (3/4 of p8_line).
+lever D11   estimated draw   work     offscreen/D11  range:title   0.00  # "Draw tree" candidate 11, start 0 / 465
+lever D11   estimated draw   work     offscreen/D11  range:start   0.00  # "Draw tree" candidate 11, start 0 / 465
+lever D11   estimated draw   work     offscreen/D11  in-game       2.77  # "Draw tree" candidate 11, draw-5564 539 / 19491; sensitivity draw-6000 756 / 13987 = 5.41
+# D12: transit dots, 554+353 on draw-6000.
+lever D12   estimated draw   work     offscreen/D11  range:title   0.00  # "Draw tree" candidate 12, start 0 / 465
+lever D12   estimated draw   work     offscreen/D11  range:start   0.00  # "Draw tree" candidate 12, start 0 / 465
+lever D12   estimated draw   work     offscreen/D11  in-game       1.80  # "Draw tree" candidate 12, draw-5564 351 / 19491; sensitivity draw-6000 907 / 13987 = 6.48
+# D15: particles, 293+241 on draw-5564.
+lever D15   estimated draw   work     offscreen/D11  range:title   0.00  # "Draw tree" candidate 15, start 0 / 465
+lever D15   estimated draw   work     offscreen/D11  range:start   0.00  # "Draw tree" candidate 15, start 0 / 465
+lever D15   estimated draw   work     offscreen/D11  in-game       2.74  # "Draw tree" candidate 15, draw-5564 534 / 19491; sensitivity draw-6000 724 / 13987 = 5.18
+# B2: off-screen pset, line, rectfill and spr calls outside the map; no start figure; an alternative to D11+D12+D15, whose calls it holds.
+lever B2    estimated draw   work     offscreen/B2   range:title   0.00  # "Backend: per-unit costs" candidate 2, start 0 / 465
+lever B2    estimated draw   work     offscreen/B2   range:start   0.00  # "Backend: per-unit costs" candidate 2, start 0 / 465
+lever B2    estimated draw   work     offscreen/B2   in-game       1.91  # "Backend: per-unit costs" candidate 2, draw-5564 373 / 19491; sensitivity draw-6000 1129 / 13987 = 8.07
+# D13: planet visibility retested by each slipway.
+lever D13   estimated draw   work     visibility/D13 range:title   0.00  # "Draw tree" candidate 13, start 0 / 465
+lever D13   estimated draw   work     visibility/D13 range:start   0.00  # "Draw tree" candidate 13, start 0 / 465
+lever D13   estimated draw   work     visibility/D13 in-game       0.65  # "Draw tree" candidate 13, draw-5564 126 / 19491; sensitivity draw-6000 123 / 13987 = 0.88
+# L1: a frame: start 17+6, draw-5564 137 (#1) + 16 (#2), draw-6000 95.
+lever L1    estimated draw   work     layerlists/L1  range:title   4.95  # "Draw tree" draw_layers candidate 1, start 23 a frame / 465.0
+lever L1    estimated draw   work     layerlists/L1  range:start   4.95  # "Draw tree" draw_layers candidate 1, start 23 a frame / 465.0
+lever L1    estimated draw   work     layerlists/L1  in-game      10.19  # "Draw tree" draw_layers candidate 1, draw-6000 95 a frame / 932.5; sensitivity draw-5564 153 a frame / 1299.4 = 11.77
+# L2: a frame: 16 on draw-5564, <= 2 elsewhere; covered by L1.
+lever L2    estimated draw   work     layerlists/L2  range:title   0.43  # "Draw tree" draw_layers candidate 2, start 2 a frame / 465.0
+lever L2    estimated draw   work     layerlists/L2  range:start   0.43  # "Draw tree" draw_layers candidate 2, start 2 a frame / 465.0
+lever L2    estimated draw   work     layerlists/L2  in-game       0.21  # "Draw tree" draw_layers candidate 2, draw-6000 2 a frame / 932.5; sensitivity draw-5564 16 a frame / 1299.4 = 1.23
+# L3: <= 1 a frame, PC-derived.
+lever L3    estimated draw   work     camera/L3      range:title   0.22  # "Draw tree" draw_layers candidate 3, start 1 a frame / 465.0
+lever L3    estimated draw   work     camera/L3      range:start   0.22  # "Draw tree" draw_layers candidate 3, start 1 a frame / 465.0
+lever L3    estimated draw   work     camera/L3      in-game       0.08  # "Draw tree" draw_layers candidate 3, draw-5564 1 a frame / 1299.4; sensitivity draw-6000 1 a frame / 932.5 = 0.11
+# B1: measured no-meter delta (step 8).
+lever B1    measured  draw   per-call meter/B1       range:title  26.67  # "Backend: per-unit costs" no-meter, start 124 / 465
+lever B1    measured  draw   per-call meter/B1       range:start  26.67  # "Backend: per-unit costs" no-meter, start 124 / 465
+lever B1    measured  draw   per-call meter/B1       in-game      16.26  # "Backend: per-unit costs" no-meter, draw-5564 3170 / 19491; sensitivity draw-6000 2977 / 13987 = 21.28
+# F1: checklist item 3: step 8's no-meter delta per run as the filter's upper bound.
+lever F1    estimated draw   per-call filter/F1      range:title  26.67  # "Backend: per-unit costs" draw-filter finding, start 124 / 465
+lever F1    estimated draw   per-call filter/F1      range:start  26.67  # "Backend: per-unit costs" draw-filter finding, start 124 / 465
+lever F1    estimated draw   per-call filter/F1      in-game      16.26  # "Backend: per-unit costs" draw-filter finding, draw-5564 3170 / 19491; sensitivity draw-6000 2977 / 13987 = 21.28
+
+# Draw levers at 0, listed after the ranking with why.
+lever D7    estimated draw   work     palette/D7     all           0  # "Draw tree" candidate 7: dropped, its rows are paths 1, 3, 5, covered by D2, D6, D3 (step 9's rule)
+lever D14   estimated draw   work     emitter/D14    all           0  # "Draw tree" candidate 14: no candidate that keeps pixels
+lever L4    estimated draw   work     dispatch/L4    all           0  # "Draw tree" draw_layers candidate 4: planets replaced by D9; slipways' and ascension's off-screen fraction not measured
+lever B5    estimated draw   work     glyph/B5       all           0  # "Backend: per-unit costs" candidate 5: not separable, inside print's 9218 / 1740
+lever B6    estimated draw   work     clut/B6        all           0  # "Backend: per-unit costs" candidate 6: not separable, loose ceiling 1102-1389 / 1183-1490
+lever B7    estimated draw   work     vramlookup/B7  all           0  # "Backend: per-unit costs" candidate 7: not separable
+lever B8    estimated draw   work     midpoint/B8    all           0  # "Backend: per-unit costs" candidate 8: not separable, ceiling 1036 / 1359
+
+# ---- Update, ordinary frames ("Ordinary update", "Do-less candidates"):
+# share of the ordinary population's mean update 78.3 (step 10's ratios).
+# Groups (checklist item 9): padpanel, O1 against O2; hover, O3+O5 against O4.
+# On class frames (checklist item 7) the same levers are absolute hblanks a
+# frame, taken off the update outside the class's spreadable work.
+lever O1    estimated update work     padpanel/O1    ordinary  36.02  # "Ordinary update" O1, 28.2 / 78.3 (36.0%)
+lever O1    estimated update work     padpanel/O1    class:*   abs:28.2  # O1, 28.2 a frame on the ordinary population
+lever O2    estimated update work     padpanel/O2    ordinary  31.93  # "Ordinary update" O2, 25.0 / 78.3 (31.9%)
+lever O2    estimated update work     padpanel/O2    class:*   abs:25.0  # O2, 25.0 a frame
+lever O3    estimated update work     hover/O3O5     ordinary  18.39  # "Ordinary update" O3, 14.4 / 78.3 (16.7 less its 16% overstatement)
+lever O3    estimated update work     hover/O3O5     class:*   abs:14.4  # O3, 14.4 a frame
+lever O5    estimated update work     hover/O3O5     ordinary   2.17  # "Ordinary update" O5, 1.7 / 78.3 (2.2%)
+lever O5    estimated update work     hover/O3O5     class:*   abs:1.7   # O5, 1.7 a frame
+lever O4    estimated update work     hover/O4       ordinary      0  # "Ordinary update" O4: share of unchanged frames not measured
+lever O4    estimated update work     hover/O4       class:*   abs:0     # O4, as above
+
+# ---- Update, class frames ("Update spikes", "Do-less candidates"; checklist
+# item 8): the candidate's judge bound over the class's frames / the
+# class's summed judge update ("Classification": slipway C1+C11 48254,
+# wormhole C4 11728, save C5+C7 16890, project C9+C10+C12 9522, year skip
+# C15+C18 2347, structure C17 1130, shallow C2+C3+C8+C14+C16 34568, C13 2006,
+# C6 8980). A bound given for a group of classes applies to each of them.
+# Groups: U1 alone; recompute, U2 against U3 (U2 is inside U3 on C4); crc U4
+# at 7/8 of its bound (a 256-entry table keeps about 1/8); U6 at "about half".
+lever U1    estimated update work     u1/U1          class:C1  27.93  # "Update spikes" U1, 13479 / 48254
+lever U1    estimated update work     u1/U1          class:C11 27.93  # U1, 13479 / 48254
+lever U2    estimated update work     recompute/U2   class:C1  23.62  # "Update spikes" U2 slipway, 11398 / 48254
+lever U2    estimated update work     recompute/U2   class:C11 23.62  # U2 slipway, 11398 / 48254
+lever U2    estimated update work     recompute/U2   class:C4  32.49  # U2 wormhole, 3811 / 11728
+lever U2    estimated update work     recompute/U2   class:C9  20.07  # U2 project, 1911 / 9522
+lever U2    estimated update work     recompute/U2   class:C10 20.07  # U2 project, 1911 / 9522
+lever U2    estimated update work     recompute/U2   class:C12 20.07  # U2 project, 1911 / 9522
+lever U2    estimated update work     recompute/U2   class:C15 23.56  # U2 year skip, 553 / 2347
+lever U2    estimated update work     recompute/U2   class:C18 23.56  # U2 year skip, 553 / 2347
+lever U2    estimated update work     recompute/U2   class:C17 17.88  # U2 structure, 202 / 1130
+lever U2    estimated update work     recompute/U2   class:C2  18.49  # U2 shallow, 6392 / 34568
+lever U2    estimated update work     recompute/U2   class:C3  18.49  # U2 shallow, 6392 / 34568
+lever U2    estimated update work     recompute/U2   class:C8  18.49  # U2 shallow, 6392 / 34568
+lever U2    estimated update work     recompute/U2   class:C14 18.49  # U2 shallow, 6392 / 34568
+lever U2    estimated update work     recompute/U2   class:C16 18.49  # U2 shallow, 6392 / 34568
+lever U2    estimated update work     recompute/U2   class:C13 15.40  # U2 C13 (event branch), 309 / 2006
+lever U3    estimated update work     recompute/U3   class:C4  92.86  # "Update spikes" U3, 10891 / 11728
+lever U4    estimated update work     crc/U4         class:C5  18.43  # "Update spikes" U4 save, 3557 x 7/8 / 16890
+lever U4    estimated update work     crc/U4         class:C7  18.43  # U4 save, 3557 x 7/8 / 16890
+lever U4    estimated update work     crc/U4         class:C1   6.27  # U4 slipway, 3459 x 7/8 / 48254
+lever U4    estimated update work     crc/U4         class:C11  6.27  # U4 slipway, 3459 x 7/8 / 48254
+lever U4    estimated update work     crc/U4         class:C2   9.34  # U4 shallow, 3688 x 7/8 / 34568
+lever U4    estimated update work     crc/U4         class:C3   9.34  # U4 shallow, 3688 x 7/8 / 34568
+lever U4    estimated update work     crc/U4         class:C8   9.34  # U4 shallow, 3688 x 7/8 / 34568
+lever U4    estimated update work     crc/U4         class:C14  9.34  # U4 shallow, 3688 x 7/8 / 34568
+lever U4    estimated update work     crc/U4         class:C16  9.34  # U4 shallow, 3688 x 7/8 / 34568
+lever U4    estimated update work     crc/U4         class:C9   5.32  # U4 project, 579 x 7/8 / 9522
+lever U4    estimated update work     crc/U4         class:C10  5.32  # U4 project, 579 x 7/8 / 9522
+lever U4    estimated update work     crc/U4         class:C12  5.32  # U4 project, 579 x 7/8 / 9522
+lever U4    estimated update work     crc/U4         class:C13  9.06  # U4 others (C13, C15, C17, C18 by elimination), 568 x 7/8 / 5483
+lever U4    estimated update work     crc/U4         class:C15  9.06  # U4 others, 568 x 7/8 / 5483
+lever U4    estimated update work     crc/U4         class:C17  9.06  # U4 others, 568 x 7/8 / 5483
+lever U4    estimated update work     crc/U4         class:C18  9.06  # U4 others, 568 x 7/8 / 5483
+lever U6    estimated update work     u6/U6          class:C6  44.32  # "Update spikes" U6, about half 3980 / 8980 (not the 7963 ceiling)
+
+# ---- Submit ("Global levers", "Submit split"): share of the frame timer's
+# submit in the submit-spans probe.
+lever G4    estimated submit work     upload/G4      range:title 71.71  # "Submit split" upload, start 5.02 / 7
+lever G4    estimated submit work     upload/G4      range:start 71.71  # "Submit split" upload, start 5.02 / 7
+lever G4    estimated submit work     upload/G4      in-game     75.88  # "Submit split" upload, draw-6000 90.30 / 119; sensitivity draw-5564 100.25 / 130 = 77.12
+lever F1    estimated submit work     filter/F1      range:title  1.71  # "Submit split" replay-only filter+breakdown+capture, start 0.12 / 7
+lever F1    estimated submit work     filter/F1      range:start  1.71  # "Submit split" replay-only pieces, start 0.12 / 7
+lever F1    estimated submit work     filter/F1      in-game      1.36  # "Submit split" replay-only pieces, draw-5564 1.77 / 130; sensitivity draw-6000 1.78 / 119 = 1.50
+
+# ---- Global ("Global levers", H-11-4): G2 -O3, measured, pooled over the six
+# runs. Sensitivity, the worst run per part: update 5.6 (draw-5564), draw 3.2
+# (update-5719), submit 0.0 (no change on update-4737 and update-5500).
+# G1 (asserts off: already in the judge table) and G3 (-Os: slower) have no row.
+lever G2    measured  update scale    optlevel/G2    all       13.8  # "Global levers" o3 pooled update -1624 / 11803
+lever G2    measured  draw   scale    optlevel/G2    all        3.4  # "Global levers" o3 pooled draw -1224 / 36438
+lever G2    measured  submit scale    optlevel/G2    all        3.1  # "Global levers" o3 pooled submit -8 / 255
+
+# ---- Spreading ("Update spikes", "Spreading"): permissions, not gains.
+spread S    estimated *   responsible                  # every class's spread candidate
+spread U7   estimated C6  responsible                  # "Update spikes" U7, galaxy generation spread
+spread U8   estimated C19 responsible                  # "Update spikes" U8, update_entities spread
+# U5, the save one frame later: the save's portion at the class's PSX
+# median save share ("Fallback" per-class table). C13 has no row: under its
+# override the responsible work already is the save. C5 and C7 are the save.
+spread U5   estimated C1  responsible+save:35.2        # PSX save median, C1
+spread U5   estimated C2  responsible+save:54.8        # C2
+spread U5   estimated C3  responsible+save:52.8        # C3
+spread U5   estimated C8  responsible+save:52.1        # C8
+spread U5   estimated C9  responsible+save:35.4        # C9
+spread U5   estimated C10 responsible+save:41.9        # C10
+spread U5   estimated C11 responsible+save:46.3        # C11
+spread U5   estimated C12 responsible+save:0.0         # C12 (median save 0.0%)
+spread U5   estimated C14 responsible+save:49.9        # C14
+spread U5   estimated C15 responsible+save:25.5        # C15
+spread U5   estimated C16 responsible+save:53.1        # C16
+spread U5   estimated C17 responsible+save:44.0        # C17
+spread U5   estimated C18 responsible+save:51.9        # C18

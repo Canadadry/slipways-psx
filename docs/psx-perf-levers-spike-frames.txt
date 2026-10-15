@@ -1,0 +1,186 @@
+frame 12 update 8980 pc-update-ns 6635688 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/cart_start_game/galaxy_populate/entity_geom_nearest/nearest_step share 106.4% multi-site
+frame 58 update 612 pc-update-ns 336531 path cart_update60/save_at_frame_end share 58.4%
+frame 91 update 266 pc-update-ns 58719 path cart_update60/update_entities share 72.6%
+frame 113 update 744 pc-update-ns 312817 path cart_update60 share 100.0% unsettled
+frame 145 update 638 pc-update-ns 306481 path cart_update60/ui_update share 52.3%
+frame 159 update 888 pc-update-ns 451304 path cart_update60/ui_update/ui_handle_button share 61.0%
+frame 229 update 560 pc-update-ns 278844 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock share 86.2% multi-site
+frame 230 update 556 pc-update-ns 173406 path cart_update60/save_at_frame_end share 73.4%
+frame 245 update 862 pc-update-ns 399447 path cart_update60/ui_update/ui_handle_button/slipway_drop_method share 52.4%
+frame 259 update 871 pc-update-ns 405278 path cart_update60/ui_update/ui_handle_button/slipway_drop_method share 56.7%
+frame 320 update 266 pc-update-ns 153113 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 73.9%
+frame 347 update 522 pc-update-ns 175075 path cart_update60/save_at_frame_end/save_state_encode share 53.2%
+frame 352 update 652 pc-update-ns 296915 path cart_update60/ui_update share 54.4%
+frame 383 update 918 pc-update-ns 403284 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 59.6%
+frame 433 update 277 pc-update-ns 143508 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 81.7%
+frame 456 update 402 pc-update-ns 186810 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute share 70.5% multi-site
+frame 461 update 634 pc-update-ns 192067 path cart_update60/save_at_frame_end share 72.5%
+frame 512 update 1167 pc-update-ns 520923 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 69.3%
+frame 553 update 291 pc-update-ns 170731 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 71.8%
+frame 582 update 554 pc-update-ns 167485 path cart_update60/save_at_frame_end/save_state_encode share 51.1%
+frame 604 update 290 pc-update-ns 170555 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 71.5%
+frame 632 update 548 pc-update-ns 170632 path cart_update60/save_at_frame_end/save_state_encode share 54.5%
+frame 658 update 289 pc-update-ns 167393 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 69.6%
+frame 685 update 543 pc-update-ns 160087 path cart_update60/save_at_frame_end/save_state_encode share 58.1%
+frame 710 update 288 pc-update-ns 149972 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 76.6%
+frame 737 update 537 pc-update-ns 160111 path cart_update60/save_at_frame_end/save_state_encode share 57.6%
+frame 741 update 640 pc-update-ns 252343 path cart_update60/ui_update share 53.6%
+frame 825 update 639 pc-update-ns 294902 path cart_update60 share 100.0% unsettled
+frame 901 update 623 pc-update-ns 294091 path cart_update60 share 100.0% unsettled
+frame 951 update 285 pc-update-ns 161132 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 75.7%
+frame 978 update 536 pc-update-ns 178626 path cart_update60/save_at_frame_end share 80.2%
+frame 996 update 285 pc-update-ns 153929 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 74.5%
+frame 1024 update 533 pc-update-ns 164113 path cart_update60/save_at_frame_end/save_state_encode share 55.4%
+frame 1043 update 286 pc-update-ns 160416 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 73.8%
+frame 1071 update 528 pc-update-ns 174730 path cart_update60/save_at_frame_end/save_state_encode share 52.5%
+frame 1098 update 283 pc-update-ns 168536 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 73.5%
+frame 1125 update 523 pc-update-ns 151509 path cart_update60/save_at_frame_end/save_state_encode share 54.1%
+frame 1145 update 281 pc-update-ns 135283 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 86.5%
+frame 1165 update 393 pc-update-ns 184113 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute share 79.9% multi-site
+frame 1173 update 530 pc-update-ns 170333 path cart_update60/save_at_frame_end share 80.3%
+frame 1226 update 675 pc-update-ns 293676 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press share 53.5% multi-site
+frame 1244 update 1189 pc-update-ns 542582 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 63.4%
+frame 1258 update 919 pc-update-ns 381203 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 53.7%
+frame 1320 update 298 pc-update-ns 164853 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 75.5%
+frame 1347 update 507 pc-update-ns 179074 path cart_update60/save_at_frame_end/save_state_encode share 51.9%
+frame 1349 update 701 pc-update-ns 296735 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute share 51.2% multi-site
+frame 1386 update 998 pc-update-ns 492820 path cart_update60/ui_update/ui_handle_button/slipway_drop_method share 53.0%
+frame 1413 update 719 pc-update-ns 336507 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 50.5% multi-site
+frame 1449 update 1021 pc-update-ns 488130 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 56.1%
+frame 1486 update 686 pc-update-ns 309077 path cart_update60/ui_update/ui_handle_button share 53.9%
+frame 1568 update 312 pc-update-ns 178921 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 70.9%
+frame 1595 update 531 pc-update-ns 176885 path cart_update60/save_at_frame_end share 82.2%
+frame 1620 update 320 pc-update-ns 162657 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 79.7%
+frame 1661 update 315 pc-update-ns 176476 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 74.6%
+frame 1684 update 424 pc-update-ns 203338 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute share 84.1% multi-site
+frame 1689 update 595 pc-update-ns 200702 path cart_update60/save_at_frame_end share 74.2%
+frame 1751 update 1028 pc-update-ns 478811 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 55.2%
+frame 1786 update 681 pc-update-ns 309337 path cart_update60/ui_update share 52.3%
+frame 1860 update 965 pc-update-ns 463685 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 51.8%
+frame 1928 update 326 pc-update-ns 184908 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 77.3%
+frame 1955 update 521 pc-update-ns 169030 path cart_update60/save_at_frame_end/save_state_encode share 54.6%
+frame 1977 update 327 pc-update-ns 182384 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 71.8%
+frame 2005 update 485 pc-update-ns 174211 path cart_update60/save_at_frame_end share 82.0%
+frame 2006 update 726 pc-update-ns 323310 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method share 53.9% multi-site
+frame 2074 update 1047 pc-update-ns 537358 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 53.5%
+frame 2108 update 755 pc-update-ns 352650 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press share 51.5% multi-site
+frame 2147 update 1029 pc-update-ns 525461 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock share 61.7% multi-site
+frame 2176 update 1095 pc-update-ns 521936 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 60.6%
+frame 2190 update 1026 pc-update-ns 466941 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 52.9%
+frame 2228 update 730 pc-update-ns 334273 path cart_update60/ui_update/ui_handle_button share 54.4%
+frame 2260 update 733 pc-update-ns 304899 path cart_update60/ui_update/ui_handle_button share 52.6%
+frame 2312 update 718 pc-update-ns 341377 path cart_update60/ui_update share 52.3%
+frame 2358 update 746 pc-update-ns 348766 path cart_update60/ui_update/ui_handle_button share 54.0%
+frame 2365 update 1076 pc-update-ns 462315 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 59.1%
+frame 2377 update 1175 pc-update-ns 563436 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 55.4%
+frame 2395 update 1173 pc-update-ns 511664 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 60.4%
+frame 2414 update 824 pc-update-ns 360666 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 51.9% multi-site
+frame 2434 update 1193 pc-update-ns 564533 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 61.0%
+frame 2471 update 781 pc-update-ns 322827 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 54.1% multi-site
+frame 2558 update 382 pc-update-ns 204339 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 81.7%
+frame 2585 update 549 pc-update-ns 184233 path cart_update60/save_at_frame_end/save_state_encode share 52.4%
+frame 2642 update 380 pc-update-ns 207409 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 78.2%
+frame 2669 update 540 pc-update-ns 176239 path cart_update60/save_at_frame_end/save_state_encode share 54.2%
+frame 2715 update 382 pc-update-ns 211374 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 77.0%
+frame 2742 update 530 pc-update-ns 190630 path cart_update60/save_at_frame_end share 84.5%
+frame 2771 update 375 pc-update-ns 183573 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 83.2%
+frame 2798 update 524 pc-update-ns 185327 path cart_update60/save_at_frame_end/save_state_encode share 50.0%
+frame 2802 update 747 pc-update-ns 341803 path cart_update60/ui_update share 54.0%
+frame 2924 update 732 pc-update-ns 316791 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 51.9% multi-site
+frame 2980 update 748 pc-update-ns 368412 path cart_update60/ui_update share 53.7%
+frame 3022 update 372 pc-update-ns 189150 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 78.3%
+frame 3050 update 523 pc-update-ns 185569 path cart_update60/save_at_frame_end share 84.3%
+frame 3053 update 746 pc-update-ns 322648 path cart_update60/ui_update/ui_handle_button share 51.3%
+frame 3150 update 744 pc-update-ns 363918 path cart_update60/ui_update share 54.2%
+frame 3224 update 762 pc-update-ns 384228 path cart_update60/ui_update share 54.1%
+frame 3231 update 1095 pc-update-ns 475769 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 56.1%
+frame 3243 update 1197 pc-update-ns 520021 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 59.9%
+frame 3265 update 844 pc-update-ns 380669 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock share 51.1% multi-site
+frame 3275 update 1331 pc-update-ns 564961 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 68.3%
+frame 3303 update 871 pc-update-ns 401871 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 50.5% multi-site
+frame 3313 update 1589 pc-update-ns 729823 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 64.9%
+frame 3338 update 792 pc-update-ns 337392 path cart_update60/ui_update/ui_handle_button share 53.8%
+frame 3386 update 820 pc-update-ns 374610 path cart_update60/ui_update/ui_handle_button share 53.9%
+frame 3449 update 416 pc-update-ns 222720 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 72.8%
+frame 3475 update 539 pc-update-ns 270765 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute share 80.6% multi-site
+frame 3476 update 553 pc-update-ns 200794 path cart_update60/save_at_frame_end share 84.8%
+frame 3525 update 1307 pc-update-ns 617390 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 62.5%
+frame 3567 update 923 pc-update-ns 450064 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method share 51.0% multi-site
+frame 3618 update 1334 pc-update-ns 603557 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 61.5%
+frame 3634 update 1601 pc-update-ns 755217 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 58.8%
+frame 3720 update 438 pc-update-ns 231637 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 70.1%
+frame 3747 update 560 pc-update-ns 209549 path cart_update60/save_at_frame_end share 81.3%
+frame 3817 update 437 pc-update-ns 240420 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 79.5%
+frame 3844 update 554 pc-update-ns 215858 path cart_update60/save_at_frame_end share 87.0%
+frame 3907 update 433 pc-update-ns 227447 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 81.2%
+frame 3934 update 542 pc-update-ns 205980 path cart_update60/save_at_frame_end share 86.9%
+frame 4001 update 432 pc-update-ns 230288 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 80.8%
+frame 4028 update 540 pc-update-ns 202068 path cart_update60/save_at_frame_end share 87.9%
+frame 4067 update 433 pc-update-ns 223993 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 82.0%
+frame 4106 update 434 pc-update-ns 205335 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 77.0%
+frame 4134 update 606 pc-update-ns 246606 path cart_update60/save_at_frame_end share 75.8%
+frame 4145 update 918 pc-update-ns 490167 path cart_update60/ui_update share 53.4%
+frame 4238 update 1333 pc-update-ns 631711 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 58.4%
+frame 4250 update 1228 pc-update-ns 514732 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 59.6%
+frame 4300 update 1299 pc-update-ns 623564 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock share 63.7% multi-site
+frame 4374 update 1361 pc-update-ns 637743 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 65.2%
+frame 4483 update 450 pc-update-ns 248845 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 74.8%
+frame 4521 update 450 pc-update-ns 231705 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 71.6%
+frame 4549 update 540 pc-update-ns 212396 path cart_update60/save_at_frame_end share 87.1%
+frame 4590 update 447 pc-update-ns 216103 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 87.7%
+frame 4627 update 448 pc-update-ns 222377 path cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute share 85.5%
+frame 4655 update 534 pc-update-ns 218102 path cart_update60/save_at_frame_end share 84.1%
+frame 4696 update 859 pc-update-ns 390477 path cart_update60/ui_update/ui_handle_button share 57.4%
+frame 4709 update 1261 pc-update-ns 578975 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 56.7%
+frame 4721 update 1388 pc-update-ns 635783 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 66.1%
+frame 4737 update 1783 pc-update-ns 774162 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 69.8%
+frame 4774 update 879 pc-update-ns 395495 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/galaxy_menu_button1_on_click_method/economy_new_year share 50.2% multi-site
+frame 4912 update 867 pc-update-ns 373679 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 55.2% multi-site
+frame 4929 update 862 pc-update-ns 387490 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 51.5% multi-site
+frame 4952 update 1065 pc-update-ns 515190 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project share 59.9% multi-site
+frame 5022 update 1309 pc-update-ns 620372 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 57.3%
+frame 5077 update 912 pc-update-ns 433861 path cart_update60/ui_update/ui_handle_button share 53.6%
+frame 5086 update 1344 pc-update-ns 620952 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 52.2%
+frame 5098 update 1463 pc-update-ns 652566 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 57.8%
+frame 5110 update 1339 pc-update-ns 572892 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 63.1%
+frame 5133 update 1480 pc-update-ns 692243 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 59.2%
+frame 5168 update 930 pc-update-ns 422738 path cart_update60/ui_update/ui_handle_button share 52.0%
+frame 5303 update 903 pc-update-ns 411279 path cart_update60/ui_update share 53.1%
+frame 5339 update 1118 pc-update-ns 583614 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project share 59.8% multi-site
+frame 5387 update 1514 pc-update-ns 691578 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 61.1%
+frame 5422 update 944 pc-update-ns 439185 path cart_update60/ui_update share 53.9%
+frame 5470 update 1063 pc-update-ns 526472 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 share 51.1% multi-site
+frame 5488 update 1148 pc-update-ns 595146 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project share 59.8% multi-site
+frame 5500 update 1416 pc-update-ns 666082 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 53.7%
+frame 5537 update 965 pc-update-ns 417464 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/galaxy_menu_button1_on_click_method/economy_new_year/economy_recompute share 52.6% multi-site
+frame 5579 update 953 pc-update-ns 471756 path cart_update60/ui_update share 54.1%
+frame 5610 update 966 pc-update-ns 476147 path cart_update60/ui_update share 54.8%
+frame 5667 update 964 pc-update-ns 496768 path cart_update60/ui_update share 54.7%
+frame 5719 update 1430 pc-update-ns 694617 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 53.4%
+frame 5727 update 1428 pc-update-ns 694628 path cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop share 56.0%
+frame 5781 update 1130 pc-update-ns 505346 path cart_update60/ui_update/ui_handle_button/targeting_confirm_method/targeting_confirm/economy_advance_clock/economy_recompute share 58.1%
+frame 5810 update 992 pc-update-ns 461896 path cart_update60/ui_update/ui_handle_button share 52.2%
+frame 5842 update 986 pc-update-ns 466065 path cart_update60/ui_update share 54.7%
+frame 5904 update 968 pc-update-ns 453196 path cart_update60/ui_update/ui_handle_button share 50.3%
+frame 5944 update 1004 pc-update-ns 481927 path cart_update60/ui_update/ui_handle_button share 55.1%
+frame 6043 update 503 pc-update-ns 268940 path cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/galaxy_menu_button1_on_click_method/economy_new_year/economy_recompute share 83.7% multi-site
+class cart_update60/ui_update/ui_handle_button/slipway_drop_method/slipway_drop frames 36 over-1000 33 update-sum 45523 share 51.8%-59.2%-69.8% runs-on 97 spike-runs 40 hblanks-per-pc-us 2.178 list 383,512,1244,1258,1449,1751,1860,2074,2176,2190,2365,2377,2395,2434,3231,3243,3275,3313,3525,3618,3634,4238,4250,4374,4709,4721,4737,5022,5086,5098,5110,5133,5387,5500,5719,5727
+class cart_update60/ui_update frames 16 over-1000 0 update-sum 12964 share 52.3%-53.9%-54.8% runs-on 6059 spike-runs 166 hblanks-per-pc-us 2.092 list 145,352,741,1786,2312,2802,2980,3150,3224,4145,5303,5422,5579,5610,5667,5842
+class cart_update60/ui_update/ui_handle_button frames 14 over-1000 1 update-sum 11806 share 50.3%-53.9%-61.0% runs-on 6059 spike-runs 166 hblanks-per-pc-us 2.186 list 159,1486,2228,2260,2358,3053,3338,3386,4696,5077,5168,5810,5904,5944
+class cart_update60/ui_update/ui_handle_button/wormhole_drop_method/wormhole_drop/targeting_confirm/economy_advance_clock/economy_recompute frames 33 over-1000 0 update-sum 11728 share 69.6%-76.6%-87.7% runs-on 110 spike-runs 108 hblanks-per-pc-us 1.852 list 320,433,553,604,658,710,951,996,1043,1098,1145,1320,1568,1620,1661,1928,1977,2558,2642,2715,2771,3022,3449,3720,3817,3907,4001,4067,4106,4483,4521,4590,4627
+class cart_update60/save_at_frame_end frames 18 over-1000 0 update-sum 9961 share 58.4%-82.1%-87.9% runs-on 6059 spike-runs 166 hblanks-per-pc-us 2.767 list 58,230,461,978,1173,1595,1689,2005,2742,3050,3476,3747,3844,3934,4028,4134,4549,4655
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/cart_start_game/galaxy_populate/entity_geom_nearest/nearest_step frames 1 over-1000 1 update-sum 8980 share 106.4%-106.4%-106.4% runs-on 1 spike-runs 1 hblanks-per-pc-us 1.353 list 12 multi-site
+class cart_update60/save_at_frame_end/save_state_encode frames 13 over-1000 0 update-sum 6929 share 50.0%-54.1%-58.1% runs-on 125 spike-runs 125 hblanks-per-pc-us 3.082 list 347,582,632,685,737,1024,1071,1125,1347,1955,2585,2669,2798
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1 frames 8 over-1000 1 update-sum 6719 share 50.5%-51.7%-55.2% runs-on 343 spike-runs 52 hblanks-per-pc-us 2.255 list 1413,2414,2471,2924,3303,4912,4929,5470 multi-site
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock frames 4 over-1000 2 update-sum 3732 share 51.1%-62.7%-86.2% runs-on 24 spike-runs 24 hblanks-per-pc-us 2.046 list 229,2147,3265,4300 multi-site
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project frames 3 over-1000 3 update-sum 3331 share 59.8%-59.8%-59.9% runs-on 24 spike-runs 24 hblanks-per-pc-us 1.929 list 4952,5339,5488 multi-site
+class cart_update60/ui_update/ui_handle_button/slipway_drop_method frames 3 over-1000 0 update-sum 2731 share 52.4%-53.0%-56.7% runs-on 58 spike-runs 40 hblanks-per-pc-us 2.149 list 245,259,1386
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/planet_projects_panel_on_click_method/planet_apply_project/economy_advance_clock/economy_recompute frames 5 over-1000 0 update-sum 2459 share 51.2%-79.9%-84.1% runs-on 110 spike-runs 108 hblanks-per-pc-us 2.135 list 456,1165,1349,1684,3475 multi-site
+class cart_update60 frames 3 over-1000 0 update-sum 2006 share 100.0%-100.0%-100.0% runs-on 6059 spike-runs 166 hblanks-per-pc-us 2.167 list 113,825,901 unsettled
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method frames 2 over-1000 0 update-sum 1649 share 51.0%-52.5%-53.9% runs-on 120 spike-runs 51 hblanks-per-pc-us 2.148 list 2006,3567 multi-site
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/galaxy_menu_button1_on_click_method/economy_new_year/economy_recompute frames 2 over-1000 0 update-sum 1468 share 52.6%-68.2%-83.7% runs-on 25 spike-runs 25 hblanks-per-pc-us 2.091 list 5537,6043 multi-site
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press frames 2 over-1000 0 update-sum 1430 share 51.5%-52.5%-53.5% runs-on 120 spike-runs 51 hblanks-per-pc-us 2.220 list 1226,2108 multi-site
+class cart_update60/ui_update/ui_handle_button/targeting_confirm_method/targeting_confirm/economy_advance_clock/economy_recompute frames 1 over-1000 1 update-sum 1130 share 58.1%-58.1%-58.1% runs-on 110 spike-runs 108 hblanks-per-pc-us 2.236 list 5781
+class cart_update60/ui_update/ui_handle_button/ui_send_to_hovered#1/button_left_press_method/button_left_press/galaxy_menu_button1_on_click_method/economy_new_year frames 1 over-1000 0 update-sum 879 share 50.2%-50.2%-50.2% runs-on 17 spike-runs 17 hblanks-per-pc-us 2.223 list 4774 multi-site
+class cart_update60/update_entities frames 1 over-1000 0 update-sum 266 share 72.6%-72.6%-72.6% runs-on 6059 spike-runs 166 hblanks-per-pc-us 4.530 list 91
+spike-frames 166 over-1000 42 classes 19 open 0
