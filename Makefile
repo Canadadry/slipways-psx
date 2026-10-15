@@ -610,6 +610,23 @@
 #                       spikes/spread-<label>.txt (label default "default");
 #                       a missing spikes.txt fails naming make
 #                       frame-profile-spikes; never boots, outside the suite
+# make frame-profile-ordinary [FRAME_PROFILE_REPEATS=<k>] [FRAME_PROFILE_THRESHOLD=<pct>] [FRAME_PROFILE_SPIKE_THRESHOLD=<hblanks>] [UPDATE_RATIOS=<ratios>]
+#                    -> profiles full_game.json k times (default 4) with
+#                       cart_update60, then input_step_run as the update root
+#                       into tmp/frame-profile/ordinary/<symbol>/<k>/, then
+#                       tools/frame_profile_check.sh ordinary on the judge
+#                       table's frames with update at most the spike
+#                       threshold (default 263) and the windows draw-5564@27.0
+#                       and draw-6000@19.6: per node of both roots, PSX cost
+#                       from PC shares times the ratios
+#                       (<piece>=<r>[:<a>-<b>],..., default 1), calls,
+#                       runs-on, above or under the threshold (default 2 % of
+#                       the mean frame); while a node above is open, profiles
+#                       that symbol k times as update root (one that does not
+#                       resolve goes to ordinary/unresolvable.txt) and runs it
+#                       again, 16 levels at most; writes
+#                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
+#                       node is open; never boots, outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2588,6 +2605,41 @@ frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_pr
 	done; \
 	cat $$out/spikes.txt; exit $$status
 
+FRAME_PROFILE_ORDINARY_WINDOWS := draw-5564=5564-5578@27.0,draw-6000=6000-6014@19.6
+
+# Like frame-profile-spikes, with two base roots (cart_update60 and input_step_run) and its own
+# ordinary/<symbol>/<k> profiles, so neither target stales the other's.
+frame-profile-ordinary: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+	@$(frame_profile_function); \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	case "$(FRAME_PROFILE_SPIKE_THRESHOLD)" in ''|*[!0-9]*) echo "$@: FRAME_PROFILE_SPIKE_THRESHOLD is not a count of hblanks: '$(FRAME_PROFILE_SPIKE_THRESHOLD)'"; exit 1;; esac; \
+	out=$(FRAME_PROFILE_DIR)/ordinary; rm -rf $$out; mkdir -p $$out; : > $$out/unresolvable.txt; \
+	profile_set() { \
+		profiles=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$out/$$1/$$k cart_draw $$1 >&2 || return 1; \
+			profiles="$$profiles,$$out/$$1/$$k/frames.txt"; \
+		done; \
+		echo "$${profiles#,}"; \
+	}; \
+	cart=$$(profile_set cart_update60) || exit 1; input=$$(profile_set input_step_run) || exit 1; sets=; level=0; \
+	while :; do \
+		sh tools/frame_profile_check.sh ordinary $(FRAME_PROFILE_THRESHOLD) $(FRAME_PROFILE_SPIKE_THRESHOLD) $(FRAME_PROFILE_JUDGE_FRAMES) \
+			"$(or $(UPDATE_RATIOS),-)" $(FRAME_PROFILE_ORDINARY_WINDOWS) $$cart $$input $$sets > $$out/ordinary.txt; status=$$?; \
+		[ $$status -eq 3 ] || break; \
+		level=$$((level + 1)); \
+		if [ $$level -gt $(FRAME_PROFILE_SPIKE_LEVELS) ]; then echo "$@: still open after $(FRAME_PROFILE_SPIKE_LEVELS) levels"; break; fi; \
+		for symbol in $$(awk '$$1 == "open" && NF == 2 {print $$2}' $$out/ordinary.txt); do \
+			addresses=$$(awk -v name=$$symbol '$$3 == name && $$2 ~ /^[TtWw]$$/ {print $$1}' $(TMP_DIR)/frame_profile.syms | sort -u | wc -l); \
+			if [ $$addresses -ne 1 ]; then \
+				echo "$$symbol text-symbols $$addresses" >> $$out/unresolvable.txt; sets="$$sets $$symbol=unresolvable"; continue; \
+			fi; \
+			profiles=$$(profile_set $$symbol) || exit 1; \
+			sets="$$sets $$symbol=$$profiles"; \
+		done; \
+	done; \
+	cat $$out/ordinary.txt; exit $$status
+
 SPREAD_LABEL ?= default
 
 frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
@@ -2613,7 +2665,7 @@ frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
-	frame-profile-unit-cost frame-profile-spikes frame-profile-spread
+	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

@@ -41,7 +41,7 @@
     - [x] Chunk 6: spreading and fallback
   - [ ] 3.10 Ordinary update: calibration and children costs
     - [x] Chunk 1: update-root subtree summary
-    - [ ] Chunk 2: ordinary mode and frame-profile-ordinary target
+    - [x] Chunk 2: ordinary mode and frame-profile-ordinary target
     - [ ] Chunk 3: ordinary calibration
     - [ ] Chunk 4: descent and costs
     - [ ] Chunk 5: delay probes and candidates

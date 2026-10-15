@@ -6,6 +6,7 @@
 #        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
 #        frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
 #        frame_profile_check.sh spread <budget> <judge-frames.txt> <spikes.txt> <gains> [<ratios>]
+#        frame_profile_check.sh ordinary <threshold-pct> <spike-threshold> <judge-frames.txt> <ratios> <windows> <cart_update60 frames.txt>[,...] <input_step_run frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
 # breakdown: over the window of <map.txt> (tmp/short_run_cut), the per-family
 # calls of tmp/frame_profile's <frames.txt> must equal the psx-draw: lines of
 # the run's breakdown boot. Prints "calls-match ok <n> frames" then
@@ -60,6 +61,24 @@
 # "class <path> work <min>-<median>-<max> frames <min>-<median>-<max>
 # does-not-fit <n>" ("-" when nothing fits). Exit 0, 2 on malformed input, 1
 # on a usage error.
+# ordinary: update on the judge frames with update <= <spike-threshold>
+# ("ordinary") and on each window (<name>=<first>-<last>[@<hblanks>],... or
+# -, its spike frames excluded, the lower threshold applying), split down
+# two update roots: P(f) is input_step_run's plus cart_update60's PC time
+# (per-frame minimums over each set). Pieces are input_step_run, each
+# cart_update60 child (ratio from <ratios> <piece>=<r>[:<a>-<b>],... or -,
+# 1 when missing) and cart_update60's self (ratio 1); a node's share is its
+# PC time over P times its top piece's ratio, renormalised so the pieces
+# sum to 1, times the judge update. On save frames (save_at_frame_end at
+# least 2 % of P), ends a and b replace the ratio and give the cost
+# interval. Prints "population" lines, "node <path> population <name> calls
+# <mean>-<max> runs-on <n> cost <mean> [<low>-<high>] p90 <h> per-call <h>
+# share <pct> above|under [multi-site] [leaf] [open] [unresolvable]" per
+# node and population in tree order (a node above its <threshold-pct> of
+# the mean total in any population is explored through its <symbol>= set),
+# "self" lines per explored node, "open <symbol>" lines and "nodes-above <n>
+# leaves <l> open <o>". Exit 0, 3 when a node is open, 2 on malformed
+# input, 1 on a usage error (a set no placed set calls among them).
 
 set -u
 LC_ALL=C
@@ -71,7 +90,8 @@ usage="usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> 
        frame_profile_check.sh unit-cost <frames.txt> <breakdown.tty.txt> <map.txt>
        frame_profile_check.sh unit-cost-pooled <unit-cost output>...
        frame_profile_check.sh spikes <threshold> <judge-frames.txt> <base frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]...
-       frame_profile_check.sh spread <budget> <judge-frames.txt> <spikes.txt> <gains> [<ratios>]"
+       frame_profile_check.sh spread <budget> <judge-frames.txt> <spikes.txt> <gains> [<ratios>]
+       frame_profile_check.sh ordinary <threshold-pct> <spike-threshold> <judge-frames.txt> <ratios> <windows> <cart_update60 frames.txt>[,...] <input_step_run frames.txt>[,...] [<symbol>=<frames.txt>[,...]|unresolvable]..."
 
 fail_usage() {
     echo "frame-profile-check: $1" >&2
@@ -784,6 +804,327 @@ spread() {
         }' "$judge" "$spike_list"
 }
 
+ordinary() {
+    [ $# -ge 7 ] || fail_usage "$usage"
+    percent=$1
+    spike_threshold=$2
+    judge=$3
+    ratios=$4
+    windows=$5
+    echo "$percent" | grep -Eq '^[0-9]+(\.[0-9]+)?$' || fail_usage "threshold is not a percentage: '$percent'"
+    case $spike_threshold in
+        '' | *[!0-9]*) fail_usage "spike threshold is not a count of hblanks: '$spike_threshold'" ;;
+    esac
+    [ -f "$judge" ] || fail_usage "missing judge table: $judge"
+    if [ "$ratios" != - ]; then
+        echo "$ratios" | grep -Eq '^[A-Za-z0-9_]+=[0-9]+(\.[0-9]+)?(:[0-9]+(\.[0-9]+)?-[0-9]+(\.[0-9]+)?)?(,[A-Za-z0-9_]+=[0-9]+(\.[0-9]+)?(:[0-9]+(\.[0-9]+)?-[0-9]+(\.[0-9]+)?)?)*$' \
+            || fail_usage "ratios are not <piece>=<ratio>[:<low>-<high>][,...] or -: '$ratios'"
+    else
+        ratios=
+    fi
+    if [ "$windows" != - ]; then
+        echo "$windows" | grep -Eq '^[A-Za-z0-9_-]+=[0-9]+-[0-9]+(@[0-9]+(\.[0-9]+)?)?(,[A-Za-z0-9_-]+=[0-9]+-[0-9]+(@[0-9]+(\.[0-9]+)?)?)*$' \
+            || fail_usage "windows are not <name>=<first>-<last>[@<threshold>][,...] or -: '$windows'"
+        echo "$windows" | tr ',' '\n' | awk '{ name = $0; sub(/=.*/, "", name); range = substr($0, length(name) + 2); sub(/@.*/, "", range); split(range, ends, "-") }
+            name == "ordinary" || ends[1] + 0 > ends[2] + 0 { exit 1 }' \
+            || fail_usage "a window named ordinary or backwards: '$windows'"
+    else
+        windows=
+    fi
+    files=
+    file_sets=
+    set_names=
+    unresolvable=
+    for base in cart_update60 input_step_run; do
+        for profile in $(echo "$6" | tr ',' ' '); do
+            [ -f "$profile" ] || fail_usage "missing profile: $profile"
+            files="$files $profile"
+            file_sets="$file_sets $base"
+        done
+        set_names="$set_names $base"
+        shift
+    done
+    shift 5
+    for spec in "$@"; do
+        symbol=${spec%%=*}
+        profiles=${spec#*=}
+        case $symbol in
+            '' | *[!A-Za-z0-9_]*) fail_usage "set is not <symbol>=<frames.txt>[,...] or <symbol>=unresolvable: $spec" ;;
+        esac
+        if [ "$symbol" = "$spec" ] || [ -z "$profiles" ]; then
+            fail_usage "set is not <symbol>=<frames.txt>[,...] or <symbol>=unresolvable: $spec"
+        fi
+        case " $set_names $unresolvable " in
+            *" $symbol "*) fail_usage "set given twice: $symbol" ;;
+        esac
+        if [ "$profiles" = unresolvable ]; then
+            unresolvable="$unresolvable $symbol"
+            continue
+        fi
+        set_names="$set_names $symbol"
+        for profile in $(echo "$profiles" | tr ',' ' '); do
+            [ -f "$profile" ] || fail_usage "missing profile: $profile"
+            files="$files $profile"
+            file_sets="$file_sets $symbol"
+        done
+    done
+    awk -v percent="$percent" -v spike_threshold="$spike_threshold" -v ratios="$ratios" -v windows="$windows" \
+        -v file_sets="$file_sets" -v set_names="$set_names" -v unresolvable="$unresolvable" '
+        BEGIN {
+            split(file_sets, set_of_file, " ")
+            set_count = split(set_names, sets, " ")
+            for (i = 1; i <= set_count; i++) is_set[sets[i]] = 1
+            n = split(unresolvable, list, " ")
+            for (i = 1; i <= n; i++) is_unresolvable[list[i]] = 1
+            n = split(ratios, specs, ",")
+            for (i = 1; i <= n; i++) {
+                split(specs[i], kv, "=")
+                if (split(kv[2], parts, ":") == 2) {
+                    split(parts[2], ends, "-")
+                    ratio_end[kv[1], 1] = ends[1] + 0; ratio_end[kv[1], 2] = ends[2] + 0; has_interval = 1
+                }
+                ratio_of[kv[1]] = parts[1] + 0
+            }
+            population_count = 1; population_name[1] = "ordinary"
+            n = split(windows, specs, ",")
+            for (i = 1; i <= n; i++) {
+                p = ++population_count
+                split(specs[i], kv, "=")
+                population_name[p] = kv[1]
+                extra = ""
+                if (split(kv[2], parts, "@") == 2) extra = parts[2] + 0
+                split(parts[1], range, "-")
+                population_first[p] = range[1] + 0; population_last[p] = range[2] + 0; population_extra[p] = extra
+            }
+            file = 0
+        }
+        function malformed(reason) {
+            print "frame-profile-check: malformed " FILENAME ": " reason > "/dev/stderr"
+            failed = 1
+            exit 2
+        }
+        function check_root() {
+            if (file > 1 && !((file - 1) in root)) { FILENAME = previous; malformed("no root update line") }
+        }
+        FNR == 1 {
+            check_root()
+            file++; previous = FILENAME
+            if (file == 1) {
+                if ($1 != "frame" || $2 != "update" || $3 != "draw" || $4 != "submit" || $5 != "total") malformed("no judge header")
+                next
+            }
+            if ($1 != "profile" || $3 != "frames" || $4 !~ /^[0-9]+$/) malformed("no profile header")
+            if ($4 != judge_frames) malformed("frames " $4 ", not " judge_frames " as the judge table")
+            set = set_of_file[file - 1]
+            set_k[set]++; k = set_k[set]
+            next
+        }
+        file == 1 {
+            if (NF < 5 || $1 != judge_frames || $2 !~ /^[0-9]+$/ || $5 !~ /^[0-9]+$/) malformed("line " FNR " is not frame " judge_frames)
+            update[$1] = $2; total[$1] = $5
+            judge_frames++
+            next
+        }
+        $1 == "root" && $2 == "update" && NF == 3 {
+            if ($3 != set) malformed("root update " $3 ", not " set)
+            root[file - 1] = $3
+            next
+        }
+        $1 != "frame" { next }
+        $3 == "update" && NF == 6 {
+            key = set SUBSEP $2
+            if (!(key in root_count) || $4 < root_ns[key]) root_ns[key] = $4
+            if (k == 1) root_first[key] = $4
+            root_count[key]++
+            next
+        }
+        $3 == "child" && $4 == "update" && NF == 9 {
+            if (!((set, $5) in has_child)) { has_child[set, $5] = 1; children[set, ++child_count[set]] = $5 }
+            key = set SUBSEP $2 SUBSEP $5
+            if (!(key in seen_count) || $7 < low[key]) low[key] = $7
+            seen_count[key]++
+            if (k == 1) calls[key] = $6
+        }
+        function symbol_of(name) { sub(/#.*/, "", name); return name }
+        function child_ns(s, f, name,    key) {
+            key = s SUBSEP f SUBSEP name
+            return seen_count[key] == set_k[s] ? low[key] : 0
+        }
+        END {
+            if (failed) exit 2
+            check_root()
+            if (file < 2) { FILENAME = previous; malformed("no profile") }
+            for (i = 2; i <= set_count; i++)
+                if (set_k[sets[i]] != set_k["cart_update60"])
+                    { FILENAME = sets[i]; malformed(set_k[sets[i]] " profiles, not " set_k["cart_update60"] " as the cart_update60 set") }
+            for (i = 1; i <= set_count; i++)
+                for (f = 0; f < judge_frames; f++)
+                    if (root_count[sets[i], f] != set_k[sets[i]]) { FILENAME = sets[i] " set"; malformed("no update line for frame " f " in every profile") }
+            for (f = 0; f < judge_frames; f++) {
+                pc[f] = root_ns["cart_update60", f] + root_ns["input_step_run", f]
+                save_ns = 0
+                for (c = 1; c <= child_count["cart_update60"]; c++)
+                    if (symbol_of(children["cart_update60", c]) == "save_at_frame_end") save_ns += child_ns("cart_update60", f, children["cart_update60", c])
+                is_save[f] = pc[f] > 0 && save_ns * 100 >= 2 * pc[f]
+            }
+            for (p = 1; p <= population_count; p++) {
+                first = p == 1 ? 0 : population_first[p]
+                last = p == 1 ? judge_frames - 1 : population_last[p]
+                if (last >= judge_frames) { FILENAME = "windows"; malformed("window " population_name[p] " ends past frame " judge_frames - 1) }
+                size = 0; excluded = 0; total_sum = 0; update_sum = 0; save_count = 0; save_sum = 0
+                for (f = first; f <= last; f++) {
+                    if (update[f] > spike_threshold) { excluded++; continue }
+                    members[p, ++size] = f
+                    total_sum += total[f]; update_sum += update[f]
+                    if (is_save[f]) { save_count++; save_sum += update[f] }
+                }
+                population_size[p] = size; population_update[p] = update_sum
+                threshold[p] = size > 0 ? percent * total_sum / size / 100 : 0
+                if (population_extra[p] != "" && population_extra[p] < threshold[p]) threshold[p] = population_extra[p]
+                printf "population %s frames %d excluded %d mean-total %.1f threshold %.1f mean-update %.1f save-frames %d save-share %.1f%%\n", \
+                    population_name[p], size, excluded, (size > 0 ? total_sum / size : 0), threshold[p], (size > 0 ? update_sum / size : 0), \
+                    save_count, (update_sum > 0 ? save_sum * 100 / update_sum : 0)
+            }
+            for (i = 1; i <= set_count; i++) placed[sets[i]] = i <= 2
+            do {
+                moved = 0
+                for (i = 3; i <= set_count; i++) {
+                    if (placed[sets[i]]) continue
+                    for (j = 1; j <= set_count && !placed[sets[i]]; j++) {
+                        if (!placed[sets[j]]) continue
+                        for (c = 1; c <= child_count[sets[j]]; c++)
+                            if (symbol_of(children[sets[j], c]) == sets[i]) { placed[sets[i]] = 1; moved = 1; break }
+                    }
+                }
+            } while (moved)
+            for (i = 3; i <= set_count; i++)
+                if (!placed[sets[i]]) { print "frame-profile-check: set " sets[i] " is no child of a placed set" > "/dev/stderr"; exit 1 }
+            for (i = 1; i <= set_count; i++)
+                for (c = 1; c <= child_count[sets[i]]; c++) site_count[symbol_of(children[sets[i], c])]++
+            last_end = has_interval ? 2 : 0
+            for (f = 0; f < judge_frames; f++) {
+                child_sum = 0
+                for (c = 1; c <= child_count["cart_update60"]; c++) child_sum += child_ns("cart_update60", f, children["cart_update60", c])
+                cart_self[f] = root_ns["cart_update60", f] > child_sum ? root_ns["cart_update60", f] - child_sum : 0
+                if (pc[f] == 0) continue
+                for (e = 0; e <= last_end; e++) {
+                    q = cart_self[f]
+                    for (c = 1; c <= child_count["cart_update60"]; c++)
+                        q += child_ns("cart_update60", f, children["cart_update60", c]) * rho(symbol_of(children["cart_update60", c]), e, f)
+                    cart_q[e, f] = q / pc[f]
+                    norm[e, f] = cart_q[e, f] + root_ns["input_step_run", f] * rho("input_step_run", e, f) / pc[f]
+                }
+            }
+            node_count = 0
+            explore(add_node("input", "", "input_step_run", "input_step_run", "update/input_step_run", 0))
+            explore(add_node("cart", "", "cart_update60", "", "update/cart_update60", 0))
+            above_count = 0; leaf_count = 0; open_count = 0
+            for (i = 1; i <= node_count; i++) {
+                symbol = node_symbol[i]
+                flags = node_multi[i] ? " multi-site" : ""
+                if (node_above[i]) above_count++
+                if (node_above[i] && node_explored[i] && !node_child_above[i]) { flags = flags " leaf"; leaf_count++ }
+                if (node_above[i] && node_kind[i] == "child" && !(symbol in is_set) && !(symbol in is_unresolvable)) {
+                    flags = flags " open"
+                    if (!(symbol in is_open)) { is_open[symbol] = 1; open_symbols[++open_count] = symbol }
+                }
+                if (symbol in is_unresolvable) flags = flags " unresolvable"
+                for (p = 1; p <= population_count; p++) print node_line[i, p] flags
+            }
+            for (i = 1; i <= node_count; i++)
+                if (node_explored[i]) for (p = 1; p <= population_count; p++) print self_line[i, p]
+            for (i = 1; i <= open_count; i++) print "open " open_symbols[i]
+            print "nodes-above " above_count " leaves " leaf_count " open " open_count
+            if (open_count > 0) exit 3
+        }
+        function rho(piece, e, f) {
+            if (e > 0 && is_save[f] && ((piece, e) in ratio_end)) return ratio_end[piece, e]
+            return (piece in ratio_of) ? ratio_of[piece] : 1
+        }
+        function share(i, f, e,    ns) {
+            if (pc[f] == 0 || norm[e, f] <= 0) return 0
+            if (node_kind[i] == "cart") return cart_q[e, f] / norm[e, f]
+            ns = node_kind[i] == "input" ? root_ns["input_step_run", f] : child_ns(node_set[i], f, node_name[i])
+            return ns / pc[f] * rho(node_piece[i], e, f) / norm[e, f]
+        }
+        function self_share(i, f,    s, c, ns) {
+            if (pc[f] == 0 || norm[0, f] <= 0) return 0
+            if (node_kind[i] == "cart") return cart_self[f] / pc[f] / norm[0, f]
+            s = node_symbol[i]
+            ns = node_kind[i] == "input" ? root_ns[s, f] : child_ns(node_set[i], f, node_name[i])
+            for (c = 1; c <= child_count[s]; c++) ns -= child_ns(s, f, children[s, c])
+            return ns > 0 ? ns / pc[f] * rho(node_piece[i], 0, f) / norm[0, f] : 0
+        }
+        function node_calls(i, f) {
+            if (node_kind[i] == "child") return calls[node_set[i], f, node_name[i]] + 0
+            return root_first[node_symbol[i], f] > 0 ? 1 : 0
+        }
+        function sift_down(start, end,    child, t) {
+            while (2 * start <= end) {
+                child = 2 * start
+                if (child < end && values[child + 1] > values[child]) child++
+                if (values[start] >= values[child]) return
+                t = values[start]; values[start] = values[child]; values[child] = t
+                start = child
+            }
+        }
+        function sort_values(n,    i, t) {
+            for (i = int(n / 2); i >= 1; i--) sift_down(i, n)
+            for (i = n; i > 1; i--) { t = values[1]; values[1] = values[i]; values[i] = t; sift_down(1, i - 1) }
+        }
+        function add_node(kind, set, name, piece, path, multi,    i, p, m, size, f, cost, sum, sum_a, sum_b, call_sum, call_max, runs, mean, low_end, high_end, interval, n, self_sum, t, above) {
+            i = ++node_count
+            node_kind[i] = kind; node_set[i] = set; node_name[i] = name; node_symbol[i] = symbol_of(name)
+            node_piece[i] = piece; node_multi[i] = multi
+            for (p = 1; p <= population_count; p++) {
+                size = population_size[p]; sum = 0; sum_a = 0; sum_b = 0; call_sum = 0; call_max = 0; runs = 0; self_sum = 0
+                for (m = 1; m <= size; m++) {
+                    f = members[p, m]
+                    cost = share(i, f, 0) * update[f]
+                    values[m] = cost; sum += cost
+                    if (has_interval) { sum_a += share(i, f, 1) * update[f]; sum_b += share(i, f, 2) * update[f] }
+                    n = node_calls(i, f); call_sum += n
+                    if (n > call_max) call_max = n
+                    if (n > 0) runs++
+                    if (kind != "child" || (node_symbol[i] in is_set)) self_sum += self_share(i, f) * update[f]
+                }
+                sort_values(size)
+                mean = size > 0 ? sum / size : 0
+                interval = ""
+                if (has_interval) {
+                    low_end = size > 0 ? sum_a / size : 0; high_end = size > 0 ? sum_b / size : 0
+                    if (low_end > high_end) { t = low_end; low_end = high_end; high_end = t }
+                    interval = sprintf(" %.1f-%.1f", low_end, high_end)
+                }
+                above = size > 0 && mean >= threshold[p]
+                if (above) node_above[i] = 1
+                node_line[i, p] = sprintf("node %s population %s calls %.1f-%d runs-on %d cost %.1f%s p90 %.1f per-call %s share %.1f%% %s", \
+                    path, population_name[p], (size > 0 ? call_sum / size : 0), call_max, runs, mean, interval, \
+                    (size > 0 ? values[int((9 * size + 9) / 10)] : 0), (call_sum > 0 ? sprintf("%.1f", sum / call_sum) : "-"), \
+                    (population_update[p] > 0 ? sum * 100 / population_update[p] : 0), (above ? "above" : "under"))
+                mean = size > 0 ? self_sum / size : 0
+                self_line[i, p] = sprintf("self %s population %s cost %.1f share %.1f%% %s", path, population_name[p], mean, \
+                    (population_update[p] > 0 ? self_sum * 100 / population_update[p] : 0), (size > 0 && mean >= threshold[p] ? "above" : "under"))
+            }
+            node_path[i] = path
+            return i
+        }
+        function explore(i,    symbol, c, j, name, piece) {
+            symbol = node_symbol[i]
+            if (node_kind[i] == "child" && !(node_above[i] && (symbol in is_set))) return
+            if (on_path[symbol]) return
+            node_explored[i] = 1; on_path[symbol] = 1
+            for (c = 1; c <= child_count[symbol]; c++) {
+                name = children[symbol, c]
+                piece = node_kind[i] == "input" ? "input_step_run" : node_kind[i] == "cart" ? symbol_of(name) : node_piece[i]
+                j = add_node("child", symbol, name, piece, node_path[i] "/" name, node_multi[i] || site_count[symbol_of(name)] > 1)
+                if (node_above[j]) node_child_above[i] = 1
+                explore(j)
+            }
+            on_path[symbol] = 0
+        }' "$judge" $files
+}
+
 mode=${1:-}
 [ $# -gt 0 ] && shift
 case $mode in
@@ -794,5 +1135,6 @@ case $mode in
     unit-cost-pooled) unit_cost_pooled "$@" ;;
     spikes) spikes "$@" ;;
     spread) spread "$@" ;;
+    ordinary) ordinary "$@" ;;
     *) fail_usage "$usage" ;;
 esac

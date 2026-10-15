@@ -1180,6 +1180,291 @@ static void test_spread_usage_errors_exit_1(void) {
     assert(run_spread("263 " SPREAD_JUDGE " " SPREAD_SPIKES " default=0 ui_update=-1") == 1);
 }
 
+/* Six judge frames, frame 2 above 263. Every frame of the base sets takes 1000 ns in cart_update60
+ * (ui_update 600, update_entities 300 in 3 calls, the save 40 on frame 1 and 36 on frame 3) and 1000 in
+ * input_step_run (pad_nav_step 800): P is 2000, frame 1 is the only save frame. */
+#define ORD_JUDGE DIR "/ordinary_judge.txt"
+#define ORD_CART DIR "/ordinary_cart.txt"
+#define ORD_CART2 DIR "/ordinary_cart2.txt"
+#define ORD_INPUT DIR "/ordinary_input.txt"
+#define ORD_INPUT2 DIR "/ordinary_input2.txt"
+#define ORD_UI DIR "/ordinary_ui.txt"
+#define ORD_PAD DIR "/ordinary_pad.txt"
+#define ORD_FRAMES 6
+#define ORD_JUDGE_TEXT                                                                                            \
+    "frame update draw submit total vsyncs\n0 100 398 2 500 1\n1 50 398 2 450 1\n2 400 498 2 900 3\n"           \
+    "3 100 398 2 500 1\n4 80 398 2 480 1\n5 20 398 2 420 1\n"
+#define ORD_CART_CHILDREN "child update ui_update 1 600 500 9;child update update_entities 3 300 200 9"
+#define ORD_INPUT_CHILDREN "child update pad_nav_step 1 800 700 9"
+
+/* <every_frame> is ";"-separated "child ..." lines written on every frame but <zero_frame>, whose
+ * update root then takes 0 ns; <extra> are whole lines appended as they are. */
+static void write_ordinary_profile(const char *path, const char *root, int update_ns, int zero_frame,
+                                   const char *every_frame, const char *extra) {
+    static char text[TEXT_CAP];
+    char line[512];
+    text[0] = '\0';
+    snprintf(line, sizeof line,
+             "profile full_game.json frames %d hook-pair-ns 4.6 clock monotonic-ns\nroot draw cart_draw\n"
+             "root update %s\n",
+             ORD_FRAMES, root);
+    append(text, TEXT_CAP, line);
+    for (int frame = 0; frame < ORD_FRAMES; frame++) {
+        snprintf(line, sizeof line, "frame %d update %d draw 5000\n", frame, frame == zero_frame ? 0 : update_ns);
+        append(text, TEXT_CAP, line);
+        if (frame == zero_frame) continue;
+        for (const char *at = every_frame; *at != '\0';) {
+            const char *end = strchr(at, ';');
+            size_t len = end != NULL ? (size_t)(end - at) : strlen(at);
+            snprintf(line, sizeof line, "frame %d %.*s\n", frame, (int)len, at);
+            append(text, TEXT_CAP, line);
+            at += len + (end != NULL ? 1 : 0);
+        }
+    }
+    append(text, TEXT_CAP, extra);
+    write_file(path, text);
+}
+
+static void write_ordinary_inputs(void) {
+    fresh_dir();
+    write_file(ORD_JUDGE, ORD_JUDGE_TEXT);
+    write_ordinary_profile(ORD_CART, "cart_update60", 1000, -1, ORD_CART_CHILDREN,
+                           "frame 1 child update save_at_frame_end 1 40 30 2\n"
+                           "frame 3 child update save_at_frame_end 1 36 30 2\n");
+    write_ordinary_profile(ORD_INPUT, "input_step_run", 1000, -1, ORD_INPUT_CHILDREN, "");
+}
+
+static int run_ordinary(const char *args) {
+    char cmd[2048];
+    snprintf(cmd, sizeof cmd, SCRIPT " ordinary %s > " LOG " 2>&1", args);
+    return run_command(cmd);
+}
+
+#define ORD_BASE ORD_CART " " ORD_INPUT
+
+/* Frame 1's save holds exactly 2% of P (40 of 2000): a save frame; frame 3's 36 ns does not. */
+static void test_ordinary_population_lines(void) {
+    write_ordinary_inputs();
+    run_ordinary("2 263 " ORD_JUDGE " - w=3-5@5.0,v=0-2@50 " ORD_BASE);
+    assert(strcmp(output_line("population ordinary"),
+                  "population ordinary frames 5 excluded 1 mean-total 470.0 threshold 9.4 mean-update 70.0 "
+                  "save-frames 1 save-share 14.3%") == 0);
+    assert(strcmp(output_line("population w"),
+                  "population w frames 3 excluded 0 mean-total 466.7 threshold 5.0 mean-update 66.7 "
+                  "save-frames 0 save-share 0.0%") == 0);
+    assert(strcmp(output_line("population v"),
+                  "population v frames 2 excluded 1 mean-total 475.0 threshold 9.5 mean-update 75.0 "
+                  "save-frames 1 save-share 33.3%") == 0);
+    assert(strncmp(read_file(LOG), "population ordinary ", 20) == 0);
+    run_ordinary("2 99 " ORD_JUDGE " - - " ORD_BASE);
+    assert(strncmp(output_line("population ordinary"), "population ordinary frames 3 excluded 3 ", 40) == 0);
+    assert(output_line("population w")[0] == '\0');
+}
+
+static void test_ordinary_lists_both_roots_and_their_children(void) {
+    write_ordinary_inputs();
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE) == 3);
+    const char *save = "node update/cart_update60/save_at_frame_end population ordinary calls 0.4-1 runs-on 2 cost 0.6 "
+                       "p90 1.8 per-call 1.4 share 0.8% under\n";
+    char expected[4096];
+    snprintf(expected, sizeof expected, "%s%s%s",
+             "population ordinary frames 5 excluded 1 mean-total 470.0 threshold 9.4 mean-update 70.0 save-frames 1 "
+             "save-share 14.3%\n"
+             "node update/input_step_run population ordinary calls 1.0-1 runs-on 5 cost 35.0 p90 50.0 per-call 35.0 "
+             "share 50.0% above\n"
+             "node update/input_step_run/pad_nav_step population ordinary calls 1.0-1 runs-on 5 cost 28.0 p90 40.0 "
+             "per-call 28.0 share 40.0% above open\n"
+             "node update/cart_update60 population ordinary calls 1.0-1 runs-on 5 cost 35.0 p90 50.0 per-call 35.0 "
+             "share 50.0% above\n"
+             "node update/cart_update60/ui_update population ordinary calls 1.0-1 runs-on 5 cost 21.0 p90 30.0 "
+             "per-call 21.0 share 30.0% above open\n"
+             "node update/cart_update60/update_entities population ordinary calls 3.0-3 runs-on 5 cost 10.5 p90 15.0 "
+             "per-call 3.5 share 15.0% above open\n",
+             save,
+             "self update/input_step_run population ordinary cost 7.0 share 10.0% under\n"
+             "self update/cart_update60 population ordinary cost 2.9 share 4.2% under\n"
+             "open pad_nav_step\nopen ui_update\nopen update_entities\n"
+             "nodes-above 5 leaves 0 open 3\n");
+    assert(strcmp(read_file(LOG), expected) == 0);
+}
+
+/* Each base set takes its own per-frame minimum: input_step_run 500 (pad_nav_step 300), cart_update60 1000
+ * (ui_update 600), so P is 1500. */
+static void test_ordinary_takes_the_minimum_of_each_base_set(void) {
+    write_ordinary_inputs();
+    write_ordinary_profile(ORD_INPUT2, "input_step_run", 500, -1, "child update pad_nav_step 1 300 200 9", "");
+    write_ordinary_profile(ORD_CART2, "cart_update60", 2000, -1, "child update ui_update 1 900 500 9", "");
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_CART "," ORD_CART2 " " ORD_INPUT "," ORD_INPUT2) == 3);
+    assert(strstr(output_line("node update/input_step_run"), " cost 23.3 ") != NULL);
+    assert(strstr(output_line("node update/input_step_run/pad_nav_step"), " cost 14.0 ") != NULL);
+    assert(strstr(output_line("node update/cart_update60/ui_update"), " cost 28.0 ") != NULL);
+    /* A child missing from one profile of the set counts as 0: update_entities is not in ORD_CART2. */
+    assert(strstr(output_line("node update/cart_update60/update_entities"), " cost 0.0 ") != NULL);
+}
+
+/* ui_update=2 makes N 1.3 on every frame: the pieces move, their sum stays the update. */
+static void test_ordinary_ratios_move_shares_never_the_sum(void) {
+    write_ordinary_inputs();
+    assert(run_ordinary("2 263 " ORD_JUDGE " ui_update=2 - " ORD_BASE) == 3);
+    assert(strstr(output_line("node update/input_step_run"), " cost 26.9 p90 38.5 ") != NULL);
+    assert(strstr(output_line("node update/input_step_run"), " share 38.5% ") != NULL);
+    assert(strstr(output_line("node update/cart_update60"), " cost 43.1 ") != NULL);
+    assert(strstr(output_line("node update/cart_update60"), " share 61.5% ") != NULL);
+    assert(strstr(output_line("node update/cart_update60/ui_update"), " cost 32.3 ") != NULL);
+    /* The cart_update60 self piece keeps ratio 1, then shares the renormalisation. */
+    assert(strcmp(output_line("self update/cart_update60"),
+                  "self update/cart_update60 population ordinary cost 2.3 share 3.2% under") == 0);
+    /* A child of input_step_run carries the input step's ratio. */
+    assert(run_ordinary("2 263 " ORD_JUDGE " input_step_run=2 - " ORD_BASE) == 3);
+    assert(strstr(output_line("node update/input_step_run"), " cost 46.7 ") != NULL);
+    assert(strstr(output_line("node update/input_step_run/pad_nav_step"), " cost 37.3 ") != NULL);
+}
+
+/* save_at_frame_end=1:3-0: the ends 3 and 0 apply on frame 1, the only save frame; frame 3 keeps 1. */
+static void test_ordinary_intervals_apply_on_save_frames_only(void) {
+    write_ordinary_inputs();
+    assert(run_ordinary("2 263 " ORD_JUDGE " save_at_frame_end=1:3-0 w=3-5 " ORD_BASE) == 3);
+    assert(strstr(output_line("node update/cart_update60/save_at_frame_end population ordinary"), " cost 0.6 0.4-0.9 p90 ") !=
+           NULL);
+    assert(strstr(output_line("node update/input_step_run population ordinary"), " cost 35.0 34.8-35.1 p90 ") != NULL);
+    assert(strstr(output_line("node update/input_step_run population w"), " cost 33.3 33.3-33.3 p90 ") != NULL);
+}
+
+/* Frame 1 takes 0 ns in both base sets: every share is 0 there, and it is no save frame. */
+static void test_ordinary_frame_without_pc_time_counts_zero(void) {
+    write_ordinary_inputs();
+    write_ordinary_profile(ORD_CART, "cart_update60", 1000, 1, ORD_CART_CHILDREN, "");
+    write_ordinary_profile(ORD_INPUT, "input_step_run", 1000, 1, ORD_INPUT_CHILDREN, "");
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE) == 3);
+    assert(strcmp(output_line("node update/input_step_run"),
+                  "node update/input_step_run population ordinary calls 0.8-1 runs-on 4 cost 30.0 p90 50.0 per-call 37.5 "
+                  "share 42.9% above") == 0);
+    assert(strstr(output_line("node update/input_step_run/pad_nav_step"), " calls 0.8-1 runs-on 4 cost 24.0 ") != NULL);
+    assert(strstr(output_line("population ordinary"), " save-frames 0 save-share 0.0%") != NULL);
+}
+
+/* ui_update=2,input_step_run=3 makes N 2.3; ui_update's set holds hud_update (400 ns) on every frame and
+ * planet_update (100 ns, 2 calls) on frames 0 and 3; pad_nav_step's holds pad_cursor (500 ns). */
+static void write_ordinary_descent_inputs(void) {
+    write_ordinary_inputs();
+    write_ordinary_profile(ORD_UI, "ui_update", 600, -1, "child update hud_update 1 400 300 9",
+                           "frame 0 child update planet_update 2 100 90 3\nframe 3 child update planet_update 2 100 90 3\n");
+    write_ordinary_profile(ORD_PAD, "pad_nav_step", 800, -1, "child update pad_cursor 1 500 400 9", "");
+}
+
+#define ORD_DESCENT_RATIOS " ui_update=2,input_step_run=3 "
+
+static void test_ordinary_descends_through_symbol_sets_under_each_root(void) {
+    write_ordinary_descent_inputs();
+    assert(run_ordinary("2 263 " ORD_JUDGE ORD_DESCENT_RATIOS "- " ORD_BASE " ui_update=" ORD_UI " pad_nav_step=" ORD_PAD) ==
+           3);
+    assert(strstr(output_line("node update/input_step_run/pad_nav_step/pad_cursor"), " cost 22.8 ") != NULL);
+    assert(strstr(output_line("node update/cart_update60/ui_update/hud_update"), " cost 12.2 ") != NULL);
+    assert(strcmp(output_line("node update/cart_update60/ui_update/planet_update"),
+                  "node update/cart_update60/ui_update/planet_update population ordinary calls 0.8-2 runs-on 2 cost 1.7 "
+                  "p90 4.3 per-call 2.2 share 2.5% under") == 0);
+    assert(strcmp(output_line("self update/cart_update60/ui_update"),
+                  "self update/cart_update60/ui_update population ordinary cost 4.3 share 6.2% under") == 0);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "node update/input_step_run/pad_nav_step ") < strstr(log, "node update/input_step_run/pad_nav_step/"));
+    assert(strstr(log, "node update/input_step_run/pad_nav_step/") < strstr(log, "node update/cart_update60 "));
+    assert(ends_with(log, "\nopen pad_cursor\nopen hud_update\nnodes-above 6 leaves 0 open 2\n"));
+}
+
+/* ui_update's own set takes 2000 ns a frame (it also runs outside cart_update60): its self is its 600 ns under
+ * cart_update60 less its children, never more than the node. */
+static void test_ordinary_self_starts_from_the_node_time_under_its_parent(void) {
+    write_ordinary_descent_inputs();
+    write_ordinary_profile(ORD_UI, "ui_update", 2000, -1, "child update hud_update 1 400 300 9",
+                           "frame 0 child update planet_update 2 100 90 3\nframe 3 child update planet_update 2 100 90 3\n");
+    assert(run_ordinary("2 263 " ORD_JUDGE ORD_DESCENT_RATIOS "- " ORD_BASE " ui_update=" ORD_UI " pad_nav_step=" ORD_PAD) ==
+           3);
+    assert(strcmp(output_line("self update/cart_update60/ui_update"),
+                  "self update/cart_update60/ui_update population ordinary cost 4.3 share 6.2% under") == 0);
+}
+
+static void test_ordinary_leaves_and_unresolvable_close_the_descent(void) {
+    write_ordinary_inputs();
+    write_ordinary_profile(ORD_UI, "ui_update", 600, -1, "",
+                           "frame 0 child update planet_update 2 100 90 3\nframe 3 child update planet_update 2 100 90 3\n");
+    write_ordinary_profile(ORD_PAD, "pad_nav_step", 800, -1, "", "");
+    assert(run_ordinary("2 263 " ORD_JUDGE " - w=3-5@5.0 " ORD_BASE " ui_update=" ORD_UI " pad_nav_step=" ORD_PAD
+                        " update_entities=unresolvable") == 0);
+    assert(ends_with(output_line("node update/cart_update60/ui_update population w"), " above leaf"));
+    assert(ends_with(output_line("node update/input_step_run/pad_nav_step population ordinary"), " above leaf"));
+    assert(ends_with(output_line("node update/cart_update60/update_entities population ordinary"), " above unresolvable"));
+    assert(ends_with(output_line("node update/input_step_run population ordinary"), " above"));
+    assert(strcmp(output_line("node update/input_step_run population w"),
+                  "node update/input_step_run population w calls 1.0-1 runs-on 3 cost 33.3 p90 50.0 per-call 33.3 "
+                  "share 50.0% above") == 0);
+    assert(ends_with(read_file(LOG), "\nnodes-above 5 leaves 2 open 0\n"));
+}
+
+/* At 3 % the ordinary threshold is 14.1: update_entities (10.5) is above in the window only. */
+static void test_ordinary_node_above_in_one_population_is_above(void) {
+    write_ordinary_inputs();
+    assert(run_ordinary("3 263 " ORD_JUDGE " - w=3-5@5.0 " ORD_BASE) == 3);
+    assert(ends_with(output_line("node update/cart_update60/update_entities population ordinary"), " under open"));
+    assert(ends_with(output_line("node update/cart_update60/update_entities population w"), " above open"));
+    assert(strstr(read_file(LOG), "\nopen update_entities\n") != NULL);
+}
+
+static void test_ordinary_marks_multi_site_nodes(void) {
+    write_ordinary_inputs();
+    write_ordinary_profile(ORD_CART, "cart_update60", 1000, -1,
+                           "child update ui_update#1 1 300 250 9;child update ui_update#2 1 300 250 9;"
+                           "child update update_entities 3 300 200 9",
+                           "");
+    write_ordinary_profile(ORD_UI, "ui_update", 600, -1, "", "frame 0 child update planet_update 2 100 90 3\n");
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " ui_update=" ORD_UI) == 3);
+    assert(ends_with(output_line("node update/cart_update60/ui_update#1"), " above multi-site leaf"));
+    assert(ends_with(output_line("node update/cart_update60/ui_update#2"), " above multi-site leaf"));
+    assert(ends_with(output_line("node update/cart_update60/ui_update#2/planet_update"), " under multi-site"));
+    assert(ends_with(output_line("node update/cart_update60/update_entities"), " above open"));
+}
+
+static void test_ordinary_malformed_input_exits_2(void) {
+    write_ordinary_descent_inputs();
+    write_file(ORD_INPUT2, replaced(read_file(ORD_INPUT), "frames 6 ", "frames 5 "));
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_CART " " ORD_INPUT "," ORD_INPUT2) == 2);
+    assert(strstr(read_file(LOG), "frames 5, not 6") != NULL);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_INPUT " " ORD_INPUT) == 2);
+    assert(strstr(read_file(LOG), "root update input_step_run, not cart_update60") != NULL);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_CART " " ORD_CART) == 2);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " ui_update=" ORD_PAD) == 2);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " ui_update=" ORD_UI "," ORD_UI) == 2);
+    write_file(ORD_INPUT2, replaced(read_file(ORD_INPUT), "frame 4 update 1000 draw 5000\n", ""));
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_CART " " ORD_INPUT2) == 2);
+    write_file(DIR "/judge2.txt", replaced(ORD_JUDGE_TEXT, "3 100 398 2 500 1\n", ""));
+    assert(run_ordinary("2 263 " DIR "/judge2.txt - - " ORD_BASE) == 2);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - w=3-6 " ORD_BASE) == 2);
+}
+
+static void test_ordinary_usage_errors_exit_1(void) {
+    write_ordinary_descent_inputs();
+    write_ordinary_profile(DIR "/nowhere.txt", "nowhere", 100, -1, "", "");
+    assert(run_ordinary("") == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_CART) == 1);
+    assert(run_ordinary("x 263 " ORD_JUDGE " - - " ORD_BASE) == 1);
+    assert(run_ordinary("2 abc " ORD_JUDGE " - - " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " DIR "/none.txt - - " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " ui_update - " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " ui_update=1:2 - " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - w=5-3 " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - draw-x=5-3 " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - draw-x=3-5 " ORD_BASE) == 3);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - w=3 " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - ordinary=1-2 " ORD_BASE) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_CART " " DIR "/none.txt") == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " ui_update") == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " ui_update=" DIR "/none.txt") == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " cart_update60=" ORD_CART) == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " input_step_run=unresolvable") == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " ui_update=" ORD_UI " ui_update=unresolvable") == 1);
+    assert(run_ordinary("2 263 " ORD_JUDGE " - - " ORD_BASE " nowhere=" DIR "/nowhere.txt") == 1);
+    assert(strstr(read_file(LOG), "nowhere is no child of a placed set") != NULL);
+}
+
 int main(void) {
     build_breakdown_inputs();
     test_breakdown_match_over_a_resume_window();
@@ -1236,6 +1521,19 @@ int main(void) {
     test_spread_summarizes_each_class();
     test_spread_malformed_input_exits_2();
     test_spread_usage_errors_exit_1();
+    test_ordinary_population_lines();
+    test_ordinary_lists_both_roots_and_their_children();
+    test_ordinary_takes_the_minimum_of_each_base_set();
+    test_ordinary_ratios_move_shares_never_the_sum();
+    test_ordinary_intervals_apply_on_save_frames_only();
+    test_ordinary_frame_without_pc_time_counts_zero();
+    test_ordinary_descends_through_symbol_sets_under_each_root();
+    test_ordinary_self_starts_from_the_node_time_under_its_parent();
+    test_ordinary_leaves_and_unresolvable_close_the_descent();
+    test_ordinary_node_above_in_one_population_is_above();
+    test_ordinary_marks_multi_site_nodes();
+    test_ordinary_malformed_input_exits_2();
+    test_ordinary_usage_errors_exit_1();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frame_profile_check: all tests passed\n");
     return 0;
