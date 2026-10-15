@@ -1,0 +1,20 @@
+Sanity probe of make psx-probe: code linked next to cart_draw and never run; its total delta is the noise floor of a layout change.
+
+diff --git a/src/game/cart.c b/src/game/cart.c
+index e884ad8..eb99320 100644
+--- a/src/game/cart.c
++++ b/src/game/cart.c
+@@ -331,6 +331,13 @@ void cart_update60(void) {
+     if (!g_save_cut) save_at_frame_end();
+ }
+ 
++/* Null probe: kept in cart_draw's section, never called; it only moves the code after it. */
++__attribute__((used, noinline, section(".text.cart_draw"))) static unsigned null_probe_layout(unsigned seed) {
++    unsigned hash = 2166136261u;
++    for (unsigned i = 0; i < 16; i++) hash = (hash ^ (seed >> i)) * 16777619u;
++    return hash;
++}
++
+ void cart_draw(void) {
+     p8_vram_t *mem = dispatch_context_mem();
+ 

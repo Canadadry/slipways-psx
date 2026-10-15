@@ -500,9 +500,11 @@ mask.
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted, the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-full-game-check` | twelve conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (`PSX_FULL_GAME_ASSERTS=off`: the GPU replay without asserts), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
+| `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
+| `make psx-probe PATCH=<file>` | a throwaway patch measured on the short runs against the probe baseline, built in a temporary worktree (outputs in `tmp/psx/probe/<label>`) | ~2 min |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
@@ -600,7 +602,14 @@ in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
 (the capture handshake runs, `psx_capture_frames.lua` hands `NO_FRAME` at once,
 nothing is captured), until they exit, and checks twelve conditions
 (`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
-also in `run/conditions.txt`), every one before concluding:
+also in `run/conditions.txt`), every one before concluding.
+`PSX_FULL_GAME_ASSERTS=on|off` (default `on`; any other value fails before
+anything builds) picks the asserts mode: `off` has `psx-build` configure
+`PSX_MEASURED_REPLAY_ASSERTS=OFF`, so the measured GPU replays
+(`psx-gpu-replay`, `psx-gpu-replay-breakdown`) build without asserts, while
+the CPU-path replay and every other target keep them. `psx-build` passes the
+option on every configure (`ON` unless asked), so a cached `OFF` never
+carries into the next run:
 
 - `replay-done`, `state-game-lines`, `sprite-sheet`, `screen` and `map` on
   the replay, `gpu-replay-done` and `gpu-state-game-lines` on the GPU replay,
@@ -713,9 +722,10 @@ first green run's 47,889 vsyncs in 798 s for the replay, and for the GPU
 replay the first run with frame lines, 21,000 vsyncs (`.progress`, the frame
 lines printed after the loop included; `done` line 20,543) in 350 s, both
 `done` lines at 6,059 frames, the PC's count.
-`PSX_SHORT_RUN_CEILING`/`PSX_SHORT_RUN_TIMEOUT` (540 vsyncs, 10 s) for every
-boot of `psx-short-runs`: its longest first boot, the breakdown of `start`,
-282 vsyncs at `done` and 300 to 359 by `.progress`, in 6 s.
+`PSX_SHORT_RUN_CEILING`/`PSX_SHORT_RUN_TIMEOUT` (1080 vsyncs, 20 s) for every
+boot of `psx-short-runs`, the probe tool's values: twice its slowest boot
+seen, `draw-6000`'s breakdown boot with asserts off at 542 vsyncs; a
+ceiling only caps a boot that never exits, so a passing run is not slower.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
 
@@ -730,9 +740,12 @@ judge of sizes.
 **Manifest.** `psx/short_runs.txt`, one run a line, frames of
 `full_game.json`: `<name> prefix <first> <last> <end>` (its first `end + 1`
 frames) or `<name> resume <first> <last>` (a resume before the window
-`first..last`). The five runs: `start` (frames 0–99, the start spike at 12),
-`update-4737`, `update-5500`, `update-5719` (update spikes) and `draw-5564`
-(the draw cluster 5564–5578).
+`first..last`). The six runs: `start` (frames 0–99, the start spike at 12),
+`update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
+(the draw cluster 5564–5578) and `draw-6000` (frames 6000–6014, where
+`pset` is above 2% of draw on PC: a resume before the `pset` peak at
+5504–5552 starts without slipway transit dots, so it shows too little
+`pset`).
 
 **Cut.** `make psx-short-runs-cut` (host only) replays `full_game.json` with
 `tmp/short_run_cut` (`src/devtools/short_run_cut.c`, pure, host-tested by
@@ -772,18 +785,40 @@ patterned rectfill or circfill counts under its shape and again under
 `<family> <ticks> <calls>` for the ten families and `wrapped <0|1>`. Without
 the definition the GPU replay is the same program.
 
-**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>]` runs the cut, then
-per run configures `psx/` in `<name>/build` with `run.json` embedded and
-builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, boots the plain
-one twice and the breakdown once with an empty capture script until they
+**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off] [PSX_SHORT_RUN_OPT=O2|O3|Os]`
+runs the cut, then per run configures `psx/` in `<name>/build` with
+`run.json` embedded and
+builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, with asserts
+unless `PSX_SHORT_RUN_ASSERTS=off` (default `on`; any other value fails
+before the cut). `off` sets the CMake option `PSX_MEASURED_REPLAY_ASSERTS`
+to `OFF`: those two targets drop `-UNDEBUG`, so the SDK's `NDEBUG` applies,
+and `unused-variable`, `unused-but-set-variable`, `unused-function` and
+`unused-parameter` stay warnings, not errors (helpers, locals and parameters
+that only feed an assert); every other target keeps asserts, and so does
+`psx-build` unless `psx-full-game-check PSX_FULL_GAME_ASSERTS=off` asks it
+not to. `PSX_SHORT_RUN_OPT` (default `O2`, the SDK's level; any other value
+than `O2`, `O3` or `Os` fails before the cut) sets the CMake option
+`PSX_MEASURED_REPLAY_OPT`, which `psx-build` always sets to `O2`. `O2` adds
+nothing to the compile lines; `O3` and `Os` add `-O3` / `-Os` and
+`-Wno-error` to those two targets only, through an interface library linked
+after the SDK's: a target's own options come before the SDK interface's
+trailing `-O2` and lose to it. The prebuilt libpsn00b libraries keep the
+SDK's level. After the build, `tools/psx_opt_level.sh` (host-tested by
+`test_psx_opt_level`) reads the last `-O` of each target's `flags.make`; a
+level other than the one asked for fails the run before any boot, naming the
+target and both levels. Each run prints `opt <level> psx-gpu-replay
+<text>/<data>/<bss> psx-gpu-replay-breakdown <text>/<data>/<bss>`. Then it boots the plain one twice and the breakdown once with an empty capture script until they
 exit (`PSX_SHORT_RUN_CEILING` vsyncs, `PSX_SHORT_RUN_TIMEOUT` s; each boot's
-wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
+`exit ok|failed`, wall time and vsyncs in `boots.txt`; a failed boot, at the
+ceiling, the timeout or a non-zero exit, fails its run), then runs `tools/psx_short_run.sh`
 (host-tested by `test_psx_short_run` in `psx-tools-test`) into
 `<name>/analysis`. One line per condition, `ok` or `failed <reason>`
 (`verdicts.txt`):
 
-- `done`: each boot printed its `done` line with the run's frame count and
-  no stopped state;
+- `done`: each boot printed its `done` line with the run's frame count, no
+  stopped state, and after the `done` line its state dump through its last
+  line, `psx-state: cheat activations <n>` (else `<boot> state dump
+  incomplete`);
 - `deterministic`: the two plain boots' `psx-frame:` lines are byte-identical;
 - `representative`: over the window frames (mapped), the plain run's draw sum
   and update sum each within ±10% of `PSX_SHORT_RUN_REFERENCE`'s (default
@@ -794,9 +829,15 @@ wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
   `make psx-full-game-check`;
 - `breakdown`: the calibration in 15,500–19,000, one `psx-draw:` record per
   frame, no wrapped frame, and no frame's in-call time above the breakdown
-  boot's own draw.
+  boot's own draw;
+- `asserts`: each boot's first `psx-replay: asserts` line reports the
+  mode `PSX_SHORT_RUN_ASSERTS` asked for, naming any boot that says
+  otherwise or has no such line.
 
-`summary.txt`, over the window frames: each family's hblanks, calls and share
+`summary.txt`, over the window frames: first the plain-1 boot's sums,
+`window plain update <U> draw <D> submit <S>` (with or without a reference,
+even when the breakdown boot failed; `window plain unavailable: ...` when
+plain-1 lacks a window frame), then each family's hblanks, calls and share
 of the breakdown boot's draw (`pattern` apart), `in-calls` (everything under
 the p8 draw API: meter, filter and GPU backend) and `outside-calls` (the
 game's own code in `cart_draw`); `overhead` (breakdown draw − plain draw);
@@ -805,7 +846,91 @@ boot's parts with the breakdown's in-call share s: `backend-free` (update +
 submit + draw × (1 − s)), `game-draw-free` (update + submit + draw × s) and
 `draw-free` (update + submit), each with the frames still over
 `PSX_FRAME_BUDGET_HBLANKS`. The target fails after every run when a
-condition failed. It is not part of `psx-check`.
+boot or a condition failed. It is not part of `psx-check`.
+
+**Probes.** `make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]`
+measures a throwaway patch (a unified diff against `HEAD`, what `git diff`
+prints) on the short runs. It adds a detached git worktree of `HEAD` in
+`tmp/psx/probe/<label>/worktree` (a leftover one is removed and pruned
+first; it is removed on every exit), `git apply`s the patch there, and per
+run builds the *probe build*: the same configuration as `psx-short-runs`
+with the source directory, `SLIPWAYS_SRC_DIR` and every `src/` source taken
+from the worktree (generated units and the run's `run.embedded.c` stay the
+main tree's, so a patch that needs them regenerated is out of scope),
+`-DPSX_PROBE=ON` and `-DPSX_MEASURED_REPLAY_ASSERTS=OFF`, target
+`psx-gpu-replay` only. `PSX_PROBE` doubles `GPU_FRAME_BUFFER_BYTES` (one
+constant for the backend's overrun check, the meter and the `gpu_frame`
+zone, so calling even `cart_draw` twice fits) and links the delay helper
+`platform/psx_probe.h`: `psx_probe_delay(hblanks)` busy-waits that many
+hblanks (1..200, one value per build, otherwise `p8_fatal`) on the fine
+clock calibrated at start, and counts its calls; the boot prints
+`psx-probe: clk8-per-64-hblanks <n>` and, when it was called,
+`psx-probe: delay <hblanks> calls <count>`. A patch uses it by including the
+header and calling it at a function's entry. Each run boots once with an
+empty capture script (`PSX_PROBE_CEILING` vsyncs, default 1080, and
+`PSX_PROBE_TIMEOUT` s, default 20: twice the short run's) and
+`tools/psx_probe.sh` (host-tested by `test_psx_probe`) compares it with the
+run's probe baseline over the window frames: draw, update, submit and total,
+baseline → probe, delta in hblanks and in % of the baseline window total;
+`game-state same|differs` (every `psx-state:` line but zone, budget and cap,
+first difference printed); the delay line (delta ÷ delay over the run, its
+gap to the counted calls, and per window frame); then the ELF text sizes,
+`text <baseline> -> <probe> (<delta> bytes)`. Outputs in
+`tmp/psx/probe/<label>/<run>/` (`build.log`, `boot.tty.txt`,
+`analysis/probe.txt`); the label defaults to the patch's base name.
+
+A run is `invalid <reason>` instead, never a delta, when the patch does not
+apply (git's message; nothing is built), the build fails, the run has no
+baseline or a stale one, or either boot is missing, stopped (`p8_fatal`
+message quoted), did not finish its frames, has asserts on, lacks a window
+frame line, or has a bad calibration. Every run is measured; the target
+exits 1 if one is invalid, 0 otherwise, differing game-state lines included.
+
+`make psx-probe-baseline [PSX_SHORT_RUNS=<names>]` is the same pipeline
+without a patch into `tmp/psx/probe/baseline/`: the deltas compare probe
+builds with probe builds, never with `psx-short-runs`' measured replay,
+whose asserts-off figures stay the report's absolute baseline. A valid run
+gets `fingerprint.txt`: the tree ids of `src/` and `psx/` and the blob id of
+`full_game.json` at `HEAD`; `psx-probe` calls a run stale when its own
+`HEAD` gives another, so a commit outside those paths keeps the baseline.
+The sanity patches `psx/probes/call-twice-cart-draw.patch`,
+`delay-update-and-draw.patch` (20 hblanks at the entry of `cart_update60`
+and `cart_draw`) and `null.patch` (code linked next to `cart_draw`, never
+run) are the tool's fixtures; when a commit moves their context they are
+refreshed with it. Their results and the noise floor are in
+`docs/psx-perf-levers.md`.
+
+**PC frame profile.** `make frame-profile [EVENTS=] [REFERENCE=]` replays a
+recording (default `full_game.json`, about 7.5 s) with `tmp/frame_profile`.
+This build is `-O2` with asserts off, and the game, engine and PICO-8
+runtime are compiled with `-finstrument-functions`. Per frame, it writes the
+calls and PC time of each direct child of `cart_update60` and `cart_draw`
+(keyed by call site: `draw_layers#1`, `#2`) and of each draw family, counted
+as the breakdown counts them. The output goes to `tmp/frame-profile/<name>/`,
+and the end state is checked (`same-game`). The binary takes an optional
+fourth argument, a draw root other than `cart_draw` (for example
+`draw_layers`), named on the `root draw <symbol>` header line; an unknown or
+ambiguous symbol, or `cart_update60`, exits 1.
+
+- `make frame-profile-breakdown-check [PSX_SHORT_RUNS=]` (default
+  `draw-5564`) checks those call counts against each run's last breakdown
+  boot, frame by frame over its window. It never boots.
+- `make frame-profile-coverage [FRAME_PROFILE_THRESHOLD=] [FRAME_PROFILE_REPEATS=]`
+  profiles the full game and the `start` and `draw-*` runs K times (default
+  4, about 1 min). A full-run frame counts above the threshold only if it is
+  above in all K profiles. A window's share is the median of its K shares.
+  For each `cart_draw` child and family, it compares the share of draw over
+  the full game with the share in each window, and fails while an item above
+  2% on at least 15 frames is in no window.
+- `make frame-profile-subtree ROOT=<symbol> [PSX_SHORT_RUNS=] [FRAME_PROFILE_REPEATS=]`
+  profiles the `start` and `draw-*` runs (by default) K times with that
+  function as the draw root, into `tmp/frame-profile/subtree/<symbol>/`.
+  Its `summary.txt` gives, per run, the root's PC time per window frame,
+  then each child called in the window with its calls per window frame
+  (min–max) and its median share of the root's PC time, by decreasing
+  share, then the root's self share. It never boots.
+- Its tests are in `make frame-profile-test`. The results are in
+  `docs/psx-perf-levers.md`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 

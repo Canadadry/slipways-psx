@@ -62,6 +62,8 @@ src/platform/psx_frame_timer.c | hblank root counter of the PSX GPU replay's fra
 src/platform/psx_frame_timer.h | hblank root counter, header of platform/psx_frame_timer.c
 src/platform/psx_fine_clock.c | system clock / 8 root counter of the PSX breakdown replay's draw call timing, PSX only
 src/platform/psx_fine_clock.h | system clock / 8 root counter, header of platform/psx_fine_clock.c
+src/platform/psx_probe.c | fixed-delay helper of the PSX probe build (make psx-probe), PSX only
+src/platform/psx_probe.h | fixed-delay helper of the PSX probe build, header of platform/psx_probe.c
 src/p8/format.c | snprintf replacement of the PSX build, linked by the PSX platform and its host test
 src/p8/format.h | snprintf replacement of the PSX build, header of p8/format.c
 src/platform/format_psx.c | routes the PSX snprintf and vsnprintf to p8/format.c, PSX only
@@ -119,3 +121,6 @@ src/cmd/demo_generate.c | entry point of the demo generator, writes tmp/demo/dem
 src/devtools/short_run_cut.c | cut planner of make psx-short-runs-cut, host tool
 src/devtools/short_run_cut.h | cut planner of make psx-short-runs-cut, header of devtools/short_run_cut.c
 src/cmd/short_run_cut.c | entry point of short_run_cut, which cuts the short runs out of the full game, host tool
+src/devtools/call_profile.c | call counts and PC time per root child and draw family of the PC frame profile, host tool
+src/devtools/call_profile.h | call counts and PC time per root child and draw family of the PC frame profile, header of devtools/call_profile.c
+src/cmd/frame_profile.c | entry point of frame_profile, the PC frame profile's instrumented replay, host tool

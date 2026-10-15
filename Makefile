@@ -429,8 +429,12 @@
 #                       psx/gpu_captures.txt, then the comparator, without the
 #                       other conditions (outputs in tmp/psx/gpu-capture,
 #                       ~20 s); outside the suite
-# make psx-full-game-check -> builds the PS-EXEs of PSX_FULL_GAME_EVENTS
+# make psx-full-game-check [PSX_FULL_GAME_ASSERTS=on|off]
+#                    -> refuses any PSX_FULL_GAME_ASSERTS but on (default) or
+#                       off; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json) in tmp/psx/full-game/build,
+#                       off building the measured GPU replays without asserts
+#                       while the CPU-path replay keeps them,
 #                       writes its PC state and digest, boots the replay
 #                       (ceiling PSX_FULL_GAME_CEILING vsyncs, timeout
 #                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
@@ -464,21 +468,202 @@
 #                       jump selection or crosshair); fails on a refused
 #                       cut, an embed failure, a stopped replay or a missing
 #                       file, ~25 s; never boots, outside the suite
-# make psx-short-runs [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
-#                       then per run builds psx-gpu-replay and
-#                       psx-gpu-replay-breakdown with its run.json embedded in
-#                       tmp/psx/short-runs/<name>/build, boots the plain one
+# make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]
+#                       [PSX_SHORT_RUN_OPT=O2|O3|Os]
+#                    -> refuses any PSX_SHORT_RUN_ASSERTS but on (default) or
+#                       off and any PSX_SHORT_RUN_OPT but O2 (default, the
+#                       SDK's level), O3 or Os, runs psx-short-runs-cut, then
+#                       per run builds psx-gpu-replay and
+#                       psx-gpu-replay-breakdown with its run.json embedded
+#                       in tmp/psx/short-runs/<name>/build (off: without
+#                       asserts, unused-* warnings not errors; O3/Os: at that
+#                       level, warnings not errors; every other target keeps
+#                       asserts and O2), fails the run unless
+#                       tools/psx_opt_level.sh reads PSX_SHORT_RUN_OPT as the
+#                       last -O of both targets' flags, prints "opt <level>"
+#                       and both ELFs' text/data/bss, boots the plain one
 #                       twice and the breakdown once with an empty capture
-#                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, timeout
-#                       PSX_SHORT_RUN_TIMEOUT s; wall time and vsyncs in
-#                       boots.txt), then tools/psx_short_run.sh into
-#                       <name>/analysis: done, deterministic, representative
-#                       (against PSX_SHORT_RUN_REFERENCE, default
-#                       psx-full-game-check's frames.txt; empty skips it, a
-#                       missing file fails), breakdown, then the window's draw
+#                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, default
+#                       1080, timeout PSX_SHORT_RUN_TIMEOUT s, default 20;
+#                       exit ok|failed, wall time and vsyncs in boots.txt; a
+#                       failed boot fails its run), then
+#                       tools/psx_short_run.sh into <name>/analysis: done
+#                       (each boot's state dump complete), deterministic,
+#                       representative (against PSX_SHORT_RUN_REFERENCE,
+#                       default psx-full-game-check's frames.txt; empty skips
+#                       it, a missing file fails), breakdown, asserts (every boot
+#                       reports PSX_SHORT_RUN_ASSERTS's mode), then the
+#                       window's plain update, draw and submit sums, draw
 #                       split, overhead and best cases; fails after every run
-#                       when a condition failed, ~4 min; never runs a setup,
+#                       when a boot or a condition failed, ~4 min; never runs a setup,
 #                       outside the suite and psx-check
+# make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
+#                       then per run builds the probe build (psx-gpu-replay
+#                       with -DPSX_PROBE=ON, asserts off) of unpatched HEAD
+#                       from a temporary git worktree, boots it once with an
+#                       empty capture script (ceiling PSX_PROBE_CEILING
+#                       vsyncs, timeout PSX_PROBE_TIMEOUT s), checks it with
+#                       tools/psx_probe.sh against itself and, when valid,
+#                       stamps tmp/psx/probe/baseline/<name>/fingerprint.txt
+#                       with the tree ids of src/ and psx/ and the blob id of
+#                       PSX_FULL_GAME_EVENTS; fails if a run is invalid;
+#                       removes the worktree on every exit, outside the suite
+# make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
+#                    -> the same pipeline on HEAD with the patch git apply'd
+#                       in the worktree, outputs in tmp/psx/probe/<label>/
+#                       (default label: the patch's base name; baseline is
+#                       reserved), then per run tools/psx_probe.sh against
+#                       the baseline boot plus the ELF text sizes: window
+#                       draw, update, submit and total deltas, game-state
+#                       same or differs, delay / calls when the patch used
+#                       platform/psx_probe.h; a run is invalid when the patch
+#                       does not apply, the build fails, its baseline is
+#                       missing or stale, or tools/psx_probe.sh says so; fails
+#                       after every run if one is invalid, outside the suite
+#                       and psx-check
+# make frame-profile [EVENTS=<events>] [REFERENCE=<end-state>] -> builds
+#                       tmp/frame_profile (`-O2`, asserts off, game, engine
+#                       and PICO-8 runtime built with -finstrument-functions)
+#                       and replays that recording (default
+#                       worst-case/full_game.json) as tmp/replay does; writes
+#                       in tmp/frame-profile/<name>/ frames.txt (per frame:
+#                       update and draw PC time, calls, time, net time and
+#                       calls below of each direct child of cart_update60 and
+#                       cart_draw, self time, calls, time, cost-model units
+#                       and texture-window switches per draw family,
+#                       in-call) and summary.txt (the run's totals and shares),
+#                       then checks the last state against <events>.end-state
+#                       or REFERENCE with tools/end_state.sh: prints
+#                       same-game yes, no (fails) or unchecked (no
+#                       reference), outside the suite
+# make frame-profile-breakdown-check [PSX_SHORT_RUNS=<names>] -> runs
+#                       psx-short-runs-cut, then per run (default draw-5564)
+#                       profiles its run.json into
+#                       tmp/frame-profile/short-runs/<name>/ (same-game
+#                       against its run.end-state) and, through
+#                       tools/frame_profile_check.sh breakdown, compares the
+#                       PC per-family calls with the psx-draw: lines of the
+#                       run's last breakdown boot frame by frame over the
+#                       window: calls-match ok with the window totals side by
+#                       side, or the first mismatch; a missing breakdown TTY
+#                       fails naming the make psx-short-runs to run; never
+#                       boots, outside the suite
+# make frame-profile-coverage [FRAME_PROFILE_THRESHOLD=<pct>] [FRAME_PROFILE_REPEATS=<k>]
+#                    -> runs psx-short-runs-cut, profiles full_game.json and the
+#                       start and every draw-* run of psx/short_runs.txt k
+#                       times each (default 4, ~1 min) into
+#                       tmp/frame-profile/coverage/<name>/<k>/, then
+#                       tools/frame_profile_check.sh coverage (also in
+#                       tmp/frame-profile/coverage.txt): per cart_draw child
+#                       and draw family, frames above the threshold (default
+#                       2 %) of cart_draw's PC time in all k full profiles
+#                       (per-frame minimum), mean and max share, share in
+#                       each draw window (median of its k profiles), verdict
+#                       covered, uncovered (with a proposed 15-frame resume
+#                       window), sporadic (under 15 frames, listed) or
+#                       below, then the windows
+#                       to add; fails while anything is uncovered, outside
+#                       the suite
+# make frame-profile-subtree ROOT=<symbol> [PART=draw|update] [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
+#                    -> runs psx-short-runs-cut, profiles each run's run.json
+#                       (default start and every draw-* run of
+#                       psx/short_runs.txt) k times (default 4) with that
+#                       function as the draw root (default) into
+#                       tmp/frame-profile/subtree/<symbol>/<name>/<k>/, or
+#                       with PART=update as the update root (draw root
+#                       cart_draw) into tmp/frame-profile/subtree-update/
+#                       (same-game against its run.end-state), then
+#                       tools/frame_profile_check.sh subtree (also in
+#                       summary.txt of that <symbol> directory): per
+#                       run, the root's PC time per window frame, then per
+#                       child its calls per window frame and median share of
+#                       the root's PC time, and the root's self share; fails
+#                       on an unknown or ambiguous symbol; never boots,
+#                       outside the suite
+# make frame-profile-unit-cost [PSX_SHORT_RUNS=<names>] -> runs
+#                       psx-short-runs-cut, then per run (default every run of
+#                       psx/short_runs.txt) profiles its run.json into
+#                       tmp/frame-profile/unit-cost/<name>/ (same-game against
+#                       its run.end-state) and, through
+#                       tools/frame_profile_check.sh unit-cost, joins the PC
+#                       units with the run's last breakdown boot over the
+#                       window into <name>/unit-cost.txt: per family calls,
+#                       units, switches, hblanks, hblanks per call and per
+#                       unit, or the first calls mismatch; then the runs
+#                       summed in tmp/frame-profile/unit-cost/pooled.txt; a
+#                       missing breakdown TTY fails naming the make
+#                       psx-short-runs to run; never boots, outside the suite
+# make frame-profile-spikes [FRAME_PROFILE_REPEATS=<k>] [FRAME_PROFILE_SPIKE_THRESHOLD=<hblanks>]
+#                    -> profiles full_game.json k times (default 4) with
+#                       cart_update60 as the update root into
+#                       tmp/frame-profile/spikes/cart_update60/<k>/, then
+#                       tools/frame_profile_check.sh spikes on the judge table
+#                       psx/perf/full-run-frames.txt: every frame
+#                       whose update exceeds the threshold (default 263) walked
+#                       down to the child holding half its PC time; while a
+#                       frame is open on a symbol, profiles that symbol k
+#                       times as update root into spikes/<symbol>/<k>/ (one
+#                       that does not resolve goes to spikes/unresolvable.txt
+#                       and closes the walk) and runs it again, 16 levels at
+#                       most; writes tmp/frame-profile/spikes/spikes.txt,
+#                       fails while a frame is open; never boots, outside the
+#                       suite
+# make frame-profile-spread DRAW_GAINS=<gains> [UPDATE_RATIOS=<ratios>] [SPREAD_LABEL=<label>]
+#                    -> tools/frame_profile_check.sh spread on the judge table
+#                       and tmp/frame-profile/spikes/spikes.txt: per spike frame,
+#                       its class's work (PC share times the ratio of its
+#                       cart_update60 child, <child>=<ratio>,...) and the frames
+#                       it takes under 263 hblanks with draw cut by the gains
+#                       (default=<pct>[,<first>-<last>=<pct>]...), or
+#                       does-not-fit past 600 frames; writes
+#                       spikes/spread-<label>.txt (label default "default");
+#                       a missing spikes.txt fails naming make
+#                       frame-profile-spikes; never boots, outside the suite
+# make frame-profile-ordinary [FRAME_PROFILE_REPEATS=<k>] [FRAME_PROFILE_THRESHOLD=<pct>] [FRAME_PROFILE_SPIKE_THRESHOLD=<hblanks>] [UPDATE_RATIOS=<ratios>]
+#                    -> profiles full_game.json k times (default 4) with
+#                       cart_update60, then input_step_run as the update root
+#                       into tmp/frame-profile/ordinary/<symbol>/<k>/, then
+#                       tools/frame_profile_check.sh ordinary on the judge
+#                       table's frames with update at most the spike
+#                       threshold (default 263) and the windows draw-5564@27.0
+#                       and draw-6000@19.6: per node of both roots, PSX cost
+#                       from PC shares times the ratios
+#                       (<piece>=<r>[:<a>-<b>],..., default 1), calls,
+#                       runs-on, above or under the threshold (default 2 % of
+#                       the mean frame); while a node above is open, profiles
+#                       that symbol k times as update root (one that does not
+#                       resolve goes to ordinary/unresolvable.txt) and runs it
+#                       again, 16 levels at most; writes
+#                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
+#                       node is open; never boots, outside the suite
+# make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=sequential|independent] [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]
+#                    -> tools/lever_estimate.sh on the judge table,
+#                       psx/perf/spike-frames.txt and the gain
+#                       table (default psx/perf/gains.txt, whose
+#                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
+#                       the estimate against 263 after the end's levers
+#                       (default measured), each spike frame's work spread
+#                       (default sequential; a spike frame fits only if its
+#                       own leftover is within 263 too), per class, the summary and
+#                       each lever's gain alone; writes
+#                       tmp/lever-estimate/<label>.txt (label default
+#                       <end>[-<run>]) and prints all but its frame lines;
+#                       never boots, outside the suite
+# make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate,
+#                       under step 9's spike rule (spike-rule=step9),
+#                       reproduces step 9's spreading on the committed judge
+#                       table and spike frames with the gain tables of
+#                       tests/fixtures/lever_estimate/ (uniform 88%: no spike
+#                       frame does-not-fit; 87%: frame 6043 does not fit;
+#                       80.7% in game, 74.8% on frame 12: exactly frame 6043,
+#                       every class's figures as step 9's) and its spike
+#                       lines equal frame_profile_check.sh spread's; fails
+#                       naming each result not reproduced; outputs in
+#                       tmp/lever-estimate/check/; never boots, outside the
+#                       suite
+# make frame-profile-test -> host tests of the PC frame profile tool,
+#                       outside make test, make test-all, make e2e and
+#                       psx-tools-test
 # make psx-pad-check -> runs psx-build, boots the pad probe until it exits
 #                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
 #                       (default psx/pad_probe_script.txt) from the probe's
@@ -543,7 +728,7 @@
 # make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
 #                       never run by any other target
 
-.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -559,12 +744,14 @@ TMP_DIR := tmp
 
 # One object tree per set of flags. An object compiled without -fsanitize is
 # not instrumented: sharing it with a target that is would leave the binary
-# blind on that code, silently. Do not merge the five.
+# blind on that code, silently. Do not merge the seven.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
+OBJ_PROFILE_DIR := $(TMP_DIR)/obj-profile
+OBJ_PROFILE_PLAIN_DIR := $(TMP_DIR)/obj-profile-plain
 
 # `-MMD -MP`: next to each object, the compiler writes the list of headers that
 # the translation unit actually opened. The include at the bottom of this file
@@ -574,6 +761,9 @@ ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 SANITIZE_OPT_CFLAGS := -O2
 COVERAGE_CFLAGS := --coverage -O0
+PROFILE_CFLAGS := -O2 -DNDEBUG -Wno-error=unused-variable -Wno-error=unused-but-set-variable \
+	-Wno-error=unused-function -Wno-error=unused-parameter
+PROFILE_INSTRUMENT_CFLAGS := -finstrument-functions
 
 # `$(call objs,<sources>)` -> the paths of the matching object files in the
 # tree concerned. A target names its sources once; its prerequisites and its
@@ -583,6 +773,8 @@ asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
+profile_objs = $(patsubst %.c,$(OBJ_PROFILE_DIR)/%.o,$(1))
+profile_plain_objs = $(patsubst %.c,$(OBJ_PROFILE_PLAIN_DIR)/%.o,$(1))
 
 # `mkdir -p $(@D)` in the recipe rather than a directory as a prerequisite:
 # the mtime of a directory changes with every file written into it, which would
@@ -606,6 +798,14 @@ $(OBJ_SANITIZE_DIR)/%.o: %.c
 $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_PROFILE_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(PROFILE_CFLAGS) $(PROFILE_INSTRUMENT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_PROFILE_PLAIN_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(PROFILE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 BINDINGS_CORE_UNIT := $(TMP_DIR)/bindings/core.c
 DEMO_UNIT := $(TMP_DIR)/demo/demo.c
@@ -954,6 +1154,12 @@ $(TMP_DIR)/test_psx_frame_budget: $(call objs,tests/test_psx_frame_budget.c) too
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_short_run: $(call objs,tests/test_psx_short_run.c) tools/psx_short_run.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_probe: $(call objs,tests/test_psx_probe.c) tools/psx_probe.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_opt_level: $(call objs,tests/test_psx_opt_level.c) tools/psx_opt_level.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_full_game_check: $(call objs,tests/test_psx_full_game_check.c) tools/psx_full_game_check.sh \
@@ -1528,7 +1734,8 @@ unit: $(UNIT_RUNS)
 
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
-	test_psx_full_game_check test_psx_frame_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run
+	test_psx_full_game_check test_psx_frame_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
+	test_psx_probe test_psx_opt_level
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
@@ -2000,6 +2207,9 @@ PSX_NM = $(PSN00BSDK_DIR)/bin/mipsel-none-elf-nm
 psx_cmake_list = $(subst $(space),;,$(strip $(abspath $(1))))
 space := $(empty) $(empty)
 
+# Always passed: CMake caches options per build directory, and psx-build reconfigures in place.
+PSX_BUILD_MEASURED_REPLAY_ASSERTS ?= ON
+
 psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@mkdir -p $(dir $(PSX_EMBEDDED_REPLAY))
@@ -2007,6 +2217,7 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	cmake -S psx -B $(PSX_BUILD_DIR) \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) -DPSX_MEASURED_REPLAY_OPT=O2 \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS))' \
@@ -2073,9 +2284,18 @@ PSX_FULL_GAME_GPU_TIMEOUT ?= 525
 # One NTSC vsync in horizontal blanks: plan 11 step 4 must never raise it.
 PSX_FRAME_BUDGET_HBLANKS := 263
 
+PSX_FULL_GAME_ASSERTS ?= on
+# Checked at parse time: under -j a checking prerequisite would race the build.
+ifneq ($(filter psx-full-game-check,$(MAKECMDGOALS)),)
+ifneq ($(words $(PSX_FULL_GAME_ASSERTS))$(filter-out on off,$(PSX_FULL_GAME_ASSERTS)),1)
+$(error psx-full-game-check: PSX_FULL_GAME_ASSERTS must be on or off, not '$(PSX_FULL_GAME_ASSERTS)')
+endif
+endif
+
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
-	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build
+	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
+		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON)
 	@mkdir -p $(PSX_FULL_GAME_DIR)
 	STATE=$(PSX_FULL_GAME_DIR)/pc_state.txt DIGEST=$(PSX_FULL_GAME_DIR)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_FULL_GAME_EVENTS) /dev/null $(PSX_FULL_GAME_DIR)/pc.dump.txt > $(PSX_FULL_GAME_DIR)/pc.log 2>&1 \
 		|| { cat $(PSX_FULL_GAME_DIR)/pc.log >&2; exit 1; }
@@ -2123,13 +2343,24 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 	exit $$failed
 
 PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
-PSX_SHORT_RUN_CEILING ?= 540
-PSX_SHORT_RUN_TIMEOUT ?= 10
+PSX_SHORT_RUN_CEILING ?= 1080
+PSX_SHORT_RUN_TIMEOUT ?= 20
+PSX_SHORT_RUN_ASSERTS ?= on
+PSX_SHORT_RUN_OPT ?= O2
+# Checked at parse time: under -j a checking prerequisite would race the cut and the build.
+ifneq ($(filter psx-short-runs,$(MAKECMDGOALS)),)
+ifneq ($(words $(PSX_SHORT_RUN_ASSERTS))$(filter-out on off,$(PSX_SHORT_RUN_ASSERTS)),1)
+$(error psx-short-runs: PSX_SHORT_RUN_ASSERTS must be on or off, not '$(PSX_SHORT_RUN_ASSERTS)')
+endif
+ifneq ($(words $(PSX_SHORT_RUN_OPT))$(filter-out O2 O3 Os,$(PSX_SHORT_RUN_OPT)),1)
+$(error psx-short-runs: PSX_SHORT_RUN_OPT must be O2, O3 or Os, not '$(PSX_SHORT_RUN_OPT)')
+endif
+endif
 # Each run's own embedded recording replaces psx-build's in the three lists that hold it.
 psx_short_run_list = $(call psx_cmake_list,$(filter-out $(PSX_EMBEDDED_REPLAY),$(1)))
 
 # A failed boot or analysis fails the run but never stops the loop: every run is booted.
-psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_short_run.sh
+psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_short_run.sh tools/psx_opt_level.sh
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-short-runs: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@[ -z "$(PSX_SHORT_RUN_REFERENCE)" ] || [ -f "$(PSX_SHORT_RUN_REFERENCE)" ] \
 		|| { echo "psx-short-runs: no reference frame table $(PSX_SHORT_RUN_REFERENCE): run make psx-full-game-check" >&2; exit 1; }
@@ -2141,6 +2372,8 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 		if ! { cmake -S psx -B $$dir/build \
 			-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 			-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+			-DPSX_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_SHORT_RUN_ASSERTS)),OFF,ON) \
+			-DPSX_MEASURED_REPLAY_OPT=$(PSX_SHORT_RUN_OPT) \
 			"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
@@ -2151,23 +2384,363 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 			tail -n 20 $$dir/build.log >&2; echo "psx-short-runs: $$name failed to build ($$dir/build.log)"; \
 			failed="$$failed $$name"; continue; \
 		fi; \
-		: > $$dir/empty_capture_script.txt; : > $$dir/boots.txt; \
+		opt_failed=; sizes=; \
+		for target in psx-gpu-replay psx-gpu-replay-breakdown; do \
+			level=$$(sh tools/psx_opt_level.sh $$dir/build/CMakeFiles/$$target.dir/flags.make) || level=unreadable; \
+			[ "$$level" = $(PSX_SHORT_RUN_OPT) ] || { echo "psx-short-runs: $$name: $$target effective level $$level, not $(PSX_SHORT_RUN_OPT) as requested"; opt_failed=yes; }; \
+			sizes="$$sizes $$target $$($(PSX_SIZE) $$dir/build/$$target.elf | awk 'NR == 2 {print $$1 "/" $$2 "/" $$3}')"; \
+		done; \
+		echo "psx-short-runs: $$name: opt $(PSX_SHORT_RUN_OPT)$$sizes"; \
+		if [ -n "$$opt_failed" ]; then failed="$$failed $$name"; continue; fi; \
+		: > $$dir/empty_capture_script.txt; : > $$dir/boots.txt; boot_failed=; \
 		for boot in plain-1 plain-2 breakdown; do \
 			exe=$$dir/build/psx-gpu-replay.exe; [ $$boot = breakdown ] && exe=$$dir/build/psx-gpu-replay-breakdown.exe; \
 			rm -f $$dir/$$boot.*; start=$$(date +%s); \
 			PSX_BOOT_TIMEOUT=$(PSX_SHORT_RUN_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 				--capture-script $$dir/empty_capture_script.txt --exe $$exe $(PSX_SHORT_RUN_CEILING) $$dir/$$boot \
-				|| echo "psx-short-runs: $$name: $$boot boot failed"; \
+				&& boot_exit=ok || boot_exit=failed; \
 			done_vsyncs=$$(tr -d '\r' < $$dir/$$boot.tty.txt 2>/dev/null | sed -n 's/^psx-replay: done .* vsyncs \([0-9]*\)$$/\1/p'); \
-			echo "$$boot wall $$(($$(date +%s) - start)) s done-vsyncs $${done_vsyncs:--} progress-vsyncs $$(sed -n 's/^vsync //p' $$dir/$$boot.progress 2>/dev/null)" >> $$dir/boots.txt; \
+			echo "$$boot exit $$boot_exit wall $$(($$(date +%s) - start)) s done-vsyncs $${done_vsyncs:--} progress-vsyncs $$(sed -n 's/^vsync //p' $$dir/$$boot.progress 2>/dev/null)" >> $$dir/boots.txt; \
+			[ $$boot_exit = ok ] || boot_failed=yes; \
 		done; \
 		sed "s/^/psx-short-runs: $$name: boot /" $$dir/boots.txt; rm -rf $$dir/analysis; \
 		sh tools/psx_short_run.sh $$dir/plain-1.tty.txt $$dir/plain-2.tty.txt $$dir/breakdown.tty.txt $$dir/map.txt "$$frames" \
-			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis | sed "s/^/psx-short-runs: $$name: /"; \
-		[ -f $$dir/analysis/verdicts.txt ] && ! grep -q '^[a-z]* failed ' $$dir/analysis/verdicts.txt || failed="$$failed $$name"; \
+			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis $(PSX_SHORT_RUN_ASSERTS) | sed "s/^/psx-short-runs: $$name: /"; \
+		[ -z "$$boot_failed" ] && [ -f $$dir/analysis/verdicts.txt ] && ! grep -q '^[a-z]* failed ' $$dir/analysis/verdicts.txt || failed="$$failed $$name"; \
 	done; \
 	if [ -n "$$failed" ]; then echo "psx-short-runs: failed:$$failed"; exit 1; fi; \
 	echo "psx-short-runs: passed"
+
+PSX_PROBE_DIR := $(TMP_DIR)/psx/probe
+PSX_PROBE_CEILING ?= 1080
+PSX_PROBE_TIMEOUT ?= 20
+PATCH ?=
+PSX_PROBE_LABEL ?= $(basename $(notdir $(PATCH)))
+psx_probe_usage := usage: make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
+# Checked at parse time, before the cut and the builds start.
+ifneq ($(filter psx-probe,$(MAKECMDGOALS)),)
+ifeq ($(strip $(PATCH)),)
+$(error psx-probe: no PATCH; $(psx_probe_usage))
+endif
+ifeq ($(wildcard $(PATCH)),)
+$(error psx-probe: no patch file $(PATCH); $(psx_probe_usage))
+endif
+ifneq ($(words $(PSX_PROBE_LABEL))$(findstring /,$(PSX_PROBE_LABEL)),1)
+$(error psx-probe: PSX_PROBE_LABEL must be one word without /, not '$(PSX_PROBE_LABEL)')
+endif
+ifeq ($(PSX_PROBE_LABEL),baseline)
+$(error psx-probe: the label baseline is reserved for make psx-probe-baseline)
+endif
+endif
+psx_probe_label = $(if $(filter psx-probe,$@),$(PSX_PROBE_LABEL),baseline)
+psx_probe_worktree = $(abspath $(PSX_PROBE_DIR)/$(psx_probe_label)/worktree)
+# Sources under src/ come from the worktree; generated units and the run's recording stay the main tree's.
+psx_probe_list = $(subst $(space),;,$(strip $(patsubst $(abspath src)/%,$(psx_probe_worktree)/src/%,$(abspath $(filter-out $(PSX_EMBEDDED_REPLAY),$(1))))))
+
+# Every run is built, booted and analyzed even when an earlier one is invalid.
+psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_probe.sh
+	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "$@: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
+	@label=$(psx_probe_label); out=$(PSX_PROBE_DIR)/$$label; wt=$(psx_probe_worktree); \
+	patch='$(if $(filter psx-probe,$@),$(abspath $(PATCH)))'; \
+	fingerprint=$$(git rev-parse HEAD:src HEAD:psx HEAD:$(PSX_FULL_GAME_EVENTS) | tr '\n' ' '); \
+	remove_worktree() { git worktree remove --force "$$wt" > /dev/null 2>&1; rm -rf "$$wt"; git worktree prune; }; \
+	mkdir -p $$out; remove_worktree; trap remove_worktree EXIT; trap 'exit 130' INT TERM; \
+	git worktree add --detach "$$wt" HEAD > $$out/worktree.log 2>&1 || { cat $$out/worktree.log >&2; exit 1; }; \
+	apply_error=; \
+	if [ -n "$$patch" ] && ! git -C "$$wt" apply "$$patch" > $$out/apply.log 2>&1; then \
+		apply_error=$$(tr '\n' ' ' < $$out/apply.log); fi; \
+	invalid=; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '!/^[[:space:]]*(#|$$)/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		dir=$$out/$$name; base=$(PSX_PROBE_DIR)/baseline/$$name; short=$(PSX_SHORT_RUNS_DIR)/$$name; \
+		embedded=$(abspath $(PSX_SHORT_RUNS_DIR))/$$name/run.embedded.c; \
+		frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $$short/run.log); \
+		mkdir -p $$dir; rm -rf $$dir/analysis $$dir/boot.*; mkdir -p $$dir/analysis; reason=; \
+		[ $$label = baseline ] && rm -f $$dir/fingerprint.txt; \
+		if [ -n "$$apply_error" ]; then reason="patch does not apply: $$apply_error"; \
+		elif [ $$label != baseline ] && [ ! -f $$base/fingerprint.txt ]; then reason="no baseline for $$name: run make psx-probe-baseline"; \
+		elif [ $$label != baseline ] && [ "$$(cat $$base/fingerprint.txt)" != "$$fingerprint" ]; then reason="baseline stale: run make psx-probe-baseline"; \
+		fi; \
+		if [ -z "$$reason" ]; then \
+			echo "$@: $$label: $$name: building $$frames frames in $$dir/build"; \
+			{ cmake -S "$$wt/psx" -B $$dir/build \
+				-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
+				-DCMAKE_BUILD_TYPE=Release "-DSLIPWAYS_SRC_DIR=$$wt/src" \
+				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF \
+				"-DPSX_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_REPLAY_SRCS));$$embedded" \
+				"-DPSX_GPU_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
+				"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
+				'-DPSX_LARGEST_SLOTS_SOURCES=$(call psx_probe_list,$(PSX_LARGEST_SLOTS_SRCS))' \
+				'-DPSX_PAD_PROBE_SOURCES=$(call psx_probe_list,$(PSX_PAD_PROBE_SRCS))' \
+				'-DPSX_GAME_SOURCES=$(call psx_probe_list,$(PSX_GAME_SRCS))' \
+				&& cmake --build $$dir/build --target psx-gpu-replay --parallel $$(nproc); } > $$dir/build.log 2>&1 \
+				|| { tail -n 20 $$dir/build.log >&2; reason="build failed ($$dir/build.log)"; }; \
+		fi; \
+		if [ -z "$$reason" ]; then \
+			: > $$dir/empty_capture_script.txt; \
+			PSX_BOOT_TIMEOUT=$(PSX_PROBE_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
+				--capture-script $$dir/empty_capture_script.txt --exe $$dir/build/psx-gpu-replay.exe $(PSX_PROBE_CEILING) $$dir/boot \
+				|| echo "$@: $$label: $$name: boot failed"; \
+			sh tools/psx_probe.sh $$name $$base/boot.tty.txt $$dir/boot.tty.txt $$short/map.txt "$$frames" $$dir/analysis > /dev/null; \
+			if ! grep -q "^$$name invalid " $$dir/analysis/probe.txt; then \
+				text_base=$$($(PSX_SIZE) $$base/build/psx-gpu-replay.elf | awk 'NR == 2 {print $$1}'); \
+				text_probe=$$($(PSX_SIZE) $$dir/build/psx-gpu-replay.elf | awk 'NR == 2 {print $$1}'); \
+				echo "$$name text $$text_base -> $$text_probe ($$(printf '%+d' $$((text_probe - text_base))) bytes)" >> $$dir/analysis/probe.txt; \
+			fi; \
+		else echo "$$name invalid $$reason" > $$dir/analysis/probe.txt; \
+		fi; \
+		sed "s/^/$@: $$label: /" $$dir/analysis/probe.txt; \
+		if grep -q "^$$name invalid " $$dir/analysis/probe.txt; then invalid="$$invalid $$name"; \
+		elif [ $$label = baseline ]; then echo "$$fingerprint" > $$dir/fingerprint.txt; \
+		fi; \
+	done; \
+	if [ -n "$$invalid" ]; then echo "$@: $$label: invalid:$$invalid"; exit 1; fi; \
+	echo "$@: $$label: valid"
+
+FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check test_lever_estimate
+
+# Only the game, the engine and the PICO-8 runtime are instrumented: the hooks
+# must never see themselves or the replay harness.
+FRAME_PROFILE_SRCS := src/cmd/frame_profile.c src/devtools/call_profile.c src/devtools/record_start.c \
+	src/devtools/draw_filter.c src/devtools/capture_list.c src/devtools/replay_source.c $(STATE_SRCS) \
+	$(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+FRAME_PROFILE_INSTRUMENTED_SRCS := $(filter src/game/% src/engine/% src/p8/%,$(FRAME_PROFILE_SRCS))
+FRAME_PROFILE_PLAIN_SRCS := $(filter-out $(FRAME_PROFILE_INSTRUMENTED_SRCS),$(FRAME_PROFILE_SRCS))
+FRAME_PROFILE_DIR := $(TMP_DIR)/frame-profile
+FRAME_PROFILE_EVENTS := worst-case/full_game.json
+
+$(TMP_DIR)/frame_profile: $(call profile_objs,$(FRAME_PROFILE_INSTRUMENTED_SRCS)) $(call profile_plain_objs,$(FRAME_PROFILE_PLAIN_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+	nm $@ > $@.syms
+
+# usage: profile <events> <reference> <out-dir> [<draw-root> [<update-root>]]; prints "<label>: same-game ...", fails on a stopped replay or no.
+frame_profile_function = profile() { \
+	events=$$1; reference=$$2; dir=$$3; mkdir -p $$dir; rm -f $$dir/state.txt; \
+	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms $${4:+"$$4"} $${5:+"$$5"} \
+		|| return $$?; \
+	if [ ! -f "$$reference" ]; then same=unchecked; \
+	elif sh tools/end_state.sh check $$events $$dir/state.txt $$reference > $$dir/end-state.txt; then same=yes; \
+	else same=no; cat $$dir/end-state.txt; fi; \
+	echo "same-game $$same" >> $$dir/summary.txt; \
+	echo "$@: $$dir same-game $$same"; \
+	[ $$same != no ]; \
+}
+
+frame-profile: $(TMP_DIR)/frame_profile tools/end_state.sh
+	@$(frame_profile_function); events=$(or $(EVENTS),$(FRAME_PROFILE_EVENTS)); \
+	profile $$events $(or $(REFERENCE),$$events.end-state) $(FRAME_PROFILE_DIR)/$$(basename $$events .json)
+
+# Each short run gets its own directory: every run's recording is named run.json.
+frame-profile-breakdown-check: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); failed=; \
+	for name in $${PSX_SHORT_RUNS:-draw-5564}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$(FRAME_PROFILE_DIR)/short-runs/$$name; \
+		if [ ! -f $$short/breakdown.tty.txt ]; then \
+			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUNS=$$name"; \
+			failed="$$failed $$name"; continue; \
+		fi; \
+		rm -f $$dir/breakdown-check.txt; profile $$short/run.json $$short/run.end-state $$dir \
+			&& sh tools/frame_profile_check.sh breakdown $$dir/frames.txt $$short/breakdown.tty.txt $$short/map.txt \
+				> $$dir/breakdown-check.txt; status=$$?; \
+		[ -f $$dir/breakdown-check.txt ] && sed "s/^/$@: $$name: /" $$dir/breakdown-check.txt; \
+		[ $$status -eq 0 ] || failed="$$failed $$name"; \
+	done; \
+	if [ -n "$$failed" ]; then echo "$@: failed:$$failed"; exit 1; fi
+
+FRAME_PROFILE_THRESHOLD ?= 2
+FRAME_PROFILE_REPEATS ?= 4
+
+# The draw windows are start and every draw-* run of the manifest; each recording is profiled
+# FRAME_PROFILE_REPEATS times into coverage/<name>/<k>.
+frame-profile-coverage: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	repeats=$$(seq 1 $(FRAME_PROFILE_REPEATS)); \
+	full_name=$$(basename $(FRAME_PROFILE_EVENTS) .json); fulls=; \
+	for k in $$repeats; do \
+		dir=$(FRAME_PROFILE_DIR)/coverage/$$full_name/$$k; \
+		profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$dir || exit 1; \
+		fulls="$$fulls,$$dir/frames.txt"; \
+	done; \
+	windows=; \
+	for name in $$(awk '$$1 == "start" || $$1 ~ /^draw-/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST)); do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; profiles=; \
+		for k in $$repeats; do \
+			dir=$(FRAME_PROFILE_DIR)/coverage/$$name/$$k; \
+			profile $$short/run.json $$short/run.end-state $$dir || exit 1; \
+			profiles="$$profiles,$$dir/frames.txt"; \
+		done; \
+		windows="$$windows $$name=$${profiles#,}:$$short/map.txt"; \
+	done; \
+	sh tools/frame_profile_check.sh coverage $(FRAME_PROFILE_THRESHOLD) $${fulls#,} $$windows \
+		> $(FRAME_PROFILE_DIR)/coverage.txt; status=$$?; \
+	cat $(FRAME_PROFILE_DIR)/coverage.txt; exit $$status
+
+PART ?= draw
+
+# Each run's recording is profiled FRAME_PROFILE_REPEATS times into subtree/<ROOT>/<name>/<k>
+# (subtree-update/ with PART=update, where cart_draw stays the draw root).
+frame-profile-subtree: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); \
+	case "$(ROOT)" in ''|*[!A-Za-z0-9_]*) echo "$@: ROOT is not a function symbol: '$(ROOT)'"; exit 1;; esac; \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	case "$(PART)" in \
+		draw) out=$(FRAME_PROFILE_DIR)/subtree/$(ROOT); roots="$(ROOT)";; \
+		update) out=$(FRAME_PROFILE_DIR)/subtree-update/$(ROOT); roots="cart_draw $(ROOT)";; \
+		*) echo "$@: PART is not draw or update: '$(PART)'"; exit 1;; \
+	esac; runs=; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 == "start" || $$1 ~ /^draw-/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; profiles=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			dir=$$out/$$name/$$k; \
+			profile $$short/run.json $$short/run.end-state $$dir $$roots || exit 1; \
+			profiles="$$profiles,$$dir/frames.txt"; \
+		done; \
+		runs="$$runs $$name=$${profiles#,}:$$short/map.txt"; \
+	done; \
+	sh tools/frame_profile_check.sh subtree part=$(PART) $$runs > $$out/summary.txt; status=$$?; \
+	cat $$out/summary.txt; exit $$status
+
+frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); failed=; outputs=; out=$(FRAME_PROFILE_DIR)/unit-cost; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 !~ /^#/ && NF {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$$out/$$name; \
+		if [ ! -f $$short/breakdown.tty.txt ]; then \
+			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_REFERENCE="; \
+			failed="$$failed $$name"; continue; \
+		fi; \
+		rm -f $$dir/unit-cost.txt; profile $$short/run.json $$short/run.end-state $$dir \
+			&& sh tools/frame_profile_check.sh unit-cost $$dir/frames.txt $$short/breakdown.tty.txt $$short/map.txt \
+				> $$dir/unit-cost.txt; status=$$?; \
+		[ -f $$dir/unit-cost.txt ] && sed "s/^/$@: $$name: /" $$dir/unit-cost.txt; \
+		if [ $$status -eq 0 ]; then outputs="$$outputs $$dir/unit-cost.txt"; else failed="$$failed $$name"; fi; \
+	done; \
+	if [ -n "$$failed" ]; then echo "$@: failed:$$failed"; exit 1; fi; \
+	sh tools/frame_profile_check.sh unit-cost-pooled $$outputs > $$out/pooled.txt || exit 1; \
+	sed "s/^/$@: pooled: /" $$out/pooled.txt
+
+FRAME_PROFILE_SPIKE_THRESHOLD ?= 263
+FRAME_PROFILE_JUDGE_FRAMES := psx/perf/full-run-frames.txt
+FRAME_PROFILE_SPIKE_LEVELS := 16
+
+# Each update root (cart_update60, then every open symbol) is profiled FRAME_PROFILE_REPEATS times
+# into spikes/<symbol>/<k>; a symbol frame_profile cannot resolve (no text symbol, or several
+# addresses) goes to spikes/unresolvable.txt and closes the walk.
+frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+	@$(frame_profile_function); \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	case "$(FRAME_PROFILE_SPIKE_THRESHOLD)" in ''|*[!0-9]*) echo "$@: FRAME_PROFILE_SPIKE_THRESHOLD is not a count of hblanks: '$(FRAME_PROFILE_SPIKE_THRESHOLD)'"; exit 1;; esac; \
+	out=$(FRAME_PROFILE_DIR)/spikes; rm -rf $$out; mkdir -p $$out; : > $$out/unresolvable.txt; \
+	profile_set() { \
+		profiles=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$out/$$1/$$k cart_draw $$1 >&2 || return 1; \
+			profiles="$$profiles,$$out/$$1/$$k/frames.txt"; \
+		done; \
+		echo "$${profiles#,}"; \
+	}; \
+	base=$$(profile_set cart_update60) || exit 1; sets=; level=0; \
+	while :; do \
+		sh tools/frame_profile_check.sh spikes $(FRAME_PROFILE_SPIKE_THRESHOLD) $(FRAME_PROFILE_JUDGE_FRAMES) $$base $$sets \
+			> $$out/spikes.txt; status=$$?; \
+		[ $$status -eq 3 ] || break; \
+		level=$$((level + 1)); \
+		if [ $$level -gt $(FRAME_PROFILE_SPIKE_LEVELS) ]; then echo "$@: still open after $(FRAME_PROFILE_SPIKE_LEVELS) levels"; break; fi; \
+		for symbol in $$(awk '$$1 == "open" && NF == 4 {print $$2}' $$out/spikes.txt); do \
+			addresses=$$(awk -v name=$$symbol '$$3 == name && $$2 ~ /^[TtWw]$$/ {print $$1}' $(TMP_DIR)/frame_profile.syms | sort -u | wc -l); \
+			if [ $$addresses -ne 1 ]; then \
+				echo "$$symbol text-symbols $$addresses" >> $$out/unresolvable.txt; sets="$$sets $$symbol=unresolvable"; continue; \
+			fi; \
+			profiles=$$(profile_set $$symbol) || exit 1; \
+			sets="$$sets $$symbol=$$profiles"; \
+		done; \
+	done; \
+	cat $$out/spikes.txt; exit $$status
+
+FRAME_PROFILE_ORDINARY_WINDOWS := draw-5564=5564-5578@27.0,draw-6000=6000-6014@19.6
+
+# Like frame-profile-spikes, with two base roots (cart_update60 and input_step_run) and its own
+# ordinary/<symbol>/<k> profiles, so neither target stales the other's.
+frame-profile-ordinary: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+	@$(frame_profile_function); \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	case "$(FRAME_PROFILE_SPIKE_THRESHOLD)" in ''|*[!0-9]*) echo "$@: FRAME_PROFILE_SPIKE_THRESHOLD is not a count of hblanks: '$(FRAME_PROFILE_SPIKE_THRESHOLD)'"; exit 1;; esac; \
+	out=$(FRAME_PROFILE_DIR)/ordinary; rm -rf $$out; mkdir -p $$out; : > $$out/unresolvable.txt; \
+	profile_set() { \
+		profiles=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			profile $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$out/$$1/$$k cart_draw $$1 >&2 || return 1; \
+			profiles="$$profiles,$$out/$$1/$$k/frames.txt"; \
+		done; \
+		echo "$${profiles#,}"; \
+	}; \
+	cart=$$(profile_set cart_update60) || exit 1; input=$$(profile_set input_step_run) || exit 1; sets=; level=0; \
+	while :; do \
+		sh tools/frame_profile_check.sh ordinary $(FRAME_PROFILE_THRESHOLD) $(FRAME_PROFILE_SPIKE_THRESHOLD) $(FRAME_PROFILE_JUDGE_FRAMES) \
+			"$(or $(UPDATE_RATIOS),-)" $(FRAME_PROFILE_ORDINARY_WINDOWS) $$cart $$input $$sets > $$out/ordinary.txt; status=$$?; \
+		[ $$status -eq 3 ] || break; \
+		level=$$((level + 1)); \
+		if [ $$level -gt $(FRAME_PROFILE_SPIKE_LEVELS) ]; then echo "$@: still open after $(FRAME_PROFILE_SPIKE_LEVELS) levels"; break; fi; \
+		for symbol in $$(awk '$$1 == "open" && NF == 2 {print $$2}' $$out/ordinary.txt); do \
+			addresses=$$(awk -v name=$$symbol '$$3 == name && $$2 ~ /^[TtWw]$$/ {print $$1}' $(TMP_DIR)/frame_profile.syms | sort -u | wc -l); \
+			if [ $$addresses -ne 1 ]; then \
+				echo "$$symbol text-symbols $$addresses" >> $$out/unresolvable.txt; sets="$$sets $$symbol=unresolvable"; continue; \
+			fi; \
+			profiles=$$(profile_set $$symbol) || exit 1; \
+			sets="$$sets $$symbol=$$profiles"; \
+		done; \
+	done; \
+	cat $$out/ordinary.txt; exit $$status
+
+SPREAD_LABEL ?= default
+
+frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+	@spikes=$(FRAME_PROFILE_DIR)/spikes/spikes.txt; \
+	[ -f $$spikes ] || { echo "$@: missing $$spikes: run make frame-profile-spikes first"; exit 1; }; \
+	[ -n "$(DRAW_GAINS)" ] || { echo "$@: DRAW_GAINS is required: default=<pct>[,<first>-<last>=<pct>]..."; exit 1; }; \
+	case "$(SPREAD_LABEL)" in ''|*[!A-Za-z0-9_.-]*) echo "$@: SPREAD_LABEL is not a file-name label: '$(SPREAD_LABEL)'"; exit 1;; esac; \
+	out=$(FRAME_PROFILE_DIR)/spikes/spread-$(SPREAD_LABEL).txt; \
+	sh tools/frame_profile_check.sh spread 263 $(FRAME_PROFILE_JUDGE_FRAMES) $$spikes "$(DRAW_GAINS)" $(UPDATE_RATIOS) > $$out \
+		|| { status=$$?; rm -f $$out; exit $$status; }; \
+	cat $$out
+
+ESTIMATE_END ?= measured
+ESTIMATE_ALLOCATION ?= sequential
+ESTIMATE_HAIRCUT ?= 0
+ESTIMATE_GAINS ?= psx/perf/gains.txt
+ESTIMATE_SPIKE_FRAMES := psx/perf/spike-frames.txt
+LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
+
+lever-estimate: tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
+	@label=$(or $(ESTIMATE_LABEL),$(ESTIMATE_END)$(if $(ESTIMATE_RUN),-$(ESTIMATE_RUN))); \
+	case "$$label" in ''|*[!A-Za-z0-9_.-]*) echo "$@: ESTIMATE_LABEL is not a file-name label: '$$label'"; exit 1;; esac; \
+	mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/$$label.txt; \
+	sh tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
+		allocation=$(ESTIMATE_ALLOCATION) haircut=$(ESTIMATE_HAIRCUT) $(if $(ESTIMATE_RUN),run=$(ESTIMATE_RUN)) > $$out \
+		|| { status=$$?; rm -f $$out; exit $$status; }; \
+	grep -v '^frame ' $$out; echo "$@: wrote $$out"
+
+lever-estimate-check: tools/lever_estimate.sh tools/lever_estimate_check.sh tools/frame_profile_check.sh \
+		$(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
+	@sh tools/lever_estimate_check.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
+		$(LEVER_ESTIMATE_DIR)/check
+
+$(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.c) tools/frame_profile_check.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/frame_profile_check.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
+	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
+
+.PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
+	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate lever-estimate-check
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad
@@ -2351,4 +2924,5 @@ raylib: $(TMP_DIR)/game
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*/*.d $(OBJ_SANITIZE_DIR)/tests/*.d $(OBJ_SANITIZE_DIR)/tmp/bindings/*.d $(OBJ_SANITIZE_DIR)/tmp/demo/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d $(OBJ_COVERAGE_DIR)/tmp/demo/*.d)
+-include $(wildcard $(OBJ_PROFILE_DIR)/src/*/*.d $(OBJ_PROFILE_PLAIN_DIR)/src/*/*.d $(OBJ_PROFILE_PLAIN_DIR)/tmp/bindings/*.d $(OBJ_PROFILE_PLAIN_DIR)/tmp/demo/*.d)
 

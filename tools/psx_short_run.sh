@@ -1,21 +1,24 @@
 #!/bin/sh
-# usage: psx_short_run.sh <plain-tty-1> <plain-tty-2> <breakdown-tty> <map> <frames> <budget-hblanks> <reference-frames> <out-dir>
+# usage: psx_short_run.sh <plain-tty-1> <plain-tty-2> <breakdown-tty> <map> <frames> <budget-hblanks> <reference-frames> <out-dir> <asserts on|off>
 # Analyzes one short run of make psx-short-runs: two boots of the plain GPU
 # replay, one of psx-gpu-replay-breakdown, the run's map.txt (from
 # tmp/short_run_cut) and its frame count. <reference-frames> is a frame table
 # of tools/psx_frame_budget.sh over full_game.json, or empty to skip
-# representative. Writes <out-dir>/verdicts.txt, one line per condition in the
-# order done, deterministic, representative, breakdown: "<condition> ok[
-# <detail>]", "<condition> failed <reason>" or "representative skipped ...";
-# <out-dir>/summary.txt (the window's draw split, overhead and best cases);
+# representative. <asserts> is the mode every boot's "psx-replay: asserts"
+# line must report. done also needs each boot's state dump through its last
+# line, "psx-state: cheat activations", after its done line. Writes <out-dir>/verdicts.txt, one line per condition in
+# the order done, deterministic, representative, breakdown, asserts:
+# "<condition> ok[ <detail>]", "<condition> failed <reason>" or
+# "representative skipped ..."; <out-dir>/summary.txt (the window's plain
+# update, draw and submit sums, draw split, overhead and best cases);
 # <out-dir>/window.txt (plain and reference figures side by side, with a
 # reference only). Prints both. A missing TTY fails conditions, not the
 # script. Exits 0 when no condition failed, 2 when one did, 1 on a usage error.
 
 set -u
 
-usage="usage: psx_short_run.sh <plain-tty-1> <plain-tty-2> <breakdown-tty> <map> <frames> <budget-hblanks> <reference-frames> <out-dir>"
-[ $# -eq 8 ] || { echo "psx-short-run: $usage" >&2; exit 1; }
+usage="usage: psx_short_run.sh <plain-tty-1> <plain-tty-2> <breakdown-tty> <map> <frames> <budget-hblanks> <reference-frames> <out-dir> <asserts on|off>"
+[ $# -eq 9 ] || { echo "psx-short-run: $usage" >&2; exit 1; }
 plain_1=$1
 plain_2=$2
 breakdown=$3
@@ -24,6 +27,11 @@ frames=$5
 budget=$6
 reference=$7
 out_dir=$8
+asserts=$9
+case $asserts in
+    on | off) ;;
+    *) echo "psx-short-run: asserts is not on or off: $asserts" >&2; exit 1 ;;
+esac
 [ -f "$map" ] || { echo "psx-short-run: missing map: $map" >&2; exit 1; }
 case $frames in
     '' | *[!0-9]*) echo "psx-short-run: frames is not a count: $frames" >&2; exit 1 ;;
@@ -73,6 +81,10 @@ for boot in plain-1 plain-2 breakdown; do
             reason="$boot stopped: ${stopped#psx-state: }"
         elif [ "${4:-}" != "$frames" ]; then
             reason="$boot expected $frames frames, got: ${done_line:-(no done line)}"
+        elif ! tr -d '\r' < "$tty" | awk '/^psx-replay: done / { after = 0; seen = 1 }
+                seen && /^psx-state: cheat activations / { after = 1 }
+                END { exit !after }'; then
+            reason="$boot state dump incomplete (no cheat activations line after the done line)"
         else
             reason=
         fi
@@ -83,6 +95,33 @@ if [ -n "$done_failures" ]; then
     done_verdict="done failed $done_failures"
 else
     done_verdict="done ok 3 boots, $frames frames each"
+fi
+
+asserts_failures=
+for boot in plain-1 plain-2 breakdown; do
+    case $boot in
+        plain-1) tty=$plain_1 ;;
+        plain-2) tty=$plain_2 ;;
+        *) tty=$breakdown ;;
+    esac
+    if [ ! -f "$tty" ]; then
+        reason="$boot tty missing: $tty"
+    else
+        set -- $(tr -d '\r' < "$tty" | grep '^psx-replay: asserts ' | head -n 1)
+        if [ $# -eq 0 ]; then
+            reason="$boot has no asserts line"
+        elif [ "${3:-}" != "$asserts" ]; then
+            reason="$boot says ${3:-}"
+        else
+            reason=
+        fi
+    fi
+    [ -n "$reason" ] && asserts_failures="$asserts_failures${asserts_failures:+; }$reason"
+done
+if [ -n "$asserts_failures" ]; then
+    asserts_verdict="asserts failed $asserts_failures"
+else
+    asserts_verdict="asserts ok $asserts in 3 boots"
 fi
 
 if [ ! -f "$plain_1" ] || [ ! -f "$plain_2" ]; then
@@ -207,6 +246,13 @@ fi
 
         printf "window run frames %d..%d, full frames %d..%d, %d frames\n", run_first, run_last, \
             run_first + full_offset, run_last + full_offset, run_last - run_first + 1 > summary_out
+        plain_lack = ""
+        for (r = run_first; r <= run_last; r++) {
+            if (!(r in plain_draw)) { plain_lack = "plain-1 has no frame " r; break }
+            window_update += plain_update[r]; window_draw += plain_draw[r]; window_submit += plain_submit[r]
+        }
+        if (plain_lack != "") print "window plain unavailable: " plain_lack > summary_out
+        else printf "window plain update %d draw %d submit %d\n", window_update, window_draw, window_submit > summary_out
         unavailable = ""
         if (calibration == "" || calibration <= 0) unavailable = "no calibration"
         for (r = run_first; unavailable == "" && r <= run_last; r++) {
@@ -261,6 +307,7 @@ fi
     echo "$done_verdict"
     echo "$deterministic_verdict"
     cat "$out_dir/verdicts.awk"
+    echo "$asserts_verdict"
 } > "$out_dir/verdicts.txt"
 rm -f "$out_dir/verdicts.awk"
 cat "$out_dir/verdicts.txt" "$out_dir/summary.txt"

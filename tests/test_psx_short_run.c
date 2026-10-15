@@ -108,6 +108,7 @@ static void build_ttys(void) {
     append_frame_lines(plain_tty, TTY_CAP, 0);
     append(plain_tty, TTY_CAP, done);
     append(plain_tty, TTY_CAP, "psx-state: clock year 3422 month 1\n");
+    append(plain_tty, TTY_CAP, "psx-state: cheat activations 0\n");
     breakdown_tty[0] = '\0';
     append(breakdown_tty, TTY_CAP, TTY_HEAD);
     append_frame_lines(breakdown_tty, TTY_CAP, 1);
@@ -115,6 +116,7 @@ static void build_ttys(void) {
     append_draw_lines(breakdown_tty, TTY_CAP);
     append(breakdown_tty, TTY_CAP, done);
     append(breakdown_tty, TTY_CAP, "psx-state: clock year 3422 month 1\n");
+    append(breakdown_tty, TTY_CAP, "psx-state: cheat activations 0\n");
 }
 
 /* Static buffer, overwritten by each call: <text> with its single <from> replaced by <to>. */
@@ -152,9 +154,10 @@ static const char *read_file(const char *path) {
     return buf;
 }
 
-/* NULL leaves the file out. <reference_arg> is passed as is, quoted. Returns the script's exit status. */
-static int run_with(const char *plain_1, const char *plain_2, const char *breakdown, const char *map,
-                    const char *reference_arg, const char *reference) {
+/* NULL leaves the file out. <reference_arg> and <asserts> are passed as is, quoted. Returns the script's exit
+ * status. */
+static int run_asserts(const char *plain_1, const char *plain_2, const char *breakdown, const char *map,
+                       const char *reference_arg, const char *reference, const char *asserts) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR) == 0);
     if (plain_1 != NULL) write_file(PLAIN_1, plain_1);
     if (plain_2 != NULL) write_file(PLAIN_2, plain_2);
@@ -163,11 +166,16 @@ static int run_with(const char *plain_1, const char *plain_2, const char *breakd
     write_file(MAP, map);
     char cmd[1024];
     snprintf(cmd, sizeof cmd,
-             SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " %d " BUDGET " '%s' " OUT " > " LOG " 2>&1",
-             FRAMES, reference_arg);
+             SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " %d " BUDGET " '%s' " OUT " '%s' > " LOG " 2>&1",
+             FRAMES, reference_arg, asserts);
     int status = system(cmd);
     assert(WIFEXITED(status));
     return WEXITSTATUS(status);
+}
+
+static int run_with(const char *plain_1, const char *plain_2, const char *breakdown, const char *map,
+                    const char *reference_arg, const char *reference) {
+    return run_asserts(plain_1, plain_2, breakdown, map, reference_arg, reference, "on");
 }
 
 static int run_reference(const char *plain_1, const char *plain_2, const char *breakdown, const char *reference) {
@@ -210,7 +218,7 @@ static int verdict_failed(const char *condition, const char *reason_part) {
     return strncmp(line + len, " failed ", 8) == 0 && strstr(line, reason_part) != NULL;
 }
 
-static const char *const conditions[] = {"done", "deterministic", "representative", "breakdown"};
+static const char *const conditions[] = {"done", "deterministic", "representative", "breakdown", "asserts"};
 
 /* Every other condition is still judged when one fails. */
 static void assert_only_failed(const char *condition) {
@@ -230,6 +238,8 @@ static void test_every_verdict_ok_on_a_clean_run(void) {
     assert(strncmp(text, "done ", 5) == 0);
     assert(strstr(text, "deterministic ") < strstr(text, "representative "));
     assert(strstr(text, "representative ") < strstr(text, "breakdown "));
+    assert(strstr(text, "breakdown ") < strstr(text, "asserts "));
+    assert(strcmp(verdict("asserts"), "asserts ok on in 3 boots") == 0);
     const char *log = read_file(LOG);
     assert(strstr(log, "done ok") != NULL);
     assert(strstr(log, "breakdown ok") != NULL);
@@ -251,6 +261,22 @@ static void test_wrong_frame_count_or_fatal_fails_done(void) {
                                    "psx-state: stopped p8_fatal zone full\n");
     assert(run(stopped, plain_tty, breakdown_tty) == 2);
     assert(verdict_failed("done", "plain-1 stopped: stopped p8_fatal zone full"));
+}
+
+static void test_a_state_dump_cut_before_its_last_line_fails_done_naming_the_boot(void) {
+    const char *cut = replaced(breakdown_tty, "psx-state: cheat activations 0\n", "");
+    assert(run(plain_tty, plain_tty, cut) == 2);
+    assert(strcmp(verdict("done"),
+                  "done failed breakdown state dump incomplete (no cheat activations line after the done line)") == 0);
+    assert_only_failed("done");
+}
+
+static void test_a_cheat_activations_line_before_the_done_line_does_not_complete_the_dump(void) {
+    char early[TTY_CAP];
+    snprintf(early, sizeof early, "psx-state: cheat activations 0\n%s",
+             replaced(plain_tty, "psx-state: cheat activations 0\n", ""));
+    assert(run(plain_tty, early, breakdown_tty) == 2);
+    assert(verdict_failed("done", "plain-2 state dump incomplete"));
 }
 
 /* With one boot only, the missing ones are named: a single TTY never passes for two. */
@@ -423,6 +449,36 @@ static void test_summary_split_overhead_and_best_cases(void) {
     assert(strstr(read_file(LOG), "best draw-free max 58.0") != NULL);
 }
 
+/* Plain window frames 15 and 16: update 48 + 49, draw 1600 + 1500, submit 8 + 9; no reference needed. */
+static void test_window_plain_sums_follow_the_window_line(void) {
+    assert(run_with(plain_tty, plain_tty, breakdown_tty, MAP_RESUME, "", NULL) == 0);
+    assert(strncmp(read_file(SUMMARY),
+                   "window run frames 15..16, full frames 103..104, 2 frames\n"
+                   "window plain update 97 draw 3100 submit 17\n",
+                   strlen("window run frames 15..16, full frames 103..104, 2 frames\n"
+                          "window plain update 97 draw 3100 submit 17\n")) == 0);
+    assert(strstr(read_file(LOG), "window plain update 97 draw 3100 submit 17") != NULL);
+}
+
+/* The plain numbers stay visible when the breakdown boot is what failed. */
+static void test_window_plain_sums_survive_a_missing_breakdown_tty(void) {
+    assert(run_with(plain_tty, plain_tty, NULL, MAP_RESUME, "", NULL) == 2);
+    const char *summary = read_file(SUMMARY);
+    assert(strstr(summary, "window plain update 97 draw 3100 submit 17\n") != NULL);
+    assert(strstr(summary, "summary unavailable") != NULL);
+}
+
+static void test_window_plain_sums_unavailable_without_a_plain_window_frame(void) {
+    const char *plain_1 = replaced(plain_tty,
+                                   "psx-frame: frame 16 update 49 draw 1500 submit 9 total 1558 vsyncs 6\n", "");
+    char plain_1_copy[TTY_CAP];
+    strcpy(plain_1_copy, plain_1);
+    assert(run_with(plain_1_copy, plain_tty, breakdown_tty, MAP_RESUME, "", NULL) == 2);
+    const char *summary = read_file(SUMMARY);
+    assert(strstr(summary, "window plain unavailable: plain-1 has no frame 16\n") != NULL);
+    assert(strstr(summary, "window plain update") == NULL);
+}
+
 static void test_prefix_map_is_the_identity(void) {
     assert(run_with(plain_tty, plain_tty, breakdown_tty, "cut none first-game-frame 0 source-first 0 window 12 12\n",
                     "", NULL) == 0);
@@ -431,15 +487,51 @@ static void test_prefix_map_is_the_identity(void) {
     assert(strstr(summary, "overhead 10 hblanks (breakdown draw 762 - plain draw 752)\n") != NULL);
 }
 
+static void test_asserts_off_in_every_boot_passes_asserts_off(void) {
+    const char *plain = replaced(plain_tty, "psx-replay: asserts on", "psx-replay: asserts off");
+    char plain_off[TTY_CAP];
+    strcpy(plain_off, plain);
+    const char *breakdown_off = replaced(breakdown_tty, "psx-replay: asserts on", "psx-replay: asserts off");
+    assert(run_asserts(plain_off, plain_off, breakdown_off, MAP_RESUME, REFERENCE, REFERENCE_OK, "off") == 0);
+    assert(strcmp(verdict("asserts"), "asserts ok off in 3 boots") == 0);
+}
+
+/* A stale build directory must not pass for the requested mode. */
+static void test_a_boot_in_the_other_mode_fails_asserts_naming_it(void) {
+    const char *plain = replaced(plain_tty, "psx-replay: asserts on", "psx-replay: asserts off");
+    char plain_off[TTY_CAP];
+    strcpy(plain_off, plain);
+    assert(run_asserts(plain_off, plain_off, breakdown_tty, MAP_RESUME, REFERENCE, REFERENCE_OK, "off") == 2);
+    assert(strcmp(verdict("asserts"), "asserts failed breakdown says on") == 0);
+    assert_only_failed("asserts");
+}
+
+static void test_a_boot_without_the_asserts_line_fails_asserts(void) {
+    const char *plain_2 = replaced(plain_tty, "psx-replay: asserts on\r\n", "");
+    assert(run(plain_tty, plain_2, breakdown_tty) == 2);
+    assert(strcmp(verdict("asserts"), "asserts failed plain-2 has no asserts line") == 0);
+    assert_only_failed("asserts");
+}
+
+static void test_a_missing_tty_fails_asserts_naming_it(void) {
+    assert(run(plain_tty, plain_tty, NULL) == 2);
+    assert(verdict_failed("asserts", "breakdown tty missing"));
+    assert(strstr(verdict("asserts"), "plain-1") == NULL);
+}
+
 static void test_usage_errors_exit_1(void) {
     assert(run_with(plain_tty, plain_tty, breakdown_tty, MAP_RESUME, "", NULL) == 0);
     assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " 17 263 '' > " LOG " 2>&1") != 0);
     assert(strstr(read_file(LOG), "usage") != NULL);
-    assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " DIR "/no-map 17 263 '' " OUT " > " LOG " 2>&1")
+    assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " DIR "/no-map 17 263 '' " OUT " on > " LOG " 2>&1")
            != 0);
-    assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " seventeen 263 '' " OUT " > " LOG " 2>&1")
+    assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " seventeen 263 '' " OUT " on > " LOG " 2>&1")
            != 0);
-    assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " 17 -1 '' " OUT " > " LOG " 2>&1") != 0);
+    assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " 17 -1 '' " OUT " on > " LOG " 2>&1") != 0);
+    assert(run_asserts(plain_tty, plain_tty, breakdown_tty, MAP_RESUME, "", NULL, "yes") == 1);
+    assert(strstr(read_file(LOG), "asserts is not on or off: yes") != NULL);
+    assert(system(SCRIPT " " PLAIN_1 " " PLAIN_2 " " BREAKDOWN " " MAP " 17 263 '' " OUT " > " LOG " 2>&1") != 0);
+    assert(strstr(read_file(LOG), "usage") != NULL);
     assert(run_with(plain_tty, plain_tty, breakdown_tty, "cut 100 window 103 104\n", "", NULL) == 1);
     assert(strstr(read_file(LOG), "malformed map") != NULL);
     /* Window ends past the run's last frame 16. */
@@ -453,6 +545,8 @@ int main(void) {
     test_every_verdict_ok_on_a_clean_run();
     test_missing_done_line_fails_done_naming_the_boot();
     test_wrong_frame_count_or_fatal_fails_done();
+    test_a_state_dump_cut_before_its_last_line_fails_done_naming_the_boot();
+    test_a_cheat_activations_line_before_the_done_line_does_not_complete_the_dump();
     test_missing_tty_fails_done_and_deterministic();
     test_one_differing_frame_line_fails_deterministic_naming_it();
     test_a_missing_frame_line_fails_deterministic();
@@ -468,7 +562,14 @@ int main(void) {
     test_malformed_draw_record_fails_breakdown();
     test_calls_longer_than_the_draw_part_fail_breakdown();
     test_summary_split_overhead_and_best_cases();
+    test_window_plain_sums_follow_the_window_line();
+    test_window_plain_sums_survive_a_missing_breakdown_tty();
+    test_window_plain_sums_unavailable_without_a_plain_window_frame();
     test_prefix_map_is_the_identity();
+    test_asserts_off_in_every_boot_passes_asserts_off();
+    test_a_boot_in_the_other_mode_fails_asserts_naming_it();
+    test_a_boot_without_the_asserts_line_fails_asserts();
+    test_a_missing_tty_fails_asserts_naming_it();
     test_usage_errors_exit_1();
     assert(system("rm -rf " DIR) == 0);
     printf("test_psx_short_run: all tests passed\n");
