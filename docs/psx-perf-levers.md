@@ -696,7 +696,8 @@ delay below it wherever a call-twice would tick the RNG.
 Plan 20 step 7: below `cart_draw`'s level-1 branches, every node above 2%
 of the run's mean window frame is opened one level deeper, down to a leaf
 or a node under 2%. This section holds level 2 (the children of
-`draw_layers#1` and `draw_layers#2`); levels 3 and below follow.
+`draw_layers#1` and `draw_layers#2`) and levels 3 and below on
+`draw-5564`; `draw-6000` and `start` below level 2 follow.
 
 Measured on commit `93c106491d24e07a079032bfe2e0f6e19159c513` (pcsx-redux,
 probe build, asserts off) with:
@@ -1020,3 +1021,490 @@ after the file's first include, plus the statement.
 
 The `volatile` copies keep the compiler from merging the doubled
 `static inline` getters with the originals.
+
+### Levels 3 and below, `draw-5564`
+
+Every node opened on `draw-5564` at level 2 (the eight in the level-2
+hand-off), down to a PICO-8 runtime leaf or a node under 2% (405 hblanks
+over the window, 27.0 a frame). Measured on commit `b490c78` (same `src/`
+and `psx/` tree ids as the rebuilt baseline, so no probe was refused as
+stale) with:
+
+```
+make frame-profile-subtree ROOT=<function> PSX_SHORT_RUNS=draw-5564
+make psx-probe PATCH=tmp/plan20-draw-tree/<probe>.patch PSX_SHORT_RUNS=draw-5564 PSX_PROBE_LABEL=l3-<probe>
+```
+
+Every probe of this chunk carries the `l3-` prefix whatever its level: the
+prefix keeps the chunk's outputs apart from level 2's. 102 valid probes,
+about 20 s each on one run; nine builds that failed on a missing
+declaration in the patch were fixed and re-run, none is a figure. Method additions to the ones above:
+
+- **Pass-through methods.** Each of the eight methods is one line,
+  `X_draw(dispatch_context_gfx(), dispatch_context_mem(), self)`; the map
+  gives `X_draw` 91–99.9% of the method on PC. Level 3 is therefore
+  `X_draw` (site call-twice, the two getters read once into locals) plus
+  the getters, closed together for the eight methods by one group.
+- **Path flag.** A function reached from several parents
+  (`layout_row_draw_at`, `row_draw_at_item_draw`, `hud_print_outlined`,
+  `draw_rows_dispatch_one`, `emitter_update`, `planet_draw`) is doubled at
+  its site only under one parent: the parent's call is wrapped in
+  `probe_path = <code>` (saved and restored), the doubled call runs under
+  `if (probe_path == <code>)`. Codes: 1 a button's label row, 2 a button's
+  side row, 3 `planet_draw_method`, 4 the score panel's rows, 5 a message
+  box article, 6 a button's tooltip, 7 `emitter_update` under
+  `ascension_draw`, 8 `emitter_update_method`. `slipway_draw_line`'s two
+  sites are told apart by their step (`s` = 3 border, 1 line), and
+  `planet_draw` under its method by a static flag set in the method.
+- **Cross-parent groups.** The small children of the shared functions
+  (getters, `p8_fixed_*`, `vec_*`, palette selects) were doubled under all
+  their parents at once: a group delta is a sum of non-negative costs, so
+  it bounds each member under each parent. A node's self row includes its
+  members of these groups.
+- **Count probes.** `psx_probe_delay(20)` under a path flag, before the
+  print or the sprite of `row_draw_at_item_draw`, gives a path's PSX calls
+  a frame where PC cannot split them by parent. Count only, never a cost.
+- **PC calls** are the subtree map's, from the function as root: for a
+  shared function they add up every parent, so the PSX count is given
+  where a path needs its own.
+- **Bias.** A call-twice child often costs a little more than its parent's
+  call-twice (up to +8% here, +17% on the 28-a-frame tooltip): second-call
+  bias plus the path flag's load and test. Those selves are negative,
+  labelled "bias", never corrected.
+
+Every probe `valid`, every game state `same`. The update delta stayed
+within max(2% of the draw delta, 2 hblanks) except on sixteen probes, all
+by 3 to 11 hblanks over the window (under 1 a frame), the tooltip ones
+among them as at level 2; they are marked in the probe list.
+
+#### `draw_layers#1`'s branches
+
+`slipway_draw_method` and `ascension_draw_method` keep their level-2
+PC-derived figures as roots; `planet_draw`'s PC calls are the subtree's
+(73 calls, both parents: 70 from its method, 3 from `ascension_draw`).
+
+| Node | Method | Calls / frame (PC; PSX) | Window | Cost / frame | % of parent | % of mean window frame | Status |
+|---|---|---|---:|---:|---:|---:|---|
+| `button_draw_method` | level 2 | 11 | 4603 | 307 | — | 22.7% | explored |
+| · `button_draw` | site call-twice | 11 | 4600 | 307 | 99.9% | 22.7% | explored |
+| · · `layout_row_draw_at_default` (label row) | site call-twice | 11 | 3564 | 238 | 77.5% | 17.6% | explored |
+| · · · `layout_row_draw_at` | site call-twice, path 1 | 11 | 3562 | 237 | 99.9% | 17.6% | explored |
+| · · · · `row_draw_at_item_draw` | site call-twice, path 1 | 17; 17.05 | 3605 | 240 | 101.2% | 17.8% | explored |
+| · · · · · `hud_print_outlined_default` | site call-twice, path 1 | 7; 7.03 | 3367 | 224 | 93.4% | 16.6% | explored |
+| · · · · · · `hud_print_outlined` | site call-twice, path 1 | 7; 7.03 | 3362 | 224 | 99.9% | 16.6% | explored |
+| · · · · · · · `p8_print` | site call-twice, path 1 | 63; 63.3 | 3355 | 224 | 99.8% | 16.6% | **leaf** |
+| · · · · · · · self (incl. `group-l8-small`) | difference |  | 7 | 0 | 0.2% | 0.0% | under |
+| · · · · · · self | difference |  | 5 | 0 | 0.1% | 0.0% | under |
+| · · · · · `p8_spr_default` | site call-twice, path 1 | 10; 10.02 | 137 | 9 | 3.8% | 0.7% | leaf, under |
+| · · · · · self (incl. palette selects, `group-l7-small`) | difference |  | 101 | 7 | 2.8% | 0.5% | under |
+| · · · · self | difference |  | −43 | −3 | −1.2% | −0.2% | under (bias) |
+| · · · self | difference |  | 2 | 0 | 0.1% | 0.0% | under |
+| · · `layout_row_draw_at_default` (side row) | site call-twice | 5 | 704 | 47 | 15.3% | 3.5% | explored |
+| · · · `layout_row_draw_at` | site call-twice, path 2 | 5 | 706 | 47 | 100.3% | 3.5% | explored |
+| · · · · `row_draw_at_item_draw` | site call-twice, path 2 | 10; 10.05 | 758 | 51 | 107.4% | 3.7% | explored |
+| · · · · · `hud_print_outlined_default` | site call-twice, path 2 | 5; 5.02 | 605 | 40 | 79.8% | 3.0% | explored |
+| · · · · · · `hud_print_outlined` | site call-twice, path 2 | 5; 5.02 | 602 | 40 | 99.5% | 3.0% | explored |
+| · · · · · · · `p8_print` | site call-twice, path 2 | 45; 45.2 | 614 | 41 | 102.0% | 3.0% | **leaf** |
+| · · · · · `p8_spr_default` | site call-twice, path 2 | 5; 5.03 | 73 | 5 | 9.6% | 0.4% | leaf, under |
+| · · · · · self | difference |  | 80 | 5 | 10.6% | 0.4% | under |
+| · · `p8_rect` | site call-twice | 11 | 99 | 7 | 2.2% | 0.5% | leaf, under |
+| · · `p8_rectfill` (top line) | site call-twice | 11 | 73 | 5 | 1.6% | 0.4% | leaf, under |
+| · · `p8_rectfill` (body) | site call-twice | 11 | 70 | 5 | 1.5% | 0.3% | leaf, under |
+| · · `p8_rectfill` (side background) | site call-twice | 5 | 34 | 2 | 0.7% | 0.2% | leaf, under |
+| · · `ui_to_int`, `main_ui`, `ui_pad_tab`, `vec_*`, `p8_fixed_*` | group `group-bd-small` | 54; 20; 10; ~110 | ≤ 40 | ≤ 3 | ≤ 0.9% | ≤ 0.2% | ≤ group |
+| · · self | difference |  | 16 | 1 | 0.3% | 0.1% | under |
+| · `dispatch_context_gfx`, `dispatch_context_mem` | group `group-method-getters` (the 8 methods) | 11 + 11 | ≤ 32 | ≤ 2 | ≤ 0.7% | ≤ 0.2% | ≤ group |
+| · self | difference |  | 3 | 0 | 0.1% | 0.0% | under |
+| `background_draw_method` | level 2 | 1 | 3463 | 231 | — | 17.1% | explored |
+| · `background_draw` | site call-twice | 1 | 3458 | 231 | 99.9% | 17.1% | explored |
+| · · `p8_map` | site call-twice | 1 | 3319 | 221 | 96.0% | 16.4% | **leaf** |
+| · · `p8_rectfill` (vertical grid) | site call-twice | 9 | 67 | 4 | 1.9% | 0.3% | leaf, under |
+| · · `p8_rectfill` (horizontal grid) | site call-twice | 9 | 62 | 4 | 1.8% | 0.3% | leaf, under |
+| · · `p8_rect`, `p8_fillp`, `p8_fillp_reset` | group `group-bg-small` | 1; 1; 1 | ≤ 3 | ≤ 0 | ≤ 0.1% | ≤ 0.0% | ≤ group |
+| · · self | difference |  | 7 | 0 | 0.2% | 0.0% | under |
+| · self (incl. getters) | difference |  | 5 | 0 | 0.1% | 0.0% | under |
+| `planet_draw_method` | level 2 | 70 | 2203 | 147 | — | 10.9% | explored |
+| · `planet_draw` | site call-twice | 70 | 2191 | 146 | 99.5% | 10.8% | explored |
+| · · `layout_row_draw_at_method` (`draw_at`) | site call-twice, method path | 10 | 764 | 51 | 34.9% | 3.8% | explored |
+| · · · `layout_row_draw_at` | site call-twice, path 3 | 10 | 768 | 51 | 100.5% | 3.8% | explored |
+| · · · · `row_draw_at_item_draw` | site call-twice, path 3 | 43; 43.15 | 830 | 55 | 108.1% | 4.1% | explored |
+| · · · · · `p8_spr_default` | site call-twice, path 3 | 43; 43.15 | 556 | 37 | 67.0% | 2.7% | **leaf** |
+| · · · · · `hud_print_outlined_default` | site call-twice, path 3 | 0 | 15 | 1 | 1.8% | 0.1% | under |
+| · · · · · self (palette selects, `group-l7-small`) | difference |  | 259 | 17 | 31.2% | 1.3% | under |
+| · · · · self | difference |  | −62 | −4 | −8.1% | −0.3% | under (bias) |
+| · · · self | difference |  | −4 | 0 | −0.5% | 0.0% | under |
+| · · `p8_circfill` (disc) | site call-twice, method path | 13 | 536 | 36 | 24.5% | 2.6% | **leaf** |
+| · · `p8_circ` (colony ring) | site call-twice, method path (split out of `group-pd-small`) | 6 | 388 | 26 | 17.7% | 1.9% | leaf, under |
+| · · `p8_spr` (planet) | site call-twice, method path | 13 | 157 | 10 | 7.2% | 0.8% | leaf, under |
+| · · `entity_geom_is_on_screen` | site call-twice, method path | 73 | 144 | 10 | 6.6% | 0.7% | under |
+| · · `p8_spr_default` (tier) | site call-twice, method path (split) | 6 | 79 | 5 | 3.6% | 0.4% | leaf, under |
+| · · palette selects, `p8_palt` ×2, `planet_is_colonized`, ring colour lookup, `main_ui`, `ui_pad_circle`, `entity_get`, `vec_*`, `p8_fixed_*` | group `group-pd-small-b` (split) | 13 each; 6 | ≤ 85 | ≤ 6 | ≤ 3.9% | ≤ 0.4% | ≤ group |
+| · · self (incl. `entity_geom_shake`, which decays the shake) | difference | 13 | 38 | 3 | 1.7% | 0.2% | under |
+| · self | difference |  | 12 | 1 | 0.5% | 0.1% | under |
+| `slipway_draw_method` | level 2, **PC-derived** | 38 | 1872 | 125 | — | 9.2% | explored |
+| · `slipway_draw` | delay 5, **PC-derived** (95.2%) | 38; 38.28 | 1782 | 119 | 95.2% | 8.8% | explored |
+| · · `slipway_draw_line` (border, s = 3) | site call-twice | 15 | 525 | 35 | 29.5% | 2.6% | explored |
+| · · · `p8_line` | site call-twice, s = 3 only | 60 | 355 | 24 | 67.6% | 1.8% | leaf, under |
+| · · · `to_int`, `p8_fixed_*`, `vec_from_polar` ×2, `vec_add`, `slipway_end_pos`, `slipway_start`/`end` | group `group-sl1-rest` (split out of `group-sl1`, +547) | 120; ~300; 30; … | ≤ 207 | ≤ 14 | ≤ 39.4% | ≤ 1.0% | ≤ group |
+| · · · self | difference |  | −37 | −2 | −7.0% | −0.2% | under (bias) |
+| · · `slipway_draw_line` (line, s = 1) | site call-twice | 15 | 536 | 36 | 30.1% | 2.6% | explored |
+| · · · `p8_line` | site call-twice, s = 1 only | 60 | 363 | 24 | 67.7% | 1.8% | leaf, under |
+| · · · same small children | group `group-sl2-rest` (split out of `group-sl2`, +557) |  | ≤ 207 | ≤ 14 | ≤ 38.6% | ≤ 1.0% | ≤ group |
+| · · · self | difference |  | −34 | −2 | −6.3% | −0.2% | under (bias) |
+| · · `p8_rectfill` (transit dot) | site call-twice | 29–44 | 217 | 14 | 12.2% | 1.1% | leaf, under |
+| · · `p8_pset` (transit dot) | site call-twice | 29–44 | 134 | 9 | 7.5% | 0.7% | leaf, under |
+| · · `entity_geom_is_on_screen` ×2 | site call-twice | 38 + 28 | 126 | 8 | 7.1% | 0.6% | under |
+| · · `slipway_spawn_transit_dot` ×2 | delay 6, **PC-derived** (1.7%) | 30; 30.17 | 30 | 2 | 1.7% | 0.1% | under |
+| · · `to_int`, `vec_add`, `slipway_start`/`end`, `targeting_target`, `entity_get`, `int_seq_at`, `entity_has`, `particle_pixels_hidden`, `p8_fixed_*` | group `group-sd-small` | 132–177; … | ≤ 109 | ≤ 7 | ≤ 6.1% | ≤ 0.5% | ≤ group |
+| · · `pointer_list_del`, `allocator_release`, `particle_zone` | bookkeeping, left in self | 0–2 | | | | | under |
+| · · self (dot ageing loop) | difference with a PC-derived node |  | 105 | 7 | 5.9% | 0.5% | under |
+| `score_panel_draw_method` | level 2 | 1 | 1303 | 87 | — | 6.4% | explored |
+| · `score_panel_draw` | site call-twice | 1 | 1301 | 87 | 99.8% | 6.4% | explored |
+| · · `draw_functions_draw_rows_default` | site call-twice | 1 | 1300 | 87 | 99.9% | 6.4% | explored |
+| · · · `draw_rows_dispatch_one` | site call-twice, path 4 | 12 | 1296 | 86 | 99.7% | 6.4% | explored |
+| · · · · `print_outlined_entry` (readouts) | site call-twice of `fn(e)`, path 4 | 7 | 1145 | 76 | 88.3% | 5.7% | explored |
+| · · · · · `hud_print_outlined_default` | site call-twice, path 4 | 7 | 1094 | 73 | 95.5% | 5.4% | explored |
+| · · · · · · `hud_print_outlined` | site call-twice, path 4 | 7 | 1097 | 73 | 100.3% | 5.4% | explored |
+| · · · · · · · `p8_print` | site call-twice, path 4 | 63 | 1101 | 73 | 100.4% | 5.4% | **leaf** |
+| · · · · · `number`, `is_number`, `draw_functions_arg`, `p8_fixed_flr_int` | in `group-l7-small` | 7 each | | | | | ≤ group |
+| · · · · · self (incl. `p8_tostr_fixed` + `frame_zone`, bookkeeping) | difference | 2 + 2 | 51 | 3 | 4.5% | 0.3% | under |
+| · · · · `draw_help_frame_entry` (frames) | site call-twice of `fn(e)`, path 4 | 3 | 135 | 9 | 10.4% | 0.7% | under |
+| · · · · `draw_bar_entry` (bars) | site call-twice of `fn(e)`, path 4 | 2 | 21 | 1 | 1.6% | 0.1% | under |
+| · · · · self | difference |  | −5 | 0 | −0.4% | 0.0% | under |
+| · · · self | difference |  | 4 | 0 | 0.3% | 0.0% | under |
+| · · `score_panel_frame_rows`, `score_panel_readouts` | in `group-l4-small` | 1; 1 | | | | | ≤ group |
+| `ascension_draw_method` | level 2, **PC-derived** | 3 | 550 | 37 | — | 2.7% | explored |
+| · `ascension_draw` | delay 20, **PC-derived** (98.3%) | 3; 3.00 | 541 | 36 | 98.4% | 2.7% | explored |
+| · · `emitter_update` | children measured (delay 20: PC-derived 289, rejected) | 3; 2.99 | ≥ 512 | ≥ 34 | ≥ 94.6% | ≥ 2.5% | explored |
+| · · · `p8_pset` | site call-twice, path 7 | 81–123 (both parents) | 293 | 20 | 57.2% | 1.4% | leaf, under |
+| · · · `emitter_of`, `emitter_host_layer_pos`, `entity_geom_is_on_screen`, `vec_add`, `p8_fixed_*`, `particle_to_int`, `int_seq_at` | group `p7-emitter-arith` (split out of `p7-emitter-children`, +513) | 81–123 each (both parents) | ≤ 219 | ≤ 15 | ≤ 42.8% | ≤ 1.1% | ≤ group |
+| · · · `emitter_spawn` | delay 20 (PSX count only) | 2; 1.99 | | | | | under (PC 1.9%) |
+| · · · self (particle ageing loop) | not measurable |  | | | | | open (PC 45.7%) |
+| · · `planet_draw` | site call-twice | 3 | 243 | 16 | 44.9% | 1.2% | under |
+
+#### `draw_layers#2`'s branches
+
+| Node | Method | Calls / frame (PC; PSX) | Window | Cost / frame | % of parent | % of mean window frame | Status |
+|---|---|---|---:|---:|---:|---:|---|
+| `message_box_draw_overlay_method` | level 2 | 1 | 4016 | 268 | — | 19.8% | explored |
+| · `message_box_draw_overlay` | site call-twice | 1 | 4016 | 268 | 100.0% | 19.8% | explored |
+| · · `message_box_draw_article` | site call-twice | 12 | 4017 | 268 | 100.0% | 19.8% | explored |
+| · · · `layout_row_draw_at` (layout-row articles) | site call-twice, path 5 | 7 | 3952 | 263 | 98.4% | 19.5% | explored |
+| · · · · `row_draw_at_item_draw` | site call-twice, path 5 | 23; 23.08 | 4008 | 267 | 101.4% | 19.8% | explored |
+| · · · · · `hud_print_outlined_default` | site call-twice, path 5 | 13; 13.05 | 3756 | 250 | 93.7% | 18.5% | explored |
+| · · · · · · `hud_print_outlined` | site call-twice, path 5 | 13; 13.05 | 3746 | 250 | 99.7% | 18.5% | explored |
+| · · · · · · · `p8_print` | site call-twice, path 5 | 117; 117.5 | 3726 | 248 | 99.5% | 18.4% | **leaf** |
+| · · · · · · · self | difference |  | 20 | 1 | 0.5% | 0.1% | under |
+| · · · · · · self | difference |  | 10 | 1 | 0.3% | 0.0% | under |
+| · · · · · `p8_spr_default` | site call-twice, path 5 | 10; 10.03 | 139 | 9 | 3.5% | 0.7% | leaf, under |
+| · · · · · self | difference |  | 113 | 8 | 2.8% | 0.6% | under |
+| · · · · self | difference |  | −56 | −4 | −1.4% | −0.3% | under (bias) |
+| · · · `draw_functions_draw_row` (shared-row articles: bars) | site call-twice, path 5 | 5 | 50 | 3 | 1.2% | 0.2% | under |
+| · · · self | difference |  | 15 | 1 | 0.4% | 0.1% | under |
+| · · `p8_camera` ×12, `p8_camera_reset`, `p8_fixed_*` | in `group-l4-small` | 12; 1; ~20 | | | | | ≤ group |
+| · · self | difference |  | −1 | 0 | 0.0% | 0.0% | under |
+| · self | difference |  | 0 | 0 | 0.0% | 0.0% | under |
+| `button_draw_overlay_method` | level 2 | 11 | 428 | 29 | — | 2.1% | explored |
+| · `button_draw_overlay` | site call-twice | 11 | 429 | 29 | 100.2% | 2.1% | explored |
+| · · `tooltip_draw_at` | site call-twice | 0–1 | 421 | 28 | 98.1% | 2.1% | explored |
+| · · · `layout_row_draw_at` | site call-twice, path 6 | 0–2 | 419 | 28 | 99.5% | 2.1% | explored |
+| · · · · `row_draw_at_item_draw` | site call-twice, path 6 | 0–2; 0.88 | 491 | 33 | 117.2% | 2.4% | explored |
+| · · · · · `hud_print_outlined_default` | site call-twice, path 6 | 0–2; 0.88 | 405 | 27 | 82.5% | 2.0% | under (at 2%, not above) |
+| · · · · · `p8_spr_default` | site call-twice, path 6 | 0 | 18 | 1 | 3.7% | 0.1% | under |
+| · · · · · self | difference |  | 68 | 5 | 13.8% | 0.3% | under |
+| · · · · self | difference |  | −72 | −5 | −17.2% | −0.4% | under (bias) |
+| · · · `hud_draw_bar` | site call-twice, path 6 | 0–1 | 3 | 0 | 0.7% | 0.0% | under |
+| · · · `p8_fillp`, `p8_fillp_reset`, `p8_fixed_*`, `vec_make` | in `group-l5-small` | 0–1; 0–2 | | | | | ≤ group |
+| · · · self | difference |  | −1 | 0 | −0.2% | 0.0% | under |
+| · · `p8_fixed_from_int` ×2 | in `group-l4-small` | 0–1 | | | | | ≤ group |
+| · · self | difference |  | 8 | 1 | 1.9% | 0.0% | under |
+| · self | difference |  | −1 | 0 | −0.2% | 0.0% | under |
+
+Cross-parent groups (all `valid`, game state `same`):
+
+| Group | Members, doubled under | Window delta |
+|---|---|---:|
+| `group-method-getters` | `dispatch_context_gfx`, `dispatch_context_mem` in the eight level-2 methods | 32 |
+| `group-l4-small` | `score_panel_frame_rows`, `score_panel_readouts`; `message_box_draw_overlay`'s `p8_camera`, `p8_camera_reset` and fixed-point arithmetic; `button_draw_overlay`'s and `ascension_draw`'s `p8_fixed_from_int` | ≤ 2 over the window |
+| `group-l5-small` | `p8_fixed_from_int` in `layout_row_draw_at_default` (paths 1, 2); the getters of `layout_row_draw_at_method` (3); `tooltip_draw_at`'s `p8_fillp`, `p8_fillp_reset`, arithmetic and `vec_make` (6) | 21 |
+| `group-l6-small` | `layout_row_draw_at`'s `vec_sub`, `vec_make`, `p8_fixed_mul`, `p8_fixed_from_int` (paths 1, 2, 3, 5, 6) | 54 |
+| `group-l7-small` | `row_draw_at_item_draw`'s `vec_add` and its two palette selects around each sprite (1, 2, 3, 5, 6); `print_outlined_entry`'s `number`, `is_number`, `draw_functions_arg`, `p8_fixed_flr_int` (4) | 379 |
+| `group-l8-small` | `hud_print_outlined_default`'s `p8_fixed_from_int`; `hud_print_outlined`'s `to_int`, `p8_fixed_mul`, `strlen` (1, 2, 4, 5) | 65 |
+
+#### Children-sum gaps
+
+Σ measured children (individual probes and per-node groups) against each
+explored node's cost:
+
+| Node (path) | Node | Σ children | Gap |
+|---|---:|---:|---:|
+| `button_draw` | 4600 | 4584 | −0.3% |
+| `background_draw` | 3458 | 3451 | −0.2% |
+| `planet_draw` (method) | 2191 | 2153 | −1.7% |
+| `slipway_draw` | 1782 PC-derived | 1677 | −5.9% |
+| `ascension_draw` | 541 PC-derived | ≥ 755 | **≥ +39.6%** |
+| `message_box_draw_article` | 4017 | 4002 | −0.4% |
+| `tooltip_draw_at` | 421 | 422 | +0.2% |
+| `slipway_draw_line` s = 3 / s = 1 | 525 / 536 | 562 / 570 | +7.0% / +6.3% |
+| `layout_row_draw_at` (1 / 2 / 3 / 5) | 3562 / 706 / 768 / 3952 | 3605 / 758 / 830 / 4008 | +1.2% / +7.4% / +8.1% / +1.4% |
+| `layout_row_draw_at` (6) | 419 | 491 | **+17.2%** |
+| `draw_rows_dispatch_one` | 1296 | 1301 | +0.4% |
+| `row_draw_at_item_draw` (1 / 2 / 5) | 3605 / 758 / 4008 | 3504 / 678 / 3895 | −2.8% / −10.6% / −2.8% |
+| `row_draw_at_item_draw` (3) | 830 | 571 | **−31.2%** |
+| `row_draw_at_item_draw` (6) | 491 | 423 | **−13.8%** |
+| `print_outlined_entry` | 1145 | 1094 | −4.5% |
+| `hud_print_outlined_default` (1 / 2 / 4 / 5) | 3367 / 605 / 1094 / 3756 | 3362 / 602 / 1097 / 3746 | −0.1% / −0.5% / +0.3% / −0.3% |
+| `hud_print_outlined` (1 / 2 / 4 / 5) | 3362 / 602 / 1097 / 3746 | 3355 / 614 / 1101 / 3726 | −0.2% / +2.0% / +0.4% / −0.5% |
+| the pass-through methods and score panel links | | | 0.0% to −0.5% |
+
+Gaps above 10%:
+
+- **`ascension_draw`, ≥ +39.6%**: its parent's cost is PC-derived and too
+  low; see the open item below.
+- **`layout_row_draw_at` (6), +17.2%**: second-call bias on a node of 28 a
+  frame drawn on some frames only (the hovered button's tooltip); the
+  doubled `row_draw_at_item_draw` costs 72 more than the doubled
+  `layout_row_draw_at` above it, which no self can produce.
+- **`row_draw_at_item_draw` (3), −31.2%**, and **(2), −10.6%**, **(6),
+  −13.8%**: self time. The item's own work is the two palette selects
+  around each sprite (`hud_select_palette_block`, a 16-byte `memcpy` each),
+  three `p8_fixed_flr_int` and a `vec_add`, all in `group-l7-small` (379);
+  path 3 draws 43 of the 68 row sprites a frame, so most of the group is
+  its own. The selves stay under 2% (17, 5 and 5 a frame).
+
+#### Open item from level 2: the −10.9% on `draw_layers#1`
+
+Level 2 left `draw_layers#1`'s gap to the PC-derived costs of
+`slipway_draw_method` (1872) and `ascension_draw_method` (550), whose
+call-twice deltas (2418, 1416) are not used because their second call
+ages and spawns dots and particles. Their children are clean and were
+measured:
+
+- **`slipway_draw_method`: the PC-derived figure holds.** `slipway_draw`'s
+  measured children add up to 1647, plus 30 PC-derived for the two
+  `slipway_spawn_transit_dot`, so 1677, within 10% of the PC-derived 1782
+  (1872 for the method); the difference is the dot-ageing loop's own
+  stores, list deletes and releases, which no clean probe reaches. The
+  call-twice 2418 would need a 741 self: it is the outlier (doubled
+  spawning builds up the dots, as level 2 said).
+- **`ascension_draw_method`: the PC-derived figure is too low.**
+  `planet_draw` under it costs 243 and `emitter_update`'s clean children
+  alone 512 (`p8_pset` 293, the per-particle arithmetic 219), so its cost
+  is at least 755 before `emitter_update`'s particle-ageing self (45.7% of
+  `emitter_update` on PC) and `emitter_spawn` (two calls a frame). The
+  delay probe's PC-derived 289 for `emitter_update` is rejected. The
+  call-twice 1416 stays the upper side.
+- **Outcome.** With 755 for `ascension_draw_method`, Σ of `draw_layers#1`'s
+  children is 14657 against 16225: gap −9.7%, within 10%. The −10.9% was
+  that PC-derived term. `draw_layers#1`'s self is at most 1568 (105 a
+  frame), and that still holds the unmeasured particle-ageing self; it is
+  at least 361 only with both rejected call-twice figures. It stays
+  **flagged**: about 1100 (74 a frame) if `emitter_update`'s self is in its
+  PC proportion, PC's own figure for `draw_layers`' self being 566.
+- **Consequence for a level-2 closure.** `emitter_update_method` was closed
+  at level 2 on a PC-derived 175. Its clean children alone measure 241
+  (`p8-emitter-method-children`): still under 405, but in PC proportion its
+  particle-ageing self would bring it to about 460. It is recorded here as
+  **explored** on `draw-5564` (children `p8_pset` and arithmetic, both
+  under 2%; self not measurable), with `emitter_update`'s candidates;
+  chunk 5's verification table takes it from here.
+
+#### Where the known items sit
+
+- **The 9× outlined print** is `hud_print_outlined`'s loop
+  (`src/game/hud.c:85`), reached through four paths above 2%: button label
+  rows (63 `p8_print` a frame, 3355), button side rows (45, 614), score
+  panel readouts (63, 1101) and message box articles (117, 3726); the
+  tooltip (8 a frame; 405 for its whole outlined print) sits at the
+  threshold. 289 `p8_print` a frame cost 8796
+  over the window, 586 a frame: **43.4% of the mean window frame**, 45% of
+  `draw-5564`'s draw.
+- **The draw meter** sits inside every runtime leaf; not separable here
+  (step 8).
+
+#### "Do less" candidates (levels 3 and below, `draw-5564`)
+
+Gains are upper bounds over the window (per frame in brackets), from the
+measured costs above; the eight pass-through methods and `X_draw` links
+add at most 12 each and get none of their own.
+
+1. **Repeated calls: nine `p8_print` per outlined text** —
+   `hud_print_outlined` (`src/game/hud.c:85`), explored on paths 1, 2, 4,
+   5. Eight prints draw the same glyphs in colour 0 at the eight
+   neighbouring offsets, the ninth in the text colour. Removing the eight
+   outline calls (an outline drawn once, from a pre-outlined font or a
+   cached text image) bounds at 8/9 of the leaf: 2982 (199) labels, 546
+   (36) side rows, 979 (65) readouts, 3312 (221) message box; 7819 (521)
+   together. Pixel risk: identical only with an equivalent outline;
+   dropping the outline would change pixels, ruled out by the plan unless
+   reopened. The plan's "Already known" item; step 8 bounds it by
+   experiment.
+2. **Identical redraw: button labels and side rows every frame** —
+   `button_draw` (`src/game/ui_button.c:254`, `:271`). Eleven buttons
+   redraw their layout rows (7 texts and 10 sprites a frame, plus 5 texts
+   and 5 sprites of side rows) though a row changes only when the button
+   is refreshed. Drawn once into an off-screen image and copied each
+   frame: bound 3564 + 704 = 4268 (285), less the copy. The hovered
+   button's tooltip (`tooltip_draw_at`, `src/game/layout.c:285`) is the
+   same case: 421 (28). Pixel risk: identical.
+3. **Identical redraw: the open message box** — `message_box_draw_overlay`
+   (`src/game/message_box.c:128`). Twelve articles (13 outlined texts, 10
+   sprites, 5 bars a frame) redrawn unchanged while the box stays open;
+   only the per-article camera shake (`p8_camera`, `:126`) moves them
+   during the opening. Bound 4017 (268), less a copy. Pixel risk:
+   identical if the shake offsets are kept.
+4. **Identical redraw and recomputation: the score panel readouts** —
+   `print_outlined_entry` (`src/game/draw_functions.c:54`). Seven outlined
+   readouts each frame, changing only when a value changes; two of them
+   are formatted again every frame by `p8_tostr_fixed` into the frame zone
+   (`:56`). Bound 1145 (76) for the redraw, ≤ 51 (3) for the formatting
+   (it is in the self). Pixel risk: identical.
+5. **Identical redraw: the background map** — `background_draw`
+   (`src/game/background.c:143`). `p8_map` draws the same 32×32 tiles
+   every frame; only the camera moves. Kept as a pre-built background in
+   VRAM and copied with the camera offset: bound 3319 (221), less the
+   copy. Pixel risk: identical while the map memory does not change.
+   `p8_map`'s inside is step 8's.
+6. **Identical redraw: planet row icons** — `row_draw_at_item_draw` on
+   path 3 (`src/game/layout.c:196`). 43 `p8_spr_default` a frame (556) for
+   the resource icons under the planets, unchanged until the row is
+   rebuilt. Bound: the item draw, 830 (55). Pixel risk: identical.
+7. **Repeated calls: palette block selected around every row sprite** —
+   `row_draw_at_item_draw` (`src/game/layout.c:195`, `:199`). Each sprite
+   copies its palette block, draws, and copies block 0 back: two 16-byte
+   copies per sprite, 68 sprites a frame, though consecutive icons mostly
+   share a block. Skipping a select that changes nothing: bound ≤ 379 (25),
+   the group that holds them. Pixel risk: identical.
+8. **Identical redraw: a black disc and a ring behind each planet** —
+   `planet_draw` (`src/game/planet_display.c:375`, `:393`). 13
+   `p8_circfill` (536) and 6 `p8_circ` (388) a frame, 2.7 and 4.3 hblanks a
+   call, redrawn identically while the camera stands still. Baked into the
+   planet sprite they would cost one sprite each: bound 924 (62), less the
+   larger sprites. Pixel risk: identical only if the baked sprite
+   reproduces the disc exactly, otherwise would change pixels.
+9. **Correction to `draw_layers` candidate 4 (off-screen dispatch).**
+   `planet_draw` already returns early off screen
+   (`src/game/planet_display.c:358`): of 73 calls a frame, 13 draw. What a
+   culled planet still costs is its dispatch and `entity_geom_is_on_screen`
+   (144, 10). The bound of that candidate shrinks accordingly for planets;
+   slipways also test both end planets (below).
+10. **Recomputation: slipway end points computed twice** —
+    `slipway_draw_line` (`src/game/slipway_display.c:72`, `:74`). The
+    border and the line pass each recompute both wobbling end points
+    (`vec_from_polar`, a sine and a cosine each) for the same `t`.
+    Computed once per slipway: bound half the two small groups, 207 (14).
+    Pixel risk: identical.
+11. **Repeated calls: four lines per slipway pass** — `slipway_draw_line`
+    (`src/game/slipway_display.c:83`). Each pass draws its line four times
+    at 2×2 offsets: 8 `p8_line` a slipway, 120 a frame (718). Bound 3/4 of
+    it, 539 (36), if one primitive covered the four. Pixel risk: identical
+    if the backend batches the same four lines; would change pixels as a
+    thick line.
+12. **Repeated calls: two primitives per transit dot** — `slipway_draw`
+    (`src/game/slipway_display.c:162`). A 2×2 black `p8_rectfill` then a
+    `p8_pset` for each of 29–44 dots a frame (217 + 134). One 2×2 sprite
+    with the same pixels: bound 351 (23), less the sprite. Pixel risk:
+    identical.
+13. **Recomputation: planet visibility tested again by each slipway** —
+    `slipway_draw` (`src/game/slipway_display.c:99`). 66 calls a frame to
+    `entity_geom_is_on_screen` on end planets whose visibility
+    `planet_draw` computes too. Bound 126 (8). Pixel risk: identical.
+14. **`emitter_update` (under `ascension_draw` and its own method): no
+    candidate that keeps pixels.** Every particle moves every frame; the
+    per-particle matrix step (219) and one `p8_pset` each (293) are the
+    work itself. The particle simulation runs in a draw method, which is
+    why call-twice could not cost it; moving it to the update is not a
+    "do less".
+
+#### Verification, `draw-5564` levels 3 and below
+
+Every node above 2% of `draw-5564`'s mean window frame below level 2:
+
+| Node (path) | Cost / frame | Status | Candidates |
+|---|---:|---|---|
+| `button_draw` | 307 | explored | 2 |
+| · `layout_row_draw_at_default` → `layout_row_draw_at` → `row_draw_at_item_draw` (1) | 238 / 237 / 240 | explored | 2, 7 |
+| · `hud_print_outlined_default` → `hud_print_outlined` (1) | 224 / 224 | explored | 1 |
+| · `p8_print` (1) | 224 | leaf | 1 |
+| · `layout_row_draw_at_default` → `layout_row_draw_at` → `row_draw_at_item_draw` (2) | 47 / 47 / 51 | explored | 2, 7 |
+| · `hud_print_outlined_default` → `hud_print_outlined` (2) | 40 / 40 | explored | 1 |
+| · `p8_print` (2) | 41 | leaf | 1 |
+| `background_draw` | 231 | explored | 5 |
+| · `p8_map` | 221 | leaf | 5 |
+| `planet_draw` | 146 | explored | 8, 9 |
+| · `layout_row_draw_at_method` → `layout_row_draw_at` → `row_draw_at_item_draw` (3) | 51 / 51 / 55 | explored | 6, 7 |
+| · `p8_spr_default` (3) | 37 | leaf | 6 |
+| · `p8_circfill` | 36 | leaf | 8 |
+| `slipway_draw` | 119 (PC-derived) | explored | 11, 12, 13 |
+| · `slipway_draw_line` s = 3, s = 1 | 35, 36 | explored | 10, 11 |
+| `score_panel_draw` → `draw_functions_draw_rows_default` → `draw_rows_dispatch_one` | 87 / 87 / 86 | explored | 4 |
+| · `print_outlined_entry` → `hud_print_outlined_default` → `hud_print_outlined` (4) | 76 / 73 / 73 | explored | 1, 4 |
+| · `p8_print` (4) | 73 | leaf | 1 |
+| `ascension_draw` | 36 (PC-derived; ≥ 50 measured) | explored | 14 |
+| · `emitter_update` (7) | ≥ 34 | explored | 14 |
+| `message_box_draw_overlay` → `message_box_draw_article` | 268 / 268 | explored | 3 |
+| · `layout_row_draw_at` → `row_draw_at_item_draw` (5) | 263 / 267 | explored | 3, 7 |
+| · `hud_print_outlined_default` → `hud_print_outlined` (5) | 250 / 250 | explored | 1, 3 |
+| · `p8_print` (5) | 248 | leaf | 1 |
+| `button_draw_overlay` → `tooltip_draw_at` | 29 / 28 | explored | 2 (same rows), 7 |
+| · `layout_row_draw_at` → `row_draw_at_item_draw` (6) | 28 / 33 | explored | 1, 7 |
+| `emitter_update_method` (level 2, re-examined) | ≥ 16 measured | explored | 14 |
+| the eight level-3 methods' `X_draw` links | as their method | explored | — (pass-through) |
+
+No self below level 2 is above 2% among those measured; the unmeasured
+ones are `emitter_update`'s particle-ageing loops and `slipway_draw`'s
+dot-ageing loop (105 against a PC-derived node).
+
+#### Patches (levels 3 and below, `draw-5564`)
+
+Generated from `b490c78` by throwaway scripts (`gen2.py`, `pp.py`,
+`l4.py` to `l8.py`, `count.py`, `l2emit.py` in `tmp/plan20-draw-tree/`,
+git-ignored), each used once and discarded; none is committed. "Path K"
+wraps the parent's call in `{ int probe_saved = probe_path; probe_path =
+K; <call> probe_path = probe_saved; }`, with `int probe_path;` defined in
+`src/game/hud.c` and declared `extern` where used; "under K" is `if
+(probe_path == K) { <statement> }` right after the original. Labels are
+`l3-<probe>`.
+
+| Probes | Node(s) | Shape | Inserted statement |
+|---|---|---|---|
+| `button-draw-twice`, `background-draw-twice`, `planet-draw-twice`, `score-panel-draw-twice`, `message-box-draw-overlay-twice`, `button-draw-overlay-twice`, `slipway-draw-twice` (not used), `ascension-draw-twice` (not used) | `X_draw` in its method | site | the getters read into `probe_gfx`, `probe_mem`, then `X_draw(probe_gfx, probe_mem, self…)` twice |
+| `slipway-draw-delay`, `ascension-draw-delay` | `slipway_draw`, `ascension_draw` | delay 5, 20 at site | `psx_probe_delay(d);` before the call |
+| `group-method-getters` | getters of the eight methods | group | a `volatile` second read of both getters before each call |
+| `bd-row-twice`, `bd-side-row-twice`, `bd-fill-twice`, `bd-top-twice`, `bd-side-fill-twice`, `bd-rect-twice` | `button_draw`'s children (`src/game/ui_button.c`) | site | the statement duplicated |
+| `group-bd-small` | `button_draw`'s arithmetic and getters | group | a block recomputing them from `volatile` copies of `draw_pos` and `self` |
+| `bg-map-twice`, `bg-vlines-twice`, `bg-hlines-twice`, `group-bg-small` | `background_draw`'s children | site / group | the statement(s) duplicated |
+| `pd-circfill-twice`, `pd-row-twice`, `pd-spr-twice`, `pd-onscreen-twice`, `pd-circ-twice`, `pd-sprdef-twice`, `group-pd-small` (+556, split into `-a` +468, then `pd-circ`/`pd-sprdef`, and `-b`) | `planet_draw`'s children under its method | site | `if (probe_from_method) <statement>` after the original; `probe_from_method` set around the call in `planet_draw_method` |
+| `sd-line1-twice`, `sd-line2-twice`, `sd-dot-rectfill-twice`, `sd-dot-pset-twice`, `sd-onscreen-twice`, `group-sd-small` | `slipway_draw`'s children (`src/game/slipway_display.c`) | site / group | the statement duplicated, or recomputed from `volatile` copies |
+| `sd-spawn-delay` | `slipway_spawn_transit_dot` ×2 | delay 6 at site | `psx_probe_delay(6);` before each call |
+| `group-sl1`, `group-sl2` (+547, +557: split), `sl1-line-twice`, `sl2-line-twice`, `group-sl1-rest`, `group-sl2-rest` | `slipway_draw_line`'s children, one site | site / group | under `if (s == p8_fixed_from_int(3))` (or 1): `p8_line` again, or the end points and line coordinates recomputed from `volatile` copies |
+| `sp-rows-twice`, `mb-article-twice`, `bo-tooltip-twice`, `ad-planet-twice` | the single heavy child of `score_panel_draw`, `message_box_draw_overlay`, `button_draw_overlay`, `ascension_draw` | site | the statement duplicated |
+| `ad-emitter-delay` | `emitter_update` under `ascension_draw` | delay 20 at site | `psx_probe_delay(20);` before the call |
+| `group-l4-small` … `group-l8-small` | cross-parent groups (table above) | group | `volatile` recomputation or the statement under its paths |
+| `p1-lrd-twice`, `p2-lrd-twice`, `p3-lrm-twice`, `p5-layout-twice`, `p6-layout-twice`, `p5-row-twice`, `p6-bar-twice`, `p4-dispatch-twice` | children of `layout_row_draw_at_default`, `layout_row_draw_at_method`, `message_box_draw_article`, `tooltip_draw_at`, `draw_functions_draw_rows_default` | site, path K | the call again under K |
+| `p{1,2,3,5,6}-item-twice` | `row_draw_at_item_draw` in `layout_row_draw_at` | site, path K | `row_draw_at_item_draw(gfx, mem, &self->placed_items[i], p);` under K |
+| `p{1,2,3,5,6}-print-twice`, `p{1,2,3,5,6}-spr-twice`, `p4-print-twice` | `hud_print_outlined_default`, `p8_spr_default` in `row_draw_at_item_draw`; the outlined print in `print_outlined_entry` | site, path K | the call again under K |
+| `p4-print-outlined-entry-twice`, `p4-help-frame-entry-twice`, `p4-bar-entry-twice` | `fn(e)` in `draw_rows_dispatch_one` | site, path 4 | `fn(e);` under `probe_path == 4 && e->draw_function == <kind>` |
+| `p{1,2,4,5}-hpo-twice`, `p{1,2,4,5}-p8print-twice` | `hud_print_outlined` in `hud_print_outlined_default`; `p8_print` in `hud_print_outlined`'s loop | site, path K | the call again under K |
+| `p{1,2,5,6}-print-count`, `p{1,2,3,5}-spr-count` | per-path counts | delay 20, count only | `psx_probe_delay(20);` under K before the print or sprite |
+| `p7-emitter-children` (+513: split), `p7-emitter-pset-twice`, `p7-emitter-arith`, `p7-emitter-spawn-delay`, `p8-emitter-method-children` | `emitter_update`'s children under `ascension_draw` (7) or its method (8) | site / group / delay 20 | `p8_pset` again, the per-particle arithmetic recomputed from `volatile` copies, or `psx_probe_delay(20);` before `emitter_spawn`, under K |
+
+Probes with an update delta beyond their bound (all 3–11 hblanks over the
+window): `bd-rect-twice` (+6), `bo-tooltip-twice` (+11),
+`button-draw-overlay-twice` (+9), `p6-layout-twice` (+10),
+`p6-print-twice` (+9), `group-pd-small-b` (+8), `pd-sprdef-twice` (+5),
+`ad-planet-twice` (+5), `p7-emitter-arith` (+5), `group-sl1-rest` and
+`group-sl2-rest` (+5), `group-sd-small` (+4), `sd-onscreen-twice` (+3),
+`p1-spr-twice` (+3), `p5-spr-twice` (+3), `group-l8-small` (+3).
+
+#### `draw-5564` hand-off
+
+Below level 2, `draw-5564`'s window is held by four runtime leaves:
+`p8_print` (586 a frame through the outlined print, 43.4% of the mean
+window frame), `p8_map` (221), `p8_spr_default` (37 for the planet rows
+alone) and `p8_circfill` (36). `p8_rectfill` is cheap on the PSX where PC
+time made it look heavy: the message box's five full-width bars cost 50
+over the window against 72% of the article on PC, and `button_draw`'s
+rectangles 276 against 51% on PC. Chunk 5 takes `draw-6000` and `start`,
+reusing these patches where the node is the same, and builds the
+verification table across runs.
