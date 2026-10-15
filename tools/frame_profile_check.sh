@@ -1,6 +1,7 @@
 #!/bin/sh
 # usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
 #        frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
+#        frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>...
 # breakdown: over the window of <map.txt> (tmp/short_run_cut), the per-family
 # calls of tmp/frame_profile's <frames.txt> must equal the psx-draw: lines of
 # the run's breakdown boot. Prints "calls-match ok <n> frames" then
@@ -20,13 +21,21 @@
 # every uncovered item, and "coverage ok" or "coverage uncovered ...". Exit 0
 # when nothing is uncovered, 3 when something is, 2 on malformed input, 1 on
 # a usage error.
+# subtree: profiles of one draw root (their "root draw <symbol>" line), per
+# run over its window: "root <symbol> run <name> window-frames <n>
+# root-ns-per-frame <ns>" (median over the run's profiles of the mean), then
+# per child called in the window, by decreasing share, "child <symbol>
+# <child> calls <min>-<max> share <pct>" (calls per window frame in the
+# first profile, median share of the root's PC time), then "self <symbol>
+# share <pct>". Exit 0, 2 on malformed input, 1 on a usage error.
 
 set -u
 LC_ALL=C
 export LC_ALL
 
 usage="usage: frame_profile_check.sh breakdown <frames.txt> <breakdown.tty.txt> <map.txt>
-       frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>..."
+       frame_profile_check.sh coverage <threshold> <full frames.txt>[,...] <name>=<frames.txt>[,...]:<map.txt>...
+       frame_profile_check.sh subtree <name>=<frames.txt>[,...]:<map.txt>..."
 
 fail_usage() {
     echo "frame-profile-check: $1" >&2
@@ -259,10 +268,89 @@ coverage() {
         }' $fulls $files
 }
 
+subtree() {
+    [ $# -ge 1 ] || fail_usage "$usage"
+    for spec in "$@"; do
+        name=${spec%%=*}
+        files_part=${spec#*=}
+        profiles=${files_part%%:*}
+        map=${files_part#*:}
+        if [ "$name" = "$spec" ] || [ -z "$name" ] || [ "$profiles" = "$files_part" ] || [ -z "$profiles" ] || [ -z "$map" ]; then
+            fail_usage "run is not <name>=<frames.txt>[,<frames.txt>...]:<map.txt>: $spec"
+        fi
+        for profile in $(echo "$profiles" | tr ',' ' '); do
+            [ -f "$profile" ] || fail_usage "missing profile: $profile"
+        done
+        window_of "$map" > /dev/null || exit 1
+    done
+    for spec in "$@"; do
+        name=${spec%%=*}
+        files_part=${spec#*=}
+        profiles=$(echo "${files_part%%:*}" | tr ',' ' ')
+        set -- $(window_of "${files_part#*:}")
+        awk -v run="$name" -v first="$1" -v last="$2" '
+            function malformed(reason) {
+                print "frame-profile-check: malformed " FILENAME ": " reason > "/dev/stderr"
+                failed = 1
+                exit 2
+            }
+            function median(values, n,    i, j, t) {
+                for (i = 1; i <= n; i++) for (j = i + 1; j <= n; j++) if (values[j] < values[i]) { t = values[i]; values[i] = values[j]; values[j] = t }
+                return n % 2 ? values[(n + 1) / 2] : (values[n / 2] + values[n / 2 + 1]) / 2
+            }
+            FNR == 1 {
+                if (file > 0 && !(file in root)) { FILENAME = previous; malformed("no root draw line") }
+                file++; previous = FILENAME
+                if ($1 != "profile" || $3 != "frames" || $4 !~ /^[0-9]+$/) malformed("no profile header")
+                next
+            }
+            FNR == 2 && $1 == "root" && $2 == "draw" && NF == 3 {
+                root[file] = $3
+                if (file > 1 && $3 != root[1]) malformed("root draw " $3 ", not " root[1] " as the first profile")
+                next
+            }
+            $1 != "frame" || $2 < first || $2 > last { next }
+            $3 == "update" && NF == 6 { root_ns[file] += $6; seen[file, $2] = 1; next }
+            $3 == "self" && $4 == "draw" && NF == 5 { self_ns[file] += $5; next }
+            $3 == "child" && $4 == "draw" && NF == 9 {
+                if (!($5 in child_index)) { child_count++; child_index[$5] = child_count; children[child_count] = $5 }
+                child_ns[file, $5] += $7
+                if (file == 1) {
+                    called[$5] += $6
+                    if (!(($5) in low) || $6 < low[$5]) low[$5] = $6
+                    if ($6 > high[$5]) high[$5] = $6
+                }
+            }
+            END {
+                if (failed) exit 2
+                if (!(file in root)) { FILENAME = previous; malformed("no root draw line") }
+                for (k = 1; k <= file; k++)
+                    for (f = first; f <= last; f++) if (!((k, f) in seen)) malformed("no draw line for window frame " f " in profile " k)
+                frames = last - first + 1
+                for (k = 1; k <= file; k++) v[k] = root_ns[k] / frames
+                printf "root %s run %s window-frames %d root-ns-per-frame %d\n", root[1], run, frames, median(v, file) + 0.5
+                listed = 0
+                for (c = 1; c <= child_count; c++) {
+                    name = children[c]
+                    if (!called[name]) continue
+                    for (k = 1; k <= file; k++) v[k] = root_ns[k] > 0 ? child_ns[k, name] * 100 / root_ns[k] : 0
+                    listed++; order[listed] = name; share[name] = median(v, file)
+                }
+                for (i = 2; i <= listed; i++)
+                    for (j = i; j > 1 && share[order[j]] > share[order[j - 1]]; j--) { t = order[j]; order[j] = order[j - 1]; order[j - 1] = t }
+                for (i = 1; i <= listed; i++)
+                    printf "child %s %s calls %d-%d share %.1f%%\n", root[1], order[i], low[order[i]], high[order[i]], share[order[i]]
+                for (k = 1; k <= file; k++) v[k] = root_ns[k] > 0 ? self_ns[k] * 100 / root_ns[k] : 0
+                printf "self %s share %.1f%%\n", root[1], median(v, file)
+            }' $profiles || exit $?
+    done
+}
+
 mode=${1:-}
 [ $# -gt 0 ] && shift
 case $mode in
     breakdown) breakdown "$@" ;;
     coverage) coverage "$@" ;;
+    subtree) subtree "$@" ;;
     *) fail_usage "$usage" ;;
 esac

@@ -444,6 +444,128 @@ static void test_coverage_usage_errors_exit_1(void) {
                        " 2>&1") == 1);
 }
 
+/* Subtree profiles rooted on draw_layers, window run frames 2..3: the root takes 1000 then 3000 ns,
+ * planet_draw_method half of it, hud_print_outlined#2 160 ns, button_draw_method only outside the
+ * window. <scale> multiplies hud's time, so that several profiles of one run can differ. */
+#define SUBTREE_START_TXT DIR "/subtree-start.txt"
+#define SUBTREE_START_MAP DIR "/subtree-start.map"
+
+static void write_subtree_profile(const char *path, const char *root, int hud_scale) {
+    static char text[TEXT_CAP];
+    char line[256];
+    text[0] = '\0';
+    snprintf(line, sizeof line, "profile run.json frames 6 hook-pair-ns 4.6 clock monotonic-ns\nroot draw %s\n", root);
+    append(text, TEXT_CAP, line);
+    for (int frame = 0; frame < 6; frame++) {
+        int window = between(frame, 2, 3);
+        int draw = frame == 3 ? 3000 : 1000;
+        int planet = draw / 2;
+        int hud = (frame == 2 ? 100 : frame == 3 ? 60 : 20) * hud_scale;
+        snprintf(line, sizeof line, "frame %d update 900 draw %d\nframe %d child update ui_update 1 800 700 9\n", frame,
+                 draw, frame);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d child draw planet_draw_method %d %d %d 40\n", frame, 23 + 2 * (frame == 3),
+                 planet, planet - 100);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d child draw button_draw_method %d %d %d 0\n", frame, !window,
+                 window ? 0 : 70, window ? 0 : 70);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d child draw hud_print_outlined#2 %d %d %d 9\n", frame,
+                 frame == 3 ? 11 : 9, hud, hud);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d self draw %d\nframe %d self update 100\n", frame,
+                 draw - planet - hud - (window ? 0 : 70), frame);
+        append(text, TEXT_CAP, line);
+        snprintf(line, sizeof line, "frame %d family print 9 %d\nframe %d in-call 600\n", frame, hud, frame);
+        append(text, TEXT_CAP, line);
+    }
+    write_file(path, text);
+}
+
+static void write_subtree_inputs(void) {
+    fresh_dir();
+    write_subtree_profile(SUBTREE_START_TXT, "draw_layers", 1);
+    write_file(SUBTREE_START_MAP, "cut none first-game-frame 0 source-first 0 window 2 3\n");
+}
+
+static void test_subtree_lists_the_root_children_over_the_window(void) {
+    write_subtree_inputs();
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START_TXT ":" SUBTREE_START_MAP " > " LOG " 2>&1") == 0);
+    assert(strcmp(read_file(LOG), "root draw_layers run start window-frames 2 root-ns-per-frame 2000\n"
+                                  "child draw_layers planet_draw_method calls 23-25 share 50.0%\n"
+                                  "child draw_layers hud_print_outlined#2 calls 9-11 share 4.0%\n"
+                                  "self draw_layers share 46.0%\n") == 0);
+}
+
+#define SUBTREE_START2_TXT DIR "/subtree-start2.txt"
+#define SUBTREE_START3_TXT DIR "/subtree-start3.txt"
+#define SUBTREE_DRAW_MAP DIR "/subtree-draw-9.map"
+#define SUBTREE_START " start=" SUBTREE_START_TXT ":" SUBTREE_START_MAP
+
+/* hud's shares 4%, 12%, 20%: median 12% with three profiles; 4% and 20%: their mean, 12%, with two. */
+static void test_subtree_takes_the_median_of_the_run_profiles(void) {
+    write_subtree_inputs();
+    write_subtree_profile(SUBTREE_START2_TXT, "draw_layers", 3);
+    write_subtree_profile(SUBTREE_START3_TXT, "draw_layers", 5);
+    const char *expected = "root draw_layers run start window-frames 2 root-ns-per-frame 2000\n"
+                           "child draw_layers planet_draw_method calls 23-25 share 50.0%\n"
+                           "child draw_layers hud_print_outlined#2 calls 9-11 share 12.0%\n"
+                           "self draw_layers share 38.0%\n";
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START3_TXT "," SUBTREE_START_TXT "," SUBTREE_START2_TXT
+                       ":" SUBTREE_START_MAP " > " LOG " 2>&1") == 0);
+    assert(strcmp(read_file(LOG), expected) == 0);
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START_TXT "," SUBTREE_START3_TXT ":" SUBTREE_START_MAP " > " LOG
+                       " 2>&1") == 0);
+    assert(strcmp(read_file(LOG), expected) == 0);
+}
+
+/* On run frames 4..5, button_draw_method is called and outweighs hud: children go by decreasing share. */
+static void test_subtree_reports_each_run_in_order(void) {
+    write_subtree_inputs();
+    write_file(SUBTREE_DRAW_MAP, "cut 8 first-game-frame 1 source-first 5 window 8 9\n");
+    assert(run_command(SCRIPT " subtree" SUBTREE_START " draw-9=" SUBTREE_START_TXT ":" SUBTREE_DRAW_MAP " > " LOG
+                       " 2>&1") == 0);
+    assert(strcmp(read_file(LOG), "root draw_layers run start window-frames 2 root-ns-per-frame 2000\n"
+                                  "child draw_layers planet_draw_method calls 23-25 share 50.0%\n"
+                                  "child draw_layers hud_print_outlined#2 calls 9-11 share 4.0%\n"
+                                  "self draw_layers share 46.0%\n"
+                                  "root draw_layers run draw-9 window-frames 2 root-ns-per-frame 1000\n"
+                                  "child draw_layers planet_draw_method calls 23-23 share 50.0%\n"
+                                  "child draw_layers button_draw_method calls 1-1 share 7.0%\n"
+                                  "child draw_layers hud_print_outlined#2 calls 9-9 share 2.0%\n"
+                                  "self draw_layers share 41.0%\n") == 0);
+}
+
+static void test_subtree_malformed_input_exits_2(void) {
+    write_subtree_inputs();
+    write_subtree_profile(SUBTREE_START2_TXT, "cart_draw", 1);
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START_TXT "," SUBTREE_START2_TXT ":" SUBTREE_START_MAP " > " LOG
+                       " 2>&1") == 2);
+    assert(strstr(read_file(LOG), "cart_draw") != NULL);
+    write_file(SUBTREE_START2_TXT, replaced(read_file(SUBTREE_START_TXT), "root draw draw_layers\n", ""));
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START2_TXT ":" SUBTREE_START_MAP " > " LOG " 2>&1") == 2);
+    assert(strstr(read_file(LOG), "no root draw line") != NULL);
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START_TXT "," SUBTREE_START2_TXT ":" SUBTREE_START_MAP " > " LOG
+                       " 2>&1") == 2);
+    write_file(SUBTREE_START2_TXT, replaced(read_file(SUBTREE_START_TXT), "frame 3 update 900 draw 3000\n", ""));
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START2_TXT ":" SUBTREE_START_MAP " > " LOG " 2>&1") == 2);
+    assert(strstr(read_file(LOG), "frame 3") != NULL);
+    write_file(SUBTREE_START2_TXT, "nothing here\n");
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START2_TXT ":" SUBTREE_START_MAP " > " LOG " 2>&1") == 2);
+}
+
+static void test_subtree_usage_errors_exit_1(void) {
+    write_subtree_inputs();
+    assert(run_command(SCRIPT " subtree > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " subtree start > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START_TXT " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " subtree start=" DIR "/none.txt:" SUBTREE_START_MAP " > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " subtree start=" SUBTREE_START_TXT ":" DIR "/none.map > " LOG " 2>&1") == 1);
+    assert(run_command(SCRIPT " subtree" SUBTREE_START " start=" SUBTREE_START_TXT ":" DIR "/none.map > " LOG " 2>&1")
+           == 1);
+    assert(read_file(LOG)[0] != 'r');
+}
+
 int main(void) {
     build_breakdown_inputs();
     test_breakdown_match_over_a_resume_window();
@@ -462,6 +584,11 @@ int main(void) {
     test_coverage_takes_the_median_of_the_window_profiles();
     test_coverage_malformed_input_exits_2();
     test_coverage_usage_errors_exit_1();
+    test_subtree_lists_the_root_children_over_the_window();
+    test_subtree_takes_the_median_of_the_run_profiles();
+    test_subtree_reports_each_run_in_order();
+    test_subtree_malformed_input_exits_2();
+    test_subtree_usage_errors_exit_1();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frame_profile_check: all tests passed\n");
     return 0;

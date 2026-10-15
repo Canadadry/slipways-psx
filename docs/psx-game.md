@@ -907,6 +907,13 @@ ambiguous symbol, or `cart_update60`, exits 1.
   For each `cart_draw` child and family, it compares the share of draw over
   the full game with the share in each window, and fails while an item above
   2% on at least 15 frames is in no window.
+- `make frame-profile-subtree ROOT=<symbol> [PSX_SHORT_RUNS=] [FRAME_PROFILE_REPEATS=]`
+  profiles the `start` and `draw-*` runs (by default) K times with that
+  function as the draw root, into `tmp/frame-profile/subtree/<symbol>/`.
+  Its `summary.txt` gives, per run, the root's PC time per window frame,
+  then each child called in the window with its calls per window frame
+  (min–max) and its median share of the root's PC time, by decreasing
+  share, then the root's self share. It never boots.
 - Its tests are in `make frame-profile-test`. The results are in
   `docs/psx-perf-levers.md`.
 

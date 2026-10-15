@@ -554,6 +554,20 @@
 #                       below, then the windows
 #                       to add; fails while anything is uncovered, outside
 #                       the suite
+# make frame-profile-subtree ROOT=<symbol> [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
+#                    -> runs psx-short-runs-cut, profiles each run's run.json
+#                       (default start and every draw-* run of
+#                       psx/short_runs.txt) k times (default 4) with that
+#                       function as the draw root into
+#                       tmp/frame-profile/subtree/<symbol>/<name>/<k>/
+#                       (same-game against its run.end-state), then
+#                       tools/frame_profile_check.sh subtree (also in
+#                       tmp/frame-profile/subtree/<symbol>/summary.txt): per
+#                       run, the root's PC time per window frame, then per
+#                       child its calls per window frame and median share of
+#                       the root's PC time, and the root's self share; fails
+#                       on an unknown or ambiguous symbol; never boots,
+#                       outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2388,10 +2402,10 @@ $(TMP_DIR)/frame_profile: $(call profile_objs,$(FRAME_PROFILE_INSTRUMENTED_SRCS)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 	nm $@ > $@.syms
 
-# usage: profile <events> <reference> <out-dir>; prints "<label>: same-game ...", fails on a stopped replay or no.
+# usage: profile <events> <reference> <out-dir> [<draw-root>]; prints "<label>: same-game ...", fails on a stopped replay or no.
 frame_profile_function = profile() { \
 	events=$$1; reference=$$2; dir=$$3; mkdir -p $$dir; rm -f $$dir/state.txt; \
-	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms || return $$?; \
+	STATE=$$dir/state.txt ./$(TMP_DIR)/frame_profile $$events $$dir $(TMP_DIR)/frame_profile.syms $${4:+"$$4"} || return $$?; \
 	if [ ! -f "$$reference" ]; then same=unchecked; \
 	elif sh tools/end_state.sh check $$events $$dir/state.txt $$reference > $$dir/end-state.txt; then same=yes; \
 	else same=no; cat $$dir/end-state.txt; fi; \
@@ -2450,6 +2464,24 @@ frame-profile-coverage: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_
 		> $(FRAME_PROFILE_DIR)/coverage.txt; status=$$?; \
 	cat $(FRAME_PROFILE_DIR)/coverage.txt; exit $$status
 
+# Each run's recording is profiled FRAME_PROFILE_REPEATS times into subtree/<ROOT>/<name>/<k>.
+frame-profile-subtree: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+	@$(frame_profile_function); \
+	case "$(ROOT)" in ''|*[!A-Za-z0-9_]*) echo "$@: ROOT is not a function symbol: '$(ROOT)'"; exit 1;; esac; \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	out=$(FRAME_PROFILE_DIR)/subtree/$(ROOT); runs=; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 == "start" || $$1 ~ /^draw-/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; profiles=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			dir=$$out/$$name/$$k; \
+			profile $$short/run.json $$short/run.end-state $$dir $(ROOT) || exit 1; \
+			profiles="$$profiles,$$dir/frames.txt"; \
+		done; \
+		runs="$$runs $$name=$${profiles#,}:$$short/map.txt"; \
+	done; \
+	sh tools/frame_profile_check.sh subtree $$runs > $$out/summary.txt; status=$$?; \
+	cat $$out/summary.txt; exit $$status
+
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -2462,7 +2494,7 @@ $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools
 frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
-.PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage
+.PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad
