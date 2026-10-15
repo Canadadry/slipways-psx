@@ -9,7 +9,7 @@ below them ("Draw tree"), the backend's cost per call and per unit of
 every draw family ("Backend: per-unit costs"), the update spikes with
 the calibration of PC update proportions ("Update spikes"), update on
 the frames outside the spikes ("Ordinary update") and the global levers,
-asserts and the compiler level ("Global levers"). The full-run
+asserts, the compiler level and the submit split ("Global levers"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
@@ -3788,3 +3788,188 @@ diagnostics, each source compiled once per measured target):
 The `o3` and `os` diagnostics are the same 17 as `base`'s (same file, line
 and kind): they come from asserts off, and neither level raises a warning
 of its own, so `-Wno-error` caught nothing.
+
+### Submit split
+
+Submit runs from the end of `cart_draw` (`marks[2]`) to the end of
+`psx_gpu_frame_begin` (`marks[3]`) in the GPU replay's frame loop
+(`src/cmd/psx_gpu_replay.c:230`–`:246`). A throwaway patch put a
+fine-clock span (step 9's mechanism: `psx_fine_clock_read` pairs,
+hundredths of an hblank through the probe's calibration, the frame timer
+taking over at 200 hblanks) around each of its pieces, and printed one
+`probe-submit:` record per frame after the last frame. Run on commit
+`ef5f0b3` (the probe baseline was stale after step 11's CMake change and
+was rebuilt first: six runs `valid`, every window equal to the short
+runs'):
+
+```
+make psx-probe-baseline
+make psx-probe PATCH=tmp/plan20-global/submit-spans.patch PSX_PROBE_LABEL=submit-spans
+```
+
+Pieces, and whether `psx-game`'s frame loop (`src/cmd/psx_game.c:94`–`:97`:
+`cart_draw`, `p8_draw_meter_frame_end`, `psx_gpu_frame_end`,
+`psx_gpu_frame_begin`) runs them:
+
+| Piece | Code | Shipped |
+|---|---|---|
+| meter | `p8_draw_meter_frame_end` (`src/p8/draw_meter.c:125`) | shipped |
+| filter | `draw_filter_frame_end` (`src/devtools/draw_filter.c:94`) | replay-only |
+| breakdown | `breakdown_frame_end` (empty in the plain build) | replay-only |
+| close | `psx_gpu_frame_end` up to its overflow check: draw target, texture window, black fill, upscale (`src/platform/psx_gpu.c:378`–`:391`) | shipped |
+| drawsync | `DrawSync(0)` (`:392`) | shipped |
+| upload | `upload_slots` (`:368`): one `LoadImage` per CLUT slot, two per pattern slot | shipped |
+| otag | `PutDispEnv`, `DrawOTag`, buffer swap | shipped |
+| begin | `psx_gpu_frame_begin` (`:340`) | shipped |
+| capture | the capture branch (never taken: empty capture script) | replay-only |
+
+Validity: six runs `valid`, `game-state same`; every boot exits at the
+baseline's vsyncs (`draw-5564` 181 against 180, the others equal) with its state block complete.
+On every window frame the spans sum to less than the frame's submit; the
+remainder (the frame-timer reads, the `p8_draw_meter_last_frame` call and
+the spans' own reads) is 0.66 to 0.74 a frame, under the 2-hblank bound.
+The longest span on any frame of any run is 8.39 hblanks (frame timer: 9),
+far below the fine clock's wrap. Overhead against the probe baseline:
+submit +1 on each one-frame run and +12 on each 15-frame run (pooled 253
+→ 281, +0.8 a frame), total +1 / +1 / +1 / +13 / +1 / +15; draw and update
+moved by 5 hblanks or less over the window. Text +796 bytes.
+
+Window sums in hblanks (per window frame in brackets for the two 15-frame
+runs); pooled over the 34 window frames:
+
+| Piece | Shipped | `start` | `update-4737` | `update-5500` | `draw-5564` | `update-5719` | `draw-6000` | pooled | pooled a frame | share of submit |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| meter | shipped | 0.13 | 0.13 | 0.13 | 1.95 (0.13) | 0.13 | 1.95 (0.13) | 4.42 | 0.13 | 1.6% |
+| filter | replay-only | 0.08 | 0.08 | 0.08 | 1.20 (0.08) | 0.08 | 1.20 (0.08) | 2.72 | 0.08 | 1.0% |
+| breakdown | replay-only | 0.02 | 0.01 | 0.01 | 0.27 (0.02) | 0.02 | 0.28 (0.02) | 0.61 | 0.02 | 0.2% |
+| close | shipped | 0.42 | 0.42 | 0.42 | 6.30 (0.42) | 0.42 | 6.30 (0.42) | 14.28 | 0.42 | 5.1% |
+| drawsync | shipped | 0.04 | 0.05 | 0.05 | 0.73 (0.05) | 0.04 | 0.73 (0.05) | 1.64 | 0.05 | 0.6% |
+| upload | shipped | 5.02 | 7.01 | 6.02 | 100.25 (6.68) | 6.02 | 90.30 (6.02) | 214.62 | 6.31 | 76.4% |
+| otag | shipped | 0.20 | 0.20 | 0.20 | 3.00 (0.20) | 0.20 | 3.00 (0.20) | 6.80 | 0.20 | 2.4% |
+| begin | shipped | 0.34 | 0.34 | 0.34 | 5.10 (0.34) | 0.34 | 5.10 (0.34) | 11.56 | 0.34 | 4.1% |
+| capture | replay-only | 0.02 | 0.02 | 0.02 | 0.30 (0.02) | 0.02 | 0.30 (0.02) | 0.68 | 0.02 | 0.2% |
+| spans | | 6.27 | 8.26 | 7.27 | 119.10 | 7.27 | 109.16 | 257.33 | 7.57 | 91.6% |
+| frame timer's submit | | 7 | 9 | 8 | 130 | 8 | 119 | 281 | 8.26 | 100% |
+
+Submit is the slot uploads: three quarters of it, 5 to 8 hblanks a frame,
+in near-whole hblanks (5.02, 6.02, 7.01, 8.01 per frame: each `LoadImage`
+seems to cost about one hblank on the judge, inside the prebuilt
+libpsn00b; not measured further). The shipped pieces sum to 7.45 a frame
+pooled, the replay-only ones to 0.12 (plus the remainder's timer reads).
+
+**`DrawSync`:** 0.04 to 0.05 hblanks a frame on every run, the cost of
+the call itself: the GPU has always finished the previous frame's list
+by the time the CPU ends the next one, so on the judge GPU-side cost never
+reaches the frame budget, and the CPU levers are the only ones that move
+it.
+
+**Above 2% of a run's mean window frame:** none. The largest piece,
+upload, is 6.68 a frame on `draw-5564` (threshold 27.0), 6.02 on
+`draw-6000` (19.6), 5.02 on `start` (189.0), 7.01 on `update-4737` (2% of
+832: 16.6), 6.02 on `update-5500` (42.6) and on `update-5719` (22.6).
+One "do less" note is obvious from the code (estimated, G4 below):
+`psx_gpu_frame_begin` resets the buffer's CLUT and pattern caches
+(`src/platform/psx_gpu.c:344`), so `upload_slots` re-sends every slot used
+in the frame, even one whose content already sits in that VRAM slot.
+
+Cross-reference with step 8: the meter piece is `p8_draw_meter_frame_end`
+alone, which step 8's no-meter experiment kept, so its 0.13 a frame is not
+inside the no-meter delta; the filter piece is the filter's frame end,
+not the per-call cost-model work of step 8's draw-filter finding. Neither
+is counted twice.
+
+### The `-Os` caveat
+
+pcsx-redux (`third_party/pcsx-redux` at `9eb5441`, booted with
+`-interpreter` by `tools/psx_boot.sh:127`) keeps the R3000's 4 KB
+instruction cache as state, but does not charge for it. Its interpreter
+reads every opcode through `readICache` (`src/core/psxinterpreter.cc:1621`,
+`src/core/r3000a.h:474`), whose miss refills the 16-byte line with
+`read32(…, ReadType::Instr)`, which adds no cycle (only `ReadType::Data`
+does, `src/core/psxmem.cc:375`); every instruction then adds the same
+`BIAS` of 2 cycles, hit or miss (`src/core/psxinterpreter.cc:1631`,
+`src/core/psxemulator.h:235`). The cache is there so self-modifying code
+behaves like hardware, not for timing. On the judge, code size and layout
+are free: `-Os` can only win by running fewer instructions and data
+accesses, and on every run here it is slower. Its +25.9% says nothing about the R3000's instruction cache. The
+Miyoo (PCSX-ReARMed) is never measured, so on real hardware or on the
+Miyoo `-Os`'s cache argument stays unverified either way: an `-Os` result
+here is not a Miyoo result, nor an `-O3` one (its 40 KB of extra text
+would cost cache misses there that the judge does not charge).
+
+### Lever entries
+
+Gains are window deltas against `base` (asserts off, `-O2`); negative is
+faster. Pooled relative gain per part over the six runs (34 window
+frames).
+
+**G1, asserts off (decided).**
+- Location: `PSX_MEASURED_REPLAY_ASSERTS=OFF` (`psx/CMakeLists.txt`,
+  measured replays only); for `psx-game`, the same switch on its target
+  (it keeps `-UNDEBUG` today).
+- Gain (on minus off, the gain asserts off takes): `start` +107,
+  `update-4737` +37, `update-5500` +187, `draw-5564` +821 (+54.7 a frame),
+  `update-5719` +50, `draw-6000` +607 (+40.5 a frame). Pooled: update
+  +3.2%, draw +3.9%, submit +1.2%, total +3.7% of `base` (full run: +4.0%
+  of 857).
+- Cost: the build option on `psx-game`; four unused-* warning kinds (17
+  diagnostics) to clear or keep demoted; text −70 KB.
+- Risk: none on game state (six runs equal the PC's both ways); e2e
+  hashes untouched (PC build unchanged); a fault an assert would catch goes
+  silent on the PSX, still caught by the PC build and its tests.
+
+**G2, `-O3`.**
+- Location: `PSX_MEASURED_REPLAY_OPT=O3` (`psx/CMakeLists.txt:22`, applied
+  through the `psx-measured-replay-opt` interface library after the SDK's
+  `-O2`); for `psx-game`, the same mechanism on its target.
+- Gain: `start` −1382, `update-4737` −43, `update-5500` −165, `draw-5564`
+  −683 (−45.5 a frame), `update-5719` −39, `draw-6000` −544 (−36.3 a
+  frame). Pooled: update −13.8%, draw −3.4%, submit −3.1%, total −5.9%.
+  Only `circfill` slows (+10%).
+- Cost: the interface library on `psx-game`; no warning of its own; text
+  +40 KB (1.53 → 1.57 MB of the 2 MB RAM for `psx-gpu-replay`).
+- Risk: game state equal to the PC's on all six runs; e2e hashes untouched;
+  PC/PSX identity rests on the six runs and `psx-check`, not a full run;
+  RAM +40 KB; on real hardware the larger text may lose part of the gain to
+  instruction-cache misses the judge does not model (see the caveat).
+
+**G3, `-Os`.**
+- Location: `PSX_MEASURED_REPLAY_OPT=Os` (same option).
+- Gain (negative gain, slower): `start` +1523, `update-4737` +183,
+  `update-5500` +1099, `draw-5564` +5878 (+391.9 a frame), `update-5719`
+  +316, `draw-6000` +3560 (+237.3 a frame). Pooled: update +20.7%, draw
+  +27.7%, submit +5.1%, total +25.9%.
+- Cost: as G2; text −28 KB.
+- Risk: as G2 for state; on the judge it only loses. Its one argument, the
+  instruction cache, is invisible to the judge and unmeasured on the Miyoo.
+
+**G4, upload only the slots that changed (estimated).**
+- Location: `upload_slots` and the cache resets in `psx_gpu_frame_begin`
+  (`src/platform/psx_gpu.c:368`, `:344`), shipped.
+- Gain, estimated: at most the upload piece, 5.02 to 7.01 a frame (pooled
+  6.31, 76% of submit, 0.5% to 0.8% of a window frame on the draw runs);
+  the share of slots that keep their content from one frame to the next is
+  not measured.
+- Cost: remember what each VRAM slot last received and skip the
+  `LoadImage` of an identical slot; the double-buffered caches make the
+  bookkeeping per slot, not per buffer.
+- Risk: a skipped upload that was needed shows a wrong palette or pattern
+  (caught by the capture comparison, not by game state); no game, e2e or
+  RAM effect.
+
+### Verification
+
+| "Verified when" item | Evidence | Result |
+|---|---|---|
+| (1) asserts, `-O2` / `-O3` / `-Os` and submit each have a measured delta | "Deltas": `asserts-on` +1809 pooled (+3.7%), `o3` −2856 (−5.9%), `os` +12559 (+25.9%), per run and part against `base` (`-O2`); "Submit split": each of the nine pieces measured on all six runs | yes |
+| (2) every boot exited before its ceiling with its state dump complete | "Variants": 72 boots `exit ok`, slowest 585 vsyncs (`os` `draw-6000` breakdown) against the 1080 ceiling, every TTY's `cheat activations` line after its done line, `done ok` on all 24 variant runs; submit probe: six boots at 58 to 415 vsyncs against 1080, `valid`, state blocks complete | yes |
+| (3) each level variant's effective optimisation level (the last `-O` reaching the compiler for the measured targets) is the one requested | "Variants", opt lines: `tools/psx_opt_level.sh` on both measured targets' `flags.make` reads `O2` / `O2` (`base`, `asserts-on`), `O3` / `O3` (`o3`), `Os` / `Os` (`os`) on all six runs; the run fails before booting otherwise | yes |
+
+### Patch (global levers)
+
+Written by hand into `tmp/plan20-global/` (git-ignored), used once and
+discarded; not committed:
+
+| Patch | Base | Use | Change |
+|---|---|---|---|
+| `submit-spans.patch` | `ef5f0b3` | probe `submit-spans`, all six runs | `src/platform/psx_probe.[ch]`: step 9's span functions, nine spans, a `probe-submit: coarse-max` line and `probe-submit: frame <n> meter … capture <h>` per frame (hundredths of an hblank); `src/cmd/psx_gpu_replay.c`: spans 0–2 and 7–8 around the meter, filter, breakdown, capture and `psx_gpu_frame_begin`, a frame closed after `frame_times_record`, records written before the done line; `src/platform/psx_gpu.c`: spans 3–6 inside `psx_gpu_frame_end` under `PSX_PROBE` |

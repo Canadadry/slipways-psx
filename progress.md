@@ -50,6 +50,6 @@
     - [x] Chunk 1: a cut boot fails its run
     - [x] Chunk 2: optimization level option and check
     - [x] Chunk 3: four variants on every short run
-    - [ ] Chunk 4: submit breakdown and global levers
+    - [x] Chunk 4: submit breakdown and global levers
 - [ ] Phase 5 — Report
   - [ ] 5.12 Finish docs/psx-perf-levers.md
