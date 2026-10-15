@@ -1,6 +1,6 @@
 # Lever-gain table of docs/psx-perf-levers.md (plan 20, step 12): the one
 # input of the per-frame estimate besides the judge table
-# (psx/perf/full-run-frames.txt) and the step 9 spike frames
+# (psx/perf/report-judge-frames.txt) and the step 9 spike frames
 # (psx/perf/spike-frames.txt). Part of the report, deleted with it.
 #
 # Rows, whitespace-separated; a "#" that starts a word comments out the rest

@@ -18,7 +18,7 @@ and the levers whose Risk opens with "Timing model" are the ones most
 exposed to that difference. The sections from "Short-run baseline" on are
 the evidence, one per plan step. Four companion files are part of this
 report, kept as measuring inputs in `psx/perf/`: the judge's frame table
-`psx/perf/full-run-frames.txt`, step 9's spike frames
+`psx/perf/report-judge-frames.txt`, step 9's spike frames
 `psx/perf/spike-frames.txt` and the lever-gain table `psx/perf/gains.txt`.
 `make lever-estimate` regenerates the estimate the report quotes. The
 report is deleted once the implementation plan exists.
@@ -1509,7 +1509,7 @@ non-zero.
 ### Frame table
 
 The whole per-frame table is the companion file
-`psx/perf/full-run-frames.txt`: the run's
+`psx/perf/report-judge-frames.txt`: the run's
 `run/frame-budget/frames.txt`, byte for byte. Header `frame update draw
 submit total vsyncs`, then one line a frame, in hblanks. Frames are 0-based as
 the judge writes them, so frame 12 is the 13th line after the header.
@@ -1607,7 +1607,7 @@ next to the short-run sums of the baseline table above (step 2's runs on
 The sums come from:
 
 ```
-awk -v f=<first> -v l=<last> 'NR > 1 && $1 >= f && $1 <= l { u += $2; d += $3; s += $4; t += $5 } END { print u, d, s, t }' psx/perf/full-run-frames.txt
+awk -v f=<first> -v l=<last> 'NR > 1 && $1 >= f && $1 <= l { u += $2; d += $3; s += $4; t += $5 } END { print u, d, s, t }' psx/perf/report-judge-frames.txt
 ```
 
 | Run | Frames | Full update | Full draw | Full submit | Full total | Short update | Short draw | Short submit | Short total |

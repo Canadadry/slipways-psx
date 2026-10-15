@@ -954,12 +954,13 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- `make psx-full-game-check` is red on `frame-budget` until plan 11 step 4,
+- `make psx-full-game-check` is red on `frame-budget` until plan 21,
   as expected; nobody raises `PSX_FRAME_BUDGET_HBLANKS` to turn it green.
-  First run: 6,047 of 6,059 frames over 263 hblanks (every frame after the
-  first 12), worst frame 12 at 9,558 (update 9,074), mean overrun 629, mean
-  frame 891 hblanks (~3.4 vsyncs), draw dominant (4,714,765 of the
-  over-budget frames' 5,399,037 hblanks). The eleven other conditions hold.
+  Latest run (asserts off, draw filter off): 6,047 of 6,059 frames over 263
+  hblanks (every frame after the first 12), worst frame 12 at 9,392 (update
+  8,981), mean overrun 503, mean frame 765 hblanks (~2.9 vsyncs), draw
+  dominant (3,991,996 of the over-budget frames' 4,633,556 hblanks). The
+  twelve other conditions hold.
 
 - `make psx-short-runs` is red on `representative`: `done`, `deterministic`
   and `breakdown` hold on all five runs, and `start` matches the full run

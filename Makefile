@@ -605,8 +605,8 @@
 #                    -> profiles full_game.json k times (default 4) with
 #                       cart_update60 as the update root into
 #                       tmp/frame-profile/spikes/cart_update60/<k>/, then
-#                       tools/frame_profile_check.sh spikes on the judge table
-#                       psx/perf/full-run-frames.txt: every frame
+#                       tools/frame_profile_check.sh spikes on the latest
+#                       judge table psx/perf/full-run-frames.txt: every frame
 #                       whose update exceeds the threshold (default 263) walked
 #                       down to the child holding half its PC time; while a
 #                       frame is open on a symbol, profiles that symbol k
@@ -645,7 +645,8 @@
 #                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
 #                       node is open; never boots, outside the suite
 # make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=sequential|independent] [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]
-#                    -> tools/lever_estimate.sh on the judge table,
+#                    -> tools/lever_estimate.sh on plan 20's judge table
+#                       psx/perf/report-judge-frames.txt,
 #                       psx/perf/spike-frames.txt and the gain
 #                       table (default psx/perf/gains.txt, whose
 #                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
@@ -659,8 +660,9 @@
 #                       never boots, outside the suite
 # make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate,
 #                       under step 9's spike rule (spike-rule=step9),
-#                       reproduces step 9's spreading on the committed judge
-#                       table and spike frames with the gain tables of
+#                       reproduces step 9's spreading on plan 20's judge
+#                       table psx/perf/report-judge-frames.txt and spike
+#                       frames with the gain tables of
 #                       tests/fixtures/lever_estimate/ (uniform 88%: no spike
 #                       frame does-not-fit; 87%: frame 6043 does not fit;
 #                       80.7% in game, 74.8% on frame 12: exactly frame 6043,
@@ -2718,20 +2720,21 @@ ESTIMATE_ALLOCATION ?= sequential
 ESTIMATE_HAIRCUT ?= 0
 ESTIMATE_GAINS ?= psx/perf/gains.txt
 ESTIMATE_SPIKE_FRAMES := psx/perf/spike-frames.txt
+ESTIMATE_JUDGE_FRAMES := psx/perf/report-judge-frames.txt
 LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
 
-lever-estimate: tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
+lever-estimate: tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
 	@label=$(or $(ESTIMATE_LABEL),$(ESTIMATE_END)$(if $(ESTIMATE_RUN),-$(ESTIMATE_RUN))); \
 	case "$$label" in ''|*[!A-Za-z0-9_.-]*) echo "$@: ESTIMATE_LABEL is not a file-name label: '$$label'"; exit 1;; esac; \
 	mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/$$label.txt; \
-	sh tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
+	sh tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
 		allocation=$(ESTIMATE_ALLOCATION) haircut=$(ESTIMATE_HAIRCUT) $(if $(ESTIMATE_RUN),run=$(ESTIMATE_RUN)) > $$out \
 		|| { status=$$?; rm -f $$out; exit $$status; }; \
 	grep -v '^frame ' $$out; echo "$@: wrote $$out"
 
 lever-estimate-check: tools/lever_estimate.sh tools/lever_estimate_check.sh tools/frame_profile_check.sh \
-		$(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
-	@sh tools/lever_estimate_check.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
+		$(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
+	@sh tools/lever_estimate_check.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
 		$(LEVER_ESTIMATE_DIR)/check
 
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
