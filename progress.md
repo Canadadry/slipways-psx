@@ -1,0 +1,27 @@
+- [ ] Phase 1 — Measure what ships
+  - [ ] Step 1.1 — draw filter behind a compile-time define
+  - [ ] Step 1.2 — new judge baseline, filter off
+- [ ] Phase 2 — Safe gains
+  - [ ] Step 2.3 — asserts off in psx-game (G1)
+  - [ ] Step 2.4 — draw meter out of psx-game and the measured replays (B1)
+  - [ ] Step 2.5 — -O3 for psx-game and the measured replays (G2)
+  - [ ] Step 2.6 — p8_map skips off-screen cells (B3)
+  - [ ] Step 2.7 — end of phase full-game check
+- [ ] Phase 3 — Draw, in impact order
+  - [ ] Step 3.8 — D5 pre-built background and the image cache
+  - [ ] Step 3.9 — D1/B4 outlined font, one primitive per glyph
+  - [ ] Step 3.10 — L1 layer lists sorted at registration
+  - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
+  - [ ] Step 3.12 — D6 planet row icons through the image cache
+  - [ ] Step 3.13 — D4 score panel readouts through the image cache
+  - [ ] Step 3.14 — B2 off-screen rejection, or D12 + D11 + D15
+  - [ ] Step 3.15 — remaining draw levers above 2%
+  - [ ] Step 3.16 — end of phase full-game check
+- [ ] Phase 4 — Update
+  - [ ] Step 4.17 — O2 (or O1), O3, O5
+  - [ ] Step 4.18 — spike levers U4, U6, U2, U1, U3
+  - [ ] Step 4.19 — spreading mechanism, inert
+  - [ ] Step 4.20 — spreading applied
+  - [ ] Step 4.21 — end of phase full-game check
+- [ ] Phase 5 — Close
+  - [ ] Step 5.22 — close the plan
