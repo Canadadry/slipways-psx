@@ -1901,9 +1901,9 @@ the message box bars, the score panel's help frames: 134 against 39.8% of
 
 Plan 20 step 8: what one call, and one glyph or primitive, of each draw
 family costs inside the backend, and what the two backend-side levers (the
-9× outlined print, the shipped draw meter) are worth. This section holds
-the per-unit tables; the one-print and no-meter experiments, the backend
-and meter "do less" candidates and the verification table are still to do.
+9× outlined print, the shipped draw meter) are worth: the per-unit tables,
+the one-print and no-meter experiments, the backend and meter "do less"
+candidates, the draw-filter finding and the verification table.
 
 Measured on commit `17c2602dab38e4e369c54e579c6b9c96f2e9bbb1` (pcsx-redux,
 asserts off) with:
@@ -2104,3 +2104,245 @@ In-calls pooled: 30969.5 hblanks.
 - **Floor:** `cls` at 0.186 a call is the cheapest call measured, with the
   timer's per-call work inside it; every family's per-call figure reads high
   by part of that floor and of the 0.13-per-call breakdown overhead.
+
+### Experiments
+
+Both run with the probe tool on all six runs, on `cbd0c4f` (same `src/` and
+`psx/` as the measured commit: the probe baseline's fingerprint held):
+
+```
+make psx-probe PATCH=tmp/plan20-backend/b-one-print.patch PSX_PROBE_LABEL=b-one-print
+make psx-probe PATCH=tmp/plan20-backend/b-no-meter.patch PSX_PROBE_LABEL=b-no-meter
+```
+
+Every boot `valid`, `game-state same` on every run. Deltas are window sums
+in hblanks (per frame on the 15-frame runs); update and submit moved by
+−2 to +7 on every run, layout noise of the rebuilt binary, and are left out
+of the tables below.
+
+#### one-print: `hud_print_outlined` draws only its last pass
+
+Patch: in `hud_print_outlined` (`src/game/hud.c:85`), the loop over the
+nine outline offsets starts at 8, so only the text pass (offset 0,0, colour
+`15 & c`) is drawn. Text −156 bytes.
+
+Removed calls and glyphs: the PC profile of each run's `run.json` on the
+patched tree, in a throwaway worktree (same game on all six runs), minus
+HEAD's units. On every run exactly 8/9 of `print`'s window calls and glyphs
+go: every `print` call of the six windows is an outlined pass (step 7's
+289 a frame on `draw-5564` are its tree path's; the profile's 295.8 are all
+callers'). Prediction: removed calls × the run's own per-call figure, and
+removed glyphs × its per-glyph figure; both are 8/9 of the run's `print`
+hblanks, so they are equal.
+
+| Run | Draw delta | Of window total | Removed calls | Removed glyphs | Per call | Per glyph | Predicted | Gap |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `start` | −64 | −0.68% | 56 | 160 | 1.124 | 0.393 | −62.9 | +1.7% |
+| `update-4737` | −65 | −7.81% | 56 | 168 | 1.176 | 0.392 | −65.9 | −1.3% |
+| `update-5500` | −74 | −3.47% | 64 | 192 | 1.163 | 0.388 | −74.4 | −0.5% |
+| `draw-5564` | −8134 (−542.3) | −40.14% | 3944 | 25080 | 2.078 | 0.327 | −8193.9 | −0.7% |
+| `update-5719` | −287 | −25.38% | 160 | 864 | 1.811 | 0.335 | −289.8 | −1.0% |
+| `draw-6000` | −1532 (−102.1) | −10.43% | 1128 | 4248 | 1.371 | 0.364 | −1546.7 | −0.9% |
+
+Gap = (measured − predicted) ÷ predicted. All six within 15% (−1.3% to
++1.7%): the per-unit table predicts a call-removing lever to about 2%. The
+prediction carries the breakdown timer's per-call bias (reads high) and
+misses the eight removed passes' outside-call work (the loop, the argument
+setup, `p8_print`'s dispatch; reads low); on these runs the two nearly
+cancel. With the pooled figures instead of the run's own, `draw-5564`
+reads −7462 per call (+9.0% gap) and −8352 per glyph (−2.6%): for a lever
+priced on another run, the pooled per-glyph figure is the one to use.
+
+Reading: an **upper bound of the outlined-font lever** (one SPRT per glyph
+from a pre-drawn outlined font): that lever keeps one primitive per glyph,
+larger (5×7 instead of 3×5) and a CLUT per text colour, which the stand-in
+does not pay. The stand-in itself changes pixels (no outline); the lever
+does not. Step 7's candidate 1 bounded the same nine passes at 1410 (94) on
+`draw-6000` from its tree; measured 1532 (102).
+
+#### no-meter: the measured replay without the draw meter
+
+Patch: in `src/cmd/psx_gpu_replay.c`, `p8_draw_meter_install()` removed
+and `psx_gpu_frame_end` handed `GPU_FRAME_BUFFER_BYTES` (`p8/gpu_sizes.h`
+included) instead of the meter's last frame bytes, so its overrun check is
+vacuous; `p8_draw_meter_frame_end` stays (it copies a struct), the draw
+filter stays, and the backend's own packet overflow check (`packet`,
+`src/platform/psx_gpu.c:58`) still ends in `p8_fatal`. Text −2152 bytes.
+
+| Run | Draw delta | Of window total | Backend calls | Per backend call |
+|---|---:|---:|---:|---:|
+| `start` | −124 | −1.31% | 549 | 0.226 |
+| `update-4737` | −165 | −19.83% | 833 | 0.198 |
+| `update-5500` | −164 | −7.70% | 856 | 0.192 |
+| `draw-5564` | −3170 (−211.3) | −15.64% | 17769 | 0.178 |
+| `update-5719` | −199 | −17.60% | 1072 | 0.186 |
+| `draw-6000` | −2977 (−198.5) | −20.27% | 18469 | 0.161 |
+| pooled | −6799 | | 39548 | 0.172 |
+
+No per-unit prediction: the meter sits inside every family's time. Its
+expected share is one cost-model call per backend call (plus the CLUT and
+pattern tables on `spr` and the fills), so the delta is read per backend
+call: 0.16 to 0.23 hblanks, about the `cls` floor (0.186) — the meter costs
+as much per call as the cheapest whole call. No surprise against the code:
+it walks every `print` string and runs every circle's midpoint loop, and
+`spr`'s `count_clut` compares the palette with up to 12 entries on every
+call, off screen included (`src/p8/draw_meter.c:21`, `:96`). The lever is
+"drop the meter from `psx-game`", where it sits at `src/cmd/psx_game.c:68`
+and `:95`–`:96` behind the same backend: the measured replay is the plan's
+stand-in for it.
+
+#### Overlap
+
+The one-print delta contains the meter's and the filter's work on the 3944
+(`draw-5564`) and 1128 (`draw-6000`) removed calls, each of which ran the
+cost model's string walk twice; the no-meter delta contains the meter's work
+on those same calls. Both gains are not to be added in full; step 12
+settles the overlap.
+
+### "Do less" inside the backend and the meter
+
+The per-call path of the measured replay: runtime `p8_<family>` (one
+indirect dispatch, `src/p8/gfx.c`) → breakdown timer (breakdown boot only)
+→ draw meter (cost model, CLUT and pattern tables, `src/p8/draw_meter.c`)
+→ draw filter (cost model, `src/devtools/draw_filter.c`) → GPU backend
+(placement and clip in `psx_tiles.c`, `psx_sprite.c`, `psx_text.c`; CLUT
+and pattern caches; texture-window check; one packet per primitive,
+`src/platform/psx_gpu.c`). `psx-game` has the meter and the backend only.
+
+Per family, on top of the dispatch and the two cost-model calls: `cls` one
+FILL; `pset` clip, one TILE_1; `line` clip, one LINE_F2; `rect` up to 4
+TILEs; `rectfill` one TILE, or pattern slot, window check and one SPRT;
+`circ` the midpoint loop (third time, after the meter's and the filter's),
+one TILE_1 per point; `circfill` the same loop, one TILE or SPRT per span;
+`spr` placement and clip, CLUT lookup (`memcmp` over up to 6 slots, after
+the meter's over up to 12), window check, page and region lookups, one SPRT;
+`print` per character a lit-row test (up to 5 rows) and a font-cell lookup,
+clip, window check, page and region lookups, one SPRT per glyph.
+
+An `spr` call costs about 0.94–1.02 on screen and 0.45–0.49 off screen
+(estimated: a two-term least-squares fit of each run's `spr` hblanks on its
+on-screen and off-screen calls, all six runs / without `update-5719`; the
+fit is within 2% of every draw run). Bounds below are window sums, per frame
+in brackets, `draw-5564` then `draw-6000`.
+
+1. **Recomputation: the meter in the shipped game** — `p8_draw_meter_install`
+   (`src/cmd/psx_game.c:68`), `psx_gpu_frame_end(p8_draw_meter_last_frame().bytes)`
+   (`:96`). The meter runs the cost model on every call only to check, at
+   frame end, that the backend sent no more than the model; the backend's
+   `packet` already refuses an overflow. Gain **measured**: 3170 (211),
+   2977 (198); 124 to 199 on the one-frame runs. Pixel risk: identical. Cost
+   outside pixels: the `zone gpu_frame` and `cap gpu_*` state lines that
+   `tools/psx_check.sh` and `tools/psx_full_game_check.sh` read come from
+   the meter (`src/devtools/state_format.c:282`) and would need the
+   backend's own `used` and cache counts.
+2. **Repeated calls: off-screen calls go all the way down** — `meter_*`
+   (`src/p8/draw_meter.c:58`–`:104`) and the runtime's `p8_<family>`
+   (`src/p8/gfx.c`). A call the cost model rates free (off screen) still
+   reaches the backend, which places and clips it again to emit nothing; in
+   the judge's replay it is also tested by the filter. Rejecting it once,
+   at the first test, keeps the pixels. Off-screen calls outside the map
+   (candidate 3): `pset` 394, `line` 68, `rectfill` 308, `spr` 135 on
+   `draw-5564`; 1916, 444, 660, 225 on `draw-6000` (calls − units; `circ`,
+   `circfill`, `print` not counted). Gain **estimated**, ≤ those calls ×
+   their family's per call: ≤ 373 (25), ≤ 1129 (75), less the one test
+   kept. Pixel risk: identical.
+3. **Repeated calls: the map's off-screen cells** — `p8_map`
+   (`src/p8/gfx.c:133`) from `background_draw`
+   (`src/game/background.c:143`), runtime side just above the backend.
+   `p8_map` issues one `p8_spr` per non-empty cell of the whole 32×32 map
+   (400 a frame on `draw-5564`), wherever the camera is. Evidence: a PC-only
+   throwaway that skips cells whose 8×8 box is off screen (same game on the
+   six runs, units and switches unchanged on every run, the 20 e2e replays'
+   `*.sha256` unchanged) removes 4935 of `draw-5564`'s 7541 `spr` calls and
+   4830 of `draw-6000`'s 7707 (274, 309, 318, 209 on the one-frame runs):
+   the source of two thirds of the off-screen `spr` calls. Gain
+   **estimated**: removed calls × 0.45–0.49 = 2240–2433 (149–162),
+   2193–2381 (146–159); 95 to 157 on the one-frame runs. Cross-check: step
+   7's `p8_map` (3319, 3354) less its on-screen sprites (1065 and 1170 ×
+   0.94–1.02) leaves 2233–2318 and 2161–2254. Pixel risk: identical.
+   Overlaps step 7's candidate 5 (pre-built background), which removes all
+   of `p8_map`.
+4. **Repeated calls: nine placements per outlined text** —
+   `hud_print_outlined` (`src/game/hud.c:85`) over `gpu_print`
+   (`src/platform/psx_gpu.c:326`). Each pass walks the string in the
+   filter, in the meter and in `psx_text_place`, for the same glyphs moved
+   by one pixel. An outlined font (one SPRT per glyph) has the **measured**
+   upper bound 8134 (542), 1532 (102); a backend entry that places each
+   glyph once and emits its nine SPRTs keeps the packets and saves part of
+   it (not separable here). Pixel risk: identical only if the outlined
+   glyphs reproduce the nine passes (the outline colour is `0 & c`, always
+   0; neighbours' outlines meet in the gap column only).
+5. **Recomputation: lit-row test and font-cell lookup per glyph** —
+   `glyph_lit`, `psx_text_place` (`src/platform/psx_text.c:5`, `:18`–`:21`).
+   Up to 5 row reads per character to learn whether it has a lit row, and a
+   division for its cell, recomputed on every pass of every text; a 256-entry
+   table holds both. Gain **estimated**, not separable: part of the
+   0.327–0.393 per glyph, inside `print`'s 9218 (615), 1740 (116); overlaps
+   4. Pixel risk: identical.
+6. **Recomputation: CLUT lookup per sprite** — `clut_slot`
+   (`src/platform/psx_gpu.c:301`), `psx_clut_cache_slot`
+   (`src/platform/psx_clut_cache.c:10`), and `count_clut` in the meter. A
+   16-byte `memcmp` per slot on every on-screen `spr`, though the palette
+   changes rarely between calls; a "same palette as last call" path skips
+   it. Gain **estimated**, not separable: inside what a drawn sprite adds
+   over an off-screen one (0.45–0.56 with placement and packet), loose
+   ceiling 1102–1389 (73–93), 1183–1490 (79–99); the meter's part is in 1.
+   Pixel risk: identical.
+7. **Recomputation: page and region lookups per textured SPRT** —
+   `add_textured_sprite`, `add_glyph` (`src/platform/psx_gpu.c:294`,
+   `:321`). `psx_vram_layout_texture_page()` and
+   `psx_vram_layout_region(...)` are called per sprite and glyph for values
+   fixed at boot; hoisting them is a micro-optimization. Gain
+   **estimated**, not separable: part of `spr`'s and `print`'s per unit.
+   Pixel risk: identical.
+8. **Recomputation: the midpoint loop three times per circle** —
+   `circle_iterations` (`src/p8/draw_cost.c:97`) in the filter and the
+   meter, then `psx_tiles_circ`/`psx_tiles_circfill` in the backend.
+   Candidate 1 removes one, the filter is absent from `psx-game`; the model's
+   count is a function of the radius alone (a small table). Gain
+   **estimated**, ceiling `circ` + `circfill`: 1036 (69), 1359 (91), of
+   which the model loops are a part. Pixel risk: identical.
+
+Examined and dropped: the per-call texture-window check (`use_texture_window`,
+`src/platform/psx_gpu.c:90`) is one compare, and switches are 34 on `spr`
+and 39 on the fills over 34 window frames; nothing to remove.
+
+**Finding, not measured: the draw filter.** `draw_filter_install`
+(`src/cmd/psx_gpu_replay.c:199`) wraps every call of the judge's replay and
+of the short runs and runs the cost model once more per call (it counts
+per family for the capture masks); `psx-game` has no filter. Its cost is
+not measured in this step (a third experiment is out of scope); it does the
+same cost-model calls as the meter without the CLUT and pattern tables, so
+it is likely of the order of, and below, the no-meter delta (0.16–0.23 a
+call). Every figure of this report, and the judge's frames, read high by
+it against `psx-game`; step 12 and the human should discount it.
+
+### Verification
+
+| Item | Figure | Runs |
+|---|---|---|
+| `cls` | 0.188 a call (pooled) | 0.185–0.186, low count on every run |
+| `pset` | 0.279 a call, 0.435 a pixel | 0.272–0.301 a call |
+| `line` | 0.400 a call, 0.450 a line | 0.390–0.420 |
+| `rect` | 0.640 a call, 0.160 a tile | 0.630–0.645, low count on the one-frame runs |
+| `rectfill` | 0.453 a call, 0.636 a tile or sprite | 0.438–0.563 |
+| `circ` | 4.096 a call, 0.129 a point | 3.398–4.311, low count on the one-frame runs |
+| `circfill` | 3.139 a call, 0.180 a span | 3.018–3.324, low count on the one-frame runs |
+| `spr` | 0.646 a call, 1.880 a drawn sprite | 0.638–0.730 |
+| `print` | 1.892 a call, 0.333 a glyph | 0.327–0.393 a glyph |
+| `pattern` | 0.601 a call, 1.257 a span, inside its shapes | 0.577–0.642 |
+| one-print | measured: −8134 (`draw-5564`), −1532 (`draw-6000`), −64 to −287 one-frame | six runs `valid`, `game-state same`, gaps −1.3% to +1.7% |
+| no-meter | measured: −3170 (`draw-5564`), −2977 (`draw-6000`), −124 to −199 one-frame | six runs `valid`, `game-state same` |
+
+Every family has a per-unit cost, each experiment a measured delta.
+
+### Patches (backend)
+
+Written by hand on `cbd0c4f` into `tmp/plan20-backend/` (git-ignored),
+used once and discarded; none is committed.
+
+| Patch | Use | Change |
+|---|---|---|
+| `b-one-print.patch` | probe, label `b-one-print`; PC profile on the patched tree | `src/game/hud.c`: `for (i = 0; i < 9; i++)` → `for (i = 8; i < 9; i++)` |
+| `b-no-meter.patch` | probe, label `b-no-meter` | `src/cmd/psx_gpu_replay.c`: `p8_draw_meter_install();` removed, `psx_gpu_frame_end(GPU_FRAME_BUFFER_BYTES)`, `#include "p8/gpu_sizes.h"` |
+| `pc-map-cull.patch` | PC profile and `make e2e` only, never booted (candidate 3's evidence) | `src/p8/gfx.c` `p8_map`: `continue` when the cell's 8×8 box less the camera is off the screen |

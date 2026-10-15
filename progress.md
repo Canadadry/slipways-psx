@@ -30,7 +30,7 @@
     - [x] Chunk 1: units and switches per family in the PC profile
     - [x] Chunk 2: unit-cost mode and frame-profile-unit-cost target
     - [x] Chunk 3: per-unit measurements on the six short runs
-    - [ ] Chunk 4: one-print and no-meter experiments, candidates
+    - [x] Chunk 4: one-print and no-meter experiments, candidates
 - [ ] Phase 3 — Update
   - [ ] 3.9 Identify the four update spikes on PC
   - [ ] 3.10 Ordinary update: calibration and children costs
