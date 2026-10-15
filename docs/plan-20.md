@@ -264,11 +264,18 @@ because this plan file is deleted once it is finished.
       low in absolute terms; every frame in a step 9 spike class uses its
       class's figures and spreading estimate instead;
     - the spikes and their spreading estimates;
-    - which stop condition ended discovery.
+    - which stop condition ended discovery;
+    - in the verdict, one sentence stating that the bracket is relative to
+      pcsx-redux's timing model (an interpreter charging a flat 2 cycles
+      per instruction, no instruction-cache miss or data wait), and in the
+      Risk field of every lever whose gain rests on what that model does
+      not charge (at least G2 and G3), a label saying so.
 
     Verified when the checklist items are each resolved with their
     figure, the tool reproduces step 9's two known results, every lever
-    entry has all four fields, and the stop condition holds: either the cumulative estimated gain brings every
+    entry has all four fields, the verdict states its dependence on
+    pcsx-redux's timing model with the affected levers labelled, and the
+    stop condition holds: either the cumulative estimated gain brings every
     full-run frame to 263 with about 20% extra gain to spare
     (estimates overlap, so their sum is optimistic), or every branch above
     2% is explored, whichever came first.
@@ -562,4 +569,40 @@ to the remaining steps:
 - `FRAME_PROFILE_SPIKE_LEVELS` reused as the ordinary walk's depth.
 Also removes the implemented PRD
 `docs/prd/triage/phase3-step10-ordinary-update.md`.
+
+### Step 4.11
+
+Tooling: a short run fails when a boot fails or its state dump stops
+before its last line (`psx-state: cheat activations`); default ceiling
+540 → 1080 vsyncs, timeout 10 → 20 s. `PSX_SHORT_RUN_OPT=O2|O3|Os`
+(default O2, build unchanged) reaches the two measured replays through
+an interface library whose flags land after the SDK's trailing `-O2`
+(a plain target option was silently overridden); `tools/psx_opt_level.sh`
+reads the effective level and a run fails before boot when it differs.
+Four variants on all six runs, 72 boots under the ceiling (highest 585,
+`-Os` on `draw-6000`), game state equal to the PC's, effective level as
+requested, base equal to step 2's table. Pooled over 34 window frames:
+asserts on +3.7% (full run +4.0%), `-O3` −5.9% (update −13.8%, text
++12.5%), `-Os` +25.9% (text −8.5%).
+Submit (throwaway span patch): 7.45 hblanks a frame shipped, 76% of it
+re-uploading every texture slot each frame; `DrawSync` never waits.
+Caveat: pcsx-redux runs as an interpreter charging a flat 2 cycles per
+instruction, with no instruction-cache miss or data-wait cost, so the
+`-Os` result and `-O3`'s free extra text say nothing about real
+hardware or the Miyoo. Levers G1 asserts off, G2 `-O3`, G3 `-Os`, G4
+upload only changed slots (up to 6.31 a frame, estimated).
+Plan change (plan-review after phase 4): step 12's verdict states its
+dependence on pcsx-redux's timing model, and the levers resting on it
+are labelled.
+End-of-phase warn-review (phase 4 tooling), not acted on, judged
+harmless to step 12:
+- the Makefile at 2,879 lines, with untested shell for the opt check,
+  the size report and the boot verdict inside the `psx-short-runs`
+  recipe, and a long help block;
+- the allowed opt levels repeated in the Makefile and CMake;
+- "dump complete" tied to a hard-coded last line with no test against
+  the emit order;
+- a header comment past its wrap width.
+Also removes the implemented PRD
+`docs/prd/triage/phase4-step11-asserts-opt-levels-submit.md`.
 

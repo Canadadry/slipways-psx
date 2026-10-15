@@ -45,8 +45,8 @@
     - [x] Chunk 3: ordinary calibration
     - [x] Chunk 4: descent and costs
     - [x] Chunk 5: delay probes and candidates
-- [ ] Phase 4 — Global levers
-  - [ ] 4.11 Asserts, -O2/-O3/-Os, submit
+- [x] Phase 4 — Global levers
+  - [x] 4.11 Asserts, -O2/-O3/-Os, submit
     - [x] Chunk 1: a cut boot fails its run
     - [x] Chunk 2: optimization level option and check
     - [x] Chunk 3: four variants on every short run
