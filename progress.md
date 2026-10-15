@@ -1,5 +1,5 @@
 - [ ] Phase 1 — Measure what ships
-  - [ ] Step 1.1 — draw filter behind a compile-time define
+  - [x] Step 1.1 — draw filter behind a compile-time define
     - [x] Chunk 1 — gpu-draw-filter judge condition
     - [x] Chunk 2 — replay and build wiring
     - [x] Chunk 3 — psx-check and F1 measurement

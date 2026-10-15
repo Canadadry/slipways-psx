@@ -265,3 +265,12 @@ by judge-wide gain (the report's `draw-6000` figure):
 (none)
 
 ## 6. Step notes
+
+### Step 1.1
+
+- The GPU replay's draw filter compiles only under `PSX_GPU_REPLAY_DRAW_FILTER` (CMake option, default OFF, on the two GPU replays only). `psx-build` turns it ON for `psx-check`'s captures; `psx-full-game-check`, the short runs and the probe build it OFF. Without it a masked capture is a `p8_fatal`, and the replay prints `psx-replay: draw-filter on|off`.
+- `psx-full-game-check` gained a thirteenth condition, `gpu-draw-filter`, requiring `off` (decided by the PRD agent; `psx-check` got no new condition, its masked captures already prove the filter is in).
+- `psx-check` green, 31 conditions, every capture unchanged.
+- F1 measured (asserts off, O2), filter removed, per frame: `draw-5564` draw −136.7 (−11.3%), `draw-6000` −121.3 (−14.1%); update and submit within ±0.3. Both under the report's upper bounds (−211.3 / −198.5). Game state same, runs valid.
+- Deviation: chunk 2 was committed before the probe, so F1 was measured in reverse (baseline HEAD without the filter, a patch restoring it), sign flipped.
+- The PSn00bSDK toolchain and pcsx-redux were installed in this session (`make psn00bsdk-toolchain-setup`, `make psx-emulator-setup`).
