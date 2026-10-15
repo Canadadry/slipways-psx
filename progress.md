@@ -30,7 +30,7 @@
     - [x] Chunk 2 — per-call costs re-measured, coverage, capture check
     - [x] Chunk 3 — throwaway GPU copy spike
     - [x] Chunk 4 — runtime image cache, software backend (PC)
-    - [ ] Chunk 5 — PSX backend image cache
+    - [x] Chunk 5 — PSX backend image cache
     - [ ] Chunk 6 — D5 background through the cache
   - [ ] Step 3.9 — D1/B4 outlined font, one primitive per glyph
   - [ ] Step 3.10 — L1 layer lists sorted at registration

@@ -120,13 +120,13 @@ fi
 
 peak_line=$(grep '^psx-game: gpu-peak ' "$out_dir/tty.txt" | head -n 1)
 set -- $peak_line
-peak_bytes=${4:-}; peak_cluts=${6:-}; peak_patterns=${8:-}
+peak_bytes=${4:-}; peak_cluts=${6:-}; peak_patterns=${8:-}; peak_build=${10:-}
 # usage: pc_peak <zone|cap> <name>; prints field 4 of that PC state line, nothing when there is none
 pc_peak() {
     awk -v kind="$1" -v name="$2" '$1 == kind && $2 == name { print $4; exit }' "$out_dir/pc_state.txt"
 }
-[ $# -eq 8 ] && [ "$3 $5 $7" = "bytes cluts patterns" ] || peak_bytes=
-case $peak_bytes$peak_cluts$peak_patterns in *[!0-9]*) peak_bytes= ;; esac
+[ $# -eq 10 ] && [ "$3 $5 $7 $9" = "bytes cluts patterns build" ] || peak_bytes=
+case $peak_bytes$peak_cluts$peak_patterns$peak_build in *[!0-9]*) peak_bytes= ;; esac
 if [ -z "$peak_bytes" ] || [ "$peak_bytes" -eq 0 ]; then
     report game-gpu-cost "psx-game: gpu-peak (no line)"
 elif [ ! -f "$out_dir/pc_state.txt" ]; then
@@ -135,9 +135,10 @@ else
     metered_bytes=$(pc_peak zone gpu_frame)
     metered_cluts=$(pc_peak cap gpu_cluts)
     metered_patterns=$(pc_peak cap gpu_patterns)
+    metered_build=$(pc_peak zone gpu_build)
     over=
     for figure in "bytes $peak_bytes $metered_bytes zone gpu_frame" "cluts $peak_cluts $metered_cluts cap gpu_cluts" \
-        "patterns $peak_patterns $metered_patterns cap gpu_patterns"; do
+        "patterns $peak_patterns $metered_patterns cap gpu_patterns" "build $peak_build $metered_build zone gpu_build"; do
         set -- $figure
         if [ $# -ne 5 ]; then
             over="${over}PC state has no $(echo $figure | awk '{print $(NF - 1), $NF}'); "
@@ -148,7 +149,7 @@ else
     if [ -n "$over" ]; then
         report game-gpu-cost "${over%; }"
     else
-        pass game-gpu-cost "bytes $peak_bytes of $metered_bytes metered, cluts $peak_cluts of $metered_cluts, patterns $peak_patterns of $metered_patterns"
+        pass game-gpu-cost "bytes $peak_bytes of $metered_bytes metered, cluts $peak_cluts of $metered_cluts, patterns $peak_patterns of $metered_patterns, build $peak_build of $metered_build"
     fi
 fi
 

@@ -296,9 +296,9 @@ static void test_a_pc_gpu_build_peak_above_its_limit_fails_zone_sizes(void) {
 static void test_the_gpu_replay_backend_peaks_are_measured_behind_gpu_gpu_peak(void) {
     setup();
     write_tty(DIR "/gpu.tty", FILTER_OFF, frame_lines(-1), GPU_STATE_LINES, "",
-              "psx-replay: gpu-peak bytes 120 cluts 2 patterns 1\r\n" GPU_DONE);
+              "psx-replay: gpu-peak bytes 120 cluts 2 patterns 1 build 96\r\n" GPU_DONE);
     assert(run_check("0") == 0);
-    assert_has(OUT "/measurements.txt", "gpu gpu-peak bytes 120 cluts 2 patterns 1\n");
+    assert_has(OUT "/measurements.txt", "gpu gpu-peak bytes 120 cluts 2 patterns 1 build 96\n");
 }
 
 static void test_a_differing_screen_digest_fails_screen(void) {

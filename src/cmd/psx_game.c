@@ -4,7 +4,7 @@
  *   psx-game: ready
  *   psx-game: pad <frame> <pad_buttons hex>   on frame 0 and on each change
  * Under check only, once tools/psx_pad_play.lua writes the pad script's end word, it ends with
- * "psx-game: gpu-peak bytes <b> cluts <c> patterns <p>" (psx_gpu_peaks), then the replays' protocol:
+ * "psx-game: gpu-peak bytes <b> cluts <c> patterns <p> build <k>" (psx_gpu_peaks), then the replays' protocol:
  * "psx-replay: done game <frames> vsyncs <n>", the "psx-state: " block, code 0.
  * On a console nothing writes that word, so the game never ends. A p8_fatal prints
  * "psx-state: stopped p8_fatal frame <n>" and the state, code 3. */
@@ -107,7 +107,8 @@ int main(void) {
     psx_exit_set_hook(NULL);
 
     psx_gpu_peaks_t peaks = psx_gpu_peaks();
-    psx_tty_printf("psx-game: gpu-peak bytes %lu cluts %d patterns %d\n", peaks.bytes, peaks.cluts, peaks.patterns);
+    psx_tty_printf("psx-game: gpu-peak bytes %lu cluts %d patterns %d build %lu\n", peaks.bytes, peaks.cluts, peaks.patterns,
+                   peaks.build_bytes);
     psx_tty_printf("psx-replay: done game %d vsyncs %d\n", g_frame, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);

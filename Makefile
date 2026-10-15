@@ -379,7 +379,7 @@
 #                       PSX_GAME_DIFFICULTY, default reasonable), game-asserts
 #                       (the TTY's asserts mode is PSX_BUILD_GAME_ASSERTS's,
 #                       off by default), game-gpu-cost (the TTY's gpu-peak
-#                       bytes, CLUTs and patterns within the PC replay's
+#                       bytes, CLUTs, patterns and build bytes within the PC replay's
 #                       metered peaks); outputs in
 #                       tmp/psx/game, ~10 s; never runs a setup, outside the
 #                       suite
@@ -1069,6 +1069,9 @@ $(TMP_DIR)/test_psx_pattern: $(call objs,tests/test_psx_pattern.c src/platform/p
 $(TMP_DIR)/test_psx_sprite: $(call objs,tests/test_psx_sprite.c src/platform/psx_sprite.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_image: $(call objs,tests/test_psx_image.c src/platform/psx_image.c src/platform/psx_sprite.c src/platform/psx_vram_layout.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_psx_text: $(call objs,tests/test_psx_text.c src/platform/psx_text.c src/platform/psx_sprite.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1754,6 +1757,7 @@ UNIT_TESTS := \
     test_psx_gpu_textures \
     test_psx_clut_cache \
     test_psx_sprite \
+    test_psx_image \
     test_psx_text \
     test_psx_pattern_cache \
     test_psx_gpu_peaks \
@@ -2234,7 +2238,7 @@ PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform
 PSX_CORE_UNITS := $(BINDINGS_CORE_UNIT) $(DEMO_UNIT)
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
-PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_text.c \
+PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_image.c src/platform/psx_text.c \
 	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c src/platform/psx_gpu_peaks.c \
 	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) src/devtools/state_format.c src/devtools/format_self_test.c \

@@ -1,6 +1,7 @@
 #include "platform/psx_vram_layout.h"
 
 #include "p8/gpu_sizes.h"
+#include "p8/image.h"
 
 #include <assert.h>
 
@@ -12,6 +13,12 @@ static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
     [PSX_VRAM_FONT] = { 512, 128, 32, 128 },
     [PSX_VRAM_PATTERNS] = { 544, 0, 32, 256 },
     [PSX_VRAM_CLUTS] = { 640, 0, 16, 64 },
+    [PSX_VRAM_IMAGES] = { 704, 0, 256, 512 },
+};
+
+/* Later slots go in the (704, 256) half, each on a 16-unit bound. */
+static const psx_vram_rect_t image_slots[P8_IMAGE_SLOT_COUNT] = {
+    { 704, 0, 256, 256 },
 };
 
 psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region) {
@@ -59,4 +66,17 @@ psx_vram_rect_t psx_vram_layout_font_clut(int colour) {
 psx_vram_rect_t psx_vram_layout_pattern_clut(int slot) {
     assert(slot >= 0 && slot < GPU_PATTERN_SLOTS);
     return clut_at(GPU_CLUT_SLOTS + PSX_VRAM_FONT_COLOURS + slot);
+}
+
+psx_vram_rect_t psx_vram_layout_image(int slot) {
+    assert(slot >= 0 && slot < P8_IMAGE_SLOT_COUNT);
+    return image_slots[slot];
+}
+
+enum { PAGE_X_STEP = 64, PAGE_SIZE = 256 };
+
+psx_vram_rect_t psx_vram_layout_image_page(int slot) {
+    psx_vram_rect_t image = psx_vram_layout_image(slot);
+    psx_vram_rect_t page = { image.x - image.x % PAGE_X_STEP, image.y - image.y % PAGE_SIZE, PAGE_SIZE, PAGE_SIZE };
+    return page;
 }

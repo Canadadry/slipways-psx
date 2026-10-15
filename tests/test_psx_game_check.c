@@ -41,7 +41,7 @@ static const char *read_file(const char *path) {
     return buf;
 }
 
-#define GPU_PEAK "psx-game: gpu-peak bytes 100 cluts 0 patterns 0\r\n"
+#define GPU_PEAK "psx-game: gpu-peak bytes 100 cluts 0 patterns 0 build 0\r\n"
 
 /* The PSX TTY: header with this asserts line ("" for none), pad lines, this gpu-peak line ("" for
  * none), done line, then the PC state behind "psx-state: ". */
@@ -117,6 +117,7 @@ static void test_a_pad_title_run_passes_every_condition(void) {
     assert_line("psx-game-check: game-asserts: ok, off");
     assert_line("psx-game-check: game-gpu-cost: ok, bytes 100 of ");
     assert_line(" metered, cluts 0 of ");
+    assert_line(", build 0 of ");
     assert(strstr(read_file(OUT "/game_events.json"), "\"input\": \"pad\"") != NULL);
     assert(strstr(read_file(OUT "/pc_state.txt"), "difficulty reasonable") != NULL);
 }
@@ -224,7 +225,7 @@ static void test_a_byte_peak_above_the_pc_meter_fails_game_gpu_cost(void) {
     setup();
     long metered = pc_peak("zone gpu_frame");
     char peak_line[128];
-    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes %ld cluts 0 patterns 0\r\n", metered + 1);
+    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes %ld cluts 0 patterns 0 build 0\r\n", metered + 1);
     write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, peak_line, DONE, PC_STATE);
     assert(run_check(0, "reasonable") != 0);
     char expected[128];
@@ -239,7 +240,7 @@ static void test_a_clut_peak_above_the_pc_meter_fails_game_gpu_cost(void) {
     setup();
     long metered = pc_peak("cap gpu_cluts");
     char peak_line[128];
-    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes 100 cluts %ld patterns 0\r\n", metered + 1);
+    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes 100 cluts %ld patterns 0 build 0\r\n", metered + 1);
     write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, peak_line, DONE, PC_STATE);
     assert(run_check(0, "reasonable") != 0);
     char expected[128];
@@ -256,10 +257,28 @@ static void test_a_missing_or_zero_peak_line_fails_game_gpu_cost(void) {
     assert_line("psx-game-check: game-gpu-cost: psx-game: gpu-peak (no line)");
     assert_other_conditions_pass();
     assert_line("psx-game-check: game-asserts: ok, off");
-    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, "psx-game: gpu-peak bytes 0 cluts 0 patterns 0\r\n", DONE,
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, "psx-game: gpu-peak bytes 0 cluts 0 patterns 0 build 0\r\n",
+                    DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-gpu-cost: psx-game: gpu-peak (no line)");
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, "psx-game: gpu-peak bytes 100 cluts 0 patterns 0\r\n", DONE,
                     PC_STATE);
     assert(run_check(0, "reasonable") != 0);
     assert_line("psx-game-check: game-gpu-cost: psx-game: gpu-peak (no line)");
+}
+
+static void test_a_build_peak_above_the_pc_meter_fails_game_gpu_cost(void) {
+    setup();
+    long metered = pc_peak("zone gpu_build");
+    char peak_line[128];
+    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes 100 cluts 0 patterns 0 build %ld\r\n", metered + 1);
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, peak_line, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    char expected[128];
+    snprintf(expected, sizeof expected, "psx-game-check: game-gpu-cost: build %ld above the PC's metered %ld",
+             metered + 1, metered);
+    assert_line(expected);
+    assert_other_conditions_pass();
 }
 
 static void test_a_broken_pad_log_skips_game_gpu_cost(void) {
@@ -292,6 +311,7 @@ int main(void) {
     test_a_byte_peak_above_the_pc_meter_fails_game_gpu_cost();
     test_a_clut_peak_above_the_pc_meter_fails_game_gpu_cost();
     test_a_missing_or_zero_peak_line_fails_game_gpu_cost();
+    test_a_build_peak_above_the_pc_meter_fails_game_gpu_cost();
     test_a_broken_pad_log_skips_game_gpu_cost();
     printf("test_psx_game_check: ok\n");
     return 0;

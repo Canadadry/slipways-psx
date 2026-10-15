@@ -1,6 +1,7 @@
 #include "platform/psx_vram_layout.h"
 
 #include "p8/gpu_sizes.h"
+#include "p8/image.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -90,12 +91,42 @@ static void test_every_clut_fits_the_clut_region_on_16_unit_bounds(void) {
     }
 }
 
+#define SLOT_SIZE(width, height) {(width), (height)},
+static const p8_image_size_t SLOT_SIZES[P8_IMAGE_SLOT_COUNT] = {P8_IMAGE_SLOTS(SLOT_SIZE)};
+
+static void test_image_slots_fit_the_images_region_on_fill_bounds(void) {
+    psx_vram_rect_t region = psx_vram_layout_region(PSX_VRAM_IMAGES);
+    for (int slot = 0; slot < P8_IMAGE_SLOT_COUNT; slot++) {
+        psx_vram_rect_t image = psx_vram_layout_image(slot);
+        assert(image.w == SLOT_SIZES[slot].width && image.h == SLOT_SIZES[slot].height);
+        assert(image.x % 16 == 0 && image.w % 16 == 0);
+        assert(inside(image, region));
+        for (int other = slot + 1; other < P8_IMAGE_SLOT_COUNT; other++) {
+            assert(!overlap(image, psx_vram_layout_image(other)));
+        }
+    }
+}
+
+static void test_each_image_slot_lies_on_its_own_15_bit_page(void) {
+    for (int slot = 0; slot < P8_IMAGE_SLOT_COUNT; slot++) {
+        psx_vram_rect_t page = psx_vram_layout_image_page(slot);
+        assert_page_aligned(page);
+        assert(page.w == 256);
+        assert(inside(psx_vram_layout_image(slot), page));
+    }
+    psx_vram_rect_t first = psx_vram_layout_image(0);
+    psx_vram_rect_t first_page = psx_vram_layout_image_page(0);
+    assert(first.x == first_page.x && first.y == first_page.y);
+}
+
 int main(void) {
     test_regions_are_inside_vram_and_never_overlap();
     test_sheet_font_and_patterns_share_one_4_bit_page();
     test_the_upscale_page_starts_at_the_draw_area();
     test_pattern_slots_fit_their_region_on_texture_window_bounds();
     test_every_clut_fits_the_clut_region_on_16_unit_bounds();
+    test_image_slots_fit_the_images_region_on_fill_bounds();
+    test_each_image_slot_lies_on_its_own_15_bit_page();
     printf("test_psx_vram_layout: ok\n");
     return 0;
 }

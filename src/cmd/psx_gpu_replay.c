@@ -4,7 +4,7 @@
  *   psx-replay: draw-filter on|off
  *   psx-replay: draw-meter on|off
  * after the format line,
- *   psx-replay: gpu-peak bytes <b> cluts <c> patterns <p>
+ *   psx-replay: gpu-peak bytes <b> cluts <c> patterns <p> build <k>
  * (psx_gpu_peaks) before the done line, never on a p8_fatal, and
  *   psx-replay: capture <frame> <mask hex>
  * at each frame the capture script (platform/psx_capture_protocol.h) asks for, plus the frame times
@@ -342,7 +342,8 @@ int main(void) {
     breakdown_write();
     probe_write();
     psx_gpu_peaks_t peaks = psx_gpu_peaks();
-    psx_tty_printf("psx-replay: gpu-peak bytes %lu cluts %d patterns %d\n", peaks.bytes, peaks.cluts, peaks.patterns);
+    psx_tty_printf("psx-replay: gpu-peak bytes %lu cluts %d patterns %d build %lu\n", peaks.bytes, peaks.cluts, peaks.patterns,
+                   peaks.build_bytes);
     psx_tty_printf("psx-replay: done %s %d vsyncs %d\n", embedded_replay_name, input.frame_count, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);

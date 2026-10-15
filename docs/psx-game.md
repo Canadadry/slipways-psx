@@ -146,8 +146,8 @@ the camera, pixels the build never wrote staying transparent (`image_draw`).
 `p8_mset` stamps a process-wide map version into the vram, so a caller can
 tell the map changed. The software backend keeps each slot as colour indices
 in a static store (64 KiB for slot 0, linked into every ELF). The GPU
-backend's four entries are a `p8_fatal` until its image cache lands; nothing
-in the game builds an image yet. The meter, filter, breakdown timing and call
+backend keeps each slot as a 15-bit rectangle of VRAM (below); nothing in the
+game builds an image yet. The meter, filter, breakdown timing and call
 profile follow the copy as one `spr` and the build's calls under their own
 families.
 
@@ -184,18 +184,18 @@ gpu_cluts`/`cap gpu_patterns` over every e2e and worst-case game, judged by
 the 1/8 margin. `src/p8/gpu_sizes.h` holds the sizes:
 `GPU_FRAME_BUFFER_BYTES`, `GPU_BUILD_BUFFER_BYTES`, `GPU_CLUT_SLOTS`,
 `GPU_PATTERN_SLOTS`. The GPU
-backend reserves two buffers (the CPU fills one while the GPU draws the
-other) as static data, counted in no zone; `make state` prints their total
-after the bytes left under `ZONE_BUDGET_BYTES`, and `psx-check`'s `ram-room`
-checks they fit.
+backend reserves two frame buffers and two build buffers (the CPU fills one
+of each while the GPU draws the others) as static data, counted in no zone;
+`make state` prints the frame buffers' total after the bytes left under
+`ZONE_BUDGET_BYTES`, and `psx-check`'s `ram-room` checks they all fit.
 
 ## GPU replay
 
 `src/cmd/psx_gpu_replay.c` is the replay loop and TTY protocol of
 `psx_replay.c`, plus `psx-replay: backend gpu`, `psx-replay: draw-filter
 on|off` and `psx-replay: draw-meter on|off` after the format line, and
-`psx-replay: gpu-peak bytes <b> cluts <c> patterns <p>` (the backend's own
-peaks, `psx_gpu_peaks`) before the done line, never on a `p8_fatal`; it has
+`psx-replay: gpu-peak bytes <b> cluts <c> patterns <p> build <k>` (the
+backend's own peaks, `psx_gpu_peaks`) before the done line, never on a `p8_fatal`; it has
 no `psx-digest:` lines (the RAM screen is not drawn). It still loads the RAM
 sprite sheet, so the game sees the same memory. It installs the GPU backend;
 each frame ends with `psx_gpu_frame_end`, then `psx_gpu_frame_begin`. It is
@@ -276,8 +276,21 @@ point, no `malloc`):
   asked; a frame that sent more bytes than its caller's limit (the metered
   bytes in the metered GPU replay, `GPU_FRAME_BUFFER_BYTES` elsewhere) is a
   `p8_fatal` naming the frame and both figures; `psx_gpu_peaks` returns the
-  peaks since `psx_gpu_init` of each frame's bytes, CLUT slots and pattern
-  slots;
+  peaks since `psx_gpu_init` of each frame's bytes, CLUT slots, pattern
+  slots and image build bytes;
+- an image build (`image_begin` to `image_end`) writes its packets into a
+  second buffer of `GPU_BUILD_BUFFER_BYTES` per frame parity, chained into
+  the frame's list in call order (`packet()` swaps buffer, count and limit
+  at the build's begin and end, and never branches on it); overflow is a
+  `p8_fatal` naming the frame and the slot. The build is a `FILL` of
+  0x0000 over the slot, the mask bit set while drawing (`DR_STP`, so an
+  untextured black is 0x8000 and stays opaque), per window the draw area
+  and offset of `psx_image_window_area`, then the frame's draw area and
+  offset, the mask bit off and a texture cache flush. The copy is no
+  texture window, a `DR_TPAGE` to the slot's 15-bit page, one raw `SPRT`
+  placed and clipped by `psx_image_copy_place`
+  (`src/platform/psx_image.c`, host-tested by `test_psx_image`), and a
+  `DR_TPAGE` back to the 4-bit page; nothing when it misses the screen;
 - `cls` is a `FILL` of the draw area; `pset` is one `TILE_1`, `rect` up to
   four `TILE`s (its edges, or one when it has no inside) and a plain
   `rectfill` one `TILE`, after the camera and clipped to the screen
@@ -336,6 +349,7 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 | font | (512, 128) | 32x128 | same page, v 128..255 |
 | pattern slots | (544, 0) | 32x256, 2x8 a slot | same page, u 128..255 |
 | CLUTs | (640, 0) | 16x64, 16x1 each | `GPU_CLUT_SLOTS` draw palettes, 16 font colours, `GPU_PATTERN_SLOTS` pattern CLUTs |
+| images | (704, 0) | 256x512 | 15-bit image slots, each 16-aligned on its own page: slot 0 is (704, 0) 256x256, page (704, 0); later slots in (704, 256) |
 
 ## Until-exit boot mode
 
@@ -396,7 +410,7 @@ PC replay of a pad recording without `initial_save`. It runs at most one frame
 a vsync: a frame that starts on the vsync the previous one started on waits
 for the next. Its state's `zone gpu_frame` and `cap gpu_*` lines are zeros
 (no meter): before its done line it prints `psx-game: gpu-peak bytes <b>
-cluts <c> patterns <p>`, the backend's own peaks, which `game-gpu-cost`
+cluts <c> patterns <p> build <k>`, the backend's own peaks, which `game-gpu-cost`
 bounds by the PC's metered peaks.
 
 **Pad map** (`src/platform/psx_pad_map.c`, pure, host-tested by
@@ -646,9 +660,9 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   - `game-asserts`: the TTY's first `psx-game: asserts` line says the mode
     `psx-build` asked for (`off` unless `PSX_BUILD_GAME_ASSERTS=ON`); a
     failure names the line read, or `psx-game: asserts (no line)`;
-  - `game-gpu-cost`: the TTY's `psx-game: gpu-peak` bytes, CLUTs and
-    patterns are no larger than the `zone gpu_frame`, `cap gpu_cluts` and
-    `cap gpu_patterns` peaks of the PC replay of its pad log
+  - `game-gpu-cost`: the TTY's `psx-game: gpu-peak` bytes, CLUTs, patterns
+    and build bytes are no larger than the `zone gpu_frame`, `cap
+    gpu_cluts`, `cap gpu_patterns` and `zone gpu_build` peaks of the PC replay of its pad log
     (`run/game/pc_state.txt`, title frames included); a failure names both
     figures, `psx-game: gpu-peak (no line)`, or `skipped` when the PC replay
     did not run;
@@ -755,7 +769,7 @@ made before it must be removed and set up again.
 `budget` and `cap` lines, `vsyncs <n>`, and `size` of the replay ELF;
 `psx-full-game-check`'s adds the GPU replay's `vsyncs`, the PC state's `zone
 gpu_frame`, `zone gpu_build` and `cap gpu_*` lines, the GPU replay's `gpu-peak bytes <b> cluts
-<c> patterns <p>`, `ram-room <used> <limit> <left>` and its ELF `size`, each
+<c> patterns <p> build <k>`, `ram-room <used> <limit> <left>` and its ELF `size`, each
 behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
