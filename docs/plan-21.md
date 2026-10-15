@@ -112,6 +112,21 @@ The contract stays pcsx-redux at 263.
 - A lever whose risk is "e2e decides" (O1, O2, O3, U1, U2, U3) must leave
   every e2e hash unchanged. Otherwise it changed the game: revert it and
   note it.
+- Phase 3 opens with the per-call costs re-measured: short runs at the
+  current setup (O3, asserts off, no meter, no filter), then
+  `make frame-profile-unit-cost` for today's per-family unit costs, the
+  table in step 8's note. Every later "covers", "cheaper" or "under 2%"
+  choice, and every "measured against estimate" line, uses those unit
+  costs and cites both figures (step 2.6 found one report cost 4× high).
+  Each lever step also opens with a throwaway probe of its gross target
+  cost.
+- A lever that adds a one-off cost on a short run's resume frame (an
+  image-cache build) is kept or reverted on its delta without that frame.
+  The one-off cost is recorded separately, with the judge frames it lands
+  on, as input to phase 4's spike list.
+- When a step extends code the latest `warn-review` flagged, its first
+  chunk adds the missing unit test, or derives the hand-copied figure, in
+  that code only. Nothing else is refactored.
 - The report's timing-model caveat applies: pcsx-redux charges a flat 2
   cycles per instruction, with no instruction-cache miss or data wait. A
   gain that rests on code size or caches (labelled in the report, e.g.
@@ -183,7 +198,9 @@ by judge-wide gain (the report's `draw-6000` figure):
 8. D5 — pre-built background copied each frame (replaces B3). This step
    builds the off-screen image cache (runtime and both backends) as a
    reusable facility, proven pixel-identical here, before steps 11–13 and
-   15's D2/D3 reuse it. If D5 itself is skipped, the step still delivers
+   15's D2/D3 reuse it. It opens with a throwaway, uncommitted spike that
+   builds the map into the VRAM region and copies it, hard-wired, compared
+   at 0 tolerance against a map capture, before any PC-side wiring. If D5 itself is skipped, the step still delivers
    the cache; if the cache cannot be made pixel-identical, the note says
    so and the levers that need it are skipped citing that note.
 9. D1/B4 — outlined font, one primitive per glyph (`hud_print_outlined`,
@@ -311,3 +328,13 @@ by judge-wide gain (the report's `draw-6000` figure):
 - E2e hashes, `make end-state` (25 replays) and every `psx-check` capture unchanged. `make state` peaks unchanged (`cap gpu_cluts` did not drop). `ram-room` 325,948.
 - `spr` calls removed equal the report's exactly: `draw-5564` 4,935 of 7,541, `draw-6000` 4,830 of 7,707; one-frame runs 274, 309, 318, 209.
 - Short runs at O3, draw: `draw-5564` −38.9 a frame (−4.3%), `draw-6000` −38.0 (−6.5%); one-frame runs −28 to −38. Report: 146–162 a frame. **Under a quarter of the estimate**: 0.12 hblank per skipped call against 0.45–0.49, the report having measured at O2 with meter and filter compiled in. Pooled six-run total −3.7%. Kept (a gain); no gate on the shortfall.
+
+### Step 2.7
+
+- Judge run on `fdf3028` (asserts off, O3, no filter, no meter, 823 s): every condition ok but `frame-budget`. Table replaced; `docs/psx-game.md` "Still to do" updated.
+- Frames over **6,046** of 6,059 (step 4: 6,047; frame 3890 now at exactly 263). Worst: frame 12 at **7,853** (update 7,616, draw 231) vs 9,268. Mean **530.2** (604.1); overrun mean 267 (341). Totals: update −14.8%, draw −11.9%, submit −2.8%. Spikes 4737 / 5500 / 5719: 2,131 / 1,956 / 2,021.
+- **2% of the mean frame, for step 15: 10.6 hblanks.**
+- `gpu-ram-room` 315,792; zones and caps unchanged (`gpu_frame` 65,028 of 73,728).
+- Phase 2 against plan 20: mean 857 → 530 (−38%), but frames over 6,047 → 6,046. Every frame but 13 still needs about twice the budget.
+- `warn-review` (phases 1–2): 14 warnings, none on pointer rules — duplicated `asserts_enabled()`, the O3 default in five places, hand-copied condition counts, `#ifdef` stub blocks in `psx_gpu_replay.c`, no unit test for `psx_gpu_peaks`, a 3,000-line Makefile. Fed to `plan-review`; only those step 8 extends are acted on (rule below). The rest stay open.
+- `plan-review` (accepted, method only): re-measure per-call costs before phase 3 and judge every choice on them; keep or revert cached levers without the resume-frame build; step 8 opens with a GPU copy spike; a step extending flagged code first adds its test or derived figure.

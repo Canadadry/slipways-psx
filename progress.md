@@ -6,7 +6,7 @@
   - [x] Step 1.2 — new judge baseline, filter off
     - [x] Chunk 1 — judge run and validity gates
     - [x] Chunk 2 — commit the baseline table
-- [ ] Phase 2 — Safe gains
+- [x] Phase 2 — Safe gains
   - [x] Step 2.3 — asserts off in psx-game (G1)
     - [x] Chunk 1 — PSX_GAME_ASSERTS switch, game-asserts condition
     - [x] Chunk 2 — harness defaults asserts off, docs, short run
@@ -22,7 +22,7 @@
   - [x] Step 2.6 — p8_map skips off-screen cells (B3)
     - [x] Chunk 0 — before-figures
     - [x] Chunk 1 — p8_map loops over visible cells only
-  - [ ] Step 2.7 — end of phase full-game check
+  - [x] Step 2.7 — end of phase full-game check
     - [x] Judge run, table replaced
 - [ ] Phase 3 — Draw, in impact order
   - [ ] Step 3.8 — D5 pre-built background and the image cache
