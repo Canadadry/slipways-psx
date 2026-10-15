@@ -16,7 +16,7 @@
   - [x] 1.5 Milestone: asserts-off full-game run as the judge's baseline
     - [x] Chunk 1: PSX_FULL_GAME_ASSERTS option
     - [x] Chunk 2: asserts-off full run and report section
-- [ ] Phase 2 — Draw
+- [x] Phase 2 — Draw
   - [x] 2.6 Probe each direct child of cart_draw
     - [x] Chunk 1: baselines and cart_draw's own cost
     - [x] Chunk 2: children probes and additivity check
@@ -26,7 +26,7 @@
     - [x] Chunk 3: level 2, the children of draw_layers
     - [x] Chunk 4: levels 3 and below on draw-5564
     - [x] Chunk 5: levels 3 and below on draw-6000 and start, verification
-  - [ ] 2.8 Backend side: per-unit costs, 9x print and meter experiments
+  - [x] 2.8 Backend side: per-unit costs, 9x print and meter experiments
     - [x] Chunk 1: units and switches per family in the PC profile
     - [x] Chunk 2: unit-cost mode and frame-profile-unit-cost target
     - [x] Chunk 3: per-unit measurements on the six short runs

@@ -203,29 +203,36 @@ because this plan file is deleted once it is finished.
 
 9. Identify the update spikes on PC: every full-run frame whose update
    alone exceeds 263 hblanks (166 frames in the step 1.5 judge table, 42 of
-   them over 1000), not only the named frames 12, 4737, 5500 and 5719. The
-   PC frame profile groups them by responsible `cart_update60` descendant
-   into a few classes, and says why each runs then. If PC cannot settle a
-   class, fall back to the full run. Verified when the report lists every
-   such frame in a class and gives, per class, the responsible function and
-   its share of update. Also given: a do-less candidate, and the number of
-   frames it would take if spread out under 263 after draw's estimated
-   levers.
-10. Ordinary update. First, a calibration: compare the PC time proportions
-    of `cart_draw`'s children with their PSX costs from step 6, and record
-    the gap. A large gap marks the PC-derived update costs as low-confidence,
-    or switches method, decided in the step note. Then the 171 frames where
-    update alone overruns, and update's share in normal frames, through the
-    fixed-delay probes and PC proportions. Verified when the calibration gap
-    is recorded and update's children above 2% of the mean window frame have
-    a cost, a call count and their do-less candidates in the report.
+   them over 1000), not only the named frames 12, 4737, 5500 and 5719.
+   First, a calibration on update code itself: a throwaway fine-clock
+   timing of `cart_update60`'s children on the short runs that keep an
+   update spike (`start` for frame 12, `update-5500`), compared with the PC
+   proportions on the same frames, the gap recorded. (Draw children are no
+   guide: step 7 found PC proportions 17–47% low there, driven by backend
+   calls whose PC and PSX costs diverge.) Then the PC frame profile groups
+   the frames by responsible `cart_update60` descendant into a few classes,
+   and says why each runs then. If PC cannot settle a class, fall back to
+   the full run. Verified when the calibration gap is recorded and the
+   report lists every such frame in a class and gives, per class, the
+   responsible function, its share of update with the calibration gap as
+   its confidence, a do-less candidate, and the number of frames it would
+   take if spread out under 263 after draw's estimated levers.
+10. Ordinary update: update's share in the frames outside step 9's
+    classes, through the fixed-delay probes and PC proportions corrected by
+    step 9's calibration. The over-budget frames are step 9's classified
+    frames, never recounted here. Verified when update's children above 2%
+    of the mean window frame have a cost, a call count and their do-less
+    candidates in the report.
 
 ### Phase 4 — Global levers
 
-11. Measure on all five short runs: asserts off vs on, and `-O2` / `-O3` /
-    `-Os` (`-Os` can win on the R3000's 4 KB instruction cache). Also
-    identify what the submit part spends its time on. Verified when each has
-    a measured delta in the report.
+11. Measure on every run of `psx/short_runs.txt`: asserts off vs on, and
+    `-O2` / `-O3` / `-Os` (`-Os` can win on the R3000's 4 KB instruction
+    cache), with the boot ceiling raised enough for the slowest variant
+    (`draw-6000`'s breakdown boot already exits 2 vsyncs over the default
+    540). Also identify what the submit part spends its time on. Verified
+    when each has a measured delta in the report and every boot exited
+    before its ceiling with its state dump complete.
 
 ### Phase 5 — Report
 
@@ -412,4 +419,49 @@ Learning for step 10: PC-derived costs read low against measured
 children (slipway +17.5%, ascension at least +37% on `draw-5564` and
 +47% on `draw-6000`), which is the calibration gap step 10 records.
 Also removes the implemented PRD `docs/prd/triage/phase2-step7-draw-tree.md`.
+
+### Step 2.8
+
+PC frame profile family lines gain `units <u> switches <s>` (cost-model
+units and texture-window switches); `tools/frame_profile_check.sh
+unit-cost` / `unit-cost-pooled` and `make frame-profile-unit-cost` turn a
+breakdown boot into hblanks per call and per unit (a calls mismatch exits
+2, not the PRD's 1, to keep the script's 1 = usage convention). Measured
+on `17c2602`, baselines unchanged. Pooled per call / per unit: `print`
+1.892 / 0.333 a glyph, `spr` 0.646 / 1.880, `circ` 4.096, `circfill`
+3.139, `rectfill` 0.453, `line` 0.400, `pset` 0.279, `cls` 0.188; the
+breakdown timer adds about 0.13 a backend call.
+Experiments, all six runs valid, game state the same: one-print (outline
+passes skipped) −542 a frame on `draw-5564` (−40.1%), −102 on
+`draw-6000`, exactly 8/9 of print calls and glyphs removed, prediction
+within ±2%; no-meter −211 and −198 a frame (about 0.17 a backend call).
+Both are measured upper bounds; their overlap is left to step 12.
+Candidates left as estimates: `p8_map`'s off-screen cells (a PC-only
+patch drops about 4,900 of 7,600 `spr` calls a window, every e2e hash
+unchanged; about 150 a frame, overlapping step 7's candidate 5),
+rejecting off-screen calls once, and four smaller per-call costs. The
+draw filter in the measured replay (absent from `psx-game`) runs the cost
+model a second time per call: recorded as a finding, not measured.
+Dropping the meter needs another source for `psx-check`'s zone and cap
+lines.
+Snag: `draw-6000`'s breakdown boot exited at 542 vsyncs against the 540
+default ceiling, cutting its state dump; re-run at 720 with an identical
+summary.
+Plan changes (plan-review after phase 2): step 9 starts with a
+calibration of PC update proportions on update code (`start`,
+`update-5500`); step 10 covers the frames outside step 9's classes;
+step 11 names every manifest run and raises the boot ceiling.
+End-of-phase warn-review (phase 2 tooling), not acted on, judged harmless
+to the remaining steps:
+- the draw-family list and the `psx-draw` parser repeated across
+  `frame_profile_check.sh` and `psx_short_run.sh`;
+- the awk helpers redefined per mode, and five modes in one script;
+- a Makefile of 2,715 lines with inline multi-line recipes;
+- `call_profile.c` re-deriving the "a window switch is two primitives"
+  rule, silencing hooks through a module-wide `counting_units` flag, and
+  repeating the units boilerplate in nine wrappers;
+- the root symbol names hard-coded as strings;
+- `CALL_PROFILE_CHILD_CAP` 64 with no derivation.
+Also removes the implemented PRD
+`docs/prd/triage/phase2-step8-backend-unit-costs.md`.
 
