@@ -25,7 +25,7 @@
     - [x] Chunk 2: frame-profile-subtree target, subtree summary, probe baseline rebuild
     - [x] Chunk 3: level 2, the children of draw_layers
     - [x] Chunk 4: levels 3 and below on draw-5564
-    - [ ] Chunk 5: levels 3 and below on draw-6000 and start, verification
+    - [x] Chunk 5: levels 3 and below on draw-6000 and start, verification
   - [ ] 2.8 Backend side: per-unit costs, 9x print and meter experiments
 - [ ] Phase 3 — Update
   - [ ] 3.9 Identify the four update spikes on PC
