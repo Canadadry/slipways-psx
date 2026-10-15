@@ -537,3 +537,155 @@ The four profiles' `draw_layers#1` shares are 99.52 / 99.58 / 99.62 / 99.75%
 on `start`, 69.53 / 75.25 / 75.48 / 75.87% on `draw-5564` and 98.99 / 99.11 /
 99.20 / 99.22% on `draw-6000`. The medians move by at most 0.1 point from
 step 4's coverage table (PC timer noise); this step uses its own run's.
+
+### Probes run
+
+Measured on commit `2458bad5a7372d2e88bb7fbeb25a01a2ebb54a1f` (its `src/`
+and `psx/` are those of `e5d54ab`, so the baseline above is not stale), each
+patch from `tmp/plan20-draw-l1/` with its own label:
+
+```
+make psx-probe PATCH=tmp/plan20-draw-l1/<child>-twice.patch PSX_SHORT_RUNS="start draw-5564 draw-6000" PSX_PROBE_LABEL=l1-<child>-twice
+make psx-probe PATCH=tmp/plan20-draw-l1/draw-layers-1-twice.patch PSX_SHORT_RUNS="draw-5564 draw-6000" PSX_PROBE_LABEL=l1-draw-layers-1-twice
+make psx-probe PATCH=tmp/plan20-draw-l1/draw-layers-1-delay.patch PSX_SHORT_RUNS="start draw-5564 draw-6000" PSX_PROBE_LABEL=l1-draw-layers-1-delay
+```
+
+Every probe is `valid` on every run, and every call-twice gives
+`game-state same`: no child needed the fallback delay beyond `start`'s
+`draw_layers#1`, which was never call-twice-probed there. Deltas are window
+sums in hblanks over the probe baseline. A draw delta at or under 2 is
+written "≤ 2" (per frame "≤ 2 / frames"); so is a negative one, which only
+says the cost is under what the timer resolves. "Calls / frame" gives the PC
+profile's min–max over the window frames, then the delay probe's PSX figure
+where it ran. An update delta beyond max(2% of the draw delta, 2 hblanks) is
+marked **leak**.
+
+### `start` (1 window frame, `cart_draw` 465, mean window frame 9451, 2% = 189.0)
+
+| Child | Method | Draw delta | Cost / frame | % of `cart_draw` | % of mean window frame | Calls / frame (PC; PSX) | Update delta | Submit delta | Game state | Text |
+|---|---|---:|---:|---:|---:|---|---:|---:|---|---:|
+| `dispatch_context_mem` | call-twice | 0 | ≤ 2 | ≤ 0.4% | ≤ 0.1% | 1–1 | 0 | 0 | same | +8 |
+| `p8_cls` | call-twice | 0 | ≤ 2 | ≤ 0.4% | ≤ 0.1% | 1–1 | +1 | 0 | same | +8 |
+| `hud_select_palette_block_default` | call-twice | −1 | ≤ 2 | ≤ 0.4% | ≤ 0.1% | 1–1 | +1 | 0 | same | +8 |
+| `draw_layers#1` | fixed delay, **PC-derived** cost | +18 (delay) | **463** (PC: 99.6% × 465; residual 465) | 99.6% | 4.9% | 1–1; 1.00 | +1 | +1 | same | +456 |
+| `draw_layers#2` | call-twice | +1 | ≤ 2 | ≤ 0.4% | ≤ 0.1% | 1–1 | 0 | 0 | same | +8 |
+| `dispatch_context_gfx` | call-twice | 0 | ≤ 2 | ≤ 0.4% | ≤ 0.1% | 1–1 | 0 | 0 | same | +8 |
+| `demo_overlay_draw` | call-twice | 0 | ≤ 2 | ≤ 0.4% | ≤ 0.1% | 1–1 | 0 | 0 | same | +24 |
+
+- `draw_layers#1`'s delay probe: +18 draw over the window for 20 × 1
+  expected (within the 2-hblank floor); over the whole run, delta ÷ delay =
+  100.75 for 100 calls (+0.8%), 1.00 a window frame. Its cost is PC-derived:
+  the median PC share 99.6% (K = 4) times `cart_draw`'s 465. It must not be
+  reused by step 10 as a PSX measurement.
+- Residual: 465 − Σ measured children (0) = 465, so the PC-derived 463 is
+  −0.4% off the residual. Since each of the six measured children is only
+  known to be ≤ 2, the residual is somewhere in 453–465; the derived figure
+  sits inside that range.
+
+### `draw-5564` (15 window frames, `cart_draw` 19491, mean window frame 1351, 2% = 27.0)
+
+| Child | Method | Draw delta | Cost / frame | % of `cart_draw` | % of mean window frame | Calls / frame (PC; PSX) | Update delta | Submit delta | Game state | Text |
+|---|---|---:|---:|---:|---:|---|---:|---:|---|---:|
+| `dispatch_context_mem` | call-twice | −1 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +2 | −1 | same | +8 |
+| `p8_cls` | call-twice | 0 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +2 | −1 | same | +8 |
+| `hud_select_palette_block_default` | call-twice | +2 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +1 | −2 | same | +8 |
+| `draw_layers#1` | call-twice | +16225 | 1082 | 83.2% | 80.1% | 1–1; 1.00 | +1 | 0 | same | +8 |
+| `draw_layers#2` | call-twice | +4686 | 312 | 24.0% | 23.1% | 1–1 | +2 | 0 | same | +8 |
+| `dispatch_context_gfx` | call-twice | −1 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +2 | −1 | same | +8 |
+| `demo_overlay_draw` | call-twice | 0 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +1 | 0 | same | +24 |
+
+- `draw_layers#1`'s delay probe (PSX call count only; the call-twice delta
+  stays the cost): +298 draw over the window for 300 expected (tolerance 6);
+  over the run 53.80 for 54 calls (−0.4%), 1.00 a window frame; update +2,
+  submit 0, text +456 bytes.
+- PSX shares against PC time: `draw_layers#1` 83.2% against 75.4%,
+  `draw_layers#2` 24.0% against 24.6%. The excess sits on `draw_layers#1`
+  and is the size of the method's +7.3% bias on this run (see the check
+  below); separating the two is step 10's comparison, not this step's.
+
+### `draw-6000` (15 window frames, `cart_draw` 13987, mean window frame 979, 2% = 19.6)
+
+| Child | Method | Draw delta | Cost / frame | % of `cart_draw` | % of mean window frame | Calls / frame (PC; PSX) | Update delta | Submit delta | Game state | Text |
+|---|---|---:|---:|---:|---:|---|---:|---:|---|---:|
+| `dispatch_context_mem` | call-twice | −4 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +3 **leak** | +2 | same | +8 |
+| `p8_cls` | call-twice | 0 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +3 **leak** | 0 | same | +8 |
+| `hud_select_palette_block_default` | call-twice | −1 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +4 **leak** | 0 | same | +8 |
+| `draw_layers#1` | call-twice | +13642 | 909 | 97.5% | 92.9% | 1–1; 1.00 | +7 | 0 | same | +8 |
+| `draw_layers#2` | call-twice | +233 | 16 | 1.7% | 1.6% | 1–1 | +4 | 0 | same | +8 |
+| `dispatch_context_gfx` | call-twice | −4 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +3 **leak** | +2 | same | +8 |
+| `demo_overlay_draw` | call-twice | −5 | ≤ 2 / 15 | < 0.1% | < 0.1% | 1–1 | +2 | +2 | same | +24 |
+
+- `draw_layers#1`'s delay probe: +295 draw over the window for 300 expected
+  (tolerance 6); over the run 123.25 for 123 calls (+0.2%), 1.00 a window
+  frame; update +2, submit +3, text +456 bytes.
+- The negative draw deltas and the four update leaks are a code-layout
+  effect, not a cost: `dispatch_context_mem` and `dispatch_context_gfx`
+  insert different calls at different places but both add 8 bytes of text,
+  and give the very same deltas on all three runs (−4 draw, +3 update, +2
+  submit here; −1, +2, −1 on `draw-5564`; 0, 0, 0 on `start`). Every
+  `cart_draw` patch shifts the code linked after `cart.c`, and `draw-6000`
+  answers with a few hblanks either way over 15 frames. Each leak is at most
+  4 hblanks over the window (0.3 a frame), two orders of magnitude under the
+  2% threshold, so no reading below changes.
+
+### Additivity check
+
+Σ children is the sum of the draw deltas above (measured children at their
+raw value, `start`'s `draw_layers#1` at its PC-derived 463). Gap =
+(Σ − reference) ÷ reference.
+
+| Run | Σ children | `cart_draw`'s own | Gap | Call-twice `cart_draw` delta | Gap | Verdict |
+|---|---:|---:|---:|---:|---:|---|
+| `start` (partly PC-derived) | 463 | 465 | −0.4% | 491 (game state differs) | −5.7% | within 10% |
+| `draw-5564` | 20911 | 19491 | +7.3% | 20919 | −0.0% | within 10% |
+| `draw-6000` | 13861 | 13987 | −0.9% | 13885 | −0.2% | within 10% |
+
+- Every run is within 10%; no gap needs an explanation beyond this one.
+- `draw-5564`'s +7.3% is the method's bias, not missing or double-counted
+  cost: the same sum against the call-twice `cart_draw` delta is −8 hblanks
+  over 20919 (−0.04%). A second call of a draw child costs as much more than
+  the first as a second `cart_draw` does, and the children's second calls
+  add up to the second `cart_draw` to the hblank. So `cart_draw`'s own body
+  (its prologue and locals) costs nothing measurable, as expected.
+- `draw-6000`, whose `cart_draw` bias is −0.7%, sums to −0.9% against the
+  baseline draw and −0.2% against the call-twice delta: the same agreement.
+- `start`'s check is partly PC-derived: `draw_layers#1`'s 463 decides the
+  sum. Its independent cross-check is the residual (465, range 453–465 given
+  the six children's ≤ 2 bounds), which the derived figure matches within
+  0.4%.
+
+### Patches
+
+Generated from `cart.c` of `2458bad` with `sed` and `diff -u` into
+`tmp/plan20-draw-l1/` (git-ignored), used once and discarded; none is
+committed. Call sites are `cart_draw` in `src/game/cart.c` (lines 335–341 of
+that commit).
+
+| Probe label | Call site | Inserted statement |
+|---|---|---|
+| `l1-dispatch-context-mem-twice` | before `p8_vram_t *mem = dispatch_context_mem();` | `(void)dispatch_context_mem();` |
+| `l1-p8-cls-twice` | after `p8_cls(mem);` | `p8_cls(mem);` |
+| `l1-hud-select-palette-block-default-twice` | after `hud_select_palette_block_default(mem);` | `hud_select_palette_block_default(mem);` |
+| `l1-draw-layers-1-twice` | after `draw_layers(ENTITY_MESSAGE_DRAW);` | `draw_layers(ENTITY_MESSAGE_DRAW);` (runs `draw-5564`, `draw-6000` only) |
+| `l1-draw-layers-2-twice` | after `draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);` | `draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);` |
+| `l1-dispatch-context-gfx-twice` | before `demo_overlay_draw(dispatch_context_gfx(), mem, g_demo_frame);` | `(void)dispatch_context_gfx();` |
+| `l1-demo-overlay-draw-twice` | after `demo_overlay_draw(dispatch_context_gfx(), mem, g_demo_frame);` | the same statement again |
+| `l1-draw-layers-1-delay` | before `draw_layers(ENTITY_MESSAGE_DRAW);`, plus `#include "platform/psx_probe.h"` after `#include "game/background.h"` | `psx_probe_delay(20);` |
+
+### Hand-off to step 7
+
+Children above 2% of the run's mean window frame are the branches step 7
+goes down; the others are closed at level 1.
+
+| Run | Above 2% (step 7 goes down) | Closed at level 1 |
+|---|---|---|
+| `start` | `draw_layers#1` (463 a frame, PC-derived, 4.9%) | the other six, each ≤ 2 |
+| `draw-5564` | `draw_layers#1` (1082 a frame, 80.1%), `draw_layers#2` (312 a frame, 23.1%) | the other five, each ≤ 2 / 15 |
+| `draw-6000` | `draw_layers#1` (909 a frame, 92.9%) | `draw_layers#2` (16 a frame, 1.6%, under the 19.6 threshold), the other five, each ≤ 2 / 15 |
+
+So step 7 starts from `draw_layers(ENTITY_MESSAGE_DRAW)` on all three runs
+and from `draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY)` on `draw-5564` only.
+`dispatch_context_mem`, `p8_cls`, `hud_select_palette_block_default`,
+`dispatch_context_gfx` and `demo_overlay_draw` are closed everywhere. On
+`start`, `draw_layers#1` is the help screen's draw, so step 7 keeps the fixed
+delay below it wherever a call-twice would tick the RNG.
