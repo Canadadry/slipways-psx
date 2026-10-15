@@ -5,8 +5,9 @@ frame do less work. For now it holds the baseline every lever is
 measured against, the judge's asserts-off full-run baseline, the probe
 tool's sanity checks, the PC frame profile's draw coverage, the split of
 `cart_draw` among its direct children ("Draw level 1"), the draw tree
-below them ("Draw tree") and the backend's cost per call and per unit of
-every draw family ("Backend: per-unit costs"). The full-run
+below them ("Draw tree"), the backend's cost per call and per unit of
+every draw family ("Backend: per-unit costs") and the update spikes with
+the calibration of PC update proportions ("Update spikes"). The full-run
 frame table is the companion file `docs/psx-perf-levers-full-run-frames.txt`,
 part of this report and deleted with it.
 
@@ -2346,3 +2347,114 @@ used once and discarded; none is committed.
 | `b-one-print.patch` | probe, label `b-one-print`; PC profile on the patched tree | `src/game/hud.c`: `for (i = 0; i < 9; i++)` → `for (i = 8; i < 9; i++)` |
 | `b-no-meter.patch` | probe, label `b-no-meter` | `src/cmd/psx_gpu_replay.c`: `p8_draw_meter_install();` removed, `psx_gpu_frame_end(GPU_FRAME_BUFFER_BYTES)`, `#include "p8/gpu_sizes.h"` |
 | `pc-map-cull.patch` | PC profile and `make e2e` only, never booted (candidate 3's evidence) | `src/p8/gfx.c` `p8_map`: `continue` when the cell's 8×8 box less the camera is off the screen |
+
+## Update spikes
+
+Plan 20 step 9: the judge's 166 frames whose update alone is over 263
+hblanks (42 of them over 1000), which `cart_update60` descendant each comes
+from, why it runs then, how far the PC's update proportions hold on the
+PSX, and how many frames each spike's work would take if spread out. This
+first part is the calibration on update code.
+
+Measured on commit `3fe4b8bbcf62f611247fcd853b0b6da31b2c56fe` (pcsx-redux,
+asserts off), with no change to the game.
+
+Pre-checks, all held:
+
+- "Backend: per-unit costs" was the last section; this one follows it.
+- Between `b6fd2f8` and `3fe4b8b`, `src/` changed only in
+  `src/cmd/frame_profile.c` and `src/devtools/call_profile.*`; `psx/` did
+  not change. The probe baseline's fingerprint matches `HEAD`, and its
+  window parts are still `start` 8980 / 465 / 6 and `update-5500`
+  1409 / 714 / 7 (update / draw / submit).
+- **Save storage:** the measured GPU replay (`PSX_GPU_REPLAY_SRCS`, through
+  `CORE_SRCS`) and the PC frame profile (`ENGINE_SRCS`) both link
+  `src/devtools/save_storage_memory.c`, so the PSX replay saves to the same
+  in-memory storage as the PC. No divergence is expected on
+  `save_at_frame_end` from storage, and none large is measured (below).
+
+### Calibration on update code
+
+Commands:
+
+```
+make psx-probe PATCH=tmp/plan20-update/u-calibrate.patch PSX_SHORT_RUNS="start update-5500" PSX_PROBE_LABEL=u-calibrate
+for r in start update-5500; do for k in 1 2 3 4; do
+  d=tmp/frame-profile/calibration/$r/$k; mkdir -p $d
+  STATE=$d/state.txt ./tmp/frame_profile tmp/psx/short-runs/$r/run.json $d tmp/frame_profile.syms
+  sh tools/end_state.sh check tmp/psx/short-runs/$r/run.json $d/state.txt tmp/psx/short-runs/$r/run.end-state
+done; done
+```
+
+Method: the throwaway patch wraps each of `cart_update60`'s five
+statements in a span that reads the fine clock and the hblank frame
+counter at both ends, the breakdown boot's clock pair. A span of 200
+hblanks or more counts the coarse delta in whole hblanks, otherwise fine
+ticks converted with the boot's `clk8-per-64-hblanks` line (17170 on
+`start`, 17168 on `update-5500`). The `ui_update` span includes its
+`dispatch_context_mem` and `main_ui` arguments, and the `save` span
+includes the `g_save_cut` test. Per-frame records are printed after the
+last frame, so printing is outside every frame. On PC, each run's
+`run.json` was profiled 4 times (all `same-game yes`); a child's PC time is
+its per-frame minimum over the 4 profiles, with `dispatch_context_mem` and
+`main_ui` added to `ui_update`, and the denominator is `cart_update60`'s
+per-frame minimum (`start` 7,965,788 ns, `update-5500` 657,248 ns).
+
+Validity: both boots `valid`, `game-state same`. The spans' overhead
+(probe update minus baseline update over the window frame) is +2 hblanks
+on `start` (8980 → 8982) and +1 on `update-5500` (1409 → 1410). The five
+spans sum to 8975.94 and 1371.09, under the window update less the
+overhead (8980 and 1409), so no span is missing or counted twice.
+
+Window frame (run frame 12 of `start` = full-run frame 12; run frame 24 of
+`update-5500` = full-run frame 5500). PSX share is of the window update
+(less the overhead), PC share of `cart_update60`'s PC time; ρ = PSX share
+÷ PC share; gap = PSX share − PC share, in points.
+
+| Run | Child | PSX hblanks | PSX share | PC share | ρ | Gap |
+|---|---|---|---|---|---|---|
+| `start` | `frame_zone_reset` | 0.05 | 0.0% | 0.0% | below | 0.0 |
+| `start` | `cart_flush_exit_queue` | 0.06 | 0.0% | 0.0% | below | 0.0 |
+| `start` | `update_entities` | 1.77 | 0.0% | 0.0% | below | 0.0 |
+| `start` | `ui_update` | 8974.00 | 99.9% | 100.0% | 1.00 | −0.0 |
+| `start` | `save_at_frame_end` | 0.06 | 0.0% | 0.0% | below | 0.0 |
+| `update-5500` | `frame_zone_reset` | 0.05 | 0.0% | 0.0% | below | −0.0 |
+| `update-5500` | `cart_flush_exit_queue` | 0.06 | 0.0% | 0.0% | below | −0.0 |
+| `update-5500` | `update_entities` | 6.98 | 0.5% | 0.9% | below | −0.4 |
+| `update-5500` | `ui_update` | 888.00 | 63.0% | 68.5% | 0.92 | −5.5 |
+| `update-5500` | `save_at_frame_end` | 476.00 | 33.8% | 30.6% | 1.11 | +3.2 |
+
+| Run | Window update | Overhead | Spans' sum | Outside the spans | PSX hblanks per PC µs |
+|---|---|---|---|---|---|
+| `start` | 8980 | +2 | 8975.94 | 4.06 | 1.127 |
+| `update-5500` | 1409 | +1 | 1371.09 | 37.91 | 2.144 |
+
+- **The PC proportions hold on update code.** Both applicable ratios are
+  in 0.85–1.15 (high); on frame 5500 the PC overstates `ui_update`'s
+  share by 5.5 points and understates `save_at_frame_end`'s by 3.2. Against the spans' sum
+  instead of the window update (that is, against `cart_update60` itself on
+  both sides), ρ is 1.00 for `ui_update` on `start`, 0.95 and 1.14 on
+  `update-5500`.
+- **Outside the spans is not `cart_update60`'s self:** `cart_update60` has
+  nothing between its statements. The remainder is the replay's
+  `input_step_run` (pad navigation), timed in update but outside
+  `cart_update60` and so outside every PC profile rooted there. It is
+  about 4 hblanks on title frames and about 40 on every in-game frame of
+  both runs (frames 16–96 of `start`, 16–24 of `update-5500`), so it is a
+  steady cost, not a spike.
+- **PSX hblanks per PC µs differs by 1.9× between the runs** (1.127 on
+  galaxy generation, 2.144 on frame 5500), so a PC time converts to PSX
+  hblanks only per kind of work; shares, not times, are what carries over.
+- `ui_update`, `save_at_frame_end` and the spans of 200 hblanks or more
+  are counted in whole hblanks (±1); `update_entities` is "below" on both
+  runs, so a class under it is uncalibrated.
+- **For step 10:** this table is the calibration that corrects step 10's
+  PC-derived update costs ("PC proportions corrected by step 9's
+  calibration").
+
+Patch, written by hand on `3fe4b8b` into `tmp/plan20-update/`
+(git-ignored), used once and discarded; not committed:
+
+| Patch | Use | Change |
+|---|---|---|
+| `u-calibrate.patch` | probe, label `u-calibrate`, `start` and `update-5500` | `src/game/cart.c`: each statement of `cart_update60` in a `SPAN(i, …)` under `PSX_PROBE`; `src/platform/psx_probe.[ch]`: span begin/end on the fine clock and frame timer, per-frame records (1024 frames), `probe-update:` lines; `src/cmd/psx_gpu_replay.c`: closes the record after `frame_times_record`, writes the lines in `probe_write` |
