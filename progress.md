@@ -7,7 +7,7 @@
     - [x] Chunk 1 — judge run and validity gates
     - [x] Chunk 2 — commit the baseline table
 - [ ] Phase 2 — Safe gains
-  - [ ] Step 2.3 — asserts off in psx-game (G1)
+  - [x] Step 2.3 — asserts off in psx-game (G1)
     - [x] Chunk 1 — PSX_GAME_ASSERTS switch, game-asserts condition
     - [x] Chunk 2 — harness defaults asserts off, docs, short run
   - [ ] Step 2.4 — draw meter out of psx-game and the measured replays (B1)

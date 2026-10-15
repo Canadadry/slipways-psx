@@ -282,3 +282,10 @@ by judge-wide gain (the report's `draw-6000` figure):
 - Draw total 3,994,334 vs 4,550,826: −12.2%, −91.8 a frame (F1 on the judge). Update and submit unchanged within timer jitter (≤3 hblanks a frame). The ten worst frames keep plan 20's order; the four spikes (12, 4737, 5500, 5719) only lost draw.
 - `psx/perf/full-run-frames.txt` is this run's table. Plan 20's table moved to `psx/perf/report-judge-frames.txt`, read by `lever-estimate` and `lever-estimate-check` through `ESTIMATE_JUDGE_FRAMES` (PRD decision: their figures are plan 20's and break on a table whose update moved by a hblank). Delete it with the report in step 22.
 - Zones and caps all ok; `gpu_frame` 65,028 of 73,728 (margin 0/8). `gpu-ram-room` 351,872 bytes left.
+
+### Step 2.3
+
+- **Human decision** (mid-run, overriding the PRD's "asserts off unconditionally"): `psx-game`'s asserts sit behind a switch, CMake `PSX_GAME_ASSERTS` / Makefile `PSX_BUILD_GAME_ASSERTS`, default `OFF`. Every `assert` stays in the source.
+- `psx-game` prints `psx-game: asserts on|off`; `psx-check` gained `game-asserts` (32 conditions), which expects the mode `psx-build` was asked for (`PSX_GAME_ASSERTS` env var to the check scripts). `psx-check` green both ways, captures unchanged. No assert in `psx-game`'s own sources had a side effect.
+- `psx-game` text 382,748 → 313,664 (−69,084, report: about −70 KB); `game-ram-room` 435,908 → 504,996 bytes left. No judge delta: the measured replays were already asserts off.
+- `PSX_FULL_GAME_ASSERTS` and `PSX_SHORT_RUN_ASSERTS` default to `off`. One short run, no variable: asserts off in every boot, O2; done, deterministic, breakdown hold everywhere; `representative` fails on update-4737, update-5500, draw-5564, update-5719 (red before this step too: resumed runs lose the update spikes and draw lower).
