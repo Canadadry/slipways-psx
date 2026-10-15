@@ -469,12 +469,19 @@
 #                       cut, an embed failure, a stopped replay or a missing
 #                       file, ~25 s; never boots, outside the suite
 # make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]
+#                       [PSX_SHORT_RUN_OPT=O2|O3|Os]
 #                    -> refuses any PSX_SHORT_RUN_ASSERTS but on (default) or
-#                       off, runs psx-short-runs-cut, then per run builds
-#                       psx-gpu-replay and psx-gpu-replay-breakdown with its
-#                       run.json embedded in tmp/psx/short-runs/<name>/build
-#                       (off: without asserts, unused-* warnings not errors;
-#                       every other target keeps asserts), boots the plain one
+#                       off and any PSX_SHORT_RUN_OPT but O2 (default, the
+#                       SDK's level), O3 or Os, runs psx-short-runs-cut, then
+#                       per run builds psx-gpu-replay and
+#                       psx-gpu-replay-breakdown with its run.json embedded
+#                       in tmp/psx/short-runs/<name>/build (off: without
+#                       asserts, unused-* warnings not errors; O3/Os: at that
+#                       level, warnings not errors; every other target keeps
+#                       asserts and O2), fails the run unless
+#                       tools/psx_opt_level.sh reads PSX_SHORT_RUN_OPT as the
+#                       last -O of both targets' flags, prints "opt <level>"
+#                       and both ELFs' text/data/bss, boots the plain one
 #                       twice and the breakdown once with an empty capture
 #                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, default
 #                       1080, timeout PSX_SHORT_RUN_TIMEOUT s, default 20;
@@ -1127,6 +1134,9 @@ $(TMP_DIR)/test_psx_short_run: $(call objs,tests/test_psx_short_run.c) tools/psx
 $(TMP_DIR)/test_psx_probe: $(call objs,tests/test_psx_probe.c) tools/psx_probe.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_opt_level: $(call objs,tests/test_psx_opt_level.c) tools/psx_opt_level.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_psx_full_game_check: $(call objs,tests/test_psx_full_game_check.c) tools/psx_full_game_check.sh \
 		tools/psx_conditions.sh tools/psx_state_compare.sh tools/psx_digest_compare.sh tools/psx_boot.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -1700,7 +1710,7 @@ unit: $(UNIT_RUNS)
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
 	test_psx_full_game_check test_psx_frame_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
-	test_psx_probe
+	test_psx_probe test_psx_opt_level
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
@@ -2182,7 +2192,7 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 	cmake -S psx -B $(PSX_BUILD_DIR) \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
-		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) \
+		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) -DPSX_MEASURED_REPLAY_OPT=O2 \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS))' \
@@ -2311,17 +2321,21 @@ PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
 PSX_SHORT_RUN_CEILING ?= 1080
 PSX_SHORT_RUN_TIMEOUT ?= 20
 PSX_SHORT_RUN_ASSERTS ?= on
+PSX_SHORT_RUN_OPT ?= O2
 # Checked at parse time: under -j a checking prerequisite would race the cut and the build.
 ifneq ($(filter psx-short-runs,$(MAKECMDGOALS)),)
 ifneq ($(words $(PSX_SHORT_RUN_ASSERTS))$(filter-out on off,$(PSX_SHORT_RUN_ASSERTS)),1)
 $(error psx-short-runs: PSX_SHORT_RUN_ASSERTS must be on or off, not '$(PSX_SHORT_RUN_ASSERTS)')
+endif
+ifneq ($(words $(PSX_SHORT_RUN_OPT))$(filter-out O2 O3 Os,$(PSX_SHORT_RUN_OPT)),1)
+$(error psx-short-runs: PSX_SHORT_RUN_OPT must be O2, O3 or Os, not '$(PSX_SHORT_RUN_OPT)')
 endif
 endif
 # Each run's own embedded recording replaces psx-build's in the three lists that hold it.
 psx_short_run_list = $(call psx_cmake_list,$(filter-out $(PSX_EMBEDDED_REPLAY),$(1)))
 
 # A failed boot or analysis fails the run but never stops the loop: every run is booted.
-psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_short_run.sh
+psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_short_run.sh tools/psx_opt_level.sh
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-short-runs: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@[ -z "$(PSX_SHORT_RUN_REFERENCE)" ] || [ -f "$(PSX_SHORT_RUN_REFERENCE)" ] \
 		|| { echo "psx-short-runs: no reference frame table $(PSX_SHORT_RUN_REFERENCE): run make psx-full-game-check" >&2; exit 1; }
@@ -2334,6 +2348,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 			-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 			-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 			-DPSX_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_SHORT_RUN_ASSERTS)),OFF,ON) \
+			-DPSX_MEASURED_REPLAY_OPT=$(PSX_SHORT_RUN_OPT) \
 			"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
@@ -2344,6 +2359,14 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 			tail -n 20 $$dir/build.log >&2; echo "psx-short-runs: $$name failed to build ($$dir/build.log)"; \
 			failed="$$failed $$name"; continue; \
 		fi; \
+		opt_failed=; sizes=; \
+		for target in psx-gpu-replay psx-gpu-replay-breakdown; do \
+			level=$$(sh tools/psx_opt_level.sh $$dir/build/CMakeFiles/$$target.dir/flags.make) || level=unreadable; \
+			[ "$$level" = $(PSX_SHORT_RUN_OPT) ] || { echo "psx-short-runs: $$name: $$target effective level $$level, not $(PSX_SHORT_RUN_OPT) as requested"; opt_failed=yes; }; \
+			sizes="$$sizes $$target $$($(PSX_SIZE) $$dir/build/$$target.elf | awk 'NR == 2 {print $$1 "/" $$2 "/" $$3}')"; \
+		done; \
+		echo "psx-short-runs: $$name: opt $(PSX_SHORT_RUN_OPT)$$sizes"; \
+		if [ -n "$$opt_failed" ]; then failed="$$failed $$name"; continue; fi; \
 		: > $$dir/empty_capture_script.txt; : > $$dir/boots.txt; boot_failed=; \
 		for boot in plain-1 plain-2 breakdown; do \
 			exe=$$dir/build/psx-gpu-replay.exe; [ $$boot = breakdown ] && exe=$$dir/build/psx-gpu-replay-breakdown.exe; \

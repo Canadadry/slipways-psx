@@ -785,7 +785,7 @@ patterned rectfill or circfill counts under its shape and again under
 `<family> <ticks> <calls>` for the ten families and `wrapped <0|1>`. Without
 the definition the GPU replay is the same program.
 
-**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]`
+**Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off] [PSX_SHORT_RUN_OPT=O2|O3|Os]`
 runs the cut, then per run configures `psx/` in `<name>/build` with
 `run.json` embedded and
 builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, with asserts
@@ -796,7 +796,18 @@ and `unused-variable`, `unused-but-set-variable`, `unused-function` and
 `unused-parameter` stay warnings, not errors (helpers, locals and parameters
 that only feed an assert); every other target keeps asserts, and so does
 `psx-build` unless `psx-full-game-check PSX_FULL_GAME_ASSERTS=off` asks it
-not to. Then it boots the plain one twice and the breakdown once with an empty capture script until they
+not to. `PSX_SHORT_RUN_OPT` (default `O2`, the SDK's level; any other value
+than `O2`, `O3` or `Os` fails before the cut) sets the CMake option
+`PSX_MEASURED_REPLAY_OPT`, which `psx-build` always sets to `O2`. `O2` adds
+nothing to the compile lines; `O3` and `Os` add `-O3` / `-Os` and
+`-Wno-error` to those two targets only, through an interface library linked
+after the SDK's: a target's own options come before the SDK interface's
+trailing `-O2` and lose to it. The prebuilt libpsn00b libraries keep the
+SDK's level. After the build, `tools/psx_opt_level.sh` (host-tested by
+`test_psx_opt_level`) reads the last `-O` of each target's `flags.make`; a
+level other than the one asked for fails the run before any boot, naming the
+target and both levels. Each run prints `opt <level> psx-gpu-replay
+<text>/<data>/<bss> psx-gpu-replay-breakdown <text>/<data>/<bss>`. Then it boots the plain one twice and the breakdown once with an empty capture script until they
 exit (`PSX_SHORT_RUN_CEILING` vsyncs, `PSX_SHORT_RUN_TIMEOUT` s; each boot's
 `exit ok|failed`, wall time and vsyncs in `boots.txt`; a failed boot, at the
 ceiling, the timeout or a non-zero exit, fails its run), then runs `tools/psx_short_run.sh`

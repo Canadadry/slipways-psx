@@ -19,6 +19,11 @@ foreach(_required SLIPWAYS_SRC_DIR PSX_REPLAY_SOURCES PSX_GPU_REPLAY_SOURCES PSX
 endforeach()
 
 option(PSX_MEASURED_REPLAY_ASSERTS "Keep asserts in psx-gpu-replay and psx-gpu-replay-breakdown" ON)
+set(PSX_MEASURED_REPLAY_OPT O2 CACHE STRING "Optimization level of psx-gpu-replay and psx-gpu-replay-breakdown: O2, O3 or Os")
+set_property(CACHE PSX_MEASURED_REPLAY_OPT PROPERTY STRINGS O2 O3 Os)
+if(NOT PSX_MEASURED_REPLAY_OPT MATCHES "^(O2|O3|Os)$")
+	message(FATAL_ERROR "PSX_MEASURED_REPLAY_OPT must be O2, O3 or Os, not '${PSX_MEASURED_REPLAY_OPT}'")
+endif()
 option(PSX_PROBE "Build psx-gpu-replay as make psx-probe's probe build: doubled GPU frame buffer, delay helper" OFF)
 
 foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe psx-game psx-largest-slots)
@@ -51,6 +56,15 @@ foreach(_target psx-replay psx-gpu-replay psx-gpu-replay-breakdown psx-pad-probe
 	target_link_options(${_target} PRIVATE -Wl,--wrap=_assert_abort -Wl,--wrap=snprintf -Wl,--wrap=vsnprintf)
 endforeach()
 target_compile_definitions(psx-gpu-replay-breakdown PRIVATE PSX_GPU_REPLAY_BREAKDOWN)
+if(NOT PSX_MEASURED_REPLAY_OPT STREQUAL "O2")
+	# A target's own options come before the SDK interface's trailing -O2 and
+	# lose to it; a linked interface library's come after. make psx-short-runs
+	# checks the last -O with tools/psx_opt_level.sh.
+	add_library(psx-measured-replay-opt INTERFACE)
+	target_compile_options(psx-measured-replay-opt INTERFACE -${PSX_MEASURED_REPLAY_OPT} -Wno-error)
+	target_link_libraries(psx-gpu-replay PRIVATE psx-measured-replay-opt)
+	target_link_libraries(psx-gpu-replay-breakdown PRIVATE psx-measured-replay-opt)
+endif()
 if(PSX_PROBE)
 	target_compile_definitions(psx-gpu-replay PRIVATE PSX_PROBE)
 	target_sources(psx-gpu-replay PRIVATE ${SLIPWAYS_SRC_DIR}/platform/psx_probe.c ${SLIPWAYS_SRC_DIR}/platform/psx_fine_clock.c)
