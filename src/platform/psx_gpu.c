@@ -154,7 +154,7 @@ void psx_gpu_init(void) {
     upload_sprite_sheet();
     upload_font();
     current = 0;
-    peaks = (psx_gpu_peaks_t){ 0, 0, 0 };
+    psx_gpu_peaks_reset(&peaks);
     PutDispEnv(&displays[1]);
     SetDispMask(1);
 }
@@ -377,14 +377,6 @@ static void upload_slots(const psx_clut_cache_t *cluts, const psx_pattern_cache_
     }
 }
 
-static void record_peaks(void) {
-    if (used > peaks.bytes) peaks.bytes = used;
-    int cluts = psx_clut_cache_count(&clut_caches[current]);
-    if (cluts > peaks.cluts) peaks.cluts = cluts;
-    int patterns = psx_pattern_cache_count(&pattern_caches[current]);
-    if (patterns > peaks.patterns) peaks.patterns = patterns;
-}
-
 psx_gpu_peaks_t psx_gpu_peaks(void) {
     return peaks;
 }
@@ -403,7 +395,8 @@ void psx_gpu_frame_end(unsigned long limit_bytes) {
                  limit_bytes);
         p8_fatal(message);
     }
-    record_peaks();
+    psx_gpu_peaks_record(&peaks, used, psx_clut_cache_count(&clut_caches[current]),
+                         psx_pattern_cache_count(&pattern_caches[current]));
     DrawSync(0);
     upload_slots(&clut_caches[current], &pattern_caches[current]);
     PutDispEnv(&displays[current ^ 1]);

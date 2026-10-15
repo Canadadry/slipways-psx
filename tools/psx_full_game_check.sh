@@ -4,7 +4,7 @@
 #                               <size-tool> <stack-reserve> <out-dir>
 # Boots the replay PS-EXE, then the GPU replay PS-EXE with an empty capture
 # script (the capture handshake runs, nothing is captured), until they exit,
-# then checks the fourteen conditions of make psx-full-game-check through
+# then checks the conditions of make psx-full-game-check through
 # tools/psx_conditions.sh: replay-done, state-game-lines, sprite-sheet,
 # screen, map, gpu-replay-done, gpu-state-game-lines, gpu-draw-filter and
 # gpu-draw-meter (the GPU boot printed "psx-replay: draw-filter off" and
@@ -130,4 +130,4 @@ check_ram_room gpu-ram-room "${gpu_exe%.exe}.elf"
 
 echo "psx-full-game-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-full-game-check: all fourteen conditions hold"
+echo "psx-full-game-check: all $(grep -c . "$out_dir/conditions.txt") conditions hold"

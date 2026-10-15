@@ -548,14 +548,14 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the thirty-two conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
+| `make psx-check` | every condition below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
 | `make psx-game-check` | the seven `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
 | `make psx-game-cd-check` | the seven `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
 | `make psx-game-cd` | builds the CD image and prints its paths | build |
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | fourteen conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (the GPU replay without asserts unless `PSX_FULL_GAME_ASSERTS=on`), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-full-game-check` | its conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (the GPU replay without asserts unless `PSX_FULL_GAME_ASSERTS=on`), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 | `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
@@ -661,7 +661,7 @@ exits with 4.
 in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
 `DIGEST=`, boots the replay, then the GPU replay with an empty capture script
 (the capture handshake runs, `psx_capture_frames.lua` hands `NO_FRAME` at once,
-nothing is captured), until they exit, and checks fourteen conditions
+nothing is captured), until they exit, and checks its conditions
 (`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
 also in `run/conditions.txt`), every one before concluding.
 `PSX_FULL_GAME_ASSERTS=on|off` (default `off`; any other value fails before

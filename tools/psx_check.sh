@@ -8,7 +8,7 @@
 # Boots the replay PS-EXE, the GPU replay PS-EXE (twice, both driven by
 # <pc-capture-dir>/capture_script.txt), the pad probe and the game's CD image
 # <game-cue> (driven by <game-script>) and <largest-exe> until they exit, then
-# checks the thirty-two conditions of make psx-check, the seven GPU capture
+# checks the conditions of make psx-check, the seven GPU capture
 # ones through tools/psx_capture_check.sh, seven game ones through tools/psx_game_check.sh
 # (outputs in <out-dir>/game; game-asserts expects PSX_GAME_ASSERTS, default off) and game-cue and game-cd-exe through
 # tools/psx_cd_check.sh (<game-disc-exe> on the disc equals <game-exe>,
@@ -273,4 +273,4 @@ check_largest_slots largest-slots "$largest_status" "$largest_boot" "$largest_tt
 
 echo "psx-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-check: all thirty-two conditions hold"
+echo "psx-check: all $(grep -c . "$out_dir/conditions.txt") conditions hold"

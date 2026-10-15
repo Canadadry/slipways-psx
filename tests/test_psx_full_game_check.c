@@ -124,7 +124,15 @@ static int run_check_bss(const char *stub_abort, const char *bss) {
 
 static int run_check(const char *stub_abort) { return run_check_bss(stub_abort, "300"); }
 
-static void test_both_replays_reaching_the_pc_frame_count_within_budget_pass_the_fourteen_conditions(void) {
+static int line_count(const char *path) {
+    int lines = 0;
+    for (const char *c = read_file(path); *c != '\0'; c++) {
+        if (*c == '\n') lines++;
+    }
+    return lines;
+}
+
+static void test_both_replays_reaching_the_pc_frame_count_within_budget_pass_every_condition(void) {
     setup();
     assert(run_check("0") == 0);
     assert_has(LOG, "psx-full-game-check: replay-done: ok\n");
@@ -142,9 +150,11 @@ static void test_both_replays_reaching_the_pc_frame_count_within_budget_pass_the
     assert_has(LOG, "psx-full-game-check: cap-sizes: ok, 2 caps fit\n");
     assert_has(LOG, "psx-full-game-check: gpu-ram-room: ok, 1964580 bytes left in 2097152 (kernel 65536 + ELF + "
                     "stack 65536 = 132572)\n");
-    assert_has(LOG, "psx-full-game-check: all fourteen conditions hold\n");
     assert_has(OUT "/conditions.txt", "gpu-replay-done ok\ngpu-state-game-lines ok\ngpu-draw-filter ok\ngpu-draw-meter ok\n"
                                       "timer ok\nframe-budget ok\nzone-sizes ok\ncap-sizes ok\ngpu-ram-room ok\n");
+    char line[128];
+    snprintf(line, sizeof line, "psx-full-game-check: all %d conditions hold\n", line_count(OUT "/conditions.txt"));
+    assert_has(LOG, line);
 }
 
 static void test_the_gpu_boot_gets_an_empty_capture_script_and_its_own_ceiling_and_timeout(void) {
@@ -173,7 +183,7 @@ static void assert_only_gpu_failed(const char *condition, const char *reason) {
     assert_has(OUT "/conditions.txt", line);
     assert_has(LOG, "psx-full-game-check: replay-done: ok\n");
     assert_has(LOG, "psx-full-game-check: map: ok\n");
-    assert(strstr(read_file(LOG), "all fourteen conditions hold") == NULL);
+    assert(strstr(read_file(LOG), "conditions hold") == NULL);
 }
 
 static void test_a_missing_gpu_done_line_fails_gpu_replay_done(void) {
@@ -300,7 +310,7 @@ static void test_an_over_budget_frame_fails_only_frame_budget_and_every_conditio
     assert_has(OUT "/conditions.txt", "replay-done ok\nstate-game-lines ok\nsprite-sheet ok\nscreen ok\nmap ok\n"
                                       "gpu-replay-done ok\ngpu-state-game-lines ok\ngpu-draw-filter ok\ngpu-draw-meter ok\n"
                                       "timer ok\nframe-budget failed\nzone-sizes ok\ncap-sizes ok\ngpu-ram-room ok\n");
-    assert(strstr(read_file(LOG), "all fourteen conditions hold") == NULL);
+    assert(strstr(read_file(LOG), "conditions hold") == NULL);
 }
 
 static void test_a_gpu_elf_too_big_for_ram_fails_gpu_ram_room(void) {
@@ -328,7 +338,7 @@ static void test_the_frame_lines_and_summary_are_printed_and_the_summary_measure
 }
 
 int main(void) {
-    test_both_replays_reaching_the_pc_frame_count_within_budget_pass_the_fourteen_conditions();
+    test_both_replays_reaching_the_pc_frame_count_within_budget_pass_every_condition();
     test_the_gpu_boot_gets_an_empty_capture_script_and_its_own_ceiling_and_timeout();
     test_measurements_carry_the_gpu_replay_vsyncs_the_pc_meter_lines_and_size_behind_gpu();
     test_a_missing_gpu_done_line_fails_gpu_replay_done();

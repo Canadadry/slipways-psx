@@ -26,6 +26,12 @@
     - [x] Judge run, table replaced
 - [ ] Phase 3 — Draw, in impact order
   - [ ] Step 3.8 — D5 pre-built background and the image cache
+    - [x] Chunk 1 — warn-review prerequisites: peaks helper tested, derived counts
+    - [ ] Chunk 2 — per-call costs re-measured, coverage, capture check
+    - [ ] Chunk 3 — throwaway GPU copy spike
+    - [ ] Chunk 4 — runtime image cache, software backend (PC)
+    - [ ] Chunk 5 — PSX backend image cache
+    - [ ] Chunk 6 — D5 background through the cache
   - [ ] Step 3.9 — D1/B4 outlined font, one primitive per glyph
   - [ ] Step 3.10 — L1 layer lists sorted at registration
   - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
