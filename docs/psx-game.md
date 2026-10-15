@@ -722,9 +722,10 @@ first green run's 47,889 vsyncs in 798 s for the replay, and for the GPU
 replay the first run with frame lines, 21,000 vsyncs (`.progress`, the frame
 lines printed after the loop included; `done` line 20,543) in 350 s, both
 `done` lines at 6,059 frames, the PC's count.
-`PSX_SHORT_RUN_CEILING`/`PSX_SHORT_RUN_TIMEOUT` (540 vsyncs, 10 s) for every
-boot of `psx-short-runs`: its longest first boot, the breakdown of `start`,
-282 vsyncs at `done` and 300 to 359 by `.progress`, in 6 s.
+`PSX_SHORT_RUN_CEILING`/`PSX_SHORT_RUN_TIMEOUT` (1080 vsyncs, 20 s) for every
+boot of `psx-short-runs`, the probe tool's values: twice its slowest boot
+seen, `draw-6000`'s breakdown boot with asserts off at 542 vsyncs; a
+ceiling only caps a boot that never exits, so a passing run is not slower.
 `psx-full-game-check` builds in its own directory and is not part of
 `psx-check`: at minutes a run, every later step would pay it again.
 
@@ -797,13 +798,16 @@ that only feed an assert); every other target keeps asserts, and so does
 `psx-build` unless `psx-full-game-check PSX_FULL_GAME_ASSERTS=off` asks it
 not to. Then it boots the plain one twice and the breakdown once with an empty capture script until they
 exit (`PSX_SHORT_RUN_CEILING` vsyncs, `PSX_SHORT_RUN_TIMEOUT` s; each boot's
-wall time and vsyncs in `boots.txt`), then runs `tools/psx_short_run.sh`
+`exit ok|failed`, wall time and vsyncs in `boots.txt`; a failed boot, at the
+ceiling, the timeout or a non-zero exit, fails its run), then runs `tools/psx_short_run.sh`
 (host-tested by `test_psx_short_run` in `psx-tools-test`) into
 `<name>/analysis`. One line per condition, `ok` or `failed <reason>`
 (`verdicts.txt`):
 
-- `done`: each boot printed its `done` line with the run's frame count and
-  no stopped state;
+- `done`: each boot printed its `done` line with the run's frame count, no
+  stopped state, and after the `done` line its state dump through its last
+  line, `psx-state: cheat activations <n>` (else `<boot> state dump
+  incomplete`);
 - `deterministic`: the two plain boots' `psx-frame:` lines are byte-identical;
 - `representative`: over the window frames (mapped), the plain run's draw sum
   and update sum each within ±10% of `PSX_SHORT_RUN_REFERENCE`'s (default
@@ -831,7 +835,7 @@ boot's parts with the breakdown's in-call share s: `backend-free` (update +
 submit + draw × (1 − s)), `game-draw-free` (update + submit + draw × s) and
 `draw-free` (update + submit), each with the frames still over
 `PSX_FRAME_BUDGET_HBLANKS`. The target fails after every run when a
-condition failed. It is not part of `psx-check`.
+boot or a condition failed. It is not part of `psx-check`.
 
 **Probes.** `make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]`
 measures a throwaway patch (a unified diff against `HEAD`, what `git diff`

@@ -5,7 +5,8 @@
 # tmp/short_run_cut) and its frame count. <reference-frames> is a frame table
 # of tools/psx_frame_budget.sh over full_game.json, or empty to skip
 # representative. <asserts> is the mode every boot's "psx-replay: asserts"
-# line must report. Writes <out-dir>/verdicts.txt, one line per condition in
+# line must report. done also needs each boot's state dump through its last
+# line, "psx-state: cheat activations", after its done line. Writes <out-dir>/verdicts.txt, one line per condition in
 # the order done, deterministic, representative, breakdown, asserts:
 # "<condition> ok[ <detail>]", "<condition> failed <reason>" or
 # "representative skipped ..."; <out-dir>/summary.txt (the window's plain
@@ -80,6 +81,10 @@ for boot in plain-1 plain-2 breakdown; do
             reason="$boot stopped: ${stopped#psx-state: }"
         elif [ "${4:-}" != "$frames" ]; then
             reason="$boot expected $frames frames, got: ${done_line:-(no done line)}"
+        elif ! tr -d '\r' < "$tty" | awk '/^psx-replay: done / { after = 0; seen = 1 }
+                seen && /^psx-state: cheat activations / { after = 1 }
+                END { exit !after }'; then
+            reason="$boot state dump incomplete (no cheat activations line after the done line)"
         else
             reason=
         fi

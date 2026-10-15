@@ -108,6 +108,7 @@ static void build_ttys(void) {
     append_frame_lines(plain_tty, TTY_CAP, 0);
     append(plain_tty, TTY_CAP, done);
     append(plain_tty, TTY_CAP, "psx-state: clock year 3422 month 1\n");
+    append(plain_tty, TTY_CAP, "psx-state: cheat activations 0\n");
     breakdown_tty[0] = '\0';
     append(breakdown_tty, TTY_CAP, TTY_HEAD);
     append_frame_lines(breakdown_tty, TTY_CAP, 1);
@@ -115,6 +116,7 @@ static void build_ttys(void) {
     append_draw_lines(breakdown_tty, TTY_CAP);
     append(breakdown_tty, TTY_CAP, done);
     append(breakdown_tty, TTY_CAP, "psx-state: clock year 3422 month 1\n");
+    append(breakdown_tty, TTY_CAP, "psx-state: cheat activations 0\n");
 }
 
 /* Static buffer, overwritten by each call: <text> with its single <from> replaced by <to>. */
@@ -259,6 +261,22 @@ static void test_wrong_frame_count_or_fatal_fails_done(void) {
                                    "psx-state: stopped p8_fatal zone full\n");
     assert(run(stopped, plain_tty, breakdown_tty) == 2);
     assert(verdict_failed("done", "plain-1 stopped: stopped p8_fatal zone full"));
+}
+
+static void test_a_state_dump_cut_before_its_last_line_fails_done_naming_the_boot(void) {
+    const char *cut = replaced(breakdown_tty, "psx-state: cheat activations 0\n", "");
+    assert(run(plain_tty, plain_tty, cut) == 2);
+    assert(strcmp(verdict("done"),
+                  "done failed breakdown state dump incomplete (no cheat activations line after the done line)") == 0);
+    assert_only_failed("done");
+}
+
+static void test_a_cheat_activations_line_before_the_done_line_does_not_complete_the_dump(void) {
+    char early[TTY_CAP];
+    snprintf(early, sizeof early, "psx-state: cheat activations 0\n%s",
+             replaced(plain_tty, "psx-state: cheat activations 0\n", ""));
+    assert(run(plain_tty, early, breakdown_tty) == 2);
+    assert(verdict_failed("done", "plain-2 state dump incomplete"));
 }
 
 /* With one boot only, the missing ones are named: a single TTY never passes for two. */
@@ -527,6 +545,8 @@ int main(void) {
     test_every_verdict_ok_on_a_clean_run();
     test_missing_done_line_fails_done_naming_the_boot();
     test_wrong_frame_count_or_fatal_fails_done();
+    test_a_state_dump_cut_before_its_last_line_fails_done_naming_the_boot();
+    test_a_cheat_activations_line_before_the_done_line_does_not_complete_the_dump();
     test_missing_tty_fails_done_and_deterministic();
     test_one_differing_frame_line_fails_deterministic_naming_it();
     test_a_missing_frame_line_fails_deterministic();

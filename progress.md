@@ -47,5 +47,9 @@
     - [x] Chunk 5: delay probes and candidates
 - [ ] Phase 4 — Global levers
   - [ ] 4.11 Asserts, -O2/-O3/-Os, submit
+    - [x] Chunk 1: a cut boot fails its run
+    - [ ] Chunk 2: optimization level option and check
+    - [ ] Chunk 3: four variants on every short run
+    - [ ] Chunk 4: submit breakdown and global levers
 - [ ] Phase 5 — Report
   - [ ] 5.12 Finish docs/psx-perf-levers.md

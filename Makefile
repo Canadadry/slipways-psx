@@ -476,17 +476,19 @@
 #                       (off: without asserts, unused-* warnings not errors;
 #                       every other target keeps asserts), boots the plain one
 #                       twice and the breakdown once with an empty capture
-#                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, timeout
-#                       PSX_SHORT_RUN_TIMEOUT s; wall time and vsyncs in
-#                       boots.txt), then tools/psx_short_run.sh into
-#                       <name>/analysis: done, deterministic, representative
-#                       (against PSX_SHORT_RUN_REFERENCE, default
-#                       psx-full-game-check's frames.txt; empty skips it, a
-#                       missing file fails), breakdown, asserts (every boot
+#                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, default
+#                       1080, timeout PSX_SHORT_RUN_TIMEOUT s, default 20;
+#                       exit ok|failed, wall time and vsyncs in boots.txt; a
+#                       failed boot fails its run), then
+#                       tools/psx_short_run.sh into <name>/analysis: done
+#                       (each boot's state dump complete), deterministic,
+#                       representative (against PSX_SHORT_RUN_REFERENCE,
+#                       default psx-full-game-check's frames.txt; empty skips
+#                       it, a missing file fails), breakdown, asserts (every boot
 #                       reports PSX_SHORT_RUN_ASSERTS's mode), then the
 #                       window's plain update, draw and submit sums, draw
 #                       split, overhead and best cases; fails after every run
-#                       when a condition failed, ~4 min; never runs a setup,
+#                       when a boot or a condition failed, ~4 min; never runs a setup,
 #                       outside the suite and psx-check
 # make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
 #                       then per run builds the probe build (psx-gpu-replay
@@ -2306,8 +2308,8 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 	exit $$failed
 
 PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
-PSX_SHORT_RUN_CEILING ?= 540
-PSX_SHORT_RUN_TIMEOUT ?= 10
+PSX_SHORT_RUN_CEILING ?= 1080
+PSX_SHORT_RUN_TIMEOUT ?= 20
 PSX_SHORT_RUN_ASSERTS ?= on
 # Checked at parse time: under -j a checking prerequisite would race the cut and the build.
 ifneq ($(filter psx-short-runs,$(MAKECMDGOALS)),)
@@ -2342,20 +2344,21 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 			tail -n 20 $$dir/build.log >&2; echo "psx-short-runs: $$name failed to build ($$dir/build.log)"; \
 			failed="$$failed $$name"; continue; \
 		fi; \
-		: > $$dir/empty_capture_script.txt; : > $$dir/boots.txt; \
+		: > $$dir/empty_capture_script.txt; : > $$dir/boots.txt; boot_failed=; \
 		for boot in plain-1 plain-2 breakdown; do \
 			exe=$$dir/build/psx-gpu-replay.exe; [ $$boot = breakdown ] && exe=$$dir/build/psx-gpu-replay-breakdown.exe; \
 			rm -f $$dir/$$boot.*; start=$$(date +%s); \
 			PSX_BOOT_TIMEOUT=$(PSX_SHORT_RUN_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 				--capture-script $$dir/empty_capture_script.txt --exe $$exe $(PSX_SHORT_RUN_CEILING) $$dir/$$boot \
-				|| echo "psx-short-runs: $$name: $$boot boot failed"; \
+				&& boot_exit=ok || boot_exit=failed; \
 			done_vsyncs=$$(tr -d '\r' < $$dir/$$boot.tty.txt 2>/dev/null | sed -n 's/^psx-replay: done .* vsyncs \([0-9]*\)$$/\1/p'); \
-			echo "$$boot wall $$(($$(date +%s) - start)) s done-vsyncs $${done_vsyncs:--} progress-vsyncs $$(sed -n 's/^vsync //p' $$dir/$$boot.progress 2>/dev/null)" >> $$dir/boots.txt; \
+			echo "$$boot exit $$boot_exit wall $$(($$(date +%s) - start)) s done-vsyncs $${done_vsyncs:--} progress-vsyncs $$(sed -n 's/^vsync //p' $$dir/$$boot.progress 2>/dev/null)" >> $$dir/boots.txt; \
+			[ $$boot_exit = ok ] || boot_failed=yes; \
 		done; \
 		sed "s/^/psx-short-runs: $$name: boot /" $$dir/boots.txt; rm -rf $$dir/analysis; \
 		sh tools/psx_short_run.sh $$dir/plain-1.tty.txt $$dir/plain-2.tty.txt $$dir/breakdown.tty.txt $$dir/map.txt "$$frames" \
 			$(PSX_FRAME_BUDGET_HBLANKS) "$(PSX_SHORT_RUN_REFERENCE)" $$dir/analysis $(PSX_SHORT_RUN_ASSERTS) | sed "s/^/psx-short-runs: $$name: /"; \
-		[ -f $$dir/analysis/verdicts.txt ] && ! grep -q '^[a-z]* failed ' $$dir/analysis/verdicts.txt || failed="$$failed $$name"; \
+		[ -z "$$boot_failed" ] && [ -f $$dir/analysis/verdicts.txt ] && ! grep -q '^[a-z]* failed ' $$dir/analysis/verdicts.txt || failed="$$failed $$name"; \
 	done; \
 	if [ -n "$$failed" ]; then echo "psx-short-runs: failed:$$failed"; exit 1; fi; \
 	echo "psx-short-runs: passed"
