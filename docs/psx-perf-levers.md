@@ -1125,7 +1125,8 @@ frame, off the update outside the spreadable work (checklist item 7).
 **G1, asserts off** (measured; taken)
 - Where: `PSX_MEASURED_REPLAY_ASSERTS` (`psx/CMakeLists.txt:21`, applied
   at `:47`) for the measured replays; for `psx-game`, the same switch on
-  its target (it keeps `-UNDEBUG` today, `:54`).
+  its target (`PSX_GAME_ASSERTS`, default `OFF`: `psx-game` dropped
+  `-UNDEBUG` in plan 21 step 3).
 - Gain, measured (on minus off, what asserts off takes): `start` +107,
   `update-4737` +37, `update-5500` +187, `draw-5564` +821 (+54.7),
   `update-5719` +50, `draw-6000` +607 (+40.5); pooled update +3.2%, draw
@@ -5306,7 +5307,8 @@ frames).
 **G1, asserts off (decided).**
 - Location: `PSX_MEASURED_REPLAY_ASSERTS=OFF` (`psx/CMakeLists.txt`,
   measured replays only); for `psx-game`, the same switch on its target
-  (it keeps `-UNDEBUG` today).
+  (`PSX_GAME_ASSERTS`, default `OFF`: `psx-game` dropped `-UNDEBUG` in
+  plan 21 step 3).
 - Gain (on minus off, the gain asserts off takes): `start` +107,
   `update-4737` +37, `update-5500` +187, `draw-5564` +821 (+54.7 a frame),
   `update-5719` +50, `draw-6000` +607 (+40.5 a frame). Pooled: update

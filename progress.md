@@ -9,7 +9,7 @@
 - [ ] Phase 2 — Safe gains
   - [ ] Step 2.3 — asserts off in psx-game (G1)
     - [x] Chunk 1 — PSX_GAME_ASSERTS switch, game-asserts condition
-    - [ ] Chunk 2 — harness defaults asserts off, docs, short run
+    - [x] Chunk 2 — harness defaults asserts off, docs, short run
   - [ ] Step 2.4 — draw meter out of psx-game and the measured replays (B1)
   - [ ] Step 2.5 — -O3 for psx-game and the measured replays (G2)
   - [ ] Step 2.6 — p8_map skips off-screen cells (B3)

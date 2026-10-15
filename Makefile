@@ -438,8 +438,8 @@
 #                       other conditions (outputs in tmp/psx/gpu-capture,
 #                       ~20 s); outside the suite
 # make psx-full-game-check [PSX_FULL_GAME_ASSERTS=on|off]
-#                    -> refuses any PSX_FULL_GAME_ASSERTS but on (default) or
-#                       off; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
+#                    -> refuses any PSX_FULL_GAME_ASSERTS but off (default) or
+#                       on; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json) in tmp/psx/full-game/build,
 #                       the GPU replays always without the draw filter,
 #                       off building the measured GPU replays without asserts
@@ -480,8 +480,8 @@
 #                       file, ~25 s; never boots, outside the suite
 # make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]
 #                       [PSX_SHORT_RUN_OPT=O2|O3|Os]
-#                    -> refuses any PSX_SHORT_RUN_ASSERTS but on (default) or
-#                       off and any PSX_SHORT_RUN_OPT but O2 (default, the
+#                    -> refuses any PSX_SHORT_RUN_ASSERTS but off (default) or
+#                       on and any PSX_SHORT_RUN_OPT but O2 (default, the
 #                       SDK's level), O3 or Os, runs psx-short-runs-cut, then
 #                       per run builds psx-gpu-replay and
 #                       psx-gpu-replay-breakdown with its run.json embedded
@@ -2307,7 +2307,7 @@ PSX_FULL_GAME_GPU_TIMEOUT ?= 525
 # One NTSC vsync in horizontal blanks: plan 11 step 4 must never raise it.
 PSX_FRAME_BUDGET_HBLANKS := 263
 
-PSX_FULL_GAME_ASSERTS ?= on
+PSX_FULL_GAME_ASSERTS ?= off
 # Checked at parse time: under -j a checking prerequisite would race the build.
 ifneq ($(filter psx-full-game-check,$(MAKECMDGOALS)),)
 ifneq ($(words $(PSX_FULL_GAME_ASSERTS))$(filter-out on off,$(PSX_FULL_GAME_ASSERTS)),1)
@@ -2368,7 +2368,7 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
 PSX_SHORT_RUN_CEILING ?= 1080
 PSX_SHORT_RUN_TIMEOUT ?= 20
-PSX_SHORT_RUN_ASSERTS ?= on
+PSX_SHORT_RUN_ASSERTS ?= off
 PSX_SHORT_RUN_OPT ?= O2
 # Checked at parse time: under -j a checking prerequisite would race the cut and the build.
 ifneq ($(filter psx-short-runs,$(MAKECMDGOALS)),)
@@ -2628,7 +2628,7 @@ frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame
 	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 !~ /^#/ && NF {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
 		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$$out/$$name; \
 		if [ ! -f $$short/breakdown.tty.txt ]; then \
-			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_REFERENCE="; \
+			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUN_REFERENCE="; \
 			failed="$$failed $$name"; continue; \
 		fi; \
 		rm -f $$dir/unit-cost.txt; profile $$short/run.json $$short/run.end-state $$dir \

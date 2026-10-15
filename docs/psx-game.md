@@ -48,7 +48,13 @@ and no embedded replay, VRAM digest or GPU backend. A file added to
 `CORE_SRCS` is in the PSX build at once.
 
 It is built `GPREL`, Release (`-O2`), with `-UNDEBUG`: asserts stay compiled
-in, as in the PC `-O0` binary. `snprintf`/`vsnprintf` are wrapped onto
+in, as in the PC `-O0` binary, in every target but `psx-game`. `psx-game`, the
+program on the CD image, is built without asserts: the CMake option
+`PSX_GAME_ASSERTS` (default `OFF`; Makefile `PSX_BUILD_GAME_ASSERTS=ON|OFF`,
+passed by `psx-build` on every configure) drops `-UNDEBUG` from it, so the
+SDK's `NDEBUG` applies, and keeps `unused-variable`,
+`unused-but-set-variable`, `unused-function` and `unused-parameter` warnings,
+not errors; `ON` brings its asserts back. Every `assert` stays in the source. `snprintf`/`vsnprintf` are wrapped onto
 `src/p8/format.c`, and `_assert_abort` onto the PSX assert handler. A missing
 SDK fails naming `make psn00bsdk-toolchain-setup`. `psx_tty_write` masks
 IRQs around each BIOS `putchar`: an IRQ taken on the jump into it makes
@@ -360,7 +366,8 @@ plays `bindings.default.cfg` (`bindings_default`).
 | button | SELECT | L3 | R3 | START | UP | RIGHT | DOWN | LEFT | L2 | R2 | L1 | R1 | TRIANGLE | CIRCLE | CROSS | SQUARE |
 | `pad_buttons` button | 12 | - | - | 11 | 1 | 4 | 2 | 3 | - | - | 9 | 10 | 8 | 6 | 5 | 7 |
 
-**Pad log.** Its TTY is `psx-game: ready` once the handshake is raised, then
+**Pad log.** Its TTY is `psx-game: asserts on|off` (the mode it was built
+in), then `psx-game: ready` once the handshake is raised, then
 `psx-game: pad <frame> <pad_buttons as %03x>` on frame 0 and on every frame
 where `pad_buttons` changes: a run-length log of every frame's input, each
 line carrying its frame so a lost line is detected.
@@ -507,14 +514,14 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | the thirty-one conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
-| `make psx-game-check` | the five `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
-| `make psx-game-cd-check` | the five `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
+| `make psx-check` | the thirty-two conditions below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
+| `make psx-game-check` | the six `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
+| `make psx-game-cd-check` | the six `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
 | `make psx-game-cd` | builds the CD image and prints its paths | build |
 | `make psx-gpu-capture-report` | the GPU captures and their reports alone (outputs in `tmp/psx/gpu-capture`) | ~20 s |
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
-| `make psx-full-game-check` | thirteen conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (`PSX_FULL_GAME_ASSERTS=off`: the GPU replay without asserts), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-full-game-check` | thirteen conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (the GPU replay without asserts unless `PSX_FULL_GAME_ASSERTS=on`), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 | `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
@@ -571,7 +578,7 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   `p8_input_free` in either replay ELF or the game ELF;
 - `pad-script`: the probe's ordered pad states equal the script's
   (`tools/psx_pad_compare.sh`);
-- the five game conditions, on the CD boot, from `tools/psx_game_check.sh` (outputs in
+- the six game conditions, on the CD boot, from `tools/psx_game_check.sh` (outputs in
   `run/game`: `game_events.json`, a pad recording `make replay EVENTS=` can
   dump, its PC state `pc_state.txt` and `game-state/`):
   - `game-done`: the game boot exited with 0, printed one `psx-replay: done
@@ -587,6 +594,9 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   - `game-title-left`: the PSX state's `difficulty` line is `difficulty
     PSX_GAME_DIFFICULTY` (`reasonable`) and its `clock` line is not `clock
     year - month -`;
+  - `game-asserts`: the TTY's first `psx-game: asserts` line says the mode
+    `psx-build` asked for (`off` unless `PSX_BUILD_GAME_ASSERTS=ON`); a
+    failure names the line read, or `psx-game: asserts (no line)`;
 - `game-gpu-cost`: `gpu-cost` on the CD game: its meter lines equal those of
   the PC replay of its pad log (`run/game/pc_state.txt`), title frames
   included; both use one function, so they cannot drift;
@@ -617,14 +627,16 @@ in `tmp/psx/full-game/build`, writes the PC state and digest with `STATE=` and
 nothing is captured), until they exit, and checks thirteen conditions
 (`tools/psx_full_game_check.sh`, outputs in `tmp/psx/full-game/run`, conditions
 also in `run/conditions.txt`), every one before concluding.
-`PSX_FULL_GAME_ASSERTS=on|off` (default `on`; any other value fails before
+`PSX_FULL_GAME_ASSERTS=on|off` (default `off`; any other value fails before
 anything builds) picks the asserts mode: `off` has `psx-build` configure
 `PSX_MEASURED_REPLAY_ASSERTS=OFF`, so the measured GPU replays
 (`psx-gpu-replay`, `psx-gpu-replay-breakdown`) build without asserts, while
-the CPU-path replay and every other target keep them. Either way it has
-`psx-build` configure `PSX_GPU_REPLAY_DRAW_FILTER=OFF`. `psx-build` passes both
-options on every configure (`ON` unless asked), so a cached `OFF` never
-carries into the next run:
+the CPU-path replay and every other target but `psx-game` keep them; `on`
+keeps them in the measured GPU replays too. Either way it has
+`psx-build` configure `PSX_GPU_REPLAY_DRAW_FILTER=OFF`. `psx-build` passes
+these options and `PSX_GAME_ASSERTS` on every configure (`ON`, and `OFF` for
+`PSX_GAME_ASSERTS`, unless asked), so a cached value never carries into the
+next run:
 
 - `replay-done`, `state-game-lines`, `sprite-sheet`, `screen` and `map` on
   the replay, `gpu-replay-done` and `gpu-state-game-lines` on the GPU replay,
@@ -806,15 +818,16 @@ the definition the GPU replay is the same program.
 **Target.** `make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off] [PSX_SHORT_RUN_OPT=O2|O3|Os]`
 runs the cut, then per run configures `psx/` in `<name>/build` with
 `run.json` embedded and
-builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, with asserts
-unless `PSX_SHORT_RUN_ASSERTS=off` (default `on`; any other value fails
+builds only `psx-gpu-replay` and `psx-gpu-replay-breakdown`, without asserts
+unless `PSX_SHORT_RUN_ASSERTS=on` (default `off`; any other value fails
 before the cut). `off` sets the CMake option `PSX_MEASURED_REPLAY_ASSERTS`
 to `OFF`: those two targets drop `-UNDEBUG`, so the SDK's `NDEBUG` applies,
 and `unused-variable`, `unused-but-set-variable`, `unused-function` and
 `unused-parameter` stay warnings, not errors (helpers, locals and parameters
-that only feed an assert); every other target keeps asserts, and so does
-`psx-build` unless `psx-full-game-check PSX_FULL_GAME_ASSERTS=off` asks it
-not to. `PSX_SHORT_RUN_OPT` (default `O2`, the SDK's level; any other value
+that only feed an assert); `on` keeps `-UNDEBUG` in them. Every other
+target but `psx-game` keeps asserts, and `psx-build` keeps them in the
+measured GPU replays unless `psx-full-game-check` (default
+`PSX_FULL_GAME_ASSERTS=off`) asks it not to. `PSX_SHORT_RUN_OPT` (default `O2`, the SDK's level; any other value
 than `O2`, `O3` or `Os` fails before the cut) sets the CMake option
 `PSX_MEASURED_REPLAY_OPT`, which `psx-build` always sets to `O2`. `O2` adds
 nothing to the compile lines; `O3` and `Os` add `-O3` / `-Os` and
