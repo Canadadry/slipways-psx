@@ -304,3 +304,10 @@ by judge-wide gain (the report's `draw-6000` figure):
 - Harness: `PSX_SHORT_RUN_OPT` defaults to O3, `psx-full-game-check` passes O3, the probe builds O3 explicitly (another level makes a run invalid; fingerprint gains `opt O3`). New O3 probe baseline taken.
 - `psx-check` green at O3, captures unchanged. RAM: `ram-room` 371,160 → 326,412, `game-ram-room` 509,352 → 469,652; full-game GPU replay at O3 (built, not booted) 316,256 bytes left. Text +40 KB per binary.
 - Short runs, asserts off, O2 → O3, pooled window totals **−7.6%** (report −5.9%): update −13.8%, draw −4.7%, submit −3.2%. Draw per frame: `draw-5564` −42.4 (report −45.5), `draw-6000` −31.2 (−36.3); `start` −1,381 (−1,382). `representative` fails on every run, other conditions hold.
+
+### Step 2.6
+
+- B3 not covered by any lever taken (F1, G1, B1, G2); D5 comes in step 8. `p8_map` now loops over the visible cell ranges only, computed once a call with the cost model's 1×1-sprite test, which matches both backends' clipping. Contract line in `gfx.h`; tests in `test_draw_backend.c` (camera sweep against the old loop filtered by `p8_draw_cost_spr`) and `test_gfx.c` (pixels).
+- E2e hashes, `make end-state` (25 replays) and every `psx-check` capture unchanged. `make state` peaks unchanged (`cap gpu_cluts` did not drop). `ram-room` 325,948.
+- `spr` calls removed equal the report's exactly: `draw-5564` 4,935 of 7,541, `draw-6000` 4,830 of 7,707; one-frame runs 274, 309, 318, 209.
+- Short runs at O3, draw: `draw-5564` −38.9 a frame (−4.3%), `draw-6000` −38.0 (−6.5%); one-frame runs −28 to −38. Report: 146–162 a frame. **Under a quarter of the estimate**: 0.12 hblank per skipped call against 0.45–0.49, the report having measured at O2 with meter and filter compiled in. Pooled six-run total −3.7%. Kept (a gain); no gate on the shortfall.
