@@ -363,3 +363,23 @@ the remaining steps:
 - `CALL_PROFILE_FRAME_CAP` sized by hand;
 - probe patches pinned to line numbers;
 - the throwaway delay patch making `cart.c` include `platform/psx_probe.h`.
+
+### Step 2.6
+
+Probe baseline rebuilt on `e5d54ab`: equal to step 3's on its five runs,
+`draw-6000` at 593/13987/107 (update/draw/submit). Mean window frame and
+2% threshold: `start` 9451/189.0, `draw-5564` 1351/27.0, `draw-6000`
+979/19.6. Call-twice `cart_draw` bias +5.6%, +7.3% and −0.7% (`draw-6000`
+is the first run where the second call is cheaper). Eight throwaway
+probes on `2458bad`, all valid, every call-twice game state the same, so
+no fallback delay was needed. Per frame: `draw_layers#1` 463 on `start`
+(PC-derived, per step 1.3's decision), 1082 on `draw-5564`, 909 on
+`draw-6000`; `draw_layers#2` 312 on `draw-5564`, 16 on `draw-6000`
+(under its threshold); the five other children at most 2. The delay
+probe confirms one `draw_layers#1` call per window frame on the PSX.
+Additivity within 10% on every run: −0.4%, +7.3% (the method's bias on
+that run; −0.04% against the call-twice `cart_draw` delta), −0.9%.
+`draw-6000` shows code-layout leaks of at most 4 hblanks over the window.
+Hand-off: step 7 descends `draw_layers#1` on all three runs and
+`draw_layers#2` on `draw-5564` only; every other child is closed.
+

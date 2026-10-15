@@ -17,7 +17,7 @@
     - [x] Chunk 1: PSX_FULL_GAME_ASSERTS option
     - [x] Chunk 2: asserts-off full run and report section
 - [ ] Phase 2 — Draw
-  - [ ] 2.6 Probe each direct child of cart_draw
+  - [x] 2.6 Probe each direct child of cart_draw
     - [x] Chunk 1: baselines and cart_draw's own cost
     - [x] Chunk 2: children probes and additivity check
   - [ ] 2.7 Go down the draw tree
