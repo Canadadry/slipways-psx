@@ -231,12 +231,25 @@ because this plan file is deleted once it is finished.
     cache), with the boot ceiling raised enough for the slowest variant
     (`draw-6000`'s breakdown boot already exits 2 vsyncs over the default
     540). Also identify what the submit part spends its time on. Verified
-    when each has a measured delta in the report and every boot exited
-    before its ceiling with its state dump complete.
+    when each has a measured delta in the report, every boot exited
+    before its ceiling with its state dump complete, and each level
+    variant's effective optimisation level (the last `-O` reaching the
+    compiler for the measured targets) is shown to be the one requested.
 
 ### Phase 5 — Report
 
-12. Finish `docs/psx-perf-levers.md`. It holds:
+12. Finish `docs/psx-perf-levers.md`. It opens with a checklist of every
+    item the report and the step notes hand to "step 12" (overlaps such
+    as one-print with no-meter, the draw filter's discount, the meter
+    counted twice, the per-class save and `ui_update` ratios from step 9's
+    fallback, step 10's ratios differing from step 9's, the near misses,
+    candidates' gains on class frames), each resolved by a stated rule
+    with the figure it changes. The per-frame estimate is computed by a
+    tool from one explicit lever-gain table over the whole judge table,
+    and is first checked by reproducing step 9's spreading results (all
+    166 spike frames fit from a uniform 88% draw cut; with the step 7+8
+    estimated draw gains exactly one frame still fails). It is given as a
+    bracket: measured levers only, and measured plus estimated. It holds:
     - the decisions carried to the implementation plan (section 2 above),
       verbatim in substance;
     - one entry per lever: where it is (file:line), the measured or
@@ -253,8 +266,9 @@ because this plan file is deleted once it is finished.
     - the spikes and their spreading estimates;
     - which stop condition ended discovery.
 
-    Verified when every lever entry has all four fields, and the stop
-    condition holds: either the cumulative estimated gain brings every
+    Verified when the checklist items are each resolved with their
+    figure, the tool reproduces step 9's two known results, every lever
+    entry has all four fields, and the stop condition holds: either the cumulative estimated gain brings every
     full-run frame to 263 with about 20% extra gain to spare
     (estimates overlap, so their sum is optimistic), or every branch above
     2% is explored, whichever came first.
@@ -496,4 +510,56 @@ frames holding both (ratios 0.76–0.94 and 1.17–1.38): flagged for
 step 12, no class reclassified.
 Also removes the implemented PRD
 `docs/prd/triage/phase3-step9-update-spikes.md`.
+
+### Step 3.10
+
+Tooling: the `subtree` mode takes `part=update` (`make
+frame-profile-subtree PART=update`); `frame_profile_check.sh ordinary` /
+`make frame-profile-ordinary` cost update's pieces (`input_step_run`, each
+child of `cart_update60`, its self) on the judge frames outside step 9's
+classes and on named windows, with per-piece ratios and save-frame
+intervals, walking down until every node above the threshold is explored
+or a leaf.
+Deviation, accepted: the PRD measures its own ratios on ordinary frames
+(throwaway span patch with a sixth span around `input_step_run`, on
+`start`, `draw-5564`, `draw-6000`) instead of reusing step 9's spike-frame
+ratios as is; step 9's stay the reference and give the save's 1.14.
+Ratios, pooled in game: `input_step_run` 1.13 (medium), `ui_update` 0.83
+(medium, against step 9's 0.92–1.00), `update_entities` 1.28 (low; 1.84
+around frame 91, no step 9 reference). These apply to ordinary frames;
+step 9's per-class ratios apply to class frames. The input step costs
+4.2 hblanks a frame on the title and 26.9 in game on the PSX (41 early),
+not step 9's flat 40. `draw-6000`'s run frame 52 (judge frame 5944, a C3
+frame) is left out of the calibration.
+Costs at K=8: 5,893 ordinary frames, mean update 78.3, threshold 16.8.
+Above it: `input_step_run` 34.2 a frame, its leaf `pad_nav_step` 32.9,
+`cart_update60` 44.1, `ui_update` 26.5, its leaf `ui_update_hover` 18.7,
+each once a frame on the PSX (delay probes). Near misses for step 12:
+`planet_hit_test_method` 16.7, `update_entities` 16.2. Candidates O1–O5
+(estimated): the modal-backdrop scan kept as state, 28.2 (36% of update);
+one "panel open?" per `pad_nav_step` instead of 8.8, 25.0 (overlaps O1);
+box-filtered planet hit tests, up to 16.7; skipping an unchanged hover
+pass, up to 18.7; one layer list, 1.7. O1 and O2 also hold in the
+shipped game. Fixed in review: a hyphenated window name escaped
+validation; the suggested ratios line paired the save's interval ends
+the wrong way (the mode pairs ends by position).
+Plan changes (plan-review after phase 3): step 11 verifies each variant's
+effective `-O` level; step 12 opens with a checklist of the report's
+step-12 hand-offs and computes its per-frame estimate with a tool checked
+against step 9's two known results, as a measured / measured-plus-
+estimated bracket.
+End-of-phase warn-review (phase 3 tooling), not acted on, judged harmless
+to the remaining steps:
+- `frame_profile_check.sh` at 1,140 lines, with awk helpers and
+  set parsing repeated per mode;
+- the Makefile repeating `profile_set` and the open-symbol walk between
+  the spikes and ordinary targets;
+- inline constants (263, 600, 1000, 2%), and
+  `FRAME_PROFILE_SPIKE_THRESHOLD` apart from `PSX_FRAME_BUDGET_HBLANKS`;
+- run windows hard-coded in the Makefile;
+- `FRAME_PROFILE_JUDGE_FRAMES` reading a docs file that goes when the
+  report goes;
+- `FRAME_PROFILE_SPIKE_LEVELS` reused as the ordinary walk's depth.
+Also removes the implemented PRD
+`docs/prd/triage/phase3-step10-ordinary-update.md`.
 
