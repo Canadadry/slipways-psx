@@ -599,6 +599,9 @@ mask.
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 | `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
 | `make psx-probe PATCH=<file>` | a throwaway patch measured on the short runs against the probe baseline, built in a temporary worktree (outputs in `tmp/psx/probe/<label>`) | ~2 min |
+| `make situations [EVENTS=] [SITUATIONS_OUT=]` | writes the situation table of a replay (default `full_game.json`, into `tmp/situations-table/`), host only; see "Situations" | ~2 s |
+| `make situations-check` | the full game's regenerated situation table equals `psx/perf/full-run-situations.txt`, else the first differing frame is named | ~2 s |
+| `make situation-report [FRAMES=] [SITUATIONS=]` | per-situation frames, overruns and means, one-off occurrences and runs, verdicts `frame-count`, `families`, `one-off-runs` | ~1 s |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
@@ -1052,6 +1055,78 @@ ambiguous symbol, or `cart_update60`, exits 1.
 - Its tests are in `make frame-profile-test`.
 
 None of these targets is in `make test-all`, and none runs a setup.
+
+## Situations
+
+Every frame of a replay gets a **situation** and a **family**: `steady`
+(what the player stays in) or `one-off` (an event and its bounded tail). The
+label is read from the game state only, never from input buttons or frame
+times. This is step 2's rule of plan 22, **frozen**: the rule and the
+committed table change only through step 6's renumbering (the loading screen
+frame).
+
+`tmp/situations` (`src/cmd/situations.c`, `src/devtools/situation.c`)
+replays an events file headless on PC, title or resume start, never booting
+the PSX. After each frame's `cart_update60()` it reads a snapshot: the screen
+mode (pad-metrics' `title`, `pause`, `placement`, `bar`, `tech`, `score`,
+`menu`, `jump`, `aim`, `slipway`) and whether the attract demo plays; whether
+a game world (economy) exists and has its end status; the year; the counts of
+colonised planets, built structures (protostars and structures in placement
+excluded), placed slipways, invented techs and probes; the camera position
+before shake, floored to pixels; the hovered and pad-focused entities; the
+open panel's layout (the focused item and every item reachable from it
+through pad neighbours, with their focus points; empty without a focus); and
+whether a shake runs (the camera's, or an on-screen planet's).
+
+For each frame, `before` is the previous frame's snapshot (frame 0: the
+snapshot after `cart_init()`, or after the resume), `after` this frame's:
+
+1. **Event frame.** The first that holds, in this order, labels the frame
+   with that one-off event:
+   1. `galaxy-generation`: no game world in `before`, one in `after`;
+   2. `return-to-title`: a game world in `before`, none in `after`;
+   3. `game-end`: the end status appears;
+   4. `new-year`: the year increased;
+   5. `research`: the invented tech count increased;
+   6. `colonise`: the colonised planet count increased;
+   7. `structure-built`: the built structure count increased;
+   8. `slipway-built`: the placed slipway count increased;
+   9. `probe`: the probe count changed;
+   10. `screen-change`: the screen mode or the attract flag changed.
+2. **Continuation.** Otherwise, if the previous frame was one-off and the
+   screen is still settling (the layout differs between `before` and
+   `after`, or a shake runs in `after`), the frame keeps the previous frame's
+   label. Frame 0's previous label is the steady label of the start
+   snapshot, so it never continues.
+3. **Steady.** Otherwise, by `after`'s screen: `attract` while the demo
+   plays; `title`; `pause`; `build` (bar or placement); `tech-panel`;
+   `score-panel`; `menu` (any other open panel or box); `slipway-aim`
+   (slipway started, target not chosen); on the map (jump or aim mode)
+   `map-move` when the camera position, the hovered or the focused entity
+   differs between `before` and `after`, else `map-rest`.
+
+The ten steady labels and the ten event labels are fixed families, never
+decided per frame.
+
+**Table.** `psx/perf/full-run-situations.txt`, the labels of
+`worst-case/full_game.json`: a `frame situation family` header, then
+`<frame> <situation> <family>` per frame, frames 0..6058 numbered like the
+frame table `psx/perf/full-run-frames.txt`. `test_situation_table` checks
+its shape and a list of hand-picked frames (frame 12 is
+`galaxy-generation`); `make situations-check` regenerates it and fails on any
+difference.
+
+**Report.** `make situation-report` (`tools/situation_report.sh`) joins a
+frame table and a situation table line by line. Per situation: frames,
+frames over 263 hblanks (total), mean update and draw. Per one-off
+situation: occurrences and longest run. A run is a stretch of consecutive
+frames with the same one-off label, counted as one occurrence: the table
+does not mark event frames, so two back-to-back events of one label make one
+longer run, and the check can only over-flag. A run longer than **31
+frames** is marked `long`: a planet project's burst sets a camera shake of 3,
+decaying 0.1 a frame for 30 frames, plus the event frame. Verdicts:
+`frame-count` (same count and numbering), `families` (known names, one
+family each), `one-off-runs` (no `long` run).
 
 ## Still to do
 
