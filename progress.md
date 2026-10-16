@@ -26,6 +26,7 @@
   - [ ] Step 3.7 — Ranked levers, one by one
     - [x] D3 — second capture replay, residual probe
     - [x] D3 — the lever, measured
+    - [x] N1 — slipway lines on integer end points, measured
   - [ ] Step 3.8 — End-of-phase full-game check
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan

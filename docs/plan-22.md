@@ -493,3 +493,40 @@ Open risk: score-panel-5876's +36 h is beyond its 3 h noise floor and
 its cause (slots built on a cold cache right after the resume) is
 unproven; step 8's per-situation comparison checks score-panel and
 menu, where the box stays open.
+
+### Step 3.7 — N1
+
+Lever N1, slipway lines from integer end points: `slipway_draw_line`
+floors its two end points once and builds each segment with `int` adds;
+its offsets and step are `int` parameters, an assert keeps the floored
+ends inside ±32,765 (where an `int` add matches `p8_fixed_add`'s wrap).
+Residual before the change (throwaway probe running the segment loops a
+second time into a `volatile` sink): map-move-1057 +2.5 h a window frame,
+menu-5954 +10.3, tech-panel-5895 +8.0 (12.9%, 11.0%, 10.1% of
+`slipway_draw_method`, pooled 10.8%); per steady frame 4.9 h, above
+T = 4.4 (rule (a)), and menu and tech-panel above 2% of their totals
+(rule (b)); not covered by D3. Best tries: map-rest-5581 +6.9, build-5752
++6.2, score-panel-5876 +9 on its one frame. Probe baseline reused: taken
+at D3's commit, its fingerprint matches HEAD on every run. Probe,
+`game-state same` on every run: map-move-1057 draw 3,308 → 3,268 (−40 over
+15 frames, −2.7 h a frame, 1.2% of draw) against 3.0 h (1.3%); menu-5954
+4,251 → 4,073 (−178, −11.9 h, 4.2%) against 14.1 h (5.0%);
+tech-panel-5895 2,878 → 2,797 (−81 over 9, −9.0 h, 2.8%) against 11.9 h
+(3.6%). Pooled ratio 23.5 / 29.0 = 0.81, applied to the no-run
+situations (map-rest 2.8%, build 3.0%, slipway-aim 3.1%, score-panel
+1.9%); no `scale` line, one `share` lever measured. Kept: the three runs
+sum negative and none is positive; map-move-1057's −2.7 h alone is under
+its 3.5 h noise floor. Weaker evidence: map-rest-5581 −120 over 15
+(−8.0 a frame), build-5752 −119 over 15 (−7.9), score-panel-5876 −9 on
+one frame; update within ±4 h everywhere; text −236 bytes. Every e2e
+`.sha256` and `.end-state` unchanged; `psx-check` green, all 39
+conditions, every capture of both lists matching its reference. Steady
+frames over: N1 alone removes 56 (projection after D3: 69), 1,132 → 1,076
+nominal / 1,088 pessimistic (was 1,063 / 1,080); end of the list 563 /
+741 (was 547 / 718). Re-ranked: N1, N2, N3, G4, N5, D3 (taken), N7, N6
+(G4 before N5, N7 before N6). RAM: `ram-room` 141,696 bytes left (asserts
+on, the new range assert), `game-ram-room` 295,736. Warn-review warnings
+in the changed files: none in slipway_display.c, slipway_display.h or
+test_slipway.c; docs/psx-game.md's "one frame late" vs F−2 wording is
+outside the projection line N1 edits; all left open. No guideline
+decision.

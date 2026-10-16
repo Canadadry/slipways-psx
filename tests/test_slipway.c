@@ -908,8 +908,7 @@ static void test_draw_line_flushes_every_four_segments_and_the_rest(void) {
     p8_camera(&graphics, p8_fixed_flr_int(camera.x), p8_fixed_flr_int(camera.y));
     p8_cls(&memory);
     const p8_draw_backend_t *previous = spy_on_lines();
-    slipway_draw_line(&graphics, &memory, slipway_line_ends(as_slipway(old)), p8_fixed_from_int(0), p8_fixed_from_int(2),
-                      p8_fixed_from_int(1), 7);
+    slipway_draw_line(&graphics, &memory, slipway_line_ends(as_slipway(old)), 0, 2, 1, 7);
     p8_draw_backend_set(previous);
     memcpy(batched, memory.screen, sizeof batched);
     assert(screen_hash() != 2166136261u);
@@ -928,6 +927,45 @@ static void test_draw_line_flushes_every_four_segments_and_the_rest(void) {
     assert(spied[0].col == 7 && spied[2].col == 7);
     assert_offsets(&spied[0], 3, 1, 0);
     assert(spied[2].segments[0].x1 - spied[0].segments[0].x1 == 2 && spied[2].segments[0].y1 - spied[0].segments[0].y1 == 2);
+}
+
+/* Whole offsets on floored ends give the segments the per-segment fixed adds and floors gave. */
+static void test_draw_line_segments_equal_the_fixed_point_offsets_on_any_end(void) {
+    static const int32_t raws[] = {0x00000000, 0x00008000, 0x0003c000, 0x00140001, -0x00000001, -0x00004000,
+                                   -0x00010000, -0x0001c000, -0x00c80000, 0x0000ffff, -0x0000ffff, 0x7ffc0000};
+    static const int ranges[][3] = {{-1, 2, 3}, {0, 1, 1}, {0, 2, 1}};
+    const size_t n = sizeof raws / sizeof raws[0];
+
+    world();
+    for (size_t i = 0; i < n; i++) {
+        for (size_t r = 0; r < sizeof ranges / sizeof ranges[0]; r++) {
+            slipway_line_ends_t ends;
+            int l = ranges[r][0], h = ranges[r][1], step = ranges[r][2];
+            int segment = 0;
+            ends.start.x = (p8_fixed_t)raws[i];
+            ends.start.y = (p8_fixed_t)raws[(i + 3) % n];
+            ends.end.x = (p8_fixed_t)raws[(i + 5) % n];
+            ends.end.y = (p8_fixed_t)raws[(i + 7) % n];
+
+            const p8_draw_backend_t *previous = spy_on_lines();
+            slipway_draw_line(&graphics, &memory, ends, l, h, step, 9);
+            p8_draw_backend_set(previous);
+
+            for (int dx = l; dx <= h; dx += step) {
+                for (int dy = l; dy <= h; dy += step) {
+                    const spied_batch_t *batch = &spied[segment / 4];
+                    const p8_segment_t *s = &batch->segments[segment % 4];
+                    assert(segment / 4 < spied_batches && segment % 4 < batch->count && batch->col == 9);
+                    assert(s->x1 == p8_fixed_flr_int(p8_fixed_add(ends.start.x, p8_fixed_from_int(dx))));
+                    assert(s->y1 == p8_fixed_flr_int(p8_fixed_add(ends.start.y, p8_fixed_from_int(dy))));
+                    assert(s->x2 == p8_fixed_flr_int(p8_fixed_add(ends.end.x, p8_fixed_from_int(dx))));
+                    assert(s->y2 == p8_fixed_flr_int(p8_fixed_add(ends.end.y, p8_fixed_from_int(dy))));
+                    segment++;
+                }
+            }
+            assert(spied_batches == (segment + 3) / 4 && spied[spied_batches - 1].count == (segment - 1) % 4 + 1);
+        }
+    }
 }
 
 /* The end points as the per-call computation gave them: each end wobbles on its own period. */
@@ -1520,6 +1558,7 @@ int main(void) {
     in_fresh_child(test_draw);
     in_fresh_child(test_draw_issues_one_lines_call_per_bundle_with_its_lines_in_order);
     in_fresh_child(test_draw_line_flushes_every_four_segments_and_the_rest);
+    in_fresh_child(test_draw_line_segments_equal_the_fixed_point_offsets_on_any_end);
     in_fresh_child(test_draw_bundles_start_from_the_line_ends_at_every_state_time);
     in_fresh_child(test_targeting_track);
     in_fresh_child(test_targeting_track_takes_the_first_slipway_of_entities_by_tag);

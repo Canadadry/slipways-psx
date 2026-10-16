@@ -58,25 +58,38 @@ slipway_line_ends_t slipway_line_ends(const slipway_t *self) {
     return ends;
 }
 
-void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, slipway_line_ends_t ends, p8_fixed_t l, p8_fixed_t h,
-                       p8_fixed_t s, int c) {
-    vec_t start_point = ends.start;
-    vec_t end_point = ends.end;
-    p8_fixed_t dx;
+static int floored_far_from_the_wrap(p8_fixed_t p) {
+    int floored = p8_fixed_flr_int(p);
+    assert(floored >= -32765 && floored <= 32765 &&
+           "int adds of the offsets match p8_fixed_add only away from its +-32768 wrap");
+    return floored;
+}
 
-    assert(s > p8_fixed_from_int(0) && "slipway_draw_line only ascends: a zero step hangs, a negative one draws nothing");
+void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, slipway_line_ends_t ends, int l, int h, int s, int c) {
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+    int dx;
+
+    assert(s > 0 && "slipway_draw_line only ascends: a zero step hangs, a negative one draws nothing");
     assert(gfx != NULL && mem != NULL && "p8_lines dereferences the graphics state and memory: neither may be NULL here");
+
+    x1 = floored_far_from_the_wrap(ends.start.x);
+    y1 = floored_far_from_the_wrap(ends.start.y);
+    x2 = floored_far_from_the_wrap(ends.end.x);
+    y2 = floored_far_from_the_wrap(ends.end.y);
 
     p8_segment_t bundle[4];
     int count = 0;
-    for (dx = l; dx <= h; dx = p8_fixed_add(dx, s)) {
-        p8_fixed_t dy;
-        for (dy = l; dy <= h; dy = p8_fixed_add(dy, s)) {
+    for (dx = l; dx <= h; dx += s) {
+        int dy;
+        for (dy = l; dy <= h; dy += s) {
             p8_segment_t *segment = &bundle[count++];
-            segment->x1 = to_int(p8_fixed_add(start_point.x, dx));
-            segment->y1 = to_int(p8_fixed_add(start_point.y, dy));
-            segment->x2 = to_int(p8_fixed_add(end_point.x, dx));
-            segment->y2 = to_int(p8_fixed_add(end_point.y, dy));
+            segment->x1 = x1 + dx;
+            segment->y1 = y1 + dy;
+            segment->x2 = x2 + dx;
+            segment->y2 = y2 + dy;
             if (count == 4) {
                 p8_lines(gfx, mem, bundle, count, c);
                 count = 0;
@@ -130,10 +143,8 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
         dot_color = infraspace_truthy ? p8_fixed_from_int(5) : p8_fixed_from_int(13);
 
         slipway_line_ends_t ends = slipway_line_ends(self);
-        slipway_draw_line(graphics, memory, ends, p8_fixed_from_int(-1), p8_fixed_from_int(2), p8_fixed_from_int(3),
-                          to_int(border_color));
-        slipway_draw_line(graphics, memory, ends, p8_fixed_from_int(0), p8_fixed_from_int(1), p8_fixed_from_int(1),
-                          to_int(line_color));
+        slipway_draw_line(graphics, memory, ends, -1, 2, 3, to_int(border_color));
+        slipway_draw_line(graphics, memory, ends, 0, 1, 1, to_int(line_color));
 
         {
             pointer_list_t *ts = &self->transit_dots;
