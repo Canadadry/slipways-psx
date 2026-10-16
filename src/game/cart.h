@@ -29,6 +29,12 @@ extern const entity_registry_reserve_t cart_game_registry_reserve;
 
 void cart_start_game(button_t *chosen_option);
 
+/* The title's difficulty buttons: copies the option's value, then the press frame and the next
+   draw the loading screen and the frame after generates the galaxy. NULL starts with no difficulty. */
+void cart_request_start_game(button_t *chosen_option);
+
+int cart_loading(void);
+
 void cart_resume_game(const save_state_t *state);
 
 void cart_update60(void);

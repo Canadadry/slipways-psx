@@ -20,7 +20,7 @@
 - [ ] Phase 2 — Loading screen
   - [ ] Step 2.6 — Loading screen during galaxy generation
     - [x] The display capture
-    - [ ] The loading screen and the re-record
+    - [x] The loading screen and the re-record
     - [ ] The renumbering and the PSX proofs
 - [ ] Phase 3 — Pixel-identical levers, in impact order
   - [ ] Step 3.7 — Ranked levers, one by one

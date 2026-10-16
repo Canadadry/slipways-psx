@@ -13,6 +13,7 @@
 #include "game/cart.h"
 #include "game/economy_score.h"
 #include "game/game_data.h"
+#include "game/loading_screen.h"
 #include "game/main_economy.h"
 #include "game/menu.h"
 #include "game/message_box.h"
@@ -443,7 +444,15 @@ static int run_title(pad_author_t *author, const script_t *script, int choose_ro
     for (int d = 0; d < difficulty; d++) {
         if (!press_action(author, script, BINDINGS_ACTION_MOVE_DOWN)) return 0;
     }
-    if (!emit_action(author, script, BINDINGS_ACTION_CHOOSE_ROW)) return 0;
+    int choose_row = 0;
+    if (!action_button(author, script, BINDINGS_ACTION_CHOOSE_ROW, &choose_row) || !emit(author, script, choose_row)) return 0;
+    for (int held = 0; cart_loading(); held++) {
+        if (held == LOADING_SCREEN_FRAMES) {
+            return fail(author, script, "title: still loading %d frames after the title.choose_row press at f%d",
+                        LOADING_SCREEN_FRAMES, author->frame_count - 1 - held);
+        }
+        if (!emit(author, script, choose_row)) return 0;
+    }
     const button_t *chosen = economy_score_difficulty();
     if (main_economy_typed() == NULL || chosen == NULL || chosen->name == NULL ||
         strcmp(chosen->name, difficulty_options_table[difficulty].name) != 0) {

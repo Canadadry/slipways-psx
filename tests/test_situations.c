@@ -87,31 +87,33 @@ static void test_the_score_e2e_opens_its_panels_after_the_galaxy(void) {
     assert(table.count == frame_count_of("tests/e2e/pad_score.json"));
     expect(&table, 0, "title", "steady");
     expect(&table, 11, "title", "steady");
-    expect(&table, 12, "galaxy-generation", "one-off");
-    expect(&table, 18, "map-rest", "steady");
-    expect(&table, 20, "screen-change", "one-off");
-    expect(&table, 24, "screen-change", "one-off");
-    expect(&table, 25, "screen-change", "one-off");
-    expect(&table, 30, "score-panel", "steady");
-    expect(&table, 37, "screen-change", "one-off");
-    expect(&table, 43, "map-rest", "steady");
-    expect(&table, 58, "build", "steady");
+    expect(&table, 12, "title", "steady");
+    expect(&table, 13, "title", "steady");
+    expect(&table, 14, "galaxy-generation", "one-off");
+    expect(&table, 20, "map-rest", "steady");
+    expect(&table, 22, "screen-change", "one-off");
+    expect(&table, 26, "screen-change", "one-off");
+    expect(&table, 27, "screen-change", "one-off");
+    expect(&table, 32, "score-panel", "steady");
+    expect(&table, 39, "screen-change", "one-off");
+    expect(&table, 45, "map-rest", "steady");
+    expect(&table, 60, "build", "steady");
 }
 
 static void test_the_probe_e2e_moves_the_camera_then_launches_a_probe(void) {
     label("tests/e2e/pad_probe.json", &table);
-    expect(&table, 22, "map-move", "steady");
-    expect(&table, 25, "map-rest", "steady");
-    expect(&table, 26, "probe", "one-off");
+    expect(&table, 24, "map-move", "steady");
+    expect(&table, 27, "map-rest", "steady");
+    expect(&table, 28, "probe", "one-off");
 }
 
 static void test_the_game_end_e2e_ends_the_game_then_returns_to_the_title(void) {
     label("tests/e2e/pad_game_end.json", &table);
-    expect(&table, 43, "new-year", "one-off");
-    expect(&table, 44, "map-rest", "steady");
-    expect(&table, 91, "game-end", "one-off");
-    expect(&table, 100, "menu", "steady");
-    expect(&table, 106, "return-to-title", "one-off");
+    expect(&table, 45, "new-year", "one-off");
+    expect(&table, 46, "map-rest", "steady");
+    expect(&table, 93, "game-end", "one-off");
+    expect(&table, 102, "menu", "steady");
+    expect(&table, 108, "return-to-title", "one-off");
 }
 
 static void write_resume_events(void) {

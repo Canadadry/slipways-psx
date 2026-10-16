@@ -181,14 +181,14 @@ static void pad_tech_costs_rich_mine(void) {
 
 #define CHEAT_CUT "tmp/test_state_cheat.json"
 
-/* pad_research cut after f44, the frame its cheat fires: 99 science, $200 at
+/* pad_research cut after f46, the frame its cheat fires: 99 science, $200 at
  * the last frame. */
 static void pad_research_cheat(void) {
     p8_input_t input;
     p8_input_init(&input);
     assert(p8_input_load(&input, "tests/e2e/pad_research.json"));
-    assert(input.frame_count > 45);
-    assert(p8_input_save(input.frames, 45, CHEAT_CUT, NULL));
+    assert(input.frame_count > 47);
+    assert(p8_input_save(input.frames, 47, CHEAT_CUT, NULL));
     p8_input_free(&input);
     replay(REPLAY(CHEAT_CUT));
     assert(strstr(text, "\nresources credits 200\n") != NULL);

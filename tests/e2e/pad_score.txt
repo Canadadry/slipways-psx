@@ -1,13 +1,13 @@
 R1 from the map opens the tech panel, R1 on tech hands over to the score
 panel in one frame, and R1 on score closes it. The score panel closes
 with O, then with L1, which opens the build bar; O on `tech` goes back
-to the map, and a last R1 cycle closes from score. 96 frames.
+to the map, and a last R1 cycle closes from score. 98 frames.
 
 A new game knows no object, so it starts in plain aim mode (plan 12
-step 17): f13 is idle (it was square out of jump mode until then).
+step 17): f15 is idle (it was square out of jump mode until then).
 Every capture frame is unchanged.
 
-f0-12 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
+f0-14 are pad_probe's frames (Down, X on "reasonable"), so the galaxy is
 pad_probe's. HUD buttons are read at one fill pixel each: tech (1, 1),
 score (64, 1), year skip (152, 1); colour 12 is a lit button, 13 the
 others, and colour 1 at all three while a structure icon's tooltip
@@ -18,74 +18,74 @@ that backdrop plus a message box. The tech panel is its header row
 marks the centre (x78-82 on y=60, y58-62 on x=80, the centre pixel
 undrawn).
 
-Until plan 12 step 10, L1 went one tab back round the ring: f16 was L1
-from `map` to `score`, and f47 L1 from `score` to `tech`, handing over
+Until plan 12 step 10, L1 went one tab back round the ring: f18 was L1
+from `map` to `score`, and f49 L1 from `score` to `tech`, handing over
 on the third frame. Both situations went with that mechanic; L1 now
 toggles the build bar.
 
 Until plan 12 step 11, tech was reached by R1 R1 R1 round the ring
-(`build` at f16, f41 and f62, `end turn` at f18, f43 and f64). Those
+(`build` at f18, f43 and f64, `end turn` at f20, f45 and f66). Those
 ring passes went with the mechanic: R1 from the map now opens tech, and
-f16-19, f41-44 and f62-65 are idle frames on the map. "R1 on the bar:
+f18-21, f43-46 and f64-67 are idle frames on the map. "R1 on the bar:
 `end turn`" lived on in pad_end_turn until plan 12 step 12, which
 removed the ring: R1 on the bar now opens tech.
 
-- f0-12: as pad_probe. After f12: aim mode, nothing lit, the
-  crosshair at the centre on f13-15.
-- f16-19: idle, aim mode, nothing lit, the crosshair at the centre.
-- f20: R1 from the map: `tech` (the tech button colour 12, the tech
-  panel drawn from f21).
-- f25: R1 on `tech`: `score`, in one frame: the tech panel gone, the
-  score button colour 12 from f25 to f36, the cursor on it, backdrop 1
-  from f25, the score rows sliding in from the left.
-- f31: Down, f33: X: nothing. Backdrop 1, the score button colour 12
-  and the cursor on it on every frame f31-36: no item to focus, X
+- f0-14: as pad_probe (f12-13 the loading screen). After f14: aim mode, nothing lit, the
+  crosshair at the centre on f15-17.
+- f18-21: idle, aim mode, nothing lit, the crosshair at the centre.
+- f22: R1 from the map: `tech` (the tech button colour 12, the tech
+  panel drawn from f23).
+- f27: R1 on `tech`: `score`, in one frame: the tech panel gone, the
+  score button colour 12 from f27 to f38, the cursor on it, backdrop 1
+  from f27, the score rows sliding in from the left.
+- f33: Down, f35: X: nothing. Backdrop 1, the score button colour 12
+  and the cursor on it on every frame f33-38: no item to focus, X
   presses nothing (the backdrop would have hidden the panel).
-- f37: O: back on the map. Nothing lit from f37, the crosshair back at
-  the centre from f38 (f38-40); the O's click on the backdrop hides the
-  panel (its press on f37, release on f38), backdrop 0 from f39.
-- f41-44: idle, aim mode, nothing lit, the crosshair at the centre.
-- f45: R1 from the map: `tech`. The tech button is colour 12 from f45, the cursor on
-  it; the tech panel is drawn from f46, the cursor on its header,
+- f39: O: back on the map. Nothing lit from f39, the crosshair back at
+  the centre from f40 (f40-42); the O's click on the backdrop hides the
+  panel (its press on f39, release on f40), backdrop 0 from f41.
+- f43-46: idle, aim mode, nothing lit, the crosshair at the centre.
+- f47: R1 from the map: `tech`. The tech button is colour 12 from f47, the cursor on
+  it; the tech panel is drawn from f48, the cursor on its header,
   backdrop 0.
-- f50: R1 on `tech`: `score`, in one frame. On f50's capture the tech
+- f52: R1 on `tech`: `score`, in one frame. On f52's capture the tech
   panel is gone, backdrop 1, the score button colour 12 and the tech
-  button 13, the cursor on the score button. f50-55: the score panel
+  button 13, the cursor on the score button. f52-57: the score panel
   up.
-- f56: L1 on `score`: the build bar. f56: nothing lit, the backdrop's
-  click (backdrop 1), f57 its release, backdrop 0 from f58. The press
+- f58: L1 on `score`: the build bar. f58: nothing lit, the backdrop's
+  click (backdrop 1), f59 its release, backdrop 0 from f60. The press
   lands on the backdrop, not on the basic structure's icon under the
-  cursor: no structure is taken (structures 0, credits 100). f57-59:
+  cursor: no structure is taken (structures 0, credits 100). f59-61:
   the bar open, the icon's tooltip over the HUD.
-- f60: L1: the bar closes, back in aim mode: nothing lit, the
-  crosshair at the centre (f60-61).
-- f62-65: idle, aim mode, nothing lit, the crosshair at the centre.
-- f66: R1 from the map: `tech`, the tech button colour 12 from f66, the
-  tech panel drawn from f67.
-- f71: O on `tech`: back on the map in one press. From f71 no tech panel, nothing
-  lit, the crosshair at the centre. f72-76: idle, aim mode.
-- f77: R1 from the map: `tech`, the tech button colour 12 on f77-81, no
-  crosshair, the tech panel drawn from f78, backdrop 0.
-- f82: R1 on `tech`: `score`, in one frame: the tech panel gone, the
-  score button colour 12 on f82-87, backdrop 1 from f82.
-- f88: R1 on `score`: closed. Nothing lit from f88; R1's click on the
-  backdrop hides the panel (its press on f88, release on f89), the
-  crosshair back at the centre from f89, backdrop 0 from f90: back in
-  aim mode, the mode the cycle left. f89-95: idle, aim mode, camera
+- f62: L1: the bar closes, back in aim mode: nothing lit, the
+  crosshair at the centre (f62-63).
+- f64-67: idle, aim mode, nothing lit, the crosshair at the centre.
+- f68: R1 from the map: `tech`, the tech button colour 12 from f68, the
+  tech panel drawn from f69.
+- f73: O on `tech`: back on the map in one press. From f73 no tech panel, nothing
+  lit, the crosshair at the centre. f74-78: idle, aim mode.
+- f79: R1 from the map: `tech`, the tech button colour 12 on f79-83, no
+  crosshair, the tech panel drawn from f80, backdrop 0.
+- f84: R1 on `tech`: `score`, in one frame: the tech panel gone, the
+  score button colour 12 on f84-89, backdrop 1 from f84.
+- f90: R1 on `score`: closed. Nothing lit from f90; R1's click on the
+  backdrop hides the panel (its press on f90, release on f91), the
+  crosshair back at the centre from f91, backdrop 0 from f92: back in
+  aim mode, the mode the cycle left. f91-97: idle, aim mode, camera
   world 176 196.
 
-Colour 12 by frame: tech f20-24, f45-49, f66-70 and f77-81; score
-f25-36, f50-55 and f82-87; the year skip never; nothing elsewhere after
+Colour 12 by frame: tech f22-26, f47-51, f68-72 and f79-83; score
+f27-38, f52-57 and f84-89; the year skip never; nothing elsewhere after
 f12.
 
-`make state` at f95: clock year 3401 month 1, credits 100, research 0,
+`make state` at f97: clock year 3401 month 1, credits 100, research 0,
 income 0, camera world 176 196, planets 90, colonies 0, slipways 0,
 structures 0, techs 0; every planet unknown. The same lines as
-pad_title's at f29: looking at the score and the tech panel, and the
+pad_title's at f31: looking at the score and the tech panel, and the
 bar, changes nothing.
 
 The X and O edges never type the cheat (four X + O chords): the title's
-X, the X at f33 and the O taps are lone presses, none a chord, and R1
+X, the X at f35 and the O taps are lone presses, none a chord, and R1
 is no part of a chord.
 
 Covers no keyboard_* scenario: no keyboard replay opens the score

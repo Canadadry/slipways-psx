@@ -627,10 +627,11 @@ static void test_ephemerals_eight_fit_the_reserve(void) {
     assert(ui_zone_max_bytes(SLOT_KIND_EPHEMERALS) == 128);
 }
 
-/* On the title screen, a click on a difficulty button runs
- * `cart_start_game()` from inside ui_update: `reset_world()` rebuilds
- * `main_ui()`, and the end of ui_update still runs on the old one: its
- * ephemerals are cleared and its links, of the old world, read NULL. */
+/* On the title screen, a click on a difficulty button only requests the
+ * game from inside ui_update, which ends on the title's ui. The generation
+ * frame's update runs `cart_start_game()` outside ui_update: `reset_world()`
+ * rebuilds `main_ui()`, and the old one's ephemerals are cleared and its
+ * links, of the old world, read NULL. */
 static void test_stale(void) {
     uint32_t h = 2166136261u;
     ui_t *old;
@@ -650,10 +651,15 @@ static void test_stale(void) {
 
     mouse_at(76, 71, 1);
     ui_update(&memory, old);
-    assert(main_ui() != old && main_ui() != NULL);
+    assert(main_ui() == old && cart_loading() && "the click only requests the game");
+    assert(old->ephemerals_serial != serial && ephemerals_of(old)->count == 0);
+    cart_update60();
+    assert(main_ui() == old && cart_loading());
+    cart_update60();
+    assert(!cart_loading() && main_ui() != old && main_ui() != NULL);
     assert(ui_previous_hovered(old) == NULL && ui_hovered(old) == NULL);
     h = fnv(h, (uint32_t)entity_list_rank_in(live_entities(), ui_previous_hovered(old)));
-    assert(old->ephemerals_serial != serial && ephemerals_of(old)->count == 0);
+    assert(ephemerals_of(old)->count == 0);
     assert(ui_previous_hovered(main_ui()) == NULL && !(main_ui()->has & UI_HAS_MOUSE_WORLD));
     h = fnv(h, (uint32_t)ephemerals_of(main_ui())->count);
     h = fnv(h, (uint32_t)!owns_ephemerals(main_ui()));

@@ -66,10 +66,13 @@ static entity_t *title_button(const char *name) {
 
 static int cheats_fired;
 
+/* A difficulty press is held through the loading screen's frames, as the recordings hold it. */
 static void run_frame(input_step_t *step, int pad_buttons) {
     p8_input_frame_t raw = { 0, 0, 0, pad_buttons };
-    cheats_fired += input_step_run(step, &raw);
-    cart_update60();
+    do {
+        cheats_fired += input_step_run(step, &raw);
+        cart_update60();
+    } while (cart_loading());
 }
 
 static void tap(input_step_t *step, int pad_buttons) {

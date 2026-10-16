@@ -167,7 +167,7 @@ static void test_replay_writes_the_digest_file_when_digest_is_set(void) {
     screencast_reader_t capture;
     assert(screencast_reader_open(&capture, CAPTURE) == SCREENCAST_OK);
     int frame_count = screencast_frame_count(&capture);
-    assert(frame_count == 30);
+    assert(frame_count == 32);
     for (int frame = 0; frame < frame_count; frame++) {
         if (!vram_digest_samples_frame(frame, frame_count)) continue;
         assert(screencast_read_frame(&capture, frame, &memory.screen[0][0]));

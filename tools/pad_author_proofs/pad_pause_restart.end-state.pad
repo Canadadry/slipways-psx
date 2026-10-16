@@ -1,9 +1,9 @@
 # Closed-loop commands: reaches tests/e2e/pad_pause_restart.json's end state.
 # The new galaxy depends on the restart frame as well as the title button 5, so
-# the idle frames put button 11 on f16 and restart's button 5 on f26, as the replay.
+# the idle frames put button 11 on f18 and restart's button 5 on f28, as the replay.
 title 12 reasonable
 idle 3
 pause
 idle 7
 restart
-title 38 challenging
+title 40 challenging

@@ -211,8 +211,8 @@
 # make pad-metrics-check -> regenerates tests/e2e/pad_colonise.json from its
 #                       proof script, then fails unless the report's `total `
 #                       lines equal the generator's and its required group is
-#                       exactly f16's button 7, f17's button 6 (aim mode,
-#                       nothing known) and f293's button 6, outside the suite
+#                       exactly f18's button 7, f19's button 6 (aim mode,
+#                       nothing known) and f295's button 6, outside the suite
 # make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
 #                       as make state does and prints, per line of
 #                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
@@ -923,6 +923,7 @@ ENGINE_SRCS := \
     src/engine/bootstrap.c \
     src/game/cheat.c \
     src/game/demo_overlay.c \
+    src/game/loading_screen.c \
     src/game/input_step.c \
     src/game/pad_nav.c \
     src/game/pad_panel.c \
@@ -1022,6 +1023,7 @@ CART_ONLY_SRCS := \
     $(DEMO_UNIT) \
     src/game/attract.c \
     src/game/demo_overlay.c \
+    src/game/loading_screen.c \
     src/game/cart.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -1524,6 +1526,9 @@ $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c
 $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_loading_screen: $(call objs,tests/test_loading_screen.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1848,6 +1853,7 @@ UNIT_TESTS := \
     test_economy \
     test_main_economy \
     test_input_step \
+    test_loading_screen \
     test_pad_nav \
     test_pad_panel \
     test_entity_geom \
@@ -2101,7 +2107,7 @@ pad_metrics_name = $(PAD_METRICS_DIR)/$(basename $(notdir $(1)))
 pad_metrics_run = PAD_METRICS=$(call pad_metrics_name,$(1)).txt ./$(TMP_DIR)/replay $(1) /dev/null $(call pad_metrics_name,$(1)).dump.txt > /dev/null || exit 1; echo "pad-metrics: $(1) -> $(call pad_metrics_name,$(1)).txt"; grep '$(3)' $(call pad_metrics_name,$(1)).txt; $(if $(filter 1,$(2)),grep -qx 'section4 verdict ok' $(call pad_metrics_name,$(1)).txt || { echo "pad-metrics: $(1) misses section 4"; exit 1; };)
 PAD_METRICS_PROOF := tools/pad_author_proofs/pad_colonise.frames.pad
 PAD_METRICS_PROOF_E2E := $(E2E_DIR)/pad_colonise.json
-PAD_METRICS_PROOF_REQUIRED := dead f16 press 7 aim required;dead f17 press 6 aim required;dead f293 press 6 jump required
+PAD_METRICS_PROOF_REQUIRED := dead f18 press 7 aim required;dead f19 press 6 aim required;dead f295 press 6 jump required
 
 pad-metrics: $(TMP_DIR)/replay
 	@test -n "$(EVENTS)" || { echo "pad-metrics: EVENTS=<events.json> is required"; exit 2; }
@@ -2120,7 +2126,7 @@ pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) 
 	@grep '^total ' $(TMP_DIR)/pad-author/pad_colonise.modes.txt > $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt
 	@grep '^total ' $(PAD_METRICS_DIR)/pad_colonise.txt | diff $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt - || { echo "pad-metrics-check: the totals differ from the generator's"; exit 1; }
 	@required=$$(grep -E ' (required|dead-required)$$' $(PAD_METRICS_DIR)/pad_colonise.txt | paste -sd ';' -); test "$$required" = "$(PAD_METRICS_PROOF_REQUIRED)" || { echo "pad-metrics-check: required group is '$$required', not '$(PAD_METRICS_PROOF_REQUIRED)'"; exit 1; }
-	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's button 7, f17's button 6 and f293's button 6"
+	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f18's button 7, f19's button 6 and f295's button 6"
 
 .PHONY: pad-metrics pad-metrics-worst-case pad-metrics-check
 
