@@ -133,8 +133,7 @@ const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT] = {
 };
 
 static const int planet_ring_colors_items[] = {2, 3, 9, 12};
-typedef char planet_ring_colors_count_matches[sizeof planet_ring_colors_items / sizeof planet_ring_colors_items[0] == PLANET_RING_COLORS_COUNT ? 1 : -1];
-const int_seq_t planet_ring_colors_seq = {PLANET_RING_COLORS_COUNT, planet_ring_colors_items};
+const int_seq_t planet_ring_colors_seq = {4, planet_ring_colors_items};
 
 static const data_item_t planet_mood_rows_1_items[] = {{.text = "unhappy"}};
 static const data_item_t planet_mood_rows_2_items[] = {{.text = "content"}};

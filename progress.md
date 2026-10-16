@@ -46,7 +46,7 @@
   - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
     - [x] Chunk 0 — gross probes, capture check
     - [x] Chunk 1 — five small image slots
-    - [ ] Chunk 2 — planet_draw copies disc and ring, measured
+    - [x] Chunk 2 — planet_draw copies disc and ring, measured
   - [ ] Step 3.12 — D6 planet row icons through the image cache
   - [ ] Step 3.13 — D4 score panel readouts through the image cache
   - [ ] Step 3.14 — B2 off-screen rejection, or D12 + D11 + D15

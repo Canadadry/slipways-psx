@@ -5,7 +5,7 @@
 
 /* One SLOT(width, height) per slot, in slot order. Each width is a multiple of 16 (the PSX FILL),
  * each side at most 256. */
-#define P8_IMAGE_SLOTS(SLOT) SLOT(256, 256) SLOT(16, 16) SLOT(16, 16) SLOT(16, 16) SLOT(16, 16) SLOT(16, 16)
+#define P8_IMAGE_SLOTS(SLOT) SLOT(256, 256)
 
 #define P8_IMAGE_SLOT_COUNT_EACH(width, height) +1
 #define P8_IMAGE_SLOT_COUNT (0 P8_IMAGE_SLOTS(P8_IMAGE_SLOT_COUNT_EACH))

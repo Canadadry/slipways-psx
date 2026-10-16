@@ -162,76 +162,6 @@ static void test_an_outlined_print_in_a_build_copies_like_the_print_drawn_direct
     }
 }
 
-typedef struct {
-    int filled;
-    int col;
-} circle_t;
-
-static void draw_circle(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
-    const circle_t *circle = context;
-    if (circle->filled) {
-        p8_circfill(gfx, mem, 7, 7, 7, circle->col);
-    } else {
-        p8_circ(gfx, mem, 6, 6, 6, circle->col);
-    }
-}
-
-static void stripes(p8_vram_t *mem) {
-    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
-        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
-            mem->screen[y][x] = (unsigned char)(1 + (x + y) % 15);
-        }
-    }
-}
-
-static void test_small_slots_hold_circles_that_copy_like_the_circles_drawn_directly(void) {
-    static p8_vram_t direct, cached;
-    static const circle_t circles[] = {{1, 0}, {0, 2}, {0, 3}, {0, 9}, {0, 12}};
-    static const int xs[] = {-8, -7, -1, 60, 153, 159, 160};
-    static const int ys[] = {-8, -7, -1, 50, 113, 119, 120};
-    int count = (int)(sizeof xs / sizeof xs[0]);
-    p8_graphics_t gfx;
-    p8_vram_init(&direct);
-    sheet_with_patterns(&direct);
-    map_with_holes(&direct);
-    cached = direct;
-    p8_gfx_init(&gfx);
-    assert(P8_IMAGE_SLOT_COUNT == 1 + 5);
-
-    p8_image_build(&gfx, &cached, 0, 256, 256, draw_map, NULL);
-    for (int c = 0; c < 5; c++) {
-        int side = circles[c].filled ? 15 : 13;
-        assert(p8_image_size(1 + c).width == 16 && p8_image_size(1 + c).height == 16);
-        p8_image_build(&gfx, &cached, 1 + c, side, side, draw_circle, (void *)&circles[c]);
-    }
-
-    for (int c = 0; c < 5; c++) {
-        int radius = circles[c].filled ? 7 : 6;
-        for (int i = 0; i < count; i++) {
-            for (int j = 0; j < count; j++) {
-                int x = xs[i];
-                int y = ys[j];
-                p8_camera(&gfx, 0, 0);
-                stripes(&direct);
-                stripes(&cached);
-                if (circles[c].filled) {
-                    p8_circfill(&gfx, &direct, x, y, radius, circles[c].col);
-                } else {
-                    p8_circ(&gfx, &direct, x, y, radius, circles[c].col);
-                }
-                p8_image_draw(&gfx, &cached, 1 + c, x - radius, y - radius);
-                assert(memcmp(direct.screen, cached.screen, sizeof direct.screen) == 0 && "the copy matches the circle");
-            }
-        }
-    }
-    p8_camera(&gfx, 0, 0);
-    fill_screen(&direct, 5);
-    fill_screen(&cached, 5);
-    p8_map(&gfx, &direct, 0, 0, 0, 0, P8_MAP_WIDTH, P8_MAP_HEIGHT);
-    p8_image_draw(&gfx, &cached, 0, 0, 0);
-    assert(memcmp(direct.screen, cached.screen, sizeof direct.screen) == 0 && "the small builds left the map's slot alone");
-}
-
 static void test_every_map_write_on_any_vram_gives_a_map_version_never_seen(void) {
     static p8_vram_t first, second;
     p8_vram_init(&first);
@@ -329,7 +259,6 @@ int main(int argc, char **argv) {
     test_a_partial_image_clips_at_its_edge_and_leaves_the_rest_transparent();
     test_empty_cells_and_transparent_colours_show_what_was_underneath();
     test_an_outlined_print_in_a_build_copies_like_the_print_drawn_directly();
-    test_small_slots_hold_circles_that_copy_like_the_circles_drawn_directly();
     test_every_map_write_on_any_vram_gives_a_map_version_never_seen();
     expect_fatal(argv[0], "cls", "image slot 0: cls during a build");
     expect_fatal(argv[0], "nested", "image slot 0: build inside a build");
