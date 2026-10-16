@@ -1082,14 +1082,3 @@ None of these targets is in `make test-all`, and none runs a setup.
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
   checks neither, so the disc is proven in the emulator only.
-
-- Pending acceptance: the planet disc and ring copies set the PSX mask bit
-  on disc black and ring pixels, so eight captures stay at `differ 0` but
-  no longer match their raw-VRAM reference: all f100, f188, f233, f265,
-  pattern f190, f257, circfill f263, circ f314; `psx-check` is red on
-  `gpu-capture-references` until they are accepted. `psx_capture_record.sh`
-  refuses a run with a failed condition, so: delete the `all`, `pattern`,
-  `circfill` and `circ` lines from `psx/gpu_capture_references.txt`, run
-  `make psx-check` (they show as pending), then
-  `make psx-gpu-capture-accept LABEL=<label>` for each of the four, and
-  commit the file.
