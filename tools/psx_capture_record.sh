@@ -1,7 +1,8 @@
 #!/bin/sh
-# usage: psx_capture_record.sh ceilings|references <run-dir> <label> <file>
+# usage: psx_capture_record.sh ceilings|references <run-dir> <label> <file> [<list-name>]
 # Rewrites <label>'s lines of <file> from the last make psx-check run in
-# <run-dir> and leaves every other line as it was, sorted by frame:
+# <run-dir> (with <list-name>, from its second capture list's run in
+# <run-dir>/<list-name>, whose conditions are named <list-name>-*) and leaves every other line as it was, sorted by frame:
 #   ceilings   "<label> <frame> <differ>" from gpu-captures/report.txt; refused
 #              unless every condition but gpu-capture-ceilings passed;
 #   references "<label> <frame> <sha256 of gpu.f<frame>.vram>"; refused unless
@@ -15,20 +16,23 @@ fail() {
     exit 1
 }
 
-[ $# -eq 4 ] || fail "usage: psx_capture_record.sh ceilings|references <run-dir> <label> <file>"
+[ $# -eq 4 ] || [ $# -eq 5 ] \
+    || fail "usage: psx_capture_record.sh ceilings|references <run-dir> <label> <file> [<list-name>]"
 kind=$1
 run_dir=$2
 label=$3
 file=$4
+list_name=${5:-}
+capture_dir=$run_dir${list_name:+/$list_name}
 case $kind in
-    ceilings) allowed=gpu-capture-ceilings ;;
+    ceilings) allowed=${list_name:+$list_name-}gpu-capture-ceilings ;;
     references) allowed= ;;
     *) fail "unknown kind $kind (ceilings or references)" ;;
 esac
 [ -n "$label" ] || fail "no label"
 
 conditions=$run_dir/conditions.txt
-report=$run_dir/gpu-captures/report.txt
+report=$capture_dir/gpu-captures/report.txt
 [ -f "$conditions" ] && [ -f "$report" ] || fail "no make psx-check run in $run_dir"
 failed=$(awk -v allowed="$allowed" '$2 != "ok" && $1 != allowed { printf "%s ", $1 }' "$conditions")
 [ -z "$failed" ] || fail "the run in $run_dir failed: $failed"
@@ -38,7 +42,7 @@ lines=$(awk -v label="$label" '$1 == label { sub(/^f/, "", $2); print $2 }' "$re
         value=$(awk -v head="$label f$frame " 'index($0, head) == 1 {
             for (i = 1; i < NF; i++) if ($i == "differ") { print $(i + 1); exit } }' "$report")
     else
-        capture=$run_dir/gpu.f$frame.vram
+        capture=$capture_dir/gpu.f$frame.vram
         [ -f "$capture" ] || { echo "missing $capture" >&2; exit 1; }
         if command -v sha256sum > /dev/null 2>&1; then
             value=$(sha256sum "$capture" | cut -d ' ' -f 1)
@@ -47,7 +51,7 @@ lines=$(awk -v label="$label" '$1 == label { sub(/^f/, "", $2); print $2 }' "$re
         fi
     fi
     echo "$label $frame $value"
-done) || fail "a capture of $label is missing in $run_dir"
+done) || fail "a capture of $label is missing in $capture_dir"
 [ -n "$lines" ] || fail "no capture of $label in $report"
 
 kept=$(awk -v label="$label" 'NF && $1 != label' "$file" 2>/dev/null)

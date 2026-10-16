@@ -24,6 +24,8 @@
     - [x] The renumbering and the PSX proofs
 - [ ] Phase 3 — Pixel-identical levers, in impact order
   - [ ] Step 3.7 — Ranked levers, one by one
+    - [x] D3 — second capture replay, residual probe
+    - [ ] D3 — the lever, measured
   - [ ] Step 3.8 — End-of-phase full-game check
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan

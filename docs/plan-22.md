@@ -213,7 +213,10 @@ generation runs.
    before and after the rebase. When the projection reaches zero steady frames
    over, `psx-full-game-check` confirms `real-game-budget` green before the
    phase stops early. (plan-pilot: one PRD per lever, or per group of
-   small levers that touch the same code.) A lever measured on
+   small levers that touch the same code.) Each lever's PRD lists the
+   open warn-review warnings (phases 1 and 2) that fall in the files it
+   changes, and decides each one: acted on in that PRD, or left with its
+   reason. The step note records which. A lever measured on
    `psx-full-game-check` is first probed (`psx-probe`) on a run that
    draws its target function — a representative run of another situation
    if one does, else its best-try run. If that probe shows no gain on the
@@ -243,13 +246,16 @@ generation runs.
    Update `docs/psx-game.md`; delete `docs/psx-levers.md`. The
    `lever-estimate` target, its script and its doc lines are re-sourced
    or removed in the same step, as step 5 did for plan 21's (no target or
-   doc may name a deleted file). Plan 22's phase-1 warn-review warnings
-   are acted on only in code a step of this plan already touches (as for
-   plan 21's); those still open at the close are listed in
-   `docs/psx-game.md`'s "Still to do". Verified when `make test-all` and
+   doc may name a deleted file). Every warn-review warning of plan 22
+   (phase 1's, phase 2's, phase 3's) is acted on only in code a step of
+   this plan already touches (as for plan 21's). Those still open at the
+   close are listed in `docs/psx-game.md`'s "Still to do", together with
+   the open findings that step notes recorded but no doc carries yet
+   (step 2.6's red `make worst-case-peaks`). Verified when `make test-all` and
    `psx-check` are green, `grep -rn psx-levers Makefile tools docs src
-   tests` finds nothing outside plan files, and the docs describe only
-   what is true.
+   tests` finds nothing outside plan files, every warn-review warning of
+   the plan is either named as acted on in a step note or listed in
+   "Still to do", and the docs describe only what is true.
 
 ## 4. Done when
 
@@ -442,3 +448,15 @@ the PRD's 2 (its coordinates kept). Outside the step: `make
 worst-case-peaks` has failed since plan 12 on two frozen lines and
 since plan 21 (59fc46a) on `zone frame`, a stale table, not a code
 bug; re-baselining it is the human's call, left open.
+
+End of phase 2: warn-review raised 13 warnings on step 6's code (the
+display mask as a 0x8000 sentinel in the family bitmask, repeated as
+`8000` in the Lua and inline in two awk scripts; psx_gpu_replay.c
+reading a protocol value from the host parser; cart.c holding a whole
+`button_t` as the difficulty carrier, copying its fields one by one, and
+duplicating cart_update60's prologue and epilogue; "one frame late" vs
+F−2 wording; loading_screen.c in ENGINE_SRCS; e2e frame numbers inline
+everywhere; pad_author.c at 1,549 lines with no unit test). plan-review:
+two changes accepted — step 9 carries every phase's warnings and the
+unrecorded findings to "Still to do", and checks it; step 7's PRDs list
+and decide the open warnings in the files they change.

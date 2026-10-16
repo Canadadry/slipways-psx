@@ -1,0 +1,6 @@
+# The message-box captures of make psx-check: "<label> <frame> <mask>", frames
+# of tests/e2e/pad_message_box.txt (format in src/devtools/capture_list.h).
+replay pad_message_box
+print 142 cls,print
+all 143 all
+all 164 all

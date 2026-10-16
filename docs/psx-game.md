@@ -586,6 +586,16 @@ mask.
   lines only. A count below its ceiling prints `below ceiling`, so the
   ceiling can be lowered with the same target; raising one is a regression
   to explain in its commit.
+- **Second capture replay** `psx/gpu_captures_message_box.txt` (`replay
+  pad_message_box`): `pad_slipway` never opens a message box, and its
+  recording cannot change, so the box's text is captured on
+  `tests/e2e/pad_message_box.json`: `print 142` and `all 143` (the settled
+  year box, "year 3421" and "5 years remain"), `all 164` (the score box's
+  rows). It has its own ceilings and references,
+  `psx/gpu_capture_ceilings_message_box.txt` and
+  `psx/gpu_capture_references_message_box.txt`, in the same formats; the
+  two targets below address them with `CAPTURES=message_box`.
+  `psx-gpu-capture-report` stays on `pad_slipway`.
 - **Acceptance**: `make psx-gpu-capture-accept LABEL=<label>`, after a green
   `make psx-check`, writes the sha256 of every capture of that label (all of
   them for `pattern` and `all`) into `psx/gpu_capture_references.txt`, other
@@ -598,7 +608,7 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | every condition below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
+| `make psx-check` | every condition below, on `pad_slipway.json` and the title script, the game booted from its CD image, and the capture conditions on `pad_message_box.json`; eight boots | ~120 s |
 | `make psx-game-check` | the seven `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
 | `make psx-game-cd-check` | the seven `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
 | `make psx-game-cd` | builds the CD image and prints its paths | build |
@@ -620,7 +630,8 @@ condition to it. It builds the PS-EXEs, writes the PC references with
 `STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
 `tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
 script), the probe, the game's CD image (with `PSX_GAME_SCRIPT`) and
-`psx-largest-slots` until they exit, six boots, then checks every condition before
+`psx-largest-slots` until they exit, six boots, then the second capture
+replay's GPU replay twice (about 10 s with its build), then checks every condition before
 concluding, one line each (`tools/psx_check.sh`, outputs in
 `tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
@@ -661,6 +672,12 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
 - `gpu-capture-references`: a capture with a reference matches it; one
   without prints `pending human acceptance: <label> f<frame>`; a reference
   for an unlisted capture fails;
+- `message-box-gpu-capture-list` ... `message-box-gpu-capture-references`:
+  the seven conditions above on the second capture replay, whose GPU replay
+  alone is built in `game-check/message-box/build` (same options as
+  `psx-build`) and booted twice (`PSX_MESSAGE_BOX_GPU_CEILING` vsyncs,
+  `PSX_MESSAGE_BOX_GPU_TIMEOUT` s; outputs in `run/message-box`); no other
+  condition runs on it;
 - `no-json`: the toolchain's `nm` (`PSX_NM`) finds no definition of
   `p8_load_gfx_json`, `p8_input_load`, `p8_input_save`, `p8_input_append` or
   `p8_input_free` in either replay ELF or the game ELF;
@@ -877,6 +894,8 @@ background, about 13 minutes each.
 Ceilings and timeouts are the first measured run plus half again:
 `PSX_REPLAY_CEILING`/`PSX_REPLAY_TIMEOUT` for `pad_slipway`,
 `PSX_GPU_CEILING`/`PSX_GPU_TIMEOUT` for the GPU replay of `pad_slipway`,
+`PSX_MESSAGE_BOX_GPU_CEILING`/`PSX_MESSAGE_BOX_GPU_TIMEOUT` (333 vsyncs,
+8 s) for the GPU replay of `pad_message_box` (first run 222 vsyncs in about 5 s),
 `PSX_PAD_CEILING`/`PSX_PAD_TIMEOUT` for the probe,
 `PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
 (`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,

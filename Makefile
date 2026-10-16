@@ -406,7 +406,13 @@
 #                       (as psx-game-cd-check does) and psx-largest-slots
 #                       (ceiling PSX_LARGEST_SLOTS_CEILING vsyncs, timeout
 #                       PSX_LARGEST_SLOTS_TIMEOUT s) until they exit, six
-#                       boots, then prints one line per condition
+#                       boots, then, for the second capture replay
+#                       tests/e2e/pad_message_box.json (its PC run with
+#                       CAPTURE_LIST=psx/gpu_captures_message_box.txt, its GPU
+#                       replay alone built in tmp/psx/game-check/message-box/build,
+#                       booted twice, ceiling PSX_MESSAGE_BOX_GPU_CEILING vsyncs,
+#                       timeout PSX_MESSAGE_BOX_GPU_TIMEOUT s), two more, then
+#                       prints one line per condition
 #                       (magic, asserts-on, format against
 #                       tmp/format_self_test, replay-done, state-game-lines, sprite-sheet, screen, map,
 #                       gpu-replay-done, gpu-state-game-lines, gpu-cost: its
@@ -415,7 +421,10 @@
 #                       seven gpu-capture-* conditions of
 #                       tools/psx_capture_check.sh against
 #                       psx/gpu_capture_ceilings.txt and
-#                       psx/gpu_capture_references.txt,
+#                       psx/gpu_capture_references.txt, the same seven
+#                       as message-box-gpu-capture-* on the second replay
+#                       against psx/gpu_capture_ceilings_message_box.txt and
+#                       psx/gpu_capture_references_message_box.txt,
 #                       no-json through PSX_NM on both replay ELFs and the game
 #                       ELF, pad-script, the seven game-* conditions of
 #                       tools/psx_game_check.sh on the CD boot (game-gpu-cost:
@@ -437,13 +446,18 @@
 #                       tmp/psx/game-check/run, the capture reports, diff maps
 #                       and images in its gpu-captures/, the game's outputs
 #                       in its game/ and the extracted disc in its game-cd/,
-#                       ~115 s; never runs a setup, outside the
+#                       ~125 s; never runs a setup, outside the
 #                       suite
-# make psx-gpu-capture-ceilings LABEL=<label> -> writes the differ counts of
+# make psx-gpu-capture-ceilings LABEL=<label> [CAPTURES=message_box]
+#                    -> writes the differ counts of
 #                       that label's captures from the last psx-check run into
-#                       psx/gpu_capture_ceilings.txt, other labels untouched;
+#                       psx/gpu_capture_ceilings.txt (with CAPTURES=message_box,
+#                       the second replay's into
+#                       psx/gpu_capture_ceilings_message_box.txt), other labels untouched;
 #                       refused unless every other condition passed
-# make psx-gpu-capture-accept LABEL=<label> -> accepts a label, run by an
+# make psx-gpu-capture-accept LABEL=<label> [CAPTURES=message_box]
+#                    -> accepts a label (CAPTURES as above, into
+#                       psx/gpu_capture_references_message_box.txt), run by an
 #                       agent only when all its captures differ 0 from the PC,
 #                       otherwise by the human: after a green psx-check, writes the sha256 of
 #                       that label's captures (every frame of a label such as
@@ -3091,13 +3105,41 @@ PSX_CAPTURE_CEILINGS := psx/gpu_capture_ceilings.txt
 PSX_CAPTURE_REFERENCES := psx/gpu_capture_references.txt
 PSX_LARGEST_SLOTS_CEILING ?= 531
 PSX_LARGEST_SLOTS_TIMEOUT ?= 10
+PSX_MESSAGE_BOX_EVENTS := tests/e2e/pad_message_box.json
+PSX_MESSAGE_BOX_DIR := $(PSX_CHECK_OUT)/message-box
+PSX_MESSAGE_BOX_EMBEDDED := $(abspath $(PSX_MESSAGE_BOX_DIR))/embedded/psx_replay.c
+PSX_MESSAGE_BOX_CAPTURE_LIST := psx/gpu_captures_message_box.txt
+PSX_MESSAGE_BOX_CAPTURE_CEILINGS := psx/gpu_capture_ceilings_message_box.txt
+PSX_MESSAGE_BOX_CAPTURE_REFERENCES := psx/gpu_capture_references_message_box.txt
+PSX_MESSAGE_BOX_GPU_CEILING ?= 333
+PSX_MESSAGE_BOX_GPU_TIMEOUT ?= 8
 
-psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_test $(TMP_DIR)/psx_capture_compare \
+psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/embed_replay $(TMP_DIR)/format_self_test $(TMP_DIR)/psx_capture_compare \
 		$(TMP_DIR)/psx_pad_log
 	@rm -rf $(PSX_CHECK_OUT)/pc-captures && mkdir -p $(PSX_CHECK_OUT)/pc-captures
 	CAPTURE_LIST=$(PSX_CAPTURE_LIST) CAPTURE_DIR=$(PSX_CHECK_OUT)/pc-captures \
 		STATE=$(PSX_CHECK_OUT)/pc_state.txt DIGEST=$(PSX_CHECK_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CHECK_OUT)/pc.dump.txt > $(PSX_CHECK_OUT)/pc.log 2>&1 \
 		|| { cat $(PSX_CHECK_OUT)/pc.log >&2; exit 1; }
+	@rm -rf $(PSX_MESSAGE_BOX_DIR)/pc-captures && mkdir -p $(PSX_MESSAGE_BOX_DIR)/pc-captures $(dir $(PSX_MESSAGE_BOX_EMBEDDED))
+	CAPTURE_LIST=$(PSX_MESSAGE_BOX_CAPTURE_LIST) CAPTURE_DIR=$(PSX_MESSAGE_BOX_DIR)/pc-captures \
+		./$(TMP_DIR)/replay $(PSX_MESSAGE_BOX_EVENTS) /dev/null $(PSX_MESSAGE_BOX_DIR)/pc.dump.txt > $(PSX_MESSAGE_BOX_DIR)/pc.log 2>&1 \
+		|| { cat $(PSX_MESSAGE_BOX_DIR)/pc.log >&2; exit 1; }
+	./$(TMP_DIR)/embed_replay $(PSX_MESSAGE_BOX_EVENTS) $(basename $(notdir $(PSX_MESSAGE_BOX_EVENTS))) $(PSX_MESSAGE_BOX_EMBEDDED)
+	cmake -S psx -B $(PSX_MESSAGE_BOX_DIR)/build \
+		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
+		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) \
+		-DPSX_GAME_OPT=$(PSX_BUILD_OPT) -DPSX_MEASURED_REPLAY_OPT=$(PSX_BUILD_OPT) \
+		-DPSX_GAME_ASSERTS=$(PSX_BUILD_GAME_ASSERTS) \
+		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) -DPSX_GPU_REPLAY_DRAW_METER=$(PSX_BUILD_DRAW_METER) \
+		"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$(PSX_MESSAGE_BOX_EMBEDDED)" \
+		"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$(PSX_MESSAGE_BOX_EMBEDDED)" \
+		"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$(PSX_MESSAGE_BOX_EMBEDDED)" \
+		'-DPSX_LARGEST_SLOTS_SOURCES=$(call psx_cmake_list,$(PSX_LARGEST_SLOTS_SRCS))' \
+		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))' \
+		'-DPSX_GAME_SOURCES=$(call psx_cmake_list,$(PSX_GAME_SRCS))' > $(PSX_MESSAGE_BOX_DIR)/build.log 2>&1 \
+		&& cmake --build $(PSX_MESSAGE_BOX_DIR)/build --target psx-gpu-replay >> $(PSX_MESSAGE_BOX_DIR)/build.log 2>&1 \
+		|| { tail -n 20 $(PSX_MESSAGE_BOX_DIR)/build.log >&2; exit 1; }
 	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_CHECK_OUT)/pc.log) \
 		&& PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_check.sh $(PSX_EMULATOR_DIR) $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_BUILD_DIR)/psx-gpu-replay.exe \
 			$(PSX_BUILD_DIR)/psx-pad-probe.exe $(PSX_CHECK_OUT)/pc_state.txt $(PSX_CHECK_OUT)/pc_digest.txt "$$frames" \
@@ -3107,15 +3149,25 @@ psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_tes
 			$(PSX_CAPTURE_CEILINGS) $(PSX_CAPTURE_REFERENCES) $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_SCRIPT) \
 			$(PSX_GAME_CD_CEILING) $(PSX_GAME_CD_TIMEOUT) $(PSX_GAME_DIFFICULTY) $(PSX_GAME_CUE) $(PSX_DUMPSXISO) \
 			$(PSX_GAME_DISC_EXE) ./$(TMP_DIR)/psx_pad_log ./$(TMP_DIR)/replay $(PSX_BUILD_DIR)/psx-largest-slots.exe \
-			$(PSX_LARGEST_SLOTS_CEILING) $(PSX_LARGEST_SLOTS_TIMEOUT) $(PSX_CHECK_OUT)/run
+			$(PSX_LARGEST_SLOTS_CEILING) $(PSX_LARGEST_SLOTS_TIMEOUT) $(PSX_CHECK_OUT)/run \
+			message-box $(PSX_MESSAGE_BOX_DIR)/build/psx-gpu-replay.exe $(PSX_MESSAGE_BOX_CAPTURE_LIST) \
+			$(PSX_MESSAGE_BOX_DIR)/pc-captures $(PSX_MESSAGE_BOX_CAPTURE_CEILINGS) $(PSX_MESSAGE_BOX_CAPTURE_REFERENCES) \
+			$(PSX_MESSAGE_BOX_GPU_CEILING) $(PSX_MESSAGE_BOX_GPU_TIMEOUT)
+
+ifneq ($(filter-out message_box,$(CAPTURES)),)
+ifneq ($(filter psx-gpu-capture-ceilings psx-gpu-capture-accept,$(MAKECMDGOALS)),)
+$(error CAPTURES must be empty (pad_slipway's list) or message_box, not '$(CAPTURES)')
+endif
+endif
+psx_capture_record_target = $(if $(CAPTURES),$(PSX_MESSAGE_BOX_CAPTURE_$(1)) message-box,$(PSX_CAPTURE_$(1)))
 
 psx-gpu-capture-ceilings:
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-ceilings: LABEL missing: make psx-gpu-capture-ceilings LABEL=<label>" >&2; exit 1; }
-	sh tools/psx_capture_record.sh ceilings $(PSX_CHECK_OUT)/run $(LABEL) $(PSX_CAPTURE_CEILINGS)
+	sh tools/psx_capture_record.sh ceilings $(PSX_CHECK_OUT)/run $(LABEL) $(call psx_capture_record_target,CEILINGS)
 
 psx-gpu-capture-accept:
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-accept: LABEL missing: make psx-gpu-capture-accept LABEL=<label>" >&2; exit 1; }
-	sh tools/psx_capture_record.sh references $(PSX_CHECK_OUT)/run $(LABEL) $(PSX_CAPTURE_REFERENCES)
+	sh tools/psx_capture_record.sh references $(PSX_CHECK_OUT)/run $(LABEL) $(call psx_capture_record_target,REFERENCES)
 
 PSX_CAPTURE_REPORT_OUT := $(TMP_DIR)/psx/gpu-capture
 
