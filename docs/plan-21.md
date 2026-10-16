@@ -426,3 +426,15 @@ by judge-wide gain (the report's `draw-6000` figure):
 - `gpu-ram-room` 154,480 (315,792); `gpu_build` 8,180 of 10,240; caps unchanged.
 - Image builds (host count): map 1 on frame 12; rows 81 on 58 spike frames; text 587 on 167 frames, of which 166 are not in `spike-frames.txt` and 138 of those over 263, so phase 4's spike list must include them.
 - H-15-6 failed, adapted: the tooling gained `zone gpu_build` in step 8; the condition count stays 14.
+
+### Step 4.17
+
+- Starting state S-1 to S-6 held (HEAD d16a6a3, threshold 6.4, no update unit-cost table, 12 `pad_nav_panel_open()` sites).
+- Gross probes, update a frame on `draw-5564` / `draw-6000` (report, before G2): O2 0.87 / 4.40, pooled 2.63 (2.5 / 6.6); O1 0.00 / 3.27, pooled 1.63 (2.9 / 7.3); O3 12.5 / 12.6 (12.1 / 13.3); O5 0.53 / 0.53 (1.3 / 1.3). **O2 built first** (larger by 1.0, above the 0.5 tie margin).
+- Host counts over `full_game.json`: 9.1 panel asks and 7.8 backdrop scans a pad step, 83% of steps with no panel open, against 0 and 3 such frames of 15 in the windows: judge-wide O2 is worth about 16 a frame (extrapolated). 53 in-step answer changes, all explained by the memo key.
+- **O2 kept:** step-bracketed memo keyed by ui and economy ids, ephemerals count and a new registry generation. Pooled **−1.4** (+0.2 / −3.0); one-frame runs −16 on the update spikes.
+- **O1 skipped, covered by O2:** residual 0.00 / 0.60.
+- **O3 kept:** inline box test for planet hit tests in the hover pass, same bucket order. Pooled **−9.9** (−10.1 / −9.8).
+- **O5 kept:** hover lists initialised on first write, one reader `ui_hovered_layer`. Pooled **−0.4** (−0.47 / −0.33).
+- All: every e2e hash, end state, `make state` peak and capture reference unchanged; `all 233` still pending.
+- Short runs (asserts off, O3): window update `draw-5564` 467 (621 at step 3.15), `draw-6000` 341 (538), i.e. −10.3 / −13.1 a frame for the step. Done, deterministic, breakdown and asserts hold; `representative` fails on every run, as expected. `ram-room` 154,940, `game-ram-room` 307,772.
