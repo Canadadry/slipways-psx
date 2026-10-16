@@ -17,8 +17,8 @@
   - [x] Step 1.5 — Lever list
     - [x] Re-sourced lever-estimate tool
     - [x] The lever list
-- [ ] Phase 2 — Loading screen
-  - [ ] Step 2.6 — Loading screen during galaxy generation
+- [x] Phase 2 — Loading screen
+  - [x] Step 2.6 — Loading screen during galaxy generation
     - [x] The display capture
     - [x] The loading screen and the re-record
     - [x] The renumbering and the PSX proofs

@@ -409,3 +409,36 @@ changes accepted to step 9 — lever-estimate re-sourced or removed with
 `docs/psx-levers.md`, warnings acted on only in touched code and the rest
 listed in "Still to do"; the picture-changing options re-estimated on
 step 8's table as steady frames over per option.
+
+### Step 2.6
+
+Loading screen in the shared game code (`src/game/loading_screen.c`,
+`cart_request_start_game`): the press frame and the next draw a black
+screen with "loading" in colour 7 at (132, 114) and run no game code;
+the third frame generates the galaxy. **Two frames, not one** (PRD
+decision): the PSX shows each frame one frame later than the PC, so one
+loading frame would still show the title during the stall. A new
+`display` capture (what the PSX shows at the top of a frame, compared
+with PC frame F−2) proves it: `display 14` and `all 12` at differ 0.
+Recordings: two copies of each difficulty press inserted (14 e2e, 7
+fixtures, the worst-case games; `full_game.json` 6,059 → 6,061 frames,
+f ≥ 12 → f + 2). Only these 14 `.sha256` changed (pad_build,
+pad_colonise, pad_empty_planet, pad_end_turn, pad_game_end,
+pad_message_box, pad_pause_restart, pad_probe, pad_research,
+pad_restart_resume, pad_score, pad_slipway, pad_swap_aim_menu,
+pad_title), after checking each new capture is the old one plus two
+loading frames; every `.end-state` unchanged (25 match). Renumbered:
+situation table (old one + `12/13 title steady`), hand-picked frames,
+short-run windows (names kept; all six steady runs `same`, the three
+representative ones still `ok`), capture list (`pattern 190` → 193,
+off digest frame 192), image-build frames; `psx-check` all 32
+conditions. `psx-full-game-check` on the new numbering: 1,763 frames
+over (step 1: 1,764), worst f14 3,989, mean 233.5; real-game-budget
+1,132 steady over, one-off 631 frames / 1,391 vsyncs (not worse).
+`lever-estimate` reordered N5 before N3 on the new table (nothing
+re-estimated): end 489, pessimistic 655. Probe baseline re-taken after
+the commit, valid. Deviation: the text sits 1 px from the edges, not
+the PRD's 2 (its coordinates kept). Outside the step: `make
+worst-case-peaks` has failed since plan 12 on two frozen lines and
+since plan 21 (59fc46a) on `zone frame`, a stale table, not a code
+bug; re-baselining it is the human's call, left open.
