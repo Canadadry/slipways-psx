@@ -123,7 +123,12 @@ generation runs.
    `docs/psx-game.md`. Verified by a unit test on hand-picked frames of
    each situation, and by the note listing, per situation, its frame count,
    frames over 263, and mean update and draw on the judge (joined with
-   step 1's table).
+   step 1's table); for each one-off situation, also its number of
+   occurrences in `full_game.json` and its longest run of consecutive
+   frames — a one-off stretch that is long or not tied to one action or
+   one game event (section 1) fails the step. The labeling rule and the
+   table are then frozen: no later step changes them, except step 6's
+   renumbering; step 8 and the close confirm the rule is step 2's.
 3. `real-game-budget`: a new condition in `psx-full-game-check` that joins
    the frame table with the situation table and is green when **no steady
    frame is over 263** and **the vsyncs of one-off frames over 263 sum to
@@ -131,20 +136,34 @@ generation runs.
    stays reported but is no longer required by this plan. Verified by a
    test on fixture tables (green, red on one steady frame, red on one-off
    sum) and by its figures on step 1's table in the note.
-4. Profile of the steady frames over: per game function (planets,
+4. Short runs, then the profile of the steady frames over. First, each
+   steady situation with frames over 263 gets at least one short run
+   (`psx/short_runs.txt`) whose window lies in it, runs added or replaced
+   until that holds; resumed runs are known to diverge from the full game
+   (`docs/psx-game.md`, Short runs), so each run is checked on its own
+   replay: step 2's labeler gives its window the same situation, and its
+   draw and update are within the `representative` tolerance of the full
+   game's. The step starts with that check on one resumed run in the
+   steady situation with the most frames over. A situation with no
+   representative run after three tries is marked "no representative
+   run" with its gap; its levers are measured on `psx-full-game-check`
+   instead of `psx-probe`, and step 5 flags them as weaker evidence. Then
+   the profile: per game function (planets,
    slipways, particles, HUD, panels, map, overlays, and update when it
    matters), split into time inside the primitives and time in the game's
    own code, from the PSX draw breakdown and the PC frame profile with
    `cart_draw` (and `cart_update`) as roots, scaled to the judge. Verified
-   when the shares add up to the measured frame within the noise floor, on
-   at least the two draw windows.
+   when the note lists, per steady situation over, its short run with its
+   own labels and its gap to the full game, and the shares add up to the
+   measured frame within the noise floor on every one of these runs.
 5. Lever list, `docs/psx-levers.md`: for each function above 2% of the
    steady frames' mean cost, a lever with its location, estimated gain,
    cost and risk (pixel identity, game state), ranked by its effect on
    `real-game-budget` (steady frames over first). Pixel-identical levers
    in the ranked list; picture-changing ideas in a separate, unranked
    section kept for the close. The `lever-estimate` targets are re-sourced
-   to this list or removed. Verified when the estimated gains, applied to
+   to this list or removed. Each lever names the short run (step 4) that
+   measures it. Verified when the estimated gains, applied to
    step 1's table, give the steady frames still over at the end of the
    list, with a pessimistic variant (every gain cut by a fifth).
 
@@ -155,19 +174,32 @@ generation runs.
    while `galaxy_populate` (`src/game/cart.c`) runs, on PC and PSX alike.
    The e2e replays whose hash changes are re-recorded once; if the extra
    frame shifts the inputs that follow, the recordings are adjusted so
-   each plays the same game. Verified when every `.end-state` (in
-   `tests/e2e/` and `worst-case/`) is unchanged, only the expected hashes
-   changed (listed in the note), the PSX capture of the loading frame is
-   at `differ 0`, and `psx-full-game-check` still finishes with
-   `real-game-budget`'s one-off sum not worse.
+   each plays the same game. If `full_game.json` changes, everything keyed
+   by its frame numbers follows: the frame table, the situation table, the
+   short-run windows and the probe baseline. Verified when every
+   `.end-state` (in `tests/e2e/` and `worst-case/`) is unchanged, only the
+   expected hashes changed (listed in the note), the PSX capture of the
+   loading frame is at `differ 0`, the frame on display during the
+   generation stall's vsyncs is the loading frame on both platforms (the
+   PSX shows each frame one frame late), the situation table and the new frame
+   table have the same frame count, step 2's hand-picked frames still
+   carry their situations at their new frame numbers, every short run
+   passes step 4's check again on the new numbering (a run marked "no
+   representative run" stays marked), and
+   `psx-full-game-check` still finishes with `real-game-budget`'s one-off
+   sum not worse.
 
 ### Phase 3 — Pixel-identical levers, in impact order
 
 7. Each lever of step 5's ranked list, in its order, one step note each:
    measured gain against its estimate, pixel-identical captures, unchanged
-   e2e hashes. Stops early when `real-game-budget` is green. (plan-pilot:
-   one PRD per lever, or per group of small levers that touch the same
-   code.)
+   e2e hashes. After each lever, its measured gain replaces its estimate
+   in `docs/psx-levers.md`, the projected steady frames still over are
+   recomputed (step 5's calculation) and the remaining levers re-ranked
+   if the order changes. When the projection reaches zero steady frames
+   over, `psx-full-game-check` confirms `real-game-budget` green before the
+   phase stops early. (plan-pilot: one PRD per lever, or per group of
+   small levers that touch the same code.)
 8. End of phase: `psx-full-game-check`, with `real-game-budget`'s figures
    and the steady frames still over, per situation, in the note.
 
