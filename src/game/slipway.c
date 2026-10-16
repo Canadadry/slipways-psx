@@ -161,8 +161,8 @@ void slipway_drop(slipway_t *self, entity_t *end_planet) {
         return;
     }
 
-    /* targeting_confirm charges the player and advances the clock: keep it behind the NULL test. */
-    refused = (end_planet == NULL) || !targeting_confirm((entity_t *)self);
+    /* The charge spends credits: keep it behind the NULL test. The clock advances once, after both attaches. */
+    refused = (end_planet == NULL) || !targeting_confirm_without_clock((entity_t *)self);
     if (refused) {
         self->header.is_dead = 1;
         return;
