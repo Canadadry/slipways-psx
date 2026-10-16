@@ -80,6 +80,25 @@ p8_fixed_t entity_geom_nearest(vec_t p, const entity_list_t *j_, entity_t **out_
     return mk;
 }
 
+int entity_geom_any_within(vec_t p, const entity_list_t *list, p8_fixed_t threshold) {
+    entity_list_iter_t it;
+    entity_t *o;
+
+    if (list == NULL) {
+        return 0;
+    }
+    it = entity_list_all(list);
+    while (entity_list_iter_next(&it, &o)) {
+        vec_t o_p = map_pos_of(o);
+        int same_position = (p.x == o_p.x && p.y == o_p.y);
+
+        if (!same_position && vec_length_squared(vec_sub(p, o_p)) <= threshold) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 p8_fixed_t entity_geom_nearest_except(vec_t p, const entity_list_t *j_, const entity_t *excluded, entity_t **out_nearest) {
     p8_fixed_t best = p8_fixed_from_int(32767);
     entity_list_iter_t it;

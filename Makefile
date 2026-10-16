@@ -1458,6 +1458,9 @@ $(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS) $(BINDI
 $(TMP_DIR)/test_pad_panel: $(call objs,tests/test_pad_panel.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_entity_geom: $(call objs,tests/test_entity_geom.c tests/heap_allocator.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pad_target: $(call objs,tests/test_pad_target.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1768,6 +1771,7 @@ UNIT_TESTS := \
     test_input_step \
     test_pad_nav \
     test_pad_panel \
+    test_entity_geom \
     test_psx_gpu_textures \
     test_psx_clut_cache \
     test_psx_sprite \
