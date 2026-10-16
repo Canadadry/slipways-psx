@@ -442,9 +442,9 @@
 #                       that label's captures from the last psx-check run into
 #                       psx/gpu_capture_ceilings.txt, other labels untouched;
 #                       refused unless every other condition passed
-# make psx-gpu-capture-accept LABEL=<label> -> the human's one command to
-#                       accept a reviewed label, never run by an agent or a
-#                       skill: after a green psx-check, writes the sha256 of
+# make psx-gpu-capture-accept LABEL=<label> -> accepts a label, run by an
+#                       agent only when all its captures differ 0 from the PC,
+#                       otherwise by the human: after a green psx-check, writes the sha256 of
 #                       that label's captures (every frame of a label such as
 #                       all or pattern) into psx/gpu_capture_references.txt,
 #                       other labels untouched

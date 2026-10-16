@@ -570,13 +570,13 @@ mask.
   lines only. A count below its ceiling prints `below ceiling`, so the
   ceiling can be lowered with the same target; raising one is a regression
   to explain in its commit.
-- **Acceptance**: `make psx-gpu-capture-accept LABEL=<label>` is the human's
-  one command. After a green `make psx-check` and a review of the label's
-  report lines and images, it writes the sha256 of every capture of that
-  label (all of them for `pattern` and `all`) into
-  `psx/gpu_capture_references.txt`, other labels untouched; from then on a
-  capture with a reference must match it byte for byte, and its ceiling line
-  is ignored. No agent and no skill runs it.
+- **Acceptance**: `make psx-gpu-capture-accept LABEL=<label>`, after a green
+  `make psx-check`, writes the sha256 of every capture of that label (all of
+  them for `pattern` and `all`) into `psx/gpu_capture_references.txt`, other
+  labels untouched; from then on a capture with a reference must match it
+  byte for byte, and its ceiling line is ignored. An agent may run it only
+  when every capture of the label reports `differ 0` against the PC; any
+  other label waits for the human's review of its report lines and images.
 
 ## Checks
 
@@ -1077,11 +1077,3 @@ None of these targets is in `make test-all`, and none runs a setup.
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
   checks neither, so the disc is proven in the emulator only.
-
-- Pending human acceptance: the `all` f233 capture (the five button labels
-  drawn through the text image cache), `all f233 mask all calls 103 differ 0
-  (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling
-  0. Run `make psx-check`, review its report line and
-  `tmp/psx/game-check/run/gpu-captures/all-f233.ppm` (PC | PSX | diff),
-  then run `make psx-gpu-capture-accept LABEL=all` (f100, f188 and f265
-  keep their hashes) and commit `psx/gpu_capture_references.txt`.
