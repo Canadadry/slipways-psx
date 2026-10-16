@@ -162,6 +162,68 @@ static void test_an_outlined_print_in_a_build_copies_like_the_print_drawn_direct
     }
 }
 
+typedef struct {
+    int x, y;
+} origin_t;
+
+static const int ROW_SPRITES[][3] = { {17, 0, 0}, {33, 1, 6}, {42, 0, 9}, {5, 1, 18}, {60, 1, 21}, {77, 0, 36} };
+
+static void use_palette(p8_vram_t *mem, int variant) {
+    for (int col = 0; col < 16; col++) {
+        mem->draw_palette[col] = (unsigned char)(variant ? (col * 5 + 3) % 16 : col);
+    }
+    p8_palt(mem, 0, !variant);
+    p8_palt(mem, 9, variant);
+}
+
+static void draw_sprite_row(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    const origin_t *origin = context;
+    for (size_t i = 0; i < sizeof ROW_SPRITES / sizeof ROW_SPRITES[0]; i++) {
+        use_palette(mem, ROW_SPRITES[i][1]);
+        p8_spr_default(gfx, mem, ROW_SPRITES[i][0], origin->x + ROW_SPRITES[i][2], origin->y);
+        use_palette(mem, 0);
+    }
+}
+
+static void stripes(p8_vram_t *mem) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            mem->screen[y][x] = (unsigned char)(1 + (x + y) % 15);
+        }
+    }
+}
+
+static void test_a_48_by_8_slot_of_overlapping_sprites_copies_like_the_sprites_drawn_directly(void) {
+    static p8_vram_t direct, cached;
+    static const int xs[] = {-44, -43, -20, -1, 0, 58, 116, 117, 140, 159, 160};
+    static const int ys[] = {-8, -7, -3, 0, 60, 112, 113, 117, 120};
+    static const int slots[] = {1, P8_IMAGE_SLOT_COUNT - 1};
+    p8_graphics_t gfx;
+    p8_vram_init(&direct);
+    sheet_with_patterns(&direct);
+    use_palette(&direct, 0);
+    cached = direct;
+    p8_gfx_init(&gfx);
+    origin_t image_origin = {0, 0};
+
+    for (size_t s = 0; s < sizeof slots / sizeof slots[0]; s++) {
+        assert(p8_image_size(slots[s]).width == 48 && p8_image_size(slots[s]).height == 8);
+        p8_image_build(&gfx, &cached, slots[s], 44, 8, draw_sprite_row, &image_origin);
+        for (size_t i = 0; i < sizeof xs / sizeof xs[0]; i++) {
+            for (size_t j = 0; j < sizeof ys / sizeof ys[0]; j++) {
+                origin_t at = {xs[i] + 7, ys[j] - 5};
+                p8_camera(&gfx, 7, -5);
+                stripes(&direct);
+                stripes(&cached);
+                draw_sprite_row(&gfx, &direct, &at);
+                p8_image_draw(&gfx, &cached, slots[s], at.x, at.y);
+                assert(memcmp(direct.screen, cached.screen, sizeof direct.screen) == 0 && "the copy matches the sprites");
+            }
+        }
+        p8_camera(&gfx, 0, 0);
+    }
+}
+
 static void test_every_map_write_on_any_vram_gives_a_map_version_never_seen(void) {
     static p8_vram_t first, second;
     p8_vram_init(&first);
@@ -259,6 +321,7 @@ int main(int argc, char **argv) {
     test_a_partial_image_clips_at_its_edge_and_leaves_the_rest_transparent();
     test_empty_cells_and_transparent_colours_show_what_was_underneath();
     test_an_outlined_print_in_a_build_copies_like_the_print_drawn_directly();
+    test_a_48_by_8_slot_of_overlapping_sprites_copies_like_the_sprites_drawn_directly();
     test_every_map_write_on_any_vram_gives_a_map_version_never_seen();
     expect_fatal(argv[0], "cls", "image slot 0: cls during a build");
     expect_fatal(argv[0], "nested", "image slot 0: build inside a build");

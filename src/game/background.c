@@ -15,9 +15,9 @@
 #include "game/wormhole.h"
 #include "engine/frame_zone.h"
 #include "engine/game_zone.h"
+#include "game/image_slot.h"
 #include "p8/image.h"
 
-#define BACKGROUND_IMAGE_SLOT 0
 #define BACKGROUND_IMAGE_SIDE (P8_MAP_WIDTH * P8_SPRITE_SIZE)
 
 static int g_background_up = 0;
@@ -153,14 +153,14 @@ static void background_draw_map_image(p8_graphics_t *gfx, p8_vram_t *mem) {
 
     if (!key->built || key->mem != mem || key->map_version != mem->map_version
         || memcmp(key->draw_palette, mem->draw_palette, sizeof key->draw_palette) != 0) {
-        p8_image_build(gfx, mem, BACKGROUND_IMAGE_SLOT, BACKGROUND_IMAGE_SIDE, BACKGROUND_IMAGE_SIDE,
+        p8_image_build(gfx, mem, IMAGE_SLOT_BACKGROUND, BACKGROUND_IMAGE_SIDE, BACKGROUND_IMAGE_SIDE,
                        background_draw_map, NULL);
         key->built = 1;
         key->mem = mem;
         key->map_version = mem->map_version;
         memcpy(key->draw_palette, mem->draw_palette, sizeof key->draw_palette);
     }
-    p8_image_draw(gfx, mem, BACKGROUND_IMAGE_SLOT, 0, 0);
+    p8_image_draw(gfx, mem, IMAGE_SLOT_BACKGROUND, 0, 0);
 }
 
 void background_draw(p8_graphics_t *gfx, p8_vram_t *mem, const background_t *self) {

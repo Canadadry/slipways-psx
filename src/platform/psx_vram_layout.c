@@ -16,9 +16,15 @@ static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
     [PSX_VRAM_IMAGES] = { 704, 0, 256, 512 },
 };
 
-/* Later slots go in the (704, 256) half, each on a 16-unit bound. */
+/* The 48x8 slots go five a band down from (704, 256), each on a 16-unit bound. */
+#define SMALL_SLOT(i) { 704 + (i) % 5 * 48, 256 + (i) / 5 * 8, 48, 8 },
+#define SMALL_SLOTS_8(first)                                                                                      \
+    SMALL_SLOT(first) SMALL_SLOT(first + 1) SMALL_SLOT(first + 2) SMALL_SLOT(first + 3) SMALL_SLOT(first + 4) \
+    SMALL_SLOT(first + 5) SMALL_SLOT(first + 6) SMALL_SLOT(first + 7)
+
 static const psx_vram_rect_t image_slots[P8_IMAGE_SLOT_COUNT] = {
     { 704, 0, 256, 256 },
+    SMALL_SLOTS_8(0) SMALL_SLOTS_8(8) SMALL_SLOTS_8(16) SMALL_SLOTS_8(24)
 };
 
 psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region) {
