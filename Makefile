@@ -863,6 +863,7 @@ ENGINE_SRCS := \
     src/p8/sprite_sheet.c \
     src/game/attract.c \
     src/game/background.c \
+    src/game/row_image.c \
     src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
@@ -1435,6 +1436,9 @@ $(TMP_DIR)/test_research_project: $(call objs,tests/test_research_project.c $(EN
 $(TMP_DIR)/test_layout_row: $(call objs,tests/test_layout_row.c tests/heap_allocator.c src/devtools/largest_slots.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_row_image: $(call objs,tests/test_row_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1750,6 +1754,7 @@ UNIT_TESTS := \
     test_trade \
     test_research_project \
     test_layout_row \
+    test_row_image \
     test_economy \
     test_main_economy \
     test_input_step \
