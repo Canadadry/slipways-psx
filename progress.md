@@ -24,7 +24,7 @@
     - [x] Chunk 1 — p8_map loops over visible cells only
   - [x] Step 2.7 — end of phase full-game check
     - [x] Judge run, table replaced
-- [ ] Phase 3 — Draw, in impact order
+- [x] Phase 3 — Draw, in impact order
   - [x] Step 3.8 — D5 pre-built background and the image cache
     - [x] Chunk 1 — warn-review prerequisites: peaks helper tested, derived counts
     - [x] Chunk 2 — per-call costs re-measured, coverage, capture check
@@ -63,7 +63,7 @@
     - [x] Chunk 2 — text image and D2
     - [x] Chunk 4a — D10 slipway end points once
     - [x] Chunk 4b — D9 off-screen planets skipped at dispatch
-  - [ ] Step 3.16 — end of phase full-game check
+  - [x] Step 3.16 — end of phase full-game check
     - [x] Judge run, table replaced
 - [ ] Phase 4 — Update
   - [ ] Step 4.17 — O2 (or O1), O3, O5

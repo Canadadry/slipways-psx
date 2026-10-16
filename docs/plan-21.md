@@ -410,3 +410,11 @@ by judge-wide gain (the report's `draw-6000` figure):
 - One-off builds for phase 4: on the judge 587 text builds on 167 frames, at most 12 a frame.
 - All three: e2e hashes, end-state and every existing capture reference unchanged.
 - Short runs (asserts off, O3): draw a frame `draw-5564` 326.9, `draw-6000` 362.0. Done, deterministic, breakdown and asserts hold; `representative` fails on every run (draw −30% to −68% against step 2.7's table), as expected. `ram-room` 156,548, `game-ram-room` 307,872; `gpu-ram-room` 154,480 (computed from the full-game GPU ELF, `psx-full-game-check` not run).
+
+### Step 3.16
+
+- Judge on a5c8d88 (asserts off, O3, filter and meter off): every condition holds but `frame-budget`. **3,942 of 6,059 frames over** (2.7: 6,046); worst frame 12 at 7,962 (7,853), update 7,659; mean frame **318.4** (530.2), mean overrun 102 (267). Totals: update +0.6%, draw −48.2%, submit −11.6%; draw still dominant over budget (1,009,267 of 1,439,214). Table replaced.
+- New 2% of the mean frame: **6.4 hblanks**, for phase 4's "under 2%" calls.
+- `gpu-ram-room` 154,480 (315,792); `gpu_build` 8,180 of 10,240; caps unchanged.
+- Image builds (host count): map 1 on frame 12; rows 81 on 58 spike frames; text 587 on 167 frames, of which 166 are not in `spike-frames.txt` and 138 of those over 263, so phase 4's spike list must include them.
+- H-15-6 failed, adapted: the tooling gained `zone gpu_build` in step 8; the condition count stays 14.
