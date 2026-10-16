@@ -1,0 +1,13 @@
+- [ ] Phase 1 — Measure and model the real game
+  - [ ] Step 1.1 — Baseline full-game frame table
+  - [ ] Step 1.2 — Situation of every frame
+  - [ ] Step 1.3 — real-game-budget condition
+  - [ ] Step 1.4 — Short runs and steady-frame profile
+  - [ ] Step 1.5 — Lever list
+- [ ] Phase 2 — Loading screen
+  - [ ] Step 2.6 — Loading screen during galaxy generation
+- [ ] Phase 3 — Pixel-identical levers, in impact order
+  - [ ] Step 3.7 — Ranked levers, one by one
+  - [ ] Step 3.8 — End-of-phase full-game check
+- [ ] Phase 4 — Close
+  - [ ] Step 4.9 — Close the plan
