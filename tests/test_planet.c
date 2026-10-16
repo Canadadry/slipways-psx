@@ -917,6 +917,21 @@ static void aborts_in_child(void (*test)(void)) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
+/* draw_layers culls an off-screen planet before its draw: only the classes whose draw is
+ * planet_draw_method opt in; an ascension-family draw updates its emitter first, so it is never culled. */
+static void test_only_planet_draw_classes_are_culled_at_dispatch(void) {
+    const entity_class_t *culled[] = {planet_class(), structure_class(), trading_hub_class(), processor_class(),
+                                      slipgate_class(), infraspace_gate_class()};
+    const entity_class_t *dispatched[] = {ascension_class(), protostar_class(), synthesizer_class(), burst_class()};
+    start_game();
+    for (size_t i = 0; i < sizeof culled / sizeof culled[0]; i++) {
+        assert(culled[i]->draw == planet_draw_method && culled[i]->skip_draw_off_screen);
+    }
+    for (size_t i = 0; i < sizeof dispatched / sizeof dispatched[0]; i++) {
+        assert(dispatched[i]->draw != planet_draw_method && !dispatched[i]->skip_draw_off_screen);
+    }
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -943,6 +958,7 @@ int main(void) {
     in_fresh_child(test_installed_randomness_is_read_back);
     in_fresh_child(test_started_game_has_reachable_randomness);
     in_fresh_child(test_planet_is_a_struct);
+    in_fresh_child(test_only_planet_draw_classes_are_culled_at_dispatch);
     in_fresh_child(test_refresh_row_slot);
     in_fresh_child(test_refresh_without_resource_takes_no_slot);
     in_fresh_child(test_rows_given_back_after_restart);

@@ -241,7 +241,11 @@ by judge-wide gain (the report's `draw-6000` figure):
     nothing uses it yet. It also fixes how input that arrives during a
     spread frame is treated, and how the recordings (e2e replays,
     `worst-case/full_game.json`, the short-run windows, the capture frames)
-    follow the added frames. Verified when every e2e hash is unchanged and
+    follow the added frames. The accepted GPU capture references and
+    ceilings are re-keyed to their new frames by the run itself, hash and
+    ceiling unchanged: the human's decision, an exception to
+    `psx-gpu-capture-accept` being theirs alone. Verified when every e2e
+    hash is unchanged and
     a test drives the mechanism on stand-in work: input during a spread
     frame follows the settled rule, and a stretched recording reaches the
     same end state.
@@ -250,7 +254,9 @@ by judge-wide gain (the report's `draw-6000` figure):
     Galaxy generation (frame 12) shows as a loading screen that ignores
     input. The e2e hashes are re-recorded once, in this step's own commit,
     with each changed screen checked. Verified when `psx-check` is green,
-    the PC and PSX play the same game, each changed replay reaches the same
+    `gpu-capture-references` and `gpu-capture-ceilings` pass with every
+    hash and ceiling as before and only their frames moved, the PC and PSX
+    play the same game, each changed replay reaches the same
     end state as before, `full_game.json` still plays to its end, and the
     note lists the re-recorded hashes.
 21. End of phase: `psx-full-game-check`, with its summary in the note.
@@ -272,7 +278,8 @@ by judge-wide gain (the report's `draw-6000` figure):
 
 - `frame-budget` is green in `psx-full-game-check`, or every step is done
   and the note gives the frames still over, the worst and the mean.
-- `make test-all` and `psx-check` are green. Every capture is unchanged.
+- `make test-all` and `psx-check` are green. Every capture is unchanged (in step 20,
+  only its frame number moves).
 - E2e hashes changed only in step 20, explicitly.
 - `docs/psx-perf-levers.md` is removed and `docs/psx-game.md` is up to
   date.

@@ -42,6 +42,7 @@ void planet_update_vanishing_method(entity_t *self, p8_fixed_t t) {
 
 static const entity_class_t planet_class_def = {
     .draw = planet_draw_method,
+    .skip_draw_off_screen = 1,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,

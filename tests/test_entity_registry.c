@@ -8,6 +8,7 @@
 
 #include "engine/entity.h"
 #include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "engine/exit_queue.h"
 #include "engine/game_zone.h"
 #include "engine/entity_id.h"
@@ -334,6 +335,56 @@ static void a_full_layer_order_is_fatal(const char *self_path) {
     remove(STDERR_LOG);
 }
 
+static vec_t g_drawn_at[64];
+
+static void stub_draw_at(entity_t *self, vec_t screen_pos) {
+    g_drawn_at[g_call_count] = screen_pos;
+    record((int)(self - g_entities));
+}
+
+static const entity_class_t culled_cls = {.draw = stub_draw_at, .draw_overlay = stub_draw_at, .skip_draw_off_screen = 1};
+static const entity_class_t unculled_cls = {.draw = stub_draw_at};
+
+static entity_t *placed(int i, const entity_class_t *cls, int layer, int x, int y) {
+    entity_t *e = layered(i, cls, layer);
+    entity_set_pos(e, vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y)));
+    return entity_register(e);
+}
+
+static void draw_layers_skips_an_off_screen_entity_of_a_culled_class_on_draw_only(void) {
+    static const int camera_xs[] = {0, 200, -77};
+    registry_world();
+    entity_registry_set_main_camera(&g_camera);
+    placed(0, &culled_cls, 6, 64, 64);
+    placed(1, &culled_cls, 6, 300, 64);
+    placed(2, &unculled_cls, 6, 300, 64);
+    placed(3, &culled_cls, 6, 64, -60);
+    placed(4, &culled_cls, 6, 139, 139);
+    for (size_t c = 0; c < sizeof camera_xs / sizeof camera_xs[0]; c++) {
+        entity_set_pos(&g_camera, vec_make(p8_fixed_from_int(camera_xs[c]), 0));
+        int want[5];
+        int wanted = 0;
+        for (int i = 0; i < 5; i++) {
+            if (g_entities[i].class == &unculled_cls || entity_geom_is_on_screen(&g_entities[i])) {
+                want[wanted++] = i;
+            }
+        }
+        g_call_count = 0;
+        draw_layers(ENTITY_MESSAGE_DRAW);
+        assert(g_call_count == 1 + wanted && g_calls[0] == -1);
+        for (int k = 0; k < wanted; k++) {
+            assert(g_calls[1 + k] == want[k]);
+            assert(g_drawn_at[1 + k].x == g_entities[want[k]].pos.x && g_drawn_at[1 + k].y == g_entities[want[k]].pos.y);
+        }
+    }
+    entity_set_pos(&g_camera, vec_make(0, 0));
+    assert(!entity_geom_is_on_screen(&g_entities[1]) && entity_geom_is_on_screen(&g_entities[0]));
+    g_call_count = 0;
+    draw_layers(ENTITY_MESSAGE_DRAW_OVERLAY);
+    assert(g_call_count == 4 && "draw_overlay is never culled");
+    entity_clear_pos(&g_camera);
+}
+
 int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "full") == 0) return draw_one_entity_too_many();
     the_kept_order_follows_any_mix_of_operations();
@@ -345,6 +396,7 @@ int main(int argc, char **argv) {
     a_draw_method_that_constructs_an_entity_stops_on_an_assert();
     a_layer_written_behind_the_registry_stops_on_an_assert();
     draw_layers_applies_the_camera_once_per_drawn_layer_then_its_entities();
+    draw_layers_skips_an_off_screen_entity_of_a_culled_class_on_draw_only();
     a_layer_change_lands_at_registration_rank();
     unregistering_keeps_the_order_of_the_rest();
     a_registered_entity_joins_the_end_of_its_layer();

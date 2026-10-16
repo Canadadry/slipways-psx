@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "engine/entity_geom.h"
 #include "engine/entity_id.h"
 #include "engine/exit_queue.h"
 #include "game/game_data.h"
@@ -353,7 +354,7 @@ void draw_layers(entity_message_t message) {
             unsigned mutations = g_layer_order_mutations;
 
             assert(layer_key(qc) == layer && "draw_layers: a layer written directly, not through entity_registry_set_layer");
-            if (draw != NULL) {
+            if (draw != NULL && !(is_draw && qc->class->skip_draw_off_screen && !entity_geom_is_on_screen(qc))) {
                 draw(qc, entity_pos(qc));
             }
             assert(g_layer_order_mutations == mutations &&

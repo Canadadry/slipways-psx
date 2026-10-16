@@ -350,15 +350,20 @@ void planet_projects_panel(planet_t *self) {
     message_box_open_box(&frame, bs, n);
 }
 
+static void planet_draw_on_screen(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos);
+
 void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
+    if (self == NULL || !entity_geom_is_on_screen((const entity_t *)self)) {
+        return;
+    }
+    planet_draw_on_screen(graphics, memory, self, screen_pos);
+}
+
+static void planet_draw_on_screen(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
     vec_t shaken_pos;
     int screen_x;
     int screen_y;
     int spr_index = 43;
-
-    if (self == NULL || !entity_geom_is_on_screen((const entity_t *)self)) {
-        return;
-    }
 
     /* Everything below draws at shaken_pos, never at screen_pos. */
     shaken_pos = entity_geom_shake(screen_pos, (entity_t *)self);
@@ -439,7 +444,9 @@ down_t planet_accept_drop_method(entity_t *self, const entity_t *s) {
 }
 
 void planet_draw_method(entity_t *self, vec_t screen_pos) {
-    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
+    assert(self->class->skip_draw_off_screen && entity_geom_is_on_screen(self) &&
+           "planet_draw_method trusts draw_layers' cull: only a class with skip_draw_off_screen may use it");
+    planet_draw_on_screen(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
 down_t planet_left_press_method(entity_t *self, mouse_pos_t mouse) {
