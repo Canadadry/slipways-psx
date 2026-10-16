@@ -469,3 +469,11 @@ by judge-wide gain (the report's `draw-6000` figure):
 ### Step 4.21
 
 - No source change since step 4.18's closing judge on f14a576, so that run stands as the phase 4 result: **3,078 of 6,059 frames over**, worst frame 12 at 4,013, mean 285.4, mean overrun 86; every other condition holds.
+
+### Step 5.22
+
+- Result: `frame-budget` still red, on the closing judge of step 4.18 (f14a576): **3,078 of 6,059 frames over 263**, worst frame 12 at **4,013** (galaxy generation; update 3,711), mean frame **285.4** (plan 20: 6,047 / 9,451 / 857), mean overrun 86. 2,818 of them are ordinary draw-bound frames (mean draw 270.6, update 55.5): the next work is draw. Spreading (steps 19–20) was not done, the human's decision.
+- `docs/psx-game.md`: "Still to do" gives that result and says the Miyoo Mini Flip was never measured; the `psx-short-runs` item is cut to what still holds; the pending-acceptance list is cut to `all` f233; the links to `docs/psx-perf-levers.md` and the missing `docs/plan-19.md` are gone.
+- README: a "PlayStation build" section; the contract is pcsx-redux at 263 hblanks, the Miyoo Mini Flip (PCSX-ReARMed) never measured.
+- `docs/psx-perf-levers.md` deleted. Still citing it, left for a code change: the `lever-estimate` and `lever-estimate-check` targets with `psx/perf/report-judge-frames.txt` and `gains.txt`, `tools/lever_estimate_check.sh`, three `tests/fixtures/lever_estimate/` files.
+- `make test-all` green; `psx-check` green, 32 conditions, `all 233` pending the human's `make psx-gpu-capture-accept LABEL=all`.

@@ -85,5 +85,5 @@
   - [x] Step 4.19 — spreading mechanism, inert
   - [x] Step 4.20 — spreading applied
   - [x] Step 4.21 — end of phase full-game check
-- [ ] Phase 5 — Close
-  - [ ] Step 5.22 — close the plan
+- [x] Phase 5 — Close
+  - [x] Step 5.22 — close the plan

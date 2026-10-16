@@ -1004,7 +1004,7 @@ exits 1 if one is invalid, 0 otherwise, differing game-state lines included.
 `make psx-probe-baseline [PSX_SHORT_RUNS=<names>]` is the same pipeline
 without a patch into `tmp/psx/probe/baseline/`: the deltas compare probe
 builds with probe builds, never with `psx-short-runs`' measured replay,
-whose asserts-off figures stay the report's absolute baseline. A valid run
+whose asserts-off figures stay the absolute baseline. A valid run
 gets `fingerprint.txt`: the tree ids of `src/` and `psx/`, the blob id of
 `full_game.json` at `HEAD` and `opt O3`, so a baseline built at another
 level is stale; `psx-probe` calls a run stale when its own
@@ -1013,8 +1013,7 @@ The sanity patches `psx/probes/call-twice-cart-draw.patch`,
 `delay-update-and-draw.patch` (20 hblanks at the entry of `cart_update60`
 and `cart_draw`) and `null.patch` (code linked next to `cart_draw`, never
 run) are the tool's fixtures; when a commit moves their context they are
-refreshed with it. Their results and the noise floor are in
-`docs/psx-perf-levers.md`.
+refreshed with it.
 
 **PC frame profile.** `make frame-profile [EVENTS=] [REFERENCE=]` replays a
 recording (default `full_game.json`, about 7.5 s) with `tmp/frame_profile`.
@@ -1045,29 +1044,27 @@ ambiguous symbol, or `cart_update60`, exits 1.
   then each child called in the window with its calls per window frame
   (min–max) and its median share of the root's PC time, by decreasing
   share, then the root's self share. It never boots.
-- Its tests are in `make frame-profile-test`. The results are in
-  `docs/psx-perf-levers.md`.
+- Its tests are in `make frame-profile-test`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
 ## Still to do
 
-- `make psx-full-game-check` is red on `frame-budget` until plan 21,
-  as expected; nobody raises `PSX_FRAME_BUDGET_HBLANKS` to turn it green.
-  Latest run (asserts off, O3, draw filter and draw meter off): 3,078 of
-  6,059 frames over 263 hblanks, worst frame 12 at 4,013 (update 3,711),
-  mean overrun 86, mean frame 285 hblanks (~1.1 vsyncs), draw dominant
-  (827,937 of the over-budget frames' 1,076,370 hblanks). The thirteen
-  other conditions hold.
+- `make psx-full-game-check` is red on `frame-budget`; nobody raises
+  `PSX_FRAME_BUDGET_HBLANKS` to turn it green. Latest run (asserts off, O3,
+  draw filter and draw meter off): 3,078 of 6,059 frames over 263 hblanks,
+  worst frame 12 at 4,013 (galaxy generation; update 3,711), mean frame
+  285.4 hblanks against 263, mean overrun 86. 2,818 of the frames over are
+  ordinary draw-bound frames (mean draw about 271, update about 55), so the
+  next work is draw. Spike work (galaxy generation, saves, slipway drops,
+  launches, image builds) is not spread across frames. The thirteen other
+  conditions hold. The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
+  Flip (PCSX-ReARMed) was never measured.
 
-- `make psx-short-runs` is red on `representative`: `done`, `deterministic`
-  and `breakdown` hold on all five runs, and `start` matches the full run
-  exactly, but the four resumed runs miss their window: the update spikes
-  are not reproduced after the resume (4737: update 125 vs 2002; 5719: 49
-  vs 1588), and draw comes out lower than in the full run (5500: −33.3%;
-  draw-5564: −13.6%, about 15% lower on every window frame although its
-  end state matches the full game's). Plan 11 step 4.1 stops on it; the
-  cut rule and the windows are not loosened.
+- `make psx-short-runs` is red on `representative` for the resumed runs:
+  the update spikes are not reproduced after the resume, and draw comes out
+  lower than in the full run. `done`, `deterministic`, `breakdown` and
+  `asserts` hold. The cut rule and the windows are not loosened.
 
 - The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
   `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in
@@ -1075,60 +1072,16 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 - Hardware renderers: DuckStation's hardware renderer samples the x2 upscale
   quad unevenly (glyph outlines of uneven width, a broken-up title logo). Use
-  its Software renderer until `docs/plan-19.md` draws the frame at display
-  resolution.
+  its Software renderer until the frame is drawn at display resolution.
 
 - A disc for real hardware or a Sony BIOS: `slipways.bin` carries no license
   data and no region string (PSn00bSDK ships none); the pinned OpenBIOS
   checks neither, so the disc is proven in the emulator only.
 
-- Pending human acceptance, one label at a time: run `make psx-check`,
-  review each capture's report line and
-  `tmp/psx/game-check/run/gpu-captures/<label>-f<frame>.ppm` (PC | PSX |
-  diff), then accept the label with the one command
-  `make psx-gpu-capture-accept LABEL=<label>` and commit
-  `psx/gpu_capture_references.txt`:
-  - `cls` f1: `cls f1 mask cls calls 1 differ 0 (0.0‰) near1 0 near2 0 far 0
-    bbox - offpalette 0 nonuniform 0`, ceiling 0.
-  - `rectfill` f11: `rectfill f11 mask cls,rectfill calls 8 differ 0 (0.0‰)
-    near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
-  - `pset` f131: `pset f131 mask cls,pset calls 65 differ 0 (0.0‰) near1 0
-    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
-  - `pattern` f190: `pattern f190 mask cls,rectfill,circfill,pattern calls 9
-    differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform
-    0`, ceiling 0: the patterned HUD panels in aim mode, 1,984 lit pixels
-    in 4 colours.
-  - `pattern` f257: `pattern f257 mask cls,rectfill,circfill,pattern calls 9
-    differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform
-    0`, ceiling 0: the background grid under the HUD panels in slipway
-    mode, 2,028 lit pixels in 4 colours. Both `pattern` captures are
-    accepted together.
-  - `spr` f234: `spr f234 mask cls,spr calls 106 differ 0 (0.0‰) near1 0
-    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
-    background map and the planet sprites, 829 lit pixels in 14 colours.
-  - `circfill` f263: `circfill f263 mask cls,line,circfill calls 12 differ 0
-    (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling
-    0. Every plain `circfill` of the game is the colour-0 disc behind a
-    planet, invisible on a cleared screen: the mask keeps `line` so the
-    discs show as the 36 pixels they cut from the colour-2 lines of the
-    already linked p47.
-  - `print` f275: `print f275 mask cls,print calls 81 differ 0 (0.0‰) near1
-    0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: "-too
-    far-", the HUD figures and labels, 246 lit pixels in 4 colours.
-  - `line` f276: `line f276 mask cls,line calls 16 differ 2 (0.1‰) near1 2
-    near2 0 far 0 bbox 80,119-81,119 offpalette 0 nonuniform 0`, ceiling 2:
-    two bottom-row pixels the PC lights stay black on the PSX, where the
-    lines out of p28, below the screen, enter it (GPU stepping).
-  - `rect` f300: `rect f300 mask cls,rect calls 8 differ 0 (0.0‰) near1 0
-    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0.
-  - `circ` f314: `circ f314 mask cls,circ calls 2 differ 0 (0.0‰) near1 0
-    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling 0: the
-    colour-7 hovered circle round p28 and a colour-2 planet ring.
-  - `all` f100, f188, f265 (accepted together): `all f100 mask all calls
-    357 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
-    nonuniform 0`, `all f188 mask all calls 298 differ 0 (0.0‰) near1 0
-    near2 0 far 0 bbox - offpalette 0 nonuniform 0`, `all f265 mask all
-    calls 327 differ 0 (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0
-    nonuniform 0`, ceilings 0: every family at once, aim mode entered from
-    p47 (f100), aim mode moving to the fold (f188), the aim on the already
-    linked p47 in colour 2 with the forbidden sign (f265).
+- Pending human acceptance: the `all` f233 capture (the five button labels
+  drawn through the text image cache), `all f233 mask all calls 103 differ 0
+  (0.0‰) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0`, ceiling
+  0. Run `make psx-check`, review its report line and
+  `tmp/psx/game-check/run/gpu-captures/all-f233.ppm` (PC | PSX | diff),
+  then run `make psx-gpu-capture-accept LABEL=all` (f100, f188 and f265
+  keep their hashes) and commit `psx/gpu_capture_references.txt`.
