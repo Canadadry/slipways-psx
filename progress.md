@@ -4,7 +4,7 @@
   - [ ] Step 1.2 — Situation of every frame
     - [x] Classifier
     - [x] Snapshot reader and command
-    - [ ] Table and report
+    - [x] Table and report
     - [ ] Docs
   - [ ] Step 1.3 — real-game-budget condition
   - [ ] Step 1.4 — Short runs and steady-frame profile

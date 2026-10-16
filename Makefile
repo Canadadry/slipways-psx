@@ -707,6 +707,18 @@
 #                       "frame situation family" header to SITUATIONS_OUT
 #                       (default tmp/situations-table/<name>.txt), outside the
 #                       suite
+# make situations-check -> regenerates worst-case/full_game.json's situation
+#                       table into tmp/situations-table/full_game.txt and
+#                       fails on any difference with
+#                       psx/perf/full-run-situations.txt, naming the first
+#                       differing frame (~2 s), outside the suite
+# make situation-report [FRAMES=<frame table>] [SITUATIONS=<situation table>]
+#                       -> tools/situation_report.sh: per situation its frames,
+#                       frames over 263, mean update and draw; per one-off its
+#                       occurrences and longest run (long past 31 frames);
+#                       verdicts frame-count, families, one-off-runs (defaults
+#                       psx/perf/full-run-frames.txt and
+#                       psx/perf/full-run-situations.txt), outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -1055,6 +1067,12 @@ $(TMP_DIR)/test_short_run_cut: $(call objs,tests/test_short_run_cut.c src/devtoo
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_situation: $(call objs,tests/test_situation.c src/devtools/situation.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_situation_table: $(call objs,tests/test_situation_table.c src/devtools/situation.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) psx/perf/full-run-situations.txt | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_situation_report: $(call objs,tests/test_situation_report.c) tools/situation_report.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_situations: $(call objs,tests/test_situations.c) $(TMP_DIR)/situations tests/e2e/pad_score.json tests/e2e/pad_probe.json tests/e2e/pad_game_end.json pico8/demo_record.hex | $(TMP_DIR)
@@ -1668,6 +1686,8 @@ UNIT_TESTS := \
     test_short_run_cut \
     test_situation \
     test_situations \
+    test_situation_table \
+    test_situation_report \
     test_capture_compare \
     test_input \
     test_dump \
@@ -2062,7 +2082,18 @@ situations: $(TMP_DIR)/situations
 	@events=$(or $(EVENTS),$(SITUATIONS_EVENTS)); out=$(or $(SITUATIONS_OUT),$(TMP_DIR)/situations-table/$$(basename $$events .json).txt); \
 	mkdir -p $$(dirname $$out) && ./$(TMP_DIR)/situations $$events $$out && echo "situations: $$events -> $$out"
 
-.PHONY: situations
+SITUATIONS_TABLE := psx/perf/full-run-situations.txt
+
+situations-check: $(TMP_DIR)/situations
+	@out=$(TMP_DIR)/situations-table/full_game.txt; mkdir -p $$(dirname $$out) && ./$(TMP_DIR)/situations $(SITUATIONS_EVENTS) $$out || exit 1; \
+	first=$$(diff $(SITUATIONS_TABLE) $$out | sed -n 's/^[<>] \([0-9][0-9]*\) .*/\1/p' | sort -n | head -1); \
+	if cmp -s $(SITUATIONS_TABLE) $$out; then echo "situations-check: $$out equals $(SITUATIONS_TABLE)"; \
+	else echo "situations-check: $$out differs from $(SITUATIONS_TABLE), first at frame $${first:-header}"; exit 1; fi
+
+situation-report:
+	@sh tools/situation_report.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) $(or $(SITUATIONS),$(SITUATIONS_TABLE))
+
+.PHONY: situations situations-check situation-report
 
 WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
 

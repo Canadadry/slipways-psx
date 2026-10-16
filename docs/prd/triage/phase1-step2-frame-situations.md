@@ -80,7 +80,7 @@ except step 6's renumbering (the loading screen frame).
 34. As the plan pilot, I want the tool to accept any events file (title start or resume start), so that step 4 can label its short runs with the same rule.
 35. As the plan pilot, I want a report joining the situation table with a frame table, printing per situation its frame count, frames over 263, mean update and mean draw, so that the step note can be filled without hand arithmetic.
 36. As the plan pilot, I want the report to print, for each one-off situation, its occurrences (event frames) and its longest run of consecutive frames, so that the "long or not tied to one event" criterion is checked.
-37. As the plan pilot, I want the report to mark a one-off run longer than 30 frames, so that a mislabeled stretch fails the step visibly.
+37. As the plan pilot, I want the report to mark a one-off run longer than 31 frames, so that a mislabeled stretch fails the step visibly.
 38. As the plan pilot, I want the report to fail when the two tables have different frame counts or numbering, so that a join against the wrong table is never silent.
 39. As the plan pilot, I want the report to fail on an unknown family or a situation name that appears with both families, so that a corrupt table is caught.
 40. As step 6's implementer, I want the hand-picked frames listed in one place in the test, so that renumbering after the loading screen means editing that list and regenerating the table, nothing else.
@@ -129,7 +129,7 @@ For each frame, `before` is the snapshot after the previous frame's update (or t
 
 Families: `title`, `attract`, `map-rest`, `map-move`, `slipway-aim`, `build`, `menu`, `tech-panel`, `score-panel`, `pause` are `steady`; the ten event labels are `one-off`.
 
-An **occurrence** of a one-off situation is one event frame (rule 1) of that label; its **run** is the event frame plus its continuation frames. A one-off run longer than **30 frames** (half a second) fails the step; a one-off run not starting with an event frame cannot exist by construction.
+An **occurrence** of a one-off situation is one event frame (rule 1) of that label; its **run** is the event frame plus its continuation frames. A one-off run longer than **31 frames** (the camera shake of 3 set by `burst_construct`, decaying 0.1 a frame for 30 frames, plus the event frame) fails the step; a one-off run not starting with an event frame cannot exist by construction.
 
 ### Table format
 
@@ -147,7 +147,7 @@ An **occurrence** of a one-off situation is one event frame (rule 1) of that lab
 One line per situation, steady first then one-off, each in the rule's order:
 `situation <name> <family> frames <n> over <n> update-mean <u> draw-mean <d>`
 (means as integers, hblanks, over all the situation's frames; over = total > 263). One line per one-off situation:
-`one-off <name> occurrences <n> longest <n> [long]`. Then verdict lines: `frame-count ok|failed <detail>`, `families ok|failed <detail>`, `one-off-runs ok|failed <names over 30>`. Exit 0 once written when the inputs parse, whatever the verdicts; 1 on a usage or parse error. Same shape as `tools/psx_frame_budget.sh`'s verdict lines.
+`one-off <name> occurrences <n> longest <n> [long]`. Then verdict lines: `frame-count ok|failed <detail>`, `families ok|failed <detail>`, `one-off-runs ok|failed <names over 31>`. Exit 0 once written when the inputs parse, whatever the verdicts; 1 on a usage or parse error. Same shape as `tools/psx_frame_budget.sh`'s verdict lines.
 
 ### Other decisions
 
@@ -170,7 +170,7 @@ One line per situation, steady first then one-off, each in the rule's order:
 - **Classifier** (`tests/test_situation.c`): hand-built snapshot pairs, one case per situation at least, each priority conflict that matters (new year and screen change in one frame gives `new-year`; galaxy appears and screen changes gives `galaxy-generation`), continuation kept while the layout moves and dropped on the first settled frame, continuation never following a steady frame, `map-move` on camera motion and on selection change alone. Fast, part of `make test`.
 - **Committed table** (in the same test or a sibling): reads `psx/perf/full-run-situations.txt`; checks the header, 6,059 frame lines numbered 0..6058, each family matching its situation, and a list of hand-picked frames with their expected situations, at least one per situation present in `full_game.json` (frame 12 is `galaxy-generation`; one frame inside a score panel; one map-rest frame; one frame of each event the pad script performs). The implementer picks the frames by reading `full_game.pad` and the tool's output, then checks each one by hand against the rule. The list sits in one place so step 6 can renumber it. File read only, fast.
 - **Snapshot reader** (live test): replays one or two short e2e recordings of `tests/e2e/` (at most 180 frames each) through the command's loop and checks a few expected labels (a panel open frame, an event frame). Prior art: `test_replay_from_title`, `test_replay_from_resume`.
-- **Report script** (`tests/test_situation_report.c`): hand-written fixture tables in a work directory under `tmp/`; checks the per-situation counts, over count, integer means, occurrences, longest run, the `long` mark past 30 frames, and failing verdicts on a frame count mismatch, a numbering gap, an unknown family and a name with two families. Prior art: `tests/test_psx_frame_budget.c`.
+- **Report script** (`tests/test_situation_report.c`): hand-written fixture tables in a work directory under `tmp/`; checks the per-situation counts, over count, integer means, occurrences, longest run, the `long` mark past 31 frames, and failing verdicts on a frame count mismatch, a numbering gap, an unknown family and a name with two families. Prior art: `tests/test_psx_frame_budget.c`.
 - The regeneration diff (`situations-check`) is not part of `make test` (a full-game replay); it is run once in this step and its result given in the note.
 - No e2e hash may change: the step adds no game code.
 
@@ -196,6 +196,6 @@ Step 1 (baseline `psx-full-game-check` replacing `psx/perf/full-run-frames.txt`)
 
 ## Further Notes
 
-- The 30-frame bound and the event list are this step's decisions; once committed they are frozen with the rule.
+- The 31-frame bound and the event list are this step's decisions; once committed they are frozen with the rule.
 - Occurrence counts are what the real-game model needs: a real 60-minute game is assumed to have about as many one-off events as `full_game.json`.
 - The labeler reads the game's state through existing accessors (pad navigation, economy, camera, entity lists); if one fact needs a new read-only accessor in game code, it must not change behavior, the picture or any e2e hash.
