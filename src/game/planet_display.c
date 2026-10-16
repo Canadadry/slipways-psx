@@ -12,6 +12,7 @@
 #include "game/main_economy.h"
 #include "game/game_data.h"
 #include "game/hud.h"
+#include "game/image_slot.h"
 #include "engine/entity.h"
 #include "engine/entity_id.h"
 #include "game/map_tables.h"
@@ -416,6 +417,39 @@ void planet_projects_panel(planet_t *self) {
 
 static void planet_draw_on_screen(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos);
 
+#define PLANET_DISC_RADIUS 7
+#define PLANET_RING_RADIUS 6
+
+static int planet_images_built;
+
+static void planet_draw_disc_image(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    (void)context;
+    p8_circfill(gfx, mem, PLANET_DISC_RADIUS, PLANET_DISC_RADIUS, PLANET_DISC_RADIUS, 0);
+}
+
+static void planet_draw_ring_image(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    p8_circ(gfx, mem, PLANET_RING_RADIUS, PLANET_RING_RADIUS, PLANET_RING_RADIUS, *(const int *)context);
+}
+
+/* Draws no visual random number and reads no game state: the image cache's rule. */
+static void planet_build_images(p8_graphics_t *gfx, p8_vram_t *mem) {
+    const int_seq_t *ring_colors = planet_ring_colors();
+    int index;
+
+    assert(gfx->fillp_pattern == 0 && "planet images are built with no fill pattern");
+    if (planet_images_built) {
+        return;
+    }
+    p8_image_build(gfx, mem, IMAGE_SLOT_PLANET_DISC, 2 * PLANET_DISC_RADIUS + 1, 2 * PLANET_DISC_RADIUS + 1,
+                   planet_draw_disc_image, NULL);
+    assert(ring_colors->count == PLANET_RING_COLORS_COUNT);
+    for (index = 0; index < PLANET_RING_COLORS_COUNT; index++) {
+        p8_image_build(gfx, mem, IMAGE_SLOT_PLANET_RING_FIRST + index, 2 * PLANET_RING_RADIUS + 1,
+                       2 * PLANET_RING_RADIUS + 1, planet_draw_ring_image, (void *)&ring_colors->items[index]);
+    }
+    planet_images_built = 1;
+}
+
 void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
     if (self == NULL || !entity_geom_is_on_screen((const entity_t *)self)) {
         return;
@@ -442,7 +476,12 @@ static void planet_draw_on_screen(p8_graphics_t *graphics, p8_vram_t *memory, pl
     screen_x = p8_fixed_flr_int(shaken_pos.x);
     screen_y = p8_fixed_flr_int(shaken_pos.y);
 
-    p8_circfill(graphics, memory, screen_x, screen_y, 7, 0);
+    if (graphics->fillp_pattern == 0) {
+        planet_build_images(graphics, memory);
+        p8_image_draw(graphics, memory, IMAGE_SLOT_PLANET_DISC, screen_x - PLANET_DISC_RADIUS, screen_y - PLANET_DISC_RADIUS);
+    } else {
+        p8_circfill(graphics, memory, screen_x, screen_y, PLANET_DISC_RADIUS, 0);
+    }
 
     hud_select_palette_block(memory, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->palette_block : p8_fixed_from_int(0));
     p8_palt(memory, 3, 0);
@@ -459,8 +498,13 @@ static void planet_draw_on_screen(p8_graphics_t *graphics, p8_vram_t *memory, pl
     if (planet_is_colonized(self)) {
         int mi = p8_fixed_flr_int(self->has_development_tier ? self->development_tier : p8_fixed_from_int(0));
         int color = 0;
-        int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, mi, &color);
-        p8_circ(graphics, memory, screen_x, screen_y, 6, color);
+        if (int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, mi, &color) && graphics->fillp_pattern == 0) {
+            planet_build_images(graphics, memory);
+            p8_image_draw(graphics, memory, IMAGE_SLOT_PLANET_RING_FIRST + mi - 1, screen_x - PLANET_RING_RADIUS,
+                          screen_y - PLANET_RING_RADIUS);
+        } else {
+            p8_circ(graphics, memory, screen_x, screen_y, PLANET_RING_RADIUS, color);
+        }
         p8_spr_default(graphics, memory, mi + 1, screen_x - 3, screen_y - 6);
     }
 

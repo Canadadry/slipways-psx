@@ -139,15 +139,20 @@ the previous one; NULL, the default, is the software backend
 PC game, the e2e and every test.
 
 **Image cache** (`src/p8/image.h`). `p8_image_build` runs a draw function once
-per 160×120 window of an image slot (slot 0 is 256×256), with the camera at
+per 160×120 window of an image slot, with the camera at
 the window's origin, through the backend's `image_begin`, `image_window` and
 `image_end`; `p8_image_draw` copies the last build at a world position under
 the camera, pixels the build never wrote staying transparent (`image_draw`).
 `p8_mset` stamps a process-wide map version into the vram, so a caller can
 tell the map changed. The software backend keeps each slot as colour indices
 in a static store (64 KiB for slot 0, linked into every ELF). The GPU
-backend keeps each slot as a 15-bit rectangle of VRAM (below); nothing in the
-game builds an image yet. The meter, filter, breakdown timing and call
+backend keeps each slot as a 15-bit rectangle of VRAM (below). The game's
+slots (`src/game/image_slot.h`, checked against the runtime count): slot 0,
+256×256, the background map; 1–32, 48×8, planet rows (`row_image.c`); 33–64,
+128×8, outlined text (`text_image.c`); 65, 16×16, the planet disc; 66–69,
+16×16, one colony ring per ring colour, built once on the first planet drawn
+with no fill pattern (a planet drawn under a fill pattern keeps its
+`circfill`/`circ`). The meter, filter, breakdown timing and call
 profile follow the copy as one `spr` and the build's calls under their own
 families.
 
@@ -354,7 +359,7 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 | font | (512, 128) | 32x128 | same page, v 128..255 |
 | pattern slots | (544, 0) | 32x256, 2x8 a slot | same page, u 128..255 |
 | CLUTs | (640, 0) | 16x64, 16x1 each | `GPU_CLUT_SLOTS` draw palettes, 16 font colours, `GPU_PATTERN_SLOTS` pattern CLUTs |
-| images | (704, 0) | 256x512 | 15-bit image slots, each 16-aligned on its own page: slot 0 is (704, 0) 256x256, page (704, 0); later slots in (704, 256) |
+| images | (704, 0) | 256x512 | 15-bit image slots, each 16-aligned on its own page: slot 0 is (704, 0) 256x256, page (704, 0); the 48x8 slots five a band from (704, 256); the 128x8 slots two a band from (704, 312); the five 16x16 slots in a row from (704, 440); free: (944, 256) 16x56, (800, 304) 144x8, (784, 440) 176x16 and (704, 456) 256x56 |
 
 ## Until-exit boot mode
 
@@ -1052,12 +1057,12 @@ None of these targets is in `make test-all`, and none runs a setup.
 
 - `make psx-full-game-check` is red on `frame-budget`; nobody raises
   `PSX_FRAME_BUDGET_HBLANKS` to turn it green. Latest run (asserts off, O3,
-  draw filter and draw meter off): 3,078 of 6,059 frames over 263 hblanks,
-  worst frame 12 at 4,013 (galaxy generation; update 3,711), mean frame
-  285.4 hblanks against 263, mean overrun 86. 2,818 of the frames over are
-  ordinary draw-bound frames (mean draw about 271, update about 55), so the
-  next work is draw. Spike work (galaxy generation, saves, slipway drops,
-  launches, image builds) is not spread across frames. The thirteen other
+  draw filter and draw meter off): 1,764 of 6,059 frames over 263 hblanks,
+  worst frame 12 at 3,992 (galaxy generation; update 3,711), mean frame
+  233.6 hblanks against 263, mean overrun 76. Draw still dominates the
+  frames over (424,627 of their 598,793 hblanks), so the next work is draw.
+  Spike work (galaxy generation, saves, slipway drops, launches, image
+  builds) is not spread across frames. The thirteen other
   conditions hold. The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
   Flip (PCSX-ReARMed) was never measured.
 

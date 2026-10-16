@@ -24,6 +24,8 @@
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "game/help.h"
+#include "game/hud.h"
+#include "game/ui.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -612,6 +614,147 @@ static void test_vanishing_flicker_draws_from_the_visual_stream(void) {
     assert(visual_random_state() != visual);
 }
 
+static p8_vram_t memory_before;
+static p8_vram_t memory_drawn;
+
+static void paint_background(void) {
+    int x;
+    int y;
+
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (x = 0; x < P8_SCREEN_WIDTH; x++) {
+            memory.screen[y][x] = (unsigned char)((x + 2 * y) % 15 + 1);
+        }
+    }
+}
+
+/* Today's planet_draw sequence of primitives, frozen as the oracle: disc, sprite, ring, marker,
+ * pad circle. Only for a planet with no row, no shake and no targeting. */
+static void draw_planet_with_primitives(const planet_t *a, int x, int y) {
+    int spr_index = a->planet_type != NULL ? a->planet_type->sprite : 43;
+
+    p8_circfill(&graphics, &memory, x, y, 7, 0);
+    hud_select_palette_block(&memory, (a->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? a->palette_block : p8_fixed_from_int(0));
+    p8_palt(&memory, 3, 0);
+    p8_palt(&memory, 0, 1);
+    p8_spr(&graphics, &memory, spr_index, x - 4, y - 4, 2, 2);
+    hud_select_palette_block_default(&memory);
+    if (planet_is_colonized(a)) {
+        int tier = p8_fixed_flr_int(a->has_development_tier ? a->development_tier : p8_fixed_from_int(0));
+        int color = 0;
+        int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, tier, &color);
+        p8_circ(&graphics, &memory, x, y, 6, color);
+        p8_spr_default(&graphics, &memory, tier + 1, x - 3, y - 6);
+    }
+    if (ui_pad_circle(main_ui()) == &a->header) {
+        p8_circ(&graphics, &memory, x, y, 9, 7);
+    }
+}
+
+/* planet_draw at screen (x, y) leaves the same vram as the primitives, from the same start. */
+static void check_planet_draws_like_primitives(planet_t *a, int x, int y) {
+    vec_t screen = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+
+    a->header.pos = vec_add(entity_pos(main_camera()), screen);
+    assert(entity_geom_is_on_screen(&a->header));
+    assert(entity_geom_is_on_screen(&a->header));
+    assert(a->layout_row == NULL);
+    paint_background();
+    memory_before = memory;
+    planet_draw(&graphics, &memory, a, screen);
+    memory_drawn = memory;
+    memory = memory_before;
+    draw_planet_with_primitives(a, x, y);
+    if (memcmp(&memory_drawn, &memory, sizeof memory) != 0) {
+        fprintf(stderr, "planet_draw at (%d, %d), state %d, tier %d: vram differs from the primitives\n", x, y,
+                (int)a->header.state, a->has_development_tier ? p8_fixed_flr_int(a->development_tier) : -1);
+        assert(0 && "planet_draw draws the same pixels as its primitives");
+    }
+}
+
+static void check_planet_draws_like_primitives_everywhere(planet_t *a) {
+    enum { W = P8_SCREEN_WIDTH, H = P8_SCREEN_HEIGHT };
+    static const int spots[][2] = {
+        {W / 2, H / 2}, {0, H / 2}, {-6, H / 2}, {W - 1, H / 2}, {W + 5, H / 2},
+        {W / 2, 0}, {W / 2, -6}, {W / 2, H - 1}, {W / 2, H + 5},
+        {-3, -3}, {W + 2, H + 2}, {2, H - 3}, {W - 3, 2},
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof spots / sizeof spots[0]; i++) {
+        check_planet_draws_like_primitives(a, spots[i][0], spots[i][1]);
+    }
+}
+
+static planet_t *new_planet_on_screen(const char *id) {
+    planet_keys_t keys = planet_keys_at(id, 0, 0);
+
+    keys.pos = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    return planet_new(&keys);
+}
+
+/* A plain planet, a colony at every tier in and out of the ring colour table, and the planet under
+ * the pad draw the pixels of today's primitives, at the centre and across every screen edge. */
+static void test_planet_draw_matches_its_primitives(void) {
+    planet_t *a;
+    int tier;
+
+    start_game();
+    a = new_planet_on_screen("p903");
+    check_planet_draws_like_primitives_everywhere(a);
+    entity_set_state(&a->header, ENTITY_STATE_SETTLED);
+    assert(planet_is_colonized(a));
+    a->has_development_tier = 0;
+    check_planet_draws_like_primitives_everywhere(a);
+    a->has_development_tier = 1;
+    for (tier = 0; tier <= PLANET_RING_COLORS_COUNT + 1; tier++) {
+        a->development_tier = p8_fixed_from_int(tier);
+        check_planet_draws_like_primitives_everywhere(a);
+    }
+    a->development_tier = p8_fixed_from_int(2);
+    ui_set_pad_selection(main_ui(), &a->header, 0);
+    assert(ui_pad_circle(main_ui()) == &a->header);
+    check_planet_draws_like_primitives_everywhere(a);
+}
+
+/* With a fill pattern in force, the disc and the ring keep the pattern's phase on screen. */
+static void test_planet_draw_under_a_fill_pattern_matches_its_primitives(void) {
+    planet_t *a;
+    int tier;
+
+    start_game();
+    a = new_planet_on_screen("p904");
+    entity_set_state(&a->header, ENTITY_STATE_SETTLED);
+    a->has_development_tier = 1;
+    p8_fillp(&graphics, 0x5A5Au);
+    for (tier = 1; tier <= PLANET_RING_COLORS_COUNT; tier++) {
+        a->development_tier = p8_fixed_from_int(tier);
+        check_planet_draws_like_primitives_everywhere(a);
+    }
+    p8_fillp_transparent(&graphics, 0xA5A5u);
+    check_planet_draws_like_primitives_everywhere(a);
+    p8_fillp_reset(&graphics);
+    check_planet_draws_like_primitives_everywhere(a);
+}
+
+/* The first draw of a settled planet, the one that may prepare its images, draws no random number
+ * from either stream. */
+static void test_first_planet_draw_draws_no_random_number(void) {
+    planet_t *a;
+    uint32_t game;
+    uint32_t visual;
+
+    start_game();
+    a = new_planet_on_screen("p905");
+    entity_set_state(&a->header, ENTITY_STATE_SETTLED);
+    a->has_development_tier = 1;
+    a->development_tier = p8_fixed_from_int(3);
+    game = p8_fixed_rnd_state();
+    visual = visual_random_state();
+    planet_draw(&graphics, &memory, a, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    assert(p8_fixed_rnd_state() == game && visual_random_state() == visual);
+}
+
 /* The production of a planet that never ran planet_install_project is the
  * class's shared one: an in-place write to it is seen by every such planet
  * and by the class, until the next planet_init() puts it back to zero. */
@@ -1107,6 +1250,9 @@ int main(void) {
 
     cart_load();
     in_fresh_child(test_vanishing_flicker_draws_from_the_visual_stream);
+    in_fresh_child(test_planet_draw_matches_its_primitives);
+    in_fresh_child(test_planet_draw_under_a_fill_pattern_matches_its_primitives);
+    in_fresh_child(test_first_planet_draw_draws_no_random_number);
     in_fresh_child(test_galaxy);
     in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);
