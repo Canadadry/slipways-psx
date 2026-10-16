@@ -156,11 +156,11 @@ static uint32_t fold_entity(uint32_t h, const void *ref) {
 }
 
 static int layer_count(const ui_t *ok, int mf) {
-    return (ok->has & UI_HAS_HOVERED_BY_LAYER) ? ok->hovered_by_layer.layers[mf].count : 0;
+    return ui_hovered_layer(ok, mf)->count;
 }
 
 static int in_layer(const ui_t *ok, int mf, const void *e) {
-    return (ok->has & UI_HAS_HOVERED_BY_LAYER) && entity_id_list_has(&ok->hovered_by_layer.layers[mf], entity_id_of(e));
+    return entity_id_list_has(ui_hovered_layer(ok, mf), entity_id_of(e));
 }
 
 static uint32_t fold_layers(uint32_t h, const ui_t *ok) {
@@ -421,6 +421,26 @@ static void test_hover(void) {
     assert(is_hovered_state(planet) == 0);
     h = fold_entity(h, ui_hovered(ok));
     check("hover", h, HOVER_HASH);
+}
+
+/* A layer the previous pass wrote and this pass does not reads empty. */
+static void test_unwritten_layer_reads_empty(void) {
+    ui_t *ok = start_game();
+    planet_t *planet;
+    int x;
+    int y;
+
+    mouse_at(80, 96, 0);
+    ui_update(&memory, ok);
+    planet = planet_on_screen(&x, &y);
+    mouse_at(x, y, 0);
+    ui_update(&memory, ok);
+    assert(layer_count(ok, 6) == 1 && in_layer(ok, 6, planet));
+
+    mouse_at(x + 40 > 143 ? x - 40 : x + 40, y, 0);
+    ui_update(&memory, ok);
+    assert(!in_layer(ok, 6, planet));
+    assert(layer_count(ok, 1) == 1 && in_layer(ok, 1, the_background()));
 }
 
 /* ui_send_to_hovered walks the layers from 15 down: over a planet, the left
@@ -865,7 +885,7 @@ static void assert_hover_at(ui_t *ok, vec_t world, vec_t screen) {
     for (layer = 0; layer < UI_HOVER_LAYERS; layer++) {
         assert(layer_count(ok, layer) == want.counts[layer]);
         for (i = 0; i < want.counts[layer]; i++) {
-            assert((const entity_t *)entity_id_list_at(&ok->hovered_by_layer.layers[layer], i) == want.items[layer][i]);
+            assert((const entity_t *)entity_id_list_at(ui_hovered_layer(ok, layer), i) == want.items[layer][i]);
         }
     }
     frame_zone_rewind(mark);
@@ -1381,6 +1401,7 @@ int main(void) {
     in_fresh_child(test_shared);
     in_fresh_child(test_fresh);
     in_fresh_child(test_hover);
+    in_fresh_child(test_unwritten_layer_reads_empty);
     in_fresh_child(test_overlay_draws_only_the_crosshair);
     in_fresh_child(test_layers);
     in_fresh_child(test_left);

@@ -72,7 +72,7 @@
     - [x] Chunk 1 — O2 panel answer memoised per pad step
     - [x] Chunk 2 — O1 residual, built unless covered
     - [x] Chunk 3 — O3 inline planet hit test
-    - [ ] Chunk 4 — O5 hover layers initialised on write
+    - [x] Chunk 4 — O5 hover layers initialised on write
     - [ ] Chunk 5 — close: short runs, RAM, note
   - [ ] Step 4.18 — spike levers U4, U6, U2, U1, U3
   - [ ] Step 4.19 — spreading mechanism, inert

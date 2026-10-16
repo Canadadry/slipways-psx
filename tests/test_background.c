@@ -275,12 +275,7 @@ static void test_left_press(void) {
 }
 
 static int in_layer(int layer, const void *e) {
-    const ui_hovered_by_layer_t *ic = &main_ui()->hovered_by_layer;
-
-    if (!(main_ui()->has & UI_HAS_HOVERED_BY_LAYER)) {
-        return 0;
-    }
-    return entity_id_list_has(&ic->layers[layer], entity_id_of(e));
+    return entity_id_list_has(ui_hovered_layer(main_ui(), layer), entity_id_of(e));
 }
 
 /* Nothing else hovered: the background is `hovered`, marked `is_hovered`,
