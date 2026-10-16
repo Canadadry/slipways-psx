@@ -119,6 +119,17 @@ static void test_each_image_slot_lies_on_its_own_15_bit_page(void) {
     assert(first.x == first_page.x && first.y == first_page.y);
 }
 
+static void test_the_small_slots_follow_the_map_on_the_lower_half_page(void) {
+    assert(P8_IMAGE_SLOT_COUNT == 6);
+    for (int slot = 1; slot < P8_IMAGE_SLOT_COUNT; slot++) {
+        psx_vram_rect_t image = psx_vram_layout_image(slot);
+        assert(image.x == 704 + (slot - 1) * 16 && image.y == 256 && image.w == 16 && image.h == 16);
+        psx_vram_rect_t page = psx_vram_layout_image_page(slot);
+        assert(page.x == 704 && page.y == 256);
+        assert(!overlap(image, psx_vram_layout_image(0)));
+    }
+}
+
 int main(void) {
     test_regions_are_inside_vram_and_never_overlap();
     test_sheet_font_and_patterns_share_one_4_bit_page();
@@ -127,6 +138,7 @@ int main(void) {
     test_every_clut_fits_the_clut_region_on_16_unit_bounds();
     test_image_slots_fit_the_images_region_on_fill_bounds();
     test_each_image_slot_lies_on_its_own_15_bit_page();
+    test_the_small_slots_follow_the_map_on_the_lower_half_page();
     printf("test_psx_vram_layout: ok\n");
     return 0;
 }

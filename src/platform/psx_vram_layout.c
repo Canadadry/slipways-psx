@@ -19,6 +19,11 @@ static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
 /* Later slots go in the (704, 256) half, each on a 16-unit bound. */
 static const psx_vram_rect_t image_slots[P8_IMAGE_SLOT_COUNT] = {
     { 704, 0, 256, 256 },
+    { 704, 256, 16, 16 },
+    { 720, 256, 16, 16 },
+    { 736, 256, 16, 16 },
+    { 752, 256, 16, 16 },
+    { 768, 256, 16, 16 },
 };
 
 psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region) {
@@ -77,6 +82,8 @@ enum { PAGE_X_STEP = 64, PAGE_SIZE = 256 };
 
 psx_vram_rect_t psx_vram_layout_image_page(int slot) {
     psx_vram_rect_t image = psx_vram_layout_image(slot);
-    psx_vram_rect_t page = { image.x - image.x % PAGE_X_STEP, image.y - image.y % PAGE_SIZE, PAGE_SIZE, PAGE_SIZE };
+    psx_vram_rect_t region = regions[PSX_VRAM_IMAGES];
+    assert(region.x % PAGE_X_STEP == 0 && region.w == PAGE_SIZE);
+    psx_vram_rect_t page = { region.x, image.y - image.y % PAGE_SIZE, PAGE_SIZE, PAGE_SIZE };
     return page;
 }
