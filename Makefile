@@ -746,6 +746,24 @@
 #                       carries the full game's steady situation of
 #                       psx/perf/full-run-situations.txt; fails when a run is
 #                       not "same"; never boots, outside the suite
+# make steady-profile [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
+#                    -> pools the breakdown-vs-plain overhead per backend call
+#                       over every manifest run named after a steady
+#                       situation (tmp/frame-profile/steady/overhead.txt),
+#                       then per run (default those runs) profiles run.json K
+#                       times rooted at draw_layers/cart_update60 and at
+#                       cart_draw/input_step_run and runs
+#                       tools/steady_profile.sh profile with
+#                       psx/perf/draw-functions.txt into
+#                       tmp/frame-profile/steady/<run>/summary.txt: per
+#                       function group and function, hblanks inside the
+#                       primitives and in the game's code, the update pieces,
+#                       submit and the adds-up line; flags a run the manifest
+#                       marks "no representative run"; with PSX_SHORT_RUNS
+#                       unset, a steady situation with no run is shared by PC
+#                       time over the full game's frames over 263 (no-run);
+#                       needs make psx-short-runs, fails on a missing boot or
+#                       an adds-up failed; never boots, outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -2729,7 +2747,7 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 	if [ -n "$$invalid" ]; then echo "$@: $$label: invalid:$$invalid"; exit 1; fi; \
 	echo "$@: $$label: valid"
 
-FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check test_lever_estimate
+FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check test_lever_estimate test_steady_profile
 
 # Only the game, the engine and the PICO-8 runtime are instrumented: the hooks
 # must never see themselves or the replay harness.
@@ -2924,6 +2942,63 @@ frame-profile-ordinary: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_
 	done; \
 	cat $$out/ordinary.txt; exit $$status
 
+STEADY_SITUATIONS := map-rest map-move build menu slipway-aim tech-panel score-panel
+STEADY_PROFILE_GROUPS := psx/perf/draw-functions.txt
+STEADY_PROFILE_DIR := $(FRAME_PROFILE_DIR)/steady
+
+# The pooled overhead is always over every steady run of the manifest; PSX_SHORT_RUNS only narrows
+# the runs profiled. A steady situation with no run of the manifest is profiled on the full game's
+# frames over the budget (no-run), only when PSX_SHORT_RUNS is unset.
+steady-profile: $(TMP_DIR)/frame_profile tools/end_state.sh tools/steady_profile.sh tools/frame_profile_check.sh \
+		psx-short-runs-cut $(STEADY_PROFILE_GROUPS) $(FRAME_PROFILE_JUDGE_FRAMES) $(SITUATIONS_TABLE)
+	@$(frame_profile_function); \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	out=$(STEADY_PROFILE_DIR); mkdir -p $$out; \
+	steady=$$(awk -v situations="$(STEADY_SITUATIONS)" 'BEGIN { n = split(situations, names, " ") } \
+		$$1 !~ /^#/ && NF { for (i = 1; i <= n; i++) if (index($$1, names[i] "-") == 1) { print $$1; break } }' $(PSX_SHORT_RUNS_MANIFEST) | tr '\n' ' '); \
+	specs=; missing=; \
+	for name in $$steady; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; \
+		if [ ! -f $$short/breakdown.tty.txt ] || [ ! -f $$short/plain-1.tty.txt ]; then missing="$$missing $$name"; continue; fi; \
+		specs="$$specs $$short/breakdown.tty.txt:$$short/plain-1.tty.txt:$$short/map.txt"; \
+	done; \
+	if [ -n "$$missing" ]; then echo "$@: no breakdown or plain-1 boot for:$$missing: run make psx-short-runs PSX_SHORT_RUNS=\"$${missing# }\""; exit 1; fi; \
+	sh tools/steady_profile.sh overhead $$specs > $$out/overhead.txt || exit 1; \
+	echo "$@: pooled: $$(cat $$out/overhead.txt)"; overhead=$$(awk '{ print $$2 }' $$out/overhead.txt); \
+	profile_sets() { \
+		draws=; carts=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			profile $$1 $$2 $$3/draw/$$k draw_layers cart_update60 >&2 || return 1; \
+			profile $$1 $$2 $$3/cart/$$k cart_draw input_step_run >&2 || return 1; \
+			draws="$$draws,$$3/draw/$$k/frames.txt"; carts="$$carts,$$3/cart/$$k/frames.txt"; \
+		done; \
+		echo "$${draws#,} $${carts#,}"; \
+	}; \
+	failed=; \
+	for name in $${PSX_SHORT_RUNS:-$$steady}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$$out/$$name; rm -rf $$dir; mkdir -p $$dir; \
+		sets=$$(profile_sets $$short/run.json $$short/run.end-state $$dir) || { failed="$$failed $$name"; continue; }; \
+		awk -v name=$$name '$$1 == "#" && $$2 == "no" && $$4 == "run:" && $$8 == name ":" { print "flag no-representative-run " $$5 }' \
+			$(PSX_SHORT_RUNS_MANIFEST) > $$dir/summary.txt; \
+		sh tools/steady_profile.sh profile $$overhead $(STEADY_PROFILE_GROUPS) $$short/map.txt $$short/plain-1.tty.txt \
+			$$short/breakdown.tty.txt $$sets >> $$dir/summary.txt; status=$$?; \
+		sed "s/^/$@: $$name: /" $$dir/summary.txt; \
+		if [ $$status -ne 0 ] || grep -q '^adds-up failed' $$dir/summary.txt; then failed="$$failed $$name"; fi; \
+	done; \
+	if [ -z "$${PSX_SHORT_RUNS:-}" ]; then \
+		for situation in $(STEADY_SITUATIONS); do \
+			case " $$steady " in *" $$situation-"*) continue;; esac; \
+			dir=$$out/$$situation; rm -rf $$dir; mkdir -p $$dir; \
+			[ -n "$${full_sets:-}" ] || full_sets=$$(profile_sets $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$out/full-game) \
+				|| { failed="$$failed $$situation"; continue; }; sets=$$full_sets; \
+			echo "flag no-run" > $$dir/summary.txt; \
+			sh tools/steady_profile.sh no-run $$situation $(PSX_FRAME_BUDGET_HBLANKS) $(FRAME_PROFILE_JUDGE_FRAMES) $(SITUATIONS_TABLE) \
+				$(STEADY_PROFILE_GROUPS) $$sets >> $$dir/summary.txt || failed="$$failed $$situation"; \
+			sed "s/^/$@: $$situation: /" $$dir/summary.txt; \
+		done; \
+	fi; \
+	if [ -n "$$failed" ]; then echo "$@: failed:$$failed"; exit 1; fi
+
 SPREAD_LABEL ?= default
 
 frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
@@ -2967,6 +3042,9 @@ $(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.
 $(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_steady_profile: $(call objs,tests/test_steady_profile.c) tools/steady_profile.sh tools/frame_profile_check.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -2974,7 +3052,8 @@ frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
-	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate lever-estimate-check
+	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate lever-estimate-check \
+	steady-profile
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad

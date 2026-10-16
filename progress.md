@@ -13,7 +13,7 @@
     - [x] Candidate windows, label check, first map-rest run
     - [x] The other six situations' runs
     - [x] Per-child family figures in the PC profile
-    - [ ] The steady profile
+    - [x] The steady profile
   - [ ] Step 1.5 — Lever list
 - [ ] Phase 2 — Loading screen
   - [ ] Step 2.6 — Loading screen during galaxy generation

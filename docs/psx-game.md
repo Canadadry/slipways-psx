@@ -1155,6 +1155,55 @@ ambiguous symbol, or `cart_update60`, exits 1.
   then each child called in the window with its calls per window frame
   (min–max) and its median share of the root's PC time, by decreasing
   share, then the root's self share. It never boots.
+- `make steady-profile [PSX_SHORT_RUNS=] [FRAME_PROFILE_REPEATS=]` splits
+  the window frames of the steady runs (every manifest run named after a
+  steady situation, by default) into game functions on the judge
+  (`tools/steady_profile.sh`, tested in `test_steady_profile`). It first
+  pools the breakdown boot's overhead over every steady run's window:
+  Σ(breakdown draw − plain draw) ÷ Σ backend calls (the nine families,
+  `pattern` apart), `tmp/frame-profile/steady/overhead.txt`. Per run it
+  profiles `run.json` K times rooted at `draw_layers`/`cart_update60` and K
+  times at `cart_draw`/`input_step_run` (`same-game` checked), checks each
+  profile's window calls against the breakdown boot (the `breakdown` rule),
+  and writes `tmp/frame-profile/steady/<run>/summary.txt`:
+  - each family's breakdown in-call time, minus the pooled overhead per
+    call, goes to the functions in proportion to their PC time in that
+    family (`child-family` lines); the breakdown boot's outside-calls time
+    goes in proportion to their PC time outside the primitives (whole child
+    time minus in-call time, so the PC hooks' own cost weighs on call-heavy
+    code). A function is a `draw_layers` child, a `cart_draw` child other
+    than `draw_layers`, or one of those two roots' self time, by base name
+    (`#<site>` and `@<address>` dropped); the `draw_layers` children are
+    scaled to the `cart_draw` profile's `draw_layers` figures. PC figures
+    are medians of the K profiles.
+  - each function belongs to a group of `psx/perf/draw-functions.txt`
+    (`planets`, `slipways`, `particles`, `hud`, `panels`, `map`,
+    `overlays`, `frame`); a symbol missing from it fails the run.
+  - the plain-1 boot's update is shared among `input_step_run`, the
+    `cart_update60` children and its self by PC time, a piece under 1% of
+    the window total folded into `update other`; submit is the plain-1
+    boot's.
+  - output, in hblanks per window frame and as a share of the plain-1
+    window total: `group <name> in-primitives <h> game-code <h> total <h>
+    share <pct>`, `function <symbol> group <name> in-primitives <h>
+    game-code <h> share <pct>` by decreasing total, `update <piece> <h>
+    share <pct>`, `submit <h> share <pct>`, then `adds-up ok|failed sum <S>
+    measured <M> residual <R> noise-floor <N>`. The noise floor is the
+    larger of 3 hblanks per window frame (one of rounding on each of
+    update, draw and submit) and 1% of the measured total. A run the
+    manifest marks "no representative run" gets a `flag
+    no-representative-run <situation>` line first.
+  - with `PSX_SHORT_RUNS` unset, a steady situation with no run in the
+    manifest (`slipway-aim`) is profiled `no-run`: over the full game's
+    frames of that situation over 263, `full_game.json` profiled K times
+    the same way and the judge table's (`psx/perf/full-run-frames.txt`)
+    draw shared by each function's whole PC time. With no breakdown boot
+    there, it has no primitives/game-code split and no `adds-up` check
+    (`adds-up n/a no-run`), and the shares are PC time, not PSX cost.
+
+  It needs each run's `make psx-short-runs` boots and names the missing
+  ones; it fails when a run's profile fails or does not add up. It never
+  boots.
 - Its tests are in `make frame-profile-test`.
 
 None of these targets is in `make test-all`, and none runs a setup.

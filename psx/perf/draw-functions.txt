@@ -1,0 +1,33 @@
+# The game-function group of every draw symbol of make steady-profile: "<symbol> <group>". A
+# symbol is the base name of a draw_layers or cart_draw child ("#<site>" and "@<address>"
+# dropped); draw_layers and cart_draw stand for their own self time.
+planet_draw_method planets
+ascension_draw_method planets
+burst_draw_method planets
+structure_icon_draw_method planets
+slipway_draw_method slipways
+slipway_draw_overlay_method slipways
+emitter_update_method particles
+button_draw_method hud
+button_draw_overlay_method hud
+score_panel_draw_method hud
+toast_draw_method hud
+hud_select_palette_block_default hud
+message_box_draw_overlay_method panels
+help_screen_draw_method panels
+background_draw_method map
+wormhole_draw_method map
+ui_draw_overlay_method overlays
+targeting_tooltip_method overlays
+demo_overlay_draw overlays
+draw_layers frame
+cart_draw frame
+camera_apply_method frame
+entity_registry_layer frame
+entity_pos frame
+entity_geom_is_on_screen frame
+game_data_fixed_seq_at frame
+dispatch_context_gfx frame
+dispatch_context_mem frame
+text_image_frame_begin frame
+p8_cls frame
