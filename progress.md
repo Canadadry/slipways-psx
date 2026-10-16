@@ -53,7 +53,7 @@
     - [x] Chunk 2 — row-image module
     - [x] Chunk 3 — the switch, measured
   - [x] Step 3.13 — D4 score panel readouts through the image cache
-  - [ ] Step 3.14 — B2 off-screen rejection, or D12 + D11 + D15
+  - [x] Step 3.14 — B2 off-screen rejection, or D12 + D11 + D15
     - [x] Chunk 0 — ceiling probes, choice of side
     - [x] Chunk 2 — D11 batched slipway lines
     - [x] Chunk 3 — D15 batched particles

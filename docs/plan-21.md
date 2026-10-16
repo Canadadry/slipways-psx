@@ -383,3 +383,11 @@ by judge-wide gain (the report's `draw-6000` figure):
 ### Step 3.13
 
 - **Skipped:** D4 is covered by D1/B4. Step 3.9's residual probe left it at −9.5 / −9.3 a frame on `draw-5564` / `draw-6000`, under 10.6 on both. No source change.
+
+### Step 3.14
+
+- Ceilings (throwaway probes), draw a frame on `draw-5564` / `draw-6000`: B2 8.40 / 21.80, D11 7.30 / 10.75, D15 6.79 / 11.95 (report ≤25 / ≤75, 36 / 50, 36 / 48); none covered. **D12 skipped without a probe**: a sprite dot carries the PSX mask bit where `rectfill`/`pset` do not, so capture references would change. Pooled ceilings B2 30.2 vs D11 + D15 36.8: the D11 + D15 side built; B2 not built (fallback only if both failed).
+- **D11 kept:** `p8_lines` + a `lines` backend entry; `slipway_draw_line` batches 4 segments. Draw a frame −0.93 / −1.73, pooled **−1.33** — a gain, so kept by the rule, but about 500 lines for one hblank: a candidate for the human to drop.
+- **D15 kept:** `p8_psets` + a `psets` backend entry; `emitter_update` batches 32 points. Draw a frame −2.67 / −5.07, pooled **−3.87**.
+- Both: e2e hashes, end-state, state peaks and every capture and reference unchanged. `ram-room` 195,188, `game-ram-room` 345,488.
+- The batches keep one primitive and one clip per element, so they only remove per-call overhead; the probes' ceilings (cost of an extra rejected call) overstated that by 3–8×.
