@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "engine/collect.h"
@@ -39,6 +40,61 @@ static layout_row_cell_t planet_production_cell(const production_t *kw) {
     return layout_row_cell_tuple(tuple);
 }
 
+enum { ROW_SIGNATURE_VALID = 1, ROW_SIGNATURE_HAS_OUTPUT = 2 };
+enum { ROW_NEED_HAS_RESOURCE = 1, ROW_NEED_SATISFIED_ZERO = 2 };
+
+static planet_row_signature_t planet_row_signature(const pointer_list_t *needs_list, int has_output, p8_fixed_t output,
+                                                   p8_fixed_t amount, int route_count) {
+    planet_row_signature_t signature;
+    pointer_list_iter_t it;
+    void *entry;
+
+    assert(route_count >= 0 && route_count <= UINT16_MAX && "planet_row_signature: a wider route count would alias in the signature");
+    memset(&signature, 0, sizeof signature);
+    signature.flags = has_output ? ROW_SIGNATURE_HAS_OUTPUT : 0;
+    signature.output = output;
+    signature.amount = amount;
+    signature.route_count = (uint16_t)route_count;
+    if (needs_list != NULL && needs_list->count > PLANET_ROW_SIGNATURE_NEEDS) {
+        return signature;
+    }
+    if (needs_list != NULL) {
+        it = pointer_list_all(needs_list);
+        while (pointer_list_iter_next(&it, &entry)) {
+            if (entry != NULL) {
+                const need_t *need = entry;
+                resource_t resource = need_resource(need);
+
+                if (resource.kind == RESOURCE_FIXED) {
+                    signature.need_flags[signature.needs_count] |= ROW_NEED_HAS_RESOURCE;
+                    signature.need_resources[signature.needs_count] = resource.number;
+                }
+                if (need->has_satisfied && need->satisfied == 0) {
+                    signature.need_flags[signature.needs_count] |= ROW_NEED_SATISFIED_ZERO;
+                }
+            }
+            signature.needs_count++;
+        }
+    }
+    signature.flags |= ROW_SIGNATURE_VALID;
+    return signature;
+}
+
+static int planet_row_signature_equal(const planet_row_signature_t *left, const planet_row_signature_t *right) {
+    int i;
+
+    if (left->output != right->output || left->amount != right->amount || left->route_count != right->route_count ||
+        left->needs_count != right->needs_count || left->flags != right->flags) {
+        return 0;
+    }
+    for (i = 0; i < left->needs_count; i++) {
+        if (left->need_flags[i] != right->need_flags[i] || left->need_resources[i] != right->need_resources[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void planet_refresh(planet_t *self) {
     const pointer_list_t *needs_list;
     const trade_route_list_t *by_list;
@@ -49,6 +105,8 @@ void planet_refresh(planet_t *self) {
     layout_row_t *layout_row_result = NULL;
     const allocator_t *slot;
     frame_zone_mark_t scratch;
+    int route_count;
+    planet_row_signature_t signature;
 
     if (self == NULL) {
         return;
@@ -62,11 +120,15 @@ void planet_refresh(planet_t *self) {
         mu = kw->amount;
     }
     by_list = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
+    route_count = by_list != NULL ? trade_route_list_count(by_list) : 0;
+    signature = planet_row_signature(needs_list, has_output, output, mu, route_count);
+    if ((signature.flags & ROW_SIGNATURE_VALID) && planet_row_signature_equal(&signature, &self->layout_row_signature)) {
+        return;
+    }
 
     scratch = frame_zone_mark();
     slot = ui_zone_slot(SLOT_KIND_ROW);
-    if (research_display_planet_resource_row_keys(needs_list, has_output, output, mu,
-                                                  p8_fixed_from_int(by_list != NULL ? trade_route_list_count(by_list) : 0),
+    if (research_display_planet_resource_row_keys(needs_list, has_output, output, mu, p8_fixed_from_int(route_count),
                                                   p8_fixed_from_int(0), &keys)) {
         layout_row_result = layout_row_new(slot, &keys);
     } else {
@@ -78,6 +140,7 @@ void planet_refresh(planet_t *self) {
     }
     self->layout_row = layout_row_result;
     self->layout_row_slot = slot;
+    self->layout_row_signature = signature;
     frame_zone_rewind(scratch);
 }
 
@@ -89,6 +152,7 @@ void planet_release_row(entity_t *self) {
     }
     jo->layout_row = NULL;
     jo->layout_row_slot = NULL;
+    jo->layout_row_signature.flags = 0;
 }
 
 void planet_release_method(entity_t *self) {

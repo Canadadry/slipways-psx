@@ -76,6 +76,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->planet_type = NULL;
     self->layout_row = NULL;
     self->layout_row_slot = NULL;
+    self->layout_row_signature = (planet_row_signature_t){0};
     self->targeted_by = ENTITY_ID_NONE;
     self->production_bonus = 0;
     self->has_production_bonus = 0;

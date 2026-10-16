@@ -34,6 +34,9 @@
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 #include "game/research.h"
+#include "game/research_display.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 #include "game/structure_icon.h"
 #include "game/map_tables.h"
 #include "game/scroll.h"
@@ -884,6 +887,167 @@ static void test_refresh_many_times_in_one_frame(void) {
     }
 }
 
+/* The planet's row lays out the same items as a row built afresh from the
+ * planet's needs, production and outgoing routes now. */
+static void assert_row_is_a_fresh_build(const planet_t *a) {
+    const production_t *kw = planet_production_read(a);
+    const pointer_list_t *needs = (a->has & PLANET_HAS_NEEDS) ? &a->needs : NULL;
+    int routes = (a->has & PLANET_HAS_OUTGOING_ROUTES) ? trade_route_list_count(&a->outgoing_routes) : 0;
+    frame_zone_mark_t mark = frame_zone_mark();
+    layout_row_keys_t keys;
+    const layout_row_t *fresh;
+    int i;
+
+    if (!research_display_planet_resource_row_keys(needs, kw->has_resource, kw->resource, kw->amount, p8_fixed_from_int(routes),
+                                                   p8_fixed_from_int(0), &keys)) {
+        assert(a->layout_row == NULL);
+        frame_zone_rewind(mark);
+        return;
+    }
+    fresh = layout_row_new(frame_zone(), &keys);
+    assert(a->layout_row != NULL && "a planet with an output always has a row");
+    assert(a->layout_row->placed_items_count == fresh->placed_items_count && a->layout_row->width == fresh->width &&
+           a->layout_row->has_color == fresh->has_color && a->layout_row->color == fresh->color);
+    for (i = 0; i < fresh->placed_items_count; i++) {
+        const layout_row_item_t *now = &a->layout_row->placed_items[i];
+        const layout_row_item_t *want = &fresh->placed_items[i];
+        assert(now->kind == want->kind && now->sprite_id == want->sprite_id && now->color == want->color &&
+               now->sprite_palette_block == want->sprite_palette_block && now->offset.x == want->offset.x &&
+               now->offset.y == want->offset.y);
+        assert(now->kind != LAYOUT_ROW_ITEM_TEXT || strcmp(now->text, want->text) == 0);
+    }
+    frame_zone_rewind(mark);
+}
+
+static need_t *add_need(planet_t *a, p8_fixed_t resource) {
+    need_t *need = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = resource});
+
+    if (!(a->has & PLANET_HAS_NEEDS)) {
+        pointer_list_init(&a->needs, game_zone());
+        a->has |= PLANET_HAS_NEEDS;
+    }
+    pointer_list_add(&a->needs, need);
+    return need;
+}
+
+static void refresh_then_check(planet_t *a) {
+    planet_refresh(a);
+    assert_row_is_a_fresh_build(a);
+}
+
+/* Whatever changes between two refreshes, the row shows the planet as it is
+ * now; with nothing changed, it shows the same row. */
+static void test_refresh_row_follows_every_input(void) {
+    planet_t *a;
+    need_t *ore;
+    trade_route_t route = trade_new(NULL);
+
+    start_game();
+    cart_flush_exit_queue();
+    a = planet_with_a_row();
+    refresh_then_check(a);
+    refresh_then_check(a);
+
+    ore = add_need(a, p8_fixed_from_int(21));
+    refresh_then_check(a);
+    (void)add_need(a, p8_fixed_from_int(22));
+    refresh_then_check(a);
+    pointer_list_add(&a->needs, NULL);
+    refresh_then_check(a);
+
+    ore->has_satisfied = 1;
+    ore->satisfied = p8_fixed_from_int(1);
+    refresh_then_check(a);
+    ore->satisfied = 0;
+    refresh_then_check(a);
+    refresh_then_check(a);
+    ore->satisfied = p8_fixed_from_int(1);
+    refresh_then_check(a);
+    ore->has_satisfied = 0;
+    ore->satisfied = 0;
+    refresh_then_check(a);
+    ore->row.resource = p8_fixed_from_int(23);
+    refresh_then_check(a);
+    ore->row.has_resource = 0;
+    refresh_then_check(a);
+    ore->row.has_resource = 1;
+    refresh_then_check(a);
+    ore->row.resource = 0;
+    refresh_then_check(a);
+    ore->row.has_resource = 0;
+    refresh_then_check(a);
+    ore->row.has_resource = 1;
+    ore->row.resource = p8_fixed_from_int(21);
+    refresh_then_check(a);
+
+    assert(pointer_list_del(&a->needs, ore));
+    refresh_then_check(a);
+
+    a->production.resource = p8_fixed_from_int(29);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(5);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(6);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(7);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(1);
+    refresh_then_check(a);
+
+    trade_route_list_init(&a->outgoing_routes, game_zone());
+    a->has |= PLANET_HAS_OUTGOING_ROUTES;
+    refresh_then_check(a);
+    trade_route_list_add(&a->outgoing_routes, &route);
+    refresh_then_check(a);
+    trade_route_list_add(&a->outgoing_routes, &route);
+    refresh_then_check(a);
+    trade_route_list_clear(&a->outgoing_routes);
+    refresh_then_check(a);
+
+    a->production.has_resource = 0;
+    refresh_then_check(a);
+    a->production.has_resource = 1;
+    refresh_then_check(a);
+}
+
+/* A released row is rebuilt by the next refresh, inputs unchanged or not. */
+static void test_refresh_after_release_builds_the_row(void) {
+    planet_t *a;
+
+    start_game();
+    cart_flush_exit_queue();
+    a = planet_with_a_row();
+    refresh_then_check(a);
+    planet_release_row(&a->header);
+    assert(a->layout_row == NULL);
+    refresh_then_check(a);
+}
+
+/* More needs than any planet holds in a game: a change to the last one
+ * still shows. */
+static void test_refresh_row_with_many_needs(void) {
+    need_t *needs[6];
+    planet_t *a;
+    int i;
+
+    start_game();
+    cart_flush_exit_queue();
+    a = planet_with_a_row();
+    for (i = 0; i < 6; i++) {
+        needs[i] = add_need(a, p8_fixed_from_int(21 + i % 3));
+        needs[i]->has_satisfied = 1;
+        needs[i]->satisfied = p8_fixed_from_int(1);
+    }
+    refresh_then_check(a);
+    refresh_then_check(a);
+    needs[5]->satisfied = 0;
+    refresh_then_check(a);
+    needs[4]->satisfied = 0;
+    refresh_then_check(a);
+    needs[5]->satisfied = p8_fixed_from_int(1);
+    refresh_then_check(a);
+}
+
 /* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
@@ -963,6 +1127,9 @@ int main(void) {
     in_fresh_child(test_refresh_without_resource_takes_no_slot);
     in_fresh_child(test_rows_given_back_after_restart);
     in_fresh_child(test_refresh_many_times_in_one_frame);
+    in_fresh_child(test_refresh_row_follows_every_input);
+    in_fresh_child(test_refresh_after_release_builds_the_row);
+    in_fresh_child(test_refresh_row_with_many_needs);
 
     printf("test_planet: all tests passed\n");
     return 0;

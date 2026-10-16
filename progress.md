@@ -78,7 +78,7 @@
     - [x] Chunk 0 — starting state, baseline judge run, gross targets, exactness
     - [x] Chunk 1 — U4 table-driven CRC-32
     - [x] Chunk 2 — U6 early-exit scan in galaxy generation
-    - [ ] Chunk 3 — U2 planet row rebuilt only when its inputs changed
+    - [x] Chunk 3 — U2 planet row rebuilt only when its inputs changed
     - [ ] Chunk 4 — U1 one clock advance per slipway drop
     - [ ] Chunk 5 — U3 wormhole launch without a full recompute
     - [ ] Chunk 6 — close: judge run, image-build frames, three groups, note
