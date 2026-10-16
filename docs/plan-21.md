@@ -457,3 +457,15 @@ by judge-wide gain (the report's `draw-6000` figure):
   - (b) image-build frames: **119**, all text builds, overrun 12,061, mean 101.4, largest 300. List in `psx/perf/image-build-frames.txt`.
   - (c) the rest: **2,818**, overrun 195,501, mean 69.4, largest 286; mean draw 270.6 against update 55.5, beyond what spreading reaches.
 - RAM: `ram-room` 152,528 (154,940), `game-ram-room` 305,800 (307,772), `gpu-ram-room` 152,408 (154,380).
+
+### Step 4.19
+
+- **Skipped, the human's decision** (after step 4.18). Of the 3,078 frames over, 2,818 are ordinary draw-bound frames that spreading cannot reach, and 107 of the 260 spike and image-build frames are over on draw + submit alone: steps 19–20 could bring at most about 153 frames under 263, and `frame-budget` would stay red. The human chose to close the plan and target draw in a later one. No source change; the e2e hashes were never re-recorded.
+
+### Step 4.20
+
+- **Skipped**, with step 4.19 (same decision).
+
+### Step 4.21
+
+- No source change since step 4.18's closing judge on f14a576, so that run stands as the phase 4 result: **3,078 of 6,059 frames over**, worst frame 12 at 4,013, mean 285.4, mean overrun 86; every other condition holds.
