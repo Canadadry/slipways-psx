@@ -591,3 +591,83 @@ Caution: N2's ratio (2.47, whole-program call overhead) drives the
 `scale share 1.64` applied to G4, N5 and N6; those three are not
 inlining levers, so their scaled estimates (G4 at 85% of submit) are
 likely optimistic until measured.
+
+### Step 3.7 — G4
+
+Lever G4, slot uploads skipped when unchanged: `psx_gpu_frame_end` now
+queues only what `psx_slot_uploads_collect` returns
+(`src/platform/psx_slot_uploads.{c,h}`, new, host-tested by
+`test_psx_slot_uploads`): one record of the exact words each palette CLUT
+line, pattern tile and pattern CLUT line last received, shared by both
+primitive buffers (a per-buffer record would compare frame N with N−2),
+`memcmp` on the words, tile and pattern CLUT decided apart, forgotten by
+`psx_gpu_init`. The host test covers the first frame after `forget`, an
+identical frame from the other buffer, one changed palette, A, B, A on one
+slot, a cache shrinking and growing back, tile vs pattern CLUT, a swap and
+`forget`. Asserts-on builds read back (`StoreImage`), every frame, the
+slots the previous frame drew with and assert they hold its words;
+`psx-check`'s `asserts-on` now also requires `asserts on` from the first
+boot of both GPU capture replays (their boots moved before the condition;
+still 39 conditions).
+Baseline: the one re-taken at N2's commit, fingerprint matching HEAD on
+all 12 runs, reused. Not covered (D3, N1, N2 touch neither
+`upload_slots` nor the caches). Residual probe (throwaway: every upload
+whose words equal its slot's queued a second time), all 12 valid,
+`game-state same`: submit map-move-1057 +109 over 15 (+7.3 h a frame),
+menu-5954 +109 over 15 (+7.3), tech-panel-5895 +89 over 9 (+9.9),
+map-rest-5581 +109 over 15 (+7.3), build-5752 +126 over 15 (+8.4),
+pooled representative 307 / 39 = 7.9 for slipway-aim and score-panel
+(score-panel-5876 alone +7 on its one frame). Rule (a): 7.39 h per steady
+frame (weights ÷ 4,276 as the PRD fixed; they sum to 4,264, 7.41), above
+T = 4.4; rule (b): every situation above its threshold (7.3 > 6.2, 7.3 >
+7.0, 7.9 > 6.6, 8.4 > 6.2, 7.3 > 6.2, 9.9 > 7.3, 7.9 > 7.2). Verdict:
+build. Identical uploads: 3,994 of 4,188 over the 12 runs (95%;
+map-move-1057 97%, menu-5954 95%, tech-panel-5895 96%), against the 70%
+assumed. The doubled uploads cost more than the whole baseline submit
+(about 6 h), so the residual is an upper bound only.
+Mutation proof (throwaway: never re-upload a known slot): `psx-check`
+failed at `gpu-replay-done`, exit 4 on both GPU replays, `assert:
+psx_gpu.c:560 slots_hold_caches(...) && "a slot the last frame drew with
+did not hold its content: an upload was skipped"` — `pad_slipway` right
+after its frame-14 capture (first capture missing: f102), and
+`pad_message_box` before its first capture (f142).
+Probe of G4 (the diff of `src/`, `tests/`, `tools/` and the Makefile), all
+12 valid, `game-state same`, text +580 bytes: map-move-1057 submit 90 →
+40 (−50 over 15, −3.3 h a frame, 55.6% of submit), total −52 (−3.5 h);
+menu-5954 submit 90 → 39 (−51, −3.4 h, 56.7%), total −53 (−3.5 h);
+tech-panel-5895 submit 70 → 27 (−43 over 9, −4.8 h, 61.4%), total −42
+(−4.7 h); draw and update within ±4 h on every run. Measured against
+52%: pooled 144 / 250 = 57.6%, ratio 1.11; map-rest, build, slipway-aim
+and score-panel get 57.6%. Kept: map-move-1057's submit and total
+negative, the three totals all negative and beyond their noise floors
+(3.3, 3.0, 3.0 h), no total positive on any run. Weaker evidence:
+map-rest-5581 −53 over 15, build-5752 −55 over 15, draw-5564 −59,
+draw-6000 −51, the one-frame runs −3 to −4 of submit.
+`scale share 1.11`: the median of N1's 0.81, N2's 2.47 and G4's 1.11 — the
+step 7 rule re-derived with a third `share` lever; it scales N5 and N6
+(N5 alone 40 frames scaled, 35 unscaled; N6 26, 23). Steady frames over:
+G4 alone removes 37 (estimate 68 scaled, 36 unscaled); after N1, N2 and
+G4, 537 nominal / 655 pessimistic (N2's after N1 and N2: 597 / 701),
+after the four taken levers (D3 too) 481 / 616; end of the list 309 / 456
+(was 269 / 418: G4 measured under its 1.64-scaled estimate, and the lower
+scale shrinks N5 and N6). Re-ranked to the greedy order: N1, N2, N3, D3,
+N5, G4, N7, N6 — G4 alone now removes less than N2, N3, D3 and N5; the
+lever table and the ranked list were reordered to match (`order ok`). No
+`psx-full-game-check`, no rebase. `psx-check` green, all 39 conditions,
+every capture of both lists matching its reference, no ceiling or limit
+changed; `ram-room` 146,236 bytes left (was 148,252), `game-ram-room`
+302,404 (was 303,448); `make raylib` links. Every e2e `.sha256` and
+`.end-state` unchanged. Fast loop, before → after (warm, mean of four):
+`make test` 7.70 → 7.55 s, `make e2e` 0.53 → 0.51 s.
+Warn-review warnings in the changed files: none in `psx_gpu.c`,
+`psx_slot_uploads.{c,h}`, `test_psx_slot_uploads.c` or `psx_check.sh`
+(the readback helper is a static function inside an `assert`, not an
+`#ifdef` block); hand-copied condition counts left open (the count stays
+39); the Makefile warnings (phase 1's lists, constants and table
+variables, `loading_screen.c` in `ENGINE_SRCS`, plan 21's 3,000-line
+Makefile) left open, G4 adds one test target, one list entry and one
+backend source; "one frame late" vs F−2 left open (G4 edits the backend
+paragraph, the `asserts-on` line and the "Still to do" figure only);
+every other warning left open, outside G4's files. G4 also adds two
+lines to `tools/float_grep_exclusions.txt` for the new module. No
+guideline decision.

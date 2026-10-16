@@ -84,6 +84,8 @@ src/platform/psx_gpu_textures.c | CLUTs, the font texture and the pattern tiles 
 src/platform/psx_gpu_textures.h | CLUTs, the font texture and the pattern tiles built for the PSX GPU backend, header of platform/psx_gpu_textures.c
 src/platform/psx_clut_cache.c | per-frame spr CLUT cache of the PSX GPU backend, PSX build and its host test
 src/platform/psx_clut_cache.h | per-frame spr CLUT cache of the PSX GPU backend, header of platform/psx_clut_cache.c
+src/platform/psx_slot_uploads.c | what each PSX CLUT and pattern VRAM slot holds, PSX build and its host test
+src/platform/psx_slot_uploads.h | what each PSX CLUT and pattern VRAM slot holds, header of platform/psx_slot_uploads.c
 src/platform/psx_pattern_cache.c | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, PSX build and its host test
 src/platform/psx_pattern_cache.h | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, header of platform/psx_pattern_cache.c
 src/platform/psx_gpu_peaks.c | per-frame peak bookkeeping of the PSX GPU backend, PSX build and its host test

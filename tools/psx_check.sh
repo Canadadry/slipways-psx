@@ -95,6 +95,17 @@ echo "psx-check: booting the GPU replay PS-EXE again (at most ${gpu_timeout}s)"
 PSX_BOOT_TIMEOUT=$gpu_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --capture-script "$capture_script" --exe "$gpu_exe" "$gpu_ceiling" "$out_dir/gpu-repeat/gpu" \
     > "$out_dir/gpu-repeat.boot.txt" 2>&1
+set -- $extra_lists
+while [ $# -ge 8 ]; do
+    list_dir=$out_dir/$1
+    mkdir -p "$list_dir/gpu-repeat"
+    echo "psx-check: $1: booting its GPU replay PS-EXE twice (at most ${8}s each)"
+    for boot in gpu gpu-repeat/gpu; do
+        PSX_BOOT_TIMEOUT=$8 sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
+            --capture-script "$4/capture_script.txt" --exe "$2" "$7" "$list_dir/$boot" > "$list_dir/$boot.boot.txt" 2>&1
+    done
+    shift 8
+done
 echo "psx-check: booting the pad probe (at most ${pad_timeout}s)"
 pad_boot=$(PSX_BOOT_TIMEOUT=$pad_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --pad-script "$pad_script" --exe "$pad_exe" "$pad_ceiling" "$out_dir/pad" 2>&1)
@@ -126,11 +137,22 @@ else
     report magic "not starting with PS-X EXE (elf2x failed?):$bad_magic"
 fi
 
-asserts=$(printf '%s\n' "$replay_lines" | sed -n 's/^psx-replay: asserts //p' | head -n 1)
-if [ "$asserts" = on ]; then
+# The GPU replays' readback assert is the only check that every slot upload G4 skipped was redundant.
+asserts_ttys="$tty $out_dir/gpu.tty.txt"
+set -- $extra_lists
+while [ $# -ge 8 ]; do
+    asserts_ttys="$asserts_ttys $out_dir/$1/gpu.tty.txt"
+    shift 8
+done
+asserts_failure=
+for asserts_tty in $asserts_ttys; do
+    asserts=$(tr -d '\r' < "$asserts_tty" 2>/dev/null | sed -n 's/^psx-replay: asserts //p' | head -n 1)
+    [ "$asserts" = on ] || asserts_failure="${asserts_failure}$asserts_tty: psx-replay: asserts ${asserts:-(no line)}; "
+done
+if [ -z "$asserts_failure" ]; then
     pass asserts-on
 else
-    report asserts-on "psx-replay: asserts ${asserts:-(no line)}"
+    report asserts-on "$asserts_failure"
 fi
 
 psx_format=$(printf '%s\n' "$replay_lines" | sed -n 's/^psx-replay: //p' | grep '^format ' | head -n 1)
@@ -282,12 +304,6 @@ check_largest_slots largest-slots "$largest_status" "$largest_boot" "$largest_tt
 set -- $extra_lists
 while [ $# -ge 8 ]; do
     list_dir=$out_dir/$1
-    mkdir -p "$list_dir/gpu-repeat"
-    echo "psx-check: $1: booting its GPU replay PS-EXE twice (at most ${8}s each)"
-    for boot in gpu gpu-repeat/gpu; do
-        PSX_BOOT_TIMEOUT=$8 sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
-            --capture-script "$4/capture_script.txt" --exe "$2" "$7" "$list_dir/$boot" > "$list_dir/$boot.boot.txt" 2>&1
-    done
     [ -f "$list_dir/gpu.tty.txt" ] || : > "$list_dir/gpu.tty.txt"
     sh "$script_dir/psx_capture_report.sh" "$compare_tool" "$3" "$4" "$list_dir/gpu" "$list_dir/gpu-captures"
     sh "$script_dir/psx_capture_check.sh" "$3" "$4" "$list_dir/gpu.tty.txt" "$list_dir/gpu" \

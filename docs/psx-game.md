@@ -317,7 +317,12 @@ point, no `malloc`):
   (`src/platform/psx_clut_cache.c`, built by `psx_gpu_textures_clut`, one
   cache per primitive buffer), and uploaded to their palette CLUT lines
   with `LoadImage` after the previous frame's `DrawSync` and before this
-  frame's `DrawOTag`, so no line changes while a frame reads it; more than
+  frame's `DrawOTag`, so no line changes while a frame reads it, and only
+  when its words differ from what that line last received
+  (`src/platform/psx_slot_uploads.c`, host-tested, one record for both
+  buffers, since both upload to the same lines); asserts-on builds read
+  back, each frame, the lines, tiles and pattern CLUTs the previous frame
+  drew with and assert they hold its words; more than
   `GPU_CLUT_SLOTS` distinct palettes in a frame is a `p8_fatal` naming the
   frame; `print` is one `SPRT` per glyph with a lit texel that shows, walked
   as the software walks the string, after the camera and clipped to the
@@ -341,7 +346,9 @@ point, no `malloc`):
   pattern tiles and CLUTs are cached by `p8_draw_cost_pattern_key`
   (`src/platform/psx_pattern_cache.c`, built by `psx_gpu_textures_pattern`
   and `psx_gpu_textures_pattern_clut`, one cache per primitive buffer) and
-  uploaded with the spr CLUTs to the pattern slots and pattern CLUT lines;
+  uploaded with the spr CLUTs to the pattern slots and pattern CLUT lines,
+  a tile or a pattern CLUT only when its words differ from what its slot
+  holds;
   more than `GPU_PATTERN_SLOTS` in a frame is a `p8_fatal` naming the
   frame;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
@@ -636,7 +643,9 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
 `tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
 - `magic`: the five `.exe` start with `PS-X EXE`;
-- `asserts-on`: the replay printed `asserts on`;
+- `asserts-on`: the replay and the first boot of each GPU capture replay
+  (`pad_slipway`, `pad_message_box`) printed `asserts on`, so the slot
+  readback assert runs; a failure names each TTY that lacks it;
 - `format`: its self-test string equals the PC's;
 - `replay-done`: the boot exited with 0, its `done` line has the PC's frame
   count, and no `stopped p8_fatal`;
@@ -1356,8 +1365,8 @@ family each), `one-off-runs` (no `long` run).
 
 - The steady frames' levers, ranked and estimated, are in
   `docs/psx-levers.md` (`make lever-estimate` checks its order and projects
-  it). The pixel-identical list leaves 269 steady frames over 263 nominal,
-  418 pessimistic.
+  it). The pixel-identical list leaves 309 steady frames over 263 nominal,
+  456 pessimistic.
 
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out

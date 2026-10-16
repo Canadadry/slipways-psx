@@ -610,7 +610,7 @@ root's PC time.
 | `draw_layers` | no pixel-identical lever found | L1 is taken. Its self is the walk and dispatch (2.8% of its PC time on menu-5954), and L2 and L3 are dropped |
 | `ascension_draw_method` | N2 only | 71% is `emitter_update` and 27% `planet_draw` (menu-5954), both above |
 | `button_draw_method` | N7 | 24 `rectfill`, 10 `rect` and 23 `spr` a frame on tech-panel-5895 for 10 buttons |
-| submit | G4 | the slot uploads in `psx_gpu_frame_end` |
+| submit | G4 (taken) | the slot uploads in `psx_gpu_frame_end`: 95% of them wrote words their slot already held; skipping them took 55.6–61.4% of submit on the representative runs |
 | `structure_icon_draw_method` (build) | no pixel-identical lever found | one `spr` per icon (6 a frame); `p8_spr_default` is 67% of it |
 | `entity_pos` (menu, tech-panel) | N2 only | a vector getter: call overhead only |
 | `button_draw_overlay_method` (tech-panel) | no pixel-identical lever found | `tooltip_draw_at`'s `hud_draw_bar` (73%) is sprites, and its text rows already go through the text image cache (D2) |
@@ -627,57 +627,7 @@ map-move 222.7, slipway-aim 247.1, build 262.9, menu 281.0, tech-panel
 M 50–300 lines or two to three modules; L above 300 lines, or a new
 runtime or backend entry.
 
-### 1. G4 — upload only the slots that changed
-
-- **Function:** submit.
-- **Location:** `upload_slots` and the cache resets in
-  `psx_gpu_frame_begin`, `src/platform/psx_gpu.c`.
-- **Change:** remember what each CLUT and pattern slot last received, per
-  double-buffered cache. Skip the `queue_load` when the content is the
-  same.
-- **Estimated gain (`share`):** plan 20 measured the upload at 72–77% of
-  submit. The caches refill in the same draw order each frame, so about
-  70% of the slots are assumed to keep their content (not measured): 52% of
-  submit, 3.1–4.1 h a frame in every situation. This is plan 21's G4,
-  re-judged in Plan 21's levers below. Scaled by 1.64 (N1, N2): 85% of
-  submit, 5.1–6.7 h.
-- **Cost:** M. **Risk:** pixel identity `none` if the comparison is exact
-  (a missed upload would show as a wrong palette or pattern in a capture).
-  Game state `none` (PSX only).
-- **Measured by:** `map-move-1057`. **Evidence:** `weaker`: alone 68
-  frames scaled (36 unscaled), 36 of them in map-rest (18), build (15) and
-  slipway-aim (3).
-
-### 2. N3 — PSX circle outline drawn as runs
-
-- **Function:** `wormhole_draw_method` (map), and the `circ` of
-  `planet_draw_method`.
-- **Location:** `psx_tiles_circ`, `src/platform/psx_tiles.c`, called by
-  `gpu_circ`, `src/platform/psx_gpu.c`.
-- **Change:** today each midpoint step emits up to 8 one-pixel `TILE_1`. A
-  28-comparison duplicate check and a clip run per pixel. Instead, emit
-  each octant's horizontal or vertical runs as one `TILE` each (same
-  pixels, same colour). Run the duplicate check only on the two steps
-  where points can coincide, and clip each run once. This cuts the packets
-  by about 60% and drops the per-pixel loop work. The PC test compares the
-  pixel set with the software `circ`.
-- **Estimated gain (`calls`):** 60% of the per-call cost (from the code: about
-  540 cycles a midpoint step, against about 200 for the run form), times
-  the full game's `circ` calls per frame over in the situation. Map-move:
-  294 calls on 388 frames over × 20.158 h × 0.6 = 9.2 h (4.1% of draw).
-  The window's own 4.7 calls a frame would give 56.8 h (25%), but only 62
-  of map-move's 388 frames over draw a circle (Known biases). Map-rest:
-  246/429 × 5.716 (map-rest-5581) × 0.6 = 2.0 h (0.8%). Menu: 10/91 ×
-  20.158 (pooled representative) × 0.6 = 1.3 h (0.5%). Score-panel: 3/8 ×
-  20.158 × 0.6 = 4.5 h (1.8%).
-- **Cost:** M (PSX backend only, one module and its test).
-- **Risk:** pixel identity `none`. A `TILE` of w×1 or 1×h writes what the
-  `TILE_1` it replaces wrote, with the same mask bit. Game state `none`
-  (PSX only).
-- **Measured by:** `map-move-1057`. **Evidence:** `representative`: alone
-  50 frames, 48 in map-move.
-
-### 3. N1 — slipway lines from integer end points
+### 1. N1 — slipway lines from integer end points
 
 - **Function:** `slipway_draw_method` (slipways).
 - **Location:** `slipway_draw_line`, `src/game/slipway_display.c`.
@@ -706,7 +656,7 @@ runtime or backend entry.
   tech-panel-5895 2,878 → 2,797 (−81 over 9, −9.0 h, 2.8%) against 11.9 h
   (3.6%). Pooled ratio 23.5 / 29.0 = 0.81: map-rest, build, slipway-aim and
   score-panel get their estimates × 0.81 (2.8%, 3.0%, 3.1%, 1.9%). This is
-  N1's own ratio; with N2's it sets the `scale share` line (1.64). map-move-1057's −2.7 h is under its 3.5 h noise floor.
+  N1's own ratio; with N2's and G4's it sets the `scale share` line (1.11, their median). map-move-1057's −2.7 h is under its 3.5 h noise floor.
   Weaker evidence: map-rest-5581 −120 over 15 frames (−8.0 a frame),
   build-5752 −119 over 15 (−7.9), score-panel-5876 −9 on its one frame;
   update within ±4 h on every run; text −236 bytes.
@@ -717,7 +667,7 @@ runtime or backend entry.
   in map-rest (30), build (16) and slipway-aim (3). Measured, alone it
   removes 56. It is in the code, and no later step takes it again.
 
-### 4. N2 — fixed-point and vector helpers inlined (after N1)
+### 2. N2 — fixed-point and vector helpers inlined (after N1)
 
 - **Function:** game code everywhere: `update_entities`, `emitter_update_method`,
   `ascension_draw_method`, `planet_draw_method`, `entity_pos`,
@@ -783,29 +733,36 @@ runtime or backend entry.
   map-move 127, build 67, menu 64, slipway-aim 13, tech-panel 7,
   score-panel 1. It is in the code, and no later step takes it again.
 
-### 5. N5 — on-screen test against the frame's screen box (after N2)
+### 3. N3 — PSX circle outline drawn as runs
 
-- **Function:** `entity_geom_is_on_screen` (frame).
-- **Location:** `entity_geom_is_on_screen`, `src/engine/entity_geom.c`, and
-  its callers `skip_draw_off_screen` (`draw_layers`) and `slipway_draw`.
-- **Change:** compute the camera position and the screen box once per draw
-  pass (the camera does not move during the draw). Then test each entity's
-  position against it with no `main_camera()` lookup and no per-call
-  constants.
-- **Estimated gain (`share`):** after N2 inlines the helpers (a third of their
-  57%), the camera lookup, `pos_of` and the bounds rebuild are about half
-  of what is left: 40% of the function. Map-rest 2.0 h (0.8%), map-move 5.2
-  (2.4%), slipway-aim 1.8 (0.7%), build 1.6 (0.6%), menu 4.4 (1.6%),
-  tech-panel 4.4 (1.3%), score-panel 1.3 (0.5%). Not re-derived after
-  N2: scaled by 1.64 (N1, N2), map-rest 1.3%, map-move 3.9%, slipway-aim
-  1.1%, build 1.0%, menu 2.6%, tech-panel 2.1%, score-panel 0.8%.
-- **Cost:** S. **Risk:** pixel identity `none`. Game state `e2e decides`:
-  the result gates `slipway_spawn_transit_dot`'s visual random draws, so
-  it must stay exact.
+- **Function:** `wormhole_draw_method` (map), and the `circ` of
+  `planet_draw_method`.
+- **Location:** `psx_tiles_circ`, `src/platform/psx_tiles.c`, called by
+  `gpu_circ`, `src/platform/psx_gpu.c`.
+- **Change:** today each midpoint step emits up to 8 one-pixel `TILE_1`. A
+  28-comparison duplicate check and a clip run per pixel. Instead, emit
+  each octant's horizontal or vertical runs as one `TILE` each (same
+  pixels, same colour). Run the duplicate check only on the two steps
+  where points can coincide, and clip each run once. This cuts the packets
+  by about 60% and drops the per-pixel loop work. The PC test compares the
+  pixel set with the software `circ`.
+- **Estimated gain (`calls`):** 60% of the per-call cost (from the code: about
+  540 cycles a midpoint step, against about 200 for the run form), times
+  the full game's `circ` calls per frame over in the situation. Map-move:
+  294 calls on 388 frames over × 20.158 h × 0.6 = 9.2 h (4.1% of draw).
+  The window's own 4.7 calls a frame would give 56.8 h (25%), but only 62
+  of map-move's 388 frames over draw a circle (Known biases). Map-rest:
+  246/429 × 5.716 (map-rest-5581) × 0.6 = 2.0 h (0.8%). Menu: 10/91 ×
+  20.158 (pooled representative) × 0.6 = 1.3 h (0.5%). Score-panel: 3/8 ×
+  20.158 × 0.6 = 4.5 h (1.8%).
+- **Cost:** M (PSX backend only, one module and its test).
+- **Risk:** pixel identity `none`. A `TILE` of w×1 or 1×h writes what the
+  `TILE_1` it replaces wrote, with the same mask bit. Game state `none`
+  (PSX only).
 - **Measured by:** `map-move-1057`. **Evidence:** `representative`: alone
-  59 frames scaled (33 unscaled), 46 in map-move.
+  50 frames, 48 in map-move.
 
-### 6. D3 — message-box text through the text image cache
+### 4. D3 — message-box text through the text image cache
 
 - **Function:** `message_box_draw_overlay_method` (panels).
 - **Location:** `message_box_draw_article`, `src/game/message_box.c`; its
@@ -843,33 +800,79 @@ runtime or backend entry.
   land when a box opens.
 - **Measured by:** `tech-panel-5895`. Measured, alone it removes 35
   frames (estimate: 75): map-rest 15, build 14, slipway-aim 3,
-  tech-panel 2, score-panel 1. Ranked 6th by the greedy order on its
+  tech-panel 2, score-panel 1. Ranked 4th by the greedy order on its
   measured gain; it is in the code, and no later step takes it again.
 
-### 7. N6 — slipway target test pre-rejected by its box (after N2)
+### 5. N5 — on-screen test against the frame's screen box (after N2)
 
-- **Function:** update `ui_update` (build, slipway-aim).
-- **Location:** `targeting_track_slipway_predicate` /
-  `targeting_track`, `src/game/probe.c`; `geom_near_segment`,
-  `src/engine/geom.c`.
-- **Change:** reject a slipway whose end points' box, widened by the attach
-  distance, cannot hold the cursor, before `geom_near_segment`'s
-  projection. Stop the filter at the first match: only the first is read.
-- **Estimated gain (`share`):** the filter is 53.5% of `targeting_track`
-  (build-5752), which is 72% of `ui_update`. Assuming most slipways are
-  rejected by the box, about 35% of `ui_update` goes, or 32.6% of what N2
-  leaves. Build 7.8 h (18.9% of update), slipway-aim 18.6 h (23.9%; split
-  from build-5752). Not re-derived after N2: scaled by 1.64 (N1, N2),
-  build 31.0%, slipway-aim 39.2% of update.
+- **Function:** `entity_geom_is_on_screen` (frame).
+- **Location:** `entity_geom_is_on_screen`, `src/engine/entity_geom.c`, and
+  its callers `skip_draw_off_screen` (`draw_layers`) and `slipway_draw`.
+- **Change:** compute the camera position and the screen box once per draw
+  pass (the camera does not move during the draw). Then test each entity's
+  position against it with no `main_camera()` lookup and no per-call
+  constants.
+- **Estimated gain (`share`):** after N2 inlines the helpers (a third of their
+  57%), the camera lookup, `pos_of` and the bounds rebuild are about half
+  of what is left: 40% of the function. Map-rest 2.0 h (0.8%), map-move 5.2
+  (2.4%), slipway-aim 1.8 (0.7%), build 1.6 (0.6%), menu 4.4 (1.6%),
+  tech-panel 4.4 (1.3%), score-panel 1.3 (0.5%). Not re-derived after
+  N2: scaled by 1.11 (N1, N2, G4), map-rest 0.9%, map-move 2.7%,
+  slipway-aim 0.8%, build 0.7%, menu 1.8%, tech-panel 1.4%, score-panel
+  0.6%.
 - **Cost:** S. **Risk:** pixel identity `none`. Game state `e2e decides`:
-  fixed-point products wrap, so the pre-test must reject only what
-  `geom_near_segment` rejects. Any hash change reverts it.
-- **Measured by:** `psx-full-game-check`, **probe** `build-5752`: no
-  representative run tracks a target (`ui_handle_button` is 0–2% of
-  `ui_update` on map-move-1057, menu-5954 and tech-panel-5895), and build
-  is where it removes the most (19 of 32 scaled). **Evidence:** `weaker`.
+  the result gates `slipway_spawn_transit_dot`'s visual random draws, so
+  it must stay exact.
+- **Measured by:** `map-move-1057`. **Evidence:** `representative`: alone
+  40 frames scaled (35 unscaled), 29 in map-move.
 
-### 8. N7 — buttons drawn once through the image cache
+### 6. G4 — upload only the slots that changed
+
+- **Function:** submit.
+- **Location:** `psx_gpu_frame_end`, `src/platform/psx_gpu.c`, over the
+  new `src/platform/psx_slot_uploads.c`.
+- **Change:** remember the words each palette CLUT line, pattern tile and
+  pattern CLUT line last received, one record for both primitive buffers
+  (their slot k lands on the same VRAM line or tile). Skip the
+  `LoadImage` when the words are the same.
+- **Estimated gain (`share`):** plan 20 measured the upload at 72–77% of
+  submit. The caches refill in the same draw order each frame, so about
+  70% of the slots were assumed to keep their content: 52% of submit,
+  3.1–4.1 h a frame in every situation. This is plan 21's G4, re-judged in
+  Plan 21's levers below.
+- **Residual before the change (plan 22 step 3.7):** a throwaway probe
+  uploading a second time every slot whose words equal what that VRAM slot
+  already holds cost map-move-1057 +109 h over 15 frames (+7.3 h a frame),
+  menu-5954 +109 over 15 (+7.3), tech-panel-5895 +89 over 9 (+9.9),
+  map-rest-5581 +109 over 15 (+7.3), build-5752 +126 over 15 (+8.4);
+  pooled representative 307 over 39 (+7.9) for slipway-aim and
+  score-panel. Per steady frame 7.4 h, above T = 4.4 (rule (a)); every
+  situation above 2% of its total (rule (b): 6.2, 7.0, 6.6, 6.2, 6.2,
+  7.3, 7.2). Not covered by D3, N1 or N2. 95% of the run's uploads were
+  identical to their slot (3,994 of 4,188 over the 12 runs; map-move-1057
+  97%, menu-5954 95%, tech-panel-5895 96%), against the 70% assumed. The
+  doubled uploads cost more than the whole baseline submit (6.0 h), so
+  the residual is an upper bound, not a measure.
+- **Measured gain (taken, plan 22 step 3.7):** `psx-probe`, game state
+  `same` on all 12 runs. Submit map-move-1057 90 → 40 (−50 over 15 frames,
+  −3.3 h a frame, 55.6% of submit), menu-5954 90 → 39 (−51, −3.4 h,
+  56.7%), tech-panel-5895 70 → 27 (−43 over 9, −4.8 h, 61.4%), against
+  52%. Pooled 144 / 250 = 57.6% of submit, ratio 57.6 / 52 = 1.11:
+  map-rest, build, slipway-aim and score-panel get 57.6%. Draw and update
+  within ±4 h on every run. Weaker evidence: map-rest-5581 −53 over 15,
+  build-5752 −55 over 15, draw-5564 −59, draw-6000 −51, the one-frame
+  runs −3 to −4 of submit. Text +580 bytes.
+- **Guard:** asserts-on builds read back, every frame, the slots the
+  previous frame drew with and assert they hold its words; `psx-check`'s
+  `asserts-on` requires both GPU capture replays to be built with asserts.
+- **Cost:** M. **Risk:** pixel identity `none` (a skipped upload writes
+  words VRAM already holds). Game state `none` (PSX only).
+- **Measured by:** `map-move-1057`. **Evidence:** `representative`.
+  Measured, alone it removes 37 frames (estimate: 68 scaled, 36
+  unscaled): map-move 15, build 11, map-rest 7, slipway-aim 2,
+  tech-panel 2. It is in the code, and no later step takes it again.
+
+### 7. N7 — buttons drawn once through the image cache
 
 - **Function:** `button_draw_method` (hud).
 - **Location:** `button_draw`, `src/game/ui_button.c`, over `p8_image_build`
@@ -893,26 +896,36 @@ runtime or backend entry.
   **Evidence:** `representative`: alone 18 frames, 7 of them in map-rest,
   build and slipway-aim.
 
+### 8. N6 — slipway target test pre-rejected by its box (after N2)
+
+- **Function:** update `ui_update` (build, slipway-aim).
+- **Location:** `targeting_track_slipway_predicate` /
+  `targeting_track`, `src/game/probe.c`; `geom_near_segment`,
+  `src/engine/geom.c`.
+- **Change:** reject a slipway whose end points' box, widened by the attach
+  distance, cannot hold the cursor, before `geom_near_segment`'s
+  projection. Stop the filter at the first match: only the first is read.
+- **Estimated gain (`share`):** the filter is 53.5% of `targeting_track`
+  (build-5752), which is 72% of `ui_update`. Assuming most slipways are
+  rejected by the box, about 35% of `ui_update` goes, or 32.6% of what N2
+  leaves. Build 7.8 h (18.9% of update), slipway-aim 18.6 h (23.9%; split
+  from build-5752). Not re-derived after N2: scaled by 1.11 (N1, N2, G4),
+  build 21.0%, slipway-aim 26.5% of update.
+- **Cost:** S. **Risk:** pixel identity `none`. Game state `e2e decides`:
+  fixed-point products wrap, so the pre-test must reject only what
+  `geom_near_segment` rejects. Any hash change reverts it.
+- **Measured by:** `psx-full-game-check`, **probe** `build-5752`: no
+  representative run tracks a target (`ui_handle_button` is 0–2% of
+  `ui_update` on map-move-1057, menu-5954 and tech-panel-5895), and build
+  is where it removes the most (16 of 26 scaled). **Evidence:** `weaker`.
+
 ## The lever table
 
 ```lever-table
 # lever <id> <estimated|measured|in-base> <S|M|L> basis <calls|share> measure <run|psx-full-game-check> [probe <run|none>] [after <id>]
 # gain <id> <situation> <update|draw|submit> <percent>
 # scale <calls|share> <ratio>
-scale share 1.64
-lever G4 estimated M basis share measure map-move-1057
-gain G4 map-rest submit 52.0
-gain G4 map-move submit 52.0
-gain G4 build submit 52.0
-gain G4 menu submit 52.0
-gain G4 tech-panel submit 52.0
-gain G4 score-panel submit 52.0
-gain G4 slipway-aim submit 52.0
-lever N3 estimated M basis calls measure map-move-1057
-gain N3 map-move draw 4.1
-gain N3 map-rest draw 0.8
-gain N3 menu draw 0.5
-gain N3 score-panel draw 1.8
+scale share 1.11
 lever N1 measured S basis share measure map-move-1057
 gain N1 map-rest draw 2.8
 gain N1 map-move draw 1.2
@@ -936,6 +949,17 @@ gain N2 menu update 9.9
 gain N2 tech-panel update 9.2
 gain N2 score-panel update 6.8
 gain N2 slipway-aim update 6.8
+lever N3 estimated M basis calls measure map-move-1057
+gain N3 map-move draw 4.1
+gain N3 map-rest draw 0.8
+gain N3 menu draw 0.5
+gain N3 score-panel draw 1.8
+lever D3 measured M basis calls measure tech-panel-5895
+gain D3 map-rest draw 2.0
+gain D3 build draw 2.6
+gain D3 tech-panel draw 2.4
+gain D3 score-panel draw 6.5
+gain D3 slipway-aim draw 2.8
 lever N5 estimated S basis share measure map-move-1057 after N2
 gain N5 map-rest draw 0.8
 gain N5 map-move draw 2.4
@@ -944,15 +968,14 @@ gain N5 menu draw 1.6
 gain N5 tech-panel draw 1.3
 gain N5 score-panel draw 0.5
 gain N5 slipway-aim draw 0.7
-lever D3 measured M basis calls measure tech-panel-5895
-gain D3 map-rest draw 2.0
-gain D3 build draw 2.6
-gain D3 tech-panel draw 2.4
-gain D3 score-panel draw 6.5
-gain D3 slipway-aim draw 2.8
-lever N6 estimated S basis share measure psx-full-game-check probe build-5752 after N2
-gain N6 build update 18.9
-gain N6 slipway-aim update 23.9
+lever G4 measured M basis share measure map-move-1057
+gain G4 map-rest submit 57.6
+gain G4 map-move submit 55.6
+gain G4 build submit 57.6
+gain G4 menu submit 56.7
+gain G4 tech-panel submit 61.4
+gain G4 score-panel submit 57.6
+gain G4 slipway-aim submit 57.6
 lever N7 estimated L basis calls measure map-move-1057
 gain N7 tech-panel draw 3.4
 gain N7 menu draw 1.4
@@ -960,6 +983,9 @@ gain N7 map-move draw 1.0
 gain N7 map-rest draw 0.8
 gain N7 build draw 0.8
 gain N7 score-panel draw 0.8
+lever N6 estimated S basis share measure psx-full-game-check probe build-5752 after N2
+gain N6 build update 18.9
+gain N6 slipway-aim update 23.9
 ```
 
 ## Projection
@@ -977,33 +1003,33 @@ situation-threshold tech-panel mean 281.5 threshold 5.6
 situation-threshold score-panel mean 296.9 threshold 5.9
 start steady-over 1132 one-off-vsyncs 1391
 in-base none
-lever 1 G4 estimated basis share steady-over 1064 pessimistic 1083 saved 5933
-lever 2 N3 estimated basis calls steady-over 992 pessimistic 1025 saved 10239
-lever 3 N1 measured basis share steady-over 940 pessimistic 973 saved 17086
-lever 4 N2 measured basis share steady-over 428 pessimistic 573 saved 53728
-lever 5 N5 estimated basis share steady-over 363 pessimistic 506 saved 59651
-lever 6 D3 measured basis calls steady-over 316 pessimistic 460 saved 63446
-lever 7 N6 estimated basis share steady-over 291 pessimistic 436 saved 66674
-lever 8 N7 estimated basis calls steady-over 269 pessimistic 418 saved 69256
+lever 1 N1 measured basis share steady-over 1076 pessimistic 1088 saved 6754
+lever 2 N2 measured basis share steady-over 597 pessimistic 701 saved 43463
+lever 3 N3 estimated basis calls steady-over 509 pessimistic 645 saved 47795
+lever 4 D3 measured basis calls steady-over 451 pessimistic 602 saved 51590
+lever 5 N5 estimated basis share steady-over 398 pessimistic 553 saved 55606
+lever 6 G4 measured basis share steady-over 355 pessimistic 499 saved 59325
+lever 7 N7 estimated basis calls steady-over 328 pessimistic 473 saved 61913
+lever 8 N6 estimated basis share steady-over 309 pessimistic 456 saved 64103
 situation title over 0 end 0 pessimistic 0
-situation map-rest over 429 end 97 pessimistic 177
-situation map-move over 387 end 96 pessimistic 135
-situation slipway-aim over 41 end 15 pessimistic 18
-situation build over 155 end 18 pessimistic 41
-situation menu over 91 end 24 pessimistic 27
-situation tech-panel over 21 end 13 pessimistic 14
+situation map-rest over 429 end 106 pessimistic 190
+situation map-move over 387 end 117 pessimistic 151
+situation slipway-aim over 41 end 18 pessimistic 21
+situation build over 155 end 23 pessimistic 47
+situation menu over 91 end 25 pessimistic 27
+situation tech-panel over 21 end 14 pessimistic 14
 situation score-panel over 8 end 6 pessimistic 6
 order ok
-end steady-over 269 pessimistic 418
-nominal: real-game steady-over 269 frames, worst steady frame 3749 total 453 situation map-move
+end steady-over 309 pessimistic 456
+nominal: real-game steady-over 309 frames, worst steady frame 3749 total 457 situation map-move
 nominal: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-nominal: real-game-budget failed 269 steady frames over 263, one-off vsyncs 1391 of 10800
-pessimistic: real-game steady-over 418 frames, worst steady frame 3749 total 464 situation map-move
+nominal: real-game-budget failed 309 steady frames over 263, one-off vsyncs 1391 of 10800
+pessimistic: real-game steady-over 456 frames, worst steady frame 3749 total 467 situation map-move
 pessimistic: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-pessimistic: real-game-budget failed 418 steady frames over 263, one-off vsyncs 1391 of 10800
+pessimistic: real-game-budget failed 456 steady frames over 263, one-off vsyncs 1391 of 10800
 ```
 
-**The pixel-identical list does not reach zero.** Nominal, it leaves 269 steady frames over 263 (pessimistic 418): map-rest 97 (177), map-move 96 (135), build 18 (41), menu 24 (27), slipway-aim 15 (18), tech-panel 13 (14), score-panel 6 (6). The worst steady frame becomes 3749 (`map-move`), 453 (464). D3, N1 and N2 are taken and measured, at 0.42, 0.81 and 2.47 of their estimates; the remaining `share` levers (G4, N5, N6) are scaled by 1.64, the median of N1's and N2's ratios, and the `calls` levers (N3, N7) are the estimates of step 5. The greedy order now puts G4 and N3 first: N1 alone removes less than either, and N2 can only follow N1. Phase 3 still runs the whole list. The close then weighs the picture-changing ideas below for what is left.
+**The pixel-identical list does not reach zero.** Nominal, it leaves 309 steady frames over 263 (pessimistic 456): map-rest 106 (190), map-move 117 (151), build 23 (47), menu 25 (27), slipway-aim 18 (21), tech-panel 14 (14), score-panel 6 (6). The worst steady frame becomes 3749 (`map-move`), 457 (467). D3, N1, N2 and G4 are taken and measured, at 0.42, 0.81, 2.47 and 1.11 of their estimates; the remaining `share` levers (N5, N6) are scaled by 1.11, the median of N1's, N2's and G4's ratios, and the `calls` levers (N3, N7) are the estimates of step 5. The greedy order now puts N1 and N2 first: with G4 measured at 37 frames alone, N2 (453) leads, and it can only follow N1. Phase 3 still runs the whole list. The close then weighs the picture-changing ideas below for what is left.
 
 ## Picture-changing ideas (unranked, for the close)
 
@@ -1048,7 +1074,7 @@ are quoted for comparison only):
 | D12 transit dot as a 2×2 sprite | dropped | a `spr` costs 0.36–0.41 h a call on every run, more than the `rectfill` + `pset` pair it would replace (0.16–0.22 h): a loss, before its capture-reference risk |
 | D13 planet visibility reused in `slipway_draw` | dropped | the two on-screen tests are 3.2% (menu-5954) and 4.9% (map-rest-5581) of `slipway_draw`: about 1.7 h per steady frame, under T. N5 makes the same tests cheaper |
 | L3 parallax camera computed once | dropped | `camera_apply_method` is 0.8–1.2 h a frame in every run (0.1–0.2% `no-run`), under T |
-| G4 upload only changed slots | ranked, 4th | submit is 6.1 h per steady frame, above T; estimate 52% of it; plan 21 gross 5.7 / 5.1 |
+| G4 upload only changed slots | taken (plan 22 step 3.7), 6th by measured gain | submit is 6.1 h per steady frame, above T; estimated 52% of it, measured 57.6% pooled (ratio 1.11); residual probe 7.4 h per steady frame; plan 21 gross 5.7 / 5.1 |
 | B2 off-screen calls rejected at the first test | dropped | plan 21 ceilings 8.4 / 21.8 (pooled 15.1). D11 + D15 delivered 5.2 of their 36.8 pooled ceiling (0.14); the same ratio gives B2 about 2.1 h, under T, on calls that D11 and D15 already batch |
 | O1 backdrop as state | dropped | its target, `pad_panel_open`, sits under O2's memo (residual after O2 0.00 / 0.60). `input_step_run` is above T, but in `run_step`'s helpers, not in the backdrop scan |
 | L2 overlay pass reuses the sort | dropped | covered by L1: the registry keeps one order per draw message. `draw_layers`' self is 2.8% of its PC time (menu-5954) |

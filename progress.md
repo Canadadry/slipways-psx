@@ -28,6 +28,7 @@
     - [x] D3 — the lever, measured
     - [x] N1 — slipway lines on integer end points, measured
     - [x] N2 — fixed and vec helpers inlined, measured
+    - [x] G4 — upload only the slots that changed, measured
   - [ ] Step 3.8 — End-of-phase full-game check
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan

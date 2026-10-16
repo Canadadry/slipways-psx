@@ -11,6 +11,7 @@
 #include "platform/psx_image.h"
 #include "platform/psx_pattern.h"
 #include "platform/psx_pattern_cache.h"
+#include "platform/psx_slot_uploads.h"
 #include "platform/psx_sprite.h"
 #include "platform/psx_text.h"
 #include "platform/psx_tiles.h"
@@ -72,6 +73,8 @@ static DISPENV displays[2];
 /* One of each per primitive buffer: frame N fills its caches while frame N-1's LoadImage may still read the others. */
 static psx_clut_cache_t clut_caches[2];
 static psx_pattern_cache_t pattern_caches[2];
+/* One for both buffers: their slot k lands on the same VRAM line or tile. */
+static psx_slot_uploads_t slot_uploads;
 /* The pattern slot the frame's last DR_TWIN repeats, NO_WINDOW for none. */
 static int window_slot;
 static psx_gpu_peaks_t peaks;
@@ -200,6 +203,7 @@ void psx_gpu_init(void) {
     upload_sprite_sheet();
     upload_font();
     current = 0;
+    psx_slot_uploads_forget(&slot_uploads);
     psx_gpu_peaks_reset(&peaks);
     PutDispEnv(&displays[1]);
     SetDispMask(1);
@@ -495,14 +499,40 @@ static void add_upscale(void) {
 
 /* Queued behind the previous frame's DrawSync and ahead of this frame's DrawOTag, so no slot
  * changes while a frame reads it. */
-static void upload_slots(const psx_clut_cache_t *cluts, const psx_pattern_cache_t *patterns) {
+static void upload_changed_slots(const psx_clut_cache_t *cluts, const psx_pattern_cache_t *patterns) {
+    psx_slot_upload_t uploads[PSX_SLOT_UPLOADS_MAX];
+    int count = psx_slot_uploads_collect(&slot_uploads, cluts, patterns, uploads);
+    for (int i = 0; i < count; i++) {
+        queue_load(uploads[i].rect, uploads[i].words);
+    }
+}
+
+static int vram_holds(psx_vram_rect_t region, const uint16_t *words, int count) {
+    uint32_t read[PSX_GPU_TEXTURES_PATTERN_UNITS > PSX_GPU_TEXTURES_CLUT_ENTRIES ? PSX_GPU_TEXTURES_PATTERN_UNITS / 2
+                                                                                : PSX_GPU_TEXTURES_CLUT_ENTRIES / 2];
+    assert(region.w * region.h == count && count <= (int)(sizeof read / 2));
+    RECT rect = { (int16_t)region.x, (int16_t)region.y, (int16_t)region.w, (int16_t)region.h };
+    StoreImage(&rect, read);
+    DrawSync(0);
+    return memcmp(read, words, (size_t)count * 2) == 0;
+}
+
+static int slots_hold_caches(const psx_clut_cache_t *cluts, const psx_pattern_cache_t *patterns) {
     for (int slot = 0; slot < psx_clut_cache_count(cluts); slot++) {
-        queue_load(psx_vram_layout_palette_clut(slot), psx_clut_cache_clut(cluts, slot));
+        if (!vram_holds(psx_vram_layout_palette_clut(slot), psx_clut_cache_clut(cluts, slot),
+                        PSX_GPU_TEXTURES_CLUT_ENTRIES)) {
+            return 0;
+        }
     }
     for (int slot = 0; slot < psx_pattern_cache_count(patterns); slot++) {
-        queue_load(psx_vram_layout_pattern_slot(slot), psx_pattern_cache_tile(patterns, slot));
-        queue_load(psx_vram_layout_pattern_clut(slot), psx_pattern_cache_clut(patterns, slot));
+        if (!vram_holds(psx_vram_layout_pattern_slot(slot), psx_pattern_cache_tile(patterns, slot),
+                        PSX_GPU_TEXTURES_PATTERN_UNITS) ||
+            !vram_holds(psx_vram_layout_pattern_clut(slot), psx_pattern_cache_clut(patterns, slot),
+                        PSX_GPU_TEXTURES_CLUT_ENTRIES)) {
+            return 0;
+        }
     }
+    return 1;
 }
 
 psx_gpu_peaks_t psx_gpu_peaks(void) {
@@ -527,7 +557,9 @@ void psx_gpu_frame_end(unsigned long limit_bytes) {
     psx_gpu_peaks_record(&peaks, used, psx_clut_cache_count(&clut_caches[current]),
                          psx_pattern_cache_count(&pattern_caches[current]), parked);
     DrawSync(0);
-    upload_slots(&clut_caches[current], &pattern_caches[current]);
+    assert(slots_hold_caches(&clut_caches[current ^ 1], &pattern_caches[current ^ 1]) &&
+           "a slot the last frame drew with did not hold its content: an upload was skipped");
+    upload_changed_slots(&clut_caches[current], &pattern_caches[current]);
     PutDispEnv(&displays[current ^ 1]);
     DrawOTag(buffers[current]);
     current ^= 1;

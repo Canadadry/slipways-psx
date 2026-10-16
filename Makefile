@@ -1147,6 +1147,9 @@ $(TMP_DIR)/test_psx_gpu_textures: $(call objs,tests/test_psx_gpu_textures.c src/
 $(TMP_DIR)/test_psx_clut_cache: $(call objs,tests/test_psx_clut_cache.c src/platform/psx_clut_cache.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/gfx_software.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_slot_uploads: $(call objs,tests/test_psx_slot_uploads.c src/platform/psx_slot_uploads.c src/platform/psx_clut_cache.c src/platform/psx_pattern_cache.c src/platform/psx_vram_layout.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_psx_gpu_peaks: $(call objs,tests/test_psx_gpu_peaks.c src/platform/psx_gpu_peaks.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1877,6 +1880,7 @@ UNIT_TESTS := \
     test_psx_image \
     test_psx_text \
     test_psx_pattern_cache \
+    test_psx_slot_uploads \
     test_psx_gpu_peaks \
     test_psx_pattern \
     test_pad_target \
@@ -2390,7 +2394,7 @@ PSX_CORE_UNITS := $(BINDINGS_CORE_UNIT) $(DEMO_UNIT)
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_image.c src/platform/psx_text.c \
-	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c src/platform/psx_gpu_peaks.c \
+	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c src/platform/psx_slot_uploads.c src/platform/psx_gpu_peaks.c \
 	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) src/devtools/state_format.c src/devtools/format_self_test.c \
 	src/devtools/draw_filter.c src/devtools/frame_times.c src/platform/psx_frame_timer.c $(PSX_GPU_BACKEND_SRCS) \
