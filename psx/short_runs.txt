@@ -7,3 +7,13 @@ update-5500 resume 5500 5500
 draw-5564 resume 5564 5578
 update-5719 resume 5719 5719
 draw-6000 resume 6000 6014
+# no representative run: map-rest (best try map-rest-5581: representative failed, draw -15.6%, update -12.2%)
+map-rest-5581 resume 5581 5595
+map-move-1057 resume 1057 1071
+# no representative run: slipway-aim (best try slipway-aim-5123: label differs frame 5123 run map-move full slipway-aim, draw not measured, update not measured)
+# no representative run: build (best try build-5752: representative failed, draw -23.6%, update -9.1%)
+build-5752 resume 5752 5766
+menu-5954 resume 5954 5968
+tech-panel-5895 resume 5895 5903
+# no representative run: score-panel (best try score-panel-5876: representative failed, draw -11.6%, update -2.2%)
+score-panel-5876 resume 5876 5876

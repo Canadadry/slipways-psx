@@ -897,12 +897,13 @@ judge of sizes.
 **Manifest.** `psx/short_runs.txt`, one run a line, frames of
 `full_game.json`: `<name> prefix <first> <last> <end>` (its first `end + 1`
 frames) or `<name> resume <first> <last>` (a resume before the window
-`first..last`). The six runs: `start` (frames 0–99, the start spike at 12),
-`update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
+`first..last`). Six runs for plan 21's spikes and clusters: `start`
+(frames 0–99, the start spike at 12), `update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
 (the draw cluster 5564–5578) and `draw-6000` (frames 6000–6014, where
-`pset` is above 2% of draw on PC: a resume before the `pset` peak at
-5504–5552 starts without slipway transit dots, so it shows too little
-`pset`).
+`pset` is above 2% of draw on PC; a resume before the `pset` peak at
+5504–5552 shows too little `pset`, for a cause not yet proven: see Still to
+do). Then the steady runs below, one line each, and the
+`# no representative run:` marks.
 
 **Steady runs.** Each steady situation with frames over 263 is to get a
 resumed run named `<situation>-<first>` whose window lies in it.
@@ -925,6 +926,44 @@ window itself spans several labels) or `not-steady <label>`; the target fails
 unless every run is `same`. A run stands for its situation once it is `same`
 and `psx-short-runs` against the full game's frame table gives
 `representative ok`.
+
+The steady runs, each tried in candidate order (a try: the line, the cut,
+`short-run-situations`, then, only on `same`, `psx-short-runs` against
+`psx/perf/full-run-frames.txt`; up to three tries, the third a `prefix` run
+when its window lies below frame 1,024), all `same`, draw and update gaps of
+the window sums to the full game:
+
+| Run | Window | Representative | Draw | Update |
+|---|---|---|---:|---:|
+| `map-rest-5581` | 5581–5595 | failed | −15.6% | −12.2% |
+| `map-move-1057` | 1057–1071 | ok | −0.5% | −0.1% |
+| `build-5752` | 5752–5766 | failed | −23.6% | −9.1% |
+| `menu-5954` | 5954–5968 | ok | +4.0% | +0.3% |
+| `tech-panel-5895` | 5895–5903 | ok | +0.8% | −1.0% |
+| `score-panel-5876` | 5876 | failed | −11.6% | −2.2% |
+
+**No representative run** (a `# no representative run:` line in the
+manifest): their levers are measured on `psx-full-game-check`, not
+`psx-probe`, and step 5 flags them as weaker evidence. A failed situation's
+best try stays in the manifest when its label check passed.
+
+- `map-rest`: best try `map-rest-5581` (draw −15.6%, update −12.2%);
+  `map-rest-5538` drew −27.5% (update −4.2%), `map-rest-5423` −29.1%
+  (update −1.5%).
+- `slipway-aim`: no run; no candidate keeps its label after the resume
+  (`slipway-aim-5123` and `-5015` read `map-move` then `map-rest`,
+  `-5715` reads `screen-change`), so none was booted. Best try
+  `slipway-aim-5123`, draw and update not measured.
+- `build`: best try `build-5752` (draw −23.6%, update −9.1%);
+  `build-5923` drew −23.7% (update −0.2%), `build-5054` −32.3% (update
+  −21.2%).
+- `score-panel`: best try `score-panel-5876` (draw −11.6%, update −2.2%);
+  `score-panel-5556` drew −38.4%, `score-panel-5441` −37.8% (update −3.3%
+  each).
+
+Every resumed try that failed drew less than the full game: on PC its window
+makes fewer `pset`, `rectfill` and `print` calls, `pset` by far the most
+(the same open finding as in Still to do).
 
 **Cut.** `make psx-short-runs-cut` (host only) replays `full_game.json` with
 `tmp/short_run_cut` (`src/devtools/short_run_cut.c`, pure, host-tested by
@@ -1214,9 +1253,16 @@ family each), `one-off-runs` (no `long` run).
   `asserts` hold. The cut rule and the windows are not loosened. The first
   steady try, `map-rest-5538` (window 5538–5552, cut 5500), is labelled
   `same map-rest` but draws 27.5% less (3,465 vs 4,779; update −4.2%): on PC
-  its window has half the `pset` calls (2,700 vs 5,386, no transit dots after
-  the resume), 14 `circ` calls instead of 59 and fewer `rectfill` and `print`;
-  it is not in the manifest.
+  its window has half the `pset` calls (2,700 vs 5,386), 14 `circ` calls
+  instead of 59 and fewer `rectfill` and `print`; it is not in the manifest.
+  Open finding, cause unproven: each slipway transit dot draws one `rectfill`
+  and one `pset` (`src/game/slipway_display.c`), so missing dots would leave
+  equal gaps in both, yet the window has 2,686 fewer `pset` and only 183
+  fewer `rectfill`. Transit dots explain a small part at most; the rest comes
+  from another source tied to the resume (camera, selection, crosshair?).
+  Of the seven steady situations over, three have a representative run
+  (`map-move`, `menu`, `tech-panel`) and four none after three tries
+  (`map-rest`, `slipway-aim`, `build`, `score-panel`; see Short runs).
 
 - The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
   `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in
