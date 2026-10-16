@@ -438,3 +438,22 @@ by judge-wide gain (the report's `draw-6000` figure):
 - **O5 kept:** hover lists initialised on first write, one reader `ui_hovered_layer`. Pooled **−0.4** (−0.47 / −0.33).
 - All: every e2e hash, end state, `make state` peak and capture reference unchanged; `all 233` still pending.
 - Short runs (asserts off, O3): window update `draw-5564` 467 (621 at step 3.15), `draw-6000` 341 (538), i.e. −10.3 / −13.1 a frame for the step. Done, deterministic, breakdown and asserts hold; `representative` fails on every run, as expected. `ram-room` 154,940, `game-ram-room` 307,772.
+
+### Step 4.18
+
+- Starting state H-17-1 to H-17-12: H-17-3 failed in part (step 17 also changed `geom.h`/`geom.c`, `entity_geom.c`, `ui.h`, the Makefile); none of the functions this step touches changed, so U6's new function went next to `entity_geom_nearest` and left step 17's inline bodies alone. The rest held.
+- Baseline judge on 74c0b4f (asserts off, O3, filter and meter off): **3,107 frames over** (3.16: 3,942), worst frame 12 at 7,961, mean **293.9** (318.4). Threshold stays 6.4.
+- Host counts (all replays): 125 saves, one a frame, all on U4's frames; U6's early exit visits 30.2 of 70.8 planets a scan with the same answer on all 727 candidates; U2 70,608 equal signatures, all with equal keys, at most 4 needs; U1 175 drops, skipping the first advance changes no drop or end state; U3 152 launches, the recompute changes no figure or row. All five levers stood.
+- Gains, judge update on the lever's spike frames against the run before it (host gross target; report allocated / bound):
+  - **U4 kept** (table CRC-32): −15,697 on 131 frames, **−119.8** a frame (7,890; 10,375 / 11,851).
+  - **U6 kept** (`entity_geom_any_within`): frame 12 **−3,960**, 7,961 → 4,000 (about 3,950; 3,980 / 7,963).
+  - **U2 kept** (row signature, 32 bytes, capacity 4): −20,873 on 133 frames, **−156.9** a frame (30,545; 12,289 / 24,577).
+  - **U1 kept** (`targeting_confirm_without_clock`): residual after U2 6,863, not covered; −6,428 on 39 frames, **−164.8** a frame (6,739 / 13,478).
+  - **U3 kept** (`economy_tick_clock`; the refresh pass stays, the score panel readouts depend on it, which chunk 0's exactness check missed): residual after U2 5,854, not covered; −3,814 on 33 frames, **−115.6** a frame (5,446 / 10,892).
+- All five: every e2e hash, end state and capture reference unchanged; `all 233` still pending.
+- **Closing judge** on f14a576: every condition holds but `frame-budget`. **3,078 of 6,059 frames over**; worst frame 12 at 4,013, update 3,711; mean **285.4**, mean overrun 86. Update for the step −51,229 (−14.1%), draw and submit flat; draw dominant over budget (827,937 of 1,076,370).
+- **Frames still over**, summed overrun 266,856:
+  - (a) in `spike-frames.txt`: **141**, overrun 59,294, mean 420.5, largest 3,750 (frame 12); 25 of the 166 spike frames now fit.
+  - (b) image-build frames: **119**, all text builds, overrun 12,061, mean 101.4, largest 300. List in `psx/perf/image-build-frames.txt`.
+  - (c) the rest: **2,818**, overrun 195,501, mean 69.4, largest 286; mean draw 270.6 against update 55.5, beyond what spreading reaches.
+- RAM: `ram-room` 152,528 (154,940), `game-ram-room` 305,800 (307,772), `gpu-ram-room` 152,408 (154,380).

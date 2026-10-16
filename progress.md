@@ -74,7 +74,7 @@
     - [x] Chunk 3 — O3 inline planet hit test
     - [x] Chunk 4 — O5 hover layers initialised on write
     - [x] Chunk 5 — close: short runs, RAM, note
-  - [ ] Step 4.18 — spike levers U4, U6, U2, U1, U3
+  - [x] Step 4.18 — spike levers U4, U6, U2, U1, U3
     - [x] Chunk 0 — starting state, baseline judge run, gross targets, exactness
     - [x] Chunk 1 — U4 table-driven CRC-32
     - [x] Chunk 2 — U6 early-exit scan in galaxy generation
