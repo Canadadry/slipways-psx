@@ -7,7 +7,7 @@
     - [x] Table and report
     - [x] Docs
     - [x] fix: pad_author self-check carries the draw meter
-  - [ ] Step 1.3 — real-game-budget condition
+  - [x] Step 1.3 — real-game-budget condition
     - [x] real-game-budget script, condition and target
   - [ ] Step 1.4 — Short runs and steady-frame profile
   - [ ] Step 1.5 — Lever list

@@ -274,3 +274,18 @@ over-flag). Deviation: the table's default output is
 pre-existing bug surfaced (pad_author's self-check failed since plan 10
 on the draw-meter lines), fixed in its own `fix:` commit with a
 `pad-author-self-check` in `make test`.
+
+### Step 1.3
+
+`tools/psx_real_game_budget.sh` joins the frame and situation tables;
+`real-game-budget` is a condition of `psx-full-game-check` (after
+`cap-sizes`), and `make psx-real-game-budget` runs it on the committed
+tables without booting. Fixture tests in `psx-tools-test` (green, red on
+one steady frame, red on the one-off sum, edges, join failures). On step
+1's table: **red** — 1,133 steady frames over 263 (worst f4655, 530,
+`build`, the steady build-mode screen); 631 one-off frames over, 1,391 of
+10,800 vsyncs. PRD decisions, not the plan's text: a one-off frame counts
+`ceil(total / 263)` vsyncs (the measured column depends on where the frame
+started; 2,265 vs 3,658 over all 1,764 frames, both far under 10,800);
+`frame-budget` stays a failing condition of the check, unchanged — the
+plan's verdicts read `real-game-budget`.
