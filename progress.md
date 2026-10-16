@@ -1,4 +1,4 @@
-- [ ] Phase 1 — Measure and model the real game
+- [x] Phase 1 — Measure and model the real game
   - [x] Step 1.1 — Baseline full-game frame table
     - [x] Baseline table replaces psx/perf/full-run-frames.txt
   - [x] Step 1.2 — Situation of every frame
@@ -14,7 +14,7 @@
     - [x] The other six situations' runs
     - [x] Per-child family figures in the PC profile
     - [x] The steady profile
-  - [ ] Step 1.5 — Lever list
+  - [x] Step 1.5 — Lever list
     - [x] Re-sourced lever-estimate tool
     - [x] The lever list
 - [ ] Phase 2 — Loading screen

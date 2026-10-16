@@ -234,10 +234,21 @@ generation runs.
 9. Close the plan: write the result. If `real-game-budget` is green, say
    so. If not, list the steady situations still over, with their frames,
    worst and mean, what bounds them, and the picture-changing options
-   from step 5's separate section with their gains, for the human to
+   from step 5's separate section with their gains, re-estimated on step
+   8's frame table and profiles; for each option alone, the steady frames
+   still over (nominal and pessimistic, per situation) from
+   `lever_estimate.sh` run on a lever-table file in `tmp/` (`LEVERS=`),
+   options kept unranked, in the section's order; for the human to
    choose from; put that list in `docs/psx-game.md`'s "Still to do".
-   Update `docs/psx-game.md`; delete `docs/psx-levers.md`. Verified when
-   `make test-all` and `psx-check` are green and the docs describe only
+   Update `docs/psx-game.md`; delete `docs/psx-levers.md`. The
+   `lever-estimate` target, its script and its doc lines are re-sourced
+   or removed in the same step, as step 5 did for plan 21's (no target or
+   doc may name a deleted file). Plan 22's phase-1 warn-review warnings
+   are acted on only in code a step of this plan already touches (as for
+   plan 21's); those still open at the close are listed in
+   `docs/psx-game.md`'s "Still to do". Verified when `make test-all` and
+   `psx-check` are green, `grep -rn psx-levers Makefile tools docs src
+   tests` finds nothing outside plan files, and the docs describe only
    what is true.
 
 ## 4. Done when
@@ -361,3 +372,40 @@ own frames (`no-run`); step 7 probes a full-game-measured lever first and
 groups up to three per `psx-full-game-check`, rebases the projection on
 each new frame table (`in-base`), and scales remaining estimates by the
 measured-to-estimated ratio per estimation basis.
+
+### Step 1.5
+
+`docs/psx-levers.md`: M = 218.9 h (steady frames' mean cost), T = 4.4 h;
+19 functions above 2% (16 overall, 3 in one situation only). Eight
+pixel-identical levers ranked: D3, N1, N2 (after N1), N3, N5 (after N2),
+G4, N7, N6 (after N2). `make lever-estimate` re-sourced to its
+`lever-table` block (estimated / measured / in-base, basis calls /
+share, `scale` lines for step 7); `lever-estimate-check` and plan 20's
+three tables removed. Projection on step 1's table, steady frames over
+(pessimistic): 1,133 → D3 1,058 (1,068) → N1 991 (1,036) → N2 774 (861)
+→ N3 711 (806) → N5 624 (771) → G4 551 (724) → N7 507 (690) → N6 487
+(656); end per situation: map-rest 212, map-move 158, build 49, menu
+29, slipway-aim 19, tech-panel 14, score-panel 6. **Pass 1 cannot reach
+`real-game-budget` on these estimates**; five picture-changing ideas
+(P1–P5) are kept unranked for the close. Weaker evidence: D3, N1, G4, N6.
+
+No-run vs best-try shares differ by more than a fifth on many functions
+(map-rest `background_draw_method` 17.6% vs 3.9%; build
+`message_box_draw_overlay_method` 13.3% vs 0.0%; score-panel 27.1% vs
+9.8%), listed in the document; no-run shares are PC time and overstate
+primitive-heavy functions (menu-5954: background 18.2% of PC draw time,
+5.9% of PSX draw). Plan 21's leftovers: D3, G4 kept; D4, D12 (a loss),
+D13 (covered by N5), L3, B2, O1, L2 dropped. Deviation: N3's map-move
+gain is sized on the full game's circle count (62 of 388 frames over
+draw one), not on map-move-1057's window, which draws a wormhole every
+frame (4.1% vs 25%). Estimates resting on assumptions: N2, N3, G4, N6.
+
+End of phase 1: warn-review raised 13 warnings on phase 1's code
+(duplicated table join and situation lists across five scripts and the
+Makefile, inline 263 / 31 / 15 / 3, two variables for one table, 55
+untested recipe lines in steady-profile, `end_status != NULL` next to
+its bit in situation.c, pad_author.c at 1,540 lines). plan-review: two
+changes accepted to step 9 — lever-estimate re-sourced or removed with
+`docs/psx-levers.md`, warnings acted on only in touched code and the rest
+listed in "Still to do"; the picture-changing options re-estimated on
+step 8's table as steady frames over per option.
