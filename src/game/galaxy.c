@@ -18,7 +18,6 @@ void galaxy_populate(p8_fixed_t planet_count) {
 
     for (planet_id = fixed_one; planet_id <= planet_count; planet_id = p8_fixed_add(planet_id, fixed_one)) {
         vec_t p_vec;
-        entity_t *nearest;
         char *id_num_str;
         planet_keys_t keys = {0};
         planet_t *made;
@@ -28,7 +27,7 @@ void galaxy_populate(p8_fixed_t planet_count) {
             p8_fixed_t rx = p8_fixed_add(p8_fixed_rnd(GALAXY_MAP_SPAN), GALAXY_MAP_MARGIN);
             p8_fixed_t ry = p8_fixed_add(p8_fixed_rnd(GALAXY_MAP_SPAN), GALAXY_MAP_MARGIN);
             p_vec = vec_make(rx, ry);
-        } while (entity_geom_nearest(p_vec, entities_by_tag(TAG_PLANET), &nearest) <= threshold);
+        } while (entity_geom_any_within(p_vec, entities_by_tag(TAG_PLANET), threshold));
 
         id_num_str = p8_tostr_fixed(frame_zone(), planet_id);
         planet_keys_set_id(&keys, p8_concat2(frame_zone(), "p", id_num_str));

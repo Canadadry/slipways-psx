@@ -16,6 +16,7 @@ typedef enum {
     PSX_VRAM_FONT,
     PSX_VRAM_PATTERNS,
     PSX_VRAM_CLUTS,
+    PSX_VRAM_IMAGES,
     PSX_VRAM_REGION_COUNT
 } psx_vram_region_t;
 
@@ -37,5 +38,11 @@ psx_vram_rect_t psx_vram_layout_pattern_slot(int slot);
 psx_vram_rect_t psx_vram_layout_palette_clut(int slot);
 psx_vram_rect_t psx_vram_layout_font_clut(int colour);
 psx_vram_rect_t psx_vram_layout_pattern_clut(int slot);
+
+/* An image slot's 15-bit rectangle, its slot's p8_image_size. slot < P8_IMAGE_SLOT_COUNT. */
+psx_vram_rect_t psx_vram_layout_image(int slot);
+
+/* The 15-bit texture page the slot's copy reads it from. */
+psx_vram_rect_t psx_vram_layout_image_page(int slot);
 
 #endif

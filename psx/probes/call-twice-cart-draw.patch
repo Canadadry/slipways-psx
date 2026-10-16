@@ -1,14 +1,13 @@
 Sanity probe of make psx-probe: cart_draw called twice in the replay loop; draw should double, game-state lines stay the same.
 
 diff --git a/src/cmd/psx_gpu_replay.c b/src/cmd/psx_gpu_replay.c
-index fe6ca33..91fc2c0 100644
 --- a/src/cmd/psx_gpu_replay.c
 +++ b/src/cmd/psx_gpu_replay.c
-@@ -227,6 +227,7 @@ int main(void) {
+@@ -310,6 +310,7 @@ int main(void) {
          int captured = capture.frame == (uint32_t)g_frame;
-         draw_filter_set_mask(captured ? capture.mask : DRAW_FILTER_ALL);
+         filter_set_mask(captured ? capture.mask : DRAW_FILTER_ALL);
          cart_draw();
 +        cart_draw();
          marks[2] = psx_frame_timer_read();
-         p8_draw_meter_frame_end();
-         draw_filter_frame_end();
+         meter_frame_end();
+         filter_frame_end();

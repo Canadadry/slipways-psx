@@ -11,6 +11,9 @@
 #else
 #define GPU_FRAME_BUFFER_BYTES GPU_SHIPPED_FRAME_BUFFER_BYTES
 #endif
+/* Each frame parity's image build buffer, sized like the frame buffer from the make state peak of
+ * zone gpu_build. */
+#define GPU_BUILD_BUFFER_BYTES 13312
 #define GPU_CLUT_SLOTS 6
 #define GPU_PATTERN_SLOTS 4
 

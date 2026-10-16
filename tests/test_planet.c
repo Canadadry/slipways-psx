@@ -24,6 +24,8 @@
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "game/help.h"
+#include "game/hud.h"
+#include "game/ui.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -34,6 +36,9 @@
 #include "game/planet_family.h"
 #include "game/planet_family_trade.h"
 #include "game/research.h"
+#include "game/research_display.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 #include "game/structure_icon.h"
 #include "game/map_tables.h"
 #include "game/scroll.h"
@@ -609,6 +614,147 @@ static void test_vanishing_flicker_draws_from_the_visual_stream(void) {
     assert(visual_random_state() != visual);
 }
 
+static p8_vram_t memory_before;
+static p8_vram_t memory_drawn;
+
+static void paint_background(void) {
+    int x;
+    int y;
+
+    for (y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (x = 0; x < P8_SCREEN_WIDTH; x++) {
+            memory.screen[y][x] = (unsigned char)((x + 2 * y) % 15 + 1);
+        }
+    }
+}
+
+/* Today's planet_draw sequence of primitives, frozen as the oracle: disc, sprite, ring, marker,
+ * pad circle. Only for a planet with no row, no shake and no targeting. */
+static void draw_planet_with_primitives(const planet_t *a, int x, int y) {
+    int spr_index = a->planet_type != NULL ? a->planet_type->sprite : 43;
+
+    p8_circfill(&graphics, &memory, x, y, 7, 0);
+    hud_select_palette_block(&memory, (a->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? a->palette_block : p8_fixed_from_int(0));
+    p8_palt(&memory, 3, 0);
+    p8_palt(&memory, 0, 1);
+    p8_spr(&graphics, &memory, spr_index, x - 4, y - 4, 2, 2);
+    hud_select_palette_block_default(&memory);
+    if (planet_is_colonized(a)) {
+        int tier = p8_fixed_flr_int(a->has_development_tier ? a->development_tier : p8_fixed_from_int(0));
+        int color = 0;
+        int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, tier, &color);
+        p8_circ(&graphics, &memory, x, y, 6, color);
+        p8_spr_default(&graphics, &memory, tier + 1, x - 3, y - 6);
+    }
+    if (ui_pad_circle(main_ui()) == &a->header) {
+        p8_circ(&graphics, &memory, x, y, 9, 7);
+    }
+}
+
+/* planet_draw at screen (x, y) leaves the same vram as the primitives, from the same start. */
+static void check_planet_draws_like_primitives(planet_t *a, int x, int y) {
+    vec_t screen = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+
+    a->header.pos = vec_add(entity_pos(main_camera()), screen);
+    assert(entity_geom_is_on_screen(&a->header));
+    assert(entity_geom_is_on_screen(&a->header));
+    assert(a->layout_row == NULL);
+    paint_background();
+    memory_before = memory;
+    planet_draw(&graphics, &memory, a, screen);
+    memory_drawn = memory;
+    memory = memory_before;
+    draw_planet_with_primitives(a, x, y);
+    if (memcmp(&memory_drawn, &memory, sizeof memory) != 0) {
+        fprintf(stderr, "planet_draw at (%d, %d), state %d, tier %d: vram differs from the primitives\n", x, y,
+                (int)a->header.state, a->has_development_tier ? p8_fixed_flr_int(a->development_tier) : -1);
+        assert(0 && "planet_draw draws the same pixels as its primitives");
+    }
+}
+
+static void check_planet_draws_like_primitives_everywhere(planet_t *a) {
+    enum { W = P8_SCREEN_WIDTH, H = P8_SCREEN_HEIGHT };
+    static const int spots[][2] = {
+        {W / 2, H / 2}, {0, H / 2}, {-6, H / 2}, {W - 1, H / 2}, {W + 5, H / 2},
+        {W / 2, 0}, {W / 2, -6}, {W / 2, H - 1}, {W / 2, H + 5},
+        {-3, -3}, {W + 2, H + 2}, {2, H - 3}, {W - 3, 2},
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof spots / sizeof spots[0]; i++) {
+        check_planet_draws_like_primitives(a, spots[i][0], spots[i][1]);
+    }
+}
+
+static planet_t *new_planet_on_screen(const char *id) {
+    planet_keys_t keys = planet_keys_at(id, 0, 0);
+
+    keys.pos = vec_add(entity_pos(main_camera()), vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    return planet_new(&keys);
+}
+
+/* A plain planet, a colony at every tier in and out of the ring colour table, and the planet under
+ * the pad draw the pixels of today's primitives, at the centre and across every screen edge. */
+static void test_planet_draw_matches_its_primitives(void) {
+    planet_t *a;
+    int tier;
+
+    start_game();
+    a = new_planet_on_screen("p903");
+    check_planet_draws_like_primitives_everywhere(a);
+    entity_set_state(&a->header, ENTITY_STATE_SETTLED);
+    assert(planet_is_colonized(a));
+    a->has_development_tier = 0;
+    check_planet_draws_like_primitives_everywhere(a);
+    a->has_development_tier = 1;
+    for (tier = 0; tier <= PLANET_RING_COLORS_COUNT + 1; tier++) {
+        a->development_tier = p8_fixed_from_int(tier);
+        check_planet_draws_like_primitives_everywhere(a);
+    }
+    a->development_tier = p8_fixed_from_int(2);
+    ui_set_pad_selection(main_ui(), &a->header, 0);
+    assert(ui_pad_circle(main_ui()) == &a->header);
+    check_planet_draws_like_primitives_everywhere(a);
+}
+
+/* With a fill pattern in force, the disc and the ring keep the pattern's phase on screen. */
+static void test_planet_draw_under_a_fill_pattern_matches_its_primitives(void) {
+    planet_t *a;
+    int tier;
+
+    start_game();
+    a = new_planet_on_screen("p904");
+    entity_set_state(&a->header, ENTITY_STATE_SETTLED);
+    a->has_development_tier = 1;
+    p8_fillp(&graphics, 0x5A5Au);
+    for (tier = 1; tier <= PLANET_RING_COLORS_COUNT; tier++) {
+        a->development_tier = p8_fixed_from_int(tier);
+        check_planet_draws_like_primitives_everywhere(a);
+    }
+    p8_fillp_transparent(&graphics, 0xA5A5u);
+    check_planet_draws_like_primitives_everywhere(a);
+    p8_fillp_reset(&graphics);
+    check_planet_draws_like_primitives_everywhere(a);
+}
+
+/* The first draw of a settled planet, the one that may prepare its images, draws no random number
+ * from either stream. */
+static void test_first_planet_draw_draws_no_random_number(void) {
+    planet_t *a;
+    uint32_t game;
+    uint32_t visual;
+
+    start_game();
+    a = new_planet_on_screen("p905");
+    entity_set_state(&a->header, ENTITY_STATE_SETTLED);
+    a->has_development_tier = 1;
+    a->development_tier = p8_fixed_from_int(3);
+    game = p8_fixed_rnd_state();
+    visual = visual_random_state();
+    planet_draw(&graphics, &memory, a, vec_make(p8_fixed_from_int(64), p8_fixed_from_int(64)));
+    assert(p8_fixed_rnd_state() == game && visual_random_state() == visual);
+}
+
 /* The production of a planet that never ran planet_install_project is the
  * class's shared one: an in-place write to it is seen by every such planet
  * and by the class, until the next planet_init() puts it back to zero. */
@@ -884,6 +1030,167 @@ static void test_refresh_many_times_in_one_frame(void) {
     }
 }
 
+/* The planet's row lays out the same items as a row built afresh from the
+ * planet's needs, production and outgoing routes now. */
+static void assert_row_is_a_fresh_build(const planet_t *a) {
+    const production_t *kw = planet_production_read(a);
+    const pointer_list_t *needs = (a->has & PLANET_HAS_NEEDS) ? &a->needs : NULL;
+    int routes = (a->has & PLANET_HAS_OUTGOING_ROUTES) ? trade_route_list_count(&a->outgoing_routes) : 0;
+    frame_zone_mark_t mark = frame_zone_mark();
+    layout_row_keys_t keys;
+    const layout_row_t *fresh;
+    int i;
+
+    if (!research_display_planet_resource_row_keys(needs, kw->has_resource, kw->resource, kw->amount, p8_fixed_from_int(routes),
+                                                   p8_fixed_from_int(0), &keys)) {
+        assert(a->layout_row == NULL);
+        frame_zone_rewind(mark);
+        return;
+    }
+    fresh = layout_row_new(frame_zone(), &keys);
+    assert(a->layout_row != NULL && "a planet with an output always has a row");
+    assert(a->layout_row->placed_items_count == fresh->placed_items_count && a->layout_row->width == fresh->width &&
+           a->layout_row->has_color == fresh->has_color && a->layout_row->color == fresh->color);
+    for (i = 0; i < fresh->placed_items_count; i++) {
+        const layout_row_item_t *now = &a->layout_row->placed_items[i];
+        const layout_row_item_t *want = &fresh->placed_items[i];
+        assert(now->kind == want->kind && now->sprite_id == want->sprite_id && now->color == want->color &&
+               now->sprite_palette_block == want->sprite_palette_block && now->offset.x == want->offset.x &&
+               now->offset.y == want->offset.y);
+        assert(now->kind != LAYOUT_ROW_ITEM_TEXT || strcmp(now->text, want->text) == 0);
+    }
+    frame_zone_rewind(mark);
+}
+
+static need_t *add_need(planet_t *a, p8_fixed_t resource) {
+    need_t *need = need_new(game_zone(), (resource_t){.kind = RESOURCE_FIXED, .number = resource});
+
+    if (!(a->has & PLANET_HAS_NEEDS)) {
+        pointer_list_init(&a->needs, game_zone());
+        a->has |= PLANET_HAS_NEEDS;
+    }
+    pointer_list_add(&a->needs, need);
+    return need;
+}
+
+static void refresh_then_check(planet_t *a) {
+    planet_refresh(a);
+    assert_row_is_a_fresh_build(a);
+}
+
+/* Whatever changes between two refreshes, the row shows the planet as it is
+ * now; with nothing changed, it shows the same row. */
+static void test_refresh_row_follows_every_input(void) {
+    planet_t *a;
+    need_t *ore;
+    trade_route_t route = trade_new(NULL);
+
+    start_game();
+    cart_flush_exit_queue();
+    a = planet_with_a_row();
+    refresh_then_check(a);
+    refresh_then_check(a);
+
+    ore = add_need(a, p8_fixed_from_int(21));
+    refresh_then_check(a);
+    (void)add_need(a, p8_fixed_from_int(22));
+    refresh_then_check(a);
+    pointer_list_add(&a->needs, NULL);
+    refresh_then_check(a);
+
+    ore->has_satisfied = 1;
+    ore->satisfied = p8_fixed_from_int(1);
+    refresh_then_check(a);
+    ore->satisfied = 0;
+    refresh_then_check(a);
+    refresh_then_check(a);
+    ore->satisfied = p8_fixed_from_int(1);
+    refresh_then_check(a);
+    ore->has_satisfied = 0;
+    ore->satisfied = 0;
+    refresh_then_check(a);
+    ore->row.resource = p8_fixed_from_int(23);
+    refresh_then_check(a);
+    ore->row.has_resource = 0;
+    refresh_then_check(a);
+    ore->row.has_resource = 1;
+    refresh_then_check(a);
+    ore->row.resource = 0;
+    refresh_then_check(a);
+    ore->row.has_resource = 0;
+    refresh_then_check(a);
+    ore->row.has_resource = 1;
+    ore->row.resource = p8_fixed_from_int(21);
+    refresh_then_check(a);
+
+    assert(pointer_list_del(&a->needs, ore));
+    refresh_then_check(a);
+
+    a->production.resource = p8_fixed_from_int(29);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(5);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(6);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(7);
+    refresh_then_check(a);
+    a->production.amount = p8_fixed_from_int(1);
+    refresh_then_check(a);
+
+    trade_route_list_init(&a->outgoing_routes, game_zone());
+    a->has |= PLANET_HAS_OUTGOING_ROUTES;
+    refresh_then_check(a);
+    trade_route_list_add(&a->outgoing_routes, &route);
+    refresh_then_check(a);
+    trade_route_list_add(&a->outgoing_routes, &route);
+    refresh_then_check(a);
+    trade_route_list_clear(&a->outgoing_routes);
+    refresh_then_check(a);
+
+    a->production.has_resource = 0;
+    refresh_then_check(a);
+    a->production.has_resource = 1;
+    refresh_then_check(a);
+}
+
+/* A released row is rebuilt by the next refresh, inputs unchanged or not. */
+static void test_refresh_after_release_builds_the_row(void) {
+    planet_t *a;
+
+    start_game();
+    cart_flush_exit_queue();
+    a = planet_with_a_row();
+    refresh_then_check(a);
+    planet_release_row(&a->header);
+    assert(a->layout_row == NULL);
+    refresh_then_check(a);
+}
+
+/* More needs than any planet holds in a game: a change to the last one
+ * still shows. */
+static void test_refresh_row_with_many_needs(void) {
+    need_t *needs[6];
+    planet_t *a;
+    int i;
+
+    start_game();
+    cart_flush_exit_queue();
+    a = planet_with_a_row();
+    for (i = 0; i < 6; i++) {
+        needs[i] = add_need(a, p8_fixed_from_int(21 + i % 3));
+        needs[i]->has_satisfied = 1;
+        needs[i]->satisfied = p8_fixed_from_int(1);
+    }
+    refresh_then_check(a);
+    refresh_then_check(a);
+    needs[5]->satisfied = 0;
+    refresh_then_check(a);
+    needs[4]->satisfied = 0;
+    refresh_then_check(a);
+    needs[5]->satisfied = p8_fixed_from_int(1);
+    refresh_then_check(a);
+}
+
 /* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
@@ -917,6 +1224,21 @@ static void aborts_in_child(void (*test)(void)) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
+/* draw_layers culls an off-screen planet before its draw: only the classes whose draw is
+ * planet_draw_method opt in; an ascension-family draw updates its emitter first, so it is never culled. */
+static void test_only_planet_draw_classes_are_culled_at_dispatch(void) {
+    const entity_class_t *culled[] = {planet_class(), structure_class(), trading_hub_class(), processor_class(),
+                                      slipgate_class(), infraspace_gate_class()};
+    const entity_class_t *dispatched[] = {ascension_class(), protostar_class(), synthesizer_class(), burst_class()};
+    start_game();
+    for (size_t i = 0; i < sizeof culled / sizeof culled[0]; i++) {
+        assert(culled[i]->draw == planet_draw_method && culled[i]->skip_draw_off_screen);
+    }
+    for (size_t i = 0; i < sizeof dispatched / sizeof dispatched[0]; i++) {
+        assert(dispatched[i]->draw != planet_draw_method && !dispatched[i]->skip_draw_off_screen);
+    }
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -928,6 +1250,9 @@ int main(void) {
 
     cart_load();
     in_fresh_child(test_vanishing_flicker_draws_from_the_visual_stream);
+    in_fresh_child(test_planet_draw_matches_its_primitives);
+    in_fresh_child(test_planet_draw_under_a_fill_pattern_matches_its_primitives);
+    in_fresh_child(test_first_planet_draw_draws_no_random_number);
     in_fresh_child(test_galaxy);
     in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);
@@ -943,10 +1268,14 @@ int main(void) {
     in_fresh_child(test_installed_randomness_is_read_back);
     in_fresh_child(test_started_game_has_reachable_randomness);
     in_fresh_child(test_planet_is_a_struct);
+    in_fresh_child(test_only_planet_draw_classes_are_culled_at_dispatch);
     in_fresh_child(test_refresh_row_slot);
     in_fresh_child(test_refresh_without_resource_takes_no_slot);
     in_fresh_child(test_rows_given_back_after_restart);
     in_fresh_child(test_refresh_many_times_in_one_frame);
+    in_fresh_child(test_refresh_row_follows_every_input);
+    in_fresh_child(test_refresh_after_release_builds_the_row);
+    in_fresh_child(test_refresh_row_with_many_needs);
 
     printf("test_planet: all tests passed\n");
     return 0;

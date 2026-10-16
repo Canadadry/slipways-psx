@@ -6,6 +6,7 @@
 
 #include "engine/dispatch_context.h"
 #include "game/hud.h"
+#include "game/text_image.h"
 
 static int g_layout_up = 0;
 static const entity_class_t layout_row_class_def;
@@ -225,6 +226,28 @@ void layout_row_draw_at(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_r
     }
 }
 
+void layout_row_draw_at_text_image(p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a) {
+    if (self == NULL) {
+        return;
+    }
+    assert(self->header.class == &layout_row_class_def && "layout_row_draw_at_text_image: not a layout row");
+    p = vec_sub(p, vec_make(p8_fixed_mul(a, self->width), p8_fixed_from_int(0)));
+    if (self->placed_items == NULL) {
+        return;
+    }
+    for (int i = 0; i < self->placed_items_count; i++) {
+        const layout_row_item_t *item = &self->placed_items[i];
+        if (item->kind != LAYOUT_ROW_ITEM_TEXT) {
+            row_draw_at_item_draw(gfx, mem, item, p);
+            continue;
+        }
+        vec_t pos = vec_add(p, item->offset);
+        text_image_print_outlined(gfx, mem, item->text, p8_fixed_flr_int(p8_fixed_add(pos.x, p8_fixed_from_int(2))),
+                                  p8_fixed_flr_int(p8_fixed_add(pos.y, p8_fixed_from_int(1))),
+                                  p8_fixed_flr_int(item->color) & 0x0F);
+    }
+}
+
 void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p) {
     layout_row_draw_at(gfx, mem, self, p, p8_fixed_from_int(0));
 }
@@ -282,7 +305,7 @@ void tooltip_draw_at(p8_graphics_t *gfx, p8_vram_t *mem, const tooltip_t *self, 
 
     for (i = 0; i < self->rows_count; i++) {
         vec_t pos = vec_make(p8_fixed_from_int(P8_SCREEN_WIDTH / 2), p8_fixed_add(om, p8_fixed_from_int(2)));
-        layout_row_draw_at(gfx, mem, self->rows[i], pos, P8_FIXED_LIT(0x00008000, 0.5));
+        layout_row_draw_at_text_image(gfx, mem, self->rows[i], pos, P8_FIXED_LIT(0x00008000, 0.5));
         om = p8_fixed_add(om, p8_fixed_from_int(8));
     }
 }

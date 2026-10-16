@@ -130,6 +130,9 @@ tooltip_t *tooltip_new(const allocator_t *zone, const data_row_t *row);
 
 void layout_row_draw_at(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a);
 void layout_row_draw_at_default(const p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p);
+/* layout_row_draw_at's contract (same pixels, same draw palette after), each text item through
+ * text_image_print_outlined. gfx's camera moves during a build and is restored. */
+void layout_row_draw_at_text_image(p8_graphics_t *gfx, p8_vram_t *mem, const layout_row_t *self, vec_t p, p8_fixed_t a);
 
 void tooltip_draw_at(p8_graphics_t *gfx, p8_vram_t *mem, const tooltip_t *self, p8_fixed_t om, p8_fixed_t a);
 

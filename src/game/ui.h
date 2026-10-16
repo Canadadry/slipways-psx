@@ -17,6 +17,7 @@ typedef enum { MOUSE_SIDE_LEFT } mouse_side_t;
 
 typedef struct {
     int layer_count;
+    uint16_t written;
     entity_id_list_t layers[UI_HOVER_LAYERS];
 } ui_hovered_by_layer_t;
 
@@ -64,6 +65,10 @@ ui_t *ui_new(void);
 
 /* Each NULL when absent or once its entity was flushed. */
 entity_t *ui_hovered(const ui_t *self);
+
+/* The layer's list from the last hover pass; a shared empty list for a layer
+ * that pass did not write, or after ui_forget_world. */
+const entity_id_list_t *ui_hovered_layer(const ui_t *self, int layer);
 entity_t *ui_previous_hovered(const ui_t *self);
 entity_t *ui_left_held(const ui_t *self);
 entity_t *ui_pad_selection(const ui_t *self);

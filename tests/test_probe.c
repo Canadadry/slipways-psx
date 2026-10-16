@@ -659,6 +659,35 @@ static void test_drop_off(void) {
     check("drop_off", h, DROP_OFF_HASH);
 }
 
+/* Without the clock, the drop charges and sets the confirmed state as
+ * targeting_confirm does, but leaves the year and its ticks: past the
+ * year's 15 ticks, targeting_confirm starts a new year even on 0 ticks. */
+static void test_drop_off_without_clock(void) {
+    probe_t *a;
+    probe_t *b;
+    economy_t *economy;
+    p8_fixed_t credits;
+    p8_fixed_t year;
+
+    start_game();
+    economy = main_economy_typed();
+    assert(economy != NULL);
+    a = left_press();
+    year = economy->year;
+    economy->year_ticks = p8_fixed_from_int(16);
+    assert(targeting_confirm(&a->header) == 1);
+    assert(economy->year == p8_fixed_add(year, p8_fixed_from_int(1)) && economy->year_ticks < p8_fixed_from_int(16));
+
+    b = probe_new(NULL);
+    credits = economy->credits;
+    year = economy->year;
+    economy->year_ticks = p8_fixed_from_int(16);
+    assert(targeting_confirm_without_clock(&b->header) == 1);
+    assert(!b->header.is_dead && is_state(&b->header, ENTITY_STATE_SETTLED));
+    assert(economy->credits == p8_fixed_sub(credits, b->targeting.has_cost ? b->targeting.cost : 0));
+    assert(economy->year == year && economy->year_ticks == p8_fixed_from_int(16));
+}
+
 /* The drop over the void, off the panel: the target is the throwaway struct,
  * not NULL, so the drop is refused (is_dead raised, 0 returned) and costs
  * nothing. */
@@ -999,6 +1028,7 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_drop_on);
     in_fresh_child(test_drop_off);
+    in_fresh_child(test_drop_off_without_clock);
     in_fresh_child(test_drop_void);
     in_fresh_child(test_help_screen);
     in_fresh_child(test_probe_is_a_struct);

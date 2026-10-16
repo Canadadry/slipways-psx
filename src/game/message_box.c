@@ -9,6 +9,7 @@
 #include "p8/fixed.h"
 #include "game/hud.h"
 #include "engine/entity.h"
+#include "engine/entity_registry.h"
 #include "game/layout.h"
 #include "game/draw_functions.h"
 #include "game/scroll.h"
@@ -214,8 +215,7 @@ static message_box_t *message_box_create(const message_box_keys_t *keys) {
     self->slot = slot;
     entity_init_instance(&self->header, &message_box_class_def, message_box_archetype.state, message_box_archetype.state_time);
     self->archetype = &message_box_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->duration_scale = self->archetype->duration_scale;
     self->keep_open = NULL;
     self->header.has |= ENTITY_HAS_IS_DEAD;
@@ -341,8 +341,7 @@ static toast_t *toast_create(const toast_keys_t *keys) {
 
     entity_init_instance(&self->header, &toast_class_def, toast_archetype.state, toast_archetype.state_time);
     self->archetype = &toast_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->fade = self->archetype->fade;
     self->follow = ENTITY_ID_NONE;
     self->header.has |= ENTITY_HAS_IS_DEAD;

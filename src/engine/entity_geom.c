@@ -21,14 +21,7 @@ static vec_t map_pos_of(const entity_t *e) {
 }
 
 int entity_geom_contains_cursor(const entity_t *e, mouse_pos_t mouse) {
-    p8_fixed_t fa = e != NULL && entity_has(e, ENTITY_HAS_LAYER) ? e->layer : p8_fixed_from_int(0);
-    vec_t chosen = (fa >= p8_fixed_from_int(10)) ? mouse_pos_screen(mouse) : mouse_pos_world(mouse);
-    vec_t point = vec_sub(chosen, pos_of(e));
-
-    if (e != NULL && entity_has(e, ENTITY_HAS_HIT_BOX)) {
-        return box_contains(e->hit_box, point);
-    }
-    return 0;
+    return entity_geom_contains_cursor_inline(e, mouse);
 }
 
 int entity_geom_is_on_screen(const entity_t *e) {
@@ -85,6 +78,25 @@ p8_fixed_t entity_geom_nearest(vec_t p, const entity_list_t *j_, entity_t **out_
         mk = nearest_step(p, o, mk, out_nearest);
     }
     return mk;
+}
+
+int entity_geom_any_within(vec_t p, const entity_list_t *list, p8_fixed_t threshold) {
+    entity_list_iter_t it;
+    entity_t *o;
+
+    if (list == NULL) {
+        return 0;
+    }
+    it = entity_list_all(list);
+    while (entity_list_iter_next(&it, &o)) {
+        vec_t o_p = map_pos_of(o);
+        int same_position = (p.x == o_p.x && p.y == o_p.y);
+
+        if (!same_position && vec_length_squared(vec_sub(p, o_p)) <= threshold) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 p8_fixed_t entity_geom_nearest_except(vec_t p, const entity_list_t *j_, const entity_t *excluded, entity_t **out_nearest) {

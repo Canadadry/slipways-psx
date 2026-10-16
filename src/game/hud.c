@@ -3,16 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-typedef struct {
-    int offset_x;
-    int offset_y;
-    int color;
-} print_outlined_offset_t;
-
-static const print_outlined_offset_t outline_offsets[9] = {
-    {-1, -1, 0}, {0, -1, 0}, {1, -1, 0}, {-1, 0, 0}, {1, 0, 0}, {-1, 1, 0}, {0, 1, 0}, {1, 1, 0}, {0, 0, 15},
-};
-
 static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
@@ -78,13 +68,9 @@ void hud_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t,
               p8_fixed_t a) {
     int ix = to_int(x);
     int iy = to_int(y);
-    int i;
 
     ix -= to_int(p8_fixed_mul(p8_fixed_mul(a, p8_fixed_from_int(4)), p8_fixed_from_int((int)strlen(t))));
-
-    for (i = 0; i < 9; i++) {
-        p8_print(gfx, mem, t, ix + outline_offsets[i].offset_x, iy + outline_offsets[i].offset_y, outline_offsets[i].color & c);
-    }
+    p8_print_outlined(gfx, mem, t, ix, iy, c & 0x0F);
 }
 
 void hud_print_outlined_default(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y,

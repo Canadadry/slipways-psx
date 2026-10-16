@@ -42,6 +42,7 @@ void planet_update_vanishing_method(entity_t *self, p8_fixed_t t) {
 
 static const entity_class_t planet_class_def = {
     .draw = planet_draw_method,
+    .skip_draw_off_screen = 1,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
     .refresh = planet_refresh_method,
@@ -59,8 +60,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     assert(g_planet_up && "planet_init() must run first");
     entity_init_instance(&self->header, instance_class, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = self->archetype->hit_box;
     self->header.has |= ENTITY_HAS_SHAKE;
@@ -76,6 +76,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     self->planet_type = NULL;
     self->layout_row = NULL;
     self->layout_row_slot = NULL;
+    self->layout_row_signature = (planet_row_signature_t){0};
     self->targeted_by = ENTITY_ID_NONE;
     self->production_bonus = 0;
     self->has_production_bonus = 0;

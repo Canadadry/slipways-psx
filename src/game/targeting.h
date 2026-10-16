@@ -59,6 +59,9 @@ void targeting_tooltip_method(entity_t *self, vec_t screen_pos);
 
 int targeting_confirm(entity_t *self);
 
+/* targeting_confirm without its clock advance: the caller advances the clock. */
+int targeting_confirm_without_clock(entity_t *self);
+
 void targeting_confirm_method(entity_t *self, entity_t *dropped);
 
 #endif

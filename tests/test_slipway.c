@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "p8/draw_backend.h"
 #include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
@@ -23,6 +24,7 @@
 #include "engine/entity_registry.h"
 #include "engine/entity_geom.h"
 #include "p8/fixed.h"
+#include "game/economy.h"
 #include "game/main_economy.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -570,6 +572,137 @@ static void test_drop(void) {
     check("drop", hash, DROP_HASH);
 }
 
+static uint32_t fold_resource_map(uint32_t h, const resource_map_t *map) {
+    int i;
+
+    h = fnv(h, (uint32_t)map->count);
+    for (i = 0; i < map->count; i++) {
+        h = fnv(fnv(h, (uint32_t)map->entries[i].resource), (uint32_t)map->entries[i].value);
+    }
+    return h;
+}
+
+static uint32_t fold_row(uint32_t h, const layout_row_t *row) {
+    int i;
+
+    if (row == NULL) {
+        return fnv(h, 0xFFFFFFFFu);
+    }
+    h = fnv(fnv(h, (uint32_t)row->placed_items_count), (uint32_t)row->width);
+    for (i = 0; i < row->placed_items_count; i++) {
+        const layout_row_item_t *item = &row->placed_items[i];
+        h = fnv(fnv(h, (uint32_t)item->kind), (uint32_t)item->color);
+        h = fnv(fnv(h, (uint32_t)item->sprite_id), (uint32_t)item->sprite_palette_block);
+        h = fnv(fnv(h, (uint32_t)item->offset.x), (uint32_t)item->offset.y);
+        h = item->text != NULL ? fnv_str(h, item->text) : fnv(h, 0u);
+    }
+    return h;
+}
+
+/* What a drop can change: the economy's figures, each planet's tier,
+ * income, production and row, the slipway's state. */
+static uint32_t fold_after_drop(const void *jc) {
+    const economy_t *economy = main_economy_typed();
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    uint32_t h = fold_slipway(2166136261u, jc);
+    int i;
+
+    h = fnv(fnv(h, (uint32_t)is_dead_state(as_slipway(jc))), (uint32_t)as_slipway(jc)->fade_in_step);
+    h = fnv(fnv(h, (uint32_t)economy->credits), (uint32_t)economy->income);
+    h = fnv(fnv(h, (uint32_t)economy->research_points), (uint32_t)economy->era);
+    h = fnv(fnv(h, (uint32_t)economy->year), (uint32_t)economy->year_ticks);
+    h = fnv(fnv(h, (uint32_t)economy->has), (uint32_t)economy->happiness);
+    h = fnv(fnv(h, (uint32_t)economy->has_end_status), (uint32_t)economy->save_pending);
+    h = economy->end_status != NULL ? fnv_str(h, economy->end_status) : fnv(h, 0u);
+    h = fold_resource_map(fold_resource_map(h, &economy->production), &economy->demand);
+    for (i = 0; planets != NULL && i < planets->count; i++) {
+        const planet_t *planet = as_planet(planets->items[i]);
+        h = fnv(fnv(h, (uint32_t)planet->development_tier), (uint32_t)planet->has_development_tier);
+        h = fnv(fnv(h, (uint32_t)planet->net_income), (uint32_t)planet->has_net_income);
+        h = fnv(fnv(h, (uint32_t)planet->production.has_resource), (uint32_t)planet->production.resource);
+        h = fnv(h, (uint32_t)planet->production.amount);
+        h = fold_row(h, planet->layout_row);
+    }
+    return fold_planets(h, 1);
+}
+
+/* The drop as it ran when it advanced the clock twice: the charge with its
+ * own clock advance, both attaches, then one tick. */
+static void drop_with_two_clock_advances(void *held, void *target) {
+    slipway_t *jc = as_slipway(held);
+    entity_t *start = slipway_start(jc);
+
+    if (!targeting_confirm(held)) {
+        jc->header.is_dead = 1;
+        return;
+    }
+    jc->fade_in_step = p8_fixed_from_int(1);
+    jc->end = entity_id_link(target);
+    jc->end_is_point = 0;
+    start->class->attach_slipway(start, held);
+    class_of(target)->attach_slipway(target, held);
+    economy_advance_clock(main_economy_typed(), p8_fixed_from_int(1));
+}
+
+/* A colonized pair, a dragged slipway, the year at `year_ticks` and the
+ * credits at `credits` (or as they are for a negative value), then the
+ * drop; run in its own child, which sends back fold_after_drop. */
+static uint32_t drop_in_child(int two_advances, int year_ticks, int credits) {
+    int fds[2];
+    pid_t child;
+    int status;
+    uint32_t got = 0;
+
+    assert(pipe(fds) == 0);
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        void *origin;
+        void *target;
+        void *held;
+        uint32_t h;
+
+        close(fds[0]);
+        colonized_pair(&origin, &target);
+        held = dragged(origin, target);
+        main_economy_typed()->year_ticks = p8_fixed_from_int(year_ticks);
+        if (credits >= 0) {
+            main_economy_typed()->credits = p8_fixed_from_int(credits);
+        }
+        if (two_advances) {
+            drop_with_two_clock_advances(held, target);
+        } else {
+            class_of(held)->drop(held, target);
+        }
+        h = fold_after_drop(held);
+        assert(write(fds[1], &h, sizeof h) == (ssize_t)sizeof h);
+        fflush(stdout);
+        _exit(0);
+    }
+    close(fds[1]);
+    assert(read(fds[0], &got, sizeof got) == (ssize_t)sizeof got);
+    close(fds[0]);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    return got;
+}
+
+/* The drop advances the clock once, after both attaches, and ends where
+ * the old two advances ended: mid-year, on the tick that starts a new
+ * year, and refused for want of credits. */
+static void test_drop_ends_as_with_two_clock_advances(void) {
+    static const int cases[][2] = {{0, -1}, {7, -1}, {15, -1}, {3, 0}};
+    size_t i;
+
+    for (i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+        uint32_t once = drop_in_child(0, cases[i][0], cases[i][1]);
+        uint32_t twice = drop_in_child(1, cases[i][0], cases[i][1]);
+        printf("[drop once] ticks %d credits %d: 0x%08X 0x%08X\n", cases[i][0], cases[i][1], (unsigned)once, (unsigned)twice);
+        assert(once == twice);
+    }
+}
+
 /* Beyond range the target is the too-far struct; over the pair an existing
  * slipway already joins, the target is that slipway; either way its
  * `targeted_by` is the new one. */
@@ -696,6 +829,147 @@ static void test_draw(void) {
     hash = fnv(hash, plain);
     hash = fnv(hash, circled);
     check("draw", hash, DRAW_HASH);
+}
+
+enum { SPIED_BATCHES = 8 };
+
+typedef unsigned char p8_screen_copy_t[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
+
+typedef struct {
+    int count;
+    int col;
+    p8_segment_t segments[4];
+} spied_batch_t;
+
+static spied_batch_t spied[SPIED_BATCHES];
+static int spied_batches;
+static int spied_single_lines;
+
+static void spy_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    assert(spied_batches < SPIED_BATCHES && count <= 4);
+    spied[spied_batches].count = count;
+    spied[spied_batches].col = col;
+    memcpy(spied[spied_batches].segments, segments, (size_t)count * sizeof *segments);
+    spied_batches++;
+    p8_gfx_software_backend()->lines(gfx, mem, segments, count, col);
+}
+
+static void spy_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    spied_single_lines++;
+    p8_gfx_software_backend()->line(gfx, mem, x1, y1, x2, y2, col);
+}
+
+static const p8_draw_backend_t *spy_on_lines(void) {
+    static p8_draw_backend_t spy;
+    spy = *p8_gfx_software_backend();
+    spy.lines = spy_lines;
+    spy.line = spy_line;
+    spied_batches = 0;
+    spied_single_lines = 0;
+    return p8_draw_backend_set(&spy);
+}
+
+static void assert_offsets(const spied_batch_t *batch, int i, int dx, int dy) {
+    const p8_segment_t *first = &batch->segments[0];
+    const p8_segment_t *s = &batch->segments[i];
+    assert(s->x1 - first->x1 == dx && s->y1 - first->y1 == dy);
+    assert(s->x2 - first->x2 == dx && s->y2 - first->y2 == dy);
+}
+
+/* Each bundle is one lines call: dx outer, dy inner, as the old p8_line loop drew them. */
+static void test_draw_issues_one_lines_call_per_bundle_with_its_lines_in_order(void) {
+    void *old;
+
+    world();
+    old = the_slipway();
+    const p8_draw_backend_t *previous = spy_on_lines();
+    p8_cls(&memory);
+    slipway_draw(&graphics, &memory, as_slipway(old));
+    p8_draw_backend_set(previous);
+
+    assert(spied_batches == 2 && spied_single_lines == 0);
+    for (int b = 0; b < 2; b++) {
+        int step = b == 0 ? 3 : 1;
+        assert(spied[b].count == 4);
+        assert_offsets(&spied[b], 1, 0, step);
+        assert_offsets(&spied[b], 2, step, 0);
+        assert_offsets(&spied[b], 3, step, step);
+    }
+    assert(spied[1].segments[0].x1 - spied[0].segments[0].x1 == 1 && "border from -1, line from 0");
+}
+
+static void test_draw_line_flushes_every_four_segments_and_the_rest(void) {
+    void *old;
+    static p8_screen_copy_t batched;
+
+    world();
+    old = the_slipway();
+    vec_t camera = vec_of(pos_ref(&main_camera_typed()->header));
+    p8_camera(&graphics, p8_fixed_flr_int(camera.x), p8_fixed_flr_int(camera.y));
+    p8_cls(&memory);
+    const p8_draw_backend_t *previous = spy_on_lines();
+    slipway_draw_line(&graphics, &memory, slipway_line_ends(as_slipway(old)), p8_fixed_from_int(0), p8_fixed_from_int(2),
+                      p8_fixed_from_int(1), 7);
+    p8_draw_backend_set(previous);
+    memcpy(batched, memory.screen, sizeof batched);
+    assert(screen_hash() != 2166136261u);
+
+    p8_cls(&memory);
+    for (int b = 0; b < spied_batches; b++) {
+        for (int i = 0; i < spied[b].count; i++) {
+            const p8_segment_t *s = &spied[b].segments[i];
+            p8_line(&graphics, &memory, s->x1, s->y1, s->x2, s->y2, spied[b].col);
+        }
+    }
+    assert(memcmp(batched, memory.screen, sizeof batched) == 0 && "the old loop's single lines give the same pixels");
+
+    assert(spied_batches == 3 && spied_single_lines == 0);
+    assert(spied[0].count == 4 && spied[1].count == 4 && spied[2].count == 1);
+    assert(spied[0].col == 7 && spied[2].col == 7);
+    assert_offsets(&spied[0], 3, 1, 0);
+    assert(spied[2].segments[0].x1 - spied[0].segments[0].x1 == 2 && spied[2].segments[0].y1 - spied[0].segments[0].y1 == 2);
+}
+
+/* The end points as the per-call computation gave them: each end wobbles on its own period. */
+static slipway_line_ends_t ends_as_before(const slipway_t *self) {
+    p8_fixed_t t = self->header.state_time;
+    slipway_line_ends_t ends;
+    ends.start = vec_add(slipway_end_pos(slipway_start(self)),
+                         vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(126))));
+    ends.end = vec_add(slipway_end_pos(slipway_end(self)),
+                       vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
+    return ends;
+}
+
+/* Both bundles of a draw start from the end points computed once, at every state time. */
+static void test_draw_bundles_start_from_the_line_ends_at_every_state_time(void) {
+    static const int times[] = {0, 1, 37, 63, 126, 176, 500, 2771, 9001};
+    void *old;
+
+    world();
+    old = the_slipway();
+    for (size_t i = 0; i < sizeof times / sizeof times[0]; i++) {
+        slipway_t *self = as_slipway(old);
+        self->header.state_time = p8_fixed_from_int(times[i]);
+        slipway_line_ends_t want = ends_as_before(self);
+        slipway_line_ends_t got = slipway_line_ends(self);
+        assert(got.start.x == want.start.x && got.start.y == want.start.y);
+        assert(got.end.x == want.end.x && got.end.y == want.end.y);
+
+        const p8_draw_backend_t *previous = spy_on_lines();
+        p8_cls(&memory);
+        slipway_draw(&graphics, &memory, self);
+        p8_draw_backend_set(previous);
+        assert(spied_batches == 2);
+        for (int b = 0; b < 2; b++) {
+            int l = b == 0 ? -1 : 0;
+            const p8_segment_t *first = &spied[b].segments[0];
+            assert(first->x1 == p8_fixed_flr_int(p8_fixed_add(want.start.x, p8_fixed_from_int(l))));
+            assert(first->y1 == p8_fixed_flr_int(p8_fixed_add(want.start.y, p8_fixed_from_int(l))));
+            assert(first->x2 == p8_fixed_flr_int(p8_fixed_add(want.end.x, p8_fixed_from_int(l))));
+            assert(first->y2 == p8_fixed_flr_int(p8_fixed_add(want.end.y, p8_fixed_from_int(l))));
+        }
+    }
 }
 
 /* Beyond range: draw draws the line under the game's camera, draw_overlay
@@ -1239,10 +1513,14 @@ int main(void) {
     in_fresh_child(test_transit_dot_roll_draws_from_the_visual_stream);
     in_fresh_child(test_construction);
     in_fresh_child(test_drop);
+    in_fresh_child(test_drop_ends_as_with_two_clock_advances);
     in_fresh_child(test_drag);
     in_fresh_child(test_drag_takes_infraspace_from_its_start);
     in_fresh_child(test_other_end);
     in_fresh_child(test_draw);
+    in_fresh_child(test_draw_issues_one_lines_call_per_bundle_with_its_lines_in_order);
+    in_fresh_child(test_draw_line_flushes_every_four_segments_and_the_rest);
+    in_fresh_child(test_draw_bundles_start_from_the_line_ends_at_every_state_time);
     in_fresh_child(test_targeting_track);
     in_fresh_child(test_targeting_track_takes_the_first_slipway_of_entities_by_tag);
     in_fresh_child(test_too_far);

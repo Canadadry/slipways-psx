@@ -148,6 +148,7 @@ static void slipgate_offer_trade_method(entity_t *self, struct trade_offer *offe
 
 static const entity_class_t slipgate_class_def = {
     .draw = planet_draw_method,
+    .skip_draw_off_screen = 1,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,
@@ -185,6 +186,7 @@ static planet_t *slipgate_create(const planet_keys_t *keys) {
 
 static const entity_class_t infraspace_gate_class_def = {
     .draw = planet_draw_method,
+    .skip_draw_off_screen = 1,
     .draw_overlay = targeting_tooltip_method,
     .hit_test = planet_hit_test_method,
     .new_year = planet_new_year_method,

@@ -107,11 +107,10 @@ static button_t *button_create(const button_keys_t *keys) {
     self->project_cost = 0;
     self->has_project_cost = 0;
     self->archetype = &button_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     if (keys != NULL) {
         if (keys->has_layer) {
-            self->header.layer = keys->layer;
+            entity_registry_set_layer(&self->header, keys->layer);
         }
         if (keys->has_pos) {
             entity_set_pos(&self->header, keys->pos);
@@ -251,7 +250,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
 
     if (self->layout_row != NULL) {
         vec_t off = vec_add(draw_pos, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(2)));
-        layout_row_draw_at_default(graphics, memory, self->layout_row, off);
+        layout_row_draw_at_text_image(graphics, memory, self->layout_row, off, p8_fixed_from_int(0));
     }
 
     if (self->side_tooltip != NULL) {
@@ -268,7 +267,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
         {
             vec_t off2 =
                 vec_add(draw_pos, vec_make(p8_fixed_add(width, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
-            layout_row_draw_at_default(graphics, memory, c, off2);
+            layout_row_draw_at_text_image(graphics, memory, c, off2, p8_fixed_from_int(0));
         }
     }
 }
@@ -302,8 +301,7 @@ static modal_backdrop_t *modal_backdrop_create(const modal_backdrop_keys_t *keys
     self->slot = slot;
     entity_init_instance(&self->header, &modal_backdrop_class_def, modal_backdrop_archetype.state, modal_backdrop_archetype.state_time);
     self->archetype = &modal_backdrop_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->on_click = NULL;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;

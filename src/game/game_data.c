@@ -133,7 +133,8 @@ const score_rows_entry_t score_rows_table[SCORE_ROWS_COUNT] = {
 };
 
 static const int planet_ring_colors_items[] = {2, 3, 9, 12};
-const int_seq_t planet_ring_colors_seq = {4, planet_ring_colors_items};
+typedef char planet_ring_colors_count_matches[sizeof planet_ring_colors_items / sizeof planet_ring_colors_items[0] == PLANET_RING_COLORS_COUNT ? 1 : -1];
+const int_seq_t planet_ring_colors_seq = {PLANET_RING_COLORS_COUNT, planet_ring_colors_items};
 
 static const data_item_t planet_mood_rows_1_items[] = {{.text = "unhappy"}};
 static const data_item_t planet_mood_rows_2_items[] = {{.text = "content"}};
@@ -373,7 +374,8 @@ const wormhole_archetype_t wormhole_archetype = {
     .radius = 0x0,
     .layer = 0x50000,
     .color_ramp = &wormhole_color_ramp_seq,
-    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = ENTITY_STATE_UNFOLDING, .clock_ticks = 0x10000},
+    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = ENTITY_STATE_UNFOLDING, .clock_ticks = 0x10000,
+                  .clock_skips_recompute = 1},
 };
 
 const slipway_archetype_t slipway_archetype = {

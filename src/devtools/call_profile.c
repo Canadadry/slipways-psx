@@ -2,6 +2,7 @@
 
 #include "p8/draw_cost.h"
 #include "p8/fatal.h"
+#include "p8/image.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -41,6 +42,7 @@ static int count;
 static const p8_draw_backend_t *wrapped;
 static p8_draw_cost_window_t window;
 static int counting_units;
+static p8_image_size_t image_sizes[P8_IMAGE_SLOT_COUNT];
 
 void call_profile_init(call_profile_clock_t clock, uintptr_t update_root, uintptr_t draw_root) {
     assert(clock != NULL);
@@ -199,11 +201,15 @@ uint64_t call_profile_measure_pair(int pairs) {
     return span * 10 / (uint64_t)pairs;
 }
 
-static uint64_t family_end(draw_filter_family_t family, uint64_t start) {
+static uint64_t family_calls_end(draw_filter_family_t family, uint64_t start, int calls) {
     uint64_t ns = clock_now() - start;
-    current.families[family].calls++;
+    current.families[family].calls += (uint32_t)calls;
     current.families[family].ns += ns;
     return ns;
+}
+
+static uint64_t family_end(draw_filter_family_t family, uint64_t start) {
+    return family_calls_end(family, start, 1);
 }
 
 static int patterned(const p8_graphics_t *gfx) {
@@ -309,9 +315,66 @@ static void family_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     units_end(DRAW_FILTER_PRINT, before, p8_draw_cost_print(&window, gfx, str, x, y), 0);
 }
 
+static void family_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    uint64_t start = clock_now();
+    wrapped->print_outlined(gfx, mem, str, x, y, col);
+    family_end(DRAW_FILTER_PRINT, start);
+    p8_draw_cost_window_t before = units_begin();
+    units_end(DRAW_FILTER_PRINT, before, p8_draw_cost_print_outlined(&window, gfx, str, x, y), 0);
+}
+
+static void family_image_begin(int slot, int w, int h) {
+    image_sizes[slot].width = w;
+    image_sizes[slot].height = h;
+    wrapped->image_begin(slot, w, h);
+}
+
+static void family_image_window(int slot, int x, int y) {
+    wrapped->image_window(slot, x, y);
+}
+
+static void family_image_end(int slot) {
+    wrapped->image_end(slot);
+}
+
+/* Under spr, as draw_timing.c counts it: one sprite unit and one page switch when on screen. */
+static void family_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    uint64_t start = clock_now();
+    wrapped->image_draw(gfx, mem, slot, x, y);
+    family_end(DRAW_FILTER_SPR, start);
+    (void)units_begin();
+    p8_draw_cost_t cost = p8_draw_cost_image_draw(&window, gfx, x, y, image_sizes[slot].width, image_sizes[slot].height);
+    counting_units = 0;
+    uint32_t on_screen = cost.primitives > 0;
+    units_add(DRAW_FILTER_SPR, on_screen, on_screen);
+}
+
+static void family_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    uint64_t start = clock_now();
+    wrapped->lines(gfx, mem, segments, count, col);
+    family_calls_end(DRAW_FILTER_LINE, start, count);
+    for (int i = 0; i < count; i++) {
+        const p8_segment_t *s = &segments[i];
+        p8_draw_cost_window_t before = units_begin();
+        units_end(DRAW_FILTER_LINE, before, p8_draw_cost_line(gfx, s->x1, s->y1, s->x2, s->y2), 0);
+    }
+}
+
+static void family_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    uint64_t start = clock_now();
+    wrapped->psets(gfx, mem, points, count);
+    family_calls_end(DRAW_FILTER_PSET, start, count);
+    for (int i = 0; i < count; i++) {
+        p8_draw_cost_window_t before = units_begin();
+        units_end(DRAW_FILTER_PSET, before, p8_draw_cost_pset(gfx, points[i].x, points[i].y), 0);
+    }
+}
+
 static const p8_draw_backend_t FAMILIES = {
     family_cls, family_pset, family_line, family_rect, family_rectfill,
-    family_circ, family_circfill, family_spr, family_print,
+    family_circ, family_circfill, family_spr, family_print, family_print_outlined,
+    family_image_begin, family_image_window, family_image_end, family_image_draw,
+    family_lines, family_psets,
 };
 
 const p8_draw_backend_t *call_profile_family_install(void) {

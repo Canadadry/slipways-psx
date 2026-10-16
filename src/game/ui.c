@@ -7,6 +7,7 @@
 #include "engine/exit_queue.h"
 #include "engine/entity.h"
 #include "engine/entity_id.h"
+#include "engine/entity_geom.h"
 #include "game/mouse_button.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
@@ -114,22 +115,18 @@ static const entity_class_t ui_class_def = {
 
 static ui_t *ui_create(void) {
     ui_t *self;
-    int i;
 
     assert(g_ui_up && "ui_init() must run first");
     self = (ui_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &ui_class_def, ui_archetype.state, ui_archetype.state_time);
     self->archetype = &ui_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->has = 0;
     self->ephemerals_serial = 0;
     self->ephemerals = (entity_id_list_t){0};
     self->mouse_world = vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
     self->hovered_by_layer.layer_count = UI_HOVER_LAYERS;
-    for (i = 0; i < UI_HOVER_LAYERS; i++) {
-        entity_id_list_init(&self->hovered_by_layer.layers[i], frame_zone());
-    }
+    self->hovered_by_layer.written = 0;
     self->hovered = ENTITY_ID_NONE;
     self->previous_hovered = ENTITY_ID_NONE;
     self->left_held = ENTITY_ID_NONE;
@@ -209,14 +206,17 @@ entity_t *ui_pad_circle(const ui_t *self) {
 }
 
 void ui_forget_world(ui_t *self) {
-    int index;
-
     if (self->has & UI_HAS_OWN_EPHEMERALS) {
         entity_id_list_clear(&self->ephemerals);
     }
-    for (index = 0; index < UI_HOVER_LAYERS; index++) {
-        entity_id_list_clear(&self->hovered_by_layer.layers[index]);
-    }
+    self->hovered_by_layer.written = 0;
+}
+
+const entity_id_list_t *ui_hovered_layer(const ui_t *self, int layer) {
+    static const entity_id_list_t empty = {0};
+
+    assert(layer >= 0 && layer < UI_HOVER_LAYERS);
+    return (self->hovered_by_layer.written & (1u << layer)) ? &self->hovered_by_layer.layers[layer] : &empty;
 }
 
 entity_t *main_mouse(void) {
@@ -322,20 +322,28 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self)
     }
 }
 
+static inline int ui_hit_test(entity_t *e, mouse_pos_t mouse) {
+    int (*hit_test)(entity_t *, mouse_pos_t) = e->class->hit_test;
+
+    if (hit_test == planet_hit_test_method) {
+        return entity_geom_contains_cursor_inline(e, mouse);
+    }
+    return hit_test != NULL && hit_test(e, mouse);
+}
+
 void ui_update_hover(ui_t *self) {
     mouse_pos_t mouse;
     const entity_list_t *hit_test_bucket;
     entity_t *previous;
     entity_t *hovered = NULL;
+    const allocator_t *zone = NULL;
     int index;
 
     if (self == NULL) {
         return;
     }
 
-    for (index = 0; index < UI_HOVER_LAYERS; index++) {
-        entity_id_list_init(&self->hovered_by_layer.layers[index], frame_zone());
-    }
+    self->hovered_by_layer.written = 0;
     self->has |= UI_HAS_HOVERED_BY_LAYER;
     self->hovered = ENTITY_ID_NONE;
 
@@ -345,12 +353,19 @@ void ui_update_hover(ui_t *self) {
     for (index = 0; index < hit_test_bucket->count; index++) {
         entity_t *e = hit_test_bucket->items[index];
 
-        if (e->class->hit_test != NULL && e->class->hit_test(e, mouse)) {
+        if (ui_hit_test(e, mouse)) {
             if (entity_has(e, ENTITY_HAS_LAYER)) {
                 int fa = ui_to_int(e->layer);
 
                 assert(fa >= 0 && fa < UI_HOVER_LAYERS &&
                        "ui_update_hover: a hovered entity's layer outside 0..15, the layers ui_send_to_hovered walks -- stop, do not widen");
+                if (!(self->hovered_by_layer.written & (1u << fa))) {
+                    if (zone == NULL) {
+                        zone = frame_zone();
+                    }
+                    entity_id_list_init(&self->hovered_by_layer.layers[fa], zone);
+                    self->hovered_by_layer.written |= (uint16_t)(1u << fa);
+                }
                 entity_id_list_add(&self->hovered_by_layer.layers[fa], entity_id_link(e));
             }
             hovered = e;
@@ -444,7 +459,7 @@ int ui_send_to_hovered(ui_t *self, send_to_hovered_slot_t message, mouse_pos_t m
     }
 
     for (layer = UI_HOVER_LAYERS - 1; layer >= 0; layer--) {
-        entity_id_list_iter_t it = entity_id_list_all(&self->hovered_by_layer.layers[layer]);
+        entity_id_list_iter_t it = entity_id_list_all(ui_hovered_layer(self, layer));
         entity_t *h;
 
         while (entity_id_list_iter_next(&it, &h)) {

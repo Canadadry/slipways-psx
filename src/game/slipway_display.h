@@ -16,8 +16,16 @@ typedef struct {
 
 void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_t *t);
 
-void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, const slipway_t *self, p8_fixed_t l,
-                  p8_fixed_t h, p8_fixed_t s, int c);
+typedef struct {
+    vec_t start;
+    vec_t end;
+} slipway_line_ends_t;
+
+/* The two end points the slipway's lines join this frame, each wobbling with state_time. */
+slipway_line_ends_t slipway_line_ends(const slipway_t *self);
+
+void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, slipway_line_ends_t ends, p8_fixed_t l, p8_fixed_t h,
+                       p8_fixed_t s, int c);
 
 void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *self);
 

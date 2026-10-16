@@ -2,6 +2,7 @@
 #define PLATFORM_PSX_GPU_H
 
 #include "p8/draw_backend.h"
+#include "platform/psx_gpu_peaks.h"
 
 /* After ResetGraph: sets up the NTSC 320x240 display and the VRAM layout of
  * platform/psx_vram_layout.h, and uploads the packed sprite sheet, the font texture and its CLUTs. */
@@ -15,8 +16,11 @@ const p8_draw_backend_t *psx_gpu_backend(void);
 void psx_gpu_frame_begin(int frame);
 
 /* Clears this frame's display buffer and appends the x2 upscale, waits for the previous frame,
- * shows it and submits this one, with no VSync wait. p8_fatal when the frame sent more bytes than metered_bytes. */
-void psx_gpu_frame_end(unsigned long metered_bytes);
+ * shows it and submits this one, with no VSync wait. p8_fatal when the frame sent more bytes than limit_bytes. */
+void psx_gpu_frame_end(unsigned long limit_bytes);
+
+/* The peaks over the frames ended since psx_gpu_init. */
+psx_gpu_peaks_t psx_gpu_peaks(void);
 
 /* After psx_gpu_frame_end: waits for the frame it submitted and shows it at once. The next
  * psx_gpu_frame_end shows that same frame again, then moves on as usual. */

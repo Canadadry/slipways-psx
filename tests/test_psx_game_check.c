@@ -1,4 +1,4 @@
-/* tools/psx_game_check.sh (the game EXE's five post-boot conditions) on crafted TTY files built
+/* tools/psx_game_check.sh (the game EXE's seven post-boot conditions) on crafted TTY files built
  * from tests/e2e/pad_title.json and its PC state, with the real tmp/psx_pad_log and tmp/replay:
  * no emulator. */
 
@@ -41,14 +41,35 @@ static const char *read_file(const char *path) {
     return buf;
 }
 
-/* The PSX TTY: header, pad lines, done line, then the PC state behind "psx-state: ". */
-static void write_tty(const char *pad_lines, const char *done_line, const char *state_path) {
+#define GPU_PEAK "psx-game: gpu-peak bytes 100 cluts 0 patterns 0 build 0\r\n"
+
+/* The PSX TTY: header with this asserts line ("" for none), pad lines, this gpu-peak line ("" for
+ * none), done line, then the PC state behind "psx-state: ". */
+static void write_tty_lines(const char *asserts_line, const char *pad_lines, const char *peak_line,
+                            const char *done_line, const char *state_path) {
     static char tty[1 << 16];
-    snprintf(tty, sizeof tty, "PS-X Control PAD Driver\r\npsx-game: ready\r\n%s%s", pad_lines, done_line);
+    snprintf(tty, sizeof tty, "PS-X Control PAD Driver\r\n%spsx-game: ready\r\n%s%s%s", asserts_line, pad_lines,
+             peak_line, done_line);
     write_file(TTY, tty);
     char command[512];
     snprintf(command, sizeof command, "sed 's/^/psx-state: /' %s >> " TTY, state_path);
     assert(system(command) == 0);
+}
+
+static void write_tty_asserts(const char *asserts_line, const char *pad_lines, const char *done_line,
+                              const char *state_path) {
+    write_tty_lines(asserts_line, pad_lines, GPU_PEAK, done_line, state_path);
+}
+
+static void write_tty(const char *pad_lines, const char *done_line, const char *state_path) {
+    write_tty_asserts("psx-game: asserts off\r\n", pad_lines, done_line, state_path);
+}
+
+static void assert_line(const char *line) {
+    if (strstr(read_file(LOG), line) == NULL) {
+        fprintf(stderr, "missing \"%s\" in:\n%s", line, read_file(LOG));
+        assert(0);
+    }
 }
 
 /* Runs the check with this boot status and difficulty; returns its exit status, output in LOG. */
@@ -60,11 +81,21 @@ static int run_check(int boot_status, const char *difficulty) {
     return system(command);
 }
 
-static void assert_line(const char *line) {
-    if (strstr(read_file(LOG), line) == NULL) {
-        fprintf(stderr, "missing \"%s\" in:\n%s", line, read_file(LOG));
-        assert(0);
-    }
+static int run_check_expecting(const char *asserts) {
+    char command[512];
+    snprintf(command, sizeof command,
+             "PSX_GAME_ASSERTS=%s sh tools/psx_game_check.sh " TTY " 0 'boot output'" TOOLS "reasonable " OUT " > " LOG
+             " 2>&1",
+             asserts);
+    return system(command);
+}
+
+static void assert_other_conditions_pass(void) {
+    assert_line("psx-game-check: game-done: ok, 30 frames, 1 vsyncs");
+    assert_line("psx-game-check: game-pad-log: ok, 30 frames");
+    assert_line("psx-game-check: game-pad-states: ok, 11 states");
+    assert_line("psx-game-check: game-state-game-lines: ok");
+    assert_line("psx-game-check: game-title-left: ok, difficulty reasonable, clock year 3401 month 1");
 }
 
 static void setup(void) {
@@ -83,6 +114,10 @@ static void test_a_pad_title_run_passes_every_condition(void) {
     assert_line("psx-game-check: game-pad-states: ok, 11 states");
     assert_line("psx-game-check: game-state-game-lines: ok");
     assert_line("psx-game-check: game-title-left: ok, difficulty reasonable, clock year 3401 month 1");
+    assert_line("psx-game-check: game-asserts: ok, off");
+    assert_line("psx-game-check: game-gpu-cost: ok, bytes 100 of ");
+    assert_line(" metered, cluts 0 of ");
+    assert_line(", build 0 of ");
     assert(strstr(read_file(OUT "/game_events.json"), "\"input\": \"pad\"") != NULL);
     assert(strstr(read_file(OUT "/pc_state.txt"), "difficulty reasonable") != NULL);
 }
@@ -149,6 +184,117 @@ static void test_another_expected_difficulty_fails_title_left(void) {
     assert_line("psx-game-check: game-state-game-lines: ok");
 }
 
+static void test_an_asserts_on_game_fails_game_asserts(void) {
+    setup();
+    write_tty_asserts("psx-game: asserts on\r\n", PAD_LINES, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-asserts: psx-game: asserts on");
+    assert_other_conditions_pass();
+}
+
+static void test_a_missing_asserts_line_fails_game_asserts(void) {
+    setup();
+    write_tty_asserts("", PAD_LINES, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-asserts: psx-game: asserts (no line)");
+    assert_other_conditions_pass();
+}
+
+static void test_an_asserts_on_expectation_wants_asserts_on(void) {
+    setup();
+    write_tty_asserts("psx-game: asserts on\r\n", PAD_LINES, DONE, PC_STATE);
+    assert(run_check_expecting("on") == 0);
+    assert_line("psx-game-check: game-asserts: ok, on");
+    assert_other_conditions_pass();
+    write_tty(PAD_LINES, DONE, PC_STATE);
+    assert(run_check_expecting("on") != 0);
+    assert_line("psx-game-check: game-asserts: psx-game: asserts off");
+    assert_other_conditions_pass();
+}
+
+/* Field 4 of the first PC state line starting with this prefix. */
+static long pc_peak(const char *prefix) {
+    const char *line = strstr(read_file(PC_STATE), prefix);
+    assert(line != NULL);
+    long peak = -1;
+    assert(sscanf(line + strlen(prefix), " %*s %ld", &peak) == 1);
+    return peak;
+}
+
+static void test_a_byte_peak_above_the_pc_meter_fails_game_gpu_cost(void) {
+    setup();
+    long metered = pc_peak("zone gpu_frame");
+    char peak_line[128];
+    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes %ld cluts 0 patterns 0 build 0\r\n", metered + 1);
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, peak_line, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    char expected[128];
+    snprintf(expected, sizeof expected, "psx-game-check: game-gpu-cost: bytes %ld above the PC's metered %ld",
+             metered + 1, metered);
+    assert_line(expected);
+    assert_other_conditions_pass();
+    assert_line("psx-game-check: game-asserts: ok, off");
+}
+
+static void test_a_clut_peak_above_the_pc_meter_fails_game_gpu_cost(void) {
+    setup();
+    long metered = pc_peak("cap gpu_cluts");
+    char peak_line[128];
+    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes 100 cluts %ld patterns 0 build 0\r\n", metered + 1);
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, peak_line, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    char expected[128];
+    snprintf(expected, sizeof expected, "psx-game-check: game-gpu-cost: cluts %ld above the PC's metered %ld",
+             metered + 1, metered);
+    assert_line(expected);
+    assert_other_conditions_pass();
+}
+
+static void test_a_missing_or_zero_peak_line_fails_game_gpu_cost(void) {
+    setup();
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, "", DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-gpu-cost: psx-game: gpu-peak (no line)");
+    assert_other_conditions_pass();
+    assert_line("psx-game-check: game-asserts: ok, off");
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, "psx-game: gpu-peak bytes 0 cluts 0 patterns 0 build 0\r\n",
+                    DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-gpu-cost: psx-game: gpu-peak (no line)");
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, "psx-game: gpu-peak bytes 100 cluts 0 patterns 0\r\n", DONE,
+                    PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-gpu-cost: psx-game: gpu-peak (no line)");
+}
+
+static void test_a_build_peak_above_the_pc_meter_fails_game_gpu_cost(void) {
+    setup();
+    long metered = pc_peak("zone gpu_build");
+    char peak_line[128];
+    snprintf(peak_line, sizeof peak_line, "psx-game: gpu-peak bytes 100 cluts 0 patterns 0 build %ld\r\n", metered + 1);
+    write_tty_lines("psx-game: asserts off\r\n", PAD_LINES, peak_line, DONE, PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    char expected[128];
+    snprintf(expected, sizeof expected, "psx-game-check: game-gpu-cost: build %ld above the PC's metered %ld",
+             metered + 1, metered);
+    assert_line(expected);
+    assert_other_conditions_pass();
+}
+
+static void test_a_broken_pad_log_skips_game_gpu_cost(void) {
+    setup();
+    write_tty(PAD_LINES, "", PC_STATE);
+    assert(run_check(0, "reasonable") != 0);
+    assert_line("psx-game-check: game-state-game-lines: skipped, game-pad-log failed");
+    assert_line("psx-game-check: game-gpu-cost: skipped, game-state-game-lines failed");
+}
+
+static void test_an_unknown_expectation_is_refused(void) {
+    setup();
+    assert(run_check_expecting("maybe") != 0);
+    assert_line("PSX_GAME_ASSERTS must be on or off, not 'maybe'");
+}
+
 int main(void) {
     test_a_pad_title_run_passes_every_condition();
     test_a_failed_boot_fails_game_done();
@@ -158,6 +304,15 @@ int main(void) {
     test_an_altered_state_line_is_named();
     test_a_log_cut_before_cross_never_leaves_the_title();
     test_another_expected_difficulty_fails_title_left();
+    test_an_asserts_on_game_fails_game_asserts();
+    test_a_missing_asserts_line_fails_game_asserts();
+    test_an_asserts_on_expectation_wants_asserts_on();
+    test_an_unknown_expectation_is_refused();
+    test_a_byte_peak_above_the_pc_meter_fails_game_gpu_cost();
+    test_a_clut_peak_above_the_pc_meter_fails_game_gpu_cost();
+    test_a_missing_or_zero_peak_line_fails_game_gpu_cost();
+    test_a_build_peak_above_the_pc_meter_fails_game_gpu_cost();
+    test_a_broken_pad_log_skips_game_gpu_cost();
     printf("test_psx_game_check: ok\n");
     return 0;
 }

@@ -200,6 +200,52 @@ static void test_random_lines_are_sent_when_the_software_shows_them(void) {
     }
 }
 
+static void test_a_slipway_bundle_is_sent_segment_by_segment_as_the_software_shows_it_at_every_edge(void) {
+    static const int cameras[][2] = { { 0, 0 }, { 37, -21 }, { -64, 90 } };
+    p8_graphics_t gfx;
+    int sent = 0;
+    int dropped = 0;
+    for (int c = 0; c < 3; c++) {
+        p8_gfx_init(&gfx);
+        p8_camera(&gfx, cameras[c][0], cameras[c][1]);
+        for (int x = -37; x <= P8_SCREEN_WIDTH + 5; x += 14) {
+            for (int y = -20; y <= P8_SCREEN_HEIGHT + 5; y += 13) {
+                int wx = x + cameras[c][0];
+                int wy = y + cameras[c][1];
+                p8_segment_t bundle[4] = {
+                    { wx - 1, wy - 1, wx + 29, wy + 13 }, { wx - 1, wy + 2, wx + 29, wy + 16 },
+                    { wx + 2, wy - 1, wx + 32, wy + 13 }, { wx + 2, wy + 2, wx + 32, wy + 16 },
+                };
+                for (int i = 0; i < 4; i++) {
+                    int count = line_is_sent_as_the_software_shows_it(&gfx, bundle[i].x1, bundle[i].y1, bundle[i].x2, bundle[i].y2);
+                    sent += count;
+                    dropped += 1 - count;
+                }
+            }
+        }
+    }
+    assert(sent > 0 && dropped > 0 && "the sweep crosses every edge");
+}
+
+static void test_points_are_placed_one_by_one_as_the_software_shows_them_at_every_edge(void) {
+    static const int cameras[][2] = { { 0, 0 }, { 37, -21 }, { -64, 90 } };
+    p8_graphics_t gfx;
+    int placed = 0;
+    int dropped = 0;
+    for (int c = 0; c < 3; c++) {
+        p8_gfx_init(&gfx);
+        p8_camera(&gfx, cameras[c][0], cameras[c][1]);
+        for (int x = -2; x < P8_SCREEN_WIDTH + 2; x += 3) {
+            for (int y = -2; y < P8_SCREEN_HEIGHT + 2; y += P8_SCREEN_HEIGHT + 3 - 4 * (x & 1)) {
+                int count = pset_tile_matches_software(&gfx, x + cameras[c][0], y + cameras[c][1]);
+                placed += count;
+                dropped += 1 - count;
+            }
+        }
+    }
+    assert(placed > 0 && dropped > 0 && "the sweep crosses every edge");
+}
+
 static void test_a_pset_is_one_pixel_after_the_camera(void) {
     p8_graphics_t gfx;
     p8_gfx_init(&gfx);
@@ -269,6 +315,8 @@ static void test_random_boxes_draw_as_the_software_does(void) {
 }
 
 int main(void) {
+    test_points_are_placed_one_by_one_as_the_software_shows_them_at_every_edge();
+    test_a_slipway_bundle_is_sent_segment_by_segment_as_the_software_shows_it_at_every_edge();
     test_a_pset_is_one_pixel_after_the_camera();
     test_a_rect_on_screen_is_its_four_edges();
     test_a_rect_with_no_inside_is_one_tile();

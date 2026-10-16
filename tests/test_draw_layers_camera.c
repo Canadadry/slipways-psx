@@ -154,6 +154,7 @@ static void test_draw_layers_passes_the_zero_vector_to_an_entity_without_a_posit
 
     g_spied_planet = *planet_class();
     g_spied_planet.draw = spy_draw;
+    g_spied_planet.skip_draw_off_screen = 0;
     planet->header.class = &g_spied_planet;
     g_pos_at_draw = vec_make(p8_fixed_from_int(1), p8_fixed_from_int(1));
 

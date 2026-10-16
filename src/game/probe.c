@@ -293,23 +293,21 @@ static void probe_host_raise_is_dead(entity_t *self) {
     self->is_dead = 1;
 }
 
-int targeting_confirm(entity_t *self) {
+static const targeting_t *targeting_charge(entity_t *self) {
     const targeting_t *targeting;
     int has_target;
-    economy_t *fm;
     int spend_ok = 0;
 
     if (self == NULL) {
-        return 0;
+        return NULL;
     }
     targeting = targeting_of(self);
     assert(targeting != NULL && "targeting_confirm: a class that carries no targeting is no receiver -- stop");
 
     has_target = targeting_target(targeting) != NULL;
 
-    fm = main_economy_typed();
     if (!has_target) {
-        spend_ok = economy_spend(fm, targeting->has_cost ? targeting->cost : p8_fixed_from_int(0));
+        spend_ok = economy_spend(main_economy_typed(), targeting->has_cost ? targeting->cost : p8_fixed_from_int(0));
     }
 
     assert((!has_target || !spend_ok) && "targeting_confirm: economy_spend must stay short-circuited when a target is set");
@@ -318,14 +316,29 @@ int targeting_confirm(entity_t *self) {
         state_t confirmed = targeting->archetype->confirmed_state;
 
         entity_set_state(self, confirmed != ENTITY_STATE_NONE ? confirmed : ENTITY_STATE_NORMAL);
-
-        economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
-
-        return 1;
+        return targeting;
     }
 
     probe_host_raise_is_dead(self);
-    return 0;
+    return NULL;
+}
+
+int targeting_confirm(entity_t *self) {
+    const targeting_t *targeting = targeting_charge(self);
+
+    if (targeting == NULL) {
+        return 0;
+    }
+    if (targeting->archetype->clock_skips_recompute) {
+        economy_tick_clock(main_economy_typed(), targeting->archetype->clock_ticks);
+    } else {
+        economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
+    }
+    return 1;
+}
+
+int targeting_confirm_without_clock(entity_t *self) {
+    return targeting_charge(self) != NULL;
 }
 
 void targeting_confirm_method(entity_t *self, entity_t *dropped) {
@@ -399,8 +412,7 @@ static const entity_class_t probe_class_def = {
 void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype) {
     entity_init_instance(&self->header, cls, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
     self->header.fold_anchor = self->archetype->fold_anchor;
     self->header.has |= ENTITY_HAS_IS_DEAD;

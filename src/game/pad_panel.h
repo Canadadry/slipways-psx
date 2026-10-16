@@ -10,6 +10,11 @@ int pad_panel_box_open(void);
 
 int pad_panel_open(void);
 
+/* Inside the pair, pad_panel_open reuses its answer while the ui, the economy, the box's ephemerals count and
+ * the registered set are unchanged; a backdrop's is_dead is not watched, nothing writes it inside a pad step. */
+void pad_panel_step_begin(void);
+void pad_panel_step_end(void);
+
 int pad_panel_is_candidate(const entity_t *e);
 
 entity_t *pad_panel_entity_under(int x, int y, int above, int (*accept)(const entity_t *e));

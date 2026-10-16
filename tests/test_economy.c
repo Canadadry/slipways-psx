@@ -34,6 +34,7 @@
 #include "game/planet_family.h"
 #include "game/probe.h"
 #include "game/research.h"
+#include "game/score_panel.h"
 #include "game/slipway.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
@@ -664,6 +665,102 @@ static void test_save_pending(void) {
     assert(!self->save_pending);
 }
 
+/* The game before a paid launch: figures current, then one of the four
+ * cases a launch reaches, then the 3 credits the wormhole costs. */
+enum { LAUNCH_MID_YEAR, LAUNCH_NEW_YEAR, LAUNCH_FINAL_YEAR, LAUNCH_BANKRUPT };
+
+static void before_launch(int launch_case) {
+    economy_t *self;
+
+    if (launch_case == LAUNCH_BANKRUPT) {
+        start_game();
+    } else {
+        built_world();
+    }
+    self = main_economy_self();
+    if (launch_case == LAUNCH_NEW_YEAR || launch_case == LAUNCH_FINAL_YEAR) {
+        self->year_ticks = p8_fixed_from_int(15);
+    }
+    if (launch_case == LAUNCH_FINAL_YEAR) {
+        self->year = p8_fixed_from_int(3425);
+    }
+    if (launch_case == LAUNCH_BANKRUPT) {
+        self->credits = p8_fixed_from_int(5);
+    }
+    economy_recompute(self);
+    self->save_pending = 0;
+    assert(economy_spend(self, p8_fixed_from_int(3)));
+}
+
+/* What the score panel shows: each readout's text or number. */
+static uint32_t fold_score_panel_readouts(uint32_t h) {
+    const score_panel_readouts_t *readouts = score_panel_readouts();
+    int i;
+
+    assert(readouts != NULL);
+    for (i = 0; i < 7; i++) {
+        const data_item_t *item = &readouts->sub_items[i][0];
+        h = fnv(fnv(h, (uint32_t)item->is_nil), (uint32_t)item->is_fixed);
+        h = fnv(h, (uint32_t)item->fixed);
+        h = item->text != NULL ? fold_string(h, item->text) : fnv(h, 0u);
+    }
+    return h;
+}
+
+/* One tick by economy_tick_clock, or by economy_advance_clock; run in its
+ * own child, which sends back the economy, save_pending included, and what
+ * the score panel shows. */
+static uint32_t tick_in_child(int launch_case, int full_recompute) {
+    int fds[2];
+    pid_t child;
+    int status;
+    uint32_t got = 0;
+
+    assert(pipe(fds) == 0);
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        uint32_t h;
+
+        close(fds[0]);
+        before_launch(launch_case);
+        if (full_recompute) {
+            economy_advance_clock(main_economy_self(), p8_fixed_from_int(1));
+        } else {
+            economy_tick_clock(main_economy_self(), p8_fixed_from_int(1));
+        }
+        assert(launch_case != LAUNCH_BANKRUPT || strcmp(end_status_string(), "bankrupt") == 0);
+        assert(launch_case != LAUNCH_FINAL_YEAR || strcmp(end_status_string(), "final score") == 0);
+        assert(launch_case == LAUNCH_BANKRUPT || launch_case == LAUNCH_FINAL_YEAR || end_status_string() == NULL);
+        h = fnv(fold_main_economy(2166136261u), (uint32_t)checked_main_economy()->save_pending);
+        h = fold_score_panel_readouts(fold_planets_net_income(h));
+        assert(write(fds[1], &h, sizeof h) == (ssize_t)sizeof h);
+        _exit(0);
+    }
+    close(fds[1]);
+    assert(read(fds[0], &got, sizeof got) == (ssize_t)sizeof got);
+    close(fds[0]);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    return got;
+}
+
+/* After a spend, a tick without the recompute ends where the full advance
+ * ends: mid-year, on the tick that starts a new year, on the one that
+ * reaches the final score, and on a spend that leaves the player bankrupt. */
+static void test_tick_clock(void) {
+    int launch_case;
+
+    for (launch_case = LAUNCH_MID_YEAR; launch_case <= LAUNCH_BANKRUPT; launch_case++) {
+        uint32_t tick = tick_in_child(launch_case, 0);
+        uint32_t full = tick_in_child(launch_case, 1);
+        printf("[tick_clock] case %d: 0x%08X 0x%08X\n", launch_case, (unsigned)tick, (unsigned)full);
+        assert(tick == full);
+    }
+    economy_tick_clock(NULL, p8_fixed_from_int(1));
+}
+
 static void must_abort(void (*write)(void *), void *e) {
     pid_t child;
     int status;
@@ -752,6 +849,7 @@ int main(void) {
     in_fresh_child(test_recompute);
     in_fresh_child(test_invent);
     in_fresh_child(test_save_pending);
+    in_fresh_child(test_tick_clock);
     in_fresh_child(test_cheat_on_provisional);
     in_fresh_child(test_economy_is_a_struct);
 

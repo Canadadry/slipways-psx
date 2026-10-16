@@ -20,14 +20,20 @@ void psx_gpu_textures_clut(const unsigned char draw_palette[PSX_GPU_TEXTURES_CLU
                            uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]);
 
 /* The font texture, PSX_GPU_TEXTURES_FONT_SIZE texels square, 4 bits a texel, the leftmost of a
- * unit's four in its low nibble: each of the 256 character codes' glyph in its own cell, texel 1
- * lit, every other texel 0. */
+ * unit's four in its low nibble. Two fonts, each of the 256 character codes in its own cell of
+ * each: the plain glyph (texel 1 lit), and the outlined glyph one texel wider on every side
+ * (texel 1 lit, 2 an unlit texel with a lit 8-neighbour). Every other texel 0. */
 void psx_gpu_textures_font(uint16_t texture[PSX_GPU_TEXTURES_FONT_UNITS]);
 
-/* The top-left texel of character's glyph in the font texture. */
+/* The top-left texel of character's plain glyph in the font texture. */
 psx_gpu_textures_texel_t psx_gpu_textures_font_cell(char character);
 
-/* print's CLUT for colour (0..15): entry 1 is psx_colour_rgb555(colour), every other entry 0x0000. */
+/* The top-left texel of character's outlined cell, (P8_FONT_GLYPH_WIDTH + 2) by
+ * (P8_FONT_GLYPH_HEIGHT + 2), whose glyph starts one texel right of and below it. */
+psx_gpu_textures_texel_t psx_gpu_textures_outlined_font_cell(char character);
+
+/* print's CLUT for colour (0..15): entry 1 is psx_colour_rgb555(colour), entry 2 (the outline)
+ * psx_colour_rgb555(0), every other entry 0x0000. */
 void psx_gpu_textures_font_clut(int colour, uint16_t clut[PSX_GPU_TEXTURES_CLUT_ENTRIES]);
 
 /* A fillp pattern's tile, PSX_GPU_TEXTURES_PATTERN_SIZE texels square, laid out as the font: texel

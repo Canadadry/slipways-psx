@@ -280,6 +280,8 @@ static void write_zones(const state_sink_t *sink) {
     line_add(&line, "budget zones %lu %lu", (unsigned long)ZONE_BUDGET_USED_BYTES, (unsigned long)ZONE_BUDGET_BYTES);
     line_end(&line);
     write_zone(sink, "gpu_frame", p8_draw_meter_last_frame().bytes, p8_draw_meter_peak().bytes, GPU_FRAME_BUFFER_BYTES);
+    write_zone(sink, "gpu_build", p8_draw_meter_last_frame().build_bytes, p8_draw_meter_peak().build_bytes,
+               GPU_BUILD_BUFFER_BYTES);
 }
 
 static void write_cap(const state_sink_t *sink, const char *name, int live, int peak, int limit) {

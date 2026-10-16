@@ -1,14 +1,19 @@
 #include "p8/draw_backend.h"
+#include "p8/draw_cost.h"
 #include "p8/gfx.h"
+#include "p8/image.h"
 #include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
-enum call_kind { CALL_CLS, CALL_PSET, CALL_LINE, CALL_RECT, CALL_RECTFILL, CALL_CIRC, CALL_CIRCFILL, CALL_SPR, CALL_PRINT };
+enum call_kind {
+    CALL_CLS, CALL_PSET, CALL_LINE, CALL_RECT, CALL_RECTFILL, CALL_CIRC, CALL_CIRCFILL, CALL_SPR, CALL_PRINT, CALL_PRINT_OUTLINED,
+    CALL_IMAGE_BEGIN, CALL_IMAGE_WINDOW, CALL_IMAGE_END, CALL_IMAGE_DRAW, CALL_LINES, CALL_PSETS
+};
 
-#define MAX_CALLS 64
+#define MAX_CALLS 1024
 
 typedef struct {
     enum call_kind kind;
@@ -16,6 +21,8 @@ typedef struct {
     p8_vram_t *mem;
     int args[6];
     const char *str;
+    const p8_segment_t *segments;
+    const p8_point_t *points;
     unsigned char draw_palette[16];
 } recorded_call_t;
 
@@ -98,9 +105,61 @@ static void record_print(const p8_graphics_t *gfx, p8_vram_t *mem, const char *s
     call->args[2] = col;
 }
 
+static void record_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col) {
+    recorded_call_t *call = record(CALL_PRINT_OUTLINED, gfx, mem);
+    call->str = str;
+    call->args[0] = x;
+    call->args[1] = y;
+    call->args[2] = col;
+}
+
+static recorded_call_t *record_image(enum call_kind kind, int slot, int a, int b) {
+    assert(call_count < MAX_CALLS && "recording backend: raise MAX_CALLS");
+    recorded_call_t *call = &calls[call_count++];
+    memset(call, 0, sizeof(*call));
+    call->kind = kind;
+    call->args[0] = slot;
+    call->args[1] = a;
+    call->args[2] = b;
+    return call;
+}
+
+static void record_image_begin(int slot, int w, int h) {
+    record_image(CALL_IMAGE_BEGIN, slot, w, h);
+}
+
+static void record_image_window(int slot, int x, int y) {
+    record_image(CALL_IMAGE_WINDOW, slot, x, y);
+}
+
+static void record_image_end(int slot) {
+    record_image(CALL_IMAGE_END, slot, 0, 0);
+}
+
+static void record_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    recorded_call_t *call = record_image(CALL_IMAGE_DRAW, slot, x, y);
+    call->gfx = gfx;
+    call->mem = mem;
+}
+
+static void record_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    recorded_call_t *call = record(CALL_LINES, gfx, mem);
+    call->segments = segments;
+    call->args[0] = count;
+    call->args[1] = col;
+}
+
+static void record_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    recorded_call_t *call = record(CALL_PSETS, gfx, mem);
+    call->points = points;
+    call->args[0] = count;
+}
+
 static const p8_draw_backend_t RECORDING_BACKEND = {
     record_cls, record_pset, record_line, record_rect, record_rectfill,
-    record_circ, record_circfill, record_spr, record_print,
+    record_circ, record_circfill, record_spr, record_print, record_print_outlined,
+    record_image_begin, record_image_window, record_image_end, record_image_draw,
+    record_lines, record_psets,
 };
 
 static p8_vram_t mem;
@@ -165,6 +224,47 @@ static void test_each_draw_call_reaches_its_own_entry_once(void) {
     stop_recording(previous);
 }
 
+static void test_print_outlined_reaches_its_own_entry_once(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    static const char text[] = "A B";
+    p8_camera(&gfx, 5, -6);
+
+    p8_print_outlined(&gfx, &mem, text, -2, 117, 0x1b);
+
+    assert(call_count == 1);
+    assert_call(0, CALL_PRINT_OUTLINED, -2, 117, 0x1b, 0, 0);
+    assert(calls[0].str == text);
+    stop_recording(previous);
+}
+
+static void test_lines_reaches_its_own_entry_once_with_its_list(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    static const p8_segment_t segments[] = { { 1, 2, 3, 4 }, { -5, 6, 7, 200 }, { 8, 9, 8, 9 } };
+    p8_camera(&gfx, 7, -3);
+
+    p8_lines(&gfx, &mem, segments, 3, 0x2b);
+
+    assert(call_count == 1);
+    assert_call(0, CALL_LINES, 3, 0x2b, 0, 0, 0);
+    assert(calls[0].segments == segments);
+    assert(calls[0].gfx->camera_x == 7);
+    stop_recording(previous);
+}
+
+static void test_psets_reaches_its_own_entry_once_with_its_list(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    static const p8_point_t points[] = { { 1, 2, 3 }, { -5, 200, 0x1c } };
+    p8_camera(&gfx, -4, 9);
+
+    p8_psets(&gfx, &mem, points, 2);
+
+    assert(call_count == 1);
+    assert_call(0, CALL_PSETS, 2, 0, 0, 0, 0);
+    assert(calls[0].points == points);
+    assert(calls[0].gfx->camera_y == 9);
+    stop_recording(previous);
+}
+
 static void test_calls_reach_the_backend_in_world_coordinates(void) {
     const p8_draw_backend_t *previous = start_recording();
     p8_camera(&gfx, 40, -8);
@@ -189,6 +289,117 @@ static void test_map_gives_one_spr_per_non_empty_cell(void) {
     assert_call(0, CALL_SPR, 17, 100, 50, 1, 1);
     assert_call(1, CALL_SPR, 18, 100 + 2 * P8_SPRITE_SIZE, 50, 1, 1);
     assert_call(2, CALL_SPR, 19, 100 + P8_SPRITE_SIZE, 50 + P8_SPRITE_SIZE, 1, 1);
+    stop_recording(previous);
+}
+
+static void fill_map(void) {
+    for (int r = 0; r < 32; r++) {
+        for (int c = 0; c < 32; c++) {
+            p8_mset(&mem, c, r, 1 + (r * 32 + c) % 255);
+        }
+    }
+}
+
+static void test_map_skips_cells_off_screen_after_the_camera(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    fill_map();
+    p8_camera(&gfx, -(P8_SCREEN_WIDTH - 2 * P8_SPRITE_SIZE), -(P8_SCREEN_HEIGHT - 2 * P8_SPRITE_SIZE));
+
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 32, 32);
+
+    assert(call_count == 4);
+    assert_call(0, CALL_SPR, 1, 0, 0, 1, 1);
+    assert_call(1, CALL_SPR, 2, P8_SPRITE_SIZE, 0, 1, 1);
+    assert_call(2, CALL_SPR, 33, 0, P8_SPRITE_SIZE, 1, 1);
+    assert_call(3, CALL_SPR, 34, P8_SPRITE_SIZE, P8_SPRITE_SIZE, 1, 1);
+    stop_recording(previous);
+}
+
+static unsigned char map_cell_or_zero(int x, int y) {
+    if (x < 0 || x >= 32 || y < 0 || y >= 32) {
+        return 0;
+    }
+    return mem.map_cells[y][x];
+}
+
+/* The pre-culling loop, filtered by the cost model: the calls p8_map must give, in order. */
+static void assert_map_matches_the_old_loop_filtered_by_cost(int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h) {
+    call_count = 0;
+    p8_map(&gfx, &mem, cel_x, cel_y, sx, sy, cel_w, cel_h);
+    int expected = 0;
+    for (int r = 0; r < cel_h; r++) {
+        for (int c = 0; c < cel_w; c++) {
+            int n = map_cell_or_zero(cel_x + c, cel_y + r);
+            if (n == 0) {
+                continue;
+            }
+            int x = sx + c * P8_SPRITE_SIZE;
+            int y = sy + r * P8_SPRITE_SIZE;
+            p8_draw_cost_window_t window = {0, 0};
+            if (p8_draw_cost_spr(&window, &gfx, n, x, y, 1, 1).bytes == 0) {
+                continue;
+            }
+            assert(expected < call_count);
+            assert_call(expected, CALL_SPR, n, x, y, 1, 1);
+            expected++;
+        }
+    }
+    assert(call_count == expected);
+}
+
+static void assert_map_matches_at_cameras(const int *xs, int x_count, const int *ys, int y_count) {
+    static const int origins[][4] = {{0, 0, 0, 0}, {0, 0, -13, 21}, {20, 25, 5, -3}};
+    for (int o = 0; o < 3; o++) {
+        for (int i = 0; i < x_count; i++) {
+            for (int j = 0; j < y_count; j++) {
+                p8_camera(&gfx, xs[i], ys[j]);
+                assert_map_matches_the_old_loop_filtered_by_cost(origins[o][0], origins[o][1], origins[o][2], origins[o][3], 32, 32);
+            }
+        }
+    }
+}
+
+static int camera_sweep(int *out, int extent) {
+    const int map_end = 32 * P8_SPRITE_SIZE;
+    const int centres[] = {-extent - P8_SPRITE_SIZE, -P8_SPRITE_SIZE, map_end - extent, map_end};
+    int count = 0;
+    for (int k = 0; k < 4; k++) {
+        for (int d = -10; d <= 10; d++) {
+            out[count++] = centres[k] + d;
+        }
+    }
+    out[count++] = -5000;
+    out[count++] = 5000;
+    return count;
+}
+
+static void test_map_gives_the_old_loops_on_screen_calls_at_every_edge(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    fill_map();
+    p8_mset(&mem, 4, 3, 0);
+    int xs[90];
+    int ys[90];
+    int x_count = camera_sweep(xs, P8_SCREEN_WIDTH);
+    int y_count = camera_sweep(ys, P8_SCREEN_HEIGHT);
+    const int fixed[] = {0, -5, 60};
+
+    assert_map_matches_at_cameras(xs, x_count, fixed, 3);
+    assert_map_matches_at_cameras(fixed, 3, ys, y_count);
+    stop_recording(previous);
+}
+
+static void test_map_with_no_cell_on_screen_gives_no_call(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    fill_map();
+
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 0, 32);
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 32, -1);
+    p8_map(&gfx, &mem, 0, 0, P8_SCREEN_WIDTH, 0, 32, 32);
+    p8_map(&gfx, &mem, 0, 0, 0, -32 * P8_SPRITE_SIZE, 32, 32);
+    p8_camera(&gfx, 0, 32 * P8_SPRITE_SIZE);
+    p8_map(&gfx, &mem, 0, 0, 0, 0, 32, 32);
+
+    assert(call_count == 0);
     stop_recording(previous);
 }
 
@@ -251,15 +462,93 @@ static void test_set_returns_the_previous_backend_and_null_restores_software(voi
     assert(mem.screen[20][10] == 7);
 }
 
+static void spr_at_origin(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_spr(build_gfx, build_mem, 9, 0, 0, 1, 1);
+}
+
+static void assert_image_call(int index, enum call_kind kind, int slot, int a, int b) {
+    const recorded_call_t *call = &calls[index];
+    assert(call->kind == kind && call->args[0] == slot && call->args[1] == a && call->args[2] == b);
+}
+
+static void test_a_build_frames_its_windowed_calls_and_a_copy_reaches_its_entry(void) {
+    const p8_draw_backend_t *previous = start_recording();
+    p8_camera(&gfx, 7, 9);
+
+    p8_image_build(&gfx, &mem, 0, 200, 100, spr_at_origin, NULL);
+    p8_image_draw(&gfx, &mem, 0, -3, 4);
+
+    assert(call_count == 7);
+    assert_image_call(0, CALL_IMAGE_BEGIN, 0, 200, 100);
+    assert_image_call(1, CALL_IMAGE_WINDOW, 0, 0, 0);
+    assert_call(2, CALL_SPR, 9, 0, 0, 1, 1);
+    assert_image_call(3, CALL_IMAGE_WINDOW, 0, 160, 0);
+    assert_call(4, CALL_SPR, 9, 0, 0, 1, 1);
+    assert_image_call(5, CALL_IMAGE_END, 0, 0, 0);
+    assert_image_call(6, CALL_IMAGE_DRAW, 0, -3, 4);
+    assert(calls[6].gfx == &gfx && calls[6].mem == &mem && gfx.camera_x == 7 && gfx.camera_y == 9);
+    assert(p8_draw_backend_get() == &RECORDING_BACKEND && "the build gave the backend back");
+    stop_recording(previous);
+}
+
+static const p8_segment_t BUILD_SEGMENTS[] = { { 0, 0, 3, 0 }, { 0, 1, 0, 5 } };
+
+static void lines_at_origin(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_lines(build_gfx, build_mem, BUILD_SEGMENTS, 2, 6);
+}
+
+static const p8_point_t BUILD_POINTS[] = { { 0, 0, 7 }, { 3, 4, 8 } };
+
+static void points_at_origin(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
+    (void)context;
+    p8_psets(build_gfx, build_mem, BUILD_POINTS, 2);
+}
+
+static void test_psets_in_a_build_reach_their_entry_through_the_guard(void) {
+    const p8_draw_backend_t *previous = start_recording();
+
+    p8_image_build(&gfx, &mem, 0, 100, 100, points_at_origin, NULL);
+
+    assert(call_count == 4);
+    assert(calls[2].kind == CALL_PSETS && calls[2].points == BUILD_POINTS && calls[2].args[0] == 2);
+    assert_image_call(3, CALL_IMAGE_END, 0, 0, 0);
+    stop_recording(previous);
+}
+
+static void test_lines_in_a_build_reach_their_entry_through_the_guard(void) {
+    const p8_draw_backend_t *previous = start_recording();
+
+    p8_image_build(&gfx, &mem, 0, 100, 100, lines_at_origin, NULL);
+
+    assert(call_count == 4);
+    assert_image_call(0, CALL_IMAGE_BEGIN, 0, 100, 100);
+    assert_image_call(1, CALL_IMAGE_WINDOW, 0, 0, 0);
+    assert(calls[2].kind == CALL_LINES && calls[2].segments == BUILD_SEGMENTS);
+    assert(calls[2].args[0] == 2 && calls[2].args[1] == 6);
+    assert_image_call(3, CALL_IMAGE_END, 0, 0, 0);
+    stop_recording(previous);
+}
+
 int main(void) {
     test_pset_reaches_its_entry_once_with_its_arguments();
     test_each_draw_call_reaches_its_own_entry_once();
+    test_print_outlined_reaches_its_own_entry_once();
+    test_lines_reaches_its_own_entry_once_with_its_list();
+    test_psets_reaches_its_own_entry_once_with_its_list();
     test_calls_reach_the_backend_in_world_coordinates();
     test_map_gives_one_spr_per_non_empty_cell();
+    test_map_skips_cells_off_screen_after_the_camera();
+    test_map_gives_the_old_loops_on_screen_calls_at_every_edge();
+    test_map_with_no_cell_on_screen_gives_no_call();
     test_spr_default_gives_a_one_by_one_spr();
     test_state_calls_reach_no_entry();
     test_spr_sees_a_draw_palette_copied_with_memcpy();
     test_set_returns_the_previous_backend_and_null_restores_software();
+    test_a_build_frames_its_windowed_calls_and_a_copy_reaches_its_entry();
+    test_lines_in_a_build_reach_their_entry_through_the_guard();
+    test_psets_in_a_build_reach_their_entry_through_the_guard();
     printf("test_draw_backend: ok\n");
     return 0;
 }

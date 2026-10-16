@@ -313,21 +313,38 @@
 #                       unless PSN00BSDK_SKIP_APT is set; exits 0 at once on a
 #                       complete install, fails on a non-empty directory
 #                       without its stamp, outside the suite
-# make psx-build [EVENTS=<events>] -> builds, in tmp/psx/build, the game's
+# make psx-build [EVENTS=<events>] [PSX_BUILD_DRAW_FILTER=ON|OFF]
+#                [PSX_BUILD_DRAW_METER=ON|OFF]
+#                [PSX_BUILD_GAME_ASSERTS=ON|OFF] [PSX_BUILD_OPT=O2|O3|Os]
+#                    -> builds,
+#                       in tmp/psx/build, the game's
 #                       PS-EXEs replaying that recording (default
 #                       tests/e2e/pad_slipway.json, embedded through
 #                       tmp/embed_replay), psx-replay drawing in RAM,
 #                       psx-gpu-replay through the GPU backend and
 #                       psx-gpu-replay-breakdown (the same, timing each
-#                       backend call per draw family), the pad
-#                       probe, psx-game (the game read from the pad),
+#                       backend call per draw family), both with the draw
+#                       filter (PSX_GPU_REPLAY_DRAW_FILTER) unless
+#                       PSX_BUILD_DRAW_FILTER=OFF and with the draw meter
+#                       (PSX_GPU_REPLAY_DRAW_METER) unless
+#                       PSX_BUILD_DRAW_METER=OFF, the pad
+#                       probe, psx-game (the game read from the pad, no draw
+#                       meter, built without asserts unless
+#                       PSX_BUILD_GAME_ASSERTS=ON),
 #                       psx-largest-slots (the largest-case scenarios of
 #                       src/devtools/largest_slots.c on MIPS), and the
 #                       game's CD image (PSX_GAME_BIN, PSX_GAME_CUE:
 #                       slipways.bin/.cue from psx/iso.xml and
 #                       psx/system.cnf, booting SLIPWAYS.EXE, a copy of
 #                       psx-game.exe), against
-#                       PSN00BSDK_DIR, then prints their ELF sizes and the
+#                       PSN00BSDK_DIR, psx-game and both GPU replays at
+#                       PSX_BUILD_OPT (default O3, refused unless O2, O3 or
+#                       Os), the other targets at the SDK's O2; then reads
+#                       those three levels with tools/psx_opt_level.sh,
+#                       prints "psx-build: opt psx-game <l> psx-gpu-replay
+#                       <l> psx-gpu-replay-breakdown <l>" and fails naming
+#                       a target whose level is not PSX_BUILD_OPT, then
+#                       prints their ELF sizes and the
 #                       image paths; never boots them; fails naming a missing
 #                       image file, or pointing at
 #                       psn00bsdk-toolchain-setup when the SDK is missing,
@@ -359,19 +376,25 @@
 #                       game_events.json by tmp/psx_pad_log), game-pad-states,
 #                       game-state-game-lines (that recording replayed by
 #                       tmp/replay with STATE=), game-title-left (difficulty
-#                       PSX_GAME_DIFFICULTY, default reasonable); outputs in
+#                       PSX_GAME_DIFFICULTY, default reasonable), game-asserts
+#                       (the TTY's asserts mode is PSX_BUILD_GAME_ASSERTS's,
+#                       off by default), game-gpu-cost (the TTY's gpu-peak
+#                       bytes, CLUTs, patterns and build bytes within the PC replay's
+#                       metered peaks); outputs in
 #                       tmp/psx/game, ~10 s; never runs a setup, outside the
 #                       suite
 # make psx-game-cd-check -> runs psx-game-cd, boots PSX_GAME_CUE until it
 #                       exits with PSX_GAME_SCRIPT as psx-game-check does
 #                       (ceiling PSX_GAME_CD_CEILING vsyncs, timeout
-#                       PSX_GAME_CD_TIMEOUT s), then the five game-*
+#                       PSX_GAME_CD_TIMEOUT s), then the seven game-*
 #                       conditions of tools/psx_game_check.sh and the cue and
 #                       cd-exe conditions of tools/psx_cd_check.sh (SLIPWAYS.EXE
 #                       extracted by PSX_DUMPSXISO equals psx-game.exe); outputs
 #                       in tmp/psx/game-cd, never runs a setup, outside the
 #                       suite
-# make psx-check     -> the PSX check: runs psx-build, writes the PC state
+# make psx-check     -> the PSX check: runs psx-build (draw filter on, for the
+#                       masked captures, and draw meter on, for gpu-cost),
+#                       writes the PC state
 #                       and VRAM digests of PSX_EVENTS in one tmp/replay run
 #                       (STATE=, DIGEST=, and CAPTURE_LIST=psx/gpu_captures.txt
 #                       for the PC frames, family call counts and capture
@@ -382,7 +405,7 @@
 #                       (as psx-game-cd-check does) and psx-largest-slots
 #                       (ceiling PSX_LARGEST_SLOTS_CEILING vsyncs, timeout
 #                       PSX_LARGEST_SLOTS_TIMEOUT s) until they exit, six
-#                       boots, then prints one line per condition, thirty-one
+#                       boots, then prints one line per condition
 #                       (magic, asserts-on, format against
 #                       tmp/format_self_test, replay-done, state-game-lines, sprite-sheet, screen, map,
 #                       gpu-replay-done, gpu-state-game-lines, gpu-cost: its
@@ -393,10 +416,10 @@
 #                       psx/gpu_capture_ceilings.txt and
 #                       psx/gpu_capture_references.txt,
 #                       no-json through PSX_NM on both replay ELFs and the game
-#                       ELF, pad-script, the five game-* conditions of
-#                       tools/psx_game_check.sh on the CD boot, game-gpu-cost:
-#                       the CD game's meter lines equal those of the PC replay
-#                       of its pad log, game-cue and game-cd-exe of
+#                       ELF, pad-script, the seven game-* conditions of
+#                       tools/psx_game_check.sh on the CD boot (game-gpu-cost:
+#                       the CD game's gpu-peak figures within the PC replay's
+#                       metered peaks for its pad log), game-cue and game-cd-exe of
 #                       tools/psx_cd_check.sh, game-ram-room: ram-room on
 #                       the game ELF, largest-slots: psx-largest-slots exits
 #                       with 0, asserts on, and each of its bytes_button and
@@ -419,9 +442,9 @@
 #                       that label's captures from the last psx-check run into
 #                       psx/gpu_capture_ceilings.txt, other labels untouched;
 #                       refused unless every other condition passed
-# make psx-gpu-capture-accept LABEL=<label> -> the human's one command to
-#                       accept a reviewed label, never run by an agent or a
-#                       skill: after a green psx-check, writes the sha256 of
+# make psx-gpu-capture-accept LABEL=<label> -> accepts a label, run by an
+#                       agent only when all its captures differ 0 from the PC,
+#                       otherwise by the human: after a green psx-check, writes the sha256 of
 #                       that label's captures (every frame of a label such as
 #                       all or pattern) into psx/gpu_capture_references.txt,
 #                       other labels untouched
@@ -430,9 +453,11 @@
 #                       other conditions (outputs in tmp/psx/gpu-capture,
 #                       ~20 s); outside the suite
 # make psx-full-game-check [PSX_FULL_GAME_ASSERTS=on|off]
-#                    -> refuses any PSX_FULL_GAME_ASSERTS but on (default) or
-#                       off; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
+#                    -> refuses any PSX_FULL_GAME_ASSERTS but off (default) or
+#                       on; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
 #                       (worst-case/full_game.json) in tmp/psx/full-game/build,
+#                       the GPU replays always without the draw filter and
+#                       the draw meter and always at O3 (PSX_BUILD_OPT=O3),
 #                       off building the measured GPU replays without asserts
 #                       while the CPU-path replay keeps them,
 #                       writes its PC state and digest, boots the replay
@@ -440,16 +465,21 @@
 #                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
 #                       empty capture script (PSX_FULL_GAME_GPU_CEILING,
 #                       PSX_FULL_GAME_GPU_TIMEOUT) until they exit, then checks
-#                       twelve conditions (replay-done, state-game-lines,
+#                       its conditions (replay-done, state-game-lines,
 #                       sprite-sheet, screen, map, gpu-replay-done,
-#                       gpu-state-game-lines, then on the GPU boot's
-#                       psx-frame: lines and MIPS state through
+#                       gpu-state-game-lines, gpu-draw-filter and
+#                       gpu-draw-meter: the GPU boot printed draw-filter off
+#                       and draw-meter off, then on the GPU boot's
+#                       psx-frame: lines and MIPS state, its gpu_* lines
+#                       taken from the PC state, through
 #                       tools/psx_frame_budget.sh: timer, frame-budget: no
 #                       frame above PSX_FRAME_BUDGET_HBLANKS, zone-sizes,
 #                       cap-sizes, then gpu-ram-room: ram-room on the GPU ELF)
 #                       through tools/psx_full_game_check.sh, printing every
 #                       frame line and the frame summary; measurements.txt
-#                       gains the summary behind "gpu frame " (outputs in
+#                       gains the PC's gpu_* lines and the GPU replay's
+#                       gpu-peak line behind "gpu ", the summary behind
+#                       "gpu frame " (outputs in
 #                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
 #                       outside the suite
 # make psx-short-runs-cut [PSX_SHORT_RUNS=<names>] -> cuts each run of
@@ -470,15 +500,16 @@
 #                       file, ~25 s; never boots, outside the suite
 # make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]
 #                       [PSX_SHORT_RUN_OPT=O2|O3|Os]
-#                    -> refuses any PSX_SHORT_RUN_ASSERTS but on (default) or
-#                       off and any PSX_SHORT_RUN_OPT but O2 (default, the
-#                       SDK's level), O3 or Os, runs psx-short-runs-cut, then
+#                    -> refuses any PSX_SHORT_RUN_ASSERTS but off (default) or
+#                       on and any PSX_SHORT_RUN_OPT but O3 (default), O2
+#                       (the SDK's level) or Os, runs psx-short-runs-cut, then
 #                       per run builds psx-gpu-replay and
 #                       psx-gpu-replay-breakdown with its run.json embedded
-#                       in tmp/psx/short-runs/<name>/build (off: without
+#                       in tmp/psx/short-runs/<name>/build, both without the
+#                       draw filter and the draw meter (off: without
 #                       asserts, unused-* warnings not errors; O3/Os: at that
-#                       level, warnings not errors; every other target keeps
-#                       asserts and O2), fails the run unless
+#                       level; every other target keeps asserts and O2),
+#                       fails the run unless
 #                       tools/psx_opt_level.sh reads PSX_SHORT_RUN_OPT as the
 #                       last -O of both targets' flags, prints "opt <level>"
 #                       and both ELFs' text/data/bss, boots the plain one
@@ -499,14 +530,19 @@
 #                       outside the suite and psx-check
 # make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
 #                       then per run builds the probe build (psx-gpu-replay
-#                       with -DPSX_PROBE=ON, asserts off) of unpatched HEAD
+#                       with -DPSX_PROBE=ON, asserts off, O3, no draw filter,
+#                       no draw meter) of
+#                       unpatched HEAD
 #                       from a temporary git worktree, boots it once with an
 #                       empty capture script (ceiling PSX_PROBE_CEILING
-#                       vsyncs, timeout PSX_PROBE_TIMEOUT s), checks it with
+#                       vsyncs, timeout PSX_PROBE_TIMEOUT s) unless
+#                       tools/psx_opt_level.sh reads another level than O3
+#                       (invalid "opt <level>, not O3"), checks it with
 #                       tools/psx_probe.sh against itself and, when valid,
 #                       stamps tmp/psx/probe/baseline/<name>/fingerprint.txt
-#                       with the tree ids of src/ and psx/ and the blob id of
-#                       PSX_FULL_GAME_EVENTS; fails if a run is invalid;
+#                       with the tree ids of src/ and psx/, the blob id of
+#                       PSX_FULL_GAME_EVENTS and "opt O3"; fails if a run is
+#                       invalid;
 #                       removes the worktree on every exit, outside the suite
 # make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
 #                    -> the same pipeline on HEAD with the patch git apply'd
@@ -517,8 +553,9 @@
 #                       draw, update, submit and total deltas, game-state
 #                       same or differs, delay / calls when the patch used
 #                       platform/psx_probe.h; a run is invalid when the patch
-#                       does not apply, the build fails, its baseline is
-#                       missing or stale, or tools/psx_probe.sh says so; fails
+#                       does not apply, the build fails or is not at O3, its
+#                       baseline is missing or stale, or tools/psx_probe.sh
+#                       says so; fails
 #                       after every run if one is invalid, outside the suite
 #                       and psx-check
 # make frame-profile [EVENTS=<events>] [REFERENCE=<end-state>] -> builds
@@ -597,8 +634,8 @@
 #                    -> profiles full_game.json k times (default 4) with
 #                       cart_update60 as the update root into
 #                       tmp/frame-profile/spikes/cart_update60/<k>/, then
-#                       tools/frame_profile_check.sh spikes on the judge table
-#                       psx/perf/full-run-frames.txt: every frame
+#                       tools/frame_profile_check.sh spikes on the latest
+#                       judge table psx/perf/full-run-frames.txt: every frame
 #                       whose update exceeds the threshold (default 263) walked
 #                       down to the child holding half its PC time; while a
 #                       frame is open on a symbol, profiles that symbol k
@@ -637,7 +674,8 @@
 #                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
 #                       node is open; never boots, outside the suite
 # make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=sequential|independent] [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]
-#                    -> tools/lever_estimate.sh on the judge table,
+#                    -> tools/lever_estimate.sh on plan 20's judge table
+#                       psx/perf/report-judge-frames.txt,
 #                       psx/perf/spike-frames.txt and the gain
 #                       table (default psx/perf/gains.txt, whose
 #                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
@@ -651,8 +689,9 @@
 #                       never boots, outside the suite
 # make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate,
 #                       under step 9's spike rule (spike-rule=step9),
-#                       reproduces step 9's spreading on the committed judge
-#                       table and spike frames with the gain tables of
+#                       reproduces step 9's spreading on plan 20's judge
+#                       table psx/perf/report-judge-frames.txt and spike
+#                       frames with the gain tables of
 #                       tests/fixtures/lever_estimate/ (uniform 88%: no spike
 #                       frame does-not-fit; 87%: frame 6043 does not fit;
 #                       80.7% in game, 74.8% on frame 12: exactly frame 6043,
@@ -824,6 +863,8 @@ ENGINE_SRCS := \
     src/p8/sprite_sheet.c \
     src/game/attract.c \
     src/game/background.c \
+    src/game/row_image.c \
+    src/game/text_image.c \
     src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
@@ -861,6 +902,7 @@ ENGINE_SRCS := \
     src/engine/geom.c \
     src/p8/gfx.c \
     src/p8/gfx_software.c \
+    src/p8/image.c \
     src/p8/draw_cost.c \
     src/p8/draw_meter.c \
     src/game/help.c \
@@ -975,13 +1017,16 @@ $(TMP_DIR)/test_sprite_sheet: $(call objs,tests/test_sprite_sheet.c src/p8/sprit
 $(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_draw_backend: $(call objs,tests/test_draw_backend.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+$(TMP_DIR)/test_draw_backend: $(call objs,tests/test_draw_backend.c src/p8/draw_cost.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_image: $(call objs,tests/test_image.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_draw_cost: $(call objs,tests/test_draw_cost.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_draw_meter: $(call objs,tests/test_draw_meter.c src/p8/draw_meter.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+$(TMP_DIR)/test_draw_meter: $(call objs,tests/test_draw_meter.c src/p8/draw_meter.c src/p8/draw_cost.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_vram_layout: $(call objs,tests/test_psx_vram_layout.c src/platform/psx_vram_layout.c) | $(TMP_DIR)
@@ -990,10 +1035,10 @@ $(TMP_DIR)/test_psx_vram_layout: $(call objs,tests/test_psx_vram_layout.c src/pl
 $(TMP_DIR)/test_psx_tiles: $(call objs,tests/test_psx_tiles.c src/platform/psx_tiles.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_draw_filter: $(call objs,tests/test_draw_filter.c src/devtools/draw_filter.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+$(TMP_DIR)/test_draw_filter: $(call objs,tests/test_draw_filter.c src/devtools/draw_filter.c src/p8/draw_cost.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_draw_timing: $(call objs,tests/test_draw_timing.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_draw_timing: $(call objs,tests/test_draw_timing.c src/devtools/draw_timing.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_capture_list: $(call objs,tests/test_capture_list.c src/devtools/capture_list.c) | $(TMP_DIR)
@@ -1014,6 +1059,9 @@ $(TMP_DIR)/test_psx_gpu_textures: $(call objs,tests/test_psx_gpu_textures.c src/
 $(TMP_DIR)/test_psx_clut_cache: $(call objs,tests/test_psx_clut_cache.c src/platform/psx_clut_cache.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/gfx_software.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_gpu_peaks: $(call objs,tests/test_psx_gpu_peaks.c src/platform/psx_gpu_peaks.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_psx_pattern_cache: $(call objs,tests/test_psx_pattern_cache.c src/platform/psx_pattern_cache.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1021,6 +1069,9 @@ $(TMP_DIR)/test_psx_pattern: $(call objs,tests/test_psx_pattern.c src/platform/p
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_sprite: $(call objs,tests/test_psx_sprite.c src/platform/psx_sprite.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_image: $(call objs,tests/test_psx_image.c src/platform/psx_image.c src/platform/psx_sprite.c src/platform/psx_vram_layout.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_text: $(call objs,tests/test_psx_text.c src/platform/psx_text.c src/platform/psx_sprite.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
@@ -1386,6 +1437,12 @@ $(TMP_DIR)/test_research_project: $(call objs,tests/test_research_project.c $(EN
 $(TMP_DIR)/test_layout_row: $(call objs,tests/test_layout_row.c tests/heap_allocator.c src/devtools/largest_slots.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_row_image: $(call objs,tests/test_row_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_text_image: $(call objs,tests/test_text_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1396,6 +1453,12 @@ $(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/rep
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pad_panel: $(call objs,tests/test_pad_panel.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_entity_geom: $(call objs,tests/test_entity_geom.c tests/heap_allocator.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_target: $(call objs,tests/test_pad_target.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -1570,7 +1633,7 @@ $(TMP_DIR)/test_probe_spawn_particle_order: $(call objs,tests/test_probe_spawn_p
 
 # A reduced source list rather than $(ENGINE_SRCS): this test never calls
 # cart_load(). Measured by linking, not guessed.
-$(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/p8/gfx_software.c src/game/hud.c src/game/layout.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/p8/gfx_software.c src/game/hud.c src/game/layout.c src/game/text_image.c src/p8/image.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # The longest first: under `-j`, make starts it first.
@@ -1580,6 +1643,7 @@ UNIT_TESTS := \
     test_sprite_sheet \
     test_gfx \
     test_draw_backend \
+    test_image \
     test_draw_cost \
     test_draw_meter \
     test_psx_vram_layout \
@@ -1700,15 +1764,21 @@ UNIT_TESTS := \
     test_trade \
     test_research_project \
     test_layout_row \
+    test_row_image \
+    test_text_image \
     test_economy \
     test_main_economy \
     test_input_step \
     test_pad_nav \
+    test_pad_panel \
+    test_entity_geom \
     test_psx_gpu_textures \
     test_psx_clut_cache \
     test_psx_sprite \
+    test_psx_image \
     test_psx_text \
     test_psx_pattern_cache \
+    test_psx_gpu_peaks \
     test_psx_pattern \
     test_pad_target \
     test_pad_jump \
@@ -2186,8 +2256,8 @@ PSX_PLATFORM_SRCS := src/platform/psx_exit.c src/platform/psx_tty.c src/platform
 PSX_CORE_UNITS := $(BINDINGS_CORE_UNIT) $(DEMO_UNIT)
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
-PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_text.c \
-	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c \
+PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_image.c src/platform/psx_text.c \
+	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c src/platform/psx_gpu_peaks.c \
 	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) src/devtools/state_format.c src/devtools/format_self_test.c \
 	src/devtools/draw_filter.c src/devtools/frame_times.c src/platform/psx_frame_timer.c $(PSX_GPU_BACKEND_SRCS) \
@@ -2209,15 +2279,31 @@ space := $(empty) $(empty)
 
 # Always passed: CMake caches options per build directory, and psx-build reconfigures in place.
 PSX_BUILD_MEASURED_REPLAY_ASSERTS ?= ON
+PSX_BUILD_DRAW_FILTER ?= ON
+PSX_BUILD_DRAW_METER ?= ON
+PSX_BUILD_GAME_ASSERTS ?= OFF
+ifneq ($(words $(PSX_BUILD_GAME_ASSERTS))$(filter-out ON OFF,$(PSX_BUILD_GAME_ASSERTS)),1)
+$(error psx-build: PSX_BUILD_GAME_ASSERTS must be ON or OFF, not '$(PSX_BUILD_GAME_ASSERTS)')
+endif
+# The mode tools/psx_game_check.sh's game-asserts expects on the TTY.
+PSX_GAME_ASSERTS_MODE := $(if $(filter ON,$(PSX_BUILD_GAME_ASSERTS)),on,off)
+PSX_BUILD_OPT ?= O3
+ifneq ($(words $(PSX_BUILD_OPT))$(filter-out O2 O3 Os,$(PSX_BUILD_OPT)),1)
+$(error psx-build: PSX_BUILD_OPT must be O2, O3 or Os, not '$(PSX_BUILD_OPT)')
+endif
+PSX_BUILD_OPT_TARGETS := psx-game psx-gpu-replay psx-gpu-replay-breakdown
 
-psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
+psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS) tools/psx_opt_level.sh
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@mkdir -p $(dir $(PSX_EMBEDDED_REPLAY))
 	./$(TMP_DIR)/embed_replay $(PSX_EVENTS) $(PSX_REPLAY_NAME) $(PSX_EMBEDDED_REPLAY)
 	cmake -S psx -B $(PSX_BUILD_DIR) \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
-		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) -DPSX_MEASURED_REPLAY_OPT=O2 \
+		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) \
+		-DPSX_GAME_OPT=$(PSX_BUILD_OPT) -DPSX_MEASURED_REPLAY_OPT=$(PSX_BUILD_OPT) \
+		-DPSX_GAME_ASSERTS=$(PSX_BUILD_GAME_ASSERTS) \
+		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) -DPSX_GPU_REPLAY_DRAW_METER=$(PSX_BUILD_DRAW_METER) \
 		'-DPSX_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_SRCS))' \
 		'-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_cmake_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS))' \
@@ -2225,6 +2311,14 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS)
 		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))' \
 		'-DPSX_GAME_SOURCES=$(call psx_cmake_list,$(PSX_GAME_SRCS))'
 	+cmake --build $(PSX_BUILD_DIR)
+	@opt_failed=; levels=; \
+	for target in $(PSX_BUILD_OPT_TARGETS); do \
+		level=$$(sh tools/psx_opt_level.sh $(PSX_BUILD_DIR)/CMakeFiles/$$target.dir/flags.make) || level=unreadable; \
+		[ "$$level" = $(PSX_BUILD_OPT) ] || { echo "psx-build: $$target effective level $$level, not $(PSX_BUILD_OPT) as requested"; opt_failed=yes; }; \
+		levels="$$levels $$target $$level"; \
+	done; \
+	echo "psx-build: opt$$levels"; \
+	[ -z "$$opt_failed" ]
 	@$(PSX_SIZE) $(PSX_BUILD_DIR)/psx-replay.elf $(PSX_BUILD_DIR)/psx-gpu-replay.elf \
 		$(PSX_BUILD_DIR)/psx-gpu-replay-breakdown.elf $(PSX_BUILD_DIR)/psx-pad-probe.elf $(PSX_BUILD_DIR)/psx-game.elf \
 		$(PSX_BUILD_DIR)/psx-largest-slots.elf
@@ -2284,7 +2378,7 @@ PSX_FULL_GAME_GPU_TIMEOUT ?= 525
 # One NTSC vsync in horizontal blanks: plan 11 step 4 must never raise it.
 PSX_FRAME_BUDGET_HBLANKS := 263
 
-PSX_FULL_GAME_ASSERTS ?= on
+PSX_FULL_GAME_ASSERTS ?= off
 # Checked at parse time: under -j a checking prerequisite would race the build.
 ifneq ($(filter psx-full-game-check,$(MAKECMDGOALS)),)
 ifneq ($(words $(PSX_FULL_GAME_ASSERTS))$(filter-out on off,$(PSX_FULL_GAME_ASSERTS)),1)
@@ -2295,7 +2389,8 @@ endif
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
 psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
-		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON)
+		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON) PSX_BUILD_DRAW_FILTER=OFF \
+		PSX_BUILD_DRAW_METER=OFF PSX_BUILD_OPT=O3
 	@mkdir -p $(PSX_FULL_GAME_DIR)
 	STATE=$(PSX_FULL_GAME_DIR)/pc_state.txt DIGEST=$(PSX_FULL_GAME_DIR)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_FULL_GAME_EVENTS) /dev/null $(PSX_FULL_GAME_DIR)/pc.dump.txt > $(PSX_FULL_GAME_DIR)/pc.log 2>&1 \
 		|| { cat $(PSX_FULL_GAME_DIR)/pc.log >&2; exit 1; }
@@ -2345,8 +2440,8 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
 PSX_SHORT_RUN_CEILING ?= 1080
 PSX_SHORT_RUN_TIMEOUT ?= 20
-PSX_SHORT_RUN_ASSERTS ?= on
-PSX_SHORT_RUN_OPT ?= O2
+PSX_SHORT_RUN_ASSERTS ?= off
+PSX_SHORT_RUN_OPT ?= O3
 # Checked at parse time: under -j a checking prerequisite would race the cut and the build.
 ifneq ($(filter psx-short-runs,$(MAKECMDGOALS)),)
 ifneq ($(words $(PSX_SHORT_RUN_ASSERTS))$(filter-out on off,$(PSX_SHORT_RUN_ASSERTS)),1)
@@ -2373,7 +2468,8 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 			-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 			-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
 			-DPSX_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_SHORT_RUN_ASSERTS)),OFF,ON) \
-			-DPSX_MEASURED_REPLAY_OPT=$(PSX_SHORT_RUN_OPT) \
+			-DPSX_MEASURED_REPLAY_OPT=$(PSX_SHORT_RUN_OPT) -DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
+			-DPSX_GPU_REPLAY_DRAW_METER=OFF \
 			"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 			"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
@@ -2414,6 +2510,7 @@ psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_bo
 PSX_PROBE_DIR := $(TMP_DIR)/psx/probe
 PSX_PROBE_CEILING ?= 1080
 PSX_PROBE_TIMEOUT ?= 20
+PSX_PROBE_OPT := O3
 PATCH ?=
 PSX_PROBE_LABEL ?= $(basename $(notdir $(PATCH)))
 psx_probe_usage := usage: make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
@@ -2438,11 +2535,11 @@ psx_probe_worktree = $(abspath $(PSX_PROBE_DIR)/$(psx_probe_label)/worktree)
 psx_probe_list = $(subst $(space),;,$(strip $(patsubst $(abspath src)/%,$(psx_probe_worktree)/src/%,$(abspath $(filter-out $(PSX_EMBEDDED_REPLAY),$(1))))))
 
 # Every run is built, booted and analyzed even when an earlier one is invalid.
-psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_probe.sh
+psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_probe.sh tools/psx_opt_level.sh
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "$@: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@label=$(psx_probe_label); out=$(PSX_PROBE_DIR)/$$label; wt=$(psx_probe_worktree); \
 	patch='$(if $(filter psx-probe,$@),$(abspath $(PATCH)))'; \
-	fingerprint=$$(git rev-parse HEAD:src HEAD:psx HEAD:$(PSX_FULL_GAME_EVENTS) | tr '\n' ' '); \
+	fingerprint=$$(git rev-parse HEAD:src HEAD:psx HEAD:$(PSX_FULL_GAME_EVENTS) | tr '\n' ' ')"opt $(PSX_PROBE_OPT)"; \
 	remove_worktree() { git worktree remove --force "$$wt" > /dev/null 2>&1; rm -rf "$$wt"; git worktree prune; }; \
 	mkdir -p $$out; remove_worktree; trap remove_worktree EXIT; trap 'exit 130' INT TERM; \
 	git worktree add --detach "$$wt" HEAD > $$out/worktree.log 2>&1 || { cat $$out/worktree.log >&2; exit 1; }; \
@@ -2465,7 +2562,9 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 			{ cmake -S "$$wt/psx" -B $$dir/build \
 				-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
 				-DCMAKE_BUILD_TYPE=Release "-DSLIPWAYS_SRC_DIR=$$wt/src" \
-				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF \
+				-DPSX_PROBE=ON -DPSX_MEASURED_REPLAY_ASSERTS=OFF -DPSX_MEASURED_REPLAY_OPT=$(PSX_PROBE_OPT) \
+				-DPSX_GPU_REPLAY_DRAW_FILTER=OFF \
+				-DPSX_GPU_REPLAY_DRAW_METER=OFF \
 				"-DPSX_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_REPLAY_SRCS));$$embedded" \
 				"-DPSX_GPU_REPLAY_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_SRCS));$$embedded" \
 				"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_probe_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$$embedded" \
@@ -2474,6 +2573,10 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 				'-DPSX_GAME_SOURCES=$(call psx_probe_list,$(PSX_GAME_SRCS))' \
 				&& cmake --build $$dir/build --target psx-gpu-replay --parallel $$(nproc); } > $$dir/build.log 2>&1 \
 				|| { tail -n 20 $$dir/build.log >&2; reason="build failed ($$dir/build.log)"; }; \
+		fi; \
+		if [ -z "$$reason" ]; then \
+			level=$$(sh tools/psx_opt_level.sh $$dir/build/CMakeFiles/psx-gpu-replay.dir/flags.make) || level=unreadable; \
+			[ "$$level" = $(PSX_PROBE_OPT) ] || reason="opt $$level, not $(PSX_PROBE_OPT)"; \
 		fi; \
 		if [ -z "$$reason" ]; then \
 			: > $$dir/empty_capture_script.txt; \
@@ -2605,7 +2708,7 @@ frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame
 	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 !~ /^#/ && NF {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
 		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$$out/$$name; \
 		if [ ! -f $$short/breakdown.tty.txt ]; then \
-			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUN_ASSERTS=off PSX_SHORT_RUN_REFERENCE="; \
+			echo "$@: $$name: no $$short/breakdown.tty.txt: run make psx-short-runs PSX_SHORT_RUN_REFERENCE="; \
 			failed="$$failed $$name"; continue; \
 		fi; \
 		rm -f $$dir/unit-cost.txt; profile $$short/run.json $$short/run.end-state $$dir \
@@ -2708,20 +2811,21 @@ ESTIMATE_ALLOCATION ?= sequential
 ESTIMATE_HAIRCUT ?= 0
 ESTIMATE_GAINS ?= psx/perf/gains.txt
 ESTIMATE_SPIKE_FRAMES := psx/perf/spike-frames.txt
+ESTIMATE_JUDGE_FRAMES := psx/perf/report-judge-frames.txt
 LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
 
-lever-estimate: tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
+lever-estimate: tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
 	@label=$(or $(ESTIMATE_LABEL),$(ESTIMATE_END)$(if $(ESTIMATE_RUN),-$(ESTIMATE_RUN))); \
 	case "$$label" in ''|*[!A-Za-z0-9_.-]*) echo "$@: ESTIMATE_LABEL is not a file-name label: '$$label'"; exit 1;; esac; \
 	mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/$$label.txt; \
-	sh tools/lever_estimate.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
+	sh tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
 		allocation=$(ESTIMATE_ALLOCATION) haircut=$(ESTIMATE_HAIRCUT) $(if $(ESTIMATE_RUN),run=$(ESTIMATE_RUN)) > $$out \
 		|| { status=$$?; rm -f $$out; exit $$status; }; \
 	grep -v '^frame ' $$out; echo "$@: wrote $$out"
 
 lever-estimate-check: tools/lever_estimate.sh tools/lever_estimate_check.sh tools/frame_profile_check.sh \
-		$(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
-	@sh tools/lever_estimate_check.sh $(FRAME_PROFILE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
+		$(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
+	@sh tools/lever_estimate_check.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
 		$(LEVER_ESTIMATE_DIR)/check
 
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
@@ -2733,7 +2837,7 @@ $(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.
 $(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
@@ -2764,7 +2868,7 @@ psx-game-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_lo
 	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_GAME_SCRIPT) --exe $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_CEILING) $(PSX_GAME_OUT)/run 2>&1); \
 		status=$$?; echo "$$boot"; \
-		sh tools/psx_game_check.sh $(PSX_GAME_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
+		PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_game_check.sh $(PSX_GAME_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
 			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_OUT)
 
 PSX_GAME_CD_OUT := $(TMP_DIR)/psx/game-cd
@@ -2777,7 +2881,7 @@ psx-game-cd-check: psx-tools-test psx-game-cd $(TMP_DIR)/replay $(TMP_DIR)/psx_p
 	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_CD_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_GAME_SCRIPT) --iso $(PSX_GAME_CUE) $(PSX_GAME_CD_CEILING) $(PSX_GAME_CD_OUT)/run 2>&1); \
 		status=$$?; echo "$$boot"; failed=0; \
-		sh tools/psx_game_check.sh $(PSX_GAME_CD_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
+		PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_game_check.sh $(PSX_GAME_CD_OUT)/run.tty.txt $$status "$$boot" $(PSX_GAME_SCRIPT) ./$(TMP_DIR)/psx_pad_log \
 			./$(TMP_DIR)/replay $(PSX_GAME_DIFFICULTY) $(PSX_GAME_CD_OUT) || failed=1; \
 		sh tools/psx_cd_check.sh $(PSX_GAME_CUE) $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_DISC_EXE) $(PSX_DUMPSXISO) \
 			$(PSX_GAME_CD_OUT)/cd || failed=1; \
@@ -2800,7 +2904,7 @@ psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_tes
 		STATE=$(PSX_CHECK_OUT)/pc_state.txt DIGEST=$(PSX_CHECK_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CHECK_OUT)/pc.dump.txt > $(PSX_CHECK_OUT)/pc.log 2>&1 \
 		|| { cat $(PSX_CHECK_OUT)/pc.log >&2; exit 1; }
 	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_CHECK_OUT)/pc.log) \
-		&& sh tools/psx_check.sh $(PSX_EMULATOR_DIR) $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_BUILD_DIR)/psx-gpu-replay.exe \
+		&& PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_check.sh $(PSX_EMULATOR_DIR) $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_BUILD_DIR)/psx-gpu-replay.exe \
 			$(PSX_BUILD_DIR)/psx-pad-probe.exe $(PSX_CHECK_OUT)/pc_state.txt $(PSX_CHECK_OUT)/pc_digest.txt "$$frames" \
 			"$$(./$(TMP_DIR)/format_self_test)" $(PSX_PAD_SCRIPT) $(PSX_REPLAY_CEILING) $(PSX_REPLAY_TIMEOUT) \
 			$(PSX_GPU_CEILING) $(PSX_GPU_TIMEOUT) $(PSX_PAD_CEILING) $(PSX_PAD_TIMEOUT) $(PSX_SIZE) $(PSX_NM) \

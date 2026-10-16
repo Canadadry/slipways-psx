@@ -174,6 +174,8 @@ struct entity_class {
     unsigned lineage;
     void (*apply_camera)(entity_t *self, p8_fixed_t parallax);
     void (*release)(entity_t *self);
+    /* 1: draw_layers calls draw only when entity_geom_is_on_screen holds, so draw may trust it. */
+    int skip_draw_off_screen;
 };
 
 typedef struct planet_keys planet_keys_t;

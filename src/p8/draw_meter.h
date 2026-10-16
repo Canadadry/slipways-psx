@@ -5,6 +5,8 @@
 
 typedef struct {
     unsigned long bytes;
+    /* What image builds emit, in their own buffer; bytes and primitives leave them out. */
+    unsigned long build_bytes;
     int primitives;
     int cluts;
     int patterns;

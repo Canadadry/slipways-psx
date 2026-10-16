@@ -11,17 +11,30 @@ static int glyph_lit(const unsigned char *rows) {
     return 0;
 }
 
-void psx_text_place(const p8_graphics_t *gfx, const char *str, int x, int y,
-                    void (*emit)(psx_sprite_t glyph, void *context), void *context) {
+/* border: how far the cell reaches past the glyph on every side. */
+static void place(const p8_graphics_t *gfx, const char *str, int x, int y, int border,
+                  psx_gpu_textures_texel_t (*cell_of)(char character),
+                  void (*emit)(psx_sprite_t glyph, void *context), void *context) {
     int cx = x - gfx->camera_x;
     for (const char *p = str; *p != '\0'; p++, cx += P8_FONT_CELL_WIDTH) {
         if (!glyph_lit(p8_font_glyph_rows(*p))) {
             continue;
         }
-        psx_gpu_textures_texel_t cell = psx_gpu_textures_font_cell(*p);
-        psx_sprite_t glyph = { cx, y - gfx->camera_y, cell.u, cell.v, P8_FONT_GLYPH_WIDTH, P8_FONT_GLYPH_HEIGHT };
+        psx_gpu_textures_texel_t cell = cell_of(*p);
+        psx_sprite_t glyph = { cx - border, y - border - gfx->camera_y, cell.u, cell.v,
+                               P8_FONT_GLYPH_WIDTH + 2 * border, P8_FONT_GLYPH_HEIGHT + 2 * border };
         if (psx_sprite_clip(&glyph)) {
             emit(glyph, context);
         }
     }
+}
+
+void psx_text_place(const p8_graphics_t *gfx, const char *str, int x, int y,
+                    void (*emit)(psx_sprite_t glyph, void *context), void *context) {
+    place(gfx, str, x, y, 0, psx_gpu_textures_font_cell, emit, context);
+}
+
+void psx_text_place_outlined(const p8_graphics_t *gfx, const char *str, int x, int y,
+                             void (*emit)(psx_sprite_t glyph, void *context), void *context) {
+    place(gfx, str, x, y, 1, psx_gpu_textures_outlined_font_cell, emit, context);
 }

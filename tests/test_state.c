@@ -56,7 +56,7 @@ static const char *const MEMORY_LINES[] = {
     "cap bytes_ephemerals", "cap particle", "cap particles", "cap particles_help_screen", "cap burst",
     "cap transit_dots", "cap exit_queue", "cap entity_table", "cap elements_particles", "cap elements_particles_help_screen",
     "cap elements_transit_dots", "cap elements_ephemerals", "cap bytes_particles", "cap bytes_particles_help_screen", "cap bytes_burst",
-    "zone gpu_frame", "cap gpu_cluts", "cap gpu_patterns",
+    "zone gpu_frame", "zone gpu_build", "cap gpu_cluts", "cap gpu_patterns",
 };
 
 static long memory_value(const char *line, int column) {
@@ -175,6 +175,7 @@ static void pad_tech_costs_rich_mine(void) {
     const char *gpu_frame = memory_line("zone gpu_frame");
     assert(memory_value(gpu_frame, 0) > 0 && memory_value(gpu_frame, 1) > 0 && "STATE installs the draw meter");
     assert(memory_value(gpu_frame, 2) == GPU_FRAME_BUFFER_BYTES);
+    assert(memory_value(memory_line("zone gpu_build"), 2) == GPU_BUILD_BUFFER_BYTES);
     assert(memory_value(memory_line("cap gpu_cluts"), 1) > 0 && "the background map draws sprites");
 }
 

@@ -223,8 +223,7 @@ static score_panel_t *score_panel_create(void) {
     self = (score_panel_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &score_panel_class_def, score_panel_archetype.state, score_panel_archetype.state_time);
     self->archetype = &score_panel_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->last_box = ENTITY_ID_NONE;
     self->is_shown = 0;
     self->has_is_shown = 0;

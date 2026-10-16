@@ -27,6 +27,20 @@ struct planet_keys {
 
 void planet_keys_set_id(planet_keys_t *keys, const char *id);
 
+enum { PLANET_ROW_SIGNATURE_NEEDS = 4 };
+
+/* What planet_refresh's row is built from; a planet with more needs than
+ * PLANET_ROW_SIGNATURE_NEEDS has no valid signature, so it always rebuilds. */
+typedef struct {
+    p8_fixed_t output;
+    p8_fixed_t amount;
+    p8_fixed_t need_resources[PLANET_ROW_SIGNATURE_NEEDS];
+    uint16_t route_count;
+    uint8_t needs_count;
+    uint8_t flags;
+    uint8_t need_flags[PLANET_ROW_SIGNATURE_NEEDS];
+} planet_row_signature_t;
+
 typedef struct {
     entity_t header;
     const planet_archetype_t *archetype;
@@ -38,6 +52,7 @@ typedef struct {
     const planet_types_entry_t *planet_type;
     layout_row_t *layout_row;
     const allocator_t *layout_row_slot;
+    planet_row_signature_t layout_row_signature;
     entity_id_t targeted_by;
     p8_fixed_t production_bonus;
     int has_production_bonus;

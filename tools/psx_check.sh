@@ -8,9 +8,9 @@
 # Boots the replay PS-EXE, the GPU replay PS-EXE (twice, both driven by
 # <pc-capture-dir>/capture_script.txt), the pad probe and the game's CD image
 # <game-cue> (driven by <game-script>) and <largest-exe> until they exit, then
-# checks the thirty-one conditions of make psx-check, the seven GPU capture
-# ones through tools/psx_capture_check.sh, five game ones through tools/psx_game_check.sh
-# (outputs in <out-dir>/game) and game-cue and game-cd-exe through
+# checks the conditions of make psx-check, the seven GPU capture
+# ones through tools/psx_capture_check.sh, seven game ones through tools/psx_game_check.sh
+# (outputs in <out-dir>/game; game-asserts expects PSX_GAME_ASSERTS, default off) and game-cue and game-cd-exe through
 # tools/psx_cd_check.sh (<game-disc-exe> on the disc equals <game-exe>,
 # outputs in <out-dir>/game-cd). Every condition is
 # checked before concluding, one line per condition, exit 1 if any failed;
@@ -150,7 +150,7 @@ check_game_lines gpu-state-game-lines "$gpu_compare"
 
 # usage: check_meter <condition> <what> <psx-state-tty> <pc-state>; sets psx_meter (the PSX side's meter lines)
 check_meter() {
-    meter_lines='^(zone gpu_frame|cap gpu_cluts|cap gpu_patterns) '
+    meter_lines='^(zone gpu_frame|zone gpu_build|cap gpu_cluts|cap gpu_patterns) '
     psx_meter=$(sed -n 's/^psx-state: //p' "$3" 2>/dev/null | grep -E "$meter_lines")
     pc_meter=$(grep -E "$meter_lines" "$4" 2>/dev/null)
     if [ -n "$pc_meter" ] && [ "$psx_meter" = "$pc_meter" ]; then
@@ -214,7 +214,7 @@ fi
 sh "$script_dir/psx_game_check.sh" "$out_dir/game.tty.txt" "$game_status" "$game_boot" "$game_script" \
     "$pad_log_tool" "$replay_tool" "$game_difficulty" "$out_dir/game" \
     > "$out_dir/game-check.out.txt" 2> "$out_dir/game-check.err.txt"
-for condition in game-done game-pad-log game-pad-states game-state-game-lines game-title-left; do
+for condition in game-done game-pad-log game-pad-states game-state-game-lines game-title-left game-asserts game-gpu-cost; do
     prefix="psx-game-check: $condition: "
     line=$(grep -F "$prefix" "$out_dir/game-check.out.txt" | head -n 1)
     case $line in
@@ -229,8 +229,6 @@ for condition in game-done game-pad-log game-pad-states game-state-game-lines ga
             ;;
     esac
 done
-
-check_meter game-gpu-cost "the CD game" "$out_dir/game/game-state/tty.txt" "$out_dir/game/pc_state.txt"
 
 sh "$script_dir/psx_cd_check.sh" "$game_cue" "$game_exe" "$game_disc_exe" "$dumpsxiso" "$out_dir/game-cd" \
     > "$out_dir/game-cd-check.out.txt" 2> "$out_dir/game-cd-check.err.txt"
@@ -275,4 +273,4 @@ check_largest_slots largest-slots "$largest_status" "$largest_boot" "$largest_tt
 
 echo "psx-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-check: all thirty-one conditions hold"
+echo "psx-check: all $(grep -c . "$out_dir/conditions.txt") conditions hold"

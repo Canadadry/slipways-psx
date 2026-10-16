@@ -174,14 +174,17 @@ static void test_exempt_line_over_its_limit_fails(void) {
 
 static void test_gpu_frame_peak_over_its_margin_fails(void) {
     reset();
-    write_file(DIR "/a.txt", "zone gpu_frame 100 9000 10240\ncap gpu_cluts - 5 6\ncap gpu_patterns - 3 4\n");
-    write_file(DIR "/b.txt", "zone gpu_frame 100 9200 10240\ncap gpu_cluts - 6 6\ncap gpu_patterns - 4 4\n");
+    write_file(DIR "/a.txt", "zone gpu_frame 100 9000 10240\nzone gpu_build 0 8000 9216\ncap gpu_cluts - 5 6\n"
+                             "cap gpu_patterns - 3 4\n");
+    write_file(DIR "/b.txt", "zone gpu_frame 100 9200 10240\nzone gpu_build 0 8200 9216\ncap gpu_cluts - 6 6\n"
+                             "cap gpu_patterns - 4 4\n");
     assert(run("a.json " DIR "/a.txt") == 0);
     assert(run("a.json " DIR "/a.txt b.json " DIR "/b.txt") != 0);
     const char *out = read_file(OUT);
     assert(strstr(out, "zone gpu_frame 9200 10240 b.json\n") != NULL);
     const char *log = read_file(LOG);
     assert(strstr(log, "state: zone gpu_frame peak 9200 over margin 9102 (limit 10240, b.json)\n") != NULL);
+    assert(strstr(log, "state: zone gpu_build peak 8200 over margin 8192 (limit 9216, b.json)\n") != NULL);
     assert(strstr(log, "state: cap gpu_cluts peak 6 over margin 5 (limit 6, b.json)\n") != NULL);
     assert(strstr(log, "state: cap gpu_patterns peak 4 over margin 3 (limit 4, b.json)\n") != NULL);
 }

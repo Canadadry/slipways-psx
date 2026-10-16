@@ -26,14 +26,16 @@ typedef enum {
 const p8_draw_backend_t *draw_filter_install(void);
 
 /* From the next call on. A patterned rectfill/circfill passes only with its shape bit and
- * DRAW_FILTER_PATTERN; the mask must hold DRAW_FILTER_CLS. */
+ * DRAW_FILTER_PATTERN; an image copy only with every family drawn into the image; the mask must hold
+ * DRAW_FILTER_CLS. */
 void draw_filter_set_mask(unsigned mask);
 
 /* Zeroes the counts; the mask stays. */
 void draw_filter_frame_end(void);
 
 /* Calls since the last frame end whose cost-model bytes are above 0, masked or not; a patterned
- * fill counts under its shape and under DRAW_FILTER_PATTERN. */
+ * fill counts under its shape and under DRAW_FILTER_PATTERN, an image copy under each family of its
+ * image, a call inside an image build under none. */
 int draw_filter_count(draw_filter_family_t family);
 
 #endif

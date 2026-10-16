@@ -27,6 +27,8 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "game/layout.h"
+#include "game/text_image.h"
+#include "p8/draw_backend.h"
 #include "p8/vram.h"
 #include "game/draw_functions.h"
 #include "game/planet.h"
@@ -474,6 +476,24 @@ static void test_planet_resource_row(void) {
 
 static void start_game(void);
 
+
+static int g_copies;
+static const p8_draw_backend_t *g_software;
+
+static void count_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    g_copies++;
+    g_software->image_draw(gfx, mem, slot, x, y);
+}
+
+static void install_copy_counter(void) {
+    static p8_draw_backend_t counting;
+    g_software = p8_gfx_software_backend();
+    counting = *g_software;
+    counting.image_draw = count_image_draw;
+    g_copies = 0;
+    p8_draw_backend_set(&counting);
+}
+
 /* research_project_layout_row_keys() holds the resource row, then the row
  * tail and the name: a button lays all of them out once. Then two buttons
  * with a side tooltip, its background a number and false. */
@@ -505,6 +525,7 @@ static void test_research_project_layout_row_keys(void) {
         hash = fnv(hash, screen_hash());
     }
 
+    install_copy_counter();
     for (allocated = 0; allocated < 2; allocated++) {
         layout_row_cell_t layout_row_items[] = {str("ab"), num(12)};
         layout_row_cell_t h_items[] = {str(allocated == 0 ? "3" : "12")};
@@ -529,6 +550,8 @@ static void test_research_project_layout_row_keys(void) {
         button_draw(&graphics, &memory, button, vec_xy(10, 50));
         hash = fnv(hash, screen_hash());
     }
+    p8_draw_backend_set(NULL);
+    assert(g_copies == 2 * 2 && "a button's row text and its side tooltip's text are copied");
     check("research_project_layout_row_keys", hash, RESEARCH_PROJECT_LAYOUT_ROW_HASH);
 }
 
@@ -1064,6 +1087,58 @@ static void test_planet_resource_row_largest_row_fits_a_slot(void) {
     assert(ui_zone_max_bytes(SLOT_KIND_ROW) <= ui_zone_slot_size(SLOT_KIND_ROW));
 }
 
+static void background_stripes(p8_vram_t *mem) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            mem->screen[y][x] = (unsigned char)(1 + (x * 5 + y) % 15);
+        }
+    }
+}
+
+/* A row of text, a sprite, a sprite tuple and text draws through the text image what layout_row_draw_at
+ * draws, at every alignment, fractional and negative positions and under a camera. */
+static void test_the_text_image_sibling_draws_like_draw_at(void) {
+    static const int tuple_values[] = {13, 8};
+    static const p8_fixed_t xs[] = {P8_FIXED_LIT(0x00400000, 64), P8_FIXED_LIT(0xFFF60000, -10),
+                                    P8_FIXED_LIT(0x00404CCD, 64.3), P8_FIXED_LIT(0xFFFF8000, -0.5),
+                                    P8_FIXED_LIT(0x007E0000, 126)};
+    static const p8_fixed_t ys[] = {P8_FIXED_LIT(0x003C0000, 60), P8_FIXED_LIT(0xFFFD0000, -3),
+                                    P8_FIXED_LIT(0x003C6000, 60.375), P8_FIXED_LIT(0x007C0000, 124)};
+    static const p8_fixed_t as[] = {0, P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x00010000, 1.0)};
+    static const int cameras[][2] = {{0, 0}, {-13, 21}};
+    static p8_vram_t direct;
+    layout_row_cell_t cells[] = {str("cost"), num(12), layout_row_cell_nothing(), str("hi")};
+    cells[2] = tuple_of(2, tuple_values);
+    layout_row_keys_t keys = with_color(positionals(4, cells), 11);
+    layout_row_t *row = layout_row_new(&heap_allocator, &keys);
+
+    install_copy_counter();
+    for (size_t c = 0; c < sizeof cameras / sizeof cameras[0]; c++) {
+        for (size_t n = 0; n < sizeof as / sizeof as[0]; n++) {
+            for (size_t i = 0; i < sizeof xs / sizeof xs[0]; i++) {
+                for (size_t j = 0; j < sizeof ys / sizeof ys[0]; j++) {
+                    vec_t p = vec_make(xs[i] + p8_fixed_from_int(cameras[c][0]), ys[j] + p8_fixed_from_int(cameras[c][1]));
+                    p8_graphics_t direct_gfx;
+                    text_image_frame_begin();
+                    p8_gfx_init(&graphics);
+                    p8_camera(&graphics, cameras[c][0], cameras[c][1]);
+                    direct_gfx = graphics;
+                    background_stripes(&memory);
+                    direct = memory;
+                    layout_row_draw_at(&direct_gfx, &direct, row, p, as[n]);
+                    layout_row_draw_at_text_image(&graphics, &memory, row, p, as[n]);
+                    assert(graphics.camera_x == cameras[c][0] && graphics.camera_y == cameras[c][1]);
+                    assert(memcmp(direct.screen, memory.screen, sizeof direct.screen) == 0);
+                    assert(memcmp(direct.draw_palette, memory.draw_palette, sizeof direct.draw_palette) == 0);
+                }
+            }
+        }
+    }
+    p8_draw_backend_set(NULL);
+    assert(g_copies == 2 * 2 * 3 * 5 * 4 && "each of the two text items copied, every draw");
+    layout_row_draw_at_text_image(&graphics, &memory, NULL, vec_xy(0, 0), 0);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -1079,6 +1154,7 @@ int main(void) {
     in_fresh_child(test_planet_resource_row_largest_row_fits_a_slot);
     in_fresh_child(test_research_project_layout_row_keys);
     in_fresh_child(test_calls);
+    in_fresh_child(test_the_text_image_sibling_draws_like_draw_at);
     in_fresh_child(test_planet_panel);
     in_fresh_child(test_inspection_panel_wants_more);
     in_fresh_child(test_inspection_panel_w_maker_wants_no_more);

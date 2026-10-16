@@ -26,6 +26,47 @@ static void test_crc32_matches_the_standard_check_value(void) {
     assert(save_state_crc32((const uint8_t *)check, (int)strlen(check)) == 0xCBF43926u);
 }
 
+static uint32_t bitwise_crc32_update(uint32_t crc, uint8_t byte) {
+    crc ^= byte;
+    for (int bit = 0; bit < 8; bit++) {
+        crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
+    }
+    return crc;
+}
+
+static uint32_t bitwise_crc32(const uint8_t *bytes, int count) {
+    uint32_t crc = 0xFFFFFFFFu;
+    for (int i = 0; i < count; i++) {
+        crc = bitwise_crc32_update(crc, bytes[i]);
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
+static void test_crc32_of_the_empty_buffer_is_zero(void) {
+    uint8_t unused = 0;
+    assert(save_state_crc32(&unused, 0) == 0u);
+}
+
+static void test_crc32_of_each_single_byte_matches_the_bitwise_definition(void) {
+    for (int value = 0; value < 256; value++) {
+        uint8_t byte = (uint8_t)value;
+        assert(save_state_crc32(&byte, 1) == bitwise_crc32(&byte, 1));
+    }
+}
+
+static void test_crc32_matches_the_bitwise_definition_at_every_length(void) {
+    static uint8_t bytes[600];
+    uint32_t seed = 0x12345678u;
+
+    for (int i = 0; i < (int)sizeof bytes; i++) {
+        seed = seed * 1103515245u + 12345u;
+        bytes[i] = (uint8_t)(seed >> 16);
+    }
+    for (int count = 0; count <= (int)sizeof bytes; count++) {
+        assert(save_state_crc32(bytes, count) == bitwise_crc32(bytes, count));
+    }
+}
+
 static save_state_t g_state;
 static save_state_t g_decoded;
 static uint8_t g_bytes[SAVE_STATE_MAX_BYTES];
@@ -661,6 +702,9 @@ static void test_only_a_settled_probe_is_captured(void) {
 
 int main(void) {
     test_crc32_matches_the_standard_check_value();
+    test_crc32_of_the_empty_buffer_is_zero();
+    test_crc32_of_each_single_byte_matches_the_bitwise_definition();
+    test_crc32_matches_the_bitwise_definition_at_every_length();
     test_a_hand_built_state_round_trips();
     test_a_state_without_probe_round_trips();
     test_a_flipped_byte_anywhere_is_refused();

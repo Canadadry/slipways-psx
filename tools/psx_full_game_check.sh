@@ -4,21 +4,26 @@
 #                               <size-tool> <stack-reserve> <out-dir>
 # Boots the replay PS-EXE, then the GPU replay PS-EXE with an empty capture
 # script (the capture handshake runs, nothing is captured), until they exit,
-# then checks the twelve conditions of make psx-full-game-check through
+# then checks the conditions of make psx-full-game-check through
 # tools/psx_conditions.sh: replay-done, state-game-lines, sprite-sheet,
-# screen, map, gpu-replay-done, gpu-state-game-lines, then timer,
-# frame-budget (no frame above <budget-hblanks>), zone-sizes and cap-sizes of
-# tools/psx_frame_budget.sh on the GPU boot (outputs in <out-dir>/frame-budget)
-# and gpu-ram-room (64 KiB kernel area + GPU ELF + stack reserve <= 2 MiB). Every
-# condition is checked before concluding, one line per condition, exit 1 if
-# any failed; each also goes to <out-dir>/conditions.txt as
-# "<condition> ok|failed". Prints every frame line behind
-# "psx-full-game-check: frame " and the frame summary behind
+# screen, map, gpu-replay-done, gpu-state-game-lines, gpu-draw-filter and
+# gpu-draw-meter (the GPU boot printed "psx-replay: draw-filter off" and
+# "psx-replay: draw-meter off"), then timer, frame-budget (no frame above
+# <budget-hblanks>), zone-sizes and cap-sizes of tools/psx_frame_budget.sh on
+# the GPU boot (outputs in <out-dir>/frame-budget) and gpu-ram-room (64 KiB
+# kernel area + GPU ELF + stack reserve <= 2 MiB). The unmetered GPU boot's
+# gpu_* lines are zeros: zone-sizes and cap-sizes judge
+# <out-dir>/gpu-state/judged_state.txt, its MIPS state with the gpu_* lines of
+# <pc-state> instead. Every condition is checked before concluding, one line
+# per condition, exit 1 if any failed; each also goes to
+# <out-dir>/conditions.txt as "<condition> ok|failed". Prints every frame line
+# behind "psx-full-game-check: frame " and the frame summary behind
 # "psx-full-game-check: ".
 # Writes <out-dir>/measurements.txt: the MIPS zone/budget/cap lines, the vsync
 # count and the size of the replay ELF (the .exe path with .elf), then the GPU
-# replay's vsyncs, meter lines, RAM room and ELF size, each behind "gpu ", and
-# the frame summary behind "gpu frame ".
+# replay's vsyncs, <pc-state>'s gpu_* lines, the backend's gpu-peak line, RAM
+# room and ELF size, each behind "gpu ", and the frame summary behind
+# "gpu frame ".
 
 set -u
 
@@ -72,9 +77,29 @@ gpu_tty=$out_dir/gpu.tty.txt
 gpu_compare=$(sh "$script_dir/psx_state_compare.sh" "$gpu_tty" "$pc_state" "$out_dir/gpu-state" "$pc_frames" 2>&1)
 check_replay_done gpu-replay-done "$gpu_status" "$gpu_boot" "$gpu_tty" "$pc_frames"
 check_game_lines gpu-state-game-lines "$gpu_compare"
+filter_line=$(tr -d '\r' < "$gpu_tty" | grep '^psx-replay: draw-filter ' | tail -n 1)
+if [ "$filter_line" = "psx-replay: draw-filter off" ]; then
+    pass gpu-draw-filter
+else
+    report gpu-draw-filter "expected psx-replay: draw-filter off, got: ${filter_line:-(no line)}"
+fi
+meter_line=$(tr -d '\r' < "$gpu_tty" | grep '^psx-replay: draw-meter ' | tail -n 1)
+if [ "$meter_line" = "psx-replay: draw-meter off" ]; then
+    pass gpu-draw-meter
+else
+    report gpu-draw-meter "expected psx-replay: draw-meter off, got: ${meter_line:-(no line)}"
+fi
+
+pc_gpu_lines='^(zone gpu_frame|zone gpu_build|cap gpu_[a-z_]*) '
+judged_state=$out_dir/gpu-state/judged_state.txt
+mkdir -p "$out_dir/gpu-state"
+{
+    grep -Ev "$pc_gpu_lines" "$out_dir/gpu-state/psx_state.txt" 2>/dev/null
+    grep -E "$pc_gpu_lines" "$pc_state"
+} > "$judged_state"
 
 frame_dir=$out_dir/frame-budget
-frame_budget=$(sh "$script_dir/psx_frame_budget.sh" "$gpu_tty" "$out_dir/gpu-state/psx_state.txt" "$pc_frames" \
+frame_budget=$(sh "$script_dir/psx_frame_budget.sh" "$gpu_tty" "$judged_state" "$pc_frames" \
     "$budget_hblanks" "$frame_dir" 2>&1)
 if [ -f "$frame_dir/frames.txt" ]; then
     sed -n '1s/^/psx-full-game-check: /p; 1!s/^/psx-full-game-check: frame /p' "$frame_dir/frames.txt"
@@ -96,8 +121,8 @@ check_ram_room gpu-ram-room "${gpu_exe%.exe}.elf"
 {
     set -- $(tr -d '\r' < "$gpu_tty" | grep '^psx-replay: done ' | tail -n 1)
     [ "${5:-}" = vsyncs ] && echo "gpu vsyncs ${6:-}"
-    sed -n 's/^psx-state: //p' "$out_dir/gpu-state/tty.txt" 2>/dev/null \
-        | grep -E '^(zone gpu_frame|cap gpu_[a-z_]*) ' | sed 's/^/gpu /'
+    grep -E "$pc_gpu_lines" "$pc_state" | sed 's/^/gpu /'
+    tr -d '\r' < "$gpu_tty" | grep '^psx-replay: gpu-peak ' | tail -n 1 | sed 's/^psx-replay: /gpu /'
     [ -n "$room_line" ] && echo "gpu ram-room $room_line"
     printf '%s\n' "${elf_size:-}" | sed 's/^/gpu /'
     [ -f "$frame_dir/summary.txt" ] && sed 's/^/gpu frame /' "$frame_dir/summary.txt"
@@ -105,4 +130,4 @@ check_ram_room gpu-ram-room "${gpu_exe%.exe}.elf"
 
 echo "psx-full-game-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1
-echo "psx-full-game-check: all twelve conditions hold"
+echo "psx-full-game-check: all $(grep -c . "$out_dir/conditions.txt") conditions hold"

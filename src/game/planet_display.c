@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "engine/collect.h"
@@ -11,6 +12,7 @@
 #include "game/main_economy.h"
 #include "game/game_data.h"
 #include "game/hud.h"
+#include "game/image_slot.h"
 #include "engine/entity.h"
 #include "engine/entity_id.h"
 #include "game/map_tables.h"
@@ -18,6 +20,7 @@
 #include "game/planet.h"
 #include "game/research.h"
 #include "game/research_display.h"
+#include "game/row_image.h"
 #include "game/slipway.h"
 #include "p8/str.h"
 #include "game/tech_gate.h"
@@ -38,6 +41,61 @@ static layout_row_cell_t planet_production_cell(const production_t *kw) {
     return layout_row_cell_tuple(tuple);
 }
 
+enum { ROW_SIGNATURE_VALID = 1, ROW_SIGNATURE_HAS_OUTPUT = 2 };
+enum { ROW_NEED_HAS_RESOURCE = 1, ROW_NEED_SATISFIED_ZERO = 2 };
+
+static planet_row_signature_t planet_row_signature(const pointer_list_t *needs_list, int has_output, p8_fixed_t output,
+                                                   p8_fixed_t amount, int route_count) {
+    planet_row_signature_t signature;
+    pointer_list_iter_t it;
+    void *entry;
+
+    assert(route_count >= 0 && route_count <= UINT16_MAX && "planet_row_signature: a wider route count would alias in the signature");
+    memset(&signature, 0, sizeof signature);
+    signature.flags = has_output ? ROW_SIGNATURE_HAS_OUTPUT : 0;
+    signature.output = output;
+    signature.amount = amount;
+    signature.route_count = (uint16_t)route_count;
+    if (needs_list != NULL && needs_list->count > PLANET_ROW_SIGNATURE_NEEDS) {
+        return signature;
+    }
+    if (needs_list != NULL) {
+        it = pointer_list_all(needs_list);
+        while (pointer_list_iter_next(&it, &entry)) {
+            if (entry != NULL) {
+                const need_t *need = entry;
+                resource_t resource = need_resource(need);
+
+                if (resource.kind == RESOURCE_FIXED) {
+                    signature.need_flags[signature.needs_count] |= ROW_NEED_HAS_RESOURCE;
+                    signature.need_resources[signature.needs_count] = resource.number;
+                }
+                if (need->has_satisfied && need->satisfied == 0) {
+                    signature.need_flags[signature.needs_count] |= ROW_NEED_SATISFIED_ZERO;
+                }
+            }
+            signature.needs_count++;
+        }
+    }
+    signature.flags |= ROW_SIGNATURE_VALID;
+    return signature;
+}
+
+static int planet_row_signature_equal(const planet_row_signature_t *left, const planet_row_signature_t *right) {
+    int i;
+
+    if (left->output != right->output || left->amount != right->amount || left->route_count != right->route_count ||
+        left->needs_count != right->needs_count || left->flags != right->flags) {
+        return 0;
+    }
+    for (i = 0; i < left->needs_count; i++) {
+        if (left->need_flags[i] != right->need_flags[i] || left->need_resources[i] != right->need_resources[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void planet_refresh(planet_t *self) {
     const pointer_list_t *needs_list;
     const trade_route_list_t *by_list;
@@ -48,6 +106,8 @@ void planet_refresh(planet_t *self) {
     layout_row_t *layout_row_result = NULL;
     const allocator_t *slot;
     frame_zone_mark_t scratch;
+    int route_count;
+    planet_row_signature_t signature;
 
     if (self == NULL) {
         return;
@@ -61,11 +121,15 @@ void planet_refresh(planet_t *self) {
         mu = kw->amount;
     }
     by_list = (self->has & PLANET_HAS_OUTGOING_ROUTES) ? &self->outgoing_routes : NULL;
+    route_count = by_list != NULL ? trade_route_list_count(by_list) : 0;
+    signature = planet_row_signature(needs_list, has_output, output, mu, route_count);
+    if ((signature.flags & ROW_SIGNATURE_VALID) && planet_row_signature_equal(&signature, &self->layout_row_signature)) {
+        return;
+    }
 
     scratch = frame_zone_mark();
     slot = ui_zone_slot(SLOT_KIND_ROW);
-    if (research_display_planet_resource_row_keys(needs_list, has_output, output, mu,
-                                                  p8_fixed_from_int(by_list != NULL ? trade_route_list_count(by_list) : 0),
+    if (research_display_planet_resource_row_keys(needs_list, has_output, output, mu, p8_fixed_from_int(route_count),
                                                   p8_fixed_from_int(0), &keys)) {
         layout_row_result = layout_row_new(slot, &keys);
     } else {
@@ -77,6 +141,7 @@ void planet_refresh(planet_t *self) {
     }
     self->layout_row = layout_row_result;
     self->layout_row_slot = slot;
+    self->layout_row_signature = signature;
     frame_zone_rewind(scratch);
 }
 
@@ -88,6 +153,7 @@ void planet_release_row(entity_t *self) {
     }
     jo->layout_row = NULL;
     jo->layout_row_slot = NULL;
+    jo->layout_row_signature.flags = 0;
 }
 
 void planet_release_method(entity_t *self) {
@@ -349,15 +415,53 @@ void planet_projects_panel(planet_t *self) {
     message_box_open_box(&frame, bs, n);
 }
 
+static void planet_draw_on_screen(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos);
+
+#define PLANET_DISC_RADIUS 7
+#define PLANET_RING_RADIUS 6
+
+static int planet_images_built;
+
+static void planet_draw_disc_image(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    (void)context;
+    p8_circfill(gfx, mem, PLANET_DISC_RADIUS, PLANET_DISC_RADIUS, PLANET_DISC_RADIUS, 0);
+}
+
+static void planet_draw_ring_image(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    p8_circ(gfx, mem, PLANET_RING_RADIUS, PLANET_RING_RADIUS, PLANET_RING_RADIUS, *(const int *)context);
+}
+
+/* Draws no visual random number and reads no game state: the image cache's rule. */
+static void planet_build_images(p8_graphics_t *gfx, p8_vram_t *mem) {
+    const int_seq_t *ring_colors = planet_ring_colors();
+    int index;
+
+    assert(gfx->fillp_pattern == 0 && "planet images are built with no fill pattern");
+    if (planet_images_built) {
+        return;
+    }
+    p8_image_build(gfx, mem, IMAGE_SLOT_PLANET_DISC, 2 * PLANET_DISC_RADIUS + 1, 2 * PLANET_DISC_RADIUS + 1,
+                   planet_draw_disc_image, NULL);
+    assert(ring_colors->count == PLANET_RING_COLORS_COUNT);
+    for (index = 0; index < PLANET_RING_COLORS_COUNT; index++) {
+        p8_image_build(gfx, mem, IMAGE_SLOT_PLANET_RING_FIRST + index, 2 * PLANET_RING_RADIUS + 1,
+                       2 * PLANET_RING_RADIUS + 1, planet_draw_ring_image, (void *)&ring_colors->items[index]);
+    }
+    planet_images_built = 1;
+}
+
 void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
+    if (self == NULL || !entity_geom_is_on_screen((const entity_t *)self)) {
+        return;
+    }
+    planet_draw_on_screen(graphics, memory, self, screen_pos);
+}
+
+static void planet_draw_on_screen(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec_t screen_pos) {
     vec_t shaken_pos;
     int screen_x;
     int screen_y;
     int spr_index = 43;
-
-    if (self == NULL || !entity_geom_is_on_screen((const entity_t *)self)) {
-        return;
-    }
 
     /* Everything below draws at shaken_pos, never at screen_pos. */
     shaken_pos = entity_geom_shake(screen_pos, (entity_t *)self);
@@ -372,7 +476,12 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
     screen_x = p8_fixed_flr_int(shaken_pos.x);
     screen_y = p8_fixed_flr_int(shaken_pos.y);
 
-    p8_circfill(graphics, memory, screen_x, screen_y, 7, 0);
+    if (graphics->fillp_pattern == 0) {
+        planet_build_images(graphics, memory);
+        p8_image_draw(graphics, memory, IMAGE_SLOT_PLANET_DISC, screen_x - PLANET_DISC_RADIUS, screen_y - PLANET_DISC_RADIUS);
+    } else {
+        p8_circfill(graphics, memory, screen_x, screen_y, PLANET_DISC_RADIUS, 0);
+    }
 
     hud_select_palette_block(memory, (self->header.class->lineage & LINEAGE(LINEAGE_TRADING_HUB)) ? self->palette_block : p8_fixed_from_int(0));
     p8_palt(memory, 3, 0);
@@ -389,8 +498,13 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
     if (planet_is_colonized(self)) {
         int mi = p8_fixed_flr_int(self->has_development_tier ? self->development_tier : p8_fixed_from_int(0));
         int color = 0;
-        int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, mi, &color);
-        p8_circ(graphics, memory, screen_x, screen_y, 6, color);
+        if (int_seq_at(planet_ring_colors()->items, planet_ring_colors()->count, mi, &color) && graphics->fillp_pattern == 0) {
+            planet_build_images(graphics, memory);
+            p8_image_draw(graphics, memory, IMAGE_SLOT_PLANET_RING_FIRST + mi - 1, screen_x - PLANET_RING_RADIUS,
+                          screen_y - PLANET_RING_RADIUS);
+        } else {
+            p8_circ(graphics, memory, screen_x, screen_y, PLANET_RING_RADIUS, color);
+        }
         p8_spr_default(graphics, memory, mi + 1, screen_x - 3, screen_y - 6);
     }
 
@@ -402,8 +516,7 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
         if (self->layout_row != NULL) {
             vec_t offset =
                 vec_add(shaken_pos, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(7)));
-            assert(self->layout_row->header.class->draw_at != NULL && "a layout row has a draw_at method");
-            self->layout_row->header.class->draw_at(&self->layout_row->header, offset, P8_FIXED_LIT(0x00008000, 0.5));
+            row_image_draw_at(graphics, memory, self->layout_row, offset, P8_FIXED_LIT(0x00008000, 0.5));
         }
     }
 
@@ -439,7 +552,9 @@ down_t planet_accept_drop_method(entity_t *self, const entity_t *s) {
 }
 
 void planet_draw_method(entity_t *self, vec_t screen_pos) {
-    planet_draw(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
+    assert(self->class->skip_draw_off_screen && entity_geom_is_on_screen(self) &&
+           "planet_draw_method trusts draw_layers' cull: only a class with skip_draw_off_screen may use it");
+    planet_draw_on_screen(dispatch_context_gfx(), dispatch_context_mem(), (planet_t *)self, screen_pos);
 }
 
 down_t planet_left_press_method(entity_t *self, mouse_pos_t mouse) {

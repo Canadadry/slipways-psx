@@ -1,13 +1,22 @@
-/* src/cmd/psx_replay.c's loop and TTY protocol, drawn through the GPU backend wrapped by the draw
- * filter and the meter instead of into the RAM framebuffer: the same lines minus the "psx-digest: "
- * ones, plus
+/* src/cmd/psx_replay.c's loop and TTY protocol, drawn through the GPU backend instead of into the
+ * RAM framebuffer: the same lines minus the "psx-digest: " ones, plus
  *   psx-replay: backend gpu
- * after the format line, and
+ *   psx-replay: draw-filter on|off
+ *   psx-replay: draw-meter on|off
+ * after the format line,
+ *   psx-replay: gpu-peak bytes <b> cluts <c> patterns <p> build <k>
+ * (psx_gpu_peaks) before the done line, never on a p8_fatal, and
  *   psx-replay: capture <frame> <mask hex>
  * at each frame the capture script (platform/psx_capture_protocol.h) asks for, plus the frame times
  * (devtools/frame_times.h) behind "psx-frame: ": the calibration line before the first frame, then
  * every frame's line before the done line, or before the stopped state on a p8_fatal. Without a
  * capture script driving the handshake it waits forever before the first frame.
+ * Built with PSX_GPU_REPLAY_DRAW_FILTER (make psx-check), the draw filter sits on the backend (under
+ * the meter when both are built) and masks each captured frame; without it, a masked capture is a
+ * p8_fatal.
+ * Built with PSX_GPU_REPLAY_DRAW_METER (make psx-check), the meter wraps the backend and each frame's
+ * metered bytes are its byte limit; without it, the meter's state stays empty (zero gpu_* lines) and
+ * the limit is the whole buffer.
  * Built with PSX_GPU_REPLAY_BREAKDOWN (psx-gpu-replay-breakdown), it also times every backend call
  * per draw family (devtools/draw_timing.h) and writes, after the "psx-frame: " lines, the fine
  * clock's calibration then one line per frame behind "psx-draw: ".
@@ -27,6 +36,7 @@
 #include "p8/draw_backend.h"
 #include "p8/draw_meter.h"
 #include "p8/gfx.h"
+#include "p8/gpu_sizes.h"
 #include "p8/input.h"
 #include "p8/sprite_sheet.h"
 #include "p8/vram.h"
@@ -52,11 +62,82 @@ typedef struct {
     unsigned mask;
 } capture_request_t;
 
+#ifdef PSX_GPU_REPLAY_DRAW_FILTER
+static const char DRAW_FILTER_MODE[] = "on";
+
+static void filter_install(void) {
+    draw_filter_install();
+}
+
+static void filter_set_mask(unsigned mask) {
+    draw_filter_set_mask(mask);
+}
+
+static void filter_frame_end(void) {
+    draw_filter_frame_end();
+}
+
+static capture_request_t filter_check_capture(capture_request_t request) {
+    return request;
+}
+#else
+static const char DRAW_FILTER_MODE[] = "off";
+
+static void filter_install(void) {
+}
+
+static void filter_set_mask(unsigned mask) {
+    (void)mask;
+}
+
+static void filter_frame_end(void) {
+}
+
+static capture_request_t filter_check_capture(capture_request_t request) {
+    if (request.frame != PSX_CAPTURE_NO_FRAME && request.mask != DRAW_FILTER_ALL) {
+        char message[96];
+        snprintf(message, sizeof message, "capture mask %04x at frame %u needs PSX_GPU_REPLAY_DRAW_FILTER",
+                 request.mask, (unsigned)request.frame);
+        p8_fatal(message);
+    }
+    return request;
+}
+#endif
+
+#ifdef PSX_GPU_REPLAY_DRAW_METER
+static const char DRAW_METER_MODE[] = "on";
+
+static void meter_install(void) {
+    p8_draw_meter_install();
+}
+
+static void meter_frame_end(void) {
+    p8_draw_meter_frame_end();
+}
+
+/* After meter_frame_end. */
+static unsigned long meter_frame_limit(void) {
+    return p8_draw_meter_last_frame().bytes;
+}
+#else
+static const char DRAW_METER_MODE[] = "off";
+
+static void meter_install(void) {
+}
+
+static void meter_frame_end(void) {
+}
+
+static unsigned long meter_frame_limit(void) {
+    return GPU_FRAME_BUFFER_BYTES;
+}
+#endif
+
 static capture_request_t capture_wait_next(void) {
     while (*CAPTURE_WORD(PSX_CAPTURE_STATE_OFFSET) != PSX_CAPTURE_NEXT_READY) {
     }
     capture_request_t request = { *CAPTURE_WORD(PSX_CAPTURE_FRAME_OFFSET), *CAPTURE_WORD(PSX_CAPTURE_MASK_OFFSET) };
-    return request;
+    return filter_check_capture(request);
 }
 
 static capture_request_t capture_start(void) {
@@ -175,6 +256,8 @@ int main(void) {
     format_self_test(format_line);
     psx_tty_printf("psx-replay: format %s\n", format_line);
     psx_tty_printf("psx-replay: backend gpu\n");
+    psx_tty_printf("psx-replay: draw-filter %s\n", DRAW_FILTER_MODE);
+    psx_tty_printf("psx-replay: draw-meter %s\n", DRAW_METER_MODE);
 
     static p8_vram_t memory;
     p8_vram_init(&memory);
@@ -196,8 +279,8 @@ int main(void) {
 
     psx_exit_set_hook(write_stopped_state);
     p8_draw_backend_set(psx_gpu_backend());
-    draw_filter_install();
-    p8_draw_meter_install();
+    filter_install();
+    meter_install();
     psx_gpu_frame_begin(0);
     cart_load();
     cart_init();
@@ -225,13 +308,13 @@ int main(void) {
         cart_update60();
         marks[1] = psx_frame_timer_read();
         int captured = capture.frame == (uint32_t)g_frame;
-        draw_filter_set_mask(captured ? capture.mask : DRAW_FILTER_ALL);
+        filter_set_mask(captured ? capture.mask : DRAW_FILTER_ALL);
         cart_draw();
         marks[2] = psx_frame_timer_read();
-        p8_draw_meter_frame_end();
-        draw_filter_frame_end();
+        meter_frame_end();
+        filter_frame_end();
         breakdown_frame_end();
-        psx_gpu_frame_end(p8_draw_meter_last_frame().bytes);
+        psx_gpu_frame_end(meter_frame_limit());
         /* The capture handshake waits on the emulator: its time and vsyncs stay out of the frame's. */
         uint16_t capture_time = 0;
         uint32_t capture_vsyncs = 0;
@@ -258,6 +341,9 @@ int main(void) {
     frame_times_write(&frame_sink);
     breakdown_write();
     probe_write();
+    psx_gpu_peaks_t peaks = psx_gpu_peaks();
+    psx_tty_printf("psx-replay: gpu-peak bytes %lu cluts %d patterns %d build %lu\n", peaks.bytes, peaks.cluts, peaks.patterns,
+                   peaks.build_bytes);
     psx_tty_printf("psx-replay: done %s %d vsyncs %d\n", embedded_replay_name, input.frame_count, vsyncs);
     state_sink_t sink = psx_tty_state_sink();
     state_format(&sink);

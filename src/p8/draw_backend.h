@@ -16,6 +16,19 @@ typedef struct {
     void (*circfill)(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col);
     void (*spr)(const p8_graphics_t *gfx, p8_vram_t *mem, int n, int x, int y, int w, int h);
     void (*print)(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col);
+    void (*print_outlined)(const p8_graphics_t *gfx, p8_vram_t *mem, const char *str, int x, int y, int col);
+    /* Clears the slot's w x h, then routes the draw calls to it until image_end. */
+    void (*image_begin)(int slot, int w, int h);
+    /* The next calls draw at image origin (x, y): clipped to the screen size, then to the image. */
+    void (*image_window)(int slot, int x, int y);
+    void (*image_end)(int slot);
+    void (*image_draw)(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y);
+    /* Each segment exactly as line draws it, in list order, colour looked up as line does. A count
+     * of 0 draws nothing; segments is only read during the call. */
+    void (*lines)(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col);
+    /* Each point exactly as pset draws it, in list order, in its own colour. A count of 0 draws
+     * nothing; points is only read during the call. */
+    void (*psets)(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count);
 } p8_draw_backend_t;
 
 /* Process-wide, because p8_cls takes no graphics state. The table is static, never freed, and

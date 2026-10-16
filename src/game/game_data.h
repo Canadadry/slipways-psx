@@ -20,7 +20,8 @@ enum {
     PAUSE_MENU_COUNT = 4,
     DIFFICULTY_OPTIONS_COUNT = 4,
     SCORE_ROWS_COUNT = 12,
-    PLANET_MOOD_ROWS_COUNT = 4
+    PLANET_MOOD_ROWS_COUNT = 4,
+    PLANET_RING_COLORS_COUNT = 4
 };
 
 typedef struct {
@@ -174,6 +175,8 @@ typedef struct {
     int has_cost;
     state_t confirmed_state;
     p8_fixed_t clock_ticks;
+    /* 1 only when confirming changes no economy figure but the credits. */
+    int clock_skips_recompute;
 } targeting_archetype_t;
 
 typedef struct {
