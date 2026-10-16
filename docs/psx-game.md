@@ -904,6 +904,28 @@ frames) or `<name> resume <first> <last>` (a resume before the window
 5504–5552 starts without slipway transit dots, so it shows too little
 `pset`).
 
+**Steady runs.** Each steady situation with frames over 263 is to get a
+resumed run named `<situation>-<first>` whose window lies in it.
+`make steady-windows` (`tools/steady_windows.sh`, host-tested by
+`test_steady_windows`) joins `psx/perf/full-run-frames.txt` with
+`psx/perf/full-run-situations.txt` and ranks, per steady situation over, every
+window of `min(15, stretch length)` frames inside one stretch of it (a
+stretch: consecutive frames with that label) by frames over 263, then summed
+total, then first frame; a window with no frame over is never a candidate.
+It keeps up to three non-overlapping candidates: `candidate <situation>
+<rank> <first> <last> frames <n> over <o> mean-update <u> mean-draw <d>`, then
+`situation <name> frames-over <o> candidates <c>`. `make short-run-situations
+[PSX_SHORT_RUNS=<names>]` (host only) runs the cut, labels each run's
+`run.json` with `tmp/situations` into `<name>/situations.txt`, and
+`tools/short_run_situations.sh` (host-tested by `test_short_run_situations`)
+compares every window frame, through `map.txt`, with the committed table:
+`short-run-situation <name> same <situation>`, `differs frame <full> run
+<label> full <label>` (the first difference), `mixed <labels>` (the full
+window itself spans several labels) or `not-steady <label>`; the target fails
+unless every run is `same`. A run stands for its situation once it is `same`
+and `psx-short-runs` against the full game's frame table gives
+`representative ok`.
+
 **Cut.** `make psx-short-runs-cut` (host only) replays `full_game.json` with
 `tmp/short_run_cut` (`src/devtools/short_run_cut.c`, pure, host-tested by
 `test_short_run_cut`), which observes every storage write and writes per run
@@ -1189,7 +1211,12 @@ family each), `one-off-runs` (no `long` run).
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out
   lower than in the full run. `done`, `deterministic`, `breakdown` and
-  `asserts` hold. The cut rule and the windows are not loosened.
+  `asserts` hold. The cut rule and the windows are not loosened. The first
+  steady try, `map-rest-5538` (window 5538–5552, cut 5500), is labelled
+  `same map-rest` but draws 27.5% less (3,465 vs 4,779; update −4.2%): on PC
+  its window has half the `pset` calls (2,700 vs 5,386, no transit dots after
+  the resume), 14 `circ` calls instead of 59 and fewer `rectfill` and `print`;
+  it is not in the manifest.
 
 - The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
   `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in

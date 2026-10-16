@@ -734,6 +734,18 @@
 #                       verdicts frame-count, families, one-off-runs (defaults
 #                       psx/perf/full-run-frames.txt and
 #                       psx/perf/full-run-situations.txt), outside the suite
+# make steady-windows [FRAMES=<frame table>] [SITUATIONS=<situation table>]
+#                       -> tools/steady_windows.sh on the two tables (same
+#                       defaults), budget 263, windows of 15, 3 candidates:
+#                       per steady situation over, its candidate windows,
+#                       outside the suite
+# make short-run-situations [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut
+#                       and builds tmp/situations, then per run labels its
+#                       run.json into <run>/situations.txt and checks with
+#                       tools/short_run_situations.sh that every window frame
+#                       carries the full game's steady situation of
+#                       psx/perf/full-run-situations.txt; fails when a run is
+#                       not "same"; never boots, outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -1088,6 +1100,12 @@ $(TMP_DIR)/test_situation_table: $(call objs,tests/test_situation_table.c src/de
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_situation_report: $(call objs,tests/test_situation_report.c) tools/situation_report.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_steady_windows: $(call objs,tests/test_steady_windows.c) tools/steady_windows.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_short_run_situations: $(call objs,tests/test_short_run_situations.c) tools/short_run_situations.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_situations: $(call objs,tests/test_situations.c) $(TMP_DIR)/situations tests/e2e/pad_score.json tests/e2e/pad_probe.json tests/e2e/pad_game_end.json pico8/demo_record.hex | $(TMP_DIR)
@@ -1858,7 +1876,7 @@ unit: $(UNIT_RUNS)
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
 	test_psx_full_game_check test_psx_frame_budget test_psx_real_game_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
-	test_psx_probe test_psx_opt_level
+	test_psx_probe test_psx_opt_level test_steady_windows test_short_run_situations
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
@@ -2119,7 +2137,10 @@ situations-check: $(TMP_DIR)/situations
 situation-report:
 	@sh tools/situation_report.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) $(or $(SITUATIONS),$(SITUATIONS_TABLE))
 
-.PHONY: situations situations-check situation-report
+steady-windows:
+	@sh tools/steady_windows.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) $(or $(SITUATIONS),$(SITUATIONS_TABLE)) 263 15 3
+
+.PHONY: situations situations-check situation-report steady-windows
 
 WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
 
@@ -2530,6 +2551,21 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 		fi; \
 	done; \
 	exit $$failed
+
+short-run-situations: psx-short-runs-cut $(TMP_DIR)/situations tools/short_run_situations.sh $(SITUATIONS_TABLE)
+	@failed=; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '!/^[[:space:]]*(#|$$)/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		dir=$(PSX_SHORT_RUNS_DIR)/$$name; \
+		./$(TMP_DIR)/situations $$dir/run.json $$dir/situations.txt > $$dir/situations.log 2>&1 \
+			|| { echo "short-run-situation $$name failed: tmp/situations stopped ($$dir/situations.log)"; failed="$$failed $$name"; continue; }; \
+		line=$$(sh tools/short_run_situations.sh $$dir/situations.txt $$dir/map.txt $(SITUATIONS_TABLE)) \
+			|| { failed="$$failed $$name"; continue; }; \
+		echo "$$line"; \
+		case "$$line" in "short-run-situation $$name same "*) ;; *) failed="$$failed $$name" ;; esac; \
+	done; \
+	if [ -n "$$failed" ]; then echo "short-run-situations: failed:$$failed"; exit 1; fi
+
+.PHONY: short-run-situations
 
 PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
 PSX_SHORT_RUN_CEILING ?= 1080
