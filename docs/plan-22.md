@@ -240,3 +240,37 @@ table replaces `psx/perf/full-run-frames.txt` (6,059 frames). Red on
 vsyncs (plan 21: 3,992); mean frame 233.6 (plan 21: 233.6). No drift: the
 old committed table predated D8. Over-budget frames: draw 424,627 of
 598,793, mean overrun 76 hblanks. No deviation, no guideline decision.
+
+### Step 1.2
+
+`make situations` labels every frame of `full_game.json` from two game
+snapshots (`src/devtools/situation.c`, `src/cmd/situations.c`); table
+committed at `psx/perf/full-run-situations.txt` (6,059 frames), checked by
+`make situations-check`; rule in `docs/psx-game.md` § Situations, frozen;
+`test_situation_table` holds the hand-picked frames (one per situation
+present) in one list for step 6. `make situation-report` on step 1's table
+(frames / over 263 / mean update / mean draw):
+
+- steady: map-rest 1,564 / 429 / 41 / 168; map-move 1,907 / 388 / 41 /
+  160; build 366 / 155 / 36 / 215; menu 252 / 91 / 29 / 203; slipway-aim
+  111 / 41 / 73 / 189; tech-panel 47 / 21 / 31 / 242; score-panel 17 / 8 /
+  98 / 192; title 12 / 0. Steady frames over: 1,133.
+- one-off (frames / over / occurrences / longest run): screen-change
+  1,460 / 460 / 353 / 31; slipway-built 166 / 82 / 34 / 14; colonise 74 /
+  32 / 18 / 11; new-year 61 / 36 / 24 / 11; structure-built 10 / 10 / 10 /
+  1; research 9 / 9 / 9 / 1; galaxy-generation, game-end, probe 1 each.
+  One-off frames over: 631. `return-to-title`, `pause`, `attract` do not
+  occur in `full_game.json`.
+
+Guideline decisions: the "long" bound is 31 frames, not the PRD's 30 — a
+planet project's burst sets the camera shake to 3, decaying 0.1 a frame
+(30 frames) plus the event frame; full_game has two such `screen-change`
+runs, at f4952 and f5339; no burst event added, shake continuation kept.
+`screen-change` (a panel sliding in or out, 5–18 frames per action) stays
+one-off although it covers 24% of the frames. A stretch of one one-off
+label counts as one occurrence (event frames are not marked; can only
+over-flag). Deviation: the table's default output is
+`tmp/situations-table/`, since `tmp/situations` is the binary. A
+pre-existing bug surfaced (pad_author's self-check failed since plan 10
+on the draw-meter lines), fixed in its own `fix:` commit with a
+`pad-author-self-check` in `make test`.
