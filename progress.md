@@ -43,7 +43,7 @@
     - [x] Chunk 1 — one write path for layers
     - [x] Chunk 2 — kept layer order and the walk
     - [x] Chunk 3 — close: short runs, RAM, zones
-  - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
+  - [x] Step 3.11 — D8 disc and ring baked into the planet sprite
     - [x] Chunk 0 — gross probes, capture check
     - [x] Chunk 1 — five small image slots
     - [x] Chunk 2 — planet_draw copies disc and ring, measured
