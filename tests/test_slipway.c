@@ -776,7 +776,8 @@ static void test_draw_line_flushes_every_four_segments_and_the_rest(void) {
     p8_camera(&graphics, p8_fixed_flr_int(camera.x), p8_fixed_flr_int(camera.y));
     p8_cls(&memory);
     const p8_draw_backend_t *previous = spy_on_lines();
-    slipway_draw_line(&graphics, &memory, as_slipway(old), p8_fixed_from_int(0), p8_fixed_from_int(2), p8_fixed_from_int(1), 7);
+    slipway_draw_line(&graphics, &memory, slipway_line_ends(as_slipway(old)), p8_fixed_from_int(0), p8_fixed_from_int(2),
+                      p8_fixed_from_int(1), 7);
     p8_draw_backend_set(previous);
     memcpy(batched, memory.screen, sizeof batched);
     assert(screen_hash() != 2166136261u);
@@ -795,6 +796,48 @@ static void test_draw_line_flushes_every_four_segments_and_the_rest(void) {
     assert(spied[0].col == 7 && spied[2].col == 7);
     assert_offsets(&spied[0], 3, 1, 0);
     assert(spied[2].segments[0].x1 - spied[0].segments[0].x1 == 2 && spied[2].segments[0].y1 - spied[0].segments[0].y1 == 2);
+}
+
+/* The end points as the per-call computation gave them: each end wobbles on its own period. */
+static slipway_line_ends_t ends_as_before(const slipway_t *self) {
+    p8_fixed_t t = self->header.state_time;
+    slipway_line_ends_t ends;
+    ends.start = vec_add(slipway_end_pos(slipway_start(self)),
+                         vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(126))));
+    ends.end = vec_add(slipway_end_pos(slipway_end(self)),
+                       vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
+    return ends;
+}
+
+/* Both bundles of a draw start from the end points computed once, at every state time. */
+static void test_draw_bundles_start_from_the_line_ends_at_every_state_time(void) {
+    static const int times[] = {0, 1, 37, 63, 126, 176, 500, 2771, 9001};
+    void *old;
+
+    world();
+    old = the_slipway();
+    for (size_t i = 0; i < sizeof times / sizeof times[0]; i++) {
+        slipway_t *self = as_slipway(old);
+        self->header.state_time = p8_fixed_from_int(times[i]);
+        slipway_line_ends_t want = ends_as_before(self);
+        slipway_line_ends_t got = slipway_line_ends(self);
+        assert(got.start.x == want.start.x && got.start.y == want.start.y);
+        assert(got.end.x == want.end.x && got.end.y == want.end.y);
+
+        const p8_draw_backend_t *previous = spy_on_lines();
+        p8_cls(&memory);
+        slipway_draw(&graphics, &memory, self);
+        p8_draw_backend_set(previous);
+        assert(spied_batches == 2);
+        for (int b = 0; b < 2; b++) {
+            int l = b == 0 ? -1 : 0;
+            const p8_segment_t *first = &spied[b].segments[0];
+            assert(first->x1 == p8_fixed_flr_int(p8_fixed_add(want.start.x, p8_fixed_from_int(l))));
+            assert(first->y1 == p8_fixed_flr_int(p8_fixed_add(want.start.y, p8_fixed_from_int(l))));
+            assert(first->x2 == p8_fixed_flr_int(p8_fixed_add(want.end.x, p8_fixed_from_int(l))));
+            assert(first->y2 == p8_fixed_flr_int(p8_fixed_add(want.end.y, p8_fixed_from_int(l))));
+        }
+    }
 }
 
 /* Beyond range: draw draws the line under the game's camera, draw_overlay
@@ -1344,6 +1387,7 @@ int main(void) {
     in_fresh_child(test_draw);
     in_fresh_child(test_draw_issues_one_lines_call_per_bundle_with_its_lines_in_order);
     in_fresh_child(test_draw_line_flushes_every_four_segments_and_the_rest);
+    in_fresh_child(test_draw_bundles_start_from_the_line_ends_at_every_state_time);
     in_fresh_child(test_targeting_track);
     in_fresh_child(test_targeting_track_takes_the_first_slipway_of_entities_by_tag);
     in_fresh_child(test_too_far);

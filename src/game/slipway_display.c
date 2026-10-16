@@ -48,30 +48,24 @@ void slipway_spawn_transit_dot(slipway_t *self, const entity_t *f, const entity_
     }
 }
 
-void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, const slipway_t *self, p8_fixed_t l,
-                  p8_fixed_t h, p8_fixed_t s, int c) {
-    entity_t *qu;
-    entity_t *re;
-    p8_fixed_t t;
-    vec_t start_point;
-    vec_t end_point;
-    p8_fixed_t dx;
+slipway_line_ends_t slipway_line_ends(const slipway_t *self) {
+    p8_fixed_t t = self->header.state_time;
+    slipway_line_ends_t ends;
+    ends.start = vec_add(slipway_end_pos(slipway_start(self)),
+                         vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(126))));
+    ends.end = vec_add(slipway_end_pos(slipway_end(self)),
+                       vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
+    return ends;
+}
 
-    if (self == NULL) {
-        return;
-    }
+void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, slipway_line_ends_t ends, p8_fixed_t l, p8_fixed_t h,
+                       p8_fixed_t s, int c) {
+    vec_t start_point = ends.start;
+    vec_t end_point = ends.end;
+    p8_fixed_t dx;
 
     assert(s > p8_fixed_from_int(0) && "slipway_draw_line only ascends: a zero step hangs, a negative one draws nothing");
     assert(gfx != NULL && mem != NULL && "p8_lines dereferences the graphics state and memory: neither may be NULL here");
-
-    qu = slipway_start(self);
-    re = slipway_end(self);
-    t = self->header.state_time;
-
-    start_point = vec_add(slipway_end_pos(qu),
-                           vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(126))));
-    end_point = vec_add(slipway_end_pos(re),
-                           vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
 
     p8_segment_t bundle[4];
     int count = 0;
@@ -135,10 +129,11 @@ void slipway_draw(const p8_graphics_t *graphics, p8_vram_t *memory, slipway_t *s
         border_color = infraspace_truthy ? fade_color : p8_fixed_from_int(0);
         dot_color = infraspace_truthy ? p8_fixed_from_int(5) : p8_fixed_from_int(13);
 
-        slipway_draw_line(graphics, memory, self, p8_fixed_from_int(-1), p8_fixed_from_int(2), p8_fixed_from_int(3),
-                    to_int(border_color));
-        slipway_draw_line(graphics, memory, self, p8_fixed_from_int(0), p8_fixed_from_int(1), p8_fixed_from_int(1),
-                    to_int(line_color));
+        slipway_line_ends_t ends = slipway_line_ends(self);
+        slipway_draw_line(graphics, memory, ends, p8_fixed_from_int(-1), p8_fixed_from_int(2), p8_fixed_from_int(3),
+                          to_int(border_color));
+        slipway_draw_line(graphics, memory, ends, p8_fixed_from_int(0), p8_fixed_from_int(1), p8_fixed_from_int(1),
+                          to_int(line_color));
 
         {
             pointer_list_t *ts = &self->transit_dots;
