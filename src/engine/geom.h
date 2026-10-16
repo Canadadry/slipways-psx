@@ -26,6 +26,10 @@ typedef struct {
 
 box_t *box_make(const allocator_t *zone, p8_fixed_t xl, p8_fixed_t yt, p8_fixed_t xr, p8_fixed_t yb);
 
-int box_contains(box_t box, vec_t p);
+/* mid(left, right, x) == x, written out so the hover loop's inline test makes no call. */
+static inline int box_contains(box_t box, vec_t p) {
+    return ((box.left <= p.x && p.x <= box.right) || (box.right <= p.x && p.x <= box.left)) &&
+           ((box.top <= p.y && p.y <= box.bottom) || (box.bottom <= p.y && p.y <= box.top));
+}
 
 #endif

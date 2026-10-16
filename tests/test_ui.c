@@ -23,6 +23,7 @@
 #include "game/cart.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity_registry.h"
+#include "engine/frame_zone.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/help.h"
@@ -819,6 +820,141 @@ static void test_hover_hands_the_mouse_by_value(void) {
     assert(!same_point(g_giver_mouse.screen, vec_make(0, 0)));
 }
 
+/* The hover a test walk expects: every entity of the hit-test bucket, in
+ * order, through its class's hit test. */
+typedef struct {
+    const entity_t *items[UI_HOVER_LAYERS][64];
+    int counts[UI_HOVER_LAYERS];
+    const entity_t *hovered;
+} hover_walk_t;
+
+static hover_walk_t walk_every_hit_test(mouse_pos_t mouse) {
+    const entity_list_t *bucket = entities_by_message(ENTITY_MESSAGE_HIT_TEST);
+    hover_walk_t out;
+    int i;
+
+    memset(&out, 0, sizeof out);
+    for (i = 0; i < bucket->count; i++) {
+        entity_t *e = bucket->items[i];
+        if (e->class->hit_test != NULL && e->class->hit_test(e, mouse)) {
+            if (entity_has(e, ENTITY_HAS_LAYER)) {
+                int layer = p8_fixed_flr_int(e->layer);
+                assert(out.counts[layer] < 64);
+                out.items[layer][out.counts[layer]++] = e;
+            }
+            out.hovered = e;
+        }
+    }
+    return out;
+}
+
+static void assert_hover_at(ui_t *ok, vec_t world, vec_t screen) {
+    mouse_t *mouse = main_mouse_typed();
+    hover_walk_t want;
+    frame_zone_mark_t mark = frame_zone_mark();
+    int layer;
+    int i;
+
+    entity_set_pos(&mouse->header, screen);
+    ok->mouse_world = world;
+    ok->has |= UI_HAS_MOUSE_WORLD;
+    want = walk_every_hit_test(mouse_pos(world, screen));
+    ui_update_hover(ok);
+    assert((const entity_t *)ui_hovered(ok) == want.hovered);
+    assert(want.hovered == NULL || want.hovered->is_hovered);
+    for (layer = 0; layer < UI_HOVER_LAYERS; layer++) {
+        assert(layer_count(ok, layer) == want.counts[layer]);
+        for (i = 0; i < want.counts[layer]; i++) {
+            assert((const entity_t *)entity_id_list_at(&ok->hovered_by_layer.layers[layer], i) == want.items[layer][i]);
+        }
+    }
+    frame_zone_rewind(mark);
+}
+
+/* Raw offsets around each box edge, so the inclusive bounds are crossed. */
+static void assert_hover_around(ui_t *ok, const entity_t *e, int on_screen) {
+    vec_t base = e->pos;
+    p8_fixed_t xs[7];
+    p8_fixed_t ys[7];
+    vec_t cam = checked_main_camera()->header.pos;
+    int i;
+    int j;
+
+    xs[0] = e->hit_box.left - 1;
+    xs[1] = e->hit_box.left;
+    xs[2] = e->hit_box.left + 1;
+    xs[3] = (e->hit_box.left + e->hit_box.right) / 2;
+    xs[4] = e->hit_box.right - 1;
+    xs[5] = e->hit_box.right;
+    xs[6] = e->hit_box.right + 1;
+    ys[0] = e->hit_box.top - 1;
+    ys[1] = e->hit_box.top;
+    ys[2] = e->hit_box.top + 1;
+    ys[3] = (e->hit_box.top + e->hit_box.bottom) / 2;
+    ys[4] = e->hit_box.bottom - 1;
+    ys[5] = e->hit_box.bottom;
+    ys[6] = e->hit_box.bottom + 1;
+    for (i = 0; i < 7; i++) {
+        for (j = 0; j < 7; j++) {
+            vec_t at = vec_add(base, vec_make(xs[i], ys[j]));
+            if (on_screen) {
+                assert_hover_at(ok, vec_add(at, cam), at);
+            } else {
+                assert_hover_at(ok, at, vec_sub(at, cam));
+            }
+        }
+    }
+}
+
+static void assert_hover_over_the_screen(ui_t *ok) {
+    vec_t cam = checked_main_camera()->header.pos;
+    int x;
+    int y;
+
+    for (y = -4; y < P8_SCREEN_HEIGHT + 4; y += 3) {
+        for (x = -4; x < P8_SCREEN_WIDTH + 4; x += 3) {
+            vec_t screen = vec_make(p8_fixed_from_int(x), p8_fixed_from_int(y));
+            assert_hover_at(ok, vec_add(screen, cam), screen);
+        }
+    }
+}
+
+/* Over planets, two overlapping planet boxes, their edge points, a button
+ * above them and then a backdrop above everything, under a camera off the
+ * origin: the hover pass matches a walk calling every entity's hit test. */
+static void test_hover_matches_a_walk_of_every_hit_test(void) {
+    ui_t *ok = start_game();
+    camera_t *camera;
+    planet_t *planet;
+    planet_t *other;
+    button_t *button;
+    int x;
+    int y;
+
+    mouse_at(80, 96, 0);
+    ui_update(&memory, ok);
+    camera = main_camera_typed();
+    assert(camera != NULL);
+    entity_set_pos(&camera->header, vec_add(camera->header.pos, vec_make(P8_FIXED_LIT(0x00038000, 3.5), P8_FIXED_LIT(0x00024000, 2.25))));
+    assert(camera->header.pos.x != 0 && camera->header.pos.y != 0);
+    planet = planet_on_screen(&x, &y);
+    other = nearest_to(planet);
+    entity_set_pos(&other->header, vec_add(planet->header.pos, vec_make(p8_fixed_from_int(3), p8_fixed_from_int(2))));
+    button = button_new(NULL);
+    entity_set_pos(&button->header, vec_sub(planet->header.pos, camera->header.pos));
+    entity_registry_set_layer(&button->header, p8_fixed_from_int(12));
+    assert(entity_list_listed(entities_by_message(ENTITY_MESSAGE_HIT_TEST), button));
+
+    assert_hover_around(ok, &planet->header, 0);
+    assert_hover_around(ok, &other->header, 0);
+    assert_hover_around(ok, &button->header, 1);
+    assert_hover_over_the_screen(ok);
+
+    (void)modal_backdrop_new(NULL);
+    assert_hover_around(ok, &planet->header, 0);
+    assert_hover_over_the_screen(ok);
+}
+
 typedef struct {
     entity_t header;
 } replacer_t;
@@ -1257,6 +1393,7 @@ int main(void) {
     in_fresh_child(test_release_frees_the_owned_slot);
     in_fresh_child(test_press_that_replaces_the_ephemerals_keeps_them);
     in_fresh_child(test_hover_hands_the_mouse_by_value);
+    in_fresh_child(test_hover_matches_a_walk_of_every_hit_test);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_aborts_on_other_classes);
     in_fresh_child(test_set_left_held_sets_and_clears);

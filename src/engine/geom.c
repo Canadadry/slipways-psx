@@ -39,7 +39,3 @@ box_t *box_make(const allocator_t *zone, p8_fixed_t xl, p8_fixed_t yt,
     box->bottom = yb;
     return box;
 }
-
-int box_contains(box_t box, vec_t p) {
-    return p8_fixed_mid(box.left, box.right, p.x) == p.x && p8_fixed_mid(box.top, box.bottom, p.y) == p.y;
-}

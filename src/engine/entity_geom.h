@@ -6,6 +6,23 @@
 #include "engine/entity_class.h"
 #include "engine/vec.h"
 
+/* The body of entity_geom_contains_cursor, inline so the hover loop makes no call. */
+static inline int entity_geom_contains_cursor_inline(const entity_t *e, mouse_pos_t mouse) {
+    vec_t chosen;
+    vec_t point;
+
+    if (e == NULL || !entity_has(e, ENTITY_HAS_HIT_BOX)) {
+        return 0;
+    }
+    chosen = (entity_has(e, ENTITY_HAS_LAYER) && e->layer >= P8_FIXED_INT(10)) ? mouse_pos_screen(mouse) : mouse_pos_world(mouse);
+    point = chosen;
+    if (entity_has(e, ENTITY_HAS_POS)) {
+        point.x = (p8_fixed_t)((uint32_t)chosen.x - (uint32_t)e->pos.x);
+        point.y = (p8_fixed_t)((uint32_t)chosen.y - (uint32_t)e->pos.y);
+    }
+    return box_contains(e->hit_box, point);
+}
+
 int entity_geom_contains_cursor(const entity_t *e, mouse_pos_t mouse);
 
 int entity_geom_is_on_screen(const entity_t *e);

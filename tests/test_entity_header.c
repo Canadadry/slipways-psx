@@ -297,6 +297,62 @@ static void test_contains_cursor_picks_the_point_by_layer(void) {
     assert(!entity_geom_contains_cursor(&e, absent_outside));
 }
 
+/* The cursor test as the cart wrote it: mid() on each axis of the point
+ * taken by layer, minus the position, each absent part reading as zero. */
+static int cart_contains_cursor(const entity_t *e, mouse_pos_t mouse) {
+    p8_fixed_t layer = entity_has(e, ENTITY_HAS_LAYER) ? e->layer : 0;
+    int screen = layer >= p8_fixed_from_int(10);
+    int has_point = (mouse.has & (screen ? MOUSE_POS_HAS_SCREEN : MOUSE_POS_HAS_WORLD)) != 0;
+    vec_t chosen = has_point ? (screen ? mouse.screen : mouse.world) : vec_make(0, 0);
+    vec_t point = vec_sub(chosen, entity_has(e, ENTITY_HAS_POS) ? e->pos : vec_make(0, 0));
+
+    return entity_has(e, ENTITY_HAS_HIT_BOX) && p8_fixed_mid(e->hit_box.left, e->hit_box.right, point.x) == point.x &&
+           p8_fixed_mid(e->hit_box.top, e->hit_box.bottom, point.y) == point.y;
+}
+
+/* The inline cursor test the hover loop runs, and the function wrapping it,
+ * answer as the cart's test on and around a reversed box's edges, with and
+ * without layer, position, hit box or mouse points. */
+static void test_inline_contains_cursor_answers_as_the_function(void) {
+    static const entity_class_t plain_class = {0};
+    static const uint16_t parts[] = {0, ENTITY_HAS_HIT_BOX, ENTITY_HAS_HIT_BOX | ENTITY_HAS_LAYER,
+                                     ENTITY_HAS_HIT_BOX | ENTITY_HAS_LAYER | ENTITY_HAS_POS};
+    static const int layers[] = {9, 10};
+    static const uint16_t mice[] = {0, MOUSE_POS_HAS_WORLD, MOUSE_POS_HAS_SCREEN, MOUSE_POS_HAS_WORLD | MOUSE_POS_HAS_SCREEN};
+    entity_t e;
+    size_t p;
+    size_t l;
+    size_t m;
+    int dx;
+    int dy;
+    int agreed_inside = 0;
+
+    assert(!entity_geom_contains_cursor_inline(NULL, (mouse_pos_t){0}));
+    for (p = 0; p < sizeof parts / sizeof parts[0]; p++) {
+        for (l = 0; l < sizeof layers / sizeof layers[0]; l++) {
+            entity_init_header(&e, &plain_class);
+            e.hit_box = (box_t){p8_fixed_from_int(4), p8_fixed_from_int(-2), p8_fixed_from_int(-3), p8_fixed_from_int(5)};
+            e.pos = vec_make(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_from_int(-7));
+            e.layer = p8_fixed_from_int(layers[l]);
+            e.has |= parts[p];
+            for (m = 0; m < sizeof mice / sizeof mice[0]; m++) {
+                for (dy = -10 * 65536; dy <= 10 * 65536; dy += 32768 + 1) {
+                    for (dx = -10 * 65536; dx <= 10 * 65536; dx += 32768 - 1) {
+                        vec_t a = vec_make(dx, dy);
+                        vec_t b = vec_make(dy, dx);
+                        mouse_pos_t mouse = {.world = a, .screen = b, .has = mice[m]};
+                        int want = cart_contains_cursor(&e, mouse);
+                        assert(entity_geom_contains_cursor_inline(&e, mouse) == want);
+                        assert(entity_geom_contains_cursor(&e, mouse) == want);
+                        agreed_inside += want;
+                    }
+                }
+            }
+        }
+    }
+    assert(agreed_inside > 0);
+}
+
 int main(int argc, char **argv) {
     (void)argc;
     rerun_with_malloc_filling(argv);
@@ -317,6 +373,7 @@ int main(int argc, char **argv) {
     test_mouse_point_has_null_links();
     test_position_readers();
     test_contains_cursor_picks_the_point_by_layer();
+    test_inline_contains_cursor_answers_as_the_function();
 
     printf("test_entity_header: all tests passed\n");
     return 0;

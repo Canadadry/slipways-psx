@@ -21,14 +21,7 @@ static vec_t map_pos_of(const entity_t *e) {
 }
 
 int entity_geom_contains_cursor(const entity_t *e, mouse_pos_t mouse) {
-    p8_fixed_t fa = e != NULL && entity_has(e, ENTITY_HAS_LAYER) ? e->layer : p8_fixed_from_int(0);
-    vec_t chosen = (fa >= p8_fixed_from_int(10)) ? mouse_pos_screen(mouse) : mouse_pos_world(mouse);
-    vec_t point = vec_sub(chosen, pos_of(e));
-
-    if (e != NULL && entity_has(e, ENTITY_HAS_HIT_BOX)) {
-        return box_contains(e->hit_box, point);
-    }
-    return 0;
+    return entity_geom_contains_cursor_inline(e, mouse);
 }
 
 int entity_geom_is_on_screen(const entity_t *e) {

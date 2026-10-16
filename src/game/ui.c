@@ -7,6 +7,7 @@
 #include "engine/exit_queue.h"
 #include "engine/entity.h"
 #include "engine/entity_id.h"
+#include "engine/entity_geom.h"
 #include "game/mouse_button.h"
 #include "game/planet_family.h"
 #include "game/scroll.h"
@@ -321,6 +322,15 @@ void ui_draw_overlay(const p8_graphics_t *gfx, p8_vram_t *mem, const ui_t *self)
     }
 }
 
+static inline int ui_hit_test(entity_t *e, mouse_pos_t mouse) {
+    int (*hit_test)(entity_t *, mouse_pos_t) = e->class->hit_test;
+
+    if (hit_test == planet_hit_test_method) {
+        return entity_geom_contains_cursor_inline(e, mouse);
+    }
+    return hit_test != NULL && hit_test(e, mouse);
+}
+
 void ui_update_hover(ui_t *self) {
     mouse_pos_t mouse;
     const entity_list_t *hit_test_bucket;
@@ -344,7 +354,7 @@ void ui_update_hover(ui_t *self) {
     for (index = 0; index < hit_test_bucket->count; index++) {
         entity_t *e = hit_test_bucket->items[index];
 
-        if (e->class->hit_test != NULL && e->class->hit_test(e, mouse)) {
+        if (ui_hit_test(e, mouse)) {
             if (entity_has(e, ENTITY_HAS_LAYER)) {
                 int fa = ui_to_int(e->layer);
 
