@@ -7,6 +7,7 @@ all 100 all
 pset 131 cls,pset
 all 188 all
 pattern 190 cls,rectfill,circfill,pattern
+all 233 all
 spr 234 cls,spr
 pattern 257 cls,rectfill,circfill,pattern
 circfill 263 cls,line,circfill
