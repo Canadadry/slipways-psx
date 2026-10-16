@@ -1455,6 +1455,9 @@ $(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/rep
 $(TMP_DIR)/test_pad_nav: $(call objs,tests/test_pad_nav.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pad_panel: $(call objs,tests/test_pad_panel.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pad_target: $(call objs,tests/test_pad_target.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1764,6 +1767,7 @@ UNIT_TESTS := \
     test_main_economy \
     test_input_step \
     test_pad_nav \
+    test_pad_panel \
     test_psx_gpu_textures \
     test_psx_clut_cache \
     test_psx_sprite \

@@ -34,6 +34,7 @@ static unsigned g_layer_order_mutations;
 static entity_list_t g_live_entities;
 static entity_t *g_main_camera = NULL;
 static int g_initialized = 0;
+static unsigned g_generation;
 
 static const entity_class_t main_camera_placeholder_class_def = {0};
 
@@ -52,6 +53,7 @@ void entity_registry_shutdown(void) {
     int i;
 
     layer_orders_reset();
+    g_generation++;
     if (!g_initialized) {
         return;
     }
@@ -120,6 +122,7 @@ void entity_registry_forget_registries(void) {
 
     entity_id_table_forget();
     layer_orders_reset();
+    g_generation++;
     forget_list(&g_live_entities);
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
         forget_list(&g_entities_by_message[i]);
@@ -128,6 +131,10 @@ void entity_registry_forget_registries(void) {
         forget_list(&g_entities_by_tag[i].list);
         g_entities_by_tag[i].seen = 0;
     }
+}
+
+unsigned entity_registry_generation(void) {
+    return g_generation;
 }
 
 const entity_list_t *live_entities(void) {
@@ -241,6 +248,8 @@ entity_layer_view_t entity_registry_layer(entity_message_t message, int layer) {
 entity_t *entity_register(entity_t *e) {
     int i, key;
 
+    g_generation++;
+
     entity_list_add(&g_live_entities, e);
 
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
@@ -270,6 +279,8 @@ entity_t *entity_register(entity_t *e) {
 /* A message member changed since entity_register() leaves the entity in a list this never removes it from. */
 void entity_unregister(entity_t *e) {
     int i;
+
+    g_generation++;
 
     if (entity_list_del(&g_live_entities, e)) {
         exit_queue_put(e);

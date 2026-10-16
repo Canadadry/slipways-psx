@@ -1,5 +1,6 @@
 #include "game/pad_panel.h"
 
+#include "engine/entity_id_type.h"
 #include "engine/entity_registry.h"
 #include "engine/geom.h"
 #include "game/main_economy.h"
@@ -48,14 +49,57 @@ static int is_modal_backdrop(const entity_t *e) {
     return e->class == modal_backdrop_class();
 }
 
-int pad_panel_open(void) {
-    if (main_ui() == NULL) {
+static int panel_open_now(const ui_t *ui, const economy_t *economy) {
+    if (ui == NULL) {
         return 0;
     }
     assert(modal_backdrop_class()->hit_test == entity_registry_hit_test_always &&
            "pad_panel_open: the backdrop is found at (0, 0) only because its hit test always holds");
-    return main_economy_typed() == NULL || pad_panel_box_open() ||
+    return economy == NULL || ui->ephemerals.count > 0 ||
            pad_panel_entity_under(0, 0, PAD_PANEL_ANY_LAYER, is_modal_backdrop) != NULL;
+}
+
+typedef struct {
+    entity_id_t ui;
+    entity_id_t economy;
+    int ephemerals_count;
+    unsigned generation;
+} panel_key_t;
+
+static struct {
+    int in_step;
+    int known;
+    panel_key_t key;
+    int open;
+} g_memo;
+
+void pad_panel_step_begin(void) {
+    assert(!g_memo.in_step && "pad_panel_step_begin: a pad step is already open");
+    g_memo.in_step = 1;
+    g_memo.known = 0;
+}
+
+void pad_panel_step_end(void) {
+    assert(g_memo.in_step && "pad_panel_step_end: no pad step is open");
+    g_memo.in_step = 0;
+}
+
+int pad_panel_open(void) {
+    const ui_t *ui = main_ui();
+    const economy_t *economy = main_economy_typed();
+    if (!g_memo.in_step) {
+        return panel_open_now(ui, economy);
+    }
+    panel_key_t key = { ui != NULL ? ui->header.id : ENTITY_ID_NONE,
+                        economy != NULL ? economy->header.id : ENTITY_ID_NONE, ui != NULL ? ui->ephemerals.count : 0,
+                        entity_registry_generation() };
+    if (!g_memo.known || !entity_id_equal(g_memo.key.ui, key.ui) || !entity_id_equal(g_memo.key.economy, key.economy) ||
+        g_memo.key.ephemerals_count != key.ephemerals_count || g_memo.key.generation != key.generation) {
+        g_memo.key = key;
+        g_memo.open = panel_open_now(ui, economy);
+        g_memo.known = 1;
+    }
+    return g_memo.open;
 }
 
 /* Mirrors ui_update: while a box is open, a left press reaches only its ephemerals. */

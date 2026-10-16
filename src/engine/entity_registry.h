@@ -39,6 +39,9 @@ int entity_registry_count_tagged(tag_t tag);
 entity_t *entity_register(entity_t *e);
 void entity_unregister(entity_t *e);
 
+/* Changes on every register, unregister and registry reset (an unsigned counter that wraps). */
+unsigned entity_registry_generation(void);
+
 #define ENTITY_REGISTRY_LAYERS 15
 
 typedef struct {

@@ -385,6 +385,23 @@ static void draw_layers_skips_an_off_screen_entity_of_a_culled_class_on_draw_onl
     entity_clear_pos(&g_camera);
 }
 
+static void the_generation_moves_on_every_registration_change_only(void) {
+    registry_world();
+    unsigned before = entity_registry_generation();
+    entity_t *e = constructed(0, &drawn_cls, 2);
+    unsigned registered = entity_registry_generation();
+    assert(registered != before);
+    entity_registry_set_layer(e, p8_fixed_from_int(3));
+    (void)entities_by_message(ENTITY_MESSAGE_DRAW);
+    (void)entity_registry_count_tagged(TAG_PROBE);
+    assert(entity_registry_generation() == registered && "a layer change or a read is not a registration");
+    entity_unregister(e);
+    unsigned unregistered = entity_registry_generation();
+    assert(unregistered != registered);
+    entity_registry_forget_registries();
+    assert(entity_registry_generation() != unregistered);
+}
+
 int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "full") == 0) return draw_one_entity_too_many();
     the_kept_order_follows_any_mix_of_operations();
@@ -403,6 +420,7 @@ int main(int argc, char **argv) {
     setting_a_layer_writes_the_field_and_its_bit();
     a_tag_never_registered_counts_zero();
     the_count_follows_registered_entities_of_the_tag();
+    the_generation_moves_on_every_registration_change_only();
     printf("test_entity_registry: all tests passed\n");
     return 0;
 }

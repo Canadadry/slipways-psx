@@ -1065,7 +1065,7 @@ static int without_chord(pad_nav_t *nav, int raw_buttons) {
     return nav->chord_held ? raw_buttons & ~face : raw_buttons;
 }
 
-void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
+static void run_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
     int pad_buttons = without_chord(nav, raw_buttons);
     int pressed = pad_buttons & ~nav->previous_pad;
     int release = nav->release_pending;
@@ -1152,4 +1152,10 @@ void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
         pad_jump_repeat_clear(&nav->jump);
     }
     finish_step(nav, release, shown, played);
+}
+
+void pad_nav_step(pad_nav_t *nav, int raw_buttons, p8_input_frame_t *played) {
+    pad_panel_step_begin();
+    run_step(nav, raw_buttons, played);
+    pad_panel_step_end();
 }

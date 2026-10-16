@@ -69,7 +69,7 @@
 - [ ] Phase 4 — Update
   - [ ] Step 4.17 — O2 (or O1), O3, O5
     - [x] Chunk 0 — starting state, probes, counts, decision
-    - [ ] Chunk 1 — O2 panel answer memoised per pad step
+    - [x] Chunk 1 — O2 panel answer memoised per pad step
     - [ ] Chunk 2 — O1 residual, built unless covered
     - [ ] Chunk 3 — O3 inline planet hit test
     - [ ] Chunk 4 — O5 hover layers initialised on write
