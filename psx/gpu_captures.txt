@@ -17,5 +17,6 @@ circfill 265 cls,line,circfill
 all 267 all
 print 277 cls,print
 line 278 cls,line
+rectfill 300 cls,rectfill
 rect 302 cls,rect
 circ 316 cls,circ

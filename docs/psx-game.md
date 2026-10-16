@@ -549,7 +549,9 @@ mask.
   over fills, draw order. `all 12` is the loading screen of the difficulty
   press, and `display 14` proves it is what the console shows while f14
   generates the galaxy. The `circ` label has two captures, f316 a whole
-  ring and f245 a ring cut by the top edge. No captured frame is one the `DIGEST=` screen
+  ring and f245 a ring cut by the top edge. The `rectfill` label has two
+  captures too: f11 draws only the title's button fills, f300 the map
+  panel's fills and bars in game. No captured frame is one the `DIGEST=` screen
   lines sample (every 32nd and the last): the PC draws a captured frame
   filtered.
   With `CAPTURE_LIST=` and `CAPTURE_DIR=`, `tmp/replay` refuses a bad list
@@ -599,8 +601,9 @@ mask.
   pad_message_box`): `pad_slipway` never opens a message box, and its
   recording cannot change, so the box's text is captured on
   `tests/e2e/pad_message_box.json`: `print 142` and `all 143` (the settled
-  year box, "year 3421" and "5 years remain"), `all 164` (the score box's
-  rows). It has its own ceilings and references,
+  year box, "year 3421" and "5 years remain"), `all 155` (the tech panel's
+  buttons over the year box, in screen space, with side tooltips), `all 164`
+  (the score box's rows). It has its own ceilings and references,
   `psx/gpu_capture_ceilings_message_box.txt` and
   `psx/gpu_capture_references_message_box.txt`, in the same formats; the
   two targets below address them with `CAPTURES=message_box`.

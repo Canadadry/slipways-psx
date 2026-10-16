@@ -14,5 +14,6 @@ circfill 265 0
 all 267 0
 print 277 0
 line 278 2
+rectfill 300 0
 rect 302 0
 circ 316 0

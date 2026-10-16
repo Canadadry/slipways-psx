@@ -3,4 +3,5 @@
 replay pad_message_box
 print 142 cls,print
 all 143 all
+all 155 all
 all 164 all
