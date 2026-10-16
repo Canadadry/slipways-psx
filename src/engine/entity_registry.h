@@ -39,6 +39,22 @@ int entity_registry_count_tagged(tag_t tag);
 entity_t *entity_register(entity_t *e);
 void entity_unregister(entity_t *e);
 
+#define ENTITY_REGISTRY_LAYERS 15
+
+typedef struct {
+    entity_t *const *items;
+    int count;
+} entity_layer_view_t;
+
+/* Also sets ENTITY_HAS_LAYER. Re-sorts the draw order only for a constructed entity whose floored
+ * layer changed, else costs one compare. An entity registered bare (entity_register alone) must
+ * not change its layer afterwards. */
+void entity_registry_set_layer(entity_t *e, p8_fixed_t layer);
+
+/* The draw or draw_overlay members whose floored layer is layer (1..15), in registration order;
+ * the view is invalidated by the next register, unregister or layer change. */
+entity_layer_view_t entity_registry_layer(entity_message_t message, int layer);
+
 void draw_layers(entity_message_t message);
 
 int entity_registry_hit_test_always(entity_t *self, mouse_pos_t mouse);

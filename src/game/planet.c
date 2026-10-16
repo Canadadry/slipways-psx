@@ -59,8 +59,7 @@ void planet_init_instance(planet_t *self, const entity_class_t *instance_class, 
     assert(g_planet_up && "planet_init() must run first");
     entity_init_instance(&self->header, instance_class, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->header.has |= ENTITY_HAS_HIT_BOX;
     self->header.hit_box = self->archetype->hit_box;
     self->header.has |= ENTITY_HAS_SHAKE;

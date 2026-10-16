@@ -11,6 +11,7 @@
 #include "p8/str.h"
 #include "p8/vram.h"
 #include "game/ui_button.h"
+#include "engine/entity_registry.h"
 #include "engine/frame_zone.h"
 
 
@@ -234,7 +235,7 @@ void score_panel_update(score_panel_t *self) {
             self->has_is_shown = 1;
             self->curtain = 0;
             self->has_curtain = 1;
-            self->header.layer = p8_fixed_from_int(13);
+            entity_registry_set_layer(&self->header, p8_fixed_from_int(13));
         }
     }
 

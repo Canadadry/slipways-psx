@@ -219,8 +219,7 @@ static wormhole_t *wormhole_create(void) {
 
     entity_init_instance(&self->header, &wormhole_class_def, wormhole_archetype.state, wormhole_archetype.state_time);
     self->archetype = &wormhole_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->targeting.archetype = &self->archetype->targeting;
     self->radius = self->archetype->radius;
     self->targeting.cost = self->archetype->targeting.cost;

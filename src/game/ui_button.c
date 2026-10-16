@@ -107,11 +107,10 @@ static button_t *button_create(const button_keys_t *keys) {
     self->project_cost = 0;
     self->has_project_cost = 0;
     self->archetype = &button_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     if (keys != NULL) {
         if (keys->has_layer) {
-            self->header.layer = keys->layer;
+            entity_registry_set_layer(&self->header, keys->layer);
         }
         if (keys->has_pos) {
             entity_set_pos(&self->header, keys->pos);
@@ -302,8 +301,7 @@ static modal_backdrop_t *modal_backdrop_create(const modal_backdrop_keys_t *keys
     self->slot = slot;
     entity_init_instance(&self->header, &modal_backdrop_class_def, modal_backdrop_archetype.state, modal_backdrop_archetype.state_time);
     self->archetype = &modal_backdrop_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->on_click = NULL;
     self->header.has |= ENTITY_HAS_IS_DEAD;
     self->header.is_dead = 0;

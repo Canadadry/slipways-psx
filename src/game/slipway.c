@@ -69,7 +69,7 @@ static void slipway_inherit_infraspace(slipway_t *self) {
     if (!slipway_copy_infraspace(self, slipway_start(self))) {
         slipway_copy_infraspace(self, slipway_end(self));
     }
-    self->header.layer = entity_has(&self->header, ENTITY_HAS_INFRASPACE) ? p8_fixed_from_int(2) : p8_fixed_from_int(4);
+    entity_registry_set_layer(&self->header, entity_has(&self->header, ENTITY_HAS_INFRASPACE) ? p8_fixed_from_int(2) : p8_fixed_from_int(4));
 }
 
 void slipway_served_planets_add(slipway_served_planets_t *hg, const char *id) {
@@ -362,8 +362,7 @@ static slipway_t *slipway_create(const slipway_keys_t *keys) {
 
     entity_init_instance(&self->header, &slipway_class_def, slipway_archetype.state, slipway_archetype.state_time);
     self->archetype = &slipway_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->targeting.archetype = &self->archetype->targeting;
     self->fade_in_step = self->archetype->fade_in_step;
     self->start = ENTITY_ID_NONE;

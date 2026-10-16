@@ -1,13 +1,16 @@
 #include "engine/entity_registry.h"
 
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "engine/entity_id.h"
 #include "engine/exit_queue.h"
 #include "game/game_data.h"
 #include "engine/entity_class.h"
-#include "engine/frame_zone.h"
 #include "engine/game_zone.h"
+#include "engine/zone_sizes.h"
+#include "p8/fatal.h"
 
 static entity_list_t g_entities_by_message[ENTITY_MESSAGE_COUNT];
 
@@ -17,6 +20,15 @@ typedef struct {
 } entities_by_tag_entry_t;
 
 static entities_by_tag_entry_t g_entities_by_tag[TAG_COUNT];
+
+/* Group g (1..15) is items[start[g - 1] .. start[g]); start[ENTITY_REGISTRY_LAYERS] is the count. */
+typedef struct {
+    entity_t *items[ENTITY_TABLE_CAP];
+    int start[ENTITY_REGISTRY_LAYERS + 1];
+} layer_order_t;
+
+static layer_order_t g_layer_orders[2];
+static unsigned g_layer_order_mutations;
 
 static entity_list_t g_live_entities;
 static entity_t *g_main_camera = NULL;
@@ -30,9 +42,15 @@ typedef struct {
 
 static main_camera_placeholder_t g_main_camera_placeholder = {{.class = &main_camera_placeholder_class_def}};
 
+static void layer_orders_reset(void) {
+    memset(g_layer_orders[0].start, 0, sizeof g_layer_orders[0].start);
+    memset(g_layer_orders[1].start, 0, sizeof g_layer_orders[1].start);
+}
+
 void entity_registry_shutdown(void) {
     int i;
 
+    layer_orders_reset();
     if (!g_initialized) {
         return;
     }
@@ -100,6 +118,7 @@ void entity_registry_forget_registries(void) {
     int i;
 
     entity_id_table_forget();
+    layer_orders_reset();
     forget_list(&g_live_entities);
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
         forget_list(&g_entities_by_message[i]);
@@ -153,15 +172,87 @@ int entity_registry_count_tagged(tag_t tag) {
     return tagged == NULL ? 0 : tagged->count;
 }
 
+static int is_drawn_message(int message) {
+    return message == ENTITY_MESSAGE_DRAW || message == ENTITY_MESSAGE_DRAW_OVERLAY;
+}
+
+static layer_order_t *layer_order_of(entity_message_t message) {
+    return &g_layer_orders[message == ENTITY_MESSAGE_DRAW ? 0 : 1];
+}
+
+/* 0 for no layer or one outside 1..15: such an entity is never drawn. */
+static int layer_key(const entity_t *e) {
+    int layer;
+
+    if (!entity_has(e, ENTITY_HAS_LAYER)) {
+        return 0;
+    }
+    layer = p8_fixed_flr_int(e->layer);
+    return layer < 1 || layer > ENTITY_REGISTRY_LAYERS ? 0 : layer;
+}
+
+static void layer_order_insert(layer_order_t *order, entity_t *e, int key, int index) {
+    int count = order->start[ENTITY_REGISTRY_LAYERS];
+    int g;
+
+    if (count >= ENTITY_TABLE_CAP) {
+        char message[64];
+        snprintf(message, sizeof message, "layer order full, limit %d", ENTITY_TABLE_CAP);
+        p8_fatal(message);
+    }
+    memmove(&order->items[index + 1], &order->items[index], (size_t)(count - index) * sizeof order->items[0]);
+    order->items[index] = e;
+    for (g = key; g <= ENTITY_REGISTRY_LAYERS; g++) {
+        order->start[g]++;
+    }
+    g_layer_order_mutations++;
+}
+
+static void layer_order_remove(layer_order_t *order, const entity_t *e) {
+    int count = order->start[ENTITY_REGISTRY_LAYERS];
+    int index, g;
+
+    for (index = 0; index < count && order->items[index] != e; index++) {
+    }
+    if (index == count) {
+        return;
+    }
+    memmove(&order->items[index], &order->items[index + 1], (size_t)(count - index - 1) * sizeof order->items[0]);
+    for (g = ENTITY_REGISTRY_LAYERS; g >= 1 && order->start[g] > index; g--) {
+        order->start[g]--;
+    }
+    g_layer_order_mutations++;
+}
+
+entity_layer_view_t entity_registry_layer(entity_message_t message, int layer) {
+    const layer_order_t *order;
+    entity_layer_view_t view;
+
+    assert(is_drawn_message(message) && "entity_registry_layer: only draw and draw_overlay keep a layer order");
+    assert(layer >= 1 && layer <= ENTITY_REGISTRY_LAYERS && "entity_registry_layer: layers run 1..15");
+    order = layer_order_of(message);
+    view.items = &order->items[order->start[layer - 1]];
+    view.count = order->start[layer] - order->start[layer - 1];
+    return view;
+}
+
 /* Missing or malformed data is skipped where Lua would crash: message members are tested by presence, unregistering an unknown entity does nothing, draw_layers drops an entity with no layer or one outside 1..15. Making one site fatal alone breaks consistency. */
 entity_t *entity_register(entity_t *e) {
-    int i;
+    int i, key;
 
     entity_list_add(&g_live_entities, e);
 
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
         if (is_message_name(e, (entity_message_t)i)) {
             entity_list_add(&g_entities_by_message[i], e);
+        }
+    }
+
+    key = layer_key(e);
+    for (i = 0; i < ENTITY_MESSAGE_COUNT && key != 0; i++) {
+        if (is_drawn_message(i) && is_message_name(e, (entity_message_t)i)) {
+            layer_order_t *order = layer_order_of((entity_message_t)i);
+            layer_order_insert(order, e, key, order->start[key]);
         }
     }
 
@@ -186,6 +277,9 @@ void entity_unregister(entity_t *e) {
     for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
         if (is_message_name(e, (entity_message_t)i)) {
             entity_list_del(&g_entities_by_message[i], e);
+            if (is_drawn_message(i)) {
+                layer_order_remove(layer_order_of((entity_message_t)i), e);
+            }
         }
     }
 
@@ -196,51 +290,75 @@ void entity_unregister(entity_t *e) {
     }
 }
 
+/* Registration rank: the bucket members before e that share its key. */
+static void layer_order_reinsert(entity_message_t message, entity_t *e, int key) {
+    const entity_list_t *bucket = &g_entities_by_message[message];
+    layer_order_t *order = layer_order_of(message);
+    int rank = 0;
+    int index;
+
+    layer_order_remove(order, e);
+    if (key == 0) {
+        return;
+    }
+    for (index = 0; index < bucket->count && bucket->items[index] != e; index++) {
+        if (layer_key(bucket->items[index]) == key) {
+            rank++;
+        }
+    }
+    if (index == bucket->count) {
+        return;
+    }
+    layer_order_insert(order, e, key, order->start[key - 1] + rank);
+}
+
+void entity_registry_set_layer(entity_t *e, p8_fixed_t layer) {
+    int old_key = layer_key(e);
+    int new_key;
+    int i;
+
+    e->has |= ENTITY_HAS_LAYER;
+    e->layer = layer;
+    new_key = layer_key(e);
+    if (new_key == old_key || entity_id_is_none(entity_id_of(e))) {
+        return;
+    }
+    for (i = 0; i < ENTITY_MESSAGE_COUNT; i++) {
+        if (is_drawn_message(i) && is_message_name(e, (entity_message_t)i)) {
+            layer_order_reinsert((entity_message_t)i, e, new_key);
+        }
+    }
+}
+
 void draw_layers(entity_message_t message) {
-    const entity_list_t *message_bucket;
-    entity_list_t layers[15];
     int is_draw = message == ENTITY_MESSAGE_DRAW;
-    int index, layer_index;
+    int layer, index;
 
     assert((is_draw || message == ENTITY_MESSAGE_DRAW_OVERLAY) && "draw_layers: only draw and draw_overlay go through draw_layers");
 
-    for (index = 0; index < 15; index++) {
-        entity_list_init(&layers[index], frame_zone());
-    }
+    for (layer = 1; layer <= ENTITY_REGISTRY_LAYERS; layer++) {
+        entity_layer_view_t group = entity_registry_layer(message, layer);
 
-    message_bucket = entities_by_message(message);
-    for (index = 0; index < message_bucket->count; index++) {
-        entity_t *qc = message_bucket->items[index];
-        int layer;
-
-        if (!entity_has(qc, ENTITY_HAS_LAYER)) {
-            continue;
-        }
-        layer = p8_fixed_flr_int(qc->layer);
-        if (layer < 1 || layer > 15) {
-            continue;
-        }
-        entity_list_add(&layers[layer - 1], qc);
-    }
-
-    for (layer_index = 1; layer_index <= 15; layer_index++) {
-        entity_list_t *bucket = &layers[layer_index - 1];
-
-        if (is_draw && bucket->count > 0) {
+        if (is_draw && group.count > 0) {
             p8_fixed_t ci;
-            if (game_data_fixed_seq_at(layer_fades_table, LAYER_FADES_COUNT, layer_index, &ci) && g_main_camera != NULL &&
+            if (game_data_fixed_seq_at(layer_fades_table, LAYER_FADES_COUNT, layer, &ci) && g_main_camera != NULL &&
                 g_main_camera->class->apply_camera != NULL) {
                 g_main_camera->class->apply_camera(g_main_camera, ci);
             }
         }
 
-        for (index = 0; index < bucket->count; index++) {
-            entity_t *qc = bucket->items[index];
+        for (index = 0; index < group.count; index++) {
+            entity_t *qc = group.items[index];
             void (*draw)(entity_t *self, vec_t screen_pos) = is_draw ? qc->class->draw : qc->class->draw_overlay;
+            unsigned mutations = g_layer_order_mutations;
 
+            assert(layer_key(qc) == layer && "draw_layers: a layer written directly, not through entity_registry_set_layer");
             if (draw != NULL) {
                 draw(qc, entity_pos(qc));
             }
+            assert(g_layer_order_mutations == mutations &&
+                   "draw_layers: a draw method must not register, unregister or re-layer an entity -- it walks the kept order in place");
+            (void)mutations;
         }
     }
 }

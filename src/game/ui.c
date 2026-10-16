@@ -120,8 +120,7 @@ static ui_t *ui_create(void) {
     self = (ui_t *)allocator_alloc(game_zone(), sizeof *self);
     entity_init_instance(&self->header, &ui_class_def, ui_archetype.state, ui_archetype.state_time);
     self->archetype = &ui_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->has = 0;
     self->ephemerals_serial = 0;
     self->ephemerals = (entity_id_list_t){0};

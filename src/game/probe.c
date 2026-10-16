@@ -399,8 +399,7 @@ static const entity_class_t probe_class_def = {
 void probe_init_instance(probe_t *self, const entity_class_t *cls, const probe_archetype_t *archetype) {
     entity_init_instance(&self->header, cls, archetype->state, archetype->state_time);
     self->archetype = archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->header.has |= ENTITY_HAS_FOLD_ANCHOR;
     self->header.fold_anchor = self->archetype->fold_anchor;
     self->header.has |= ENTITY_HAS_IS_DEAD;

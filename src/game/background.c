@@ -47,8 +47,7 @@ static background_t *background_create(void) {
 
     entity_init_instance(&self->header, &background_class_def, background_archetype.state, background_archetype.state_time);
     self->archetype = &background_archetype;
-    self->header.has |= ENTITY_HAS_LAYER;
-    self->header.layer = self->archetype->layer;
+    entity_registry_set_layer(&self->header, self->archetype->layer);
     self->header.has |= ENTITY_HAS_IS_HOVERED;
     self->header.is_hovered = 0;
     self->seed = p8_fixed_rnd_state();

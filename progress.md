@@ -40,8 +40,8 @@
     - [x] Chunk 4 — residual D2, D3, D4
   - [ ] Step 3.10 — L1 layer lists sorted at registration
     - [x] Chunk 0 — gross target probe, coverage verdict
-    - [ ] Chunk 1 — one write path for layers
-    - [ ] Chunk 2 — kept layer order and the walk
+    - [x] Chunk 1 — one write path for layers
+    - [x] Chunk 2 — kept layer order and the walk
     - [ ] Chunk 3 — close: short runs, RAM, zones
   - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
   - [ ] Step 3.12 — D6 planet row icons through the image cache
