@@ -30,6 +30,7 @@
 #include "game/slipway.h"
 #include "game/structure_icon.h"
 #include "game/ui_button.h"
+#include "p8/draw_meter.h"
 #include "p8/input.h"
 #include "p8/vram.h"
 
@@ -304,6 +305,7 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
     int cheat = input_step_run(&author->step, frame);
     cart_update60();
     cart_draw();
+    p8_draw_meter_frame_end();
 
     pad_metrics_record(&author->metrics, &author->step, buttons, cheat);
     const pad_metrics_view_t *after = pad_metrics_view(&author->metrics);

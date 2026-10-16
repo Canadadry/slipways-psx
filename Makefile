@@ -3,7 +3,8 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
 #                       alloc-guard + pointer-guard + random-guard +
-#                       button-guard + data-guard + p8-guard, the fast loop
+#                       button-guard + data-guard + p8-guard +
+#                       pad-author-self-check, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -1898,7 +1899,7 @@ endif
 replay: $(TMP_DIR)/replay
 	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard pad-author-self-check
 
 test-all: test e2e
 
@@ -2025,6 +2026,14 @@ pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
 	@./$(TMP_DIR)/pad_author pico8/demo.pad pico8/demo.json --no-aim-budget
 endif
+
+PAD_AUTHOR_SELF_CHECK_SCRIPT := tools/pad_author_proofs/pad_probe.frames.pad
+
+pad-author-self-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_SELF_CHECK_SCRIPT)
+	@./$(TMP_DIR)/pad_author $(PAD_AUTHOR_SELF_CHECK_SCRIPT) $(TMP_DIR)/pad-author/self_check.json --no-aim-budget > /dev/null
+	@echo "pad-author-self-check: $(PAD_AUTHOR_SELF_CHECK_SCRIPT) replays to pad_author's own state"
+
+.PHONY: pad-author-self-check
 
 PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
 PAD_AUTHOR_END_STATE_PROOFS := $(wildcard tools/pad_author_proofs/*.end-state.pad)
