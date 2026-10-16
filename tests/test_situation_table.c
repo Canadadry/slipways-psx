@@ -9,32 +9,33 @@
 
 #define TABLE "psx/perf/full-run-situations.txt"
 
-enum { FULL_GAME_FRAMES = 6059, NAME_CAP = 32 };
+enum { FULL_GAME_FRAMES = 6061, NAME_CAP = 32 };
 
 typedef struct {
     int frame;
     const char *situation;
 } picked_frame_t;
 
-/* Step 6's renumbering (the loading screen) edits this list, then regenerates the table. */
 static const picked_frame_t picked_frames[] = {
     {0, "title"},
-    {12, "galaxy-generation"},         /* title 12 reasonable: button 5 on f12 */
-    {30, "map-move"},                  /* probe 170 250: the cursor travels to the target */
-    {57, "probe"},                     /* probe 170 250: the launch */
-    {75, "map-rest"},                  /* fold 168 238: button 5 held on an empty spot */
-    {88, "screen-change"},             /* score: the score panel opens */
-    {91, "score-panel"},               /* score */
-    {112, "menu"},                     /* colonise p33 strip: p33's menu */
-    {113, "colonise"},                 /* colonise p33 strip */
-    {158, "slipway-aim"},              /* slipway p33 p78: target not chosen yet */
-    {159, "slipway-built"},            /* slipway p33 p78 */
-    {229, "new-year"},                 /* year */
-    {791, "build"},                    /* bar */
-    {899, "tech-panel"},               /* research space folding: the tech panel */
-    {901, "research"},                 /* research space folding */
-    {2228, "structure-built"},         /* build processor 134 231 */
-    {6043, "game-end"},
+    {12, "title"},                     /* the loading screen: press frame of title 12 reasonable */
+    {13, "title"},                     /* the loading screen */
+    {14, "galaxy-generation"},         /* title 12 reasonable: button 5 on f12, generation f14 */
+    {32, "map-move"},                  /* probe 170 250: the cursor travels to the target */
+    {59, "probe"},                     /* probe 170 250: the launch */
+    {77, "map-rest"},                  /* fold 168 238: button 5 held on an empty spot */
+    {90, "screen-change"},             /* score: the score panel opens */
+    {93, "score-panel"},               /* score */
+    {114, "menu"},                     /* colonise p33 strip: p33's menu */
+    {115, "colonise"},                 /* colonise p33 strip */
+    {160, "slipway-aim"},              /* slipway p33 p78: target not chosen yet */
+    {161, "slipway-built"},            /* slipway p33 p78 */
+    {231, "new-year"},                 /* year */
+    {793, "build"},                    /* bar */
+    {901, "tech-panel"},               /* research space folding: the tech panel */
+    {903, "research"},                 /* research space folding */
+    {2230, "structure-built"},         /* build processor 134 231 */
+    {6045, "game-end"},
 };
 
 static char situations[FULL_GAME_FRAMES][NAME_CAP];

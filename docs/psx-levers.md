@@ -6,40 +6,40 @@ This is the ranked list of pixel-identical levers for the **steady frames
 over 263 hblanks** that `real-game-budget` counts. It also gives the
 estimate each lever is measured against. `make lever-estimate` reads the
 `lever-table` block below, applies it to the committed frame table
-(`psx/perf/full-run-frames.txt`, plan 22 step 1's) joined with
+(`psx/perf/full-run-frames.txt`, plan 22 step 6's) joined with
 `psx/perf/full-run-situations.txt`, and checks that this document's order
 is the greedy ranking. Everything outside that block is for people.
 
-Starting point on the committed table: **1,133 steady frames over 263**
-(map-rest 429, map-move 388, build 155, menu 91, slipway-aim 41, tech-panel
-21, score-panel 8; worst steady frame 4655, `build`, 530). The one-off
+Starting point on the committed table: **1,132 steady frames over 263**
+(map-rest 429, map-move 387, build 155, menu 91, slipway-aim 41, tech-panel
+21, score-panel 8; worst steady frame 4657, `build`, 530). The one-off
 frames use 1,391 of their 10,800 vsyncs, and no lever here touches them.
 
 ## Inputs
 
 ### Steady frames' mean cost and the 2% threshold
 
-From `make lever-estimate`: **M = 218.9 hblanks** (mean `total` over the
-4,276 steady frames, `title` included), so **T = 0.02 × M = 4.4 hblanks**.
+From `make lever-estimate`: **M = 218.8 hblanks** (mean `total` over the
+4,278 steady frames, `title` included), so **T = 0.02 × M = 4.4 hblanks**.
 Per situation, the mean of its steady frames, for reference (rule (b)
 below uses the profile source's own total):
 
 | situation | steady frames | over 263 | mean total | 2% |
 |---|--:|--:|--:|--:|
 | map-rest | 1,564 | 429 | 215.2 | 4.3 |
-| map-move | 1,907 | 388 | 207.6 | 4.2 |
+| map-move | 1,907 | 387 | 207.6 | 4.2 |
 | slipway-aim | 111 | 41 | 269.4 | 5.4 |
 | build | 366 | 155 | 258.7 | 5.2 |
 | menu | 252 | 91 | 239.1 | 4.8 |
-| tech-panel | 47 | 21 | 281.4 | 5.6 |
-| score-panel | 17 | 8 | 296.5 | 5.9 |
-| title | 12 | 0 | 45.3 | — |
+| tech-panel | 47 | 21 | 281.5 | 5.6 |
+| score-panel | 17 | 8 | 296.9 | 5.9 |
+| title | 14 | 0 | 40.1 | — |
 
 How far over the frames are, as the share of the frame's draw that would
-have to go for it to fit: map-rest's 429 frames split 41 under 5%, 65 at
-5–10%, 74 at 10–15%, 90 at 15–20%, 126 at 20–30% and 33 above 30%. For
-map-move's 388 it is 56 / 71 / 85 / 57 / 84 / 35, and for build's 155 it is
-18 / 14 / 26 / 37 / 51 / 9. A lever worth 5% of draw clears only the first
+have to go for it to fit: map-rest's 429 frames split 41 under 5%, 63 at
+5–10%, 75 at 10–15%, 90 at 15–20%, 124 at 20–30% and 36 above 30%. For
+map-move's 387 it is 57 / 72 / 83 / 57 / 81 / 37, and for build's 155 it is
+18 / 14 / 27 / 38 / 49 / 9. A lever worth 5% of draw clears only the first
 band.
 
 ### Where each situation's figures come from
@@ -706,7 +706,27 @@ runtime or backend entry.
   `representative`: alone 157 frames, 76 of them in map-rest, build,
   slipway-aim and score-panel.
 
-### 4. N3 — PSX circle outline drawn as runs
+### 4. N5 — on-screen test against the frame's screen box (after N2)
+
+- **Function:** `entity_geom_is_on_screen` (frame).
+- **Location:** `entity_geom_is_on_screen`, `src/engine/entity_geom.c`, and
+  its callers `skip_draw_off_screen` (`draw_layers`) and `slipway_draw`.
+- **Change:** compute the camera position and the screen box once per draw
+  pass (the camera does not move during the draw). Then test each entity's
+  position against it with no `main_camera()` lookup and no per-call
+  constants.
+- **Estimated gain (`share`):** after N2 inlines the helpers (a third of their
+  57%), the camera lookup, `pos_of` and the bounds rebuild are about half
+  of what is left: 40% of the function. Map-rest 2.0 h (0.8%), map-move 5.2
+  (2.4%), slipway-aim 1.8 (0.7%), build 1.6 (0.6%), menu 4.4 (1.6%),
+  tech-panel 4.4 (1.3%), score-panel 1.3 (0.5%).
+- **Cost:** S. **Risk:** pixel identity `none`. Game state `e2e decides`:
+  the result gates `slipway_spawn_transit_dot`'s visual random draws, so
+  it must stay exact.
+- **Measured by:** `map-move-1057`. **Evidence:** `representative`: alone
+  33 frames, 27 in map-move.
+
+### 5. N3 — PSX circle outline drawn as runs
 
 - **Function:** `wormhole_draw_method` (map), and the `circ` of
   `planet_draw_method`.
@@ -734,26 +754,6 @@ runtime or backend entry.
   (PSX only).
 - **Measured by:** `map-move-1057`. **Evidence:** `representative`: alone
   50 frames, 48 in map-move.
-
-### 5. N5 — on-screen test against the frame's screen box (after N2)
-
-- **Function:** `entity_geom_is_on_screen` (frame).
-- **Location:** `entity_geom_is_on_screen`, `src/engine/entity_geom.c`, and
-  its callers `skip_draw_off_screen` (`draw_layers`) and `slipway_draw`.
-- **Change:** compute the camera position and the screen box once per draw
-  pass (the camera does not move during the draw). Then test each entity's
-  position against it with no `main_camera()` lookup and no per-call
-  constants.
-- **Estimated gain (`share`):** after N2 inlines the helpers (a third of their
-  57%), the camera lookup, `pos_of` and the bounds rebuild are about half
-  of what is left: 40% of the function. Map-rest 2.0 h (0.8%), map-move 5.2
-  (2.4%), slipway-aim 1.8 (0.7%), build 1.6 (0.6%), menu 4.4 (1.6%),
-  tech-panel 4.4 (1.3%), score-panel 1.3 (0.5%).
-- **Cost:** S. **Risk:** pixel identity `none`. Game state `e2e decides`:
-  the result gates `slipway_spawn_transit_dot`'s visual random draws, so
-  it must stay exact.
-- **Measured by:** `map-move-1057`. **Evidence:** `representative`: alone
-  33 frames, 27 in map-move.
 
 ### 6. G4 — upload only the slots that changed
 
@@ -854,11 +854,6 @@ gain N2 menu update 7.0
 gain N2 tech-panel update 7.0
 gain N2 score-panel update 7.0
 gain N2 slipway-aim update 7.0
-lever N3 estimated M basis calls measure map-move-1057
-gain N3 map-move draw 4.1
-gain N3 map-rest draw 0.8
-gain N3 menu draw 0.5
-gain N3 score-panel draw 1.8
 lever N5 estimated S basis share measure map-move-1057 after N2
 gain N5 map-rest draw 0.8
 gain N5 map-move draw 2.4
@@ -867,6 +862,11 @@ gain N5 menu draw 1.6
 gain N5 tech-panel draw 1.3
 gain N5 score-panel draw 0.5
 gain N5 slipway-aim draw 0.7
+lever N3 estimated M basis calls measure map-move-1057
+gain N3 map-move draw 4.1
+gain N3 map-rest draw 0.8
+gain N3 menu draw 0.5
+gain N3 score-panel draw 1.8
 lever G4 estimated M basis share measure map-move-1057
 gain G4 map-rest submit 52.0
 gain G4 map-move submit 52.0
@@ -892,43 +892,43 @@ gain N6 slipway-aim update 23.9
 From `make lever-estimate` on this document (the committed frame table, budget 263, one-off allowance 10,800; pessimistic is every gain × 0.8). After each lever, cumulative:
 
 ```
-mean-cost steady 218.9 threshold 4.4
+mean-cost steady 218.8 threshold 4.4
 situation-threshold map-rest mean 215.2 threshold 4.3
 situation-threshold map-move mean 207.6 threshold 4.2
 situation-threshold slipway-aim mean 269.4 threshold 5.4
 situation-threshold build mean 258.7 threshold 5.2
 situation-threshold menu mean 239.1 threshold 4.8
-situation-threshold tech-panel mean 281.4 threshold 5.6
-situation-threshold score-panel mean 296.5 threshold 5.9
-start steady-over 1133 one-off-vsyncs 1391
+situation-threshold tech-panel mean 281.5 threshold 5.6
+situation-threshold score-panel mean 296.9 threshold 5.9
+start steady-over 1132 one-off-vsyncs 1391
 in-base none
-lever 1 D3 estimated basis calls steady-over 1058 pessimistic 1068 saved 8943
-lever 2 N1 estimated basis share steady-over 991 pessimistic 1036 saved 17092
-lever 3 N2 estimated basis share steady-over 774 pessimistic 861 saved 32634
-lever 4 N3 estimated basis calls steady-over 711 pessimistic 806 saved 36988
-lever 5 N5 estimated basis share steady-over 624 pessimistic 771 saved 40609
-lever 6 G4 estimated basis share steady-over 551 pessimistic 724 saved 44218
-lever 7 N7 estimated basis calls steady-over 507 pessimistic 690 saved 46781
-lever 8 N6 estimated basis share steady-over 487 pessimistic 656 saved 48751
+lever 1 D3 estimated basis calls steady-over 1058 pessimistic 1067 saved 8944
+lever 2 N1 estimated basis share steady-over 988 pessimistic 1033 saved 17087
+lever 3 N2 estimated basis share steady-over 778 pessimistic 865 saved 32607
+lever 4 N5 estimated basis share steady-over 709 pessimistic 826 saved 36220
+lever 5 N3 estimated basis calls steady-over 625 pessimistic 772 saved 40581
+lever 6 G4 estimated basis share steady-over 545 pessimistic 730 saved 44183
+lever 7 N7 estimated basis calls steady-over 509 pessimistic 688 saved 46750
+lever 8 N6 estimated basis share steady-over 489 pessimistic 655 saved 48722
 situation title over 0 end 0 pessimistic 0
-situation map-rest over 429 end 212 pessimistic 258
-situation map-move over 388 end 158 pessimistic 212
+situation map-rest over 429 end 212 pessimistic 260
+situation map-move over 387 end 161 pessimistic 210
 situation slipway-aim over 41 end 19 pessimistic 23
-situation build over 155 end 49 pessimistic 67
-situation menu over 91 end 29 pessimistic 76
+situation build over 155 end 50 pessimistic 67
+situation menu over 91 end 27 pessimistic 75
 situation tech-panel over 21 end 14 pessimistic 14
 situation score-panel over 8 end 6 pessimistic 6
 order ok
-end steady-over 487 pessimistic 656
-nominal: real-game steady-over 487 frames, worst steady frame 3747 total 463 situation map-move
+end steady-over 489 pessimistic 655
+nominal: real-game steady-over 489 frames, worst steady frame 3749 total 463 situation map-move
 nominal: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-nominal: real-game-budget failed 487 steady frames over 263, one-off vsyncs 1391 of 10800
-pessimistic: real-game steady-over 656 frames, worst steady frame 3747 total 473 situation map-move
+nominal: real-game-budget failed 489 steady frames over 263, one-off vsyncs 1391 of 10800
+pessimistic: real-game steady-over 655 frames, worst steady frame 3749 total 473 situation map-move
 pessimistic: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-pessimistic: real-game-budget failed 656 steady frames over 263, one-off vsyncs 1391 of 10800
+pessimistic: real-game-budget failed 655 steady frames over 263, one-off vsyncs 1391 of 10800
 ```
 
-**The pixel-identical list does not reach zero.** Nominal, it leaves 487 steady frames over 263 (pessimistic 656): map-rest 212 (258), map-move 158 (212), build 49 (67), menu 29 (76), slipway-aim 19 (23), tech-panel 14 (14), score-panel 6 (6). The worst steady frame becomes 3747 (`map-move`), 463 (473). Phase 3 still runs the whole list. The close then weighs the picture-changing ideas below for what is left.
+**The pixel-identical list does not reach zero.** Nominal, it leaves 489 steady frames over 263 (pessimistic 655): map-rest 212 (260), map-move 161 (210), build 50 (67), menu 27 (75), slipway-aim 19 (23), tech-panel 14 (14), score-panel 6 (6). The worst steady frame becomes 3749 (`map-move`), 463 (473). Phase 3 still runs the whole list. The close then weighs the picture-changing ideas below for what is left.
 
 ## Picture-changing ideas (unranked, for the close)
 

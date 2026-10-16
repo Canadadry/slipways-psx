@@ -2903,7 +2903,7 @@ frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_pr
 	done; \
 	cat $$out/spikes.txt; exit $$status
 
-FRAME_PROFILE_ORDINARY_WINDOWS := draw-5564=5564-5578@27.0,draw-6000=6000-6014@19.6
+FRAME_PROFILE_ORDINARY_WINDOWS := draw-5564=5566-5580@27.0,draw-6000=6002-6016@19.6
 
 # Like frame-profile-spikes, with two base roots (cart_update60 and input_step_run) and its own
 # ordinary/<symbol>/<k> profiles, so neither target stales the other's.

@@ -250,8 +250,8 @@ have them), `psx_gpu_frame_end`
 `psx_gpu_frame_begin`. The capture handshake's time and vsyncs are taken out
 of submit and of the frame's vsyncs. The input advance and the progress line
 fall outside every part; the progress line runs while the GPU draws, so the
-next frame's submit may wait a little less (23 of `full_game`'s 6,059
-frames). Each frame also records the vsyncs it spanned, so a frame of 249
+next frame's submit may wait a little less (23 frames of one `full_game`
+run). Each frame also records the vsyncs it spanned, so a frame of 249
 vsyncs or more (where the 16-bit counter may wrap) is detected.
 
 The records go to a static table (`src/devtools/frame_times.c`, pure,
@@ -536,9 +536,11 @@ mask.
   A family label's mask holds `cls` and that family (the `pattern` label adds
   `rectfill` and `circfill`, the `circfill` label `line`, since its colour-0
   discs only show where they cut a slipway), so its report does not move
-  when another family changes. Three `all` captures (f100, f188, f265) draw
+  when another family changes. Three `all` captures (f102, f190, f267) draw
   every family together, for the interactions: sprites over the grid, text
-  over fills, draw order. No captured frame is one the `DIGEST=` screen
+  over fills, draw order. `all 12` is the loading screen of the difficulty
+  press, and `display 14` proves it is what the console shows while f14
+  generates the galaxy. No captured frame is one the `DIGEST=` screen
   lines sample (every 32nd and the last): the PC draws a captured frame
   filtered.
   With `CAPTURE_LIST=` and `CAPTURE_DIR=`, `tmp/replay` refuses a bad list
@@ -751,7 +753,7 @@ next run:
   see "Situations"): no `steady` frame over 263 hblanks, and the `one-off`
   frames' vsyncs over 263 at most `PSX_REAL_GAME_ONE_OFF_VSYNCS` (10,800, 5%
   of 216,000; below);
-- `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,059 embedded
+- `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,061 embedded
   frames and the frame table included).
 
 `tools/psx_frame_budget.sh <gpu-tty> <gpu-psx-state> <expected-frames>
@@ -907,12 +909,14 @@ judge of sizes.
 `full_game.json`: `<name> prefix <first> <last> <end>` (its first `end + 1`
 frames) or `<name> resume <first> <last>` (a resume before the window
 `first..last`). Six runs for plan 21's spikes and clusters: `start`
-(frames 0–99, the start spike at 12), `update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
-(the draw cluster 5564–5578) and `draw-6000` (frames 6000–6014, where
+(frames 0–101, the start spike at 14), `update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
+(the draw cluster 5566–5580) and `draw-6000` (frames 6002–6016, where
 `pset` is above 2% of draw on PC; a resume before the `pset` peak at
-5504–5552 shows too little `pset`, for a cause not yet proven: see Still to
+5506–5554 shows too little `pset`, for a cause not yet proven: see Still to
 do). Then the steady runs below, one line each, and the
-`# no representative run:` marks.
+`# no representative run:` marks. A run's name keeps the first frame of its
+window when it was created: plan 22 step 6's loading screen moved every
+frame from 12 on by two, the windows with them, the names not.
 
 **Steady runs.** Each steady situation with frames over 263 is to get a
 resumed run named `<situation>-<first>` whose window lies in it.
@@ -944,29 +948,29 @@ the window sums to the full game:
 
 | Run | Window | Representative | Draw | Update |
 |---|---|---|---:|---:|
-| `map-rest-5581` | 5581–5595 | failed | −15.6% | −12.2% |
-| `map-move-1057` | 1057–1071 | ok | −0.5% | −0.1% |
-| `build-5752` | 5752–5766 | failed | −23.6% | −9.1% |
-| `menu-5954` | 5954–5968 | ok | +4.0% | +0.3% |
-| `tech-panel-5895` | 5895–5903 | ok | +0.8% | −1.0% |
-| `score-panel-5876` | 5876 | failed | −11.6% | −2.2% |
+| `map-rest-5581` | 5583–5597 | failed | −15.6% | −13.0% |
+| `map-move-1057` | 1059–1073 | ok | −0.6% | 0.0% |
+| `build-5752` | 5754–5768 | failed | −23.5% | −9.0% |
+| `menu-5954` | 5956–5970 | ok | +4.1% | −0.9% |
+| `tech-panel-5895` | 5897–5905 | ok | +0.9% | −1.7% |
+| `score-panel-5876` | 5878 | failed | −11.6% | −3.2% |
 
 **No representative run** (a `# no representative run:` line in the
 manifest): their levers are measured on `psx-full-game-check`, not
 `psx-probe`, and step 5 flags them as weaker evidence. A failed situation's
 best try stays in the manifest when its label check passed.
 
-- `map-rest`: best try `map-rest-5581` (draw −15.6%, update −12.2%);
+- `map-rest`: best try `map-rest-5581` (draw −15.6%, update −13.0%);
   `map-rest-5538` drew −27.5% (update −4.2%), `map-rest-5423` −29.1%
   (update −1.5%).
 - `slipway-aim`: no run; no candidate keeps its label after the resume
   (`slipway-aim-5123` and `-5015` read `map-move` then `map-rest`,
   `-5715` reads `screen-change`), so none was booted. Best try
   `slipway-aim-5123`, draw and update not measured.
-- `build`: best try `build-5752` (draw −23.6%, update −9.1%);
+- `build`: best try `build-5752` (draw −23.5%, update −9.0%);
   `build-5923` drew −23.7% (update −0.2%), `build-5054` −32.3% (update
   −21.2%).
-- `score-panel`: best try `score-panel-5876` (draw −11.6%, update −2.2%);
+- `score-panel`: best try `score-panel-5876` (draw −11.6%, update −3.2%);
   `score-panel-5556` drew −38.4%, `score-panel-5441` −37.8% (update −3.3%
   each).
 
@@ -1293,11 +1297,14 @@ decided per frame.
 
 **Table.** `psx/perf/full-run-situations.txt`, the labels of
 `worst-case/full_game.json`: a `frame situation family` header, then
-`<frame> <situation> <family>` per frame, frames 0..6058 numbered like the
+`<frame> <situation> <family>` per frame, frames 0..6060 numbered like the
 frame table `psx/perf/full-run-frames.txt`. `test_situation_table` checks
-its shape and a list of hand-picked frames (frame 12 is
-`galaxy-generation`); `make situations-check` regenerates it and fails on any
-difference.
+its shape and a list of hand-picked frames (frames 12 and 13, the loading
+screen, are `title`; frame 14 is `galaxy-generation`); `make
+situations-check` regenerates it and fails on any difference. The frozen
+table went through one renumbering, plan 22 step 6's loading screen: the
+same rule, two `title` frames inserted at 12, every later frame moved by
+two.
 
 **Report.** `make situation-report` (`tools/situation_report.sh`) joins a
 frame table and a situation table line by line. Per situation: frames,
@@ -1315,28 +1322,29 @@ family each), `one-off-runs` (no `long` run).
 
 - `make psx-full-game-check` is red on `frame-budget`; nobody raises
   `PSX_FRAME_BUDGET_HBLANKS` to turn it green. Latest run (asserts off, O3,
-  draw filter and draw meter off): 1,764 of 6,059 frames over 263 hblanks,
-  worst frame 12 at 3,992 (galaxy generation; update 3,711), mean frame
-  233.6 hblanks against 263, mean overrun 76. Draw still dominates the
-  frames over (424,627 of their 598,793 hblanks), so the next work is draw.
+  draw filter and draw meter off; plan 22 step 6, with the loading screen):
+  1,763 of 6,061 frames over 263 hblanks, worst frame 14 at 3,989 (galaxy
+  generation; update 3,708), mean frame 233.5 hblanks against 263, mean
+  overrun 76. Draw still dominates the frames over (424,518 of their 598,543
+  hblanks), so the next work is draw.
   Spike work (galaxy generation, saves, slipway drops, launches, image
   builds) is not spread across frames. The thirteen other
-  conditions held (`real-game-budget` did not exist yet). The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
+  conditions held. The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
   Flip (PCSX-ReARMed) was never measured. Plan 22 judges by
-  `real-game-budget` instead; on that table it is red: 1,133 steady frames
-  over 263 (worst frame 4655, `build`, total 530), 631 one-off frames over
+  `real-game-budget` instead; on that table it is red: 1,132 steady frames
+  over 263 (worst frame 4657, `build`, total 530), 631 one-off frames over
   for 1,391 vsyncs of 10,800.
 
 - The steady frames' levers, ranked and estimated, are in
   `docs/psx-levers.md` (`make lever-estimate` checks its order and projects
-  it). The pixel-identical list leaves 487 steady frames over 263 nominal,
-  656 pessimistic.
+  it). The pixel-identical list leaves 489 steady frames over 263 nominal,
+  655 pessimistic.
 
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out
   lower than in the full run. `done`, `deterministic`, `breakdown` and
   `asserts` hold. The cut rule and the windows are not loosened. The first
-  steady try, `map-rest-5538` (window 5538–5552, cut 5500), is labelled
+  steady try, `map-rest-5538` (window 5540–5554, cut 5502), is labelled
   `same map-rest` but draws 27.5% less (3,465 vs 4,779; update −4.2%): on PC
   its window has half the `pset` calls (2,700 vs 5,386), 14 `circ` calls
   instead of 59 and fewer `rectfill` and `print`; it is not in the manifest.
