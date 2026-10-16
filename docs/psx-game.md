@@ -1194,17 +1194,39 @@ ambiguous symbol, or `cart_update60`, exits 1.
     manifest marks "no representative run" gets a `flag
     no-representative-run <situation>` line first.
   - with `PSX_SHORT_RUNS` unset, a steady situation with no run in the
-    manifest (`slipway-aim`) is profiled `no-run`: over the full game's
-    frames of that situation over 263, `full_game.json` profiled K times
-    the same way and the judge table's (`psx/perf/full-run-frames.txt`)
-    draw shared by each function's whole PC time. With no breakdown boot
+    manifest, or one the manifest marks `# no representative run:`
+    (`map-rest`, `slipway-aim`, `build`, `score-panel`), is profiled
+    `no-run` into `tmp/frame-profile/steady/<situation>/summary.txt`, beside
+    its best-try run's own profile: over the full game's frames of that
+    situation over 263, `full_game.json` profiled K times the same way (once
+    for every such situation) and the judge table's
+    (`psx/perf/full-run-frames.txt`) draw shared by each function's whole PC
+    time. With no breakdown boot
     there, it has no primitives/game-code split and no `adds-up` check
     (`adds-up n/a no-run`), and the shares are PC time, not PSX cost.
 
   It needs each run's `make psx-short-runs` boots and names the missing
   ones; it fails when a run's profile fails or does not add up. It never
   boots.
-- Its tests are in `make frame-profile-test`.
+- `make lever-estimate [FRAMES=] [SITUATIONS=] [LEVERS=]`
+  (`tools/lever_estimate.sh`) reads the one fenced `lever-table` block of
+  `docs/psx-levers.md`: `lever <id> <estimated|measured|in-base> <S|M|L>
+  basis <calls|share> measure <run|psx-full-game-check> [probe <run|none>]
+  [after <id>]`, `gain <id> <steady situation> <update|draw|submit>
+  <percent>` and at most one `scale <calls|share> <ratio>` per basis. It
+  applies the gains to every steady frame of the committed frame table
+  joined with the situation table (title and one-off frames unchanged): per
+  part, the levers' gains add up (an `estimated` one times its basis's
+  scale, a `measured` one as is, an `in-base` one never), capped at 100%,
+  rounded half up. It prints the steady frames' mean cost and its 2%
+  threshold, ranks the levers greedily by the steady frames over 263 they
+  leave (then hblanks saved on the frames over, cost, id; `after` respected),
+  prints the steady frames over after each lever and at the end per
+  situation, nominal and pessimistic (every gain × 0.8), `order ok` or the
+  first rank where the document's order differs (the target fails), then
+  `real-game-budget` on both projected tables, written with the output to
+  `tmp/lever-estimate/`. It never boots.
+- Their tests are in `make frame-profile-test`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 

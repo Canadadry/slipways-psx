@@ -688,33 +688,21 @@
 #                       again, 16 levels at most; writes
 #                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
 #                       node is open; never boots, outside the suite
-# make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=sequential|independent] [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]
-#                    -> tools/lever_estimate.sh on plan 20's judge table
-#                       psx/perf/report-judge-frames.txt,
-#                       psx/perf/spike-frames.txt and the gain
-#                       table (default psx/perf/gains.txt, whose
-#                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
-#                       the estimate against 263 after the end's levers
-#                       (default measured), each spike frame's work spread
-#                       (default sequential; a spike frame fits only if its
-#                       own leftover is within 263 too), per class, the summary and
-#                       each lever's gain alone; writes
-#                       tmp/lever-estimate/<label>.txt (label default
-#                       <end>[-<run>]) and prints all but its frame lines;
+# make lever-estimate [FRAMES=<frame table>] [SITUATIONS=<situation table>] [LEVERS=<document>]
+#                    -> tools/lever_estimate.sh: applies the lever-table block
+#                       of LEVERS (default docs/psx-levers.md) to the frame
+#                       table joined with the situation table (defaults
+#                       psx/perf/full-run-frames.txt and
+#                       psx/perf/full-run-situations.txt), budget 263, one-off
+#                       allowance 10800; prints the steady mean cost and 2%
+#                       threshold, the steady frames over after each lever in
+#                       the greedy ranking and at the end, nominal and
+#                       pessimistic (every gain x 0.8), whether the
+#                       document's order is the ranking, and real-game-budget
+#                       on both projected tables; writes
+#                       tmp/lever-estimate/estimate.txt and the projected
+#                       tables; fails on a stale order or a malformed input;
 #                       never boots, outside the suite
-# make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate,
-#                       under step 9's spike rule (spike-rule=step9),
-#                       reproduces step 9's spreading on plan 20's judge
-#                       table psx/perf/report-judge-frames.txt and spike
-#                       frames with the gain tables of
-#                       tests/fixtures/lever_estimate/ (uniform 88%: no spike
-#                       frame does-not-fit; 87%: frame 6043 does not fit;
-#                       80.7% in game, 74.8% on frame 12: exactly frame 6043,
-#                       every class's figures as step 9's) and its spike
-#                       lines equal frame_profile_check.sh spread's; fails
-#                       naming each result not reproduced; outputs in
-#                       tmp/lever-estimate/check/; never boots, outside the
-#                       suite
 # make situations [EVENTS=<events>] [SITUATIONS_OUT=<file>] -> builds
 #                       tmp/situations and replays the file (default
 #                       worst-case/full_game.json) headless, writing one
@@ -760,8 +748,10 @@
 #                       primitives and in the game's code, the update pieces,
 #                       submit and the adds-up line; flags a run the manifest
 #                       marks "no representative run"; with PSX_SHORT_RUNS
-#                       unset, a steady situation with no run is shared by PC
-#                       time over the full game's frames over 263 (no-run);
+#                       unset, a steady situation with no run, or one the
+#                       manifest marks "no representative run", is shared by
+#                       PC time over the full game's frames over 263 (no-run,
+#                       tmp/frame-profile/steady/<situation>/summary.txt);
 #                       needs make psx-short-runs, fails on a missing boot or
 #                       an adds-up failed; never boots, outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
@@ -2947,8 +2937,9 @@ STEADY_PROFILE_GROUPS := psx/perf/draw-functions.txt
 STEADY_PROFILE_DIR := $(FRAME_PROFILE_DIR)/steady
 
 # The pooled overhead is always over every steady run of the manifest; PSX_SHORT_RUNS only narrows
-# the runs profiled. A steady situation with no run of the manifest is profiled on the full game's
-# frames over the budget (no-run), only when PSX_SHORT_RUNS is unset.
+# the runs profiled. A steady situation with no run of the manifest, or marked "no representative
+# run", is profiled on the full game's frames over the budget (no-run), only when PSX_SHORT_RUNS is
+# unset.
 steady-profile: $(TMP_DIR)/frame_profile tools/end_state.sh tools/steady_profile.sh tools/frame_profile_check.sh \
 		psx-short-runs-cut $(STEADY_PROFILE_GROUPS) $(FRAME_PROFILE_JUDGE_FRAMES) $(SITUATIONS_TABLE)
 	@$(frame_profile_function); \
@@ -2986,8 +2977,10 @@ steady-profile: $(TMP_DIR)/frame_profile tools/end_state.sh tools/steady_profile
 		if [ $$status -ne 0 ] || grep -q '^adds-up failed' $$dir/summary.txt; then failed="$$failed $$name"; fi; \
 	done; \
 	if [ -z "$${PSX_SHORT_RUNS:-}" ]; then \
+		unrepresented=$$(awk '$$1 == "#" && $$2 == "no" && $$3 == "representative" && $$4 == "run:" { print $$5 }' \
+			$(PSX_SHORT_RUNS_MANIFEST) | tr '\n' ' '); \
 		for situation in $(STEADY_SITUATIONS); do \
-			case " $$steady " in *" $$situation-"*) continue;; esac; \
+			case " $$unrepresented " in *" $$situation "*) ;; *) case " $$steady " in *" $$situation-"*) continue;; esac;; esac; \
 			dir=$$out/$$situation; rm -rf $$dir; mkdir -p $$dir; \
 			[ -n "$${full_sets:-}" ] || full_sets=$$(profile_sets $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$out/full-game) \
 				|| { failed="$$failed $$situation"; continue; }; sets=$$full_sets; \
@@ -3011,27 +3004,14 @@ frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
 		|| { status=$$?; rm -f $$out; exit $$status; }; \
 	cat $$out
 
-ESTIMATE_END ?= measured
-ESTIMATE_ALLOCATION ?= sequential
-ESTIMATE_HAIRCUT ?= 0
-ESTIMATE_GAINS ?= psx/perf/gains.txt
-ESTIMATE_SPIKE_FRAMES := psx/perf/spike-frames.txt
-ESTIMATE_JUDGE_FRAMES := psx/perf/report-judge-frames.txt
 LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
 
-lever-estimate: tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
-	@label=$(or $(ESTIMATE_LABEL),$(ESTIMATE_END)$(if $(ESTIMATE_RUN),-$(ESTIMATE_RUN))); \
-	case "$$label" in ''|*[!A-Za-z0-9_.-]*) echo "$@: ESTIMATE_LABEL is not a file-name label: '$$label'"; exit 1;; esac; \
-	mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/$$label.txt; \
-	sh tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
-		allocation=$(ESTIMATE_ALLOCATION) haircut=$(ESTIMATE_HAIRCUT) $(if $(ESTIMATE_RUN),run=$(ESTIMATE_RUN)) > $$out \
-		|| { status=$$?; rm -f $$out; exit $$status; }; \
-	grep -v '^frame ' $$out; echo "$@: wrote $$out"
-
-lever-estimate-check: tools/lever_estimate.sh tools/lever_estimate_check.sh tools/frame_profile_check.sh \
-		$(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
-	@sh tools/lever_estimate_check.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
-		$(LEVER_ESTIMATE_DIR)/check
+lever-estimate: tools/lever_estimate.sh tools/psx_real_game_budget.sh
+	@mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/estimate.txt; \
+	sh tools/lever_estimate.sh $(or $(FRAMES),$(FRAME_PROFILE_JUDGE_FRAMES)) $(or $(SITUATIONS),$(SITUATIONS_TABLE)) \
+		$(or $(LEVERS),docs/psx-levers.md) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) \
+		projected=$(LEVER_ESTIMATE_DIR) > $$out; status=$$?; \
+	cat $$out; echo "$@: wrote $$out"; exit $$status
 
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -3039,7 +3019,7 @@ $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR
 $(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.c) tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/frame_profile_check.sh | $(TMP_DIR)
+$(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/psx_real_game_budget.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_steady_profile: $(call objs,tests/test_steady_profile.c) tools/steady_profile.sh tools/frame_profile_check.sh | $(TMP_DIR)
@@ -3052,7 +3032,7 @@ frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
-	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate lever-estimate-check \
+	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate \
 	steady-profile
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
