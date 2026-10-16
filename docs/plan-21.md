@@ -371,3 +371,15 @@ by judge-wide gain (the report's `draw-6000` figure):
 - Built: five 16×16 slots (disc, four rings), `planet_draw` copying them when no fill pattern is set, `GPU_BUILD_BUFFER_BYTES` 12,288 (map and planet images build on the same frame). Measured pooled steady draw **−63.6** a frame (−55.9 / −71.3), one-off build ≈ +25 on frame 12. Pixel-identical: differ 0 on every capture, e2e and end-state unchanged.
 - **Skipped and reverted** (`guideline` decision): the copies set the PSX mask bit (bit 15) on the disc's black and the ring's pixels, invisible on screen but changing the raw-VRAM reference hash of seven captures (all 100, all 188, pattern 190, pattern 257, circfill 263, all 265, circ 314; with bit 15 masked all 14 hash as before). Black must carry bit 15 to stay opaque in a copy, so no copy-based D8 avoids it, and `make psx-gpu-capture-accept` is the human's command only. The working D8 is on branch `claude/plan-21-d8-pending`; the human takes it by merging it and accepting those seven references.
 - **Consequence for steps 12 and 15:** a cached image whose content is not all sprite texels (untextured fills, lines, circles, print) will hit the same reference change. Sprite-only content (D6's rows) is safe: sprite texels already carry bit 15.
+
+### Step 3.12
+
+- Gross target (rows drawn twice): `draw-5564` +36.3, `draw-6000` +53.5 a frame (report 55 / 81): not covered. PC count over the full game and every e2e: widest row 39, at most 17 rows a frame, every row sprite-only.
+- Built: 32 slots of 48×8 (PSX: five a band from (704,256), each on its own page by the unchanged `x − x mod 64` rule), a game-side `image_slot_t`, and `row_image_draw_at` (content-keyed, LRU over 32 slots, sprite-only rows, direct draw otherwise); `planet_draw` uses it. Every capture **and reference** unchanged (sprite texels already carry bit 15).
+- **Kept:** draw a frame `draw-5564` −21.1, `draw-6000` −29.4, pooled **−25.2**; one-frame runs −25 to −28. Builds: ≈ +50 one-off on a resumed run's first frame; on the judge 81 builds on 58 frames, **all of them update-spike frames** (first at 113): input for phase 4. `gpu_build` peak 9,000 of 10,240 (no raise).
+- RAM: `ram-room` 199,460, `game-ram-room` 347,804 (the software store grew 12,288 bytes).
+- Merging `claude/plan-21-d8-pending` later now means rebasing D8's five slots onto this enum and layout.
+
+### Step 3.13
+
+- **Skipped:** D4 is covered by D1/B4. Step 3.9's residual probe left it at −9.5 / −9.3 a frame on `draw-5564` / `draw-6000`, under 10.6 on both. No source change.

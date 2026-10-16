@@ -47,12 +47,12 @@
     - [x] Chunk 0 — gross probes, capture check
     - [x] Chunk 1 — five small image slots
     - [x] Chunk 2 — planet_draw copies disc and ring, measured
-  - [ ] Step 3.12 — D6 planet row icons through the image cache
+  - [x] Step 3.12 — D6 planet row icons through the image cache
     - [x] Chunk 0 — gross probe, sizing count, capture check
     - [x] Chunk 1 — row slots, PSX layout, slot enum
     - [x] Chunk 2 — row-image module
     - [x] Chunk 3 — the switch, measured
-  - [ ] Step 3.13 — D4 score panel readouts through the image cache
+  - [x] Step 3.13 — D4 score panel readouts through the image cache
   - [ ] Step 3.14 — B2 off-screen rejection, or D12 + D11 + D15
   - [ ] Step 3.15 — remaining draw levers above 2%
   - [ ] Step 3.16 — end of phase full-game check
