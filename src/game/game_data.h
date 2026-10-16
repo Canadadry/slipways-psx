@@ -174,6 +174,8 @@ typedef struct {
     int has_cost;
     state_t confirmed_state;
     p8_fixed_t clock_ticks;
+    /* 1 only when confirming changes no economy figure but the credits. */
+    int clock_skips_recompute;
 } targeting_archetype_t;
 
 typedef struct {

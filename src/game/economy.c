@@ -92,7 +92,32 @@ economy_t *economy_new(void) {
     return economy_create();
 }
 
-void economy_advance_clock(economy_t *self, p8_fixed_t hx) {
+static void economy_refresh_after_figures(economy_t *self) {
+    const entity_list_t *refresh_list;
+    entity_list_iter_t iter;
+    entity_t *qc;
+
+    if (self->year >= p8_fixed_from_int(3426)) {
+        self->end_status = "final score";
+    } else if (self->income <= p8_fixed_from_int(0) && self->credits < p8_fixed_from_int(3)) {
+        self->end_status = "bankrupt";
+    } else {
+        self->end_status = NULL;
+    }
+    self->has_end_status = 1;
+
+    refresh_list = entities_by_message(ENTITY_MESSAGE_REFRESH);
+    iter = entity_list_all(refresh_list);
+    while (entity_list_iter_next(&iter, &qc)) {
+        if (qc != NULL) {
+            if (qc->class->refresh != NULL) {
+                qc->class->refresh(qc);
+            }
+        }
+    }
+}
+
+static void economy_add_ticks(economy_t *self, p8_fixed_t hx, void (*bring_up_to_date)(economy_t *)) {
     p8_fixed_t kx;
     p8_fixed_t lo;
 
@@ -107,12 +132,20 @@ void economy_advance_clock(economy_t *self, p8_fixed_t hx) {
     lo = p8_fixed_add(self->year_ticks, hx);
     self->year_ticks = lo;
 
-    economy_recompute(self);
+    bring_up_to_date(self);
 
     if (lo > kx) {
         self->year_ticks = p8_fixed_sub(lo, kx);
         economy_new_year(self);
     }
+}
+
+void economy_advance_clock(economy_t *self, p8_fixed_t hx) {
+    economy_add_ticks(self, hx, economy_recompute);
+}
+
+void economy_tick_clock(economy_t *self, p8_fixed_t hx) {
+    economy_add_ticks(self, hx, economy_refresh_after_figures);
 }
 
 void economy_new_year(economy_t *self) {
@@ -198,8 +231,6 @@ void economy_recompute(economy_t *self) {
     const entity_list_t *planet_list;
     entity_list_iter_t iter;
     entity_t *planet;
-    p8_fixed_t year;
-    p8_fixed_t credits;
 
     assert_economy(self);
     if (self == NULL) {
@@ -235,30 +266,7 @@ void economy_recompute(economy_t *self) {
     self->happiness = happiness;
     self->has_happiness = 1;
 
-    year = self->year;
-    credits = self->credits;
-    if (year >= p8_fixed_from_int(3426)) {
-        self->end_status = "final score";
-    } else if (income <= p8_fixed_from_int(0) && credits < p8_fixed_from_int(3)) {
-        self->end_status = "bankrupt";
-    } else {
-        self->end_status = NULL;
-    }
-    self->has_end_status = 1;
-
-    {
-        const entity_list_t *refresh_list = entities_by_message(ENTITY_MESSAGE_REFRESH);
-        entity_list_iter_t planets_iter;
-        entity_t *qc;
-        planets_iter = entity_list_all(refresh_list);
-        while (entity_list_iter_next(&planets_iter, &qc)) {
-            if (qc != NULL) {
-                if (qc->class->refresh != NULL) {
-                    qc->class->refresh(qc);
-                }
-            }
-        }
-    }
+    economy_refresh_after_figures(self);
 }
 
 void economy_invent(economy_t *self, const technologies_entry_t *t) {

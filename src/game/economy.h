@@ -19,6 +19,11 @@ economy_t *economy_new(void);
 
 void economy_advance_clock(economy_t *self, p8_fixed_t hx);
 
+/* economy_advance_clock without its recompute's figures, for a caller that
+ * changed only the credits since the last one: the end status and the refresh
+ * listeners are brought up to date. A new year still recomputes in full. */
+void economy_tick_clock(economy_t *self, p8_fixed_t hx);
+
 void economy_new_year(economy_t *self);
 
 int economy_spend(economy_t *self, p8_fixed_t jt);

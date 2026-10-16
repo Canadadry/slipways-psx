@@ -373,7 +373,8 @@ const wormhole_archetype_t wormhole_archetype = {
     .radius = 0x0,
     .layer = 0x50000,
     .color_ramp = &wormhole_color_ramp_seq,
-    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = ENTITY_STATE_UNFOLDING, .clock_ticks = 0x10000},
+    .targeting = {.attach_distance = 0x0, .cost = 0x30000, .has_cost = 1, .confirmed_state = ENTITY_STATE_UNFOLDING, .clock_ticks = 0x10000,
+                  .clock_skips_recompute = 1},
 };
 
 const slipway_archetype_t slipway_archetype = {

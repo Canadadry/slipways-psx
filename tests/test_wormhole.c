@@ -18,6 +18,7 @@
 #include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
+#include "game/economy.h"
 #include "engine/dispatch_context.h"
 #include "engine/entity.h"
 #include "engine/entity_registry.h"
@@ -31,8 +32,10 @@
 #include "game/planet_family_trade.h"
 #include "game/planet.h"
 #include "game/research.h"
+#include "game/score_panel.h"
 #include "game/probe.h"
 #include "game/slipway.h"
+#include "game/targeting.h"
 #include "engine/entity_class.h"
 #include "game/ui.h"
 #include "engine/vec.h"
@@ -614,6 +617,151 @@ static void test_drop(void) {
     check("drop", hash, DROP_HASH);
 }
 
+static uint32_t fold_resource_map(uint32_t h, const resource_map_t *map) {
+    int i;
+
+    h = fnv(h, (uint32_t)map->count);
+    for (i = 0; i < map->count; i++) {
+        h = fnv(fnv(h, (uint32_t)map->entries[i].resource), (uint32_t)map->entries[i].value);
+    }
+    return h;
+}
+
+static uint32_t fold_row(uint32_t h, const layout_row_t *row) {
+    int i;
+
+    if (row == NULL) {
+        return fnv(h, 0xFFFFFFFFu);
+    }
+    h = fnv(fnv(h, (uint32_t)row->placed_items_count), (uint32_t)row->width);
+    for (i = 0; i < row->placed_items_count; i++) {
+        const layout_row_item_t *item = &row->placed_items[i];
+        h = fnv(fnv(h, (uint32_t)item->kind), (uint32_t)item->color);
+        h = fnv(fnv(h, (uint32_t)item->sprite_id), (uint32_t)item->sprite_palette_block);
+        h = fnv(fnv(h, (uint32_t)item->offset.x), (uint32_t)item->offset.y);
+        h = item->text != NULL ? fnv_str(h, item->text) : fnv(h, 0u);
+    }
+    return h;
+}
+
+/* What the score panel shows: each readout's text or number. */
+static uint32_t fold_score_panel_readouts(uint32_t h) {
+    const score_panel_readouts_t *readouts = score_panel_readouts();
+    int i;
+
+    assert(readouts != NULL);
+    for (i = 0; i < 7; i++) {
+        const data_item_t *item = &readouts->sub_items[i][0];
+        h = fnv(fnv(h, (uint32_t)item->is_nil), (uint32_t)item->is_fixed);
+        h = fnv(h, (uint32_t)item->fixed);
+        h = item->text != NULL ? fnv_str(h, item->text) : fnv(h, 0u);
+    }
+    return h;
+}
+
+/* What a launch can change: the wormhole's state, the economy's figures,
+ * what the score panel shows, each planet's tier, income, production and row. */
+static uint32_t fold_after_launch(const wormhole_t *mz) {
+    const economy_t *economy = main_economy_typed();
+    const entity_list_t *planets = entities_by_tag(TAG_PLANET);
+    uint32_t h = fold_drop(2166136261u, mz);
+    int i;
+
+    h = fnv(fnv(h, (uint32_t)economy->credits), (uint32_t)economy->income);
+    h = fnv(fnv(h, (uint32_t)economy->research_points), (uint32_t)economy->era);
+    h = fnv(fnv(h, (uint32_t)economy->year), (uint32_t)economy->year_ticks);
+    h = fnv(fnv(h, (uint32_t)economy->has), (uint32_t)economy->happiness);
+    h = fnv(fnv(h, (uint32_t)economy->has_end_status), (uint32_t)economy->save_pending);
+    h = economy->end_status != NULL ? fnv_str(h, economy->end_status) : fnv(h, 0u);
+    h = fold_resource_map(fold_resource_map(h, &economy->production), &economy->demand);
+    h = fold_score_panel_readouts(h);
+    for (i = 0; planets != NULL && i < planets->count; i++) {
+        const planet_t *planet = as_planet(planets->items[i]);
+        h = fnv(fnv(h, (uint32_t)planet->development_tier), (uint32_t)planet->has_development_tier);
+        h = fnv(fnv(h, (uint32_t)planet->net_income), (uint32_t)planet->has_net_income);
+        h = fnv(fnv(h, (uint32_t)planet->production.has_resource), (uint32_t)planet->production.resource);
+        h = fnv(h, (uint32_t)planet->production.amount);
+        h = fold_row(h, planet->layout_row);
+    }
+    return h;
+}
+
+/* The launch as it ran with a full recompute: the charge, then the clock. */
+static void launch_with_full_recompute(wormhole_t *mz) {
+    if (mz->header.state_time < p8_fixed_from_int(15)) {
+        mz->header.is_dead = 1;
+        return;
+    }
+    if (!targeting_confirm_without_clock(&mz->header)) {
+        mz->header.is_dead = 1;
+        return;
+    }
+    economy_advance_clock(main_economy_typed(), p8_fixed_from_int(1));
+    mz->header.is_dead = 0;
+}
+
+/* The world, a wormhole held `state_time` ticks near an anchor, the year at
+ * `year_ticks`, the credits at `credits` (or as they are for a negative
+ * value), then the launch; run in its own child, which sends back
+ * fold_after_launch. */
+static uint32_t launch_in_child(int full_recompute, int state_time, int year_ticks, int credits) {
+    int fds[2];
+    pid_t child;
+    int status;
+    uint32_t got = 0;
+
+    assert(pipe(fds) == 0);
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        wormhole_t *mz;
+        uint32_t h;
+
+        close(fds[0]);
+        world();
+        mz = build_wormhole();
+        until_state_time(mz, state_time);
+        drag(mz, near_anchor(), point(64, 64));
+        main_economy_typed()->year_ticks = p8_fixed_from_int(year_ticks);
+        if (credits >= 0) {
+            main_economy_typed()->credits = p8_fixed_from_int(credits);
+        }
+        economy_recompute(main_economy_typed());
+        if (full_recompute) {
+            launch_with_full_recompute(mz);
+        } else {
+            drop(mz);
+        }
+        h = fold_after_launch(mz);
+        assert(write(fds[1], &h, sizeof h) == (ssize_t)sizeof h);
+        fflush(stdout);
+        _exit(0);
+    }
+    close(fds[1]);
+    assert(read(fds[0], &got, sizeof got) == (ssize_t)sizeof got);
+    close(fds[0]);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    return got;
+}
+
+/* A launch ends where the full recompute ended: mid-year, on the tick that
+ * starts a new year, on the one that costs the last credits, refused for
+ * want of them, and before tick 15. */
+static void test_launch_ends_as_with_a_full_recompute(void) {
+    static const int cases[][3] = {{15, 0, -1}, {15, 7, -1}, {15, 15, -1}, {15, 3, 3}, {15, 3, 2}, {3, 3, -1}};
+    size_t i;
+
+    for (i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+        uint32_t launch = launch_in_child(0, cases[i][0], cases[i][1], cases[i][2]);
+        uint32_t full = launch_in_child(1, cases[i][0], cases[i][1], cases[i][2]);
+        printf("[launch] state time %d ticks %d credits %d: 0x%08X 0x%08X\n", cases[i][0], cases[i][1], cases[i][2], (unsigned)launch,
+               (unsigned)full);
+        assert(launch == full);
+    }
+}
+
 static int unknown_count(void) {
     const entity_list_t *jo = entities_by_tag(TAG_PLANET);
     int n = 0;
@@ -924,6 +1072,7 @@ int main(void) {
     in_fresh_child(test_anchor_resolves_until_the_flush);
     in_fresh_child(test_update_placing_ticks);
     in_fresh_child(test_drop);
+    in_fresh_child(test_launch_ends_as_with_a_full_recompute);
     in_fresh_child(test_update_unfolding_ticks);
     in_fresh_child(test_draw);
     in_fresh_child(test_accept_drop);

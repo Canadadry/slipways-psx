@@ -329,7 +329,11 @@ int targeting_confirm(entity_t *self) {
     if (targeting == NULL) {
         return 0;
     }
-    economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
+    if (targeting->archetype->clock_skips_recompute) {
+        economy_tick_clock(main_economy_typed(), targeting->archetype->clock_ticks);
+    } else {
+        economy_advance_clock(main_economy_typed(), targeting->archetype->clock_ticks);
+    }
     return 1;
 }
 
