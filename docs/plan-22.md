@@ -230,3 +230,13 @@ generation runs.
 None.
 
 ## 6. Step notes
+
+### Step 1.1
+
+One `psx-full-game-check` on the starting HEAD (asserts off, O3); its
+table replaces `psx/perf/full-run-frames.txt` (6,059 frames). Red on
+`frame-budget` only, every other condition green. Frames over 263: 1,764
+(plan 21: 1,764); worst frame 12 at 3,992, update 3,711, draw 275, 15
+vsyncs (plan 21: 3,992); mean frame 233.6 (plan 21: 233.6). No drift: the
+old committed table predated D8. Over-budget frames: draw 424,627 of
+598,793, mean overrun 76 hblanks. No deviation, no guideline decision.

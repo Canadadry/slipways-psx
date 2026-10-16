@@ -1,5 +1,5 @@
 - [ ] Phase 1 — Measure and model the real game
-  - [ ] Step 1.1 — Baseline full-game frame table
+  - [x] Step 1.1 — Baseline full-game frame table
     - [x] Baseline table replaces psx/perf/full-run-frames.txt
   - [ ] Step 1.2 — Situation of every frame
   - [ ] Step 1.3 — real-game-budget condition
