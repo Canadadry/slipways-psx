@@ -20,6 +20,20 @@ static void test_sub_representative_values(void) {
     assert(result == fixed_test_double_from_double(3.25));
 }
 
+static void test_sub_wraps_at_most_negative_raw_value(void) {
+    assert(p8_fixed_sub((p8_fixed_t)INT32_MIN, (p8_fixed_t)1) == (p8_fixed_t)INT32_MAX);
+}
+
+static void test_sub_wraps_at_most_positive_raw_value(void) {
+    assert(p8_fixed_sub((p8_fixed_t)INT32_MAX, (p8_fixed_t)-1) == (p8_fixed_t)INT32_MIN);
+}
+
+static void test_from_int_outside_the_integer_part_wraps(void) {
+    assert(p8_fixed_from_int(32768) == (p8_fixed_t)INT32_MIN);
+    assert(p8_fixed_from_int(-1) == (p8_fixed_t)0xFFFF0000u);
+    assert(p8_fixed_from_int(65537) == (p8_fixed_t)0x00010000);
+}
+
 static void test_mul_representative_values(void) {
     p8_fixed_t a = fixed_test_double_from_double(2.5);
     p8_fixed_t b = fixed_test_double_from_double(4.0);
@@ -667,6 +681,9 @@ int main(void) {
 
     test_add_representative_values();
     test_sub_representative_values();
+    test_sub_wraps_at_most_negative_raw_value();
+    test_sub_wraps_at_most_positive_raw_value();
+    test_from_int_outside_the_integer_part_wraps();
     test_mul_representative_values();
     test_mul_overflow_wraps();
     test_add_overflow_128_squared_twice_wraps_to_min();

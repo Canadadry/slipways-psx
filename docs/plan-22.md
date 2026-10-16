@@ -530,3 +530,64 @@ in the changed files: none in slipway_display.c, slipway_display.h or
 test_slipway.c; docs/psx-game.md's "one frame late" vs F−2 wording is
 outside the projection line N1 edits; all left open. No guideline
 decision.
+
+### Step 3.7 — N2
+
+Lever N2, fixed-point and vector helpers inlined: `p8_fixed_from_int`,
+`_add`, `_sub`, `_mul`, `_neg`, `_flr`, `_flr_int`, `_abs`, `_sgn`,
+`_band`, `_bor` move to `fixed.h` and `vec_make`, `vec_add`, `vec_sub`,
+`vec_mul`, `vec_neg`, `vec_dot`, `vec_length_squared`,
+`vec_perpendicular` to `vec.h`, `static inline`, bodies and `uint32_t`
+casts unchanged, the wrap comment moved with `p8_fixed_add`; the heavy
+helpers stay out of line. `test_fixed` gained three wrap cases (`sub` at
+both int32 edges, `from_int` outside ±32,767), passing before and after
+the move, under UBSan too. Hypotheses on N1 all held (N1 kept, ratio
+0.81, re-rank N1, N2, …, projection 563 / 741, no scale line, no rebase,
+N1 in slipway_display.{c,h} and test_slipway.c only). Not covered (N1
+touched only `slipway_draw_line`'s helpers); under 2%: no, its own probe
+delta is 31.4 h per steady frame (rule (a), T = 4.4) and 23.1 / 45.0 /
+47.3 h on map-move-1057 / menu-5954 / tech-panel-5895 (rule (b): 7.0,
+6.2, 7.3). Probe baseline reused: retaken at N1's commit, its fingerprint
+matches HEAD on all 12 runs. Probe, all 12 valid, `game-state same` on
+every run, text −7,712 bytes on each: map-move-1057 draw −241 over 15
+(−16.1 h a frame, 7.4%) against 5.8 h, update −106 (−7.1 h, 5.6%) against
+8.8 h, submit 0, total −347 (−23.1 h); menu-5954 draw −642 (−42.8 h,
+15.8%) against 13.9 h, update −33 (−2.2 h, 9.9%) against 1.6 h, submit
++1, total −674 (−44.9 h); tech-panel-5895 draw −400 over 9 (−44.4 h,
+14.3%) against 14.5 h, update −26 (−2.9 h, 9.2%) against 2.2 h, submit 0,
+total −426 (−47.3 h). Draw ratio 103.3 / 34.2 = 3.02, update ratio
+12.2 / 12.6 = 0.96, applied to the no-run situations (draw map-rest
+13.0%, build 14.5%, slipway-aim 12.4%, score-panel 13.9%; update 6.8%);
+N2's own ratio 115.5 / 46.8 = 2.47. Kept: the three runs' totals are all
+negative, beyond every noise floor (3.5, 3.0, 3.5 h), map-move-1057's
+alone included. Weaker evidence: map-rest-5581 draw −36.2 h a frame
+(14.7%, scaled 13.0%), update −1.9; build-5752 draw −24.1 (13.5%, scaled
+14.5%), update −17.1 (34.5%, scaled 6.8%); score-panel-5876 draw −34,
+update −4 on its one frame; start −1,681 of update on its one frame;
+update-4737 −30, update-5500 −44, update-5719 −3 of update; draw-5564
+−508, draw-6000 −670 of draw over 15. `scale share 1.64`: the median
+(mean, two levers) of N1's 0.81 and N2's 2.47, the first `scale` line;
+it scales G4, N5 and N6, not re-derived. Steady frames over: N2 alone
+removes 453 (estimate 157); after N1 and N2, 1,076 → 597 nominal / 701
+pessimistic (N1's projection: 924 / 969); end of the list 269 / 418
+(was 563 / 741). Re-ranked to the greedy order: G4, N3, N1 (taken), N2
+(taken), N5, D3 (taken), N6, N7 — G4 scaled to 85% of submit and N3 each
+remove more alone than N1, and N2 cannot precede N1; the lever table and
+the ranked list were reordered to match (`order ok`). No
+`psx-full-game-check`, no rebase. `psx-check` green, all 39 conditions,
+every capture of both lists matching its reference; `ram-room` 148,252
+bytes left (was 141,696), `game-ram-room` 303,448 (was 295,736); `make
+raylib` links. Every e2e `.sha256` and `.end-state` unchanged. Fast loop,
+before → after (header change, so every object rebuilt): `make test` cold
+11.3 → 11.3 s, warm 7.45 → 7.33 s (mean of six); `make e2e` warm 0.52 →
+0.49 s. The PC profiler still instruments the inlined helpers (one copy
+per translation unit): `docs/psx-levers.md`'s "fewer children" note was
+corrected. Warn-review warnings in the changed files: none in fixed.{c,h},
+vec.{c,h}, test_fixed.c, or the levers and game docs' edited lines (the
+"one frame late" vs F−2 wording sits outside the "Still to do" projection
+line); phases 1 and 2 and plan 21's lists all left open. No guideline
+decision.
+Caution: N2's ratio (2.47, whole-program call overhead) drives the
+`scale share 1.64` applied to G4, N5 and N6; those three are not
+inlining levers, so their scaled estimates (G4 at 85% of submit) are
+likely optimistic until measured.

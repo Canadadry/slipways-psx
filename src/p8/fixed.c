@@ -1,25 +1,6 @@
 #include "p8/fixed.h"
 #include "p8/quarter_wave.h"
 
-p8_fixed_t p8_fixed_from_int(int32_t i) {
-    return (p8_fixed_t)((uint32_t)i << P8_FIXED_SHIFT);
-}
-
-/* Wrap in the unsigned type: int32_t overflow is undefined behavior. */
-p8_fixed_t p8_fixed_add(p8_fixed_t a, p8_fixed_t b) {
-    return (p8_fixed_t)((uint32_t)a + (uint32_t)b);
-}
-
-p8_fixed_t p8_fixed_sub(p8_fixed_t a, p8_fixed_t b) {
-    return (p8_fixed_t)((uint32_t)a - (uint32_t)b);
-}
-
-p8_fixed_t p8_fixed_mul(p8_fixed_t a, p8_fixed_t b) {
-    int64_t product = (int64_t)a * (int64_t)b;
-    int64_t rescaled = product >> P8_FIXED_SHIFT;
-    return (p8_fixed_t)(uint32_t)rescaled;
-}
-
 p8_fixed_t p8_fixed_div(p8_fixed_t a, p8_fixed_t b) {
     if (b == 0) {
         return a < 0 ? P8_FIXED_DIV0_NEG : P8_FIXED_DIV0_POS;
@@ -30,26 +11,6 @@ p8_fixed_t p8_fixed_div(p8_fixed_t a, p8_fixed_t b) {
     return (p8_fixed_t)(uint32_t)quotient;
 }
 
-p8_fixed_t p8_fixed_neg(p8_fixed_t x) {
-    return (p8_fixed_t)((uint32_t)0 - (uint32_t)x);
-}
-
-p8_fixed_t p8_fixed_flr(p8_fixed_t x) {
-    return (p8_fixed_t)((uint32_t)x & 0xFFFF0000u);
-}
-
-int32_t p8_fixed_flr_int(p8_fixed_t x) {
-    return p8_fixed_flr(x) / ((int32_t)1 << P8_FIXED_SHIFT);
-}
-
-p8_fixed_t p8_fixed_abs(p8_fixed_t x) {
-    return x < 0 ? p8_fixed_neg(x) : x;
-}
-
-p8_fixed_t p8_fixed_sgn(p8_fixed_t x) {
-    return x < 0 ? p8_fixed_from_int(-1) : p8_fixed_from_int(1);
-}
-
 p8_fixed_t p8_fixed_mid(p8_fixed_t a, p8_fixed_t b, p8_fixed_t c) {
     if ((a <= b && b <= c) || (c <= b && b <= a)) {
         return b;
@@ -58,14 +19,6 @@ p8_fixed_t p8_fixed_mid(p8_fixed_t a, p8_fixed_t b, p8_fixed_t c) {
         return a;
     }
     return c;
-}
-
-p8_fixed_t p8_fixed_band(p8_fixed_t a, p8_fixed_t b) {
-    return a & b;
-}
-
-p8_fixed_t p8_fixed_bor(p8_fixed_t a, p8_fixed_t b) {
-    return a | b;
 }
 
 p8_fixed_t p8_fixed_mod(p8_fixed_t a, p8_fixed_t b) {
