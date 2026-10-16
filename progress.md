@@ -31,6 +31,7 @@
     - [x] G4 — upload only the slots that changed, measured
     - [x] N3 — capture a circle cut by the top edge
     - [x] N3 — circle outline drawn as runs, measured
+    - [x] N5 — on-screen test against the screen box, skipped, under 2%
   - [ ] Step 3.8 — End-of-phase full-game check
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan

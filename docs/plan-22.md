@@ -755,3 +755,63 @@ sentence, one "Capture list" sentence and the "Still to do" figure);
 the Makefile warnings left open (the Makefile is not changed);
 hand-copied condition counts left open (the count stays 39); every
 other warning left open, outside N3's files. No guideline decision.
+
+### Step 3.7 — N5
+
+Lever N5, on-screen test against the draw pass's screen box: **not taken,
+under 2%**; no code changed, nothing committed but the bookkeeping.
+Hypotheses on N3 checked, all held: N3 kept (ratio 0.77), its capture
+chunk (`circ 245`) and the lever committed, note `### Step 3.7 — N3`;
+it wrote `scale calls 0.60` and left `scale share 1.11`; its re-rank
+(N1, N2, N3, N5, D3, G4, N6, N7) left N5 the next untaken lever; it ran
+no `psx-full-game-check` (no rebase, no `in-base`), changed only
+`psx_tiles.{c,h}`, `psx_gpu.c`, `test_psx_tiles.c`, capture files and
+docs, acted on no warning, and left the projection at 336 / 482 with
+`psx-check` green (39 conditions, both capture lists matching).
+Baseline: the one re-taken at N3's commit, fingerprint matching `HEAD` on
+all 12 runs, reused. Covered? No: N2 inlined the helpers but left the
+out-of-line `main_camera()`, the camera's position read and the per-call
+camera-plus-half-screen sums, N5's target; D3, N1, G4 and N3 do not touch
+it. Residual probe (throwaway: `entity_geom_is_on_screen` looks up
+`pos_of(main_camera())` a second time and adds the half screen per axis
+into a `volatile` sink), all 12 valid, `game-state same`, text +64 bytes:
+draw map-move-1057 +46 over 15 (+3.1 h a frame), menu-5954 +66 over 15
+(+4.4), tech-panel-5895 +40 over 9 (+4.4), map-rest-5581 +67 over 15
+(+4.5), build-5752 +72 over 15 (+4.8), pooled representative 152 / 39 =
+3.9 for slipway-aim and score-panel (score-panel-5876 alone +4 on its one
+frame); draw-5564 +67, draw-6000 +67 over 15; start +3, update-4737 +3,
+update-5500 +3, update-5719 +4 on their one frame. Update within ±5 h
+over every window (near 0, as expected). The probe counts every call,
+also the ones N5 would leave on the wrapper (`emitter_update`,
+`planet_draw`), so it is an upper bound on what N5 removes. Rule (a):
+3.84 h per steady frame (weights ÷ 4,276 as the PRD fixed; ÷ 4,264, their
+sum, 3.85), under T = 4.4. Rule (b): every situation under its threshold
+(map-rest 4.5 < 6.2, map-move 3.1 < 7.0, slipway-aim 3.9 < 6.6, build 4.8
+< 6.2, menu 4.4 < 6.2, tech-panel 4.4 < 7.3, score-panel 3.9 < 7.2).
+Verdict: under 2%, not taken, as the PRD expected: N2 had already
+removed the helper-call share the estimate counted on.
+Skipped bookkeeping: N5's `lever` and `gain` lines removed from the lever
+table; its ranked entry kept as a short record out of the numbered
+ranking (residual per situation, both rules); the "What each function
+gets" row for `entity_geom_is_on_screen` now says "no lever: N5's
+residual under 2%", and `slipway_draw_method`'s row drops N5; plan 21's
+D13 row says N5 was not taken. `scale share` stays 1.11 (N1, N2, G4; no
+new ratio), so N6 is still scaled by 1.11; `scale calls` 0.60 untouched.
+Steady frames over: after the five taken levers 423 nominal / 563
+pessimistic (unchanged); end of the list 379 / 530 (N3's projection:
+336 / 482; N5's projected 40 frames scaled are gone, plus N6's and N7's
+overlap with it). Re-ranked to the greedy order: N1, N2, N3, D3, G4, N7,
+N6 — without N5, N7 passes N6 again; the lever table and the ranked list
+were reordered and renumbered to match (`order ok`), and plan 21's table
+now ranks D3 4th and G4 5th by measured gain (it said 6th for both). The
+next untaken lever is N7. No `psx-full-game-check`, no rebase.
+No code, `psx/` or Makefile change, so `psx-check`, the captures, the e2e
+hashes and `.end-state` files, `ram-room` / `game-ram-room` and the fast
+loop are as N3 left them; `make test-all` green. `docs/psx-game.md`: the
+"Still to do" figure (379 / 530).
+Warn-review warnings: N5 changes no code file, so none of its code
+warnings apply; "one frame late" vs F−2 in `docs/psx-game.md` left open
+(only the "Still to do" figure changes); `situation.c`'s `end_status !=
+NULL` and `loading_screen.c` in `ENGINE_SRCS` left open (files not
+changed); every other warning left open, outside N5's files. No
+guideline decision.
