@@ -81,7 +81,7 @@
     - [x] Chunk 3 — U2 planet row rebuilt only when its inputs changed
     - [x] Chunk 4 — U1 one clock advance per slipway drop
     - [x] Chunk 5 — U3 wormhole launch without a full recompute
-    - [ ] Chunk 6 — close: judge run, image-build frames, three groups, note
+    - [x] Chunk 6 — close: judge run, image-build frames, three groups, note
   - [ ] Step 4.19 — spreading mechanism, inert
   - [ ] Step 4.20 — spreading applied
   - [ ] Step 4.21 — end of phase full-game check
