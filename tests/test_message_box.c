@@ -35,6 +35,10 @@
 #include "engine/frame_zone.h"
 #include "game/ui_zone.h"
 #include "game/layout.h"
+#include "game/draw_functions.h"
+#include "game/hud.h"
+#include "game/text_image.h"
+#include "p8/draw_backend.h"
 
 #define YEAR_MESSAGE_TICKS 192
 #define YEAR_MESSAGE_SEQUENCE_HASH 0xE6D93DEAu
@@ -613,6 +617,119 @@ static void test_layout_row_article_draws_its_row(void) {
     assert(screen_hash() == want);
 }
 
+/* The box's articles drawn the way they were before the text image path: glyph by glyph. */
+static void draw_articles_glyph_by_glyph(p8_graphics_t *gfx, p8_vram_t *mem, const message_box_t *self) {
+    p8_fixed_t t = p8_fixed_sub(p8_fixed_div(self->header.state_time, self->duration_scale), p8_fixed_from_int(10));
+    p8_fixed_t nc = p8_fixed_div(p8_fixed_neg(p8_fixed_mul(p8_fixed_mul(t, t), t)), p8_fixed_from_int(9));
+    int i;
+
+    for (i = 0; i < self->articles_count; i++) {
+        const message_box_article_t *article = &self->articles[i];
+
+        p8_camera(gfx, p8_fixed_flr_int(nc), 0);
+        nc = p8_fixed_neg(nc);
+        if (article->kind == MESSAGE_BOX_ARTICLE_SHARED_ROW) {
+            draw_functions_draw_row(gfx, mem, article->as.row_of());
+        } else if (article->kind == MESSAGE_BOX_ARTICLE_LAYOUT_ROW) {
+            layout_row_draw_at(gfx, mem, &article->as.layout.row, article->as.layout.pos, article->as.layout.align);
+        } else {
+            data_item_t items[MESSAGE_BOX_ARGUMENTS_CAP];
+            data_row_t row = {.count = article->as.scalars.count, .items = items, .draw_function = article->draw_function};
+            int k;
+
+            for (k = 0; k < row.count; k++) {
+                const message_box_argument_t *argument = &article->as.scalars.arguments[k];
+
+                items[k] = argument->kind == MESSAGE_BOX_ARGUMENT_TEXT    ? (data_item_t){.text = article->as.scalars.text}
+                           : argument->kind == MESSAGE_BOX_ARGUMENT_FALSE ? (data_item_t){.is_false = 1}
+                           : argument->kind == MESSAGE_BOX_ARGUMENT_NIL   ? (data_item_t){.is_nil = 1}
+                                                                          : (data_item_t){.is_fixed = 1, .fixed = argument->number};
+            }
+            draw_functions_draw_row(gfx, mem, &row);
+        }
+    }
+    p8_camera_reset(gfx);
+}
+
+static int g_copies;
+static const p8_draw_backend_t *g_software;
+
+static void count_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    g_copies++;
+    g_software->image_draw(gfx, mem, slot, x, y);
+}
+
+/* keep_open is left out: it would pin state_time and hide the slide-out shake. */
+static void assert_box_draws_like_glyph_by_glyph(message_box_t *box) {
+    static const int tenths[] = {0, 40, 95, 100, 103, 104};
+    static p8_vram_t direct;
+    message_box_keep_open_fn_t keep_open = box->keep_open;
+    p8_fixed_t state_time = box->header.state_time;
+    size_t k;
+
+    box->keep_open = NULL;
+    for (k = 0; k < sizeof tenths / sizeof tenths[0]; k++) {
+        p8_graphics_t direct_gfx;
+        int copies = g_copies;
+
+        box->header.state_time = p8_fixed_div(p8_fixed_mul(box->duration_scale, p8_fixed_from_int(tenths[k])), p8_fixed_from_int(10));
+        text_image_frame_begin();
+        p8_gfx_init(&graphics);
+        direct_gfx = graphics;
+        p8_cls(&memory);
+        hud_select_palette_block_default(&memory);
+        direct = memory;
+        draw_articles_glyph_by_glyph(&direct_gfx, &direct, box);
+        message_box_draw_overlay(&graphics, &memory, box);
+        assert(memcmp(direct.screen, memory.screen, sizeof direct.screen) == 0);
+        assert(memcmp(direct.draw_palette, memory.draw_palette, sizeof direct.draw_palette) == 0);
+        assert(graphics.camera_x == 0 && graphics.camera_y == 0);
+        assert(g_copies > copies && "the box's text is copied from text slots");
+        assert(!box->header.is_dead);
+    }
+    box->keep_open = keep_open;
+    box->header.state_time = state_time;
+}
+
+static int box_has(const message_box_t *box, message_box_article_kind_t kind) {
+    int i;
+
+    for (i = 0; i < box->articles_count; i++) {
+        if (box->articles[i].kind == kind) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void test_box_text_draws_through_text_slots_like_glyph_by_glyph(void) {
+    static p8_draw_backend_t counting;
+    score_panel_t *ju;
+    message_box_t *year;
+    const p8_draw_backend_t *previous;
+
+    g_software = p8_gfx_software_backend();
+    counting = *g_software;
+    counting.image_draw = count_image_draw;
+    previous = p8_draw_backend_set(&counting);
+
+    reset_world(NULL);
+    cart_flush_exit_queue();
+    year = (message_box_t *)year_box(3425);
+    assert(box_has(year, MESSAGE_BOX_ARTICLE_SHARED_ROW) && box_has(year, MESSAGE_BOX_ARTICLE_SCALARS));
+    assert_box_draws_like_glyph_by_glyph(year);
+
+    ju = game_main_score_panel();
+    ju->curtain = p8_fixed_from_int(0);
+    ju->has_curtain = 1;
+    set_is_shown(ju, 1);
+    score_panel_update(ju);
+    assert(shown_message_box() != NULL && box_has(shown_message_box(), MESSAGE_BOX_ARTICLE_LAYOUT_ROW));
+    assert_box_draws_like_glyph_by_glyph(shown_message_box());
+
+    p8_draw_backend_set(previous);
+}
+
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
@@ -640,6 +757,7 @@ int main(void) {
     test_box_copies_its_rows();
     test_article_limits_stop();
     test_layout_row_article_draws_its_row();
+    test_box_text_draws_through_text_slots_like_glyph_by_glyph();
 
     printf("test_message_box: all tests passed\n");
     return 0;

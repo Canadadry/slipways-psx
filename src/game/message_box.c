@@ -65,13 +65,13 @@ static void message_box_draw_article(p8_graphics_t *gfx, p8_vram_t *mem, const m
         const data_row_t *shared = article->as.row_of();
 
         if (shared != NULL) {
-            draw_functions_draw_row(gfx, mem, shared);
+            draw_functions_draw_row_text_image(gfx, mem, shared);
         }
         return;
     }
     if (article->kind == MESSAGE_BOX_ARTICLE_LAYOUT_ROW) {
         vec_t p = article->as.layout.has_pos ? article->as.layout.pos : vec_make(p8_fixed_from_int(0), p8_fixed_from_int(0));
-        layout_row_draw_at(gfx, mem, &article->as.layout.row, p, article->as.layout.align);
+        layout_row_draw_at_text_image(gfx, mem, &article->as.layout.row, p, article->as.layout.align);
         return;
     }
     for (i = 0; i < article->as.scalars.count; i++) {
@@ -96,7 +96,7 @@ static void message_box_draw_article(p8_graphics_t *gfx, p8_vram_t *mem, const m
     row.count = article->as.scalars.count;
     row.items = items;
     row.draw_function = article->draw_function;
-    draw_functions_draw_row(gfx, mem, &row);
+    draw_functions_draw_row_text_image(gfx, mem, &row);
 }
 
 void message_box_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, message_box_t *self) {

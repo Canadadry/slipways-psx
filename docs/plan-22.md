@@ -460,3 +460,36 @@ everywhere; pad_author.c at 1,549 lines with no unit test). plan-review:
 two changes accepted — step 9 carries every phase's warnings and the
 unrecorded findings to "Still to do", and checks it; step 7's PRDs list
 and decide the open warnings in the files they change.
+
+### Step 3.7 — D3
+
+Lever D3, message-box text through the text image cache
+(`hud_print_outlined_text_image`, `draw_functions_draw_row_text_image`,
+`message_box_draw_article` routed through them and through
+`layout_row_draw_at_text_image`). Residual before the change (throwaway
+probe drawing the box's articles twice): tech-panel-5895 +36.3 h a
+window frame, above T = 4.4, not covered. Captures: `psx-check` gained
+a second capture replay, `pad_message_box` (year box `print 142`,
+`all 143`, score box `all 164`), accepted at differ 0 on the code before
+D3 (agent rule); after D3 all three match their references at differ 0,
+all 39 conditions hold. Probe against the baseline at chunk 1's commit,
+`game-state same` on every run: tech-panel-5895 draw 2,948 → 2,878
+(−70 h over 9 frames, −7.8 h a frame, 2.4% of draw) against 18.6 h
+(5.7%): ratio 0.42, applied to D3's other estimates (no `scale` line,
+one `calls` lever measured). Weaker evidence: map-rest-5581 −94 over 15
+frames, draw-5564 −102 over 15, score-panel-5876 +36 on its one frame
+(the box's text slots built there), build-5752 +3 (no box); text +1,240
+bytes. Every e2e `.sha256` and `.end-state` unchanged. Steady frames
+over: D3 alone removes 35 (estimate 75); end of the list 547 nominal /
+718 pessimistic (was 489 / 655). Re-ranked to the greedy order on the
+measured gain: N1, N2, N3, N5, G4, D3 (6th, taken), N6, N7. RAM:
+`ram-room` 142,056 bytes left, `game-ram-room` 295,500. Warn-review
+warnings in the changed files: none in message_box.c, draw_functions.c,
+hud.c, layout.c, text_image.c or the two tests; the Makefile's (phase 1
+situation lists, inline constants, two table variables, steady-profile's
+recipe lines; phase 2 loading_screen.c in ENGINE_SRCS) left, D3 changing
+only test_hud's link line. No guideline decision.
+Open risk: score-panel-5876's +36 h is beyond its 3 h noise floor and
+its cause (slots built on a cold cache right after the resume) is
+unproven; step 8's per-situation comparison checks score-panel and
+menu, where the box stays open.

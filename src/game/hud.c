@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "game/text_image.h"
+
 static int to_int(p8_fixed_t x) {
     return p8_fixed_flr_int(x);
 }
@@ -64,13 +66,18 @@ void hud_draw_help_frame(const p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t x1
     p8_spr(gfx, mem, 71, galaxy_menu_button2 - 2, top_pixel, 1, 2);
 }
 
+static int aligned_x(const char *t, p8_fixed_t x, p8_fixed_t a) {
+    return to_int(x) - to_int(p8_fixed_mul(p8_fixed_mul(a, p8_fixed_from_int(4)), p8_fixed_from_int((int)strlen(t))));
+}
+
 void hud_print_outlined(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
               p8_fixed_t a) {
-    int ix = to_int(x);
-    int iy = to_int(y);
+    p8_print_outlined(gfx, mem, t, aligned_x(t, x, a), to_int(y), c & 0x0F);
+}
 
-    ix -= to_int(p8_fixed_mul(p8_fixed_mul(a, p8_fixed_from_int(4)), p8_fixed_from_int((int)strlen(t))));
-    p8_print_outlined(gfx, mem, t, ix, iy, c & 0x0F);
+void hud_print_outlined_text_image(p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
+                                   p8_fixed_t a) {
+    text_image_print_outlined(gfx, mem, t, aligned_x(t, x, a), to_int(y), c & 0x0F);
 }
 
 void hud_print_outlined_default(const p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y,

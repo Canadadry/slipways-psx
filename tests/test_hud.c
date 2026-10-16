@@ -1,6 +1,8 @@
 #include "game/hud.h"
 #include "p8/assets.h"
 #include "p8/draw_backend.h"
+#include "game/image_slot.h"
+#include "game/text_image.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -153,6 +155,80 @@ static void test_outlined_text_is_one_outlined_print_at_the_aligned_position(voi
     assert(outlined_record.col == 0x0b);
 }
 
+static int g_copies;
+static const p8_draw_backend_t *g_software;
+
+static void count_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    g_copies++;
+    g_software->image_draw(gfx, mem, slot, x, y);
+}
+
+static void stripes(p8_vram_t *mem) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            mem->screen[y][x] = (unsigned char)((x / 3 + y / 5) % 16);
+        }
+    }
+}
+
+static void assert_text_image_draws_like_direct(const char *t, p8_fixed_t x, p8_fixed_t y, int c, p8_fixed_t a) {
+    static p8_vram_t direct, cached;
+    static const int cameras[][2] = {{0, 0}, {-7, 3}};
+    for (size_t k = 0; k < sizeof cameras / sizeof cameras[0]; k++) {
+        p8_graphics_t direct_gfx, gfx;
+        p8_gfx_init(&gfx);
+        p8_camera(&gfx, cameras[k][0], cameras[k][1]);
+        direct_gfx = gfx;
+        p8_vram_init(&direct);
+        stripes(&direct);
+        hud_select_palette_block(&direct, p8_fixed_from_int(8));
+        cached = direct;
+        hud_print_outlined(&direct_gfx, &direct, t, x, y, c, a);
+        hud_print_outlined_text_image(&gfx, &cached, t, x, y, c, a);
+        assert(gfx.camera_x == cameras[k][0] && gfx.camera_y == cameras[k][1]);
+        assert(screen_has_ink(&direct));
+        assert(screen_equal(&direct, &cached));
+        assert(memcmp(direct.draw_palette, cached.draw_palette, sizeof direct.draw_palette) == 0);
+    }
+}
+
+static void test_text_image_print_draws_like_the_outlined_print(void) {
+    static p8_draw_backend_t counting;
+    static const p8_fixed_t as[] = {0, P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x00010000, 1.0)};
+    static const int colors[] = {7, 9, 0x1b, 0};
+    static const char too_long[] = "a string far too long for one text slot";
+    char label[16];
+    g_software = p8_gfx_software_backend();
+    counting = *g_software;
+    counting.image_draw = count_image_draw;
+    const p8_draw_backend_t *previous = p8_draw_backend_set(&counting);
+
+    for (size_t n = 0; n < sizeof as / sizeof as[0]; n++) {
+        for (size_t c = 0; c < sizeof colors / sizeof colors[0]; c++) {
+            text_image_frame_begin();
+            assert_text_image_draws_like_direct("5 years remain", p8_fixed_from_int(64), p8_fixed_from_int(40), colors[c], as[n]);
+            assert_text_image_draws_like_direct("ore", P8_FIXED_LIT(0x00284CCD, 40.3), P8_FIXED_LIT(0x001E6000, 30.375), colors[c], as[n]);
+        }
+    }
+    assert(g_copies == 3 * 4 * 2 * 2 && "each print a copy from its text slot");
+
+    g_copies = 0;
+    assert(!text_image_cacheable(too_long));
+    assert_text_image_draws_like_direct(too_long, p8_fixed_from_int(2), p8_fixed_from_int(60), 7, 0);
+    assert(g_copies == 0);
+
+    text_image_frame_begin();
+    for (int k = 0; k < IMAGE_SLOT_TEXT_COUNT; k++) {
+        snprintf(label, sizeof label, "ITEM %d", k);
+        assert_text_image_draws_like_direct(label, p8_fixed_from_int(10), p8_fixed_from_int(k * 3), 7, 0);
+    }
+    g_copies = 0;
+    assert_text_image_draws_like_direct("every slot used", p8_fixed_from_int(64), p8_fixed_from_int(90), 12, P8_FIXED_LIT(0x00008000, 0.5));
+    assert(g_copies == 0 && "every slot was copied this frame: the print goes direct");
+
+    p8_draw_backend_set(previous);
+}
+
 int main(void) {
     test_each_block_matches_the_sprite_sheet_pixels();
     test_select_needs_no_sprite_sheet();
@@ -161,6 +237,7 @@ int main(void) {
     test_alignment_zero_prints_as_the_default();
     test_half_alignment_shifts_by_two_pixels_per_letter();
     test_outlined_text_is_one_outlined_print_at_the_aligned_position();
+    test_text_image_print_draws_like_the_outlined_print();
 
     printf("test_hud: OK\n");
     return 0;
