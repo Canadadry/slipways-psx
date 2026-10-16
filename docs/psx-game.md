@@ -305,7 +305,8 @@ point, no `malloc`):
   endpoints after the camera, unclipped (the GPU clips to the draw area),
   sent when its box meets the screen, so its stepping is the GPU's, not
   PICO-8's (the plan's accepted divergence, measured by its capture);
-  `circ` is one `TILE_1` per on-screen pixel and a plain `circfill` one
+  `circ` is one `TILE` per run of pixels on a row or column, a `TILE_1`
+  for a lone pixel, and a plain `circfill` one
   `TILE` span per screen row, both from the software backend's midpoint
   loop (`psx_tiles.c`, host-tested pixel for pixel), so circles match the
   PC exactly; `spr` (and `map` through it) is one `SPRT` from the sheet's
@@ -1366,8 +1367,8 @@ family each), `one-off-runs` (no `long` run).
 
 - The steady frames' levers, ranked and estimated, are in
   `docs/psx-levers.md` (`make lever-estimate` checks its order and projects
-  it). The pixel-identical list leaves 309 steady frames over 263 nominal,
-  456 pessimistic.
+  it). The pixel-identical list leaves 336 steady frames over 263 nominal,
+  482 pessimistic.
 
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out

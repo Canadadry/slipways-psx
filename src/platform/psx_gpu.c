@@ -252,13 +252,16 @@ static void gpu_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment
     }
 }
 
-static void add_tile(psx_tile_t tile, int col) {
-    p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
+static void add_tile_rgb(psx_tile_t tile, p8_rgb_t rgb) {
     TILE *primitive = packet(sizeof *primitive);
     setTile(primitive);
     setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
     setXY0(primitive, tile.x, tile.y);
     setWH(primitive, tile.w, tile.h);
+}
+
+static void add_tile(psx_tile_t tile, int col) {
+    add_tile_rgb(tile, P8_PALETTE_RGB[col & 0x0F]);
 }
 
 static void add_pixel(psx_tile_t pixel, void *context) {
@@ -349,10 +352,18 @@ static void gpu_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y
     }
 }
 
+static void add_run(psx_tile_t run, void *context) {
+    if (run.w == 1 && run.h == 1) {
+        add_pixel(run, context);
+        return;
+    }
+    add_tile_rgb(run, *(const p8_rgb_t *)context);
+}
+
 static void gpu_circ(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {
     (void)mem;
     p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
-    psx_tiles_circ(gfx, cx, cy, r, add_pixel, &rgb);
+    psx_tiles_circ(gfx, cx, cy, r, add_run, &rgb);
 }
 
 static void gpu_circfill(const p8_graphics_t *gfx, p8_vram_t *mem, int cx, int cy, int r, int col) {

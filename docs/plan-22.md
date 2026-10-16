@@ -671,3 +671,87 @@ paragraph, the `asserts-on` line and the "Still to do" figure only);
 every other warning left open, outside G4's files. G4 also adds two
 lines to `tools/float_grep_exclusions.txt` for the new module. No
 guideline decision.
+
+### Step 3.7 — N3
+
+Lever N3, PSX circle outline drawn as runs: `psx_tiles_circ` groups the
+midpoint steps that share `x` and emits their pixels with `|dx| >= |dy|`
+as column runs and the others (`y < x`) as row runs, the two halves of a
+run merged on the axis, each run clipped once, no duplicate check;
+`gpu_circ`'s callback sends a 1×1 run as a `TILE_1` and a longer one as a
+`TILE` (`add_tile_rgb`, shared with `add_tile`). The midpoint loop,
+`gfx_software.c` and `draw_cost.c` are unchanged. `test_psx_tiles` now
+accepts runs (1 wide or 1 high), still asserts no overlap, the software
+pixel set and real bytes (`TILE_1` 12, `TILE` 16) under the meter, pins
+the tile counts (radius 2, 3, 4: 8, 12, 16; radius 9: 28, 24: 64, 26: 68;
+red on per-pixel emission at radius 9) and draws 200 seeded random
+circles (centre −60..220 × −60..180, radius 0..70, camera ±30; over 50 of
+them cut by an edge). A mutation letting the row runs reach the diagonal
+fails on "tiles overlap".
+Hypotheses on N2 checked: N2 kept (2.47), step note `### Step 3.7 — N2`;
+then G4, re-ranked before N3, was taken and kept (1.11), so N3's note
+follows G4's and compares against G4's projection (309 / 456), per
+H-N2-4. The `scale share` line is 1.11 (N1, N2, G4), no `scale calls`
+line existed; no `psx-full-game-check`, no rebase; `psx-check` green with
+39 conditions at G4's end; G4 changed `psx_gpu.c` (slot uploads,
+readback assert), not the circle path.
+Capture (chunk 1, own commit `06830fd`): `circ 245 cls,circ`, the pad
+ring cut by the top edge, accepted on the code before N3 at `differ 0`
+(ceilings, green `psx-check`, references); 18 captures on `pad_slipway`,
+GPU replay 260 vsyncs, no limit raised.
+Baseline: `make psx-probe-baseline` re-taken by the pilot at `06830fd`,
+all 12 runs valid. Not covered (D3, N1, N2 and G4 leave the circle path
+alone). Residual probe (throwaway: `gpu_circ` runs `psx_tiles_circ`
+twice), all 12 valid, `game-state same`: map-move-1057 draw +1,414 over 15
+(+94.3 h a frame, 20.1 h a `circ` at 4.7 a frame), map-rest-5581 +91 over
+15 (+6.1), every other run within ±16 over its window. Rule (b): 94.3
+above 2% of map-move-1057's total (322.7 → 6.5). Rule (a), an upper
+bound (frames-over basis): 20.1 h × circles per frame over (map-move
+294 / 388, map-rest 246 / 429, menu 10 / 91, score-panel 3 / 8) weighted
+by steady frames ÷ 4,278: 11.1 h (8.2 with map-rest-5581's own 6.1 h a
+call), above T = 4.4. Verdict: build.
+Probe of N3 (the diff of `src/` and `tests/`), all 12 valid, `game-state
+same`, text +368 bytes on each: map-move-1057 draw 3,023 → 2,369 (−654
+over 15, −43.6 h a frame, 21.6% of draw), update −2, submit −1, total
+−657 (−43.8 h); map-rest-5581 draw −22, update 0, submit +1, total −21;
+build-5752 total +1, draw-5564 +1, draw-6000 −5, menu-5954 +1,
+tech-panel-5895 0 (over their windows); score-panel-5876 +1, start −3,
+update-4737 0, update-5500 0, update-5719 −1 (one frame each). Measured
+against the window's own estimate 4.7 × 20.158 × 0.6 = 56.8 h: ratio
+43.6 / 56.8 = 0.77; the run form removed 46% of the circles' measured
+cost (the residual), against 60% assumed. Gains = estimate × 0.77:
+map-move 3.2%, map-rest 0.6%, menu 0.4%, score-panel 1.4% of draw.
+Kept: map-move-1057's draw and total deltas negative, no run's total
+positive beyond its noise floor (largest +1), `game-state same`
+everywhere. Weaker evidence: map-rest-5581 −1.5 h a frame against 0.6 ×
+5.716 = 3.4 (ratio 0.43), under its 3 h noise floor.
+`scale calls 0.60`: the median (mean, two levers) of D3's 0.42 and N3's
+0.77 = 0.595, rounded half up; the first `calls` scale, it scales N7
+alone (alone 12 frames scaled, 20 unscaled). Steady frames over: N3
+alone removes 36, all in map-move (estimate 50, 48 in map-move); after
+the five taken levers (N1, N2, N3, D3, G4) 423 nominal / 563
+pessimistic (G4's note: 481 / 616 after the four); at N3's rank 526 /
+660 (G4's projection, estimated: 509 / 645); end of the list 336 / 482
+(was 309 / 456: N3 under its estimate, and the 0.60 scale shrinks N7).
+Re-ranked to the greedy order: N1, N2, N3, N5, D3, G4, N6, N7 (N5 now
+passes D3, N6 passes N7); the lever table and the ranked list were
+reordered to match (`order ok`). No `psx-full-game-check`, no rebase.
+`psx-check` green, all 39 conditions, every capture of both lists
+matching its reference, no reference or ceiling changed after chunk 1;
+`game-gpu-cost` bytes 7,976 of 8,016, build 10,644 → 10,388 of 10,916
+(the planet ring image, built by `circ`); `ram-room` 145,868 bytes left
+(was 146,236), `game-ram-room` 302,036 (was 302,404); `make raylib`
+links. Every e2e `.sha256` and `.end-state` unchanged. Fast loop, warm,
+HEAD and N3 copies interleaved, mean of four: `make test` 6.96 → 7.18 s,
+spread 6.6–7.4 s on both, `make e2e` 0.45 → 0.43 s: within noise
+(`test_psx_tiles` runs in 0.09 s in all).
+`docs/psx-game.md`: the backend paragraph's `circ` sentence (runs), the
+"Capture list" bullet (two `circ` captures, chunk 1) and the "Still to
+do" figure (336 / 482).
+Warn-review warnings in the changed files: none in `psx_tiles.{c,h}`,
+`psx_gpu.c`, `test_psx_tiles.c` or the capture lists; "one frame late"
+vs F−2 in `docs/psx-game.md` left open (N3 edits only the `circ`
+sentence, one "Capture list" sentence and the "Still to do" figure);
+the Makefile warnings left open (the Makefile is not changed);
+hand-copied condition counts left open (the count stays 39); every
+other warning left open, outside N3's files. No guideline decision.

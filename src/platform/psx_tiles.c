@@ -81,6 +81,45 @@ static void midpoint_advance(midpoint_t *m) {
     }
 }
 
+static int emit_clipped(psx_tiles_emit_t emit, void *context, int xmin, int ymin, int xmax, int ymax) {
+    psx_tile_t tile;
+    if (!add_clipped(&tile, 0, xmin, ymin, xmax, ymax)) {
+        return 0;
+    }
+    emit(tile, context);
+    return 1;
+}
+
+/* The runs lo..hi and -hi..-lo along one axis, one run when lo is 0, at +across and -across on the
+ * other axis; columns when along_rows is 0, else rows. Offsets are from (sx, sy). */
+static int emit_mirrored_runs(int sx, int sy, int across, int lo, int hi, int along_rows, psx_tiles_emit_t emit,
+                              void *context) {
+    int count = 0;
+    for (int side = across == 0 ? 1 : 0; side < 2; side++) {
+        int at = side == 0 ? -across : across;
+        int runs[2][2] = { { lo == 0 ? -hi : lo, hi }, { -hi, -lo } };
+        for (int run = 0; run < (lo == 0 ? 1 : 2); run++) {
+            if (along_rows) {
+                count += emit_clipped(emit, context, sx + runs[run][0], sy + at, sx + runs[run][1], sy + at);
+            } else {
+                count += emit_clipped(emit, context, sx + at, sy + runs[run][0], sx + at, sy + runs[run][1]);
+            }
+        }
+    }
+    return count;
+}
+
+/* The steps sharing one x, y from y0 to y1: their pixels with |dx| >= |dy| as column runs, the others
+ * (y < x) as row runs, so that no pixel is emitted twice. */
+static int emit_step_group(int sx, int sy, int x, int y0, int y1, psx_tiles_emit_t emit, void *context) {
+    int count = emit_mirrored_runs(sx, sy, x, y0, y1, 0, emit, context);
+    int row_hi = min(y1, x - 1);
+    if (y0 <= row_hi) {
+        count += emit_mirrored_runs(sx, sy, x, y0, row_hi, 1, emit, context);
+    }
+    return count;
+}
+
 int psx_tiles_circ(const p8_graphics_t *gfx, int cx, int cy, int r, psx_tiles_emit_t emit, void *context) {
     psx_tile_t box;
     if (r < 0 || !psx_tiles_rectfill(gfx, cx - r, cy - r, cx + r, cy + r, &box)) {
@@ -89,24 +128,18 @@ int psx_tiles_circ(const p8_graphics_t *gfx, int cx, int cy, int r, psx_tiles_em
     int sx = cx - gfx->camera_x;
     int sy = cy - gfx->camera_y;
     int count = 0;
+    int group_x = r;
+    int group_y0 = 0;
+    int group_y1 = 0;
     for (midpoint_t m = midpoint_start(r); m.x >= m.y; midpoint_advance(&m)) {
-        const int offsets[8][2] = {
-            { m.x, m.y }, { -m.x, m.y }, { m.x, -m.y }, { -m.x, -m.y },
-            { m.y, m.x }, { -m.y, m.x }, { m.y, -m.x }, { -m.y, -m.x },
-        };
-        for (int i = 0; i < 8; i++) {
-            int seen = 0;
-            for (int j = 0; j < i && !seen; j++) {
-                seen = offsets[j][0] == offsets[i][0] && offsets[j][1] == offsets[i][1];
-            }
-            psx_tile_t pixel;
-            if (!seen && add_clipped(&pixel, 0, sx + offsets[i][0], sy + offsets[i][1], sx + offsets[i][0], sy + offsets[i][1])) {
-                emit(pixel, context);
-                count++;
-            }
+        if (m.x != group_x) {
+            count += emit_step_group(sx, sy, group_x, group_y0, group_y1, emit, context);
+            group_x = m.x;
+            group_y0 = m.y;
         }
+        group_y1 = m.y;
     }
-    return count;
+    return count + emit_step_group(sx, sy, group_x, group_y0, group_y1, emit, context);
 }
 
 static void widen(int half_widths[P8_SCREEN_HEIGHT], int row, int half_width) {

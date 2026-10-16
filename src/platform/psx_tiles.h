@@ -38,8 +38,9 @@ int psx_tiles_rect(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, psx
  * screen, else 1. */
 int psx_tiles_rectfill(const p8_graphics_t *gfx, int x1, int y1, int x2, int y2, psx_tile_t *tile);
 
-/* circ's pixels after the camera, from gfx_software.c's midpoint loop, each emitted once as a 1x1
- * tile when on screen. Returns how many were emitted, at most 8 per iteration of the loop. */
+/* circ's pixels after the camera, from gfx_software.c's midpoint loop, emitted as non-overlapping
+ * tiles 1 pixel wide or 1 pixel high (a run on one column or row; 1x1 is a lone pixel), clipped to
+ * the screen. Returns how many tiles were emitted, at most 8 per iteration of the loop. */
 int psx_tiles_circ(const p8_graphics_t *gfx, int cx, int cy, int r, psx_tiles_emit_t emit, void *context);
 
 /* circfill's disc after the camera, from gfx_software.c's midpoint loop, as one clipped 1-pixel-high
