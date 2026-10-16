@@ -65,6 +65,7 @@
     - [x] Chunk 4b — D9 off-screen planets skipped at dispatch
   - [x] Step 3.16 — end of phase full-game check
     - [x] Judge run, table replaced
+  - [x] Phase 3 end — warn-review, plan-review applied
 - [ ] Phase 4 — Update
   - [ ] Step 4.17 — O2 (or O1), O3, O5
   - [ ] Step 4.18 — spike levers U4, U6, U2, U1, U3

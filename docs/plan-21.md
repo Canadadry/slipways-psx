@@ -233,8 +233,11 @@ by judge-wide gain (the report's `draw-6000` figure):
     so these levers are measured class by class on the judge's spike frames
     (`psx/perf/spike-frames.txt`), each against the full run just before
     it; the short runs serve only where they hold the class. Then
-    `psx-full-game-check`, with its summary
-    and the spike frames still over in the note: steps 19–20 spread those
+    `psx-full-game-check`, with its summary, the frames still over split
+    into three groups with count and overrun each: (a) those in
+    `spike-frames.txt`, (b) the image-build frames from steps 8, 11, 12, 15
+    and 16's notes, (c) every other frame;
+    steps 19–20 spread those
     frames, not the report's estimates.
 19. Spreading mechanism, if frames are still over: the means to spread
     work over the following frames, on PC and PSX alike, landed inert —
@@ -246,11 +249,16 @@ by judge-wide gain (the report's `draw-6000` figure):
     ceiling unchanged: the human's decision, an exception to
     `psx-gpu-capture-accept` being theirs alone. Verified when every e2e
     hash is unchanged and
-    a test drives the mechanism on stand-in work: input during a spread
+    a test drives the mechanism on stand-in work that registers and
+    unregisters an entity and changes a layer while a spread is pending,
+    with no registry-view or `mem` address carried across frames: input
+    during a spread
     frame follows the settled rule, and a stretched recording reaches the
     same end state.
 20. Spreading applied: the spike work that does not fit is spread with
-    step 19's mechanism, per the report's "Spikes and spreading" classes.
+    step 19's mechanism, per the report's "Spikes and spreading" classes,
+    over step 18's groups (a) and (b) only; the note says what is left in
+    (c).
     Galaxy generation (frame 12) shows as a loading screen that ignores
     input. The e2e hashes are re-recorded once, in this step's own commit,
     with each changed screen checked. Verified when `psx-check` is green,
