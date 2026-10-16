@@ -59,7 +59,7 @@ else
         || problem="$problem$pc_dir/capture_script.txt does not hold the list's frames (did the PC run parse it?); "
     problem=$problem$(printf '%s\n' "$captures" | awk -v counts="$pc_dir/counts.txt" '
         BEGIN { while ((getline line < counts) > 0) { split(line, w, " "); calls[w[1] " " w[2]] = w[3] } }
-        NF == 2 && $1 != "all" && calls[$2 " " $1] + 0 < 1 { printf "%s f%s draws no %s call on PC; ", $1, $2, $1 }')
+        NF == 2 && $1 != "all" && $1 != "display" && calls[$2 " " $1] + 0 < 1 { printf "%s f%s draws no %s call on PC; ", $1, $2, $1 }')
 fi
 if [ -z "$problem" ]; then pass gpu-capture-list; else fail gpu-capture-list "$problem"; fi
 

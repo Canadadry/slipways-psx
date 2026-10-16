@@ -181,6 +181,29 @@ static void test_faults_of_the_second_kind_each_fail_their_condition(void) {
     assert_passed("gpu-capture-deterministic");
 }
 
+#define REPORT_DISPLAY \
+    "display f7 mask display calls 4 differ 0 (0.0\xe2\x80\xb0) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0\n"
+
+/* A display entry draws nothing of its own: like all, it is exempt from the family rule. */
+static void test_a_display_capture_needs_no_call_of_its_label(void) {
+    setup();
+    write_file(DIR "/list.txt", "replay pad_slipway\ncls 1 cls\nrect 5 cls,rect\ndisplay 7 display\n");
+    write_file(DIR "/pc/capture_script.txt", "1 0001\n5 0009\n7 8000\n");
+    write_file(DIR "/pc/counts.txt", "1 cls 1\n1 rect 0\n5 cls 1\n5 rect 2\n7 cls 1\n7 rect 3\n");
+    write_file(DIR "/gpu.tty.txt", "psx-replay: capture 1 0001\npsx-replay: capture 5 0009\n"
+                                   "psx-replay: capture 7 8000\npsx-replay: done pad_slipway 10 vsyncs 50\n");
+    write_capture(RUN "/gpu.f7.vram", "psx-vram 320 240 16\n", 0x00);
+    write_capture(DIR "/repeat/gpu.f7.vram", "psx-vram 320 240 16\n", 0x00);
+    write_file(RUN "/gpu-captures/report.txt", REPORT_CLS REPORT_RECT("3", "0") REPORT_DISPLAY);
+    write_file(RUN "/gpu-captures/display-f7.diff.txt", "x");
+    write_file(RUN "/gpu-captures/display-f7.ppm", "x");
+    write_file(DIR "/ceilings.txt", "cls 1 0\nrect 5 3\ndisplay 7 0\n");
+    assert(check() == 0);
+    assert_passed("gpu-capture-list");
+    assert_logged("gpu-captures: ok, 3 capture(s)");
+    assert_logged("pending human acceptance: display f7");
+}
+
 static const char *sha256_of(const char *path) {
     static char hash[65];
     char command[256];
@@ -261,6 +284,7 @@ static void test_the_acceptance_writer_needs_a_green_run(void) {
 }
 
 int main(void) {
+    test_a_display_capture_needs_no_call_of_its_label();
     test_a_good_run_passes_with_every_capture_pending();
     test_faults_of_the_first_kind_each_fail_their_condition();
     test_faults_of_the_second_kind_each_fail_their_condition();

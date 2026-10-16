@@ -78,13 +78,15 @@ static int parse_mask(const char *word, unsigned *mask, const char **bad, size_t
     }
 }
 
-static int parse_capture(char *words[], int line_number, int frame_count, capture_list_t *list, char *error) {
-    if (strcmp(words[0], "all") != 0 && family_of(words[0], strlen(words[0])) < 0) {
-        return refuse(error, line_number, "unknown family ", words[0]);
-    }
-    if (strlen(words[0]) >= CAPTURE_LIST_LABEL_CAP) return refuse(error, line_number, "label too long: ", words[0]);
-    int frame;
-    if (!parse_frame(words[1], &frame)) return refuse(error, line_number, "frame is not an integer: ", words[1]);
+static void add_entry(capture_list_t *list, const char *label, int frame, unsigned mask) {
+    capture_list_entry_t *entry = &list->entries[list->count++];
+    snprintf(entry->label, sizeof entry->label, "%s", label);
+    entry->frame = frame;
+    entry->mask = mask;
+}
+
+/* Returns 0 with error set when frame does not follow the last entry or is past the replay. */
+static int check_frame(int frame, int line_number, int frame_count, const capture_list_t *list, char *error) {
     if (list->count > 0 && frame <= list->entries[list->count - 1].frame) {
         snprintf(error, CAPTURE_LIST_ERROR_CAP, "line %d: frame %d does not increase", line_number, frame);
         return 0;
@@ -94,6 +96,52 @@ static int parse_capture(char *words[], int line_number, int frame_count, captur
                  frame_count);
         return 0;
     }
+    return 1;
+}
+
+/* A frame-locked capture at F-1 shows F-1 itself, and one masked at F-2 leaves the PSX displaying a
+ * filtered picture: either way the display at F is no longer the PC's unfiltered F-2. */
+static int parse_display(char *words[], int line_number, int frame_count, capture_list_t *list, char *error) {
+    if (strcmp(words[2], "display") != 0) {
+        return refuse(error, line_number, "display takes the mask display, not ", words[2]);
+    }
+    int frame;
+    if (!parse_frame(words[1], &frame)) return refuse(error, line_number, "frame is not an integer: ", words[1]);
+    if (!check_frame(frame, line_number, frame_count, list, error)) return 0;
+    if (frame < 2) {
+        snprintf(error, CAPTURE_LIST_ERROR_CAP, "line %d: display at frame %d, before frame 2", line_number, frame);
+        return 0;
+    }
+    for (int c = 0; c < list->count; c++) {
+        const capture_list_entry_t *entry = &list->entries[c];
+        if (entry->frame == frame - 1) {
+            snprintf(error, CAPTURE_LIST_ERROR_CAP, "line %d: display at frame %d after a capture at frame %d",
+                     line_number, frame, entry->frame);
+            return 0;
+        }
+        if (entry->frame == frame - 2 && entry->mask != DRAW_FILTER_ALL) {
+            snprintf(error, CAPTURE_LIST_ERROR_CAP, "line %d: display at frame %d shows the masked capture at frame %d",
+                     line_number, frame, entry->frame);
+            return 0;
+        }
+    }
+    if (list->count == CAPTURE_LIST_MAX) return refuse(error, line_number, "too many captures", "");
+    add_entry(list, "display", frame, CAPTURE_LIST_DISPLAY_MASK);
+    return 1;
+}
+
+static int parse_capture(char *words[], int line_number, int frame_count, capture_list_t *list, char *error) {
+    if (strcmp(words[0], "display") == 0) return parse_display(words, line_number, frame_count, list, error);
+    if (strcmp(words[2], "display") == 0) {
+        return refuse(error, line_number, "the mask display needs the label display, not ", words[0]);
+    }
+    if (strcmp(words[0], "all") != 0 && family_of(words[0], strlen(words[0])) < 0) {
+        return refuse(error, line_number, "unknown family ", words[0]);
+    }
+    if (strlen(words[0]) >= CAPTURE_LIST_LABEL_CAP) return refuse(error, line_number, "label too long: ", words[0]);
+    int frame;
+    if (!parse_frame(words[1], &frame)) return refuse(error, line_number, "frame is not an integer: ", words[1]);
+    if (!check_frame(frame, line_number, frame_count, list, error)) return 0;
     unsigned mask;
     const char *bad = NULL;
     size_t bad_length = 0;
@@ -103,10 +151,7 @@ static int parse_capture(char *words[], int line_number, int frame_count, captur
     }
     if (!(mask & DRAW_FILTER_BIT(DRAW_FILTER_CLS))) return refuse(error, line_number, "mask without cls: ", words[2]);
     if (list->count == CAPTURE_LIST_MAX) return refuse(error, line_number, "too many captures", "");
-    capture_list_entry_t *entry = &list->entries[list->count++];
-    snprintf(entry->label, sizeof entry->label, "%s", words[0]);
-    entry->frame = frame;
-    entry->mask = mask;
+    add_entry(list, words[0], frame, mask);
     return 1;
 }
 
@@ -156,6 +201,10 @@ int capture_list_parse(const char *text, const char *replay, int frame_count, ca
 void capture_list_mask_names(unsigned mask, char names[CAPTURE_LIST_NAMES_CAP]) {
     if (mask == DRAW_FILTER_ALL) {
         snprintf(names, CAPTURE_LIST_NAMES_CAP, "all");
+        return;
+    }
+    if (mask == CAPTURE_LIST_DISPLAY_MASK) {
+        snprintf(names, CAPTURE_LIST_NAMES_CAP, "display");
         return;
     }
     names[0] = '\0';

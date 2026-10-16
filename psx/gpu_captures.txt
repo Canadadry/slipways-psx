@@ -3,6 +3,7 @@
 replay pad_slipway
 cls 1 cls
 rectfill 11 cls,rectfill
+display 14 display
 all 100 all
 pset 131 cls,pset
 all 188 all

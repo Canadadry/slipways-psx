@@ -372,6 +372,46 @@ static void remove_fixture_files(void) {
     rmdir(FIXTURE_DIR);
 }
 
+#define DISPLAY_DIR "tmp/test_headless_capture_display"
+
+static void read_frame(const char *path, int index, unsigned char pixels[SCREENCAST_FRAME_PIXELS]) {
+    screencast_reader_t reader;
+    assert(screencast_reader_open(&reader, path) == SCREENCAST_OK);
+    assert(screencast_read_frame(&reader, index, pixels));
+    screencast_reader_close(&reader);
+}
+
+/* The PSX displays at the top of frame F what it drew at F-2, so a display entry's PC frame is F-2,
+ * drawn unfiltered even next to a masked capture. */
+static void test_a_display_capture_writes_the_frame_drawn_two_frames_earlier(void) {
+    assert(system("rm -rf " DISPLAY_DIR " && mkdir -p " DISPLAY_DIR) == 0);
+    FILE *list = fopen(DISPLAY_DIR "/list.txt", "w");
+    assert(list != NULL);
+    fputs("replay pad_title\nall 10 all\ndisplay 12 display\nprint 13 cls,print\n", list);
+    fclose(list);
+    assert(system("CAPTURE_LIST=" DISPLAY_DIR "/list.txt CAPTURE_DIR=" DISPLAY_DIR " " DRIVER " " TITLE_E2E " "
+                  DISPLAY_DIR "/whole.bin " DISPLAY_DIR "/dump.txt > /dev/null") == 0);
+
+    static unsigned char drawn[SCREENCAST_FRAME_PIXELS], displayed[SCREENCAST_FRAME_PIXELS],
+        later[SCREENCAST_FRAME_PIXELS];
+    read_frame(DISPLAY_DIR "/whole.bin", 10, drawn);
+    read_frame(DISPLAY_DIR "/pc_frames.bin", 1, displayed);
+    read_frame(DISPLAY_DIR "/whole.bin", 12, later);
+    assert(memcmp(drawn, later, sizeof drawn) != 0 && "the test needs frames 10 and 12 to differ");
+    assert(memcmp(drawn, displayed, sizeof drawn) == 0);
+
+    size_t length;
+    char *script = read_whole_file(DISPLAY_DIR "/capture_script.txt", &length);
+    assert(strcmp(script, "10 03ff\n12 8000\n13 0101\n") == 0);
+    free(script);
+    char *counts = read_whole_file(DISPLAY_DIR "/counts.txt", &length);
+    const char *at_10 = strstr(counts, "10 print ");
+    const char *at_12 = strstr(counts, "12 print ");
+    assert(at_10 != NULL && at_12 != NULL);
+    assert(strncmp(at_10 + 3, at_12 + 3, strcspn(at_10, "\n") - 3) == 0 && "a display entry counts F-2's calls");
+    free(counts);
+}
+
 int main(void) {
     test_capture_holds_exactly_the_replayed_frames();
     test_last_captured_frame_matches_the_text_dump();
@@ -386,6 +426,7 @@ int main(void) {
     test_replay_deps_names_the_fixture_of_the_capture();
     test_replay_deps_without_a_fixture_removes_a_stale_file();
     test_replay_deps_requires_a_capture_path();
+    test_a_display_capture_writes_the_frame_drawn_two_frames_earlier();
     remove_fixture_files();
     printf("test_headless_capture: all tests passed\n");
     return 0;

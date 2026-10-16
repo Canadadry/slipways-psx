@@ -3,7 +3,8 @@
 -- src/platform/psx_capture_protocol.h: hands it the next "<frame> <mask hex>"
 -- of the script, and on FRAME_SHOWN waits one vsync, writes
 -- <PSX_CAPTURE_PREFIX>.f<frame>.vram (psx_capture.lua's format), then hands
--- the next one. Raises an error naming the line on a bad script; calls
+-- the next one. A display capture (mask 8000) runs the same handshake at the
+-- top of its frame, the display untouched. Raises an error naming the line on a bad script; calls
 -- psxBootFail on a frame other than the expected one.
 
 local STATE_OFFSET = 0x3f4

@@ -1,5 +1,6 @@
 cls 1 0
 rectfill 11 0
+display 14 0
 all 100 0
 pset 131 0
 all 188 0

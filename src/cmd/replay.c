@@ -139,6 +139,9 @@ typedef struct {
     int next;
     screencast_writer_t frames;
     FILE *counts;
+    /* Frame F-2 of the next display entry, kept until F. */
+    p8_vram_t displayed;
+    int displayed_counts[DRAW_FILTER_FAMILY_COUNT];
 } captures_t;
 
 /* Returns the length read, or -1. */
@@ -215,17 +218,47 @@ static const capture_list_entry_t *captures_at(const captures_t *captures, int f
     return entry->frame == frame ? entry : NULL;
 }
 
-/* Returns 0 on a write failure. */
+/* The mask to draw frame with: a display entry draws its own frame unfiltered. */
+static unsigned captures_mask(const captures_t *captures, int frame) {
+    const capture_list_entry_t *entry = captures_at(captures, frame);
+    return entry != NULL && entry->mask != CAPTURE_LIST_DISPLAY_MASK ? entry->mask : DRAW_FILTER_ALL;
+}
+
+static int captures_display_two_frames_later(const captures_t *captures, int frame) {
+    for (int c = captures->next; c < captures->list.count; c++) {
+        const capture_list_entry_t *entry = &captures->list.entries[c];
+        if (entry->frame == frame + 2) return entry->mask == CAPTURE_LIST_DISPLAY_MASK;
+        if (entry->frame > frame + 2) return 0;
+    }
+    return 0;
+}
+
+static int captures_write(captures_t *captures, int frame, const p8_vram_t *mem, const int counts[]) {
+    int ok = screencast_write_frame(&captures->frames, mem);
+    for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+        fprintf(captures->counts, "%d %s %d\n", frame, capture_list_family_name((draw_filter_family_t)family),
+                counts[family]);
+    }
+    captures->next++;
+    return ok;
+}
+
+/* Returns 0 on a write failure. A display entry at F writes frame F-2 and its counts, under F. */
 static int captures_frame_drawn(captures_t *captures, int frame, const p8_vram_t *mem) {
+    int counts[DRAW_FILTER_FAMILY_COUNT];
+    for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+        counts[family] = draw_filter_count((draw_filter_family_t)family);
+    }
+    if (captures_display_two_frames_later(captures, frame)) {
+        captures->displayed = *mem;
+        memcpy(captures->displayed_counts, counts, sizeof counts);
+    }
     const capture_list_entry_t *entry = captures_at(captures, frame);
     int ok = 1;
-    if (entry != NULL) {
-        ok = screencast_write_frame(&captures->frames, mem);
-        for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
-            fprintf(captures->counts, "%d %s %d\n", frame, capture_list_family_name((draw_filter_family_t)family),
-                    draw_filter_count((draw_filter_family_t)family));
-        }
-        captures->next++;
+    if (entry != NULL && entry->mask == CAPTURE_LIST_DISPLAY_MASK) {
+        ok = captures_write(captures, frame, &captures->displayed, captures->displayed_counts);
+    } else if (entry != NULL) {
+        ok = captures_write(captures, frame, mem, counts);
     }
     draw_filter_frame_end();
     return ok;
@@ -444,10 +477,7 @@ int main(int argc, char **argv) {
             int cheat = input_step_run(&step, frame);
             cheat_activations += cheat;
             cart_update60();
-            if (capture_list_path != NULL) {
-                const capture_list_entry_t *entry = captures_at(&captures, i);
-                draw_filter_set_mask(entry != NULL ? entry->mask : DRAW_FILTER_ALL);
-            }
+            if (capture_list_path != NULL) draw_filter_set_mask(captures_mask(&captures, i));
             cart_draw();
             if (state_path != NULL) p8_draw_meter_frame_end();
             if (capture_list_path != NULL && !captures_frame_drawn(&captures, i, &memory)) {

@@ -95,7 +95,7 @@ src/devtools/draw_filter.h | family filter of the GPU captures, header of devtoo
 src/devtools/draw_timing.c | draw call timing of the PSX breakdown replay, written through the state sink, host-tested
 src/devtools/draw_timing.h | draw call timing of the PSX breakdown replay, header of devtools/draw_timing.c
 src/devtools/capture_list.c | GPU capture list parser, host tool
-src/devtools/capture_list.h | GPU capture list parser, header of devtools/capture_list.c
+src/devtools/capture_list.h | GPU capture list parser, header of devtools/capture_list.c, its display mask also read by the PSX GPU replay
 src/devtools/capture_compare.c | GPU capture comparator, host tool
 src/devtools/capture_compare.h | GPU capture comparator, header of devtools/capture_compare.c
 src/cmd/psx_capture_compare.c | entry point of psx_capture_compare, host tool

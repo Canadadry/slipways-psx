@@ -7,7 +7,9 @@
  *   psx-replay: gpu-peak bytes <b> cluts <c> patterns <p> build <k>
  * (psx_gpu_peaks) before the done line, never on a p8_fatal, and
  *   psx-replay: capture <frame> <mask hex>
- * at each frame the capture script (platform/psx_capture_protocol.h) asks for, plus the frame times
+ * at each frame the capture script (platform/psx_capture_protocol.h) asks for (a display capture,
+ * mask CAPTURE_LIST_DISPLAY_MASK, at the top of its frame before the input step, the display left as
+ * the previous frame end set it; any other after its frame is drawn and shown), plus the frame times
  * (devtools/frame_times.h) behind "psx-frame: ": the calibration line before the first frame, then
  * every frame's line before the done line, or before the stopped state on a p8_fatal. Without a
  * capture script driving the handshake it waits forever before the first frame.
@@ -23,6 +25,7 @@
  * Built with PSX_PROBE (make psx-probe), it starts platform/psx_probe.h's delay helper and writes its
  * "psx-probe: " lines before the done line. */
 
+#include "devtools/capture_list.h"
 #include "devtools/draw_filter.h"
 #include "devtools/embedded_replay.h"
 #include "devtools/format_self_test.h"
@@ -94,7 +97,8 @@ static void filter_frame_end(void) {
 }
 
 static capture_request_t filter_check_capture(capture_request_t request) {
-    if (request.frame != PSX_CAPTURE_NO_FRAME && request.mask != DRAW_FILTER_ALL) {
+    if (request.frame != PSX_CAPTURE_NO_FRAME && request.mask != DRAW_FILTER_ALL
+        && request.mask != CAPTURE_LIST_DISPLAY_MASK) {
         char message[96];
         snprintf(message, sizeof message, "capture mask %04x at frame %u needs PSX_GPU_REPLAY_DRAW_FILTER",
                  request.mask, (unsigned)request.frame);
@@ -145,13 +149,24 @@ static capture_request_t capture_start(void) {
     return capture_wait_next();
 }
 
-/* The frame was just ended with psx_gpu_frame_end. */
-static capture_request_t capture_frame(int frame, unsigned mask) {
-    psx_gpu_frame_show_last();
+static capture_request_t capture_shown(int frame, unsigned mask) {
     psx_tty_printf("psx-replay: capture %d %04x\n", frame, mask);
     *CAPTURE_WORD(PSX_CAPTURE_FRAME_OFFSET) = (uint32_t)frame;
     *CAPTURE_WORD(PSX_CAPTURE_STATE_OFFSET) = PSX_CAPTURE_FRAME_SHOWN;
     return capture_wait_next();
+}
+
+/* The frame was just ended with psx_gpu_frame_end. */
+static capture_request_t capture_frame(int frame, unsigned mask) {
+    psx_gpu_frame_show_last();
+    return capture_shown(frame, mask);
+}
+
+/* Before the frame's input step. No psx_gpu_frame_show_last: the screenshot must be what the frame
+ * loop displays, frame - 2. */
+static capture_request_t capture_display(capture_request_t capture, int frame) {
+    if (capture.frame != (uint32_t)frame || capture.mask != CAPTURE_LIST_DISPLAY_MASK) return capture;
+    return capture_shown(frame, capture.mask);
 }
 
 #ifdef PSX_GPU_REPLAY_BREAKDOWN
@@ -301,6 +316,8 @@ int main(void) {
     input_step_set_attract_after(&step, embedded_replay_attract_after);
     int cheat_activations = 0;
     for (g_frame = 0; g_frame < input.frame_count; g_frame++) {
+        /* Before the frame's marks: the handshake's time and vsyncs stay out of the frame's. */
+        capture = capture_display(capture, g_frame);
         uint32_t frame_start_vsync = psx_frame_timer_vsyncs();
         uint16_t marks[FRAME_TIMES_MARKS];
         marks[0] = psx_frame_timer_read();

@@ -545,6 +545,15 @@ mask.
   naming its line, and writes `pc_frames.bin` (the listed frames, screencast
   format), `counts.txt` (`<frame> <family> <calls>`) and `capture_script.txt`
   (`<frame> <mask hex>`).
+- **Display capture** `display <F> display` (F >= 2, mask `8000` in the
+  capture script): the GPU replay runs the handshake at the top of frame F,
+  before its input step, without `psx_gpu_frame_show_last()`, so the
+  screenshot is what the console displays while F's update runs, the frame
+  drawn at F−2 (the double buffering shows each frame one frame late; the
+  same `psx_gpu_frame_end` ends every frame of `psx-game` too). Its PC frame
+  is F−2 drawn unfiltered, with F−2's call counts; the parser refuses one
+  after a capture at F−1 (shown by `psx_gpu_frame_show_last()`) or a masked
+  capture at F−2.
 - **Frame-locked capture**: the GPU replay and `tools/psx_capture_frames.lua`
   hand over on three scratchpad words below the pad script's
   (`src/platform/psx_capture_protocol.h`; `test_psx_capture_protocol` checks
@@ -636,7 +645,7 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   bytes left (`check_ram_room` of `tools/psx_conditions.sh`, shared with
   `game-ram-room` and `psx-full-game-check`'s `gpu-ram-room`);
 - `gpu-capture-list`: the list's replay is the PS-EXE's, the PC run wrote
-  its frames to the capture script, and each label but `all` has an
+  its frames to the capture script, and each label but `all` and `display` has an
   on-screen call of its family at its frame on PC;
 - `gpu-captures`: every listed frame has a well-formed `gpu.f<frame>.vram`,
   and the TTY's capture lines are exactly the list's frames, in order;
