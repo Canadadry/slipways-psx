@@ -547,7 +547,8 @@ mask.
   every family together, for the interactions: sprites over the grid, text
   over fills, draw order. `all 12` is the loading screen of the difficulty
   press, and `display 14` proves it is what the console shows while f14
-  generates the galaxy. No captured frame is one the `DIGEST=` screen
+  generates the galaxy. The `circ` label has two captures, f316 a whole
+  ring and f245 a ring cut by the top edge. No captured frame is one the `DIGEST=` screen
   lines sample (every 32nd and the last): the PC draws a captured frame
   filtered.
   With `CAPTURE_LIST=` and `CAPTURE_DIR=`, `tmp/replay` refuses a bad list

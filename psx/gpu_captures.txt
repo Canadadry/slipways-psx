@@ -11,6 +11,7 @@ all 190 all
 pattern 193 cls,rectfill,circfill,pattern
 all 235 all
 spr 236 cls,spr
+circ 245 cls,circ
 pattern 259 cls,rectfill,circfill,pattern
 circfill 265 cls,line,circfill
 all 267 all
