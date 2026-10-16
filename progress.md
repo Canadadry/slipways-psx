@@ -64,6 +64,7 @@
     - [x] Chunk 4a — D10 slipway end points once
     - [x] Chunk 4b — D9 off-screen planets skipped at dispatch
   - [ ] Step 3.16 — end of phase full-game check
+    - [x] Judge run, table replaced
 - [ ] Phase 4 — Update
   - [ ] Step 4.17 — O2 (or O1), O3, O5
   - [ ] Step 4.18 — spike levers U4, U6, U2, U1, U3
