@@ -3,7 +3,7 @@
     - [x] Baseline table replaces psx/perf/full-run-frames.txt
   - [ ] Step 1.2 — Situation of every frame
     - [x] Classifier
-    - [ ] Snapshot reader and command
+    - [x] Snapshot reader and command
     - [ ] Table and report
     - [ ] Docs
   - [ ] Step 1.3 — real-game-budget condition

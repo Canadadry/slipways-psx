@@ -3,6 +3,8 @@
 
 #include "devtools/pad_metrics.h"
 #include "engine/entity_id_type.h"
+#include "game/input_step.h"
+#include "game/pad_nav.h"
 #include "p8/fixed.h"
 
 enum { SITUATION_LAYOUT_MAX = 64 };
@@ -58,6 +60,12 @@ typedef struct {
     situation_layout_t layout;
     int shaking;
 } situation_snapshot_t;
+
+/* Read after cart_update60() and before cart_draw(), or once before frame 0 for the start snapshot. */
+situation_snapshot_t situation_snapshot_read(const input_step_t *step);
+/* Empty when no panel item has the pad focus. */
+situation_layout_t situation_layout_read(const pad_nav_t *nav);
+int situation_layout_moved(const situation_layout_t *before, const situation_layout_t *after);
 
 /* The label of the state a replay starts from: frame 0's `previous`. */
 situation_t situation_start(const situation_snapshot_t *start);

@@ -700,6 +700,13 @@
 #                       naming each result not reproduced; outputs in
 #                       tmp/lever-estimate/check/; never boots, outside the
 #                       suite
+# make situations [EVENTS=<events>] [SITUATIONS_OUT=<file>] -> builds
+#                       tmp/situations and replays the file (default
+#                       worst-case/full_game.json) headless, writing one
+#                       "<frame> <situation> <family>" line per frame under a
+#                       "frame situation family" header to SITUATIONS_OUT
+#                       (default tmp/situations-table/<name>.txt), outside the
+#                       suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -1047,7 +1054,10 @@ $(TMP_DIR)/test_capture_list: $(call objs,tests/test_capture_list.c src/devtools
 $(TMP_DIR)/test_short_run_cut: $(call objs,tests/test_short_run_cut.c src/devtools/short_run_cut.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_situation: $(call objs,tests/test_situation.c src/devtools/situation.c) | $(TMP_DIR)
+$(TMP_DIR)/test_situation: $(call objs,tests/test_situation.c src/devtools/situation.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_situations: $(call objs,tests/test_situations.c) $(TMP_DIR)/situations tests/e2e/pad_score.json tests/e2e/pad_probe.json tests/e2e/pad_game_end.json pico8/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_capture_compare: $(call objs,tests/test_capture_compare.c src/devtools/capture_compare.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
@@ -1657,6 +1667,7 @@ UNIT_TESTS := \
     test_capture_list \
     test_short_run_cut \
     test_situation \
+    test_situations \
     test_capture_compare \
     test_input \
     test_dump \
@@ -1980,7 +1991,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_caption.c src/devtools/record_start.c src/devtools/pad_metrics.c $(STATE_SRCS) $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_caption.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/situation.c $(STATE_SRCS) $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
@@ -2040,6 +2051,18 @@ pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) 
 	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's button 7, f17's button 6 and f293's button 6"
 
 .PHONY: pad-metrics pad-metrics-worst-case pad-metrics-check
+
+SITUATIONS_SRCS := src/cmd/situations.c src/devtools/situation.c src/devtools/pad_metrics.c src/devtools/record_start.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+SITUATIONS_EVENTS := worst-case/full_game.json
+
+$(TMP_DIR)/situations: $(call objs,$(SITUATIONS_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+situations: $(TMP_DIR)/situations
+	@events=$(or $(EVENTS),$(SITUATIONS_EVENTS)); out=$(or $(SITUATIONS_OUT),$(TMP_DIR)/situations-table/$$(basename $$events .json).txt); \
+	mkdir -p $$(dirname $$out) && ./$(TMP_DIR)/situations $$events $$out && echo "situations: $$events -> $$out"
+
+.PHONY: situations
 
 WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
 
