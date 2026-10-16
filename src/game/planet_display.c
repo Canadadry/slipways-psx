@@ -18,6 +18,7 @@
 #include "game/planet.h"
 #include "game/research.h"
 #include "game/research_display.h"
+#include "game/row_image.h"
 #include "game/slipway.h"
 #include "p8/str.h"
 #include "game/tech_gate.h"
@@ -402,8 +403,7 @@ void planet_draw(p8_graphics_t *graphics, p8_vram_t *memory, planet_t *self, vec
         if (self->layout_row != NULL) {
             vec_t offset =
                 vec_add(shaken_pos, vec_make(p8_fixed_from_int(0), p8_fixed_from_int(7)));
-            assert(self->layout_row->header.class->draw_at != NULL && "a layout row has a draw_at method");
-            self->layout_row->header.class->draw_at(&self->layout_row->header, offset, P8_FIXED_LIT(0x00008000, 0.5));
+            row_image_draw_at(graphics, memory, self->layout_row, offset, P8_FIXED_LIT(0x00008000, 0.5));
         }
     }
 
