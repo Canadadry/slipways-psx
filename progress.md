@@ -16,7 +16,7 @@
     - [x] The steady profile
   - [ ] Step 1.5 — Lever list
     - [x] Re-sourced lever-estimate tool
-    - [ ] The lever list
+    - [x] The lever list
 - [ ] Phase 2 — Loading screen
   - [ ] Step 2.6 — Loading screen during galaxy generation
 - [ ] Phase 3 — Pixel-identical levers, in impact order

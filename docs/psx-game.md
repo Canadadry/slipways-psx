@@ -1318,6 +1318,11 @@ family each), `one-off-runs` (no `long` run).
   over 263 (worst frame 4655, `build`, total 530), 631 one-off frames over
   for 1,391 vsyncs of 10,800.
 
+- The steady frames' levers, ranked and estimated, are in
+  `docs/psx-levers.md` (`make lever-estimate` checks its order and projects
+  it). The pixel-identical list leaves 487 steady frames over 263 nominal,
+  656 pessimistic.
+
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out
   lower than in the full run. `done`, `deterministic`, `breakdown` and
