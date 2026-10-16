@@ -250,7 +250,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
 
     if (self->layout_row != NULL) {
         vec_t off = vec_add(draw_pos, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(2)));
-        layout_row_draw_at_default(graphics, memory, self->layout_row, off);
+        layout_row_draw_at_text_image(graphics, memory, self->layout_row, off, p8_fixed_from_int(0));
     }
 
     if (self->side_tooltip != NULL) {
@@ -267,7 +267,7 @@ void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *sel
         {
             vec_t off2 =
                 vec_add(draw_pos, vec_make(p8_fixed_add(width, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
-            layout_row_draw_at_default(graphics, memory, c, off2);
+            layout_row_draw_at_text_image(graphics, memory, c, off2, p8_fixed_from_int(0));
         }
     }
 }

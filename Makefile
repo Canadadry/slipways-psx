@@ -864,6 +864,7 @@ ENGINE_SRCS := \
     src/game/attract.c \
     src/game/background.c \
     src/game/row_image.c \
+    src/game/text_image.c \
     src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
@@ -1439,6 +1440,9 @@ $(TMP_DIR)/test_layout_row: $(call objs,tests/test_layout_row.c tests/heap_alloc
 $(TMP_DIR)/test_row_image: $(call objs,tests/test_row_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_text_image: $(call objs,tests/test_text_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1623,7 +1627,7 @@ $(TMP_DIR)/test_probe_spawn_particle_order: $(call objs,tests/test_probe_spawn_p
 
 # A reduced source list rather than $(ENGINE_SRCS): this test never calls
 # cart_load(). Measured by linking, not guessed.
-$(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/p8/gfx_software.c src/game/hud.c src/game/layout.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/p8/gfx_software.c src/game/hud.c src/game/layout.c src/game/text_image.c src/p8/image.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # The longest first: under `-j`, make starts it first.
@@ -1755,6 +1759,7 @@ UNIT_TESTS := \
     test_research_project \
     test_layout_row \
     test_row_image \
+    test_text_image \
     test_economy \
     test_main_economy \
     test_input_step \

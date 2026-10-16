@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include "p8/assets.h"
+#include "p8/draw_backend.h"
 #include "game/data_init.h"
 #include "engine/dispatch_context.h"
 #include "p8/fixed.h"
@@ -66,6 +67,30 @@ static void test_bare_strings_draw_as_before(void) {
     static const data_row_t spec = {.count = 2, .items = items};
 
     check("bare", draw_tooltip(tooltip_new(&heap_allocator, &spec), p8_fixed_from_int(0), p8_fixed_from_int(0)), BARE_STRINGS_HASH);
+}
+
+static int g_copies;
+static const p8_draw_backend_t *g_software;
+
+static void count_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    g_copies++;
+    g_software->image_draw(gfx, mem, slot, x, y);
+}
+
+/* Each line's text is copied from a text image, every draw, with the pixels pinned above. */
+static void test_bare_strings_are_copied_from_text_images(void) {
+    static const data_item_t items[] = {{.text = "alpha"}, {.text = "beta 42"}};
+    static const data_row_t spec = {.count = 2, .items = items};
+    static p8_draw_backend_t counting;
+    g_software = p8_gfx_software_backend();
+    counting = *g_software;
+    counting.image_draw = count_image_draw;
+    p8_draw_backend_set(&counting);
+    const tooltip_t *tooltip = tooltip_new(&heap_allocator, &spec);
+    check("bare copied", draw_tooltip(tooltip, p8_fixed_from_int(0), p8_fixed_from_int(0)), BARE_STRINGS_HASH);
+    check("bare copied again", draw_tooltip(tooltip, p8_fixed_from_int(0), p8_fixed_from_int(0)), BARE_STRINGS_HASH);
+    p8_draw_backend_set(NULL);
+    assert(g_copies == 2 * 2);
 }
 
 /* No line: empty `rows`, so only the frame. */
@@ -182,6 +207,7 @@ int main(void) {
     test_line_is_centered_on_the_screen();
     test_icon_tooltips_entry_draws_as_before();
     test_bare_strings_draw_as_before();
+    test_bare_strings_are_copied_from_text_images();
     test_no_overrides_draws_frame_only();
     test_tooltip_is_a_struct_with_its_method_table();
     test_tooltip_state_by_name();

@@ -197,7 +197,7 @@ static void test_a_48_by_8_slot_of_overlapping_sprites_copies_like_the_sprites_d
     static p8_vram_t direct, cached;
     static const int xs[] = {-44, -43, -20, -1, 0, 58, 116, 117, 140, 159, 160};
     static const int ys[] = {-8, -7, -3, 0, 60, 112, 113, 117, 120};
-    static const int slots[] = {1, P8_IMAGE_SLOT_COUNT - 1};
+    static const int slots[] = {1, 32};
     p8_graphics_t gfx;
     p8_vram_init(&direct);
     sheet_with_patterns(&direct);
@@ -221,6 +221,13 @@ static void test_a_48_by_8_slot_of_overlapping_sprites_copies_like_the_sprites_d
             }
         }
         p8_camera(&gfx, 0, 0);
+    }
+}
+
+static void test_the_slots_after_the_48_by_8_ones_are_128_by_8(void) {
+    assert(P8_IMAGE_SLOT_COUNT == 1 + 32 + 32);
+    for (int slot = 1 + 32; slot < P8_IMAGE_SLOT_COUNT; slot++) {
+        assert(p8_image_size(slot).width == 128 && p8_image_size(slot).height == 8);
     }
 }
 
@@ -322,6 +329,7 @@ int main(int argc, char **argv) {
     test_empty_cells_and_transparent_colours_show_what_was_underneath();
     test_an_outlined_print_in_a_build_copies_like_the_print_drawn_directly();
     test_a_48_by_8_slot_of_overlapping_sprites_copies_like_the_sprites_drawn_directly();
+    test_the_slots_after_the_48_by_8_ones_are_128_by_8();
     test_every_map_write_on_any_vram_gives_a_map_version_never_seen();
     expect_fatal(argv[0], "cls", "image slot 0: cls during a build");
     expect_fatal(argv[0], "nested", "image slot 0: build inside a build");

@@ -39,6 +39,7 @@
 #include "game/scroll.h"
 #include "game/slipway.h"
 #include "game/trade.h"
+#include "game/text_image.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "game/wormhole.h"
@@ -334,6 +335,7 @@ void cart_update60(void) {
 void cart_draw(void) {
     p8_vram_t *mem = dispatch_context_mem();
 
+    text_image_frame_begin();
     p8_cls(mem);
     hud_select_palette_block_default(mem);
     draw_layers(ENTITY_MESSAGE_DRAW);
