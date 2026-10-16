@@ -163,8 +163,13 @@ generation runs.
    in the ranked list; picture-changing ideas in a separate, unranked
    section kept for the close. The `lever-estimate` targets are re-sourced
    to this list or removed. Each lever names the short run (step 4) that
-   measures it. Verified when the estimated gains, applied to
-   step 1's table, give the steady frames still over at the end of the
+   measures it. For a situation marked "no representative run", a
+   function's share comes from `steady_profile.sh no-run` on the full
+   game's frames over in that situation (no resume involved); its
+   best-try run supplies only the PSX per-call costs. Where a function's
+   no-run share and its best-try share differ by more than a fifth, the
+   note lists it. Verified when the estimated gains, applied to the
+   committed frame table (step 1's until it is replaced), give the steady frames still over at the end of the
    list, with a pessimistic variant (every gain cut by a fifth).
 
 ### Phase 2 — Loading screen
@@ -194,12 +199,33 @@ generation runs.
 7. Each lever of step 5's ranked list, in its order, one step note each:
    measured gain against its estimate, pixel-identical captures, unchanged
    e2e hashes. After each lever, its measured gain replaces its estimate
-   in `docs/psx-levers.md`, the projected steady frames still over are
+   in `docs/psx-levers.md` and, once two levers of the same estimation
+   basis (`calls` or `share`) are measured, the median of their
+   measured-to-estimated ratios scales the remaining estimates of that
+   basis before re-ranking (the ratio and the levers it rests on are in
+   the note); the projected steady frames still over are
    recomputed (step 5's calculation) and the remaining levers re-ranked
-   if the order changes. When the projection reaches zero steady frames
+   if the order changes. Whenever a `psx-full-game-check` replaces
+   `psx/perf/full-run-frames.txt`, the projection is rebased on that
+   table: every lever already in the measured code is marked `in-base` in
+   the lever table (kept for the record, no gain applied), and the note
+   gives the measured steady frames over next to the last projection,
+   before and after the rebase. When the projection reaches zero steady frames
    over, `psx-full-game-check` confirms `real-game-budget` green before the
    phase stops early. (plan-pilot: one PRD per lever, or per group of
-   small levers that touch the same code.)
+   small levers that touch the same code.) A lever measured on
+   `psx-full-game-check` is first probed (`psx-probe`) on a run that
+   draws its target function — a representative run of another situation
+   if one does, else its best-try run. If that probe shows no gain on the
+   target function, the lever is reverted with no full-game check.
+   Consecutive levers of this kind in rank order then share one
+   `psx-full-game-check`, at most three per check, the last group sharing
+   step 8's. Each situation's mean update and draw are compared with the
+   previous full-game table (`make situation-report` on both). A lever's
+   measured gain is that per-situation delta, split between the group's
+   levers in proportion to their probe gains. If a group shows no gain in
+   the situation its levers target, it is split and re-measured one lever
+   at a time.
 8. End of phase: `psx-full-game-check`, with `real-game-budget`'s figures
    and the steady frames still over, per situation, in the note.
 
@@ -289,3 +315,49 @@ one steady frame, red on the one-off sum, edges, join failures). On step
 started; 2,265 vs 3,658 over all 1,764 frames, both far under 10,800);
 `frame-budget` stays a failing condition of the check, unchanged — the
 plan's verdicts read `real-game-budget`.
+
+### Step 1.4
+
+`make steady-windows` ranks 15-frame windows per steady situation;
+`make short-run-situations` checks a run's labels against the frozen
+table. Tries (label, then `representative` vs step 1's table; PSX draw /
+update gap): map-rest 5538 −27.5/−4.2, 5423 −29.1/−1.5, 5581 −15.6/−12.2;
+**map-move-1057 ok** −0.5/−0.1; slipway-aim 5123, 5015, 5715 all relabelled
+after the resume (not booted); build 5923 −23.7/−0.2, 5054 −32.3/−21.2,
+5752 −23.6/−9.1; **menu-5954 ok** +4.0/+0.3; **tech-panel-5895 ok**
++0.8/−1.0; score-panel 5556 −38.4, 5441 −37.8, 5876 −11.6/−2.2. So
+**no representative run** for map-rest (429 frames over), build (155),
+score-panel (8) and slipway-aim (41): best tries kept in the manifest,
+flagged; their levers are measured on `psx-full-game-check`. Every failed
+resumed try draws less, mostly fewer `pset`; cause unproven (a transit dot
+is one `pset` + one `rectfill`, yet map-rest-5538 lacks 2,686 `pset` and
+183 `rectfill`), recorded as an open finding in `docs/psx-game.md`.
+Probe baseline refreshed: 12 runs valid.
+
+`make steady-profile` (judge hblanks per window frame; draw groups split
+primitives / game code; overhead pooled, 0.0558 h per call vs plan 21's
+0.13). Biggest groups: map-rest slipways 71.5 (24.9%), planets 65.3,
+panels 40.3, frame 36.0, sum 285.7 vs 287.3; map-move map 109.5 (31.1%,
+`wormhole` 94.1 in primitives), update_entities 55.8, save_at_frame_end
+28.0, sum 353.8 vs 352.0; build slipways 61.1, planets 50.9, ui_update
+34.0, sum 243.6 vs 242.1; menu slipways 99.5 (31.9%), planets 81.3, sum
+309.4 vs 311.6; tech-panel slipways 87.3, planets 77.9, hud 53.9, panels
+41.3, sum 367.3 vs 366.9; score-panel slipways 75.5, planets 61.7, update
+input_step_run 43.1 + update_entities 37.5, sum 342.3 vs 341.0. Every run
+`adds-up ok` within its noise floor; slipway-aim has a no-run profile (PC
+shares of its 41 frames over: slipways 18.6%, map 14.4%, panels 13.9%,
+ui_update 17.3%), weaker evidence. `slipway_draw_method`'s game code
+(45–76 h) may be overstated by PC hook cost.
+
+Guideline decisions: follow the PRD's three tries and fallback rather
+than investigate a longer warm-up before the window (out of the PRD's
+scope); the transit-dot cause is written as unproven. PRD choices: noise
+floor per run = max(3 h a frame, 1% of the window); whole child time, not
+"net", for game code (net was below in-call time); `score_panel` in `hud`
+(always-on bar).
+plan-review after this step: four method changes accepted and applied —
+step 5 takes a no-representative situation's shares from the full game's
+own frames (`no-run`); step 7 probes a full-game-measured lever first and
+groups up to three per `psx-full-game-check`, rebases the projection on
+each new frame table (`in-base`), and scales remaining estimates by the
+measured-to-estimated ratio per estimation basis.

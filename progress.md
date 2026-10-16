@@ -9,7 +9,7 @@
     - [x] fix: pad_author self-check carries the draw meter
   - [x] Step 1.3 — real-game-budget condition
     - [x] real-game-budget script, condition and target
-  - [ ] Step 1.4 — Short runs and steady-frame profile
+  - [x] Step 1.4 — Short runs and steady-frame profile
     - [x] Candidate windows, label check, first map-rest run
     - [x] The other six situations' runs
     - [x] Per-child family figures in the PC profile
