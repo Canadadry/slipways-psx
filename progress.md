@@ -57,7 +57,7 @@
     - [x] Chunk 0 — ceiling probes, choice of side
     - [x] Chunk 2 — D11 batched slipway lines
     - [x] Chunk 3 — D15 batched particles
-  - [ ] Step 3.15 — remaining draw levers above 2%
+  - [x] Step 3.15 — remaining draw levers above 2%
     - [x] Chunk 0 — gross probes, counts, text-path spike, decision
     - [x] Chunk 1 — capture all 233 (reference pending for the human)
     - [x] Chunk 2 — text image and D2

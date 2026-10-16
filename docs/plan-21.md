@@ -398,3 +398,15 @@ by judge-wide gain (the report's `draw-6000` figure):
 - **D15 kept:** `p8_psets` + a `psets` backend entry; `emitter_update` batches 32 points. Draw a frame −2.67 / −5.07, pooled **−3.87**.
 - Both: e2e hashes, end-state, state peaks and every capture and reference unchanged. `ram-room` 195,188, `game-ram-room` 345,488.
 - The batches keep one primitive and one clip per element, so they only remove per-call overhead; the probes' ceilings (cost of an extra rejected call) overstated that by 3–8×.
+
+### Step 3.15
+
+- Threshold **10.6** a window frame (2% of step 2.7's mean frame, 530.2). Gross targets (throwaway probes), a frame on `draw-5564` / `draw-6000` (report): D2 button text 29.0 / 4.3 (313 / 49); D3 message-box text 25.0 / 0.2 (268 / 0); D10 end points 16.5 / 24.4, halved 8.2 / 12.2 (14 / 12); D9 off-screen dispatch 18.3 / 18.1, upper bound (10 / 10); D13 7.4 / 8.2; L3 0.9 / 1.1; G4 submit 5.7 / 5.1. **D13, L3, G4 skipped** (under 10.6 on both).
+- Hypotheses H-14-1 to H-14-10 rest on the `### Step 3.14` note (D11 and D15 kept, D12 skipped, B2 not built, no full-game check since step 2.7); chunk 0 did not itemise their outcomes.
+- Spike: outlined glyph texels survive an image build and copy bit for bit, so text-only caching keeps the references. No capture showed D2 or D3 text: `all 233` added at ceiling 0 (five D2 labels, differ 0), its reference **pending the human's `make psx-gpu-capture-accept`**. **D3 skipped** (`guideline`): no `pad_slipway` frame shows message-box text.
+- **D2 kept:** `text_image`, 32 slots of 128×8 keyed by string and colour; button rows, side tooltips and tooltip rows go through it. Draw a frame −13.5 / −0.9, pooled **−7.2**; build frame +11.
+- **D10 kept:** `slipway_line_ends` once a draw. Draw a frame −7.5 / −11.2, pooled **−9.3**; update runs −10 to −12.
+- **D9 kept:** `skip_draw_off_screen` on the six `planet_draw_method` classes (ascension classes and burst unflagged, overlays never culled). Draw a frame −4.1 / −4.0, pooled **−4.0** (bound 18.3 / 18.1).
+- One-off builds for phase 4: on the judge 587 text builds on 167 frames, at most 12 a frame.
+- All three: e2e hashes, end-state and every existing capture reference unchanged.
+- Short runs (asserts off, O3): draw a frame `draw-5564` 326.9, `draw-6000` 362.0. Done, deterministic, breakdown and asserts hold; `representative` fails on every run (draw −30% to −68% against step 2.7's table), as expected. `ram-room` 156,548, `game-ram-room` 307,872; `gpu-ram-room` 154,480 (computed from the full-game GPU ELF, `psx-full-game-check` not run).
