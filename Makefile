@@ -1047,6 +1047,9 @@ $(TMP_DIR)/test_capture_list: $(call objs,tests/test_capture_list.c src/devtools
 $(TMP_DIR)/test_short_run_cut: $(call objs,tests/test_short_run_cut.c src/devtools/short_run_cut.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_situation: $(call objs,tests/test_situation.c src/devtools/situation.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_capture_compare: $(call objs,tests/test_capture_compare.c src/devtools/capture_compare.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1653,6 +1656,7 @@ UNIT_TESTS := \
     test_draw_timing \
     test_capture_list \
     test_short_run_cut \
+    test_situation \
     test_capture_compare \
     test_input \
     test_dump \

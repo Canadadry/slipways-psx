@@ -124,6 +124,8 @@ src/devtools/demo_source.h | demo loader of the demo generator, header of devtoo
 src/cmd/demo_generate.c | entry point of the demo generator, writes tmp/demo/demo.c through the libc, host tool
 src/devtools/short_run_cut.c | cut planner of make psx-short-runs-cut, host tool
 src/devtools/short_run_cut.h | cut planner of make psx-short-runs-cut, header of devtools/short_run_cut.c
+src/devtools/situation.c | frame situation classifier of the situations tool, host tool
+src/devtools/situation.h | header of devtools/situation.c
 src/cmd/short_run_cut.c | entry point of short_run_cut, which cuts the short runs out of the full game, host tool
 src/devtools/call_profile.c | call counts and PC time per root child and draw family of the PC frame profile, host tool
 src/devtools/call_profile.h | call counts and PC time per root child and draw family of the PC frame profile, header of devtools/call_profile.c
