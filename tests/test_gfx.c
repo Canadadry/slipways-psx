@@ -808,6 +808,70 @@ static void test_print_outlined_shows_its_outline_over_a_coloured_background(voi
     assert(outlined_mem.screen[22][14] != 0);
 }
 
+static void fill_screen_pattern(p8_vram_t *mem) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) mem->screen[y][x] = (unsigned char)((x * 3 + y * 5) % 16);
+    }
+}
+
+static void draw_bundle_both_ways(const p8_segment_t *segments, int count, int col, int camera_x, int camera_y) {
+    static p8_vram_t batched;
+    static p8_vram_t single;
+    p8_graphics_t gfx;
+    p8_vram_init(&batched);
+    p8_vram_init(&single);
+    p8_gfx_init(&gfx);
+    p8_camera(&gfx, camera_x, camera_y);
+    fill_screen_pattern(&batched);
+    fill_screen_pattern(&single);
+
+    p8_lines(&gfx, &batched, segments, count, col);
+    for (int i = 0; i < count; i++) {
+        p8_line(&gfx, &single, segments[i].x1, segments[i].y1, segments[i].x2, segments[i].y2, col);
+    }
+
+    assert(memcmp(batched.screen, single.screen, sizeof batched.screen) == 0);
+}
+
+static void test_lines_is_its_lines_drawn_one_by_one_at_every_edge_and_camera(void) {
+    static const int cameras[][2] = { { 0, 0 }, { 37, -21 }, { -64, 90 } };
+    for (int c = 0; c < 3; c++) {
+        for (int x = -37; x <= P8_SCREEN_WIDTH + 5; x += 14) {
+            for (int y = -20; y <= P8_SCREEN_HEIGHT + 5; y += 13) {
+                int wx = x + cameras[c][0];
+                int wy = y + cameras[c][1];
+                p8_segment_t bundle[4] = {
+                    { wx - 1, wy - 1, wx + 29, wy + 13 }, { wx - 1, wy + 2, wx + 29, wy + 16 },
+                    { wx + 2, wy - 1, wx + 32, wy + 13 }, { wx + 2, wy + 2, wx + 32, wy + 16 },
+                };
+                draw_bundle_both_ways(bundle, 4, 0x1d, cameras[c][0], cameras[c][1]);
+            }
+        }
+    }
+}
+
+static void test_lines_draws_overlapping_segments_and_odd_counts_like_its_lines(void) {
+    static const p8_segment_t crossing[] = {
+        { 0, 0, 127, 127 }, { 127, 0, 0, 127 }, { 64, -5, 64, 140 }, { 10, 10, 10, 10 }, { -300, 60, 400, 61 },
+    };
+    draw_bundle_both_ways(crossing, 5, 9, 0, 0);
+    draw_bundle_both_ways(crossing, 3, 0x2c, 11, -7);
+}
+
+static void test_lines_with_no_segment_draws_nothing(void) {
+    p8_vram_t mem;
+    p8_graphics_t gfx;
+    p8_vram_init(&mem);
+    p8_gfx_init(&gfx);
+    fill_screen_pattern(&mem);
+    static p8_vram_t before;
+    memcpy(&before, &mem, sizeof before);
+
+    p8_lines(&gfx, &mem, NULL, 0, 7);
+
+    assert(memcmp(&before, &mem, sizeof before) == 0);
+}
+
 int main(void) {
     test_cls_clears_whole_screen_to_zero();
     test_pset_plots_pixel_at_coordinate();
@@ -853,6 +917,9 @@ int main(void) {
     test_print_outlined_shows_its_outline_over_a_coloured_background();
     test_font_has_glyph_is_one_only_for_a_drawn_glyph();
 
+    test_lines_is_its_lines_drawn_one_by_one_at_every_edge_and_camera();
+    test_lines_draws_overlapping_segments_and_odd_counts_like_its_lines();
+    test_lines_with_no_segment_draws_nothing();
     printf("test_gfx: all tests passed\n");
     return 0;
 }

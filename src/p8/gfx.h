@@ -29,6 +29,16 @@ int p8_gfx_is_transparent(const p8_vram_t *mem, int col);
 
 void p8_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col);
 
+typedef struct {
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+} p8_segment_t;
+
+/* Draws each segment as p8_line would, in list order, in one colour; a count of 0 draws nothing. */
+void p8_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col);
+
 void p8_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col);
 
 void p8_rectfill(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col);

@@ -218,20 +218,34 @@ static void gpu_cls(p8_vram_t *mem) {
     add_black_fill(psx_vram_layout_region(PSX_VRAM_DRAW_AREA));
 }
 
+static void add_line(psx_line_t line, p8_rgb_t rgb) {
+    assert(abs(line.x2 - line.x1) < 1024 && abs(line.y2 - line.y1) < 512 && abs(line.x1) < 1024 &&
+           abs(line.y1) < 1024 && abs(line.x2) < 1024 && abs(line.y2) < 1024 &&
+           "the GPU silently drops a line this long or this far: the replays reach 297 at most");
+    LINE_F2 *primitive = packet(sizeof *primitive);
+    setLineF2(primitive);
+    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
+    setXY2(primitive, line.x1, line.y1, line.x2, line.y2);
+}
+
 static void gpu_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     (void)mem;
     psx_line_t line;
     if (!psx_tiles_line(gfx, x1, y1, x2, y2, &line)) {
         return;
     }
-    assert(abs(line.x2 - line.x1) < 1024 && abs(line.y2 - line.y1) < 512 && abs(line.x1) < 1024 &&
-           abs(line.y1) < 1024 && abs(line.x2) < 1024 && abs(line.y2) < 1024 &&
-           "the GPU silently drops a line this long or this far: the replays reach 297 at most");
+    add_line(line, P8_PALETTE_RGB[col & 0x0F]);
+}
+
+static void gpu_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    (void)mem;
     p8_rgb_t rgb = P8_PALETTE_RGB[col & 0x0F];
-    LINE_F2 *primitive = packet(sizeof *primitive);
-    setLineF2(primitive);
-    setRGB0(primitive, rgb.red, rgb.green, rgb.blue);
-    setXY2(primitive, line.x1, line.y1, line.x2, line.y2);
+    for (int i = 0; i < count; i++) {
+        psx_line_t line;
+        if (psx_tiles_line(gfx, segments[i].x1, segments[i].y1, segments[i].x2, segments[i].y2, &line)) {
+            add_line(line, rgb);
+        }
+    }
 }
 
 static void add_tile(psx_tile_t tile, int col) {
@@ -433,6 +447,7 @@ static void gpu_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, i
 static const p8_draw_backend_t GPU_BACKEND = {
     gpu_cls, gpu_pset, gpu_line, gpu_rect, gpu_rectfill, gpu_circ, gpu_circfill, gpu_spr, gpu_print, gpu_print_outlined,
     gpu_image_begin, gpu_image_window, gpu_image_end, gpu_image_draw,
+    gpu_lines,
 };
 
 const p8_draw_backend_t *psx_gpu_backend(void) {

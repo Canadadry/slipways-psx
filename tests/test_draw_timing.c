@@ -33,7 +33,7 @@ static void elapse(void) {
     coarse_now = (uint16_t)(coarse_now + coarse_step);
 }
 
-enum { KINDS = 9, KIND_PRINT_OUTLINED = KINDS, RECEIVED_KINDS };
+enum { KINDS = 9, KIND_PRINT_OUTLINED = KINDS, KIND_LINES, RECEIVED_KINDS };
 
 typedef struct {
     int calls;
@@ -123,10 +123,15 @@ static void slow_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, 
     elapse();
 }
 
+static void slow_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    seen(KIND_LINES, gfx, mem, count, col, segments[0].x1, segments[0].y2, 0, 0);
+}
+
 static const p8_draw_backend_t SLOW = {
     slow_cls, slow_pset, slow_line, slow_rect, slow_rectfill,
     slow_circ, slow_circfill, slow_spr, slow_print, slow_print_outlined,
     slow_image_begin, slow_image_window, slow_image_end, slow_image_draw,
+    slow_lines,
 };
 
 static p8_vram_t mem;
@@ -227,6 +232,21 @@ static void test_an_outlined_print_reaches_the_backend_and_counts_once_under_pri
     draw_timing_frame_t frame = draw_timing_get(0);
     assert(frame.ticks[DRAW_FILTER_PRINT] == 12 && frame.calls[DRAW_FILTER_PRINT] == 1);
     assert(frame.in_call == 12);
+    timing_removed();
+}
+
+static void test_a_batch_of_lines_is_timed_once_and_counts_one_line_call_per_segment(void) {
+    static const p8_segment_t segments[] = { { 1, 2, 3, 4 }, { 5, 6, 7, 8 }, { 9, 10, 11, 12 }, { 13, 14, 15, 16 } };
+    timing_over(&SLOW);
+    fine_step = 9;
+    p8_lines(&gfx, &mem, segments, 4, 7);
+    p8_line(&gfx, &mem, 1, 2, 3, 4, 7);
+    draw_timing_frame_end();
+    assert(received[KIND_LINES].calls == 1 && received[KIND_LINES].args[0] == 4 && received[KIND_LINES].args[1] == 7);
+    assert(received[KIND_LINES].args[2] == 1 && received[KIND_LINES].args[3] == 4);
+    draw_timing_frame_t frame = draw_timing_get(0);
+    assert(frame.ticks[DRAW_FILTER_LINE] == 18 && frame.calls[DRAW_FILTER_LINE] == 5);
+    assert(frame.in_call == 18);
     timing_removed();
 }
 
@@ -449,6 +469,7 @@ int main(int argc, char **argv) {
     test_every_call_reaches_the_backend_with_its_arguments();
     test_each_call_counts_under_its_own_family();
     test_an_outlined_print_reaches_the_backend_and_counts_once_under_print();
+    test_a_batch_of_lines_is_timed_once_and_counts_one_line_call_per_segment();
     test_the_fine_delta_is_taken_modulo_65536();
     test_a_sum_past_16_bits_is_kept();
     test_a_coarse_delta_at_the_limit_flags_the_frame_wrapped();

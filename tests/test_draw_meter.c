@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { KINDS = 14, KIND_PRINT_OUTLINED = 13 };
+enum { KINDS = 15, KIND_PRINT_OUTLINED = 13, KIND_LINES = 14 };
 
 static int forwarded[KINDS];
 static const p8_graphics_t *forwarded_gfx;
@@ -91,10 +91,16 @@ static void counting_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int sl
     seen(12, gfx, mem);
 }
 
+static void counting_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    (void)segments, (void)count, (void)col;
+    seen(KIND_LINES, gfx, mem);
+}
+
 static const p8_draw_backend_t COUNTING = {
     counting_cls, counting_pset, counting_line, counting_rect, counting_rectfill,
     counting_circ, counting_circfill, counting_spr, counting_print, counting_print_outlined,
     counting_image_begin, counting_image_window, counting_image_end, counting_image_draw,
+    counting_lines,
 };
 
 static p8_vram_t mem;
@@ -132,6 +138,8 @@ static void draw_one_of_each(void) {
     p8_print_outlined(&gfx, &mem, "ab", 0, 0, 7);
     p8_image_build(&gfx, &mem, 0, 16, 16, draw_nothing, NULL);
     p8_image_draw(&gfx, &mem, 0, 0, 0);
+    static const p8_segment_t segment = { 1, 2, 3, 4 };
+    p8_lines(&gfx, &mem, &segment, 1, 5);
 }
 
 static void test_every_call_reaches_the_wrapped_backend(void) {
@@ -283,6 +291,42 @@ static void test_a_copy_costs_frame_bytes_on_screen_and_nothing_off_screen(void)
     meter_removed();
 }
 
+static unsigned long frame_bytes_of(void (*draw)(void), int *primitives) {
+    meter_over_counting();
+    p8_camera(&gfx, 20, -9);
+    draw();
+    p8_draw_meter_frame_end();
+    p8_draw_meter_counts_t counts = p8_draw_meter_last_frame();
+    meter_removed();
+    *primitives = counts.primitives;
+    return counts.bytes;
+}
+
+static const p8_segment_t METERED_SEGMENTS[] = {
+    { 0, 0, 40, 40 }, { -200, 5, -100, 6 }, { 140, 140, 150, 150 }, { 10, -50, 30, 300 }, { 7, 7, 7, 7 },
+};
+
+static void draw_segments_batched(void) {
+    p8_lines(&gfx, &mem, METERED_SEGMENTS, 5, 7);
+}
+
+static void draw_segments_one_by_one(void) {
+    for (int i = 0; i < 5; i++) {
+        const p8_segment_t *s = &METERED_SEGMENTS[i];
+        p8_line(&gfx, &mem, s->x1, s->y1, s->x2, s->y2, 7);
+    }
+}
+
+static void test_a_batch_of_lines_costs_the_sum_of_its_lines(void) {
+    int batched_primitives;
+    int single_primitives;
+    unsigned long batched = frame_bytes_of(draw_segments_batched, &batched_primitives);
+    unsigned long single = frame_bytes_of(draw_segments_one_by_one, &single_primitives);
+
+    assert(batched == single && batched_primitives == single_primitives);
+    assert(batched > overhead().bytes && "some segment is on screen");
+}
+
 int main(void) {
     test_every_call_reaches_the_wrapped_backend();
     test_frame_end_folds_the_frame_into_the_peaks_and_resets_it();
@@ -291,6 +335,7 @@ int main(void) {
     test_a_count_past_the_table_is_clamped_above_the_limit();
     test_build_bytes_go_to_the_build_count_and_its_palettes_to_the_frame();
     test_a_copy_costs_frame_bytes_on_screen_and_nothing_off_screen();
+    test_a_batch_of_lines_costs_the_sum_of_its_lines();
     printf("test_draw_meter: ok\n");
     return 0;
 }

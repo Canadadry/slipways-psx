@@ -23,6 +23,9 @@ typedef struct {
     void (*image_window)(int slot, int x, int y);
     void (*image_end)(int slot);
     void (*image_draw)(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y);
+    /* Each segment exactly as line draws it, in list order, colour looked up as line does. A count
+     * of 0 draws nothing; segments is only read during the call. */
+    void (*lines)(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col);
 } p8_draw_backend_t;
 
 /* Process-wide, because p8_cls takes no graphics state. The table is static, never freed, and

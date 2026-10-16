@@ -62,7 +62,7 @@ void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, const slipway_t
     }
 
     assert(s > p8_fixed_from_int(0) && "slipway_draw_line only ascends: a zero step hangs, a negative one draws nothing");
-    assert(gfx != NULL && mem != NULL && "p8_line dereferences the graphics state and memory: neither may be NULL here");
+    assert(gfx != NULL && mem != NULL && "p8_lines dereferences the graphics state and memory: neither may be NULL here");
 
     qu = slipway_start(self);
     re = slipway_end(self);
@@ -73,15 +73,24 @@ void slipway_draw_line(const p8_graphics_t *gfx, p8_vram_t *mem, const slipway_t
     end_point = vec_add(slipway_end_pos(re),
                            vec_from_polar(P8_FIXED_LIT(0x00018000, 1.5), p8_fixed_div(t, p8_fixed_from_int(176))));
 
+    p8_segment_t bundle[4];
+    int count = 0;
     for (dx = l; dx <= h; dx = p8_fixed_add(dx, s)) {
         p8_fixed_t dy;
         for (dy = l; dy <= h; dy = p8_fixed_add(dy, s)) {
-            int x1 = to_int(p8_fixed_add(start_point.x, dx));
-            int y1 = to_int(p8_fixed_add(start_point.y, dy));
-            int x2 = to_int(p8_fixed_add(end_point.x, dx));
-            int y2 = to_int(p8_fixed_add(end_point.y, dy));
-            p8_line(gfx, mem, x1, y1, x2, y2, c);
+            p8_segment_t *segment = &bundle[count++];
+            segment->x1 = to_int(p8_fixed_add(start_point.x, dx));
+            segment->y1 = to_int(p8_fixed_add(start_point.y, dy));
+            segment->x2 = to_int(p8_fixed_add(end_point.x, dx));
+            segment->y2 = to_int(p8_fixed_add(end_point.y, dy));
+            if (count == 4) {
+                p8_lines(gfx, mem, bundle, count, c);
+                count = 0;
+            }
         }
+    }
+    if (count > 0) {
+        p8_lines(gfx, mem, bundle, count, c);
     }
 }
 

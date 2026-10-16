@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
+#include "p8/draw_backend.h"
 #include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
@@ -698,6 +699,104 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
+enum { SPIED_BATCHES = 8 };
+
+typedef unsigned char p8_screen_copy_t[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
+
+typedef struct {
+    int count;
+    int col;
+    p8_segment_t segments[4];
+} spied_batch_t;
+
+static spied_batch_t spied[SPIED_BATCHES];
+static int spied_batches;
+static int spied_single_lines;
+
+static void spy_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    assert(spied_batches < SPIED_BATCHES && count <= 4);
+    spied[spied_batches].count = count;
+    spied[spied_batches].col = col;
+    memcpy(spied[spied_batches].segments, segments, (size_t)count * sizeof *segments);
+    spied_batches++;
+    p8_gfx_software_backend()->lines(gfx, mem, segments, count, col);
+}
+
+static void spy_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
+    spied_single_lines++;
+    p8_gfx_software_backend()->line(gfx, mem, x1, y1, x2, y2, col);
+}
+
+static const p8_draw_backend_t *spy_on_lines(void) {
+    static p8_draw_backend_t spy;
+    spy = *p8_gfx_software_backend();
+    spy.lines = spy_lines;
+    spy.line = spy_line;
+    spied_batches = 0;
+    spied_single_lines = 0;
+    return p8_draw_backend_set(&spy);
+}
+
+static void assert_offsets(const spied_batch_t *batch, int i, int dx, int dy) {
+    const p8_segment_t *first = &batch->segments[0];
+    const p8_segment_t *s = &batch->segments[i];
+    assert(s->x1 - first->x1 == dx && s->y1 - first->y1 == dy);
+    assert(s->x2 - first->x2 == dx && s->y2 - first->y2 == dy);
+}
+
+/* Each bundle is one lines call: dx outer, dy inner, as the old p8_line loop drew them. */
+static void test_draw_issues_one_lines_call_per_bundle_with_its_lines_in_order(void) {
+    void *old;
+
+    world();
+    old = the_slipway();
+    const p8_draw_backend_t *previous = spy_on_lines();
+    p8_cls(&memory);
+    slipway_draw(&graphics, &memory, as_slipway(old));
+    p8_draw_backend_set(previous);
+
+    assert(spied_batches == 2 && spied_single_lines == 0);
+    for (int b = 0; b < 2; b++) {
+        int step = b == 0 ? 3 : 1;
+        assert(spied[b].count == 4);
+        assert_offsets(&spied[b], 1, 0, step);
+        assert_offsets(&spied[b], 2, step, 0);
+        assert_offsets(&spied[b], 3, step, step);
+    }
+    assert(spied[1].segments[0].x1 - spied[0].segments[0].x1 == 1 && "border from -1, line from 0");
+}
+
+static void test_draw_line_flushes_every_four_segments_and_the_rest(void) {
+    void *old;
+    static p8_screen_copy_t batched;
+
+    world();
+    old = the_slipway();
+    vec_t camera = vec_of(pos_ref(&main_camera_typed()->header));
+    p8_camera(&graphics, p8_fixed_flr_int(camera.x), p8_fixed_flr_int(camera.y));
+    p8_cls(&memory);
+    const p8_draw_backend_t *previous = spy_on_lines();
+    slipway_draw_line(&graphics, &memory, as_slipway(old), p8_fixed_from_int(0), p8_fixed_from_int(2), p8_fixed_from_int(1), 7);
+    p8_draw_backend_set(previous);
+    memcpy(batched, memory.screen, sizeof batched);
+    assert(screen_hash() != 2166136261u);
+
+    p8_cls(&memory);
+    for (int b = 0; b < spied_batches; b++) {
+        for (int i = 0; i < spied[b].count; i++) {
+            const p8_segment_t *s = &spied[b].segments[i];
+            p8_line(&graphics, &memory, s->x1, s->y1, s->x2, s->y2, spied[b].col);
+        }
+    }
+    assert(memcmp(batched, memory.screen, sizeof batched) == 0 && "the old loop's single lines give the same pixels");
+
+    assert(spied_batches == 3 && spied_single_lines == 0);
+    assert(spied[0].count == 4 && spied[1].count == 4 && spied[2].count == 1);
+    assert(spied[0].col == 7 && spied[2].col == 7);
+    assert_offsets(&spied[0], 3, 1, 0);
+    assert(spied[2].segments[0].x1 - spied[0].segments[0].x1 == 2 && spied[2].segments[0].y1 - spied[0].segments[0].y1 == 2);
+}
+
 /* Beyond range: draw draws the line under the game's camera, draw_overlay
  * writes the status text at the mouse where one with another target draws
  * a sprite and one without writes its cost, and drop onto a real planet is
@@ -1243,6 +1342,8 @@ int main(void) {
     in_fresh_child(test_drag_takes_infraspace_from_its_start);
     in_fresh_child(test_other_end);
     in_fresh_child(test_draw);
+    in_fresh_child(test_draw_issues_one_lines_call_per_bundle_with_its_lines_in_order);
+    in_fresh_child(test_draw_line_flushes_every_four_segments_and_the_rest);
     in_fresh_child(test_targeting_track);
     in_fresh_child(test_targeting_track_takes_the_first_slipway_of_entities_by_tag);
     in_fresh_child(test_too_far);

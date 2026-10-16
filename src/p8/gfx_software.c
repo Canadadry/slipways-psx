@@ -409,10 +409,17 @@ static void software_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int sl
     }
 }
 
+static void software_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    for (int i = 0; i < count; i++) {
+        software_line(gfx, mem, segments[i].x1, segments[i].y1, segments[i].x2, segments[i].y2, col);
+    }
+}
+
 static const p8_draw_backend_t SOFTWARE_BACKEND = {
     software_cls, software_pset, software_line, software_rect, software_rectfill,
     software_circ, software_circfill, software_spr, software_print, software_print_outlined,
     software_image_begin, software_image_window, software_image_end, software_image_draw,
+    software_lines,
 };
 
 const p8_draw_backend_t *p8_gfx_software_backend(void) {

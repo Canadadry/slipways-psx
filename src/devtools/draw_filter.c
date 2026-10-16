@@ -113,10 +113,19 @@ static void filter_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot
     if ((mask & families) == families) wrapped->image_draw(gfx, mem, slot, x, y);
 }
 
+static void filter_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    int passed = 1;
+    for (int i = 0; i < count; i++) {
+        passed = note(DRAW_FILTER_LINE, p8_draw_cost_line(gfx, segments[i].x1, segments[i].y1, segments[i].x2, segments[i].y2));
+    }
+    if (passed) wrapped->lines(gfx, mem, segments, count, col);
+}
+
 static const p8_draw_backend_t FILTER = {
     filter_cls, filter_pset, filter_line, filter_rect, filter_rectfill,
     filter_circ, filter_circfill, filter_spr, filter_print, filter_print_outlined,
     filter_image_begin, filter_image_window, filter_image_end, filter_image_draw,
+    filter_lines,
 };
 
 const p8_draw_backend_t *draw_filter_install(void) {

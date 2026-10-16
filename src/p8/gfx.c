@@ -2,6 +2,7 @@
 
 #include "p8/draw_backend.h"
 
+#include <assert.h>
 #include <stddef.h>
 
 static const p8_draw_backend_t *active_backend = NULL;
@@ -65,6 +66,11 @@ int p8_gfx_is_transparent(const p8_vram_t *mem, int col) {
 
 void p8_line(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     backend()->line(gfx, mem, x1, y1, x2, y2, col);
+}
+
+void p8_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    assert(count >= 0 && (count == 0 || segments != NULL) && "p8_lines: a negative count or a NULL list");
+    backend()->lines(gfx, mem, segments, count, col);
 }
 
 void p8_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {

@@ -201,11 +201,15 @@ uint64_t call_profile_measure_pair(int pairs) {
     return span * 10 / (uint64_t)pairs;
 }
 
-static uint64_t family_end(draw_filter_family_t family, uint64_t start) {
+static uint64_t family_calls_end(draw_filter_family_t family, uint64_t start, int calls) {
     uint64_t ns = clock_now() - start;
-    current.families[family].calls++;
+    current.families[family].calls += (uint32_t)calls;
     current.families[family].ns += ns;
     return ns;
+}
+
+static uint64_t family_end(draw_filter_family_t family, uint64_t start) {
+    return family_calls_end(family, start, 1);
 }
 
 static int patterned(const p8_graphics_t *gfx) {
@@ -345,10 +349,22 @@ static void family_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot
     units_add(DRAW_FILTER_SPR, on_screen, on_screen);
 }
 
+static void family_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    uint64_t start = clock_now();
+    wrapped->lines(gfx, mem, segments, count, col);
+    family_calls_end(DRAW_FILTER_LINE, start, count);
+    for (int i = 0; i < count; i++) {
+        const p8_segment_t *s = &segments[i];
+        p8_draw_cost_window_t before = units_begin();
+        units_end(DRAW_FILTER_LINE, before, p8_draw_cost_line(gfx, s->x1, s->y1, s->x2, s->y2), 0);
+    }
+}
+
 static const p8_draw_backend_t FAMILIES = {
     family_cls, family_pset, family_line, family_rect, family_rectfill,
     family_circ, family_circfill, family_spr, family_print, family_print_outlined,
     family_image_begin, family_image_window, family_image_end, family_image_draw,
+    family_lines,
 };
 
 const p8_draw_backend_t *call_profile_family_install(void) {

@@ -138,10 +138,18 @@ static void meter_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot,
     wrapped->image_draw(gfx, mem, slot, x, y);
 }
 
+static void meter_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segment_t *segments, int count, int col) {
+    for (int i = 0; i < count; i++) {
+        add(p8_draw_cost_line(gfx, segments[i].x1, segments[i].y1, segments[i].x2, segments[i].y2));
+    }
+    wrapped->lines(gfx, mem, segments, count, col);
+}
+
 static const p8_draw_backend_t METER = {
     meter_cls, meter_pset, meter_line, meter_rect, meter_rectfill,
     meter_circ, meter_circfill, meter_spr, meter_print, meter_print_outlined,
     meter_image_begin, meter_image_window, meter_image_end, meter_image_draw,
+    meter_lines,
 };
 
 const p8_draw_backend_t *p8_draw_meter_install(void) {
