@@ -10,6 +10,10 @@
   - [x] Step 1.3 — real-game-budget condition
     - [x] real-game-budget script, condition and target
   - [ ] Step 1.4 — Short runs and steady-frame profile
+    - [ ] Candidate windows, label check, first map-rest run
+    - [ ] The other six situations' runs
+    - [x] Per-child family figures in the PC profile
+    - [ ] The steady profile
   - [ ] Step 1.5 — Lever list
 - [ ] Phase 2 — Loading screen
   - [ ] Step 2.6 — Loading screen during galaxy generation

@@ -1065,7 +1065,13 @@ This build is `-O2` with asserts off, and the game, engine and PICO-8
 runtime are compiled with `-finstrument-functions`. Per frame, it writes the
 calls and PC time of each direct child of `cart_update60` and `cart_draw`
 (keyed by call site: `draw_layers#1`, `#2`) and of each draw family, counted
-as the breakdown counts them. The output goes to `tmp/frame-profile/<name>/`,
+as the breakdown counts them. It also splits each family per root child:
+`frame <f> child-family <root> <child> <family> <calls> <ns>` for the calls
+made while that child runs, at any depth, and `frame <f> self-family <root>
+<family> <calls> <ns>` for the root's own calls, one line per family with at
+least one call. These lines are kept only for the first 1,024 frames (a short
+run's cap); a longer recording has none past that. Every mode of
+`tools/frame_profile_check.sh` ignores them. The output goes to `tmp/frame-profile/<name>/`,
 and the end state is checked (`same-game`). The binary takes an optional
 fourth argument, a draw root other than `cart_draw` (for example
 `draw_layers`), named on the `root draw <symbol>` header line; an unknown or

@@ -1465,6 +1465,71 @@ static void test_ordinary_usage_errors_exit_1(void) {
     assert(strstr(read_file(LOG), "nowhere is no child of a placed set") != NULL);
 }
 
+/* After every "frame <f> update" line of each file: what tmp/frame_profile now also writes per frame. */
+static void add_child_family_lines(const char *files) {
+    char cmd[2048];
+    snprintf(cmd, sizeof cmd,
+             "for f in %s; do awk '{ print } $1 == \"frame\" && $3 == \"update\" {"
+             " print \"frame \" $2 \" child-family draw planet_draw_method spr 3 900\";"
+             " print \"frame \" $2 \" child-family update ui_update print 1 50\";"
+             " print \"frame \" $2 \" self-family draw cls 1 40\" }' $f > $f.new && mv $f.new $f || exit 1; done",
+             files);
+    assert(run_command(cmd) == 0);
+}
+
+/* Runs <command> (its output going to LOG), adds the new lines to <files>, runs it again: same
+ * exit status, byte-identical output. */
+static void expect_unchanged_by_child_family_lines(const char *command, const char *files) {
+    int status = run_command(command);
+    static char before[TEXT_CAP];
+    snprintf(before, sizeof before, "%s", read_file(LOG));
+    assert(strlen(before) > 0);
+    add_child_family_lines(files);
+    int again = run_command(command);
+    if (again != status || strcmp(before, read_file(LOG)) != 0) {
+        fprintf(stderr, "%s\nexit %d then %d\n--- before\n%s--- after\n%s", command, status, again, before,
+                read_file(LOG));
+        assert(0 && "child-family and self-family lines changed an existing mode's output");
+    }
+}
+
+static void test_every_profile_mode_ignores_child_family_and_self_family_lines(void) {
+    fresh_dir();
+    write_file(FRAMES_TXT, breakdown_profile);
+    write_file(TTY, breakdown_tty);
+    write_file(MAP, MAP_RESUME);
+    expect_unchanged_by_child_family_lines(SCRIPT " breakdown " FRAMES_TXT " " TTY " " MAP " > " LOG " 2>&1",
+                                           FRAMES_TXT);
+
+    fresh_dir();
+    write_file(FRAMES_TXT, with_units(breakdown_profile));
+    write_file(TTY, breakdown_tty);
+    write_file(MAP, MAP_RESUME);
+    expect_unchanged_by_child_family_lines(SCRIPT " unit-cost " FRAMES_TXT " " TTY " " MAP " > " LOG " 2>&1",
+                                           FRAMES_TXT);
+
+    write_coverage_inputs();
+    expect_unchanged_by_child_family_lines(SCRIPT " coverage 2 " FULL_TXT WINDOWS " > " LOG " 2>&1",
+                                           FULL_TXT " " START_TXT " " DRAW_TXT);
+
+    write_subtree_inputs();
+    expect_unchanged_by_child_family_lines(SCRIPT " subtree" SUBTREE_START " > " LOG " 2>&1", SUBTREE_START_TXT);
+
+    write_subtree_update_inputs();
+    expect_unchanged_by_child_family_lines(SCRIPT " subtree part=update" SUBTREE_UPDATE " > " LOG " 2>&1",
+                                           SUBTREE_UPDATE_TXT);
+
+    fresh_dir();
+    write_judge();
+    write_spike_profile(BASE_TXT, "cart_update60", SPIKE_FRAMES, 1000, "");
+    expect_unchanged_by_child_family_lines(SCRIPT " spikes 263 " JUDGE " " BASE_TXT " > " LOG " 2>&1", BASE_TXT);
+
+    write_ordinary_inputs();
+    expect_unchanged_by_child_family_lines(SCRIPT " ordinary 2 263 " ORD_JUDGE " - w=3-5@5.0,v=0-2@50 " ORD_BASE
+                                           " > " LOG " 2>&1",
+                                           ORD_CART " " ORD_INPUT);
+}
+
 int main(void) {
     build_breakdown_inputs();
     test_breakdown_match_over_a_resume_window();
@@ -1534,6 +1599,7 @@ int main(void) {
     test_ordinary_marks_multi_site_nodes();
     test_ordinary_malformed_input_exits_2();
     test_ordinary_usage_errors_exit_1();
+    test_every_profile_mode_ignores_child_family_and_self_family_lines();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frame_profile_check: all tests passed\n");
     return 0;

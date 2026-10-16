@@ -14,6 +14,11 @@ typedef struct {
     call_profile_family_figures_t families[DRAW_FILTER_FAMILY_COUNT];
 } frame_record_t;
 
+/* Slot CALL_PROFILE_CHILD_CAP of a root holds its self. */
+typedef struct {
+    call_profile_family_figures_t figures[CALL_PROFILE_ROOT_COUNT][CALL_PROFILE_CHILD_CAP + 1][DRAW_FILTER_FAMILY_COUNT];
+} child_family_record_t;
+
 typedef enum {
     FRAME_PLAIN,
     FRAME_ROOT,
@@ -39,6 +44,8 @@ static int active_child;
 static frame_record_t current;
 static frame_record_t table[CALL_PROFILE_FRAME_CAP];
 static int count;
+static child_family_record_t current_child_families;
+static child_family_record_t child_family_table[CALL_PROFILE_CHILD_FAMILY_FRAME_CAP];
 static const p8_draw_backend_t *wrapped;
 static p8_draw_cost_window_t window;
 static int counting_units;
@@ -56,6 +63,7 @@ void call_profile_init(call_profile_clock_t clock, uintptr_t update_root, uintpt
     active_root = -1;
     active_child = -1;
     memset(&current, 0, sizeof current);
+    memset(&current_child_families, 0, sizeof current_child_families);
     memset(table, 0, sizeof table);
     count = 0;
 }
@@ -137,8 +145,10 @@ void call_profile_frame_end(void) {
                  CALL_PROFILE_FRAME_CAP);
         p8_fatal(message);
     }
+    if (count < CALL_PROFILE_CHILD_FAMILY_FRAME_CAP) child_family_table[count] = current_child_families;
     table[count++] = current;
     memset(&current, 0, sizeof current);
+    memset(&current_child_families, 0, sizeof current_child_families);
     p8_draw_cost_frame_begin(&window);
 }
 
@@ -201,10 +211,25 @@ uint64_t call_profile_measure_pair(int pairs) {
     return span * 10 / (uint64_t)pairs;
 }
 
+/* NULL outside any root. */
+static call_profile_family_figures_t *attributed_families(void) {
+    if (active_root < 0) return NULL;
+    int slot = active_child < 0 ? CALL_PROFILE_CHILD_CAP : active_child;
+    return current_child_families.figures[active_root][slot];
+}
+
+static void family_add(draw_filter_family_t family, uint32_t calls, uint64_t ns) {
+    current.families[family].calls += calls;
+    current.families[family].ns += ns;
+    call_profile_family_figures_t *attributed = attributed_families();
+    if (attributed == NULL) return;
+    attributed[family].calls += calls;
+    attributed[family].ns += ns;
+}
+
 static uint64_t family_calls_end(draw_filter_family_t family, uint64_t start, int calls) {
     uint64_t ns = clock_now() - start;
-    current.families[family].calls += (uint32_t)calls;
-    current.families[family].ns += ns;
+    family_add(family, (uint32_t)calls, ns);
     return ns;
 }
 
@@ -218,8 +243,7 @@ static int patterned(const p8_graphics_t *gfx) {
 
 static void pattern_end(const p8_graphics_t *gfx, uint64_t ns) {
     if (!patterned(gfx)) return;
-    current.families[DRAW_FILTER_PATTERN].calls++;
-    current.families[DRAW_FILTER_PATTERN].ns += ns;
+    family_add(DRAW_FILTER_PATTERN, 1, ns);
 }
 
 /* The cost model is instrumented code: between units_begin and units_end its hooks are ignored,
@@ -232,6 +256,10 @@ static p8_draw_cost_window_t units_begin(void) {
 static void units_add(draw_filter_family_t family, uint32_t units, uint32_t switches) {
     current.families[family].units += units;
     current.families[family].switches += switches;
+    call_profile_family_figures_t *attributed = attributed_families();
+    if (attributed == NULL) return;
+    attributed[family].units += units;
+    attributed[family].switches += switches;
 }
 
 static void units_end(draw_filter_family_t family, p8_draw_cost_window_t before, p8_draw_cost_t cost, int in_pattern) {
@@ -397,6 +425,35 @@ uint64_t call_profile_in_call_ns(int frame) {
     uint64_t in_call = 0;
     for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
         if (family != DRAW_FILTER_PATTERN) in_call += call_profile_family_figures(frame, (draw_filter_family_t)family).ns;
+    }
+    return in_call;
+}
+
+static call_profile_family_figures_t slot_family_figures(int frame, call_profile_root_t root, int slot,
+                                                         draw_filter_family_t family) {
+    assert(frame >= 0 && frame < count);
+    assert(family >= 0 && family < DRAW_FILTER_FAMILY_COUNT);
+    if (frame >= CALL_PROFILE_CHILD_FAMILY_FRAME_CAP) return (call_profile_family_figures_t){0, 0, 0, 0};
+    return child_family_table[frame].figures[root][slot][family];
+}
+
+call_profile_family_figures_t call_profile_child_family_figures(int frame, call_profile_root_t root, int child,
+                                                                draw_filter_family_t family) {
+    assert(child >= 0 && child < child_counts[root]);
+    return slot_family_figures(frame, root, child, family);
+}
+
+call_profile_family_figures_t call_profile_self_family_figures(int frame, call_profile_root_t root,
+                                                               draw_filter_family_t family) {
+    return slot_family_figures(frame, root, CALL_PROFILE_CHILD_CAP, family);
+}
+
+uint64_t call_profile_child_in_call_ns(int frame, call_profile_root_t root, int child) {
+    uint64_t in_call = 0;
+    for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+        if (family != DRAW_FILTER_PATTERN) {
+            in_call += call_profile_child_family_figures(frame, root, child, (draw_filter_family_t)family).ns;
+        }
     }
     return in_call;
 }
