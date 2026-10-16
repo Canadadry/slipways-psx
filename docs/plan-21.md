@@ -357,3 +357,10 @@ by judge-wide gain (the report's `draw-6000` figure):
 - **Kept:** draw a frame `draw-5564` **−438.2**, `draw-6000` **−78.4**, pooled −258.3 (report −542.3 / −102.1; unit-cost estimate −398.1 / −113.9); one-frame runs −46 to −229. No one-off cost. `zone gpu_frame` peak 63,652 → 26,288. E2e hashes and every capture unchanged. `ram-room` 226,008, `game-ram-room` 373,596.
 - Unit costs after (pooled): print 1.522 a call, 0.268 a glyph; others as step 8's within noise (cls 0.106, pset 0.129, line 0.157, rect 0.314, rectfill 0.190, circ 3.454, circfill 3.137, spr 0.448, pattern 0.253).
 - Residuals (throwaway probes on top of the switch, `draw-5564` / `draw-6000`): **D2** −43.9 / −8.9, not covered; **D3** −36.1 / 0, not covered; **D4** −9.5 / −9.3, **covered** (under 10.6 on both): step 13 skips it citing this note.
+
+### Step 3.10
+
+- Gross target (throwaway probe sorting the layers twice, second copy in static scratch because the frame zone had only 3,920 bytes of room): draw-5564 +19.6, draw-6000 +18.9, start +9 a frame (report bound 153 / 95 / 23). **L2 skipped, covered by L1** (its overlay share 6.1 / 5.7).
+- Every entity layer write goes through `entity_registry_set_layer` (12 constructors, the button key override, `slipway_inherit_infraspace`, the score panel's layer 13). The registry keeps one order per draw message (static, 512 entries, fatal beyond), updated at register / unregister / real layer change; `draw_layers` walks it. Two asserts (registry mutated during a draw; layer written behind the setter) never fired. Chunks 1 and 2 landed as one commit (same functions).
+- **Kept:** probe, a frame: `draw-5564` draw −20.5 / total −20.8, `draw-6000` draw −20.1 / total −19.7; pooled draw −20.3, whole frame −20.2. Work moved into registration: update +27 on `start` (frame 12, whose total rises +16), +17 / +1 / +6 on the update runs: input for phase 4.
+- `make state` (full game): `zone frame` peak 16,336 → 11,344. E2e hashes, end-state and every capture unchanged. `ram-room` 218,288, `game-ram-room` 365,892. Chunk 3's short runs were not rerun separately: the probe runs the same windows.

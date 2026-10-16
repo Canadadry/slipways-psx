@@ -38,11 +38,11 @@
     - [x] Chunk 2 — PSX outlined font
     - [x] Chunk 3 — the switch, measured
     - [x] Chunk 4 — residual D2, D3, D4
-  - [ ] Step 3.10 — L1 layer lists sorted at registration
+  - [x] Step 3.10 — L1 layer lists sorted at registration
     - [x] Chunk 0 — gross target probe, coverage verdict
     - [x] Chunk 1 — one write path for layers
     - [x] Chunk 2 — kept layer order and the walk
-    - [ ] Chunk 3 — close: short runs, RAM, zones
+    - [x] Chunk 3 — close: short runs, RAM, zones
   - [ ] Step 3.11 — D8 disc and ring baked into the planet sprite
   - [ ] Step 3.12 — D6 planet row icons through the image cache
   - [ ] Step 3.13 — D4 score panel readouts through the image cache
