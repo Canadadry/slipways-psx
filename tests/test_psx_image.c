@@ -149,6 +149,25 @@ static void test_a_128_by_8_slot_copies_and_clips_at_every_edge(void) {
     }
 }
 
+enum { SQUARE_SLOT_AT_704 = 65, SQUARE_SLOT_AT_768 = 69 };
+
+static void test_a_16_by_16_slot_copies_and_clips_at_every_edge(void) {
+    static const int positions[] = { -15, -14, -1, 0, 72, 145, 146, 160 };
+    int count = (int)(sizeof positions / sizeof positions[0]);
+    assert(psx_vram_layout_image(SQUARE_SLOT_AT_704).x == 704 && psx_vram_layout_image(SQUARE_SLOT_AT_768).x == 768);
+    for (int i = 0; i < count; i++) {
+        for (int j = 0; j < count; j++) {
+            assert_slot_copy_matches(SQUARE_SLOT_AT_704, 37, -21, 13, 13, positions[i] + 37, positions[j] - 21);
+            assert_slot_copy_matches(SQUARE_SLOT_AT_768, 0, 0, 15, 15, positions[i], positions[j]);
+        }
+    }
+    psx_sprite_t sprite;
+    p8_graphics_t gfx = camera_at(0, 0);
+    assert(psx_image_copy_place(&gfx, SQUARE_SLOT_AT_768, 15, 15, -5, 110, &sprite));
+    psx_sprite_t expected = { 0, 110, 5, 184, 10, 10 };
+    assert(memcmp(&sprite, &expected, sizeof sprite) == 0);
+}
+
 static void assert_rect(psx_vram_rect_t rect, int x, int y, int w, int h) {
     assert(rect.x == x && rect.y == y && rect.w == w && rect.h == h);
 }
@@ -199,6 +218,7 @@ int main(void) {
     test_a_48_by_8_slot_off_its_page_edge_copies_and_clips_at_every_edge();
     test_a_48_by_8_slot_reads_from_its_own_page_column();
     test_a_128_by_8_slot_copies_and_clips_at_every_edge();
+    test_a_16_by_16_slot_copies_and_clips_at_every_edge();
     test_each_window_draws_into_its_part_of_the_slot();
     test_the_windows_tile_the_build_exactly();
     printf("test_psx_image: ok\n");

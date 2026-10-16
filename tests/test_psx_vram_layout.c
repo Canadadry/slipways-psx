@@ -122,7 +122,7 @@ static void test_each_image_slot_lies_on_its_own_15_bit_page(void) {
 static void test_the_row_slots_pack_five_a_band_below_the_map_each_inside_its_own_page(void) {
     static const int columns[] = { 704, 752, 800, 848, 896 };
     static const int page_columns[] = { 704, 704, 768, 832, 896 };
-    assert(P8_IMAGE_SLOT_COUNT == 1 + 32 + 32);
+    assert(P8_IMAGE_SLOT_COUNT == 1 + 32 + 32 + 5);
     for (int slot = 1; slot < 1 + 32; slot++) {
         int column = (slot - 1) % 5;
         psx_vram_rect_t image = psx_vram_layout_image(slot);
@@ -137,13 +137,25 @@ static void test_the_row_slots_pack_five_a_band_below_the_map_each_inside_its_ow
 
 static void test_the_text_slots_pack_two_a_band_below_the_row_slots_each_inside_its_own_page(void) {
     static const int columns[] = { 704, 832 };
-    for (int slot = 1 + 32; slot < P8_IMAGE_SLOT_COUNT; slot++) {
+    for (int slot = 1 + 32; slot < 1 + 32 + 32; slot++) {
         int k = slot - (1 + 32);
         psx_vram_rect_t image = psx_vram_layout_image(slot);
         assert(image.x == columns[k % 2] && image.y == 312 + k / 2 * 8);
         assert(image.w == 128 && image.h == 8);
         psx_vram_rect_t page = psx_vram_layout_image_page(slot);
         assert(page.x == columns[k % 2] && page.y == 256);
+        assert(image.x - page.x + image.w <= 256 && image.y - page.y + image.h <= 256);
+    }
+}
+
+static void test_the_square_slots_follow_the_text_slots_in_one_row(void) {
+    static const int page_columns[] = { 704, 704, 704, 704, 768 };
+    for (int slot = 1 + 32 + 32; slot < P8_IMAGE_SLOT_COUNT; slot++) {
+        int k = slot - (1 + 32 + 32);
+        psx_vram_rect_t image = psx_vram_layout_image(slot);
+        assert(image.x == 704 + k * 16 && image.y == 440 && image.w == 16 && image.h == 16);
+        psx_vram_rect_t page = psx_vram_layout_image_page(slot);
+        assert(page.x == page_columns[k] && page.y == 256);
         assert(image.x - page.x + image.w <= 256 && image.y - page.y + image.h <= 256);
     }
 }
@@ -158,6 +170,7 @@ int main(void) {
     test_each_image_slot_lies_on_its_own_15_bit_page();
     test_the_row_slots_pack_five_a_band_below_the_map_each_inside_its_own_page();
     test_the_text_slots_pack_two_a_band_below_the_row_slots_each_inside_its_own_page();
+    test_the_square_slots_follow_the_text_slots_in_one_row();
     printf("test_psx_vram_layout: ok\n");
     return 0;
 }

@@ -28,10 +28,14 @@ static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
     WIDE_SLOT(first) WIDE_SLOT(first + 1) WIDE_SLOT(first + 2) WIDE_SLOT(first + 3) WIDE_SLOT(first + 4) \
     WIDE_SLOT(first + 5) WIDE_SLOT(first + 6) WIDE_SLOT(first + 7)
 
+/* The 16x16 slots go in a row from (704, 440), below the 128x8 ones. */
+#define SQUARE_SLOT(i) { 704 + (i) * 16, 440, 16, 16 },
+
 static const psx_vram_rect_t image_slots[P8_IMAGE_SLOT_COUNT] = {
     { 704, 0, 256, 256 },
     SMALL_SLOTS_8(0) SMALL_SLOTS_8(8) SMALL_SLOTS_8(16) SMALL_SLOTS_8(24)
     WIDE_SLOTS_8(0) WIDE_SLOTS_8(8) WIDE_SLOTS_8(16) WIDE_SLOTS_8(24)
+    SQUARE_SLOT(0) SQUARE_SLOT(1) SQUARE_SLOT(2) SQUARE_SLOT(3) SQUARE_SLOT(4)
 };
 
 psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region) {
