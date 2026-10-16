@@ -274,6 +274,17 @@ static void gpu_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int
     }
 }
 
+static void gpu_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    (void)mem;
+    for (int i = 0; i < count; i++) {
+        psx_tile_t pixel;
+        if (psx_tiles_pset(gfx, points[i].x, points[i].y, &pixel)) {
+            p8_rgb_t rgb = P8_PALETTE_RGB[points[i].col & 0x0F];
+            add_pixel(pixel, &rgb);
+        }
+    }
+}
+
 static void gpu_rect(const p8_graphics_t *gfx, p8_vram_t *mem, int x1, int y1, int x2, int y2, int col) {
     (void)mem;
     psx_tile_t tiles[PSX_TILES_RECT_MAX];
@@ -447,7 +458,7 @@ static void gpu_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, i
 static const p8_draw_backend_t GPU_BACKEND = {
     gpu_cls, gpu_pset, gpu_line, gpu_rect, gpu_rectfill, gpu_circ, gpu_circfill, gpu_spr, gpu_print, gpu_print_outlined,
     gpu_image_begin, gpu_image_window, gpu_image_end, gpu_image_draw,
-    gpu_lines,
+    gpu_lines, gpu_psets,
 };
 
 const p8_draw_backend_t *psx_gpu_backend(void) {

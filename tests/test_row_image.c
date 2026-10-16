@@ -107,11 +107,16 @@ static void count_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segme
     g_software->lines(gfx, mem, segments, count, col);
 }
 
+static void count_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    g_other_calls_in_builds += g_building;
+    g_software->psets(gfx, mem, points, count);
+}
+
 static const p8_draw_backend_t COUNTING = {
     count_cls, count_pset, count_line, count_rect, count_rectfill,
     count_circ, count_circfill, count_spr, count_print, count_print_outlined,
     count_image_begin, count_image_window, count_image_end, count_image_draw,
-    count_lines,
+    count_lines, count_psets,
 };
 
 static vec_t vec_xy(int x, int y) {

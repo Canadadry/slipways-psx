@@ -293,11 +293,16 @@ static void null_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segmen
     now += backend_cost;
 }
 
+static void null_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    (void)gfx, (void)mem, (void)points, (void)count;
+    now += backend_cost;
+}
+
 static const p8_draw_backend_t NULL_BACKEND = {
     null_cls, null_pset, null_line, null_rect, null_rect,
     null_circ, null_circ, null_spr, null_print, null_print,
     null_image_begin, null_image_window, null_image_end, null_image_draw,
-    null_lines,
+    null_lines, null_psets,
 };
 
 static p8_vram_t mem;
@@ -413,6 +418,17 @@ static void test_a_batch_of_lines_is_one_line_call_and_its_units_per_segment(voi
     p8_draw_backend_set(NULL);
 }
 
+static void test_a_batch_of_points_is_one_pset_call_and_its_unit_per_point(void) {
+    static const p8_point_t points[] = { { 0, 0, 1 }, { -1, 0, 2 }, { 159, 119, 3 }, { 5, 500, 4 } };
+    families_over(&NULL_BACKEND);
+    backend_cost = 6;
+    p8_psets(&gfx, &mem, points, 4);
+    call_profile_frame_end();
+    expect_units(0, DRAW_FILTER_PSET, 4, 2, 0);
+    assert(call_profile_family_figures(0, DRAW_FILTER_PSET).ns == 6 && "the batch is timed once");
+    p8_draw_backend_set(NULL);
+}
+
 static void two_sprites(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
     (void)context;
     p8_spr(build_gfx, build_mem, 1, 0, 0, 1, 1);
@@ -448,6 +464,8 @@ static void draw_every_family_with_and_without_pattern(void) {
         p8_line(&gfx, &mem, 1, 2, 3, 4, 5);
         static const p8_segment_t segments[] = { { 1, 2, 3, 4 }, { 5, 6, 7, 8 } };
         p8_lines(&gfx, &mem, segments, 2, 5);
+        static const p8_point_t points[] = { { 1, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9 } };
+        p8_psets(&gfx, &mem, points, 3);
         p8_rect(&gfx, &mem, 1, 2, 3, 4, 6);
         p8_rectfill(&gfx, &mem, 1, 2, 3, 4, 7);
         p8_circ(&gfx, &mem, 10, 11, 3, 8);
@@ -582,6 +600,7 @@ int main(int argc, char **argv) {
     test_a_family_counts_the_cost_model_units_and_window_switches_of_its_calls();
     test_an_outlined_print_is_one_print_call_with_its_glyph_sprites_as_units();
     test_a_batch_of_lines_is_one_line_call_and_its_units_per_segment();
+    test_a_batch_of_points_is_one_pset_call_and_its_unit_per_point();
     test_build_calls_count_under_their_families_and_a_copy_is_one_spr_unit();
     test_family_calls_equal_the_breakdown_timing_on_the_same_calls();
     test_a_dispatcher_root_keeps_forty_children();

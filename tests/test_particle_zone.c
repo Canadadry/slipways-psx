@@ -8,7 +8,9 @@
 #include <string.h>
 #include <sys/wait.h>
 
+#include "p8/draw_backend.h"
 #include "p8/gfx.h"
+#include "engine/entity.h"
 #include "p8/vram.h"
 #include "game/particle.h"
 #include "game/probe.h"
@@ -255,6 +257,91 @@ static int case_emitter_update_gives_back_a_dying_particle(void) {
     return 0;
 }
 
+enum { SPIED_POINTS_MAX = 160, SPIED_CALLS_MAX = 8, BATCHED_PARTICLES = 70 };
+
+static p8_point_t spied_points[SPIED_POINTS_MAX];
+static int spied_point_count;
+static int spied_call_counts[SPIED_CALLS_MAX];
+static int spied_calls;
+static int spied_single_psets;
+
+static void spy_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    assert(spied_calls < SPIED_CALLS_MAX && spied_point_count + count <= SPIED_POINTS_MAX);
+    spied_call_counts[spied_calls++] = count;
+    memcpy(&spied_points[spied_point_count], points, (size_t)count * sizeof *points);
+    spied_point_count += count;
+    p8_gfx_software_backend()->psets(gfx, mem, points, count);
+}
+
+static void spy_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
+    spied_single_psets++;
+    p8_gfx_software_backend()->pset(gfx, mem, x, y, col);
+}
+
+static void spy_on_psets(void) {
+    static p8_draw_backend_t spy;
+    spy = *p8_gfx_software_backend();
+    spy.psets = spy_psets;
+    spy.pset = spy_pset;
+    spied_point_count = 0;
+    spied_calls = 0;
+    spied_single_psets = 0;
+    p8_draw_backend_set(&spy);
+}
+
+static const int trail_items[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+static const int_seq_t trail_colors = { 8, trail_items };
+
+/* Still, so each survives the update at pos (i, i / 2) with life 2 + i % 5 after the 0.14 taken. */
+static entity_t *host_with_still_particles(void) {
+    entity_t *h = host();
+    emitter_of(h)->trail_colors = &trail_colors;
+    for (int i = 0; i < BATCHED_PARTICLES; i++) {
+        particle_t *p = particle_take();
+        memset(p, 0, sizeof *p);
+        p->pos = vec_make(p8_fixed_from_int(i), p8_fixed_from_int(i / 2));
+        p->life = p8_fixed_from_int(2 + i % 5) + (1 << 15);
+        pointer_list_add(&emitter_of(h)->particles, p);
+    }
+    return h;
+}
+
+static int case_emitter_update_draws_its_particles_in_batches_of_32(void) {
+    static unsigned char batched[P8_SCREEN_HEIGHT][P8_SCREEN_WIDTH];
+    entity_t *h = host_with_still_particles();
+    p8_camera(&g_gfx, -40, -30);
+    vec_t center = entity_pos(h);
+    spy_on_psets();
+    emitter_update(&g_gfx, &g_mem, h);
+    p8_draw_backend_set(NULL);
+
+    assert(spied_single_psets == 0);
+    assert(spied_calls == 3 && spied_call_counts[0] == 32 && spied_call_counts[1] == 32 && spied_call_counts[2] == 6);
+    memcpy(batched, g_mem.screen, sizeof batched);
+    p8_vram_init(&g_mem);
+    for (int i = 0; i < BATCHED_PARTICLES; i++) {
+        int x = p8_fixed_flr_int(center.x) + i;
+        int y = p8_fixed_flr_int(center.y) + i / 2;
+        int col = trail_items[1 + i % 5];
+        assert(spied_points[i].x == x && spied_points[i].y == y && spied_points[i].col == col);
+        p8_pset(&g_gfx, &g_mem, x, y, col);
+    }
+    assert(memcmp(batched, g_mem.screen, sizeof batched) == 0 && "the old single psets give the same pixels");
+    return 0;
+}
+
+static int case_emitter_update_with_hidden_pixels_draws_nothing(void) {
+    entity_t *h = host_with_still_particles();
+    particle_hide_pixels(1);
+    spy_on_psets();
+    emitter_update(&g_gfx, &g_mem, h);
+    p8_draw_backend_set(NULL);
+    particle_hide_pixels(0);
+    assert(spied_calls == 0 && spied_single_psets == 0);
+    assert(emitter_of(h)->particles.count == BATCHED_PARTICLES && "still updated");
+    return 0;
+}
+
 static int case_particle_dead_after_emitter_update(void) {
     entity_t *h = host();
     particle_t *p = dying(h);
@@ -348,6 +435,8 @@ static const struct {
     {"second_emitter_init_gives_back_the_old_list", case_second_emitter_init_gives_back_the_old_list},
     {"emitter_update_gives_back_a_dying_particle", case_emitter_update_gives_back_a_dying_particle},
     {"particle_dead_after_emitter_update", case_particle_dead_after_emitter_update},
+    {"emitter_update_draws_its_particles_in_batches_of_32", case_emitter_update_draws_its_particles_in_batches_of_32},
+    {"emitter_update_with_hidden_pixels_draws_nothing", case_emitter_update_with_hidden_pixels_draws_nothing},
     {"emitter_spawn_notes_the_list_length", case_emitter_spawn_notes_the_list_length},
     {"transit_dots_takes_and_gives_back", case_transit_dots_takes_and_gives_back},
     {"zone_used_keeps_its_peak", case_zone_used_keeps_its_peak},
@@ -449,6 +538,8 @@ int main(int argc, char **argv) {
     expect_clean("second_emitter_init_gives_back_the_old_list");
     expect_clean("emitter_update_gives_back_a_dying_particle");
     expect_poison_crash("particle_dead_after_emitter_update");
+    expect_clean("emitter_update_draws_its_particles_in_batches_of_32");
+    expect_clean("emitter_update_with_hidden_pixels_draws_nothing");
     expect_clean("emitter_spawn_notes_the_list_length");
     expect_clean("transit_dots_takes_and_gives_back");
     expect_clean("zone_used_keeps_its_peak");

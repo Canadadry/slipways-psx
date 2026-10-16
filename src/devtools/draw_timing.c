@@ -133,11 +133,17 @@ static void timing_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segm
     calls_end(DRAW_FILTER_LINE, start, count);
 }
 
+static void timing_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    reading_t start = call_begin();
+    wrapped->psets(gfx, mem, points, count);
+    calls_end(DRAW_FILTER_PSET, start, count);
+}
+
 static const p8_draw_backend_t TIMING = {
     timing_cls, timing_pset, timing_line, timing_rect, timing_rectfill,
     timing_circ, timing_circfill, timing_spr, timing_print, timing_print_outlined,
     timing_image_begin, timing_image_window, timing_image_end, timing_image_draw,
-    timing_lines,
+    timing_lines, timing_psets,
 };
 
 const p8_draw_backend_t *draw_timing_install(const draw_timing_clock_t *new_clock) {

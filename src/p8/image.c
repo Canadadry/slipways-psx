@@ -91,12 +91,16 @@ static void guard_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segme
     guarded->lines(gfx, mem, segments, count, col);
 }
 
+static void guard_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    guarded->psets(gfx, mem, points, count);
+}
+
 /* Stands in front of the backend during a build, which p8_cls cannot otherwise see. */
 static const p8_draw_backend_t GUARD = {
     guard_cls, guard_pset, guard_line, guard_rect, guard_rectfill,
     guard_circ, guard_circfill, guard_spr, guard_print, guard_print_outlined,
     guard_image_begin, guard_image_window, guard_image_end, guard_image_draw,
-    guard_lines,
+    guard_lines, guard_psets,
 };
 
 void p8_image_build(p8_graphics_t *gfx, p8_vram_t *mem, int slot, int w, int h, p8_image_draw_t draw, void *context) {

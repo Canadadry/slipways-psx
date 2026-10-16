@@ -360,11 +360,21 @@ static void family_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_segm
     }
 }
 
+static void family_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    uint64_t start = clock_now();
+    wrapped->psets(gfx, mem, points, count);
+    family_calls_end(DRAW_FILTER_PSET, start, count);
+    for (int i = 0; i < count; i++) {
+        p8_draw_cost_window_t before = units_begin();
+        units_end(DRAW_FILTER_PSET, before, p8_draw_cost_pset(gfx, points[i].x, points[i].y), 0);
+    }
+}
+
 static const p8_draw_backend_t FAMILIES = {
     family_cls, family_pset, family_line, family_rect, family_rectfill,
     family_circ, family_circfill, family_spr, family_print, family_print_outlined,
     family_image_begin, family_image_window, family_image_end, family_image_draw,
-    family_lines,
+    family_lines, family_psets,
 };
 
 const p8_draw_backend_t *call_profile_family_install(void) {

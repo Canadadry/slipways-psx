@@ -858,6 +858,62 @@ static void test_lines_draws_overlapping_segments_and_odd_counts_like_its_lines(
     draw_bundle_both_ways(crossing, 3, 0x2c, 11, -7);
 }
 
+static void draw_points_both_ways(const p8_point_t *points, int count, int camera_x, int camera_y) {
+    static p8_vram_t batched;
+    static p8_vram_t single;
+    p8_graphics_t gfx;
+    p8_vram_init(&batched);
+    p8_vram_init(&single);
+    p8_gfx_init(&gfx);
+    p8_camera(&gfx, camera_x, camera_y);
+    fill_screen_pattern(&batched);
+    fill_screen_pattern(&single);
+
+    p8_psets(&gfx, &batched, points, count);
+    for (int i = 0; i < count; i++) p8_pset(&gfx, &single, points[i].x, points[i].y, points[i].col);
+
+    assert(memcmp(batched.screen, single.screen, sizeof batched.screen) == 0);
+}
+
+static void test_psets_is_its_psets_drawn_one_by_one_at_every_edge_and_camera(void) {
+    static const int cameras[][2] = { { 0, 0 }, { 37, -21 }, { -64, 90 } };
+    enum { EDGE_POINTS = 2 * (P8_SCREEN_WIDTH + 4) + 2 * (P8_SCREEN_HEIGHT + 4) };
+    static p8_point_t points[EDGE_POINTS];
+    for (int c = 0; c < 3; c++) {
+        int count = 0;
+        for (int x = -2; x < P8_SCREEN_WIDTH + 2; x++) {
+            points[count++] = (p8_point_t){ x + cameras[c][0], -1 + (x & 1) + cameras[c][1], x & 15 };
+            points[count++] = (p8_point_t){ x + cameras[c][0], P8_SCREEN_HEIGHT - (x & 1) + cameras[c][1], (x + 3) & 15 };
+        }
+        for (int y = -2; y < P8_SCREEN_HEIGHT + 2; y++) {
+            points[count++] = (p8_point_t){ -1 + (y & 1) + cameras[c][0], y + cameras[c][1], y & 15 };
+            points[count++] = (p8_point_t){ P8_SCREEN_WIDTH - (y & 1) + cameras[c][0], y + cameras[c][1], (y + 5) & 15 };
+        }
+        assert(count == EDGE_POINTS);
+        draw_points_both_ways(points, count, cameras[c][0], cameras[c][1]);
+    }
+}
+
+static void test_psets_on_the_same_pixel_keep_the_last_colour_like_its_psets(void) {
+    static const p8_point_t stacked[] = { { 10, 10, 3 }, { 11, 10, 4 }, { 10, 10, 9 }, { 300, 10, 2 }, { 11, 10, 12 } };
+    draw_points_both_ways(stacked, 5, 0, 0);
+    draw_points_both_ways(stacked, 3, 5, -2);
+}
+
+static void test_psets_with_no_point_draws_nothing(void) {
+    p8_vram_t mem;
+    p8_graphics_t gfx;
+    p8_vram_init(&mem);
+    p8_gfx_init(&gfx);
+    fill_screen_pattern(&mem);
+    static p8_vram_t before;
+    memcpy(&before, &mem, sizeof before);
+
+    p8_psets(&gfx, &mem, NULL, 0);
+
+    assert(memcmp(&before, &mem, sizeof before) == 0);
+}
+
 static void test_lines_with_no_segment_draws_nothing(void) {
     p8_vram_t mem;
     p8_graphics_t gfx;
@@ -920,6 +976,9 @@ int main(void) {
     test_lines_is_its_lines_drawn_one_by_one_at_every_edge_and_camera();
     test_lines_draws_overlapping_segments_and_odd_counts_like_its_lines();
     test_lines_with_no_segment_draws_nothing();
+    test_psets_is_its_psets_drawn_one_by_one_at_every_edge_and_camera();
+    test_psets_on_the_same_pixel_keep_the_last_colour_like_its_psets();
+    test_psets_with_no_point_draws_nothing();
     printf("test_gfx: all tests passed\n");
     return 0;
 }

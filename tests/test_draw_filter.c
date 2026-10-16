@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { KINDS = 11, KIND_PRINT = 8, KIND_PRINT_OUTLINED = 9, KIND_LINES = 10 };
+enum { KINDS = 12, KIND_PRINT = 8, KIND_PRINT_OUTLINED = 9, KIND_LINES = 10, KIND_PSETS = 11 };
 
 typedef struct {
     int calls;
@@ -100,11 +100,15 @@ static void recording_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_s
     seen(KIND_LINES, gfx, mem, count, col, segments[0].x1, segments[0].y1, segments[0].x2, segments[0].y2);
 }
 
+static void recording_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    seen(KIND_PSETS, gfx, mem, count, points[0].x, points[0].y, points[0].col, 0, 0);
+}
+
 static const p8_draw_backend_t RECORDING = {
     recording_cls, recording_pset, recording_line, recording_rect, recording_rectfill,
     recording_circ, recording_circfill, recording_spr, recording_print, recording_print_outlined,
     recording_image_begin, recording_image_window, recording_image_end, recording_image_draw,
-    recording_lines,
+    recording_lines, recording_psets,
 };
 
 static p8_vram_t mem;
@@ -127,6 +131,7 @@ static void filter_removed(void) {
 
 static const char TEXT[] = "ab";
 static const p8_segment_t SEGMENT = { 14, 15, 16, 17 };
+static const p8_point_t POINT = { 18, 19, 11 };
 
 static void draw_one_of_each_on_screen(void) {
     p8_cls(&mem);
@@ -140,6 +145,7 @@ static void draw_one_of_each_on_screen(void) {
     p8_print(&gfx, &mem, TEXT, 8, 9, 10);
     p8_print_outlined(&gfx, &mem, TEXT, 11, 12, 13);
     p8_lines(&gfx, &mem, &SEGMENT, 1, 14);
+    p8_psets(&gfx, &mem, &POINT, 1);
 }
 
 static void test_all_forwards_every_call_with_its_arguments_and_pointers(void) {
@@ -159,13 +165,14 @@ static void test_all_forwards_every_call_with_its_arguments_and_pointers(void) {
     assert(received[KIND_PRINT_OUTLINED].args[1] == 12 && received[KIND_PRINT_OUTLINED].args[2] == 13);
     assert(received[KIND_LINES].args[0] == 1 && received[KIND_LINES].args[1] == 14);
     assert(received[KIND_LINES].args[2] == 14 && received[KIND_LINES].args[5] == 17);
+    assert(received[KIND_PSETS].args[0] == 1 && received[KIND_PSETS].args[1] == 18 && received[KIND_PSETS].args[3] == 11);
     filter_removed();
 }
 
 static const draw_filter_family_t KIND_FAMILY[KINDS] = {
     DRAW_FILTER_CLS, DRAW_FILTER_PSET, DRAW_FILTER_LINE, DRAW_FILTER_RECT, DRAW_FILTER_RECTFILL,
     DRAW_FILTER_CIRC, DRAW_FILTER_CIRCFILL, DRAW_FILTER_SPR, DRAW_FILTER_PRINT, DRAW_FILTER_PRINT,
-    DRAW_FILTER_LINE,
+    DRAW_FILTER_LINE, DRAW_FILTER_PSET,
 };
 
 static void test_a_mask_passes_cls_and_its_families_only(void) {
@@ -227,7 +234,7 @@ static void test_counts_are_on_screen_calls_before_the_mask(void) {
     p8_pset(&gfx, &mem, 500, 2, 3);
     p8_rectfill(&gfx, &mem, -20, -20, -10, -10, 7);
     p8_print(&gfx, &mem, TEXT, 300, 9, 10);
-    assert(draw_filter_count(DRAW_FILTER_PSET) == 1 && "an off-screen call counts 0");
+    assert(draw_filter_count(DRAW_FILTER_PSET) == 2 && "an off-screen call counts 0");
     assert(draw_filter_count(DRAW_FILTER_RECTFILL) == 1);
     assert(draw_filter_count(DRAW_FILTER_PRINT) == 2);
 
@@ -238,7 +245,7 @@ static void test_counts_are_on_screen_calls_before_the_mask(void) {
 
     p8_camera(&gfx, 400, 0);
     p8_pset(&gfx, &mem, 401, 2, 3);
-    assert(draw_filter_count(DRAW_FILTER_PSET) == 2 && "on screen after the camera");
+    assert(draw_filter_count(DRAW_FILTER_PSET) == 3 && "on screen after the camera");
     filter_removed();
 }
 
@@ -351,6 +358,21 @@ static void test_a_batch_of_lines_counts_each_on_screen_segment_and_passes_whole
     filter_removed();
 }
 
+static void test_a_batch_of_points_counts_each_on_screen_point_and_passes_whole_under_pset(void) {
+    static const p8_point_t points[] = { { 0, 0, 1 }, { -1, 0, 2 }, { 159, 119, 3 } };
+    filter_over_recording();
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_PSET));
+    p8_psets(&gfx, &mem, points, 3);
+    assert(received[KIND_PSETS].calls == 1 && received[KIND_PSETS].args[0] == 3);
+    assert(draw_filter_count(DRAW_FILTER_PSET) == 2 && "the off-screen point counts 0");
+
+    draw_filter_set_mask(DRAW_FILTER_BIT(DRAW_FILTER_CLS) | DRAW_FILTER_BIT(DRAW_FILTER_LINE));
+    p8_psets(&gfx, &mem, points, 3);
+    assert(received[KIND_PSETS].calls == 1 && "dropped whole");
+    assert(draw_filter_count(DRAW_FILTER_PSET) == 4 && "counted before the mask");
+    filter_removed();
+}
+
 static void lines_into_the_image(p8_graphics_t *build_gfx, p8_vram_t *build_mem, void *context) {
     (void)context;
     p8_lines(build_gfx, build_mem, &SEGMENT, 1, 7);
@@ -383,6 +405,7 @@ int main(void) {
     test_an_on_screen_copy_counts_once_under_each_family_of_its_image();
     test_a_batch_of_lines_counts_each_on_screen_segment_and_passes_whole_under_line();
     test_a_batch_of_lines_in_a_build_marks_its_image_with_line();
+    test_a_batch_of_points_counts_each_on_screen_point_and_passes_whole_under_pset();
     printf("test_draw_filter: ok\n");
     return 0;
 }

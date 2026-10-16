@@ -37,6 +37,11 @@ void p8_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col) {
     backend()->pset(gfx, mem, x, y, col);
 }
 
+void p8_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    assert(count >= 0 && (count == 0 || points != NULL) && "p8_psets: a negative count or a NULL list");
+    backend()->psets(gfx, mem, points, count);
+}
+
 void p8_camera(p8_graphics_t *gfx, int x, int y) {
     gfx->camera_x = x;
     gfx->camera_y = y;

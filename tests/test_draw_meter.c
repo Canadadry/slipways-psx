@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { KINDS = 15, KIND_PRINT_OUTLINED = 13, KIND_LINES = 14 };
+enum { KINDS = 16, KIND_PRINT_OUTLINED = 13, KIND_LINES = 14, KIND_PSETS = 15 };
 
 static int forwarded[KINDS];
 static const p8_graphics_t *forwarded_gfx;
@@ -96,11 +96,16 @@ static void counting_lines(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_se
     seen(KIND_LINES, gfx, mem);
 }
 
+static void counting_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count) {
+    (void)points, (void)count;
+    seen(KIND_PSETS, gfx, mem);
+}
+
 static const p8_draw_backend_t COUNTING = {
     counting_cls, counting_pset, counting_line, counting_rect, counting_rectfill,
     counting_circ, counting_circfill, counting_spr, counting_print, counting_print_outlined,
     counting_image_begin, counting_image_window, counting_image_end, counting_image_draw,
-    counting_lines,
+    counting_lines, counting_psets,
 };
 
 static p8_vram_t mem;
@@ -140,6 +145,8 @@ static void draw_one_of_each(void) {
     p8_image_draw(&gfx, &mem, 0, 0, 0);
     static const p8_segment_t segment = { 1, 2, 3, 4 };
     p8_lines(&gfx, &mem, &segment, 1, 5);
+    static const p8_point_t point = { 1, 2, 3 };
+    p8_psets(&gfx, &mem, &point, 1);
 }
 
 static void test_every_call_reaches_the_wrapped_backend(void) {
@@ -327,6 +334,26 @@ static void test_a_batch_of_lines_costs_the_sum_of_its_lines(void) {
     assert(batched > overhead().bytes && "some segment is on screen");
 }
 
+static const p8_point_t METERED_POINTS[] = { { 20, -9, 1 }, { 19, -9, 2 }, { 179, 110, 3 }, { 180, 110, 4 }, { 60, 60, 5 } };
+
+static void draw_points_batched(void) {
+    p8_psets(&gfx, &mem, METERED_POINTS, 5);
+}
+
+static void draw_points_one_by_one(void) {
+    for (int i = 0; i < 5; i++) p8_pset(&gfx, &mem, METERED_POINTS[i].x, METERED_POINTS[i].y, METERED_POINTS[i].col);
+}
+
+static void test_a_batch_of_points_costs_the_sum_of_its_psets(void) {
+    int batched_primitives;
+    int single_primitives;
+    unsigned long batched = frame_bytes_of(draw_points_batched, &batched_primitives);
+    unsigned long single = frame_bytes_of(draw_points_one_by_one, &single_primitives);
+
+    assert(batched == single && batched_primitives == single_primitives);
+    assert(batched == overhead().bytes + 3 * P8_GPU_TILE_1_BYTES && "three points on screen after the camera");
+}
+
 int main(void) {
     test_every_call_reaches_the_wrapped_backend();
     test_frame_end_folds_the_frame_into_the_peaks_and_resets_it();
@@ -336,6 +363,7 @@ int main(void) {
     test_build_bytes_go_to_the_build_count_and_its_palettes_to_the_frame();
     test_a_copy_costs_frame_bytes_on_screen_and_nothing_off_screen();
     test_a_batch_of_lines_costs_the_sum_of_its_lines();
+    test_a_batch_of_points_costs_the_sum_of_its_psets();
     printf("test_draw_meter: ok\n");
     return 0;
 }

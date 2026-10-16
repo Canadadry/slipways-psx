@@ -19,6 +19,15 @@ void p8_cls(p8_vram_t *mem);
 
 void p8_pset(const p8_graphics_t *gfx, p8_vram_t *mem, int x, int y, int col);
 
+typedef struct {
+    int x;
+    int y;
+    int col;
+} p8_point_t;
+
+/* Draws each point as p8_pset would, in list order, each in its own colour; a count of 0 draws nothing. */
+void p8_psets(const p8_graphics_t *gfx, p8_vram_t *mem, const p8_point_t *points, int count);
+
 void p8_camera(p8_graphics_t *gfx, int x, int y);
 
 void p8_camera_reset(p8_graphics_t *gfx);

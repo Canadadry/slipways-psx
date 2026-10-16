@@ -15,6 +15,8 @@
 
 typedef char particle_fills_its_slot_t[ZONE_BYTES(sizeof(particle_t)) == PARTICLE_SLOT ? 1 : -1];
 
+enum { EMITTER_POINT_BATCH = 32 };
+
 static int g_pixels_hidden;
 
 void particle_hide_pixels(int hidden) {
@@ -150,6 +152,8 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
     colors = emitter->trail_colors;
 
     if (emitter->has & EMITTER_HAS_PARTICLES) {
+        p8_point_t points[EMITTER_POINT_BATCH];
+        int point_count = 0;
         particles = &emitter->particles;
         for (index = 0; index < particles->count; index++) {
             particle_t *particle = particles->items[index];
@@ -187,9 +191,18 @@ void emitter_update(const p8_graphics_t *graphics, p8_vram_t *memory, entity_t *
                 }
 
                 if (!g_pixels_hidden) {
-                    p8_pset(graphics, memory, px, py, col);
+                    points[point_count].x = px;
+                    points[point_count].y = py;
+                    points[point_count].col = col;
+                    if (++point_count == EMITTER_POINT_BATCH) {
+                        p8_psets(graphics, memory, points, point_count);
+                        point_count = 0;
+                    }
                 }
             }
+        }
+        if (point_count > 0) {
+            p8_psets(graphics, memory, points, point_count);
         }
     }
 
