@@ -12,6 +12,7 @@
 #define LOG DIR "/log.txt"
 #define PC_STATE DIR "/pc_state.txt"
 #define PC_DIGEST DIR "/pc_digest.txt"
+#define SITUATIONS DIR "/situations.txt"
 
 #define STATE_LINES                                                                                 \
     "zone game 10 20 100\nbudget zones 300 400\nzone gpu_frame 100 150 200\nzone gpu_build 0 70 90\n" \
@@ -91,6 +92,17 @@ static void write_tty(const char *path, const char *modes, const char *frames, c
     write_file(path, tty);
 }
 
+/* The situation table of the stub's 30 frames: every frame `steady` but `one_off_frame` (-1 for none). */
+static void write_situations(int one_off_frame) {
+    static char table[1 << 12];
+    int len = snprintf(table, sizeof table, "frame situation family\n");
+    for (int frame = 0; frame < 30; frame++) {
+        len += snprintf(table + len, sizeof table - (size_t)len, "%d %s\n", frame,
+                        frame == one_off_frame ? "build one-off" : "map steady");
+    }
+    write_file(SITUATIONS, table);
+}
+
 #define PSX_DIGESTS "psx-digest: sprite-sheet 0a1b2c3d\r\npsx-digest: screen 0 11111111\r\npsx-digest: map 0000beef\r\n"
 
 static void setup(void) {
@@ -107,17 +119,19 @@ static void setup(void) {
     write_file(PC_DIGEST, DIGEST_LINES);
     write_tty(DIR "/replay.tty", "", "", STATE_LINES, PSX_DIGESTS, DONE);
     write_tty(DIR "/gpu.tty", FILTER_OFF, frame_lines(-1), GPU_STATE_LINES, "", GPU_DONE);
+    write_situations(7);
 }
 
-/* Runs the check (ceilings 900 and 950, timeouts 40 and 45, budget 263 hblanks, 64 KiB stack reserve)
+/* Runs the check (ceilings 900 and 950, timeouts 40 and 45, budget 263 hblanks, SITUATIONS, one-off
+ * allowance 10800 vsyncs, 64 KiB stack reserve)
  * with the size tool printing `bss` as every ELF's bss; output in LOG. */
 static int run_check_bss(const char *stub_abort, const char *bss) {
     char command[2048];
     snprintf(command, sizeof command,
              "STUB_DIR=\"$PWD/" DIR "\" STUB_ABORT=%s STUB_BSS=%s PSX_STUB='" STUB
              "' sh tools/psx_full_game_check.sh " INSTALL " " DIR "/build/psx-replay.exe " DIR
-             "/build/psx-gpu-replay.exe " PC_STATE " " PC_DIGEST " 30 900 40 950 45 263 " DIR
-             "/size 65536 " OUT " > " LOG " 2>&1",
+             "/build/psx-gpu-replay.exe " PC_STATE " " PC_DIGEST " 30 900 40 950 45 263 " SITUATIONS
+             " 10800 " DIR "/size 65536 " OUT " > " LOG " 2>&1",
              stub_abort, bss);
     return system(command);
 }
@@ -148,10 +162,13 @@ static void test_both_replays_reaching_the_pc_frame_count_within_budget_pass_eve
     assert_has(LOG, "psx-full-game-check: frame-budget: ok, worst frame 0 total 180\n");
     assert_has(LOG, "psx-full-game-check: zone-sizes: ok, 3 zones and the budget fit\n");
     assert_has(LOG, "psx-full-game-check: cap-sizes: ok, 2 caps fit\n");
+    assert_has(LOG, "psx-full-game-check: real-game steady-over 0 frames, worst steady frame -\n"
+                    "psx-full-game-check: real-game one-off-over 0 frames, vsyncs 0 of 10800\n");
+    assert_has(LOG, "psx-full-game-check: real-game-budget: ok, steady-over 0, one-off vsyncs 0 of 10800\n");
     assert_has(LOG, "psx-full-game-check: gpu-ram-room: ok, 1964580 bytes left in 2097152 (kernel 65536 + ELF + "
                     "stack 65536 = 132572)\n");
     assert_has(OUT "/conditions.txt", "gpu-replay-done ok\ngpu-state-game-lines ok\ngpu-draw-filter ok\ngpu-draw-meter ok\n"
-                                      "timer ok\nframe-budget ok\nzone-sizes ok\ncap-sizes ok\ngpu-ram-room ok\n");
+                                      "timer ok\nframe-budget ok\nzone-sizes ok\ncap-sizes ok\nreal-game-budget ok\ngpu-ram-room ok\n");
     char line[128];
     snprintf(line, sizeof line, "psx-full-game-check: all %d conditions hold\n", line_count(OUT "/conditions.txt"));
     assert_has(LOG, line);
@@ -231,7 +248,7 @@ static void assert_only_draw_filter_failed(const char *reason) {
     assert_only_gpu_failed("gpu-draw-filter", reason);
     assert_has(OUT "/conditions.txt", "gpu-replay-done ok\ngpu-state-game-lines ok\ngpu-draw-filter failed\ngpu-draw-meter ok\n"
                                       "timer ok\n"
-                                      "frame-budget ok\nzone-sizes ok\ncap-sizes ok\ngpu-ram-room ok\n");
+                                      "frame-budget ok\nzone-sizes ok\ncap-sizes ok\nreal-game-budget ok\ngpu-ram-room ok\n");
 }
 
 static void test_a_gpu_boot_built_with_the_draw_filter_fails_gpu_draw_filter(void) {
@@ -253,7 +270,7 @@ static void test_a_gpu_boot_without_a_draw_filter_line_fails_gpu_draw_filter(voi
 static void assert_only_draw_meter_failed(const char *reason) {
     assert_only_gpu_failed("gpu-draw-meter", reason);
     assert_has(OUT "/conditions.txt", "gpu-replay-done ok\ngpu-state-game-lines ok\ngpu-draw-filter ok\ngpu-draw-meter failed\n"
-                                      "timer ok\nframe-budget ok\nzone-sizes ok\ncap-sizes ok\ngpu-ram-room ok\n");
+                                      "timer ok\nframe-budget ok\nzone-sizes ok\ncap-sizes ok\nreal-game-budget ok\ngpu-ram-room ok\n");
 }
 
 static void test_a_gpu_boot_built_with_the_draw_meter_fails_gpu_draw_meter(void) {
@@ -320,8 +337,38 @@ static void test_an_over_budget_frame_fails_only_frame_budget_and_every_conditio
     assert_has(LOG, "psx-full-game-check: frame-budget: 1 frames over 263 hblanks, worst frame 7 total 300\n");
     assert_has(OUT "/conditions.txt", "replay-done ok\nstate-game-lines ok\nsprite-sheet ok\nscreen ok\nmap ok\n"
                                       "gpu-replay-done ok\ngpu-state-game-lines ok\ngpu-draw-filter ok\ngpu-draw-meter ok\n"
-                                      "timer ok\nframe-budget failed\nzone-sizes ok\ncap-sizes ok\ngpu-ram-room ok\n");
+                                      "timer ok\nframe-budget failed\nzone-sizes ok\ncap-sizes ok\nreal-game-budget ok\ngpu-ram-room ok\n");
     assert(strstr(read_file(LOG), "conditions hold") == NULL);
+}
+
+static void test_an_over_budget_steady_frame_also_fails_real_game_budget_and_every_condition_is_still_printed(void) {
+    setup();
+    write_tty(DIR "/gpu.tty", FILTER_OFF, frame_lines(7), GPU_STATE_LINES, "", GPU_DONE);
+    write_situations(-1);
+    assert(run_check("0") != 0);
+    assert_has(LOG, "psx-full-game-check: real-game steady-over 1 frames, worst steady frame 7 total 300 situation map\n");
+    assert_has(LOG, "psx-full-game-check: real-game-budget: 1 steady frames over 263, one-off vsyncs 0 of 10800\n");
+    assert_has(OUT "/conditions.txt", "replay-done ok\nstate-game-lines ok\nsprite-sheet ok\nscreen ok\nmap ok\n"
+                                      "gpu-replay-done ok\ngpu-state-game-lines ok\ngpu-draw-filter ok\ngpu-draw-meter ok\n"
+                                      "timer ok\nframe-budget failed\nzone-sizes ok\ncap-sizes ok\nreal-game-budget failed\n"
+                                      "gpu-ram-room ok\n");
+    assert(strstr(read_file(LOG), "conditions hold") == NULL);
+}
+
+static void test_a_situation_table_of_another_recording_fails_real_game_budget(void) {
+    setup();
+    write_file(SITUATIONS, "frame situation family\n0 title steady\n");
+    assert(run_check("0") != 0);
+    assert_has(LOG, "psx-full-game-check: real-game-budget: frame count 30 vs 1\n");
+    assert_has(OUT "/conditions.txt", "real-game-budget failed\n");
+}
+
+static void test_the_real_game_figures_are_measured_behind_gpu(void) {
+    setup();
+    write_tty(DIR "/gpu.tty", FILTER_OFF, frame_lines(7), GPU_STATE_LINES, "", GPU_DONE);
+    run_check("0");
+    assert_has(OUT "/measurements.txt", "gpu real-game steady-over 0 frames, worst steady frame -\n"
+                                        "gpu real-game one-off-over 1 frames, vsyncs 2 of 10800\n");
 }
 
 static void test_a_gpu_elf_too_big_for_ram_fails_gpu_ram_room(void) {
@@ -366,6 +413,9 @@ int main(void) {
     test_the_gpu_replay_backend_peaks_are_measured_behind_gpu_gpu_peak();
     test_a_differing_screen_digest_fails_screen();
     test_an_over_budget_frame_fails_only_frame_budget_and_every_condition_is_still_printed();
+    test_an_over_budget_steady_frame_also_fails_real_game_budget_and_every_condition_is_still_printed();
+    test_a_situation_table_of_another_recording_fails_real_game_budget();
+    test_the_real_game_figures_are_measured_behind_gpu();
     test_a_gpu_elf_too_big_for_ram_fails_gpu_ram_room();
     test_the_frame_lines_and_summary_are_printed_and_the_summary_measured_behind_gpu_frame();
     assert(system("rm -rf " DIR) == 0);

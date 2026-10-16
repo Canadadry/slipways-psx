@@ -475,14 +475,28 @@
 #                       taken from the PC state, through
 #                       tools/psx_frame_budget.sh: timer, frame-budget: no
 #                       frame above PSX_FRAME_BUDGET_HBLANKS, zone-sizes,
-#                       cap-sizes, then gpu-ram-room: ram-room on the GPU ELF)
+#                       cap-sizes, then real-game-budget: frames.txt joined
+#                       with PSX_FULL_GAME_SITUATIONS (default
+#                       psx/perf/full-run-situations.txt), no steady frame
+#                       above PSX_FRAME_BUDGET_HBLANKS and the one-off frames'
+#                       vsyncs over it at most PSX_REAL_GAME_ONE_OFF_VSYNCS,
+#                       then gpu-ram-room: ram-room on the GPU ELF)
 #                       through tools/psx_full_game_check.sh, printing every
-#                       frame line and the frame summary; measurements.txt
+#                       frame line, the frame summary and the real-game
+#                       figures; measurements.txt
 #                       gains the PC's gpu_* lines and the GPU replay's
 #                       gpu-peak line behind "gpu ", the summary behind
-#                       "gpu frame " (outputs in
+#                       "gpu frame ", the real-game figures behind "gpu " (outputs in
 #                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
 #                       outside the suite
+# make psx-real-game-budget [FRAMES=<frame table>] [SITUATIONS=<situation table>]
+#                    -> tools/psx_real_game_budget.sh on the two tables
+#                       (defaults psx/perf/full-run-frames.txt and
+#                       PSX_FULL_GAME_SITUATIONS): steady frames over
+#                       PSX_FRAME_BUDGET_HBLANKS with the worst one, one-off
+#                       frames over it and their vsyncs against
+#                       PSX_REAL_GAME_ONE_OFF_VSYNCS, the verdict; fails when
+#                       it is failed; never boots or builds, outside the suite
 # make psx-short-runs-cut [PSX_SHORT_RUNS=<names>] -> cuts each run of
 #                       psx/short_runs.txt (or those named) out of
 #                       PSX_FULL_GAME_EVENTS with tmp/short_run_cut into
@@ -1236,6 +1250,9 @@ $(TMP_DIR)/test_psx_emulator_setup: $(call objs,tests/test_psx_emulator_setup.c)
 $(TMP_DIR)/test_psx_frame_budget: $(call objs,tests/test_psx_frame_budget.c) tools/psx_frame_budget.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_real_game_budget: $(call objs,tests/test_psx_real_game_budget.c) tools/psx_real_game_budget.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_psx_short_run: $(call objs,tests/test_psx_short_run.c) tools/psx_short_run.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1840,7 +1857,7 @@ unit: $(UNIT_RUNS)
 
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
-	test_psx_full_game_check test_psx_frame_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
+	test_psx_full_game_check test_psx_frame_budget test_psx_real_game_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
 	test_psx_probe test_psx_opt_level
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
@@ -2444,6 +2461,8 @@ PSX_FULL_GAME_GPU_CEILING ?= 31500
 PSX_FULL_GAME_GPU_TIMEOUT ?= 525
 # One NTSC vsync in horizontal blanks: plan 11 step 4 must never raise it.
 PSX_FRAME_BUDGET_HBLANKS := 263
+PSX_REAL_GAME_ONE_OFF_VSYNCS := 10800
+PSX_FULL_GAME_SITUATIONS ?= psx/perf/full-run-situations.txt
 
 PSX_FULL_GAME_ASSERTS ?= off
 # Checked at parse time: under -j a checking prerequisite would race the build.
@@ -2465,8 +2484,16 @@ psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 		&& sh tools/psx_full_game_check.sh $(PSX_EMULATOR_DIR) $(PSX_FULL_GAME_DIR)/build/psx-replay.exe \
 			$(PSX_FULL_GAME_DIR)/build/psx-gpu-replay.exe $(PSX_FULL_GAME_DIR)/pc_state.txt \
 			$(PSX_FULL_GAME_DIR)/pc_digest.txt "$$frames" $(PSX_FULL_GAME_CEILING) $(PSX_FULL_GAME_TIMEOUT) \
-			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_SIZE) \
+			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_FRAME_BUDGET_HBLANKS) \
+			$(PSX_FULL_GAME_SITUATIONS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) $(PSX_SIZE) \
 			$(PSX_STACK_RESERVE) $(PSX_FULL_GAME_DIR)/run
+
+psx-real-game-budget:
+	@out=$$(sh tools/psx_real_game_budget.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) \
+		$(or $(SITUATIONS),$(PSX_FULL_GAME_SITUATIONS)) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS)) \
+		|| exit 1; printf '%s\n' "$$out"; ! printf '%s\n' "$$out" | grep -q '^real-game-budget failed'
+
+.PHONY: psx-real-game-budget
 
 PSX_SHORT_RUNS_MANIFEST := psx/short_runs.txt
 PSX_SHORT_RUNS_DIR := $(TMP_DIR)/psx/short-runs

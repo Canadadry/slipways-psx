@@ -595,6 +595,7 @@ mask.
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
 | `make psx-full-game-check` | its conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (the GPU replay without asserts unless `PSX_FULL_GAME_ASSERTS=on`), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-real-game-budget [FRAMES=] [SITUATIONS=]` | `real-game-budget`'s figures and verdict on a committed frame table (defaults `psx/perf/full-run-frames.txt` and `psx/perf/full-run-situations.txt`), fails when red; boots nothing | ~1 s |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 | `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
@@ -735,6 +736,12 @@ next run:
   `run/gpu-state/judged_state.txt`: its MIPS state with the zero `zone
   gpu_frame`, `zone gpu_build` and `cap gpu_*` lines replaced by the PC
   state's (below);
+- `real-game-budget`: plan 22's judge of a 60-minute game (216,000 vsyncs),
+  from `run/frame-budget/frames.txt` and the situation table
+  `PSX_FULL_GAME_SITUATIONS` (default `psx/perf/full-run-situations.txt`,
+  see "Situations"): no `steady` frame over 263 hblanks, and the `one-off`
+  frames' vsyncs over 263 at most `PSX_REAL_GAME_ONE_OFF_VSYNCS` (10,800, 5%
+  of 216,000; below);
 - `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,059 embedded
   frames and the frame table included).
 
@@ -767,6 +774,34 @@ zone, budget and cap line, `ok margin <n>/8` or `over by <n>`. The 1/8 margin
 is information here, not a failure. The check prints every frame line behind
 `psx-full-game-check: frame ` and the summary behind `psx-full-game-check: `.
 
+`tools/psx_real_game_budget.sh <frames-table> <situations-table>
+<budget-hblanks> <one-off-allowance-vsyncs>` judges `real-game-budget`, for
+the check and for `make psx-real-game-budget` (host-tested by
+`test_psx_real_game_budget` in `make psx-tools-test`). It joins the two tables
+line by line and prints:
+
+```
+real-game steady-over <n> frames, worst steady frame <f> total <t> situation <name>
+real-game one-off-over <n> frames, vsyncs <sum> of <allowance>
+real-game-budget ok|failed <reason>
+```
+
+A frame is over when its `total` is above the budget. A one-off frame over
+counts `ceil(total / 263)` vsyncs, the vsyncs it holds the screen on a
+vsync-locked display; the measured `vsyncs` column is not used, it depends on
+where the frame started. With no steady frame over, the first line ends
+`worst steady frame -`. It is `failed` when a steady frame is over (`<n>
+steady frames over 263, one-off vsyncs <sum> of <allowance>`), when the sum
+is above the allowance (`one-off vsyncs <sum> over <allowance>`; both joined
+with `; `), or when the join fails, the figures then `-`: a missing table,
+a header other than `frame update draw submit total vsyncs` or `frame
+situation family`, `frame count <n> vs <m>`, `frame <k>: frame table has
+<a>, situation table has <b>`, a family neither `steady` nor `one-off`, or
+`no frame line`. It exits 0 once the verdict is printed, 1 on a usage error.
+The check prints the two figure lines behind `psx-full-game-check: ` and
+adds them to `measurements.txt` behind `gpu `. `frame-budget` is unchanged
+and still gating: plan 22's verdicts read `real-game-budget`.
+
 The unpatched pinned emulator aborts any boot at about 32,700 vsyncs (exit
 134, `An unknown exception occured`): each Lua event listener left two slots
 on its Lua thread per event, and the `GPU::Vsync` listener's thread
@@ -783,7 +818,8 @@ made before it must be removed and set up again.
 `psx-full-game-check`'s adds the GPU replay's `vsyncs`, the PC state's `zone
 gpu_frame`, `zone gpu_build` and `cap gpu_*` lines, the GPU replay's `gpu-peak bytes <b> cluts
 <c> patterns <p> build <k>`, `ram-room <used> <limit> <left>` and its ELF `size`, each
-behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
+behind `gpu `, then the frame summary behind `gpu frame `, then the two `real-game` figure
+lines behind `gpu `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
@@ -1138,8 +1174,11 @@ family each), `one-off-runs` (no `long` run).
   frames over (424,627 of their 598,793 hblanks), so the next work is draw.
   Spike work (galaxy generation, saves, slipway drops, launches, image
   builds) is not spread across frames. The thirteen other
-  conditions hold. The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
-  Flip (PCSX-ReARMed) was never measured.
+  conditions held (`real-game-budget` did not exist yet). The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
+  Flip (PCSX-ReARMed) was never measured. Plan 22 judges by
+  `real-game-budget` instead; on that table it is red: 1,133 steady frames
+  over 263 (worst frame 4655, `build`, total 530), 631 one-off frames over
+  for 1,391 vsyncs of 10,800.
 
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out
