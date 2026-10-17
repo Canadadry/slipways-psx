@@ -529,6 +529,10 @@ and raises the pad handshake itself), so `make psx-check` boots the disc
 instead of the EXE: one boot carries the controller proof and the CD proof.
 `make psx-game-check` keeps booting the EXE, for quicker controller work.
 
+Pushing a `psx-*` tag runs `.github/workflows/psx-release.yml`: it builds the
+image with `make psx-game-cd` and publishes a GitHub release of that tag
+holding `slipways.bin` and `slipways.cue` only.
+
 ## GPU family captures
 
 Each GPU draw family is checked by a capture of one frame of the check replay,
