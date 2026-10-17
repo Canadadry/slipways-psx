@@ -1,0 +1,44 @@
+# The attract mode's captioned demo, played from the record demo_record.hex.
+#
+# Regenerate and check:
+#   make pad-author SCRIPT=demo/demo.pad OUT=demo/demo.json
+#   make demo-check
+#
+# The record is frozen: regenerating full_game never moves the demo. It is cut
+# from worst-case/full_game.pad at its demo-record label:
+#   make pad-author SCRIPT=worst-case/full_game.pad STOP_AT=demo-record OUT=tmp/demo_record.json
+#   make replay EVENTS=tmp/demo_record.json SAVE_HEX=demo/demo_record.hex
+#
+# Pacing: the opening card idles 300 frames; each caption leads its command by
+# 150 frames and stays 270 after it; the closing card is 180; at most 3600 frames.
+from-record demo_record.hex
+caption build a trading empire/across the stars
+idle 300
+label probe
+caption probe the dark/to find new planets
+idle 150
+fold 118 307
+idle 270
+label colonize
+caption colonize planets:/each one needs and makes goods
+idle 150
+colonise p32
+idle 270
+label slipway
+caption link colonies with slipways/so goods can flow
+idle 150
+slipway p32 p55
+idle 270
+label year
+caption end the year:/trade earns money and science
+idle 150
+year
+idle 270
+label tech
+caption spend science on new tech
+idle 150
+research xenofoods
+idle 270
+label closing
+caption slipways/press any button
+idle 180

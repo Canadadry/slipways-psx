@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char DEMO_PATH[] = "pico8/demo.json";
+static const char DEMO_PATH[] = "demo/demo.json";
 
 static replay_source_t g_source;
 
@@ -33,7 +33,7 @@ static void read_json(void) {
     FILE *file = fopen(DEMO_PATH, "rb");
     assert(file != NULL);
     size_t length = fread(g_json, 1, sizeof g_json - 1, file);
-    assert(feof(file) && "pico8/demo.json fits the test's buffer");
+    assert(feof(file) && "demo/demo.json fits the test's buffer");
     fclose(file);
     g_json[length] = '\0';
 }

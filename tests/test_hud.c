@@ -1,5 +1,5 @@
 #include "game/hud.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/draw_backend.h"
 #include "game/image_slot.h"
 #include "game/text_image.h"
@@ -21,7 +21,7 @@ static void assert_draw_palette_is_block_8(const p8_vram_t *mem) {
 static void test_each_block_matches_the_sprite_sheet_pixels(void) {
     p8_vram_t mem;
     p8_vram_init(&mem);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&mem);
 
     for (int n = 0; n < 16; n++) {
         hud_select_palette_block(&mem, p8_fixed_from_int(n));

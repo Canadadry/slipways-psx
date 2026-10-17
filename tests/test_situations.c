@@ -9,7 +9,7 @@
 
 #define TOOL "./tmp/situations"
 #define OUT "tmp/test-situations"
-#define RECORD "pico8/demo_record.hex"
+#define RECORD "demo/demo_record.hex"
 #define RESUME_EVENTS OUT "/resume.json"
 #define STDERR_LOG OUT "/stderr.txt"
 

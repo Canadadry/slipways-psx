@@ -1,6 +1,6 @@
 
 #include "p8/vram.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "devtools/dump.h"
@@ -21,7 +21,7 @@ int main(void) {
     p8_graphics_t graphics;
     p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
 
     assert(p8_sget(&memory, 16, 0) == 3);
 

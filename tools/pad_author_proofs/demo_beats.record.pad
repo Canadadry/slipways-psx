@@ -1,7 +1,7 @@
-# Section 2's beats and captions from pico8/demo_record.hex: an opening of 150
+# Section 2's beats and captions from demo/demo_record.hex: an opening of 150
 # frames, each beat's caption 90 frames before its press and shown 150 frames
 # at least, a closing of 180.
-from-record ../../pico8/demo_record.hex
+from-record ../../demo/demo_record.hex
 caption build a trading empire/across the stars
 idle 150
 caption probe the dark/to find new planets

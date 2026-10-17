@@ -1,4 +1,4 @@
-# expect: from-record: already starting from 'tools/pad_author_proofs/../../pico8/demo_record.hex'
-from-record ../../pico8/demo_record.hex
-from-record ../../pico8/demo_record.hex
+# expect: from-record: already starting from 'tools/pad_author_proofs/../../demo/demo_record.hex'
+from-record ../../demo/demo_record.hex
+from-record ../../demo/demo_record.hex
 idle 1

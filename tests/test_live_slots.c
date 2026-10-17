@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #include "devtools/replay_source.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "game/background.h"
 #include "game/cart.h"
 #include "game/input_step.h"
@@ -154,7 +154,7 @@ static p8_input_t *load_e2e(const char *e2e) {
 
     p8_vram_init(&mem);
     p8_gfx_init(&gfx);
-    assert(p8_load_gfx_json(&mem, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&mem);
     static bindings_t bindings;
     p8_input_init(&input);
     bindings = bindings_compiled;

@@ -11,7 +11,7 @@
 #define SYMBOLS "tmp/frame_profile.syms"
 #define DRIVER "./tmp/replay"
 #define TITLE_EVENTS "tests/e2e/pad_title.json"
-#define RECORD "pico8/demo_record.hex"
+#define RECORD "demo/demo_record.hex"
 #define RESUME_EVENTS "tmp/test_frame_profile_resume.json"
 #define OUT "tmp/test-frame-profile"
 #define STDERR_LOG "tmp/test-frame-profile/stderr.txt"

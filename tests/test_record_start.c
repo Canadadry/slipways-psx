@@ -8,7 +8,7 @@
 #include "game/save_state.h"
 #include "game/save_storage.h"
 #include "game/ui_button.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char DEMO_RECORD_PATH[] = "pico8/demo_record.hex";
+static const char DEMO_RECORD_PATH[] = "demo/demo_record.hex";
 
 static uint8_t g_record[SAVE_STATE_MAX_BYTES];
 static save_state_t g_decoded;
@@ -38,7 +38,7 @@ static const char FIXTURE_PATH[] = "tmp/test_record_start.hex";
 
 static int read_demo_record(void) {
     int count = record_start_read_hex(DEMO_RECORD_PATH, g_record, (int)sizeof g_record, g_error, sizeof g_error);
-    assert(count > 0 && "pico8/demo_record.hex reads");
+    assert(count > 0 && "demo/demo_record.hex reads");
     return count;
 }
 
@@ -98,7 +98,7 @@ static void test_more_bytes_than_a_save_holds_are_refused(void) {
 static void boot_to_title(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

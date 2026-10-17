@@ -221,7 +221,7 @@ for elf in "${replay_exe%.exe}.elf" "$gpu_elf" "$game_elf"; do
         json_symbols="($nm_tool failed on $elf: $symbols)"
     else
         json_symbols=$(printf '%s\n' "$symbols" | awk '
-            BEGIN { split("p8_load_gfx_json p8_input_load p8_input_save p8_input_append p8_input_free", names, " ")
+            BEGIN { split("p8_input_load p8_input_save p8_input_append p8_input_free", names, " ")
                     for (i in names) json[names[i]] = 1 }
             NF == 3 && $2 != "U" && ($3 in json) { print $3 }')
     fi

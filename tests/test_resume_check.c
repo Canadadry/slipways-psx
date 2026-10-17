@@ -12,7 +12,7 @@
 #include "game/main_economy.h"
 #include "game/save_state.h"
 #include "game/save_storage.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -56,7 +56,7 @@ static int game_is_running(void) {
 static int boot(const char *path) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     assert(replay_source_open(&source, path) == REPLAY_SOURCE_LOADED);
     assert(replay_source_seed_storage(&source));
     replay_source_bindings_status_t status = replay_source_read_bindings(&source, &bindings_compiled, &bindings, &report);

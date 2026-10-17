@@ -1,4 +1,4 @@
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/vram.h"
 
@@ -322,8 +322,7 @@ static void test_sget_reads_known_pixel_from_loaded_sheet(void) {
      * bottom-left. */
     p8_vram_t mem;
     p8_vram_init(&mem);
-    int ok = p8_load_gfx_json(&mem, "pico8/gfx.json");
-    assert(ok);
+    p8_sprite_sheet_load(&mem);
 
     assert(p8_sget(&mem, 16, 0) == 3);
     assert(p8_sget(&mem, 2, 64) == 1);
@@ -568,8 +567,7 @@ static void test_map_and_mset_round_trip_against_real_sheet(void) {
     p8_graphics_t gfx;
     p8_vram_init(&mem);
     p8_gfx_init(&gfx);
-    int ok = p8_load_gfx_json(&mem, "pico8/gfx.json");
-    assert(ok);
+    p8_sprite_sheet_load(&mem);
 
     /* Sprite 2's top-left pixel is known-good color 3 (see
      * test_sget_reads_known_pixel_from_loaded_sheet). */

@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/layout.h"
@@ -161,7 +161,7 @@ int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
 
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
 
     layout_init();
 

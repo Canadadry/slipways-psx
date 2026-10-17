@@ -25,7 +25,7 @@
 #include "game/ui_button.h"
 #include "game/visual_random.h"
 #include "game/wormhole.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -64,7 +64,7 @@ static void play_frames(int count) {
 static void load_cart_to_title_storing(const uint8_t *bytes, int count) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
@@ -479,7 +479,7 @@ static void test_cart_load_ends_a_cut(void) {
 
 enum { ATTRACT_IDLE_FRAMES = 30, ATTRACT_SECOND_START_EXTRA_IDLE = 7, ATTRACT_PLAYED_FRAMES = 30, TITLE_DUMP_CAP = 65536 };
 
-static const char DEMO_RECORD_PATH[] = "pico8/demo_record.hex";
+static const char DEMO_RECORD_PATH[] = "demo/demo_record.hex";
 static const uint32_t ATTRACT_VISUAL_RANDOM_STATE = 0x0BADF00Du;
 
 typedef struct {
@@ -508,18 +508,18 @@ static void read_demo_record(save_check_snapshot_t *out) {
     int count = 0;
     int high;
 
-    assert(file != NULL && "pico8/demo_record.hex: the demo record is missing");
+    assert(file != NULL && "demo/demo_record.hex: the demo record is missing");
     while ((high = fgetc(file)) != '\n') {
         int low = fgetc(file);
-        assert(hex_digit(high) >= 0 && hex_digit(low) >= 0 && "pico8/demo_record.hex: not one line of lowercase hex pairs and a newline");
-        assert(count < SAVE_STATE_MAX_BYTES && "pico8/demo_record.hex: more than SAVE_STATE_MAX_BYTES bytes");
+        assert(hex_digit(high) >= 0 && hex_digit(low) >= 0 && "demo/demo_record.hex: not one line of lowercase hex pairs and a newline");
+        assert(count < SAVE_STATE_MAX_BYTES && "demo/demo_record.hex: more than SAVE_STATE_MAX_BYTES bytes");
         out->bytes[count++] = (uint8_t)(hex_digit(high) << 4 | hex_digit(low));
     }
-    assert(fgetc(file) == EOF && "pico8/demo_record.hex: something follows the newline");
+    assert(fgetc(file) == EOF && "demo/demo_record.hex: something follows the newline");
     fclose(file);
     out->byte_count = count;
     out->visual_random_state = ATTRACT_VISUAL_RANDOM_STATE;
-    assert(save_state_decode(out->bytes, count, &g_decoded) && "pico8/demo_record.hex: the record does not decode");
+    assert(save_state_decode(out->bytes, count, &g_decoded) && "demo/demo_record.hex: the record does not decode");
 }
 
 /* The first half of a frame: a start or a return it runs is seen before the frame's cart_update60. */

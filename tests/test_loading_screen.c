@@ -6,7 +6,7 @@
 #include "game/economy_score.h"
 #include "game/input_step.h"
 #include "game/main_economy.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -129,7 +129,7 @@ static void test_the_loading_picture_leaves_the_draw_state_as_it_found_it(void) 
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
     cart_load();

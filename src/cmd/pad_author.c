@@ -10,7 +10,7 @@
 #include "game/research.h"
 #include "engine/entity_registry.h"
 #include "game/economy_formulas.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/draw_meter.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
     p8_draw_meter_install();
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
     pad_author_init(&author);
