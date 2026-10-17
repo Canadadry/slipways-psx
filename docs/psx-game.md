@@ -532,6 +532,9 @@ instead of the EXE: one boot carries the controller proof and the CD proof.
 Pushing a `psx-*` tag runs `.github/workflows/psx-release.yml`: it builds the
 image with `make psx-game-cd` and publishes a GitHub release of that tag
 holding `slipways.bin` and `slipways.cue` only.
+`make psx-minor-release` (or `psx-major-release`) tags a clean, pushed
+`master` with the next `psx-v<major>.<minor>` and pushes it; the first tags are
+`psx-v0.1` and `psx-v1.0`. `DRY_RUN=1` prints the tag only.
 
 ## GPU family captures
 

@@ -19,7 +19,7 @@ else
 help: ## lists the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "%-30s %s\n", $$1, $$2}' | LC_ALL=C sort
 
-.PHONY: help psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: help psx-major-release psx-minor-release psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1654,6 +1654,12 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS) tools/psx_opt_level.sh ## [
 psx-game-cd: psx-build ## psx-build, then checks the game CD image exists
 	@[ -f $(PSX_GAME_BIN) ] && [ -f $(PSX_GAME_CUE) ] || { echo "psx-game-cd: $(PSX_GAME_BIN) or $(PSX_GAME_CUE) missing" >&2; exit 1; }
 	@echo "psx-game-cd: $(PSX_GAME_BIN) $(PSX_GAME_CUE)"
+
+psx-major-release: tools/psx_release.sh ## [DRY_RUN=1]: tags master psx-v<major+1>.0 and pushes it, which publishes the PSX release
+	@tools/psx_release.sh major
+
+psx-minor-release: tools/psx_release.sh ## [DRY_RUN=1]: tags master psx-v<major>.<minor+1> and pushes it, which publishes the PSX release
+	@tools/psx_release.sh minor
 
 PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
 
