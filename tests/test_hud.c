@@ -54,6 +54,18 @@ static void test_fractional_index_selects_its_floor(void) {
     assert_draw_palette_is_block_8(&mem);
 }
 
+static void test_only_block_0_in_force_reads_as_the_default_block(void) {
+    p8_vram_t mem;
+    p8_vram_init(&mem);
+
+    hud_select_palette_block(&mem, p8_fixed_from_int(8));
+    assert(!hud_palette_block_default_in_force(&mem));
+    hud_select_palette_block_default(&mem);
+    assert(hud_palette_block_default_in_force(&mem));
+    mem.draw_palette[15] ^= 1;
+    assert(!hud_palette_block_default_in_force(&mem) && "one remapped colour is not block 0");
+}
+
 static void test_bar_reaches_the_right_edge(void) {
     p8_vram_t mem;
     p8_graphics_t gfx;
@@ -233,6 +245,7 @@ int main(void) {
     test_each_block_matches_the_sprite_sheet_pixels();
     test_select_needs_no_sprite_sheet();
     test_fractional_index_selects_its_floor();
+    test_only_block_0_in_force_reads_as_the_default_block();
     test_bar_reaches_the_right_edge();
     test_alignment_zero_prints_as_the_default();
     test_half_alignment_shifts_by_two_pixels_per_letter();

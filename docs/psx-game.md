@@ -152,7 +152,9 @@ slots (`src/game/image_slot.h`, checked against the runtime count): slot 0,
 128×8, outlined text (`text_image.c`); 65, 16×16, the planet disc; 66–69,
 16×16, one colony ring per ring colour, built once on the first planet drawn
 with no fill pattern (a planet drawn under a fill pattern keeps its
-`circfill`/`circ`). The meter, filter, breakdown timing and call
+`circfill`/`circ`); 70–77, 16×11, icon buttons, and 78–87, 112×11, text
+buttons (`button_image.c`), keyed by the serials of the button's rows and
+its colours. The meter, filter, breakdown timing and call
 profile follow the copy as one `spr` and the build's calls under their own
 families.
 
@@ -367,7 +369,7 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 | font | (512, 128) | 32x128 | same page, v 128..255 |
 | pattern slots | (544, 0) | 32x256, 2x8 a slot | same page, u 128..255 |
 | CLUTs | (640, 0) | 16x64, 16x1 each | `GPU_CLUT_SLOTS` draw palettes, 16 font colours, `GPU_PATTERN_SLOTS` pattern CLUTs |
-| images | (704, 0) | 256x512 | 15-bit image slots, each 16-aligned on its own page: slot 0 is (704, 0) 256x256, page (704, 0); the 48x8 slots five a band from (704, 256); the 128x8 slots two a band from (704, 312); the five 16x16 slots in a row from (704, 440); free: (944, 256) 16x56, (800, 304) 144x8, (784, 440) 176x16 and (704, 456) 256x56 |
+| images | (704, 0) | 256x512 | 15-bit image slots, each 16-aligned on its own page: slot 0 is (704, 0) 256x256, page (704, 0); the 48x8 slots five a band from (704, 256); the 128x8 slots two a band from (704, 312); the five 16x16 slots in a row from (704, 440); the eight 16x11 button slots in a row from (784, 440); the ten 112x11 button slots two a band from (704, 456); free: (944, 256) 16x56, (800, 304) 144x8, (912, 440) 48x16, (784, 451) 128x5, (928, 456) 32x56 and (704, 511) 224x1 |
 
 ## Until-exit boot mode
 
@@ -1370,8 +1372,8 @@ family each), `one-off-runs` (no `long` run).
 
 - The steady frames' levers, ranked and estimated, are in
   `docs/psx-levers.md` (`make lever-estimate` checks its order and projects
-  it). The pixel-identical list leaves 379 steady frames over 263 nominal,
-  530 pessimistic.
+  it). The pixel-identical list leaves 347 steady frames over 263 nominal,
+  506 pessimistic.
 
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out

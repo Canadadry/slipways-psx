@@ -7,6 +7,8 @@
 #include "engine/entity_geom.h"
 #include "engine/geom.h"
 #include "engine/entity.h"
+#include "game/button_image.h"
+#include "game/hud.h"
 #include "game/layout.h"
 #include "game/ui.h"
 #include "game/ui_zone.h"
@@ -218,57 +220,155 @@ void button_draw_overlay(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *sel
     }
 }
 
-void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *self, vec_t draw_pos) {
-    p8_fixed_t width;
-    p8_fixed_t right;
-    p8_fixed_t bottom;
-    int has_on_click;
-    int hovered;
-    int left_pixel;
-    int top_pixel;
-    int right_pixel;
-    int bottom_pixel;
-
-    if (self == NULL) {
-        return;
-    }
-
-    width = self->width;
-    right = p8_fixed_sub(p8_fixed_add(draw_pos.x, width), p8_fixed_from_int(1));
-    bottom = p8_fixed_add(draw_pos.y, p8_fixed_from_int(9));
-    has_on_click = self->on_click != NULL;
-    hovered = self->header.is_hovered || (main_ui() != NULL && ui_pad_tab(main_ui()) == &self->header);
-
-    left_pixel = ui_to_int(draw_pos.x);
-    top_pixel = ui_to_int(draw_pos.y);
-    right_pixel = ui_to_int(right);
-    bottom_pixel = ui_to_int(bottom);
+/* Text items go through the text image cache, or are printed directly when through_text_image is 0. */
+static void button_draw_body(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *self, vec_t draw_pos, int body,
+                             int top, int through_text_image) {
+    p8_fixed_t width = self->width;
+    p8_fixed_t right = p8_fixed_sub(p8_fixed_add(draw_pos.x, width), p8_fixed_from_int(1));
+    p8_fixed_t bottom = p8_fixed_add(draw_pos.y, p8_fixed_from_int(9));
+    int left_pixel = ui_to_int(draw_pos.x);
+    int top_pixel = ui_to_int(draw_pos.y);
+    int right_pixel = ui_to_int(right);
+    int bottom_pixel = ui_to_int(bottom);
 
     p8_rect(graphics, memory, left_pixel - 1, top_pixel, right_pixel + 1, bottom_pixel + 1, 1);
-    p8_rectfill(graphics, memory, left_pixel, top_pixel, right_pixel, bottom_pixel, has_on_click ? (hovered ? 12 : 13) : 5);
-    p8_rectfill(graphics, memory, left_pixel, top_pixel, right_pixel, top_pixel, has_on_click ? 6 : 5);
+    p8_rectfill(graphics, memory, left_pixel, top_pixel, right_pixel, bottom_pixel, body);
+    p8_rectfill(graphics, memory, left_pixel, top_pixel, right_pixel, top_pixel, top);
 
     if (self->layout_row != NULL) {
         vec_t off = vec_add(draw_pos, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(2)));
-        layout_row_draw_at_text_image(graphics, memory, self->layout_row, off, p8_fixed_from_int(0));
+        if (through_text_image) {
+            layout_row_draw_at_text_image(graphics, memory, self->layout_row, off, p8_fixed_from_int(0));
+        } else {
+            layout_row_draw_at(graphics, memory, self->layout_row, off, p8_fixed_from_int(0));
+        }
     }
 
     if (self->side_tooltip != NULL) {
         const layout_row_t *c = self->side_tooltip;
-        p8_fixed_t c_w = c->width;
         int bg = 2;
-        p8_fixed_t x2 = p8_fixed_add(right, c_w);
+        p8_fixed_t x2 = p8_fixed_add(right, c->width);
 
         if (c->has_background && !c->background_is_bool) {
             bg = ui_to_int(c->background);
         }
         p8_rectfill(graphics, memory, ui_to_int(right) + 3, top_pixel + 1, ui_to_int(x2) + 4, bottom_pixel, bg);
 
-        {
-            vec_t off2 =
-                vec_add(draw_pos, vec_make(p8_fixed_add(width, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
+        vec_t off2 = vec_add(draw_pos, vec_make(p8_fixed_add(width, p8_fixed_from_int(3)), p8_fixed_from_int(2)));
+        if (through_text_image) {
             layout_row_draw_at_text_image(graphics, memory, c, off2, p8_fixed_from_int(0));
+        } else {
+            layout_row_draw_at(graphics, memory, c, off2, p8_fixed_from_int(0));
         }
+    }
+}
+
+static int is_whole(p8_fixed_t x) {
+    return p8_fixed_from_int(ui_to_int(x)) == x;
+}
+
+/* Widens *extent to the row's items drawn dx right of the button's border; 0 when an item is off a
+ * whole offset or left of the border, so the image could not hold it. */
+static int row_extent(const layout_row_t *row, int dx, int *extent) {
+    if (row == NULL || row->placed_items == NULL) {
+        return 1;
+    }
+    for (int i = 0; i < row->placed_items_count; i++) {
+        const layout_row_item_t *item = &row->placed_items[i];
+        if (!is_whole(item->offset.x) || item->offset.y != 0) {
+            return 0;
+        }
+        int left = dx + ui_to_int(item->offset.x) + 1;
+        int end = left;
+        if (item->kind == LAYOUT_ROW_ITEM_TEXT) {
+            left += 1;
+            end = left + (int)strlen(item->text) * P8_FONT_CELL_WIDTH + 1;
+        } else if (item->kind == LAYOUT_ROW_ITEM_SPRITE) {
+            end = left + P8_SPRITE_SIZE;
+        }
+        if (left < 0) {
+            return 0;
+        }
+        if (end > *extent) {
+            *extent = end;
+        }
+    }
+    return 1;
+}
+
+/* The image's width, the border's left column to the rightmost pixel any call writes; 0 when the
+ * button cannot be copied exactly. */
+static int button_image_width(const button_t *self) {
+    if (!is_whole(self->width)) {
+        return 0;
+    }
+    int width = ui_to_int(self->width);
+    int extent = width + 2;
+    if (!row_extent(self->layout_row, 1, &extent)) {
+        return 0;
+    }
+    const layout_row_t *side = self->side_tooltip;
+    if (side != NULL) {
+        if (!is_whole(side->width)) {
+            return 0;
+        }
+        int fill_left = width + 3;
+        int fill_right = width + ui_to_int(side->width) + 4;
+        if (fill_right < fill_left) {
+            fill_left = fill_right;
+            fill_right = width + 3;
+        }
+        if (fill_left < 0 || !row_extent(side, width + 3, &extent)) {
+            return 0;
+        }
+        if (fill_right + 1 > extent) {
+            extent = fill_right + 1;
+        }
+    }
+    return extent;
+}
+
+typedef struct {
+    int body;
+    int top;
+} button_look_t;
+
+static button_look_t g_building_look;
+
+/* context is the button. Draws no visual random number and reads no game state but its rows. */
+static void button_image_build_draw(p8_graphics_t *gfx, p8_vram_t *mem, void *context) {
+    button_draw_body(gfx, mem, context, vec_make(p8_fixed_from_int(1), p8_fixed_from_int(0)), g_building_look.body,
+                     g_building_look.top, 0);
+}
+
+static int button_draw_image(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *self, vec_t draw_pos,
+                             button_look_t look) {
+    if (graphics->fillp_pattern != 0 || !hud_palette_block_default_in_force(memory)) {
+        return 0;
+    }
+    int width = button_image_width(self);
+    if (width == 0) {
+        return 0;
+    }
+    button_image_key_t key = {{self->layout_row != NULL ? self->layout_row->serial : 0,
+                               self->side_tooltip != NULL ? self->side_tooltip->serial : 0,
+                               (uint32_t)look.body | (uint32_t)look.top << 8, (uint32_t)ui_to_int(self->width)}};
+    g_building_look = look;
+    return button_image_draw(graphics, memory, &key, ui_to_int(draw_pos.x) - 1, ui_to_int(draw_pos.y), width,
+                             BUTTON_IMAGE_HEIGHT, button_image_build_draw, (void *)self);
+}
+
+void button_draw(p8_graphics_t *graphics, p8_vram_t *memory, const button_t *self, vec_t draw_pos) {
+    if (self == NULL) {
+        return;
+    }
+
+    int has_on_click = self->on_click != NULL;
+    int hovered = self->header.is_hovered || (main_ui() != NULL && ui_pad_tab(main_ui()) == &self->header);
+    button_look_t look = {has_on_click ? (hovered ? 12 : 13) : 5, has_on_click ? 6 : 5};
+
+    if (!button_draw_image(graphics, memory, self, draw_pos, look)) {
+        button_draw_body(graphics, memory, self, draw_pos, look.body, look.top, 1);
     }
 }
 

@@ -1,6 +1,8 @@
 #ifndef GAME_LAYOUT_H
 #define GAME_LAYOUT_H
 
+#include <stdint.h>
+
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "game/map_tables.h"
@@ -72,6 +74,8 @@ typedef struct {
     layout_row_item_t *placed_items;
     int placed_items_count;
     p8_fixed_t width;
+    /* New and never 0 each time the row is filled: two rows with one serial hold the same items. */
+    uint32_t serial;
 } layout_row_t;
 
 typedef struct {

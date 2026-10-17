@@ -7,6 +7,7 @@
 
 void hud_select_palette_block(p8_vram_t *mem, p8_fixed_t no);
 void hud_select_palette_block_default(p8_vram_t *mem);
+int hud_palette_block_default_in_force(const p8_vram_t *mem);
 
 void hud_draw_bar(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, p8_fixed_t y2, int col);
 void hud_draw_bar_y1(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, int col);

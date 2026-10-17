@@ -9,6 +9,7 @@
 #include "game/text_image.h"
 
 static int g_layout_up = 0;
+static uint32_t g_row_serial;
 static const entity_class_t layout_row_class_def;
 
 layout_row_scalar_t layout_row_scalar_nothing(void) {
@@ -336,10 +337,15 @@ static void row_struct_init(layout_row_t *self, const allocator_t *zone) {
     self->placed_items = NULL;
     self->placed_items_count = 0;
     self->width = 0;
+    self->serial = 0;
     self->zone = zone;
 }
 
 static void row_fill(layout_row_t *self, const layout_row_keys_t *keys) {
+    if (++g_row_serial == 0) {
+        g_row_serial = 1;
+    }
+    self->serial = g_row_serial;
     if (keys == NULL) {
         layout_row_construct(self, NULL, 0);
         return;

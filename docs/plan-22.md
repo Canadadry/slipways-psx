@@ -815,3 +815,153 @@ warnings apply; "one frame late" vs F−2 in `docs/psx-game.md` left open
 NULL` and `loading_screen.c` in `ENGINE_SRCS` left open (files not
 changed); every other warning left open, outside N5's files. No
 guideline decision.
+
+### Step 3.7 — N7
+
+Lever N7, buttons drawn once through image slots: **taken and kept**
+(ratio 1.62). A new game module `button_image.{c,h}` keeps 18 p8 image
+slots appended after the ring slots (70–77, 16×11, icon pool; 78–87,
+112×11, wide pool), keyed by four words, built through `p8_image_build`
+into the least recently used slot of the pool not copied this frame, then
+copied; it returns 0 (draws nothing) for a box over 112×11 or a full pool.
+`layout_row_t` gains a `serial` (new and never 0 on each fill, by
+`layout_row_new` or `layout_row_init`); `hud_palette_block_default_in_force`
+compares the draw palette with block 0; `button_draw` keeps its contract:
+its old body is one static function (text through the text cache or
+direct), and a button whose width, side-tooltip width and item offsets are
+whole, drawn with no fill pattern under block 0, is copied from an image
+keyed by (row serial, side-row serial, body | top colour, width), built
+with direct prints at (1, 0); otherwise the old direct path. `cart_draw`
+starts the cache's frame next to `text_image_frame_begin`.
+Hypotheses on N5 checked, all held: N5 skipped with no code change (note
+`### Step 3.7 — N5`), `scale calls 0.60` (D3, N3), order N1, N2, N3, D3,
+G4, N7, N6, projection 379 / 530, `psx-check` green with 39 conditions.
+Residual (before any work), on the baseline re-taken at N3's commit
+(fingerprint matching `3d3daca` on all 12 runs): a throwaway probe drawing
+every button twice, all 12 valid, `game-state same`, text +44 bytes. Draw
+a window frame: tech-panel-5895 +294 over 9 (+32.7 h), menu-5954 +193 over
+15 (+12.9), map-move-1057 +103 over 15 (+6.9), map-rest-5581 +100 over 15
+(+6.7), build-5752 +94 over 15 (+6.3); pooled representative 590 / 39 =
+15.1 for slipway-aim and score-panel; draw-5564 +549, draw-6000 +182 over
+15; one-frame runs +6 to +7. An upper bound (it counts the copy N7 keeps).
+Rule (a): 7.6 h per steady frame (÷ 4,276), above T = 4.4. Rule (b): over
+the threshold in six situations (tech-panel 32.7 > 7.3, menu 12.9 > 6.2,
+slipway-aim 15.1 > 6.6, score-panel 15.1 > 7.2, map-rest 6.7 > 6.2, build
+6.3 > 6.2), map-move 6.9 < 7.0. Verdict: build.
+Captures (chunk 1, own commit `fa9f0f6`): `rectfill 300 cls,rectfill`
+(24 calls, the map panel's fills and bars) and `all 155 all` on
+`pad_message_box` (120 calls, the tech panel's buttons with side
+tooltips), both at differ 0 on the code before N7; ceilings, a green
+`psx-check`, references. Deviation: `tools/psx_capture_record.sh
+ceilings` tolerates one failed ceilings condition per run, so with a new
+capture in each list the ceilings were written in two `psx-check` passes
+(`all 155` taken out for the first). 19 captures on `pad_slipway`, 4 on
+the message box; no limit raised. The pilot then re-took the probe
+baseline at `fa9f0f6`.
+Probe of N7 (the diff of `src/`, `tests/` and the Makefile against
+`fa9f0f6`), all 12 valid, `game-state same`, text +2,616 bytes. Window
+deltas (draw, update, submit, total): tech-panel-5895 2,397 → 2,210
+(−187 over 9, −20.8 h a frame), −3, 0, −190; menu-5954 3,432 → 3,345 (−87
+over 15, −5.8 h), −1, 0, −88; map-move-1057 2,369 → 2,346 (−23 over 15,
+−1.5 h), −8, −1, −32; map-rest-5581 −118, −1, −2, −121; build-5752 −34, +1,
++1, −32; draw-5564 −387, −1, −2, −390; draw-6000 −79, +4, +1, −74 (over
+15); one frame: score-panel-5876 −4 / −5, start +7 / +8, update-4737 −2 /
+−2, update-5500 0 / +2, update-5719 −8 / −6 (draw / total). Ratio, pooled
+against the unscaled window estimates: (20.8 + 5.8 + 1.5) / (11.1 + 4.0 +
+2.3) = 28.1 / 17.4 = 1.62; each run 1.87 (tech-panel), 1.45 (menu), 0.67
+(map-move). Above 1: the estimate priced only `rect`, `rectfill` and
+`spr`, not the label copies, the palette-block switches and the game code
+around them, which the copy also removes. Weaker evidence: map-rest-5581
+−7.9 h a frame and build-5752 −2.3 against 2.1 h, score-panel-5876 −4 on
+its frame. Gains = estimate × 1.62: tech-panel 5.5%, menu 2.3%, map-move
+1.6%, map-rest, build and score-panel 1.3% of draw; slipway-aim none.
+Kept: tech-panel-5895's draw and total deltas negative, no run's total
+positive beyond its noise floor (largest +8 on `start`'s one frame,
+under its floor of max(3 h, 1% of 2,297) = 23 h), `game-state same`
+everywhere, every
+capture at differ 0. Measured on `tech-panel-5895` (lever line `measure
+tech-panel-5895`), not `map-move-1057`, where the 2.3 h estimate sat under
+the run's noise floor. The patch probed was taken before the 32-bit slot
+sizes below were raised; that change moves no code path.
+`scale calls 0.77`: the median of D3's 0.42, N3's 0.77 and N7's 1.62; no
+`estimated` `calls` lever remains, so it scales nothing. `scale share`
+stays 1.11 (N6 still scaled by it).
+Alone, N7 removes 33 frames (estimate 12 scaled, 20 unscaled): map-move
+16, build 7, map-rest 5, tech-panel 5. Steady frames over: after the six
+taken levers 364 nominal / 521 pessimistic (after N5's five: 423 / 563);
+end of the list 347 / 506 (N5's projection: 379 / 530). Re-ranked to the
+greedy order N1, N2, N3, N7, D3, G4, N6: N7 moves from 6th to 4th; the
+lever table and the ranked list were reordered and renumbered (`order
+ok`), and plan 21's table now ranks D3 5th and G4 6th. N6 is the next
+untaken lever. No `psx-full-game-check`, no rebase, no `in-base`.
+References re-accepted under the agent rule, every capture of each label
+at differ 0 (the copies carry the mask bit and the draw filter drops a
+whole button from a family capture whose mask lacks one of its
+families): `rectfill` (f11 now holds only `cls`, as the PRD foresaw, and
+f300), `all` (f12, f102, f190, f235, f267), `pattern` (f193, f259: their
+mask has no `rect` or `spr`, so the HUD buttons' fills drop out; not in
+the PRD's list), `spr` (f236), `rect` (f302) on `pad_slipway`, and `all`
+(f143, f155, f164) on `pad_message_box`. Accepting needs a green run, so
+the stale reference lines of those labels were removed first (ceilings 0
+then apply), `psx-check` run green, the labels accepted, and `psx-check`
+run green again. `cls`, `display`, `pset`, `circ`, `circfill`, `print`,
+`line` and `print 142` kept their references.
+`psx-check` green, all 39 conditions, both lists matching; GPU replay 249
+vsyncs (was 255). `game-gpu-cost` bytes 7,512 of 7,552, build 11,172 of
+11,700. Memory: the software store grows by 13,728 bytes (18 slots); the
+build buffer peak (`make state`, `zone gpu_build`, `attract`) rose from
+11,256 to 12,040, over its 1/8 margin, so `GPU_BUILD_BUFFER_BYTES` went
+13,312 → 14,336 by its rule (peak + 1/8, rounded up to 1 KiB; two
+buffers). `largest-slots` failed on MIPS (`zone slot button full`, then
+`slot row full`): every row is 4 bytes larger on 32 bits, and both slots
+were sized to their peak, so the 32-bit sizes follow the new peaks,
+`ui button` 3,784 → 3,944 and `ui row` 616 → 624 (64-bit sizes
+unchanged; PC peaks 4,632 of 6,056 and 880 of 1,184). `ram-room` 145,868
+→ 123,280 bytes left, `game-ram-room` 302,036 → 279,832. `make state`
+green, every zone within its margin. Text image slots: a cached button
+builds its labels with direct prints, so it takes no text slot and its
+labels are no longer copied from the text cache; only a button that falls
+back to the direct path still uses it, so N7 can only lower D3's text
+slot pressure (not counted per frame). VRAM: icon slots from (784, 440),
+wide slots two a band from (704, 456) to row 510, each inside its 15-bit
+page (`test_psx_vram_layout`).
+Every e2e `.sha256` and `.end-state` unchanged; `make raylib` links.
+Tests: `test_button_image` (built once then copied, every edge and
+three cameras, equal keys share a slot and each word rebuilds, the pools
+never evict each other, a full pool and an oversized image draw nothing
+and no slot copied this frame is rebuilt, random streams untouched),
+`test_button` (eight kinds of button, the HUD icons lit and unlit, text
+and sprite, no on-click, side tooltips hovered and not, a sprite hanging
+past the border, at whole and fractional positions, every edge and three
+cameras, compared pixel for pixel, palette and pen with today's direct
+draw, red before the change; a row refilled in place and a hover change
+rebuild; a fill pattern, block 8, a fractional width, a box over 112 and
+an eleventh wide button draw directly and the same), a row-serial case in
+`test_layout_row`, the block-0 check in `test_hud`, the slot list in
+`test_image` and `test_psx_vram_layout`. `test_layout_row`'s copy count
+froze the old behaviour (two label copies a button) and now counts one
+image copy a button. Mutations that shorten the box by its last sprite
+column, its side fill or the border, or drop the body colour from the
+key, fail `test_button`. The pad-tab body is not tested apart from the
+hovered one (same colour, same key). The pointer guard forbids new data
+pointers in `src/game/`, so the pools are index ranges and the build
+receives the button as its context.
+Fast loop, warm, clean copies of `fa9f0f6` and N7 interleaved, mean of
+four: `make test` 6.98 → 6.95 s, `make e2e` 0.430 → 0.422 s (in the main
+tree `make e2e` reads 0.08 s slower on both because `make` parses its
+29,000 `.d` files; not the code).
+`docs/psx-game.md`: the image-cache paragraph (slots 70–87), the VRAM
+table's images row (new places, free room left), the two capture
+sentences (chunk 1) and the "Still to do" figure (347 / 506).
+Warn-review warnings in N7's files, all left open as the PRD decided:
+`cart.c`'s difficulty carrier and duplicated prologue (N7 adds one call
+in `cart_draw`); `loading_screen.c` in `ENGINE_SRCS` (N7 adds
+`button_image.c` there next to `text_image.c`, extending the pattern the
+warning names, for step 9's list); the other Makefile warnings (N7 adds
+a test target, a source entry and nothing in those recipes); e2e frame
+numbers inline (the two capture lines use the list's own format);
+hand-copied condition counts (still 39); "one frame late" vs F−2 in
+`docs/psx-game.md` (not in the edited paragraphs). `ui_zone.c` and
+`gpu_sizes.h`, changed by their sizing rules, carry no open warning.
+Every other warning left open, outside N7's files. No guideline
+decision.

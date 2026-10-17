@@ -38,6 +38,10 @@ void hud_select_palette_block_default(p8_vram_t *mem) {
     hud_select_palette_block(mem, p8_fixed_from_int(0));
 }
 
+int hud_palette_block_default_in_force(const p8_vram_t *mem) {
+    return memcmp(mem->draw_palette, palette_blocks[0], sizeof(mem->draw_palette)) == 0;
+}
+
 void hud_draw_bar(p8_graphics_t *gfx, p8_vram_t *mem, p8_fixed_t y1, p8_fixed_t y2, int col) {
     assert(gfx != NULL && "hud_draw_bar: p8_rectfill dereferences the graphics state, so a NULL one is not a no-op");
     if (gfx != NULL) {

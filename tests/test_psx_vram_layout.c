@@ -122,7 +122,7 @@ static void test_each_image_slot_lies_on_its_own_15_bit_page(void) {
 static void test_the_row_slots_pack_five_a_band_below_the_map_each_inside_its_own_page(void) {
     static const int columns[] = { 704, 752, 800, 848, 896 };
     static const int page_columns[] = { 704, 704, 768, 832, 896 };
-    assert(P8_IMAGE_SLOT_COUNT == 1 + 32 + 32 + 5);
+    assert(P8_IMAGE_SLOT_COUNT == 1 + 32 + 32 + 5 + 8 + 10);
     for (int slot = 1; slot < 1 + 32; slot++) {
         int column = (slot - 1) % 5;
         psx_vram_rect_t image = psx_vram_layout_image(slot);
@@ -148,15 +148,35 @@ static void test_the_text_slots_pack_two_a_band_below_the_row_slots_each_inside_
     }
 }
 
+enum { FIRST_BUTTON_SLOT = 1 + 32 + 32 + 5 };
+
 static void test_the_square_slots_follow_the_text_slots_in_one_row(void) {
     static const int page_columns[] = { 704, 704, 704, 704, 768 };
-    for (int slot = 1 + 32 + 32; slot < P8_IMAGE_SLOT_COUNT; slot++) {
+    for (int slot = 1 + 32 + 32; slot < FIRST_BUTTON_SLOT; slot++) {
         int k = slot - (1 + 32 + 32);
         psx_vram_rect_t image = psx_vram_layout_image(slot);
         assert(image.x == 704 + k * 16 && image.y == 440 && image.w == 16 && image.h == 16);
         psx_vram_rect_t page = psx_vram_layout_image_page(slot);
         assert(page.x == page_columns[k] && page.y == 256);
         assert(image.x - page.x + image.w <= 256 && image.y - page.y + image.h <= 256);
+    }
+}
+
+static void test_the_button_slots_fill_the_free_room_below_the_text_slots(void) {
+    for (int k = 0; k < 8; k++) {
+        psx_vram_rect_t image = psx_vram_layout_image(FIRST_BUTTON_SLOT + k);
+        assert(image.x == 784 + k * 16 && image.y == 440 && image.w == 16 && image.h == 11);
+        psx_vram_rect_t page = psx_vram_layout_image_page(FIRST_BUTTON_SLOT + k);
+        assert(page.x == image.x - image.x % 64 && page.y == 256);
+        assert(image.x - page.x + image.w <= 256);
+    }
+    static const int page_columns[] = { 704, 768 };
+    for (int k = 0; k < 10; k++) {
+        psx_vram_rect_t image = psx_vram_layout_image(FIRST_BUTTON_SLOT + 8 + k);
+        assert(image.x == 704 + k % 2 * 112 && image.y == 456 + k / 2 * 11 && image.w == 112 && image.h == 11);
+        assert(image.y + image.h <= 512);
+        psx_vram_rect_t page = psx_vram_layout_image_page(FIRST_BUTTON_SLOT + 8 + k);
+        assert(page.x == page_columns[k % 2] && page.y == 256);
     }
 }
 
@@ -171,6 +191,7 @@ int main(void) {
     test_the_row_slots_pack_five_a_band_below_the_map_each_inside_its_own_page();
     test_the_text_slots_pack_two_a_band_below_the_row_slots_each_inside_its_own_page();
     test_the_square_slots_follow_the_text_slots_in_one_row();
+    test_the_button_slots_fill_the_free_room_below_the_text_slots();
     printf("test_psx_vram_layout: ok\n");
     return 0;
 }

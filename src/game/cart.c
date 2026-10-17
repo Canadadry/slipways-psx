@@ -41,6 +41,7 @@
 #include "game/slipway.h"
 #include "game/trade.h"
 #include "game/text_image.h"
+#include "game/button_image.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "game/wormhole.h"
@@ -376,6 +377,7 @@ void cart_draw(void) {
         return;
     }
     text_image_frame_begin();
+    button_image_frame_begin();
     p8_cls(mem);
     hud_select_palette_block_default(mem);
     draw_layers(ENTITY_MESSAGE_DRAW);

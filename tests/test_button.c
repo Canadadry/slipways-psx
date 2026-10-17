@@ -52,6 +52,10 @@
 #include "devtools/largest_slots.h"
 #include "devtools/state_format.h"
 #include "heap_allocator.h"
+#include "game/button_image.h"
+#include "game/hud.h"
+#include "game/image_slot.h"
+#include "p8/draw_backend.h"
 
 static mouse_pos_t mouse_world_only(vec_t world) {
     return (mouse_pos_t){.world = world, .has = MOUSE_POS_HAS_WORLD};
@@ -1117,6 +1121,270 @@ static void test_draw(void) {
     check("draw", hash, DRAW_HASH);
 }
 
+/* Today's direct draw of a button, call for call: the oracle the image cache must match. */
+static void direct_button_draw(p8_graphics_t *gfx, p8_vram_t *mem, const button_t *self, vec_t draw_pos) {
+    p8_fixed_t width = self->width;
+    p8_fixed_t right = p8_fixed_sub(p8_fixed_add(draw_pos.x, width), p8_fixed_from_int(1));
+    p8_fixed_t bottom = p8_fixed_add(draw_pos.y, p8_fixed_from_int(9));
+    int has_on_click = self->on_click != NULL;
+    int hovered = self->header.is_hovered || (main_ui() != NULL && ui_pad_tab(main_ui()) == &self->header);
+    int left_pixel = p8_fixed_flr_int(draw_pos.x);
+    int top_pixel = p8_fixed_flr_int(draw_pos.y);
+    int right_pixel = p8_fixed_flr_int(right);
+    int bottom_pixel = p8_fixed_flr_int(bottom);
+
+    p8_rect(gfx, mem, left_pixel - 1, top_pixel, right_pixel + 1, bottom_pixel + 1, 1);
+    p8_rectfill(gfx, mem, left_pixel, top_pixel, right_pixel, bottom_pixel, has_on_click ? (hovered ? 12 : 13) : 5);
+    p8_rectfill(gfx, mem, left_pixel, top_pixel, right_pixel, top_pixel, has_on_click ? 6 : 5);
+    if (self->layout_row != NULL) {
+        layout_row_draw_at(gfx, mem, self->layout_row, vec_add(draw_pos, vec_at(1, 2)), 0);
+    }
+    if (self->side_tooltip != NULL) {
+        const layout_row_t *c = self->side_tooltip;
+        int bg = 2;
+        if (c->has_background && !c->background_is_bool) {
+            bg = p8_fixed_flr_int(c->background);
+        }
+        p8_rectfill(gfx, mem, right_pixel + 3, top_pixel + 1, p8_fixed_flr_int(p8_fixed_add(right, c->width)) + 4,
+                    bottom_pixel, bg);
+        layout_row_draw_at(gfx, mem, c, vec_add(draw_pos, vec_make(p8_fixed_add(width, p8_fixed_from_int(3)),
+                                                                   p8_fixed_from_int(2))), 0);
+    }
+}
+
+static int g_button_builds;
+static int g_button_copies;
+static const p8_draw_backend_t *g_software;
+static p8_draw_backend_t g_counting;
+
+static int is_button_slot(int slot) {
+    return slot >= IMAGE_SLOT_BUTTON_ICON_FIRST && slot < IMAGE_SLOT_BUTTON_WIDE_FIRST + IMAGE_SLOT_BUTTON_WIDE_COUNT;
+}
+
+static void count_image_begin(int slot, int w, int h) {
+    g_button_builds += is_button_slot(slot);
+    g_software->image_begin(slot, w, h);
+}
+
+static void count_image_draw(const p8_graphics_t *gfx, p8_vram_t *mem, int slot, int x, int y) {
+    g_button_copies += is_button_slot(slot);
+    g_software->image_draw(gfx, mem, slot, x, y);
+}
+
+static void count_button_images(void) {
+    g_software = p8_draw_backend_get();
+    g_counting = *g_software;
+    g_counting.image_begin = count_image_begin;
+    g_counting.image_draw = count_image_draw;
+    p8_draw_backend_set(&g_counting);
+    g_button_builds = 0;
+    g_button_copies = 0;
+}
+
+static void stripes(p8_vram_t *mem) {
+    for (int y = 0; y < P8_SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < P8_SCREEN_WIDTH; x++) {
+            mem->screen[y][x] = (unsigned char)(1 + (x * 3 + y) % 15);
+        }
+    }
+}
+
+/* Draws b through button_draw and through the oracle from the same screen, camera, palette and
+ * pen, then compares what they leave. */
+static void assert_button_draws_like_direct(void *b, vec_t pos, int camera_x, int camera_y) {
+    static p8_vram_t direct;
+    p8_graphics_t direct_gfx;
+    p8_camera(&graphics, camera_x, camera_y);
+    graphics.pen_color = 9;
+    stripes(&memory);
+    direct = memory;
+    direct_gfx = graphics;
+    p8_draw_backend_set(g_software);
+    direct_button_draw(&direct_gfx, &direct, button_of(b), pos);
+    p8_draw_backend_set(&g_counting);
+
+    button_draw(&graphics, &memory, button_of(b), pos);
+
+    assert(graphics.camera_x == camera_x && graphics.camera_y == camera_y && "the camera is back");
+    assert(graphics.pen_color == direct_gfx.pen_color && "the same pen after");
+    assert(memcmp(direct.draw_palette, memory.draw_palette, sizeof direct.draw_palette) == 0 && "the same palette after");
+    if (memcmp(direct.screen, memory.screen, sizeof direct.screen) != 0) {
+        fprintf(stderr, "screens differ: button at (0x%08x, 0x%08x) camera (%d, %d)\n", (unsigned)pos.x,
+                (unsigned)pos.y, camera_x, camera_y);
+        assert(0);
+    }
+}
+
+static layout_row_cell_t sprite_cell_of_width(int sprite, int block, int width) {
+    layout_row_tuple_t tuple = {0};
+    tuple.count = 3;
+    tuple.scalars[0] = layout_row_scalar_fixed(p8_fixed_from_int(sprite));
+    tuple.scalars[1] = layout_row_scalar_fixed(p8_fixed_from_int(width));
+    tuple.scalars[2] = layout_row_scalar_fixed(p8_fixed_from_int(block));
+    return layout_row_cell_tuple(tuple);
+}
+
+static layout_row_cell_t sprite_cell(int sprite, int block) {
+    return sprite_cell_of_width(sprite, block, 7);
+}
+
+/* A sprite laid out 2 wide: its pixels run past the border, the image's rightmost column. */
+static void *overhanging_sprite_button(void) {
+    button_keys_t keys = keyed_on_click(button_at(0, 0), counting_on_click);
+    layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_string("ok"));
+    layout_row_keys_append(&keys.layout_row_keys, sprite_cell_of_width(16, 0, 2));
+    return button_new(&keys);
+}
+
+static void *icon_button(int sprite) {
+    button_keys_t keys = keyed_on_click(button_at(0, 0), counting_on_click);
+    layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_fixed(p8_fixed_from_int(sprite)));
+    return button_new(&keys);
+}
+
+static void *text_and_sprite_button(void) {
+    button_keys_t keys = keyed_on_click(button_at(0, 0), counting_on_click);
+    layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_string("normal"));
+    layout_row_keys_append(&keys.layout_row_keys, sprite_cell(24, 2));
+    return button_new(&keys);
+}
+
+/* A price and an income: two texts and three sprites beside the button, on a background colour. */
+static void *side_tooltip_button(void) {
+    button_keys_t keys = keyed_on_click(button_at(0, 0), counting_on_click);
+    layout_row_keys_append(&keys.layout_row_keys, layout_row_cell_string("trade hub"));
+    layout_row_keys_append(&keys.side_tooltip_row, layout_row_cell_string("12"));
+    layout_row_keys_append(&keys.side_tooltip_row, sprite_cell(37, 1));
+    layout_row_keys_append(&keys.side_tooltip_row, layout_row_cell_string("+3"));
+    layout_row_keys_append(&keys.side_tooltip_row, sprite_cell(24, 0));
+    layout_row_keys_append(&keys.side_tooltip_row, sprite_cell(40, 3));
+    keys.side_tooltip_row.has_color = 1;
+    keys.side_tooltip_row.color = p8_fixed_from_int(13);
+    keys.side_tooltip_row.has_background = 1;
+    keys.side_tooltip_row.background = p8_fixed_from_int(1);
+    keys.has_side_tooltip = 1;
+    keys.has_side_tooltip_row = 1;
+    return button_new(&keys);
+}
+
+static void assert_kinds_draw_like_direct(void *const *kinds, int count, vec_t pos, int camera_x, int camera_y) {
+    for (int k = 0; k < count; k++) {
+        button_image_frame_begin();
+        hud_select_palette_block_default(&memory);
+        assert_button_draws_like_direct(kinds[k], pos, camera_x, camera_y);
+    }
+}
+
+/* Every kind of button the game draws, through the image cache, at whole and fractional
+ * positions, at every edge and under three cameras. */
+static void test_every_kind_of_button_draws_through_an_image_like_the_direct_draw(void) {
+    static const int xs[] = {-120, -60, -1, 0, 1, 40, 100, 120, 127, 140};
+    static const int ys[] = {-11, -10, -1, 0, 1, 60, 117, 118, 127};
+    static const int cameras[][2] = {{0, 0}, {-13, 21}, {218, 276}};
+    static const p8_fixed_t fractions[] = {0, P8_FIXED_LIT(0x00008000, 0.5), P8_FIXED_LIT(0x0000e666, 0.9)};
+    void *kinds[8];
+
+    start_game();
+    count_button_images();
+    kinds[0] = icon_button(24);
+    kinds[1] = icon_button(37);
+    button_of(kinds[1])->header.is_hovered = 1;
+    kinds[2] = text_and_sprite_button();
+    kinds[3] = build(button_at(0, 0), "no on-click", NULL);
+    kinds[4] = side_tooltip_button();
+    kinds[5] = side_tooltip_button();
+    button_of(kinds[5])->header.is_hovered = 1;
+    kinds[6] = build(keyed_on_click(button_at(0, 0), counting_on_click), "plain", "12$");
+    kinds[7] = overhanging_sprite_button();
+    for (size_t c = 0; c < sizeof cameras / sizeof cameras[0]; c++) {
+        for (size_t i = 0; i < sizeof xs / sizeof xs[0]; i++) {
+            for (size_t j = 0; j < sizeof ys / sizeof ys[0]; j++) {
+                p8_fixed_t f = fractions[(i + j) % 3];
+                vec_t pos = vec_make(p8_fixed_add(p8_fixed_from_int(xs[i] + cameras[c][0]), f),
+                                     p8_fixed_add(p8_fixed_from_int(ys[j] + cameras[c][1]), fractions[(i + 2 * j) % 3]));
+                assert_kinds_draw_like_direct(kinds, 8, pos, cameras[c][0], cameras[c][1]);
+            }
+        }
+    }
+    printf("[button images] %d builds, %d copies\n", g_button_builds, g_button_copies);
+    assert(g_button_builds == 8 && "each kind is built once");
+    assert(g_button_copies == 8 * 3 * 10 * 9 && "then copied every frame");
+}
+
+/* A row refilled in place (new contents, same address) rebuilds on that frame; an unchanged button
+ * copies. */
+static void test_a_refilled_row_rebuilds_and_an_unchanged_button_copies(void) {
+    layout_row_keys_t keys = {0};
+    void *b;
+
+    start_game();
+    count_button_images();
+    b = icon_button(24);
+    button_image_frame_begin();
+    hud_select_palette_block_default(&memory);
+    assert_button_draws_like_direct(b, vec_at(20, 30), 0, 0);
+    button_image_frame_begin();
+    assert_button_draws_like_direct(b, vec_at(21, 30), 0, 0);
+    assert(g_button_builds == 1 && g_button_copies == 2);
+
+    layout_row_keys_append(&keys, layout_row_cell_fixed(p8_fixed_from_int(37)));
+    layout_row_init(button_of(b)->layout_row, button_of(b)->slot, &keys);
+    button_image_frame_begin();
+    assert_button_draws_like_direct(b, vec_at(21, 30), 0, 0);
+    assert(g_button_builds == 2 && "a new row at the same address is a new image");
+    button_of(b)->header.is_hovered = 1;
+    button_image_frame_begin();
+    assert_button_draws_like_direct(b, vec_at(21, 30), 0, 0);
+    assert(g_button_builds == 3 && "a hover change is a new image");
+}
+
+/* What an image cannot copy exactly draws directly, and the same. */
+static void test_what_an_image_cannot_copy_exactly_draws_directly(void) {
+    button_keys_t fractional = keyed_on_click(button_at(0, 0), counting_on_click);
+    layout_row_tuple_t tuple = {0};
+    void *b;
+    char label[16];
+
+    start_game();
+    count_button_images();
+    b = text_and_sprite_button();
+    hud_select_palette_block_default(&memory);
+    p8_fillp(&graphics, 0x5A5A);
+    assert_button_draws_like_direct(b, vec_at(20, 30), 0, 0);
+    p8_fillp_reset(&graphics);
+    hud_select_palette_block(&memory, p8_fixed_from_int(8));
+    assert_button_draws_like_direct(b, vec_at(20, 30), 0, 0);
+    assert(g_button_builds == 0 && g_button_copies == 0 && "a fill pattern or a remapped palette draws directly");
+
+    tuple.count = 2;
+    tuple.scalars[0] = layout_row_scalar_fixed(p8_fixed_from_int(24));
+    tuple.scalars[1] = layout_row_scalar_fixed(P8_FIXED_LIT(0x00068000, 6.5));
+    layout_row_keys_append(&fractional.layout_row_keys, layout_row_cell_tuple(tuple));
+    layout_row_keys_append(&fractional.layout_row_keys, layout_row_cell_string("half"));
+    b = button_new(&fractional);
+    hud_select_palette_block_default(&memory);
+    assert_button_draws_like_direct(b, vec_at(20, 30), 0, 0);
+    assert_button_draws_like_direct(b, vec_make(P8_FIXED_LIT(0x00148000, 20.5), p8_fixed_from_int(30)), 0, 0);
+    assert(g_button_builds == 0 && "a fractional width or offset draws directly");
+
+    b = build(button_at(0, 0), "a label far too long to copy", NULL);
+    assert(button_of(b)->width > p8_fixed_from_int(BUTTON_IMAGE_WIDE_WIDTH - 2));
+    assert_button_draws_like_direct(b, vec_at(2, 30), 0, 0);
+    assert(g_button_builds == 0 && "a box over the widest slot draws directly");
+    button_of(b)->width = p8_fixed_from_int(60);
+
+    button_image_frame_begin();
+    for (int k = 0; k <= IMAGE_SLOT_BUTTON_WIDE_COUNT; k++) {
+        layout_row_keys_t keys = {0};
+        snprintf(label, sizeof label, "button %d", k);
+        layout_row_keys_append(&keys, layout_row_cell_string(label));
+        layout_row_init(button_of(b)->layout_row, &heap_allocator, &keys);
+        assert_button_draws_like_direct(b, vec_at(10, k * 11), 0, 0);
+    }
+    assert(g_button_builds == IMAGE_SLOT_BUTTON_WIDE_COUNT && g_button_copies == IMAGE_SLOT_BUTTON_WIDE_COUNT
+           && "the button past a full pool draws directly");
+}
+
 /* The first and last screen rows whose column 0 is no longer `background`;
  * -1 if none. */
 static void painted_rows(int background, int *first, int *last) {
@@ -2156,6 +2424,9 @@ int main(void) {
     in_fresh_child(test_projects_panel_on_click);
     in_fresh_child(test_tech_tree_screen_on_click);
     in_fresh_child(test_draw);
+    in_fresh_child(test_every_kind_of_button_draws_through_an_image_like_the_direct_draw);
+    in_fresh_child(test_a_refilled_row_rebuilds_and_an_unchanged_button_copies);
+    in_fresh_child(test_what_an_image_cannot_copy_exactly_draws_directly);
     in_fresh_child(test_hovered_tooltip_rests_on_the_bottom_edge);
     in_fresh_child(test_nil_keys);
     in_fresh_child(test_projects_panel_free_row);

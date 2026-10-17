@@ -933,6 +933,7 @@ ENGINE_SRCS := \
     src/game/background.c \
     src/game/row_image.c \
     src/game/text_image.c \
+    src/game/button_image.c \
     src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
@@ -1537,6 +1538,9 @@ $(TMP_DIR)/test_row_image: $(call objs,tests/test_row_image.c tests/heap_allocat
 $(TMP_DIR)/test_text_image: $(call objs,tests/test_text_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_button_image: $(call objs,tests/test_button_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -1867,6 +1871,7 @@ UNIT_TESTS := \
     test_layout_row \
     test_row_image \
     test_text_image \
+    test_button_image \
     test_economy \
     test_main_economy \
     test_input_step \
