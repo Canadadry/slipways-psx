@@ -1,11 +1,11 @@
 #!/bin/sh
 # usage: lever_estimate.sh <frame-table> <situation-table> <levers-doc> <budget-hblanks> <one-off-allowance-vsyncs> [haircut=<pct>] [projected=<dir>]
-# Applies the lever-table block of <levers-doc> (docs/psx-levers.md) to the
-# frame table joined with the situation table, ranks the levers greedily by
-# the steady frames over the budget they leave, checks the document's order
-# against that ranking, and prints the projection (format in
-# docs/psx-game.md, PC frame profile). Writes the nominal and pessimistic
-# projected tables to <dir>/nominal-frames.txt and
+# Applies the lever-table block of <levers-doc> (a markdown document holding
+# one lever-table block) to the frame table joined with the situation table,
+# ranks the levers greedily by the steady frames over the budget they leave,
+# checks the document's order against that ranking, and prints the
+# projection (format in docs/psx-game.md, PC frame profile). Writes the
+# nominal and pessimistic projected tables to <dir>/nominal-frames.txt and
 # <dir>/pessimistic-frames.txt (default dir tmp/lever-estimate). Exit 0 once
 # written, 3 when the document's order differs from the ranking, 2 on a
 # malformed table or block (naming the file and line), 1 on a usage error.

@@ -1259,9 +1259,10 @@ ambiguous symbol, or `cart_update60`, exits 1.
   It needs each run's `make psx-short-runs` boots and names the missing
   ones; it fails when a run's profile fails or does not add up. It never
   boots.
-- `make lever-estimate [FRAMES=] [SITUATIONS=] [LEVERS=]`
+- `make lever-estimate LEVERS= [FRAMES=] [SITUATIONS=]`
   (`tools/lever_estimate.sh`) reads the one fenced `lever-table` block of
-  `docs/psx-levers.md`: `lever <id> <estimated|measured|in-base> <S|M|L>
+  the markdown document passed as `LEVERS` (required: the target fails
+  without it): `lever <id> <estimated|measured|in-base> <S|M|L>
   basis <calls|share> measure <run|psx-full-game-check> [probe <run|none>]
   [after <id>]`, `gain <id> <steady situation> <update|draw|submit>
   <percent>` and at most one `scale <calls|share> <ratio>` per basis. It
@@ -1500,7 +1501,8 @@ family each), `one-off-runs` (no `long` run).
     prologue and epilogue; `src/game/loading_screen.c` and
     `src/game/button_image.c` sit in the Makefile's `ENGINE_SRCS`, which
     holds no game; e2e frame numbers written inline in capture lists,
-    recipes and tests; the condition counts of `psx-check` copied by hand.
+    recipes and tests. Still open from plan 21: the condition counts of
+    `psx-check` copied by hand.
   - Phase 3 (pixel-identical levers): `src/game/ui_button.c:225` a
     `through_text_image` flag choosing between two draw paths; :336 build
     state passed through the global `g_building_look` though the callback
@@ -1510,8 +1512,8 @@ family each), `one-off-runs` (no `long` run).
     instead of a `has` bit; `src/game/draw_functions.c:111` overriding the
     `PRINT_OUTLINED` entry with a function-pointer parameter; parallel
     `*_text_image` twins in `hud.h`, `draw_functions.h` and `layout.h`;
-    magic numbers in `src/p8/geom.c:24`, :28, :34 (`0x200000`, `0x2000`,
-    `0x100`) and `src/game/slipway_display.c:63` (32765); the button slot
+    magic numbers in `src/engine/geom.c:24`, :28, :34 (`0x200000`,
+    `0x2000`, `0x100`) and `src/game/slipway_display.c:63` (32765); the button slot
     sizes 16×11 and 112×11 repeated in `src/p8/image.h:12`,
     `src/platform/psx_vram_layout.c:35` and :38 and
     `src/game/button_image.h:10` with no compile-time tie;
@@ -1526,8 +1528,8 @@ family each), `one-off-runs` (no `long` run).
     the code; re-baselining it is the human's call.
   - D3's cold-cache rise: two score-panel frames draw more on the measured
     table than on the table before the phase-3 levers (f4887 146 → 160,
-    f5275 130 → 147), neither over 263. Cause unproven (text slots built on a cold cache right after a
-    screen change).
+    f5275 130 → 147), neither over 263. Cause unproven (text slots built
+    on a cold cache right after a screen change).
   - The resumed short runs draw less than the full game. `make
     psx-short-runs` is red on `representative` for `map-rest-5581` (draw
     −17.2%, update −12.5%) and `build-5752` (draw −22.0%); `done`,
@@ -1543,6 +1545,10 @@ family each), `one-off-runs` (no `long` run).
     1,024 frames (`CALL_PROFILE_CHILD_FAMILY_FRAME_CAP`): a per-frame count
     of a primitive under one function later in `full_game.json` needs a
     profile rooted at that function.
+  - `make psx-gpu-capture-ceilings` refuses a run where any condition but
+    its own list's `gpu-capture-ceilings` failed, so a new capture added to
+    both lists at once needs two `psx-check` passes (one list's new capture
+    taken out for the first).
 
 - The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
   `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in

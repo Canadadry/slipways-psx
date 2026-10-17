@@ -702,9 +702,9 @@
 #                       again, 16 levels at most; writes
 #                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
 #                       node is open; never boots, outside the suite
-# make lever-estimate [FRAMES=<frame table>] [SITUATIONS=<situation table>] [LEVERS=<document>]
+# make lever-estimate LEVERS=<document> [FRAMES=<frame table>] [SITUATIONS=<situation table>]
 #                    -> tools/lever_estimate.sh: applies the lever-table block
-#                       of LEVERS (default docs/psx-levers.md) to the frame
+#                       of LEVERS (required, no default) to the frame
 #                       table joined with the situation table (defaults
 #                       psx/perf/full-run-frames.txt and
 #                       psx/perf/full-run-situations.txt), budget 263, one-off
@@ -3035,10 +3035,16 @@ frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
 
 LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
 
+ifneq ($(filter lever-estimate,$(MAKECMDGOALS)),)
+ifeq ($(strip $(LEVERS)),)
+$(error lever-estimate: LEVERS missing: make lever-estimate LEVERS=<document holding one lever-table block> (format in docs/psx-game.md))
+endif
+endif
+
 lever-estimate: tools/lever_estimate.sh tools/psx_real_game_budget.sh
 	@mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/estimate.txt; \
 	sh tools/lever_estimate.sh $(or $(FRAMES),$(FRAME_PROFILE_JUDGE_FRAMES)) $(or $(SITUATIONS),$(SITUATIONS_TABLE)) \
-		$(or $(LEVERS),docs/psx-levers.md) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) \
+		$(LEVERS) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) \
 		projected=$(LEVER_ESTIMATE_DIR) > $$out; status=$$?; \
 	cat $$out; echo "$@: wrote $$out"; exit $$status
 
