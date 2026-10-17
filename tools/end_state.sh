@@ -121,7 +121,7 @@ exec awk -v mode="$mode" '
             split("", state); split("", reference)
             if (mode == "baseline" && (getline line < reference_path) >= 0) {
                 close(reference_path)
-                print prefix "reference kept " reference_path
+                print prefix "reference kept " reference_path " (delete it to re-baseline)"
                 continue
             }
             n = read_sorted(state_path, state, 0)

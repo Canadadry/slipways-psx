@@ -69,4 +69,4 @@ done
     }' | LC_ALL=C sort > "$report"
 cat "$report"
 awk '$2 > 0 { files++; calls += $2 } END { printf "alloc-guard objects %d allocating %d calls %d\n", NR, files, calls }' "$actual"
-[ ! -s "$report" ]
+[ ! -s "$report" ] || { echo "alloc_guard: if intended, edit $list by hand"; exit 1; }

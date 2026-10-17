@@ -122,5 +122,6 @@ exec awk -v list="$list" -v sq="'" '
         used_files = 0
         for (f in used) used_files++
         printf "random-guard files %d calls %d\n", used_files, calls + 0
+        if (n > 0) print "random_guard: if intended, edit " list " by hand"
         exit (n > 0)
     }' "$list" $files

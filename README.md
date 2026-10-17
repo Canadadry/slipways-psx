@@ -1,6 +1,8 @@
 # slipways-love
 
-*Slipways* (PICO-8 edition) ported to C, running on PC through raylib.
+*Slipways* (PICO-8 edition) ported to C, running on PC through raylib and on the PlayStation.
+
+![The title screen with a game to resume](docs/img/title-resume.png) ![A planet's build menu](docs/img/build-menu.png) ![A slipway network mid-game](docs/img/network.png)
 
 ## Running the game
 
@@ -17,7 +19,7 @@ Left alone on the title for 20 seconds, the game plays a short captioned demo of
 
 ## PlayStation build
 
-A PSX build (`docs/psx-game.md`) runs in the pcsx-redux emulator, not yet at 60 fps: its contract is every frame within 263 hblanks there. The Miyoo Mini Flip (PCSX-ReARMed) was never measured.
+The PSX build (`docs/psx-game.md`) packs the game into a CD image, `slipways.bin`/`.cue`, checked in the pcsx-redux emulator, where every frame's budget is 263 hblanks. The Miyoo Mini Flip (PCSX-ReARMed) was never measured.
 
 ## Controls
 
