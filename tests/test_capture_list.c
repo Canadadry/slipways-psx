@@ -86,12 +86,41 @@ static void test_the_script_line_is_the_frame_and_the_mask_in_hex(void) {
     assert(strcmp(line, "391 03ff\n") == 0);
 }
 
+static void test_a_display_entry_has_the_display_mask(void) {
+    assert(parse("replay pad_slipway\nall 12 all\ndisplay 14 display\n"));
+    assert(list.count == 2);
+    assert(strcmp(list.entries[1].label, "display") == 0 && list.entries[1].frame == 14);
+    assert(list.entries[1].mask == CAPTURE_LIST_DISPLAY_MASK);
+    char names[CAPTURE_LIST_NAMES_CAP];
+    capture_list_mask_names(CAPTURE_LIST_DISPLAY_MASK, names);
+    assert(strcmp(names, "display") == 0);
+    char line[CAPTURE_LIST_SCRIPT_LINE_CAP];
+    capture_list_script_line(&list.entries[1], line);
+    assert(strcmp(line, "14 8000\n") == 0);
+}
+
+static void test_a_display_entry_is_refused_where_the_psx_display_is_not_frame_minus_two(void) {
+    assert_refused("replay pad_slipway\ndisplay 14 all\n", "line 2: display takes the mask display, not all");
+    assert_refused("replay pad_slipway\ndisplay 14 cls,display\n", "line 2: display takes the mask display");
+    assert_refused("replay pad_slipway\ncls 14 display\n", "line 2: the mask display needs the label display");
+    assert_refused("replay pad_slipway\nall 14 cls,display\n", "line 2: unknown family display");
+    assert_refused("replay pad_slipway\ndisplay 1 display\n", "line 2: display at frame 1, before frame 2");
+    assert_refused("replay pad_slipway\nall 14 all\ndisplay 14 display\n", "line 3: frame 14 does not increase");
+    assert_refused("replay pad_slipway\nall 13 all\ndisplay 14 display\n",
+                   "line 3: display at frame 14 after a capture at frame 13");
+    assert_refused("replay pad_slipway\nprint 12 cls,print\ndisplay 14 display\n",
+                   "line 3: display at frame 14 shows the masked capture at frame 12");
+    assert(parse("replay pad_slipway\ndisplay 2 display\n"));
+}
+
 int main(void) {
     test_a_valid_list_gives_its_captures_in_order();
     test_a_list_with_no_capture_is_valid();
     test_each_refusal_names_its_line();
     test_mask_names_follow_the_bit_order();
     test_the_script_line_is_the_frame_and_the_mask_in_hex();
+    test_a_display_entry_has_the_display_mask();
+    test_a_display_entry_is_refused_where_the_psx_display_is_not_frame_minus_two();
     printf("test_capture_list: ok\n");
     return 0;
 }

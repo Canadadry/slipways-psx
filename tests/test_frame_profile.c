@@ -226,7 +226,78 @@ static void check_family_units(const char *text, int per_frame) {
     assert(lines > 0);
 }
 
-static void check_profile(const char *events, const char *dir) {
+enum { FAMILY_COUNT = (int)(sizeof FAMILIES / sizeof FAMILIES[0]) };
+
+static int family_index(const char *name) {
+    for (int f = 0; f < FAMILY_COUNT; f++) {
+        if (strcmp(FAMILIES[f], name) == 0) return f;
+    }
+    fprintf(stderr, "test_frame_profile: unknown family \"%s\"\n", name);
+    assert(0 && "family name");
+    return -1;
+}
+
+/* Per frame and family, the child-family and self-family calls sum to the family line's calls:
+ * with cart_draw as the draw root every backend call is under a child or the root's self. */
+static void check_child_families_add_up(const char *frames, int frame_count) {
+    unsigned *family_calls = calloc((size_t)frame_count * FAMILY_COUNT, sizeof *family_calls);
+    unsigned *attributed = calloc((size_t)frame_count * FAMILY_COUNT, sizeof *attributed);
+    assert(family_calls != NULL && attributed != NULL);
+    int child_lines = 0, self_lines = 0;
+    for (const char *line = frames; *line != '\0';) {
+        const char *end = strchr(line, '\n');
+        assert(end != NULL);
+        char text[LINE_CAP];
+        size_t length = (size_t)(end - line);
+        assert(length < sizeof text);
+        memcpy(text, line, length);
+        text[length] = '\0';
+        int frame;
+        char root[16], name[128], family[16];
+        unsigned calls;
+        unsigned long long ns;
+        int tail = 0;
+        if (sscanf(text, "frame %d child-family %15s %127s %15s %u %llu%n", &frame, root, name, family, &calls, &ns,
+                   &tail) == 6) {
+            assert(text[tail] == '\0' && calls > 0);
+            attributed[frame * FAMILY_COUNT + family_index(family)] += calls;
+            child_lines++;
+        } else if (sscanf(text, "frame %d self-family %15s %15s %u %llu%n", &frame, root, family, &calls, &ns, &tail) ==
+                   5) {
+            assert(text[tail] == '\0' && calls > 0);
+            attributed[frame * FAMILY_COUNT + family_index(family)] += calls;
+            self_lines++;
+        } else if (sscanf(text, "frame %d family %15s %u", &frame, family, &calls) == 3) {
+            family_calls[frame * FAMILY_COUNT + family_index(family)] = calls;
+        }
+        line = end + 1;
+    }
+    assert(child_lines > 0);
+    (void)self_lines;
+    for (int i = 0; i < frame_count * FAMILY_COUNT; i++) {
+        if (attributed[i] != family_calls[i]) {
+            fprintf(stderr, "test_frame_profile: frame %d family %s: child-family %u, family %u\n", i / FAMILY_COUNT,
+                    FAMILIES[i % FAMILY_COUNT], attributed[i], family_calls[i]);
+            assert(0 && "child-family calls add up to the family calls");
+        }
+    }
+    free(family_calls), free(attributed);
+}
+
+static int is_loading_frame(const char *frames, int frame) {
+    char line[LINE_CAP];
+    snprintf(line, sizeof line, "frame %d child draw loading_screen_draw 1 ", frame);
+    return has_line_starting(frames, line);
+}
+
+/* A loading frame draws only through loading_screen_draw, and the update after it skips ui_update. */
+static int count_loading_frames(const char *frames, int frame_count) {
+    int count = 0;
+    for (int i = 0; i < frame_count; i++) count += is_loading_frame(frames, i);
+    return count;
+}
+
+static void check_profile(const char *events, const char *dir, int expected_loading_frames) {
     char state[LINE_CAP], replay_state[LINE_CAP];
     snprintf(state, sizeof state, "mkdir -p %s", dir);
     assert(run(state) == 0);
@@ -241,11 +312,13 @@ static void check_profile(const char *events, const char *dir) {
     expect_line(frames, line);
     assert(strstr(frames, " clock monotonic-ns\n") != NULL);
     expect_line(frames, "root draw cart_draw\nroot update cart_update60\n");
+    int loading_frames = count_loading_frames(frames, frame_count);
     for (int i = 0; i < frame_count; i++) {
         snprintf(line, sizeof line, "frame %d update ", i);
         expect_line(frames, line);
+        int loading = is_loading_frame(frames, i);
         for (int c = 0; c < COUNT(DRAW_CHILDREN); c++) {
-            snprintf(line, sizeof line, "frame %d child draw %s 1 ", i, DRAW_CHILDREN[c]);
+            snprintf(line, sizeof line, "frame %d child draw %s %d ", i, DRAW_CHILDREN[c], loading ? 0 : 1);
             expect_line(frames, line);
         }
         for (int c = 0; c < COUNT(UPDATE_CHILDREN); c++) {
@@ -263,14 +336,22 @@ static void check_profile(const char *events, const char *dir) {
         snprintf(line, sizeof line, "frame %d in-call ", i);
         expect_line(frames, line);
     }
+    if (loading_frames != expected_loading_frames) {
+        fprintf(stderr, "test_frame_profile: %s: %d loading frame(s), expected %d\n", events, loading_frames,
+                expected_loading_frames);
+        assert(0 && "loading frame count");
+    }
     check_times_add_up(frames, frame_count);
     check_family_units(frames, 1);
+    check_child_families_add_up(frames, frame_count);
+    snprintf(line, sizeof line, "frame %d child-family draw p8_cls cls 1 ", frame_count - 1);
+    expect_line(frames, line);
 
     char *summary = profile_file(dir, "summary.txt");
     snprintf(line, sizeof line, "profile %s frames %d hook-pair-ns ", events, frame_count);
     expect_line(summary, line);
     expect_line(summary, "root draw cart_draw\nroot update cart_update60\n");
-    snprintf(line, sizeof line, "child draw draw_layers#2 %d ", frame_count);
+    snprintf(line, sizeof line, "child draw draw_layers#2 %d ", frame_count - loading_frames);
     expect_line(summary, line);
     snprintf(line, sizeof line, "family cls %d ", frame_count);
     expect_line(summary, line);
@@ -301,12 +382,12 @@ static void check_profile(const char *events, const char *dir) {
 }
 
 static void test_a_title_start_recording(void) {
-    check_profile(TITLE_EVENTS, OUT "/title");
+    check_profile(TITLE_EVENTS, OUT "/title", 2);
 }
 
 static void test_a_resume_start_recording(void) {
     write_resume_events();
-    check_profile(RESUME_EVENTS, OUT "/resume");
+    check_profile(RESUME_EVENTS, OUT "/resume", 0);
 }
 
 static void test_a_draw_layers_root_lists_the_draw_methods_it_dispatches(void) {
@@ -341,7 +422,8 @@ static void test_a_ui_update_root_lists_the_functions_ui_update_calls(void) {
     char *summary = profile_file(dir, "summary.txt");
     expect_line(summary, "root draw cart_draw\nroot update ui_update\n");
     char line[LINE_CAP];
-    snprintf(line, sizeof line, "child update ui_update_hover %d ", replay_frames(TITLE_EVENTS, OUT "/ui_update_replay_state.txt"));
+    int frame_count = replay_frames(TITLE_EVENTS, OUT "/ui_update_replay_state.txt");
+    snprintf(line, sizeof line, "child update ui_update_hover %d ", frame_count - count_loading_frames(frames, frame_count));
     expect_line(summary, line);
     free(summary), free(frames);
 }

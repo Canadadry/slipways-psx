@@ -3,7 +3,8 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
 #                       alloc-guard + pointer-guard + random-guard +
-#                       button-guard + data-guard + p8-guard, the fast loop
+#                       button-guard + data-guard + p8-guard +
+#                       pad-author-self-check, the fast loop
 # make e2e           -> replays each e2e of tests/e2e/ from the title screen,
 #                       with the `-O0` binary of make test, and compares the
 #                       sha256 of its capture to <name>.json.sha256; also fails
@@ -210,8 +211,8 @@
 # make pad-metrics-check -> regenerates tests/e2e/pad_colonise.json from its
 #                       proof script, then fails unless the report's `total `
 #                       lines equal the generator's and its required group is
-#                       exactly f16's button 7, f17's button 6 (aim mode,
-#                       nothing known) and f293's button 6, outside the suite
+#                       exactly f18's button 7, f19's button 6 (aim mode,
+#                       nothing known) and f295's button 6, outside the suite
 # make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
 #                       as make state does and prints, per line of
 #                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
@@ -405,7 +406,13 @@
 #                       (as psx-game-cd-check does) and psx-largest-slots
 #                       (ceiling PSX_LARGEST_SLOTS_CEILING vsyncs, timeout
 #                       PSX_LARGEST_SLOTS_TIMEOUT s) until they exit, six
-#                       boots, then prints one line per condition
+#                       boots, then, for the second capture replay
+#                       tests/e2e/pad_message_box.json (its PC run with
+#                       CAPTURE_LIST=psx/gpu_captures_message_box.txt, its GPU
+#                       replay alone built in tmp/psx/game-check/message-box/build,
+#                       booted twice, ceiling PSX_MESSAGE_BOX_GPU_CEILING vsyncs,
+#                       timeout PSX_MESSAGE_BOX_GPU_TIMEOUT s), two more, then
+#                       prints one line per condition
 #                       (magic, asserts-on, format against
 #                       tmp/format_self_test, replay-done, state-game-lines, sprite-sheet, screen, map,
 #                       gpu-replay-done, gpu-state-game-lines, gpu-cost: its
@@ -414,7 +421,10 @@
 #                       seven gpu-capture-* conditions of
 #                       tools/psx_capture_check.sh against
 #                       psx/gpu_capture_ceilings.txt and
-#                       psx/gpu_capture_references.txt,
+#                       psx/gpu_capture_references.txt, the same seven
+#                       as message-box-gpu-capture-* on the second replay
+#                       against psx/gpu_capture_ceilings_message_box.txt and
+#                       psx/gpu_capture_references_message_box.txt,
 #                       no-json through PSX_NM on both replay ELFs and the game
 #                       ELF, pad-script, the seven game-* conditions of
 #                       tools/psx_game_check.sh on the CD boot (game-gpu-cost:
@@ -436,13 +446,18 @@
 #                       tmp/psx/game-check/run, the capture reports, diff maps
 #                       and images in its gpu-captures/, the game's outputs
 #                       in its game/ and the extracted disc in its game-cd/,
-#                       ~115 s; never runs a setup, outside the
+#                       ~125 s; never runs a setup, outside the
 #                       suite
-# make psx-gpu-capture-ceilings LABEL=<label> -> writes the differ counts of
+# make psx-gpu-capture-ceilings LABEL=<label> [CAPTURES=message_box]
+#                    -> writes the differ counts of
 #                       that label's captures from the last psx-check run into
-#                       psx/gpu_capture_ceilings.txt, other labels untouched;
+#                       psx/gpu_capture_ceilings.txt (with CAPTURES=message_box,
+#                       the second replay's into
+#                       psx/gpu_capture_ceilings_message_box.txt), other labels untouched;
 #                       refused unless every other condition passed
-# make psx-gpu-capture-accept LABEL=<label> -> accepts a label, run by an
+# make psx-gpu-capture-accept LABEL=<label> [CAPTURES=message_box]
+#                    -> accepts a label (CAPTURES as above, into
+#                       psx/gpu_capture_references_message_box.txt), run by an
 #                       agent only when all its captures differ 0 from the PC,
 #                       otherwise by the human: after a green psx-check, writes the sha256 of
 #                       that label's captures (every frame of a label such as
@@ -474,14 +489,28 @@
 #                       taken from the PC state, through
 #                       tools/psx_frame_budget.sh: timer, frame-budget: no
 #                       frame above PSX_FRAME_BUDGET_HBLANKS, zone-sizes,
-#                       cap-sizes, then gpu-ram-room: ram-room on the GPU ELF)
+#                       cap-sizes, then real-game-budget: frames.txt joined
+#                       with PSX_FULL_GAME_SITUATIONS (default
+#                       psx/perf/full-run-situations.txt), no steady frame
+#                       above PSX_FRAME_BUDGET_HBLANKS and the one-off frames'
+#                       vsyncs over it at most PSX_REAL_GAME_ONE_OFF_VSYNCS,
+#                       then gpu-ram-room: ram-room on the GPU ELF)
 #                       through tools/psx_full_game_check.sh, printing every
-#                       frame line and the frame summary; measurements.txt
+#                       frame line, the frame summary and the real-game
+#                       figures; measurements.txt
 #                       gains the PC's gpu_* lines and the GPU replay's
 #                       gpu-peak line behind "gpu ", the summary behind
-#                       "gpu frame " (outputs in
+#                       "gpu frame ", the real-game figures behind "gpu " (outputs in
 #                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
 #                       outside the suite
+# make psx-real-game-budget [FRAMES=<frame table>] [SITUATIONS=<situation table>]
+#                    -> tools/psx_real_game_budget.sh on the two tables
+#                       (defaults psx/perf/full-run-frames.txt and
+#                       PSX_FULL_GAME_SITUATIONS): steady frames over
+#                       PSX_FRAME_BUDGET_HBLANKS with the worst one, one-off
+#                       frames over it and their vsyncs against
+#                       PSX_REAL_GAME_ONE_OFF_VSYNCS, the verdict; fails when
+#                       it is failed; never boots or builds, outside the suite
 # make psx-short-runs-cut [PSX_SHORT_RUNS=<names>] -> cuts each run of
 #                       psx/short_runs.txt (or those named) out of
 #                       PSX_FULL_GAME_EVENTS with tmp/short_run_cut into
@@ -673,33 +702,72 @@
 #                       again, 16 levels at most; writes
 #                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
 #                       node is open; never boots, outside the suite
-# make lever-estimate ESTIMATE_RUN=draw-5564|draw-6000 [ESTIMATE_END=measured|estimated] [ESTIMATE_ALLOCATION=sequential|independent] [ESTIMATE_HAIRCUT=<pct>] [ESTIMATE_GAINS=<file>] [ESTIMATE_LABEL=<label>]
-#                    -> tools/lever_estimate.sh on plan 20's judge table
-#                       psx/perf/report-judge-frames.txt,
-#                       psx/perf/spike-frames.txt and the gain
-#                       table (default psx/perf/gains.txt, whose
-#                       in-game@<run> rows need ESTIMATE_RUN): per judge frame
-#                       the estimate against 263 after the end's levers
-#                       (default measured), each spike frame's work spread
-#                       (default sequential; a spike frame fits only if its
-#                       own leftover is within 263 too), per class, the summary and
-#                       each lever's gain alone; writes
-#                       tmp/lever-estimate/<label>.txt (label default
-#                       <end>[-<run>]) and prints all but its frame lines;
+# make lever-estimate LEVERS=<document> [FRAMES=<frame table>] [SITUATIONS=<situation table>]
+#                    -> tools/lever_estimate.sh: applies the lever-table block
+#                       of LEVERS (required, no default) to the frame
+#                       table joined with the situation table (defaults
+#                       psx/perf/full-run-frames.txt and
+#                       psx/perf/full-run-situations.txt), budget 263, one-off
+#                       allowance 10800; prints the steady mean cost and 2%
+#                       threshold, the steady frames over after each lever in
+#                       the greedy ranking and at the end, nominal and
+#                       pessimistic (every gain x 0.8), whether the
+#                       document's order is the ranking, and real-game-budget
+#                       on both projected tables; writes
+#                       tmp/lever-estimate/estimate.txt and the projected
+#                       tables; fails on a stale order or a malformed input;
 #                       never boots, outside the suite
-# make lever-estimate-check -> tools/lever_estimate_check.sh: the estimate,
-#                       under step 9's spike rule (spike-rule=step9),
-#                       reproduces step 9's spreading on plan 20's judge
-#                       table psx/perf/report-judge-frames.txt and spike
-#                       frames with the gain tables of
-#                       tests/fixtures/lever_estimate/ (uniform 88%: no spike
-#                       frame does-not-fit; 87%: frame 6043 does not fit;
-#                       80.7% in game, 74.8% on frame 12: exactly frame 6043,
-#                       every class's figures as step 9's) and its spike
-#                       lines equal frame_profile_check.sh spread's; fails
-#                       naming each result not reproduced; outputs in
-#                       tmp/lever-estimate/check/; never boots, outside the
+# make situations [EVENTS=<events>] [SITUATIONS_OUT=<file>] -> builds
+#                       tmp/situations and replays the file (default
+#                       worst-case/full_game.json) headless, writing one
+#                       "<frame> <situation> <family>" line per frame under a
+#                       "frame situation family" header to SITUATIONS_OUT
+#                       (default tmp/situations-table/<name>.txt), outside the
 #                       suite
+# make situations-check -> regenerates worst-case/full_game.json's situation
+#                       table into tmp/situations-table/full_game.txt and
+#                       fails on any difference with
+#                       psx/perf/full-run-situations.txt, naming the first
+#                       differing frame (~2 s), outside the suite
+# make situation-report [FRAMES=<frame table>] [SITUATIONS=<situation table>]
+#                       -> tools/situation_report.sh: per situation its frames,
+#                       frames over 263, mean update and draw; per one-off its
+#                       occurrences and longest run (long past 31 frames);
+#                       verdicts frame-count, families, one-off-runs (defaults
+#                       psx/perf/full-run-frames.txt and
+#                       psx/perf/full-run-situations.txt), outside the suite
+# make steady-windows [FRAMES=<frame table>] [SITUATIONS=<situation table>]
+#                       -> tools/steady_windows.sh on the two tables (same
+#                       defaults), budget 263, windows of 15, 3 candidates:
+#                       per steady situation over, its candidate windows,
+#                       outside the suite
+# make short-run-situations [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut
+#                       and builds tmp/situations, then per run labels its
+#                       run.json into <run>/situations.txt and checks with
+#                       tools/short_run_situations.sh that every window frame
+#                       carries the full game's steady situation of
+#                       psx/perf/full-run-situations.txt; fails when a run is
+#                       not "same"; never boots, outside the suite
+# make steady-profile [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
+#                    -> pools the breakdown-vs-plain overhead per backend call
+#                       over every manifest run named after a steady
+#                       situation (tmp/frame-profile/steady/overhead.txt),
+#                       then per run (default those runs) profiles run.json K
+#                       times rooted at draw_layers/cart_update60 and at
+#                       cart_draw/input_step_run and runs
+#                       tools/steady_profile.sh profile with
+#                       psx/perf/draw-functions.txt into
+#                       tmp/frame-profile/steady/<run>/summary.txt: per
+#                       function group and function, hblanks inside the
+#                       primitives and in the game's code, the update pieces,
+#                       submit and the adds-up line; flags a run the manifest
+#                       marks "no representative run"; with PSX_SHORT_RUNS
+#                       unset, a steady situation with no run, or one the
+#                       manifest marks "no representative run", is shared by
+#                       PC time over the full game's frames over 263 (no-run,
+#                       tmp/frame-profile/steady/<situation>/summary.txt);
+#                       needs make psx-short-runs, fails on a missing boot or
+#                       an adds-up failed; never boots, outside the suite
 # make frame-profile-test -> host tests of the PC frame profile tool,
 #                       outside make test, make test-all, make e2e and
 #                       psx-tools-test
@@ -865,10 +933,12 @@ ENGINE_SRCS := \
     src/game/background.c \
     src/game/row_image.c \
     src/game/text_image.c \
+    src/game/button_image.c \
     src/game/bindings.c \
     src/engine/bootstrap.c \
     src/game/cheat.c \
     src/game/demo_overlay.c \
+    src/game/loading_screen.c \
     src/game/input_step.c \
     src/game/pad_nav.c \
     src/game/pad_panel.c \
@@ -968,6 +1038,7 @@ CART_ONLY_SRCS := \
     $(DEMO_UNIT) \
     src/game/attract.c \
     src/game/demo_overlay.c \
+    src/game/loading_screen.c \
     src/game/cart.c \
     src/game/cheat.c \
     src/game/input_step.c \
@@ -1047,6 +1118,24 @@ $(TMP_DIR)/test_capture_list: $(call objs,tests/test_capture_list.c src/devtools
 $(TMP_DIR)/test_short_run_cut: $(call objs,tests/test_short_run_cut.c src/devtools/short_run_cut.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_situation: $(call objs,tests/test_situation.c src/devtools/situation.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_situation_table: $(call objs,tests/test_situation_table.c src/devtools/situation.c src/devtools/pad_metrics.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) psx/perf/full-run-situations.txt | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_situation_report: $(call objs,tests/test_situation_report.c) tools/situation_report.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_steady_windows: $(call objs,tests/test_steady_windows.c) tools/steady_windows.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_short_run_situations: $(call objs,tests/test_short_run_situations.c) tools/short_run_situations.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_situations: $(call objs,tests/test_situations.c) $(TMP_DIR)/situations tests/e2e/pad_score.json tests/e2e/pad_probe.json tests/e2e/pad_game_end.json pico8/demo_record.hex | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_capture_compare: $(call objs,tests/test_capture_compare.c src/devtools/capture_compare.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1057,6 +1146,9 @@ $(TMP_DIR)/test_psx_gpu_textures: $(call objs,tests/test_psx_gpu_textures.c src/
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_clut_cache: $(call objs,tests/test_psx_clut_cache.c src/platform/psx_clut_cache.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/gfx_software.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_psx_slot_uploads: $(call objs,tests/test_psx_slot_uploads.c src/platform/psx_slot_uploads.c src/platform/psx_clut_cache.c src/platform/psx_pattern_cache.c src/platform/psx_vram_layout.c src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/p8/palette.c src/p8/draw_cost.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_psx_gpu_peaks: $(call objs,tests/test_psx_gpu_peaks.c src/platform/psx_gpu_peaks.c) | $(TMP_DIR)
@@ -1204,6 +1296,9 @@ $(TMP_DIR)/test_psx_emulator_setup: $(call objs,tests/test_psx_emulator_setup.c)
 $(TMP_DIR)/test_psx_frame_budget: $(call objs,tests/test_psx_frame_budget.c) tools/psx_frame_budget.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_psx_real_game_budget: $(call objs,tests/test_psx_real_game_budget.c) tools/psx_real_game_budget.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_psx_short_run: $(call objs,tests/test_psx_short_run.c) tools/psx_short_run.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1262,7 +1357,7 @@ $(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools
 $(TMP_DIR)/test_palette: $(call objs,tests/test_palette.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_hud: $(call objs,tests/test_hud.c src/game/hud.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/fixed.c src/p8/assets.c) | $(TMP_DIR)
+$(TMP_DIR)/test_hud: $(call objs,tests/test_hud.c src/game/hud.c src/game/text_image.c src/p8/image.c src/platform/fatal_pc.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/fixed.c src/p8/assets.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_vec: $(call objs,tests/test_vec.c src/engine/vec.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
@@ -1443,10 +1538,16 @@ $(TMP_DIR)/test_row_image: $(call objs,tests/test_row_image.c tests/heap_allocat
 $(TMP_DIR)/test_text_image: $(call objs,tests/test_text_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_button_image: $(call objs,tests/test_button_image.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_economy: $(call objs,tests/test_economy.c tests/heap_allocator.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_main_economy: $(call objs,tests/test_main_economy.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_loading_screen: $(call objs,tests/test_loading_screen.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_input_step: $(call objs,tests/test_input_step.c src/devtools/replay_source.c src/devtools/session_recorder.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
@@ -1653,6 +1754,10 @@ UNIT_TESTS := \
     test_draw_timing \
     test_capture_list \
     test_short_run_cut \
+    test_situation \
+    test_situations \
+    test_situation_table \
+    test_situation_report \
     test_capture_compare \
     test_input \
     test_dump \
@@ -1766,9 +1871,11 @@ UNIT_TESTS := \
     test_layout_row \
     test_row_image \
     test_text_image \
+    test_button_image \
     test_economy \
     test_main_economy \
     test_input_step \
+    test_loading_screen \
     test_pad_nav \
     test_pad_panel \
     test_entity_geom \
@@ -1778,6 +1885,7 @@ UNIT_TESTS := \
     test_psx_image \
     test_psx_text \
     test_psx_pattern_cache \
+    test_psx_slot_uploads \
     test_psx_gpu_peaks \
     test_psx_pattern \
     test_pad_target \
@@ -1804,8 +1912,8 @@ unit: $(UNIT_RUNS)
 
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
-	test_psx_full_game_check test_psx_frame_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
-	test_psx_probe test_psx_opt_level
+	test_psx_full_game_check test_psx_frame_budget test_psx_real_game_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
+	test_psx_probe test_psx_opt_level test_steady_windows test_short_run_situations
 
 psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
@@ -1863,7 +1971,7 @@ endif
 replay: $(TMP_DIR)/replay
 	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard pad-author-self-check
 
 test-all: test e2e
 
@@ -1976,7 +2084,7 @@ full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
 
 .PHONY: full-game
 
-PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_caption.c src/devtools/record_start.c src/devtools/pad_metrics.c $(STATE_SRCS) $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+PAD_AUTHOR_SRCS := src/cmd/pad_author.c src/devtools/pad_author.c src/devtools/pad_caption.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/situation.c $(STATE_SRCS) $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
 PAD_AUTHOR_SCRIPTS := $(wildcard worst-case/*.pad)
 
 $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
@@ -1990,6 +2098,14 @@ pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
 	@./$(TMP_DIR)/pad_author pico8/demo.pad pico8/demo.json --no-aim-budget
 endif
+
+PAD_AUTHOR_SELF_CHECK_SCRIPT := tools/pad_author_proofs/pad_probe.frames.pad
+
+pad-author-self-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_SELF_CHECK_SCRIPT)
+	@./$(TMP_DIR)/pad_author $(PAD_AUTHOR_SELF_CHECK_SCRIPT) $(TMP_DIR)/pad-author/self_check.json --no-aim-budget > /dev/null
+	@echo "pad-author-self-check: $(PAD_AUTHOR_SELF_CHECK_SCRIPT) replays to pad_author's own state"
+
+.PHONY: pad-author-self-check
 
 PAD_AUTHOR_FRAME_PROOFS := $(wildcard tools/pad_author_proofs/*.frames.pad)
 PAD_AUTHOR_END_STATE_PROOFS := $(wildcard tools/pad_author_proofs/*.end-state.pad)
@@ -2014,7 +2130,7 @@ pad_metrics_name = $(PAD_METRICS_DIR)/$(basename $(notdir $(1)))
 pad_metrics_run = PAD_METRICS=$(call pad_metrics_name,$(1)).txt ./$(TMP_DIR)/replay $(1) /dev/null $(call pad_metrics_name,$(1)).dump.txt > /dev/null || exit 1; echo "pad-metrics: $(1) -> $(call pad_metrics_name,$(1)).txt"; grep '$(3)' $(call pad_metrics_name,$(1)).txt; $(if $(filter 1,$(2)),grep -qx 'section4 verdict ok' $(call pad_metrics_name,$(1)).txt || { echo "pad-metrics: $(1) misses section 4"; exit 1; };)
 PAD_METRICS_PROOF := tools/pad_author_proofs/pad_colonise.frames.pad
 PAD_METRICS_PROOF_E2E := $(E2E_DIR)/pad_colonise.json
-PAD_METRICS_PROOF_REQUIRED := dead f16 press 7 aim required;dead f17 press 6 aim required;dead f293 press 6 jump required
+PAD_METRICS_PROOF_REQUIRED := dead f18 press 7 aim required;dead f19 press 6 aim required;dead f295 press 6 jump required
 
 pad-metrics: $(TMP_DIR)/replay
 	@test -n "$(EVENTS)" || { echo "pad-metrics: EVENTS=<events.json> is required"; exit 2; }
@@ -2033,9 +2149,35 @@ pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) 
 	@grep '^total ' $(TMP_DIR)/pad-author/pad_colonise.modes.txt > $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt
 	@grep '^total ' $(PAD_METRICS_DIR)/pad_colonise.txt | diff $(PAD_METRICS_DIR)/pad_colonise.generator-totals.txt - || { echo "pad-metrics-check: the totals differ from the generator's"; exit 1; }
 	@required=$$(grep -E ' (required|dead-required)$$' $(PAD_METRICS_DIR)/pad_colonise.txt | paste -sd ';' -); test "$$required" = "$(PAD_METRICS_PROOF_REQUIRED)" || { echo "pad-metrics-check: required group is '$$required', not '$(PAD_METRICS_PROOF_REQUIRED)'"; exit 1; }
-	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f16's button 7, f17's button 6 and f293's button 6"
+	@echo "pad-metrics-check: totals equal the generator's; the required group is exactly f18's button 7, f19's button 6 and f295's button 6"
 
 .PHONY: pad-metrics pad-metrics-worst-case pad-metrics-check
+
+SITUATIONS_SRCS := src/cmd/situations.c src/devtools/situation.c src/devtools/pad_metrics.c src/devtools/record_start.c src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
+SITUATIONS_EVENTS := worst-case/full_game.json
+
+$(TMP_DIR)/situations: $(call objs,$(SITUATIONS_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+situations: $(TMP_DIR)/situations
+	@events=$(or $(EVENTS),$(SITUATIONS_EVENTS)); out=$(or $(SITUATIONS_OUT),$(TMP_DIR)/situations-table/$$(basename $$events .json).txt); \
+	mkdir -p $$(dirname $$out) && ./$(TMP_DIR)/situations $$events $$out && echo "situations: $$events -> $$out"
+
+SITUATIONS_TABLE := psx/perf/full-run-situations.txt
+
+situations-check: $(TMP_DIR)/situations
+	@out=$(TMP_DIR)/situations-table/full_game.txt; mkdir -p $$(dirname $$out) && ./$(TMP_DIR)/situations $(SITUATIONS_EVENTS) $$out || exit 1; \
+	first=$$(diff $(SITUATIONS_TABLE) $$out | sed -n 's/^[<>] \([0-9][0-9]*\) .*/\1/p' | sort -n | head -1); \
+	if cmp -s $(SITUATIONS_TABLE) $$out; then echo "situations-check: $$out equals $(SITUATIONS_TABLE)"; \
+	else echo "situations-check: $$out differs from $(SITUATIONS_TABLE), first at frame $${first:-header}"; exit 1; fi
+
+situation-report:
+	@sh tools/situation_report.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) $(or $(SITUATIONS),$(SITUATIONS_TABLE))
+
+steady-windows:
+	@sh tools/steady_windows.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) $(or $(SITUATIONS),$(SITUATIONS_TABLE)) 263 15 3
+
+.PHONY: situations situations-check situation-report steady-windows
 
 WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
 
@@ -2257,7 +2399,7 @@ PSX_CORE_UNITS := $(BINDINGS_CORE_UNIT) $(DEMO_UNIT)
 PSX_REPLAY_SRCS := src/cmd/psx_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) \
 	src/devtools/state_format.c src/devtools/format_self_test.c src/devtools/vram_digest.c $(PSX_PLATFORM_SRCS) $(PSX_EMBEDDED_REPLAY)
 PSX_GPU_BACKEND_SRCS := src/platform/psx_gpu.c src/platform/psx_tiles.c src/platform/psx_sprite.c src/platform/psx_image.c src/platform/psx_text.c \
-	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c src/platform/psx_gpu_peaks.c \
+	src/platform/psx_clut_cache.c src/platform/psx_pattern.c src/platform/psx_pattern_cache.c src/platform/psx_slot_uploads.c src/platform/psx_gpu_peaks.c \
 	src/platform/psx_gpu_textures.c src/platform/psx_colour.c src/platform/psx_vram_layout.c src/p8/palette.c
 PSX_GPU_REPLAY_SRCS := src/cmd/psx_gpu_replay.c $(CORE_SRCS) $(PSX_CORE_UNITS) src/devtools/state_format.c src/devtools/format_self_test.c \
 	src/devtools/draw_filter.c src/devtools/frame_times.c src/platform/psx_frame_timer.c $(PSX_GPU_BACKEND_SRCS) \
@@ -2377,6 +2519,8 @@ PSX_FULL_GAME_GPU_CEILING ?= 31500
 PSX_FULL_GAME_GPU_TIMEOUT ?= 525
 # One NTSC vsync in horizontal blanks: plan 11 step 4 must never raise it.
 PSX_FRAME_BUDGET_HBLANKS := 263
+PSX_REAL_GAME_ONE_OFF_VSYNCS := 10800
+PSX_FULL_GAME_SITUATIONS ?= psx/perf/full-run-situations.txt
 
 PSX_FULL_GAME_ASSERTS ?= off
 # Checked at parse time: under -j a checking prerequisite would race the build.
@@ -2398,8 +2542,16 @@ psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 		&& sh tools/psx_full_game_check.sh $(PSX_EMULATOR_DIR) $(PSX_FULL_GAME_DIR)/build/psx-replay.exe \
 			$(PSX_FULL_GAME_DIR)/build/psx-gpu-replay.exe $(PSX_FULL_GAME_DIR)/pc_state.txt \
 			$(PSX_FULL_GAME_DIR)/pc_digest.txt "$$frames" $(PSX_FULL_GAME_CEILING) $(PSX_FULL_GAME_TIMEOUT) \
-			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_SIZE) \
+			$(PSX_FULL_GAME_GPU_CEILING) $(PSX_FULL_GAME_GPU_TIMEOUT) $(PSX_FRAME_BUDGET_HBLANKS) \
+			$(PSX_FULL_GAME_SITUATIONS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) $(PSX_SIZE) \
 			$(PSX_STACK_RESERVE) $(PSX_FULL_GAME_DIR)/run
+
+psx-real-game-budget:
+	@out=$$(sh tools/psx_real_game_budget.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) \
+		$(or $(SITUATIONS),$(PSX_FULL_GAME_SITUATIONS)) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS)) \
+		|| exit 1; printf '%s\n' "$$out"; ! printf '%s\n' "$$out" | grep -q '^real-game-budget failed'
+
+.PHONY: psx-real-game-budget
 
 PSX_SHORT_RUNS_MANIFEST := psx/short_runs.txt
 PSX_SHORT_RUNS_DIR := $(TMP_DIR)/psx/short-runs
@@ -2436,6 +2588,21 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 		fi; \
 	done; \
 	exit $$failed
+
+short-run-situations: psx-short-runs-cut $(TMP_DIR)/situations tools/short_run_situations.sh $(SITUATIONS_TABLE)
+	@failed=; \
+	for name in $${PSX_SHORT_RUNS:-$$(awk '!/^[[:space:]]*(#|$$)/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
+		dir=$(PSX_SHORT_RUNS_DIR)/$$name; \
+		./$(TMP_DIR)/situations $$dir/run.json $$dir/situations.txt > $$dir/situations.log 2>&1 \
+			|| { echo "short-run-situation $$name failed: tmp/situations stopped ($$dir/situations.log)"; failed="$$failed $$name"; continue; }; \
+		line=$$(sh tools/short_run_situations.sh $$dir/situations.txt $$dir/map.txt $(SITUATIONS_TABLE)) \
+			|| { failed="$$failed $$name"; continue; }; \
+		echo "$$line"; \
+		case "$$line" in "short-run-situation $$name same "*) ;; *) failed="$$failed $$name" ;; esac; \
+	done; \
+	if [ -n "$$failed" ]; then echo "short-run-situations: failed:$$failed"; exit 1; fi
+
+.PHONY: short-run-situations
 
 PSX_SHORT_RUN_REFERENCE ?= $(PSX_FULL_GAME_DIR)/run/frame-budget/frames.txt
 PSX_SHORT_RUN_CEILING ?= 1080
@@ -2599,7 +2766,7 @@ psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS
 	if [ -n "$$invalid" ]; then echo "$@: $$label: invalid:$$invalid"; exit 1; fi; \
 	echo "$@: $$label: valid"
 
-FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check test_lever_estimate
+FRAME_PROFILE_TESTS := test_call_profile test_frame_profile test_frame_profile_check test_lever_estimate test_steady_profile
 
 # Only the game, the engine and the PICO-8 runtime are instrumented: the hooks
 # must never see themselves or the replay harness.
@@ -2759,7 +2926,7 @@ frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_pr
 	done; \
 	cat $$out/spikes.txt; exit $$status
 
-FRAME_PROFILE_ORDINARY_WINDOWS := draw-5564=5564-5578@27.0,draw-6000=6000-6014@19.6
+FRAME_PROFILE_ORDINARY_WINDOWS := draw-5564=5566-5580@27.0,draw-6000=6002-6016@19.6
 
 # Like frame-profile-spikes, with two base roots (cart_update60 and input_step_run) and its own
 # ordinary/<symbol>/<k> profiles, so neither target stales the other's.
@@ -2794,6 +2961,66 @@ frame-profile-ordinary: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_
 	done; \
 	cat $$out/ordinary.txt; exit $$status
 
+STEADY_SITUATIONS := map-rest map-move build menu slipway-aim tech-panel score-panel
+STEADY_PROFILE_GROUPS := psx/perf/draw-functions.txt
+STEADY_PROFILE_DIR := $(FRAME_PROFILE_DIR)/steady
+
+# The pooled overhead is always over every steady run of the manifest; PSX_SHORT_RUNS only narrows
+# the runs profiled. A steady situation with no run of the manifest, or marked "no representative
+# run", is profiled on the full game's frames over the budget (no-run), only when PSX_SHORT_RUNS is
+# unset.
+steady-profile: $(TMP_DIR)/frame_profile tools/end_state.sh tools/steady_profile.sh tools/frame_profile_check.sh \
+		psx-short-runs-cut $(STEADY_PROFILE_GROUPS) $(FRAME_PROFILE_JUDGE_FRAMES) $(SITUATIONS_TABLE)
+	@$(frame_profile_function); \
+	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
+	out=$(STEADY_PROFILE_DIR); mkdir -p $$out; \
+	steady=$$(awk -v situations="$(STEADY_SITUATIONS)" 'BEGIN { n = split(situations, names, " ") } \
+		$$1 !~ /^#/ && NF { for (i = 1; i <= n; i++) if (index($$1, names[i] "-") == 1) { print $$1; break } }' $(PSX_SHORT_RUNS_MANIFEST) | tr '\n' ' '); \
+	specs=; missing=; \
+	for name in $$steady; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; \
+		if [ ! -f $$short/breakdown.tty.txt ] || [ ! -f $$short/plain-1.tty.txt ]; then missing="$$missing $$name"; continue; fi; \
+		specs="$$specs $$short/breakdown.tty.txt:$$short/plain-1.tty.txt:$$short/map.txt"; \
+	done; \
+	if [ -n "$$missing" ]; then echo "$@: no breakdown or plain-1 boot for:$$missing: run make psx-short-runs PSX_SHORT_RUNS=\"$${missing# }\""; exit 1; fi; \
+	sh tools/steady_profile.sh overhead $$specs > $$out/overhead.txt || exit 1; \
+	echo "$@: pooled: $$(cat $$out/overhead.txt)"; overhead=$$(awk '{ print $$2 }' $$out/overhead.txt); \
+	profile_sets() { \
+		draws=; carts=; \
+		for k in $$(seq 1 $(FRAME_PROFILE_REPEATS)); do \
+			profile $$1 $$2 $$3/draw/$$k draw_layers cart_update60 >&2 || return 1; \
+			profile $$1 $$2 $$3/cart/$$k cart_draw input_step_run >&2 || return 1; \
+			draws="$$draws,$$3/draw/$$k/frames.txt"; carts="$$carts,$$3/cart/$$k/frames.txt"; \
+		done; \
+		echo "$${draws#,} $${carts#,}"; \
+	}; \
+	failed=; \
+	for name in $${PSX_SHORT_RUNS:-$$steady}; do \
+		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$$out/$$name; rm -rf $$dir; mkdir -p $$dir; \
+		sets=$$(profile_sets $$short/run.json $$short/run.end-state $$dir) || { failed="$$failed $$name"; continue; }; \
+		awk -v name=$$name '$$1 == "#" && $$2 == "no" && $$4 == "run:" && $$8 == name ":" { print "flag no-representative-run " $$5 }' \
+			$(PSX_SHORT_RUNS_MANIFEST) > $$dir/summary.txt; \
+		sh tools/steady_profile.sh profile $$overhead $(STEADY_PROFILE_GROUPS) $$short/map.txt $$short/plain-1.tty.txt \
+			$$short/breakdown.tty.txt $$sets >> $$dir/summary.txt; status=$$?; \
+		sed "s/^/$@: $$name: /" $$dir/summary.txt; \
+		if [ $$status -ne 0 ] || grep -q '^adds-up failed' $$dir/summary.txt; then failed="$$failed $$name"; fi; \
+	done; \
+	if [ -z "$${PSX_SHORT_RUNS:-}" ]; then \
+		unrepresented=$$(awk '$$1 == "#" && $$2 == "no" && $$3 == "representative" && $$4 == "run:" { print $$5 }' \
+			$(PSX_SHORT_RUNS_MANIFEST) | tr '\n' ' '); \
+		for situation in $(STEADY_SITUATIONS); do \
+			case " $$unrepresented " in *" $$situation "*) ;; *) case " $$steady " in *" $$situation-"*) continue;; esac;; esac; \
+			dir=$$out/$$situation; rm -rf $$dir; mkdir -p $$dir; \
+			[ -n "$${full_sets:-}" ] || full_sets=$$(profile_sets $(FRAME_PROFILE_EVENTS) $(FRAME_PROFILE_EVENTS).end-state $$out/full-game) \
+				|| { failed="$$failed $$situation"; continue; }; sets=$$full_sets; \
+			echo "flag no-run" > $$dir/summary.txt; \
+			sh tools/steady_profile.sh no-run $$situation $(PSX_FRAME_BUDGET_HBLANKS) $(FRAME_PROFILE_JUDGE_FRAMES) $(SITUATIONS_TABLE) \
+				$(STEADY_PROFILE_GROUPS) $$sets >> $$dir/summary.txt || failed="$$failed $$situation"; \
+			sed "s/^/$@: $$situation: /" $$dir/summary.txt; \
+		done; \
+	fi; \
+	if [ -n "$$failed" ]; then echo "$@: failed:$$failed"; exit 1; fi
+
 SPREAD_LABEL ?= default
 
 frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
@@ -2806,27 +3033,20 @@ frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
 		|| { status=$$?; rm -f $$out; exit $$status; }; \
 	cat $$out
 
-ESTIMATE_END ?= measured
-ESTIMATE_ALLOCATION ?= sequential
-ESTIMATE_HAIRCUT ?= 0
-ESTIMATE_GAINS ?= psx/perf/gains.txt
-ESTIMATE_SPIKE_FRAMES := psx/perf/spike-frames.txt
-ESTIMATE_JUDGE_FRAMES := psx/perf/report-judge-frames.txt
 LEVER_ESTIMATE_DIR := $(TMP_DIR)/lever-estimate
 
-lever-estimate: tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS)
-	@label=$(or $(ESTIMATE_LABEL),$(ESTIMATE_END)$(if $(ESTIMATE_RUN),-$(ESTIMATE_RUN))); \
-	case "$$label" in ''|*[!A-Za-z0-9_.-]*) echo "$@: ESTIMATE_LABEL is not a file-name label: '$$label'"; exit 1;; esac; \
-	mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/$$label.txt; \
-	sh tools/lever_estimate.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(ESTIMATE_GAINS) $(ESTIMATE_END) \
-		allocation=$(ESTIMATE_ALLOCATION) haircut=$(ESTIMATE_HAIRCUT) $(if $(ESTIMATE_RUN),run=$(ESTIMATE_RUN)) > $$out \
-		|| { status=$$?; rm -f $$out; exit $$status; }; \
-	grep -v '^frame ' $$out; echo "$@: wrote $$out"
+ifneq ($(filter lever-estimate,$(MAKECMDGOALS)),)
+ifeq ($(strip $(LEVERS)),)
+$(error lever-estimate: LEVERS missing: make lever-estimate LEVERS=<document holding one lever-table block> (format in docs/psx-game.md))
+endif
+endif
 
-lever-estimate-check: tools/lever_estimate.sh tools/lever_estimate_check.sh tools/frame_profile_check.sh \
-		$(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) $(wildcard tests/fixtures/lever_estimate/*.txt)
-	@sh tools/lever_estimate_check.sh $(ESTIMATE_JUDGE_FRAMES) $(ESTIMATE_SPIKE_FRAMES) tests/fixtures/lever_estimate \
-		$(LEVER_ESTIMATE_DIR)/check
+lever-estimate: tools/lever_estimate.sh tools/psx_real_game_budget.sh
+	@mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/estimate.txt; \
+	sh tools/lever_estimate.sh $(or $(FRAMES),$(FRAME_PROFILE_JUDGE_FRAMES)) $(or $(SITUATIONS),$(SITUATIONS_TABLE)) \
+		$(LEVERS) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) \
+		projected=$(LEVER_ESTIMATE_DIR) > $$out; status=$$?; \
+	cat $$out; echo "$@: wrote $$out"; exit $$status
 
 $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
@@ -2834,7 +3054,10 @@ $(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR
 $(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.c) tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/frame_profile_check.sh | $(TMP_DIR)
+$(TMP_DIR)/test_lever_estimate: $(call objs,tests/test_lever_estimate.c) tools/lever_estimate.sh tools/psx_real_game_budget.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_steady_profile: $(call objs,tests/test_steady_profile.c) tools/steady_profile.sh tools/frame_profile_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
@@ -2844,7 +3067,8 @@ frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
-	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate lever-estimate-check
+	frame-profile-unit-cost frame-profile-spikes frame-profile-spread frame-profile-ordinary lever-estimate \
+	steady-profile
 
 PSX_PAD_SCRIPT ?= psx/pad_probe_script.txt
 PSX_PAD_OUT := $(TMP_DIR)/psx/pad
@@ -2896,13 +3120,41 @@ PSX_CAPTURE_CEILINGS := psx/gpu_capture_ceilings.txt
 PSX_CAPTURE_REFERENCES := psx/gpu_capture_references.txt
 PSX_LARGEST_SLOTS_CEILING ?= 531
 PSX_LARGEST_SLOTS_TIMEOUT ?= 10
+PSX_MESSAGE_BOX_EVENTS := tests/e2e/pad_message_box.json
+PSX_MESSAGE_BOX_DIR := $(PSX_CHECK_OUT)/message-box
+PSX_MESSAGE_BOX_EMBEDDED := $(abspath $(PSX_MESSAGE_BOX_DIR))/embedded/psx_replay.c
+PSX_MESSAGE_BOX_CAPTURE_LIST := psx/gpu_captures_message_box.txt
+PSX_MESSAGE_BOX_CAPTURE_CEILINGS := psx/gpu_capture_ceilings_message_box.txt
+PSX_MESSAGE_BOX_CAPTURE_REFERENCES := psx/gpu_capture_references_message_box.txt
+PSX_MESSAGE_BOX_GPU_CEILING ?= 333
+PSX_MESSAGE_BOX_GPU_TIMEOUT ?= 8
 
-psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_test $(TMP_DIR)/psx_capture_compare \
+psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/embed_replay $(TMP_DIR)/format_self_test $(TMP_DIR)/psx_capture_compare \
 		$(TMP_DIR)/psx_pad_log
 	@rm -rf $(PSX_CHECK_OUT)/pc-captures && mkdir -p $(PSX_CHECK_OUT)/pc-captures
 	CAPTURE_LIST=$(PSX_CAPTURE_LIST) CAPTURE_DIR=$(PSX_CHECK_OUT)/pc-captures \
 		STATE=$(PSX_CHECK_OUT)/pc_state.txt DIGEST=$(PSX_CHECK_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CHECK_OUT)/pc.dump.txt > $(PSX_CHECK_OUT)/pc.log 2>&1 \
 		|| { cat $(PSX_CHECK_OUT)/pc.log >&2; exit 1; }
+	@rm -rf $(PSX_MESSAGE_BOX_DIR)/pc-captures && mkdir -p $(PSX_MESSAGE_BOX_DIR)/pc-captures $(dir $(PSX_MESSAGE_BOX_EMBEDDED))
+	CAPTURE_LIST=$(PSX_MESSAGE_BOX_CAPTURE_LIST) CAPTURE_DIR=$(PSX_MESSAGE_BOX_DIR)/pc-captures \
+		./$(TMP_DIR)/replay $(PSX_MESSAGE_BOX_EVENTS) /dev/null $(PSX_MESSAGE_BOX_DIR)/pc.dump.txt > $(PSX_MESSAGE_BOX_DIR)/pc.log 2>&1 \
+		|| { cat $(PSX_MESSAGE_BOX_DIR)/pc.log >&2; exit 1; }
+	./$(TMP_DIR)/embed_replay $(PSX_MESSAGE_BOX_EVENTS) $(basename $(notdir $(PSX_MESSAGE_BOX_EVENTS))) $(PSX_MESSAGE_BOX_EMBEDDED)
+	cmake -S psx -B $(PSX_MESSAGE_BOX_DIR)/build \
+		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake \
+		-DCMAKE_BUILD_TYPE=Release -DSLIPWAYS_SRC_DIR=$(abspath src) \
+		-DPSX_MEASURED_REPLAY_ASSERTS=$(PSX_BUILD_MEASURED_REPLAY_ASSERTS) \
+		-DPSX_GAME_OPT=$(PSX_BUILD_OPT) -DPSX_MEASURED_REPLAY_OPT=$(PSX_BUILD_OPT) \
+		-DPSX_GAME_ASSERTS=$(PSX_BUILD_GAME_ASSERTS) \
+		-DPSX_GPU_REPLAY_DRAW_FILTER=$(PSX_BUILD_DRAW_FILTER) -DPSX_GPU_REPLAY_DRAW_METER=$(PSX_BUILD_DRAW_METER) \
+		"-DPSX_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_REPLAY_SRCS));$(PSX_MESSAGE_BOX_EMBEDDED)" \
+		"-DPSX_GPU_REPLAY_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_SRCS));$(PSX_MESSAGE_BOX_EMBEDDED)" \
+		"-DPSX_GPU_REPLAY_BREAKDOWN_SOURCES=$(call psx_short_run_list,$(PSX_GPU_REPLAY_BREAKDOWN_SRCS));$(PSX_MESSAGE_BOX_EMBEDDED)" \
+		'-DPSX_LARGEST_SLOTS_SOURCES=$(call psx_cmake_list,$(PSX_LARGEST_SLOTS_SRCS))' \
+		'-DPSX_PAD_PROBE_SOURCES=$(call psx_cmake_list,$(PSX_PAD_PROBE_SRCS))' \
+		'-DPSX_GAME_SOURCES=$(call psx_cmake_list,$(PSX_GAME_SRCS))' > $(PSX_MESSAGE_BOX_DIR)/build.log 2>&1 \
+		&& cmake --build $(PSX_MESSAGE_BOX_DIR)/build --target psx-gpu-replay >> $(PSX_MESSAGE_BOX_DIR)/build.log 2>&1 \
+		|| { tail -n 20 $(PSX_MESSAGE_BOX_DIR)/build.log >&2; exit 1; }
 	@frames=$$(sed -n 's/^replay: \([0-9]*\) frame(s) run.*/\1/p' $(PSX_CHECK_OUT)/pc.log) \
 		&& PSX_GAME_ASSERTS=$(PSX_GAME_ASSERTS_MODE) sh tools/psx_check.sh $(PSX_EMULATOR_DIR) $(PSX_BUILD_DIR)/psx-replay.exe $(PSX_BUILD_DIR)/psx-gpu-replay.exe \
 			$(PSX_BUILD_DIR)/psx-pad-probe.exe $(PSX_CHECK_OUT)/pc_state.txt $(PSX_CHECK_OUT)/pc_digest.txt "$$frames" \
@@ -2912,15 +3164,25 @@ psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/format_self_tes
 			$(PSX_CAPTURE_CEILINGS) $(PSX_CAPTURE_REFERENCES) $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_SCRIPT) \
 			$(PSX_GAME_CD_CEILING) $(PSX_GAME_CD_TIMEOUT) $(PSX_GAME_DIFFICULTY) $(PSX_GAME_CUE) $(PSX_DUMPSXISO) \
 			$(PSX_GAME_DISC_EXE) ./$(TMP_DIR)/psx_pad_log ./$(TMP_DIR)/replay $(PSX_BUILD_DIR)/psx-largest-slots.exe \
-			$(PSX_LARGEST_SLOTS_CEILING) $(PSX_LARGEST_SLOTS_TIMEOUT) $(PSX_CHECK_OUT)/run
+			$(PSX_LARGEST_SLOTS_CEILING) $(PSX_LARGEST_SLOTS_TIMEOUT) $(PSX_CHECK_OUT)/run \
+			message-box $(PSX_MESSAGE_BOX_DIR)/build/psx-gpu-replay.exe $(PSX_MESSAGE_BOX_CAPTURE_LIST) \
+			$(PSX_MESSAGE_BOX_DIR)/pc-captures $(PSX_MESSAGE_BOX_CAPTURE_CEILINGS) $(PSX_MESSAGE_BOX_CAPTURE_REFERENCES) \
+			$(PSX_MESSAGE_BOX_GPU_CEILING) $(PSX_MESSAGE_BOX_GPU_TIMEOUT)
+
+ifneq ($(filter-out message_box,$(CAPTURES)),)
+ifneq ($(filter psx-gpu-capture-ceilings psx-gpu-capture-accept,$(MAKECMDGOALS)),)
+$(error CAPTURES must be empty (pad_slipway's list) or message_box, not '$(CAPTURES)')
+endif
+endif
+psx_capture_record_target = $(if $(CAPTURES),$(PSX_MESSAGE_BOX_CAPTURE_$(1)) message-box,$(PSX_CAPTURE_$(1)))
 
 psx-gpu-capture-ceilings:
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-ceilings: LABEL missing: make psx-gpu-capture-ceilings LABEL=<label>" >&2; exit 1; }
-	sh tools/psx_capture_record.sh ceilings $(PSX_CHECK_OUT)/run $(LABEL) $(PSX_CAPTURE_CEILINGS)
+	sh tools/psx_capture_record.sh ceilings $(PSX_CHECK_OUT)/run $(LABEL) $(call psx_capture_record_target,CEILINGS)
 
 psx-gpu-capture-accept:
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-accept: LABEL missing: make psx-gpu-capture-accept LABEL=<label>" >&2; exit 1; }
-	sh tools/psx_capture_record.sh references $(PSX_CHECK_OUT)/run $(LABEL) $(PSX_CAPTURE_REFERENCES)
+	sh tools/psx_capture_record.sh references $(PSX_CHECK_OUT)/run $(LABEL) $(call psx_capture_record_target,REFERENCES)
 
 PSX_CAPTURE_REPORT_OUT := $(TMP_DIR)/psx/gpu-capture
 

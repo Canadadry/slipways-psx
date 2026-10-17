@@ -2,6 +2,7 @@
 
 #include "devtools/pad_metrics.h"
 #include "devtools/record_start.h"
+#include "devtools/situation.h"
 
 #include "engine/allocator.h"
 #include "engine/dispatch_context.h"
@@ -12,6 +13,7 @@
 #include "game/cart.h"
 #include "game/economy_score.h"
 #include "game/game_data.h"
+#include "game/loading_screen.h"
 #include "game/main_economy.h"
 #include "game/menu.h"
 #include "game/message_box.h"
@@ -29,6 +31,7 @@
 #include "game/slipway.h"
 #include "game/structure_icon.h"
 #include "game/ui_button.h"
+#include "p8/draw_meter.h"
 #include "p8/input.h"
 #include "p8/vram.h"
 
@@ -303,6 +306,7 @@ static int emit(pad_author_t *author, const script_t *script, int buttons) {
     int cheat = input_step_run(&author->step, frame);
     cart_update60();
     cart_draw();
+    p8_draw_meter_frame_end();
 
     pad_metrics_record(&author->metrics, &author->step, buttons, cheat);
     const pad_metrics_view_t *after = pad_metrics_view(&author->metrics);
@@ -440,7 +444,15 @@ static int run_title(pad_author_t *author, const script_t *script, int choose_ro
     for (int d = 0; d < difficulty; d++) {
         if (!press_action(author, script, BINDINGS_ACTION_MOVE_DOWN)) return 0;
     }
-    if (!emit_action(author, script, BINDINGS_ACTION_CHOOSE_ROW)) return 0;
+    int choose_row = 0;
+    if (!action_button(author, script, BINDINGS_ACTION_CHOOSE_ROW, &choose_row) || !emit(author, script, choose_row)) return 0;
+    for (int held = 0; cart_loading(); held++) {
+        if (held == LOADING_SCREEN_FRAMES) {
+            return fail(author, script, "title: still loading %d frames after the title.choose_row press at f%d",
+                        LOADING_SCREEN_FRAMES, author->frame_count - 1 - held);
+        }
+        if (!emit(author, script, choose_row)) return 0;
+    }
     const button_t *chosen = economy_score_difficulty();
     if (main_economy_typed() == NULL || chosen == NULL || chosen->name == NULL ||
         strcmp(chosen->name, difficulty_options_table[difficulty].name) != 0) {
@@ -760,43 +772,14 @@ static int has_focus(pad_author_t *author, const void *context) {
     return pad_nav_focus(nav_of(author)) != NULL;
 }
 
-enum { SETTLE_ITEMS_MAX = 64, SETTLE_FRAMES_MAX = 40 };
-
-typedef struct {
-    const entity_t *items[SETTLE_ITEMS_MAX];
-    int x[SETTLE_ITEMS_MAX];
-    int y[SETTLE_ITEMS_MAX];
-    int count;
-} panel_layout_t;
-
-static panel_layout_t panel_layout(pad_author_t *author) {
-    panel_layout_t layout;
-    layout.count = 0;
-    const entity_t *focus = pad_nav_focus(nav_of(author));
-    if (focus == NULL) return layout;
-    layout.items[layout.count++] = focus;
-    for (int head = 0; head < layout.count; head++) {
-        pad_panel_focus_point(layout.items[head], &layout.x[head], &layout.y[head]);
-        for (int d = 0; d < PAD_JUMP_DIRECTIONS && layout.count < SETTLE_ITEMS_MAX; d++) {
-            const entity_t *next = pad_nav_neighbor(layout.items[head], pad_jump_direction(d));
-            int seen = next == NULL;
-            for (int i = 0; i < layout.count && !seen; i++) seen = layout.items[i] == next;
-            if (!seen) layout.items[layout.count++] = next;
-        }
-    }
-    return layout;
-}
+enum { SETTLE_FRAMES_MAX = 40 };
 
 static int wait_panel_settled(pad_author_t *author, const script_t *script, const char *what) {
-    panel_layout_t before = panel_layout(author);
+    situation_layout_t before = situation_layout_read(nav_of(author));
     for (int i = 0; i < SETTLE_FRAMES_MAX; i++) {
         if (!emit(author, script, 0)) return 0;
-        panel_layout_t now = panel_layout(author);
-        if (now.count > 0 && now.count == before.count && memcmp(now.items, before.items, sizeof now.items[0] * (size_t)now.count) == 0 &&
-            memcmp(now.x, before.x, sizeof now.x[0] * (size_t)now.count) == 0 &&
-            memcmp(now.y, before.y, sizeof now.y[0] * (size_t)now.count) == 0) {
-            return 1;
-        }
+        situation_layout_t now = situation_layout_read(nav_of(author));
+        if (now.count > 0 && !situation_layout_moved(&before, &now)) return 1;
         before = now;
     }
     return fail(author, script, "%s: the panel still moves after %d frames", what, SETTLE_FRAMES_MAX);

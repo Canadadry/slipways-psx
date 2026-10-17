@@ -1,7 +1,7 @@
 #!/bin/sh
 # usage: psx_full_game_check.sh <install-dir> <replay-exe> <gpu-exe> <pc-state> <pc-digest> <pc-frames>
 #                               <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <budget-hblanks>
-#                               <size-tool> <stack-reserve> <out-dir>
+#                               <situations-table> <one-off-allowance-vsyncs> <size-tool> <stack-reserve> <out-dir>
 # Boots the replay PS-EXE, then the GPU replay PS-EXE with an empty capture
 # script (the capture handshake runs, nothing is captured), until they exit,
 # then checks the conditions of make psx-full-game-check through
@@ -10,25 +10,28 @@
 # gpu-draw-meter (the GPU boot printed "psx-replay: draw-filter off" and
 # "psx-replay: draw-meter off"), then timer, frame-budget (no frame above
 # <budget-hblanks>), zone-sizes and cap-sizes of tools/psx_frame_budget.sh on
-# the GPU boot (outputs in <out-dir>/frame-budget) and gpu-ram-room (64 KiB
+# the GPU boot (outputs in <out-dir>/frame-budget), real-game-budget of
+# tools/psx_real_game_budget.sh (its frames.txt joined with <situations-table>:
+# no steady frame over <budget-hblanks>, one-off vsyncs over it at most
+# <one-off-allowance-vsyncs>) and gpu-ram-room (64 KiB
 # kernel area + GPU ELF + stack reserve <= 2 MiB). The unmetered GPU boot's
 # gpu_* lines are zeros: zone-sizes and cap-sizes judge
 # <out-dir>/gpu-state/judged_state.txt, its MIPS state with the gpu_* lines of
 # <pc-state> instead. Every condition is checked before concluding, one line
 # per condition, exit 1 if any failed; each also goes to
 # <out-dir>/conditions.txt as "<condition> ok|failed". Prints every frame line
-# behind "psx-full-game-check: frame " and the frame summary behind
-# "psx-full-game-check: ".
+# behind "psx-full-game-check: frame ", and the frame summary and the two
+# real-game figure lines behind "psx-full-game-check: ".
 # Writes <out-dir>/measurements.txt: the MIPS zone/budget/cap lines, the vsync
 # count and the size of the replay ELF (the .exe path with .elf), then the GPU
 # replay's vsyncs, <pc-state>'s gpu_* lines, the backend's gpu-peak line, RAM
-# room and ELF size, each behind "gpu ", and the frame summary behind
-# "gpu frame ".
+# room and ELF size, each behind "gpu ", the frame summary behind
+# "gpu frame " and the real-game figure lines behind "gpu ".
 
 set -u
 
-usage="usage: psx_full_game_check.sh <install-dir> <replay-exe> <gpu-exe> <pc-state> <pc-digest> <pc-frames> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <budget-hblanks> <size-tool> <stack-reserve> <out-dir>"
-[ $# -eq 14 ] || { echo "psx-full-game-check: $usage" >&2; exit 1; }
+usage="usage: psx_full_game_check.sh <install-dir> <replay-exe> <gpu-exe> <pc-state> <pc-digest> <pc-frames> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <budget-hblanks> <situations-table> <one-off-allowance-vsyncs> <size-tool> <stack-reserve> <out-dir>"
+[ $# -eq 16 ] || { echo "psx-full-game-check: $usage" >&2; exit 1; }
 install_dir=$1
 replay_exe=$2
 gpu_exe=$3
@@ -41,9 +44,11 @@ gpu_ceiling=$9
 shift 9
 gpu_timeout=$1
 budget_hblanks=$2
-size_tool=$3
-stack_reserve=$4
-out_dir=$5
+situations=$3
+one_off_allowance=$4
+size_tool=$5
+stack_reserve=$6
+out_dir=$7
 script_dir=$(cd "$(dirname "$0")" && pwd)
 
 rm -rf "$out_dir"
@@ -116,6 +121,18 @@ for condition in timer frame-budget zone-sizes cap-sizes; do
     esac
 done
 
+real_game=$(sh "$script_dir/psx_real_game_budget.sh" "$frame_dir/frames.txt" "$situations" \
+    "$budget_hblanks" "$one_off_allowance" 2>&1)
+real_game_figures=$(printf '%s\n' "$real_game" | grep '^real-game ')
+printf '%s\n' "$real_game_figures" | sed 's/^/psx-full-game-check: /'
+verdict=$(printf '%s\n' "$real_game" | grep '^real-game-budget ' | head -n 1)
+verdict=${verdict#real-game-budget }
+case $verdict in
+    "ok "*) pass real-game-budget "${verdict#ok }" ;;
+    "failed "*) report real-game-budget "${verdict#failed }" ;;
+    *) report real-game-budget "no verdict from psx_real_game_budget.sh: $real_game" ;;
+esac
+
 check_ram_room gpu-ram-room "${gpu_exe%.exe}.elf"
 
 {
@@ -126,6 +143,7 @@ check_ram_room gpu-ram-room "${gpu_exe%.exe}.elf"
     [ -n "$room_line" ] && echo "gpu ram-room $room_line"
     printf '%s\n' "${elf_size:-}" | sed 's/^/gpu /'
     [ -f "$frame_dir/summary.txt" ] && sed 's/^/gpu frame /' "$frame_dir/summary.txt"
+    printf '%s\n' "$real_game_figures" | sed 's/^/gpu /'
 } >> "$out_dir/measurements.txt"
 
 echo "psx-full-game-check: measurements in $out_dir/measurements.txt"

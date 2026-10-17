@@ -143,7 +143,7 @@ static void apply_harvest_to_p25(void) {
     planet_t *p25 = planet_named("p25");
 
     assert(p25 != NULL);
-    assert(p25->header.state == ENTITY_STATE_KNOWN && "p25 is known at f98");
+    assert(p25->header.state == ENTITY_STATE_KNOWN && "p25 is known at f100");
     assert(!planet_is_colonized(p25) && p25->slipways.count == 0);
     assert(entity_geom_is_on_screen(&p25->header));
     assert(first_burst() == NULL);
@@ -271,8 +271,8 @@ static int in_fresh_child(const probe_case_t *c) {
 }
 
 int main(void) {
-    const probe_case_t burst_case = {"burst", 98, 198, 1};
-    const probe_case_t quiet_case = {"quiet", 292, 444, 0};
+    const probe_case_t burst_case = {"burst", 100, 200, 1};
+    const probe_case_t quiet_case = {"quiet", 294, 446, 0};
     int failed = 0;
 
     p8_vram_init(&memory);

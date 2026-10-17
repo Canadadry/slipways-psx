@@ -31,11 +31,21 @@ static const psx_vram_rect_t regions[PSX_VRAM_REGION_COUNT] = {
 /* The 16x16 slots go in a row from (704, 440), below the 128x8 ones. */
 #define SQUARE_SLOT(i) { 704 + (i) * 16, 440, 16, 16 },
 
+/* The 16x11 button slots go in a row from (784, 440), right of the 16x16 ones. */
+#define BUTTON_ICON_SLOT(i) { 784 + (i) * 16, 440, 16, 11 },
+
+/* The 112x11 button slots go two a band down from (704, 456), below the 16x16 ones. */
+#define BUTTON_WIDE_SLOT(i) { 704 + (i) % 2 * 112, 456 + (i) / 2 * 11, 112, 11 },
+
 static const psx_vram_rect_t image_slots[P8_IMAGE_SLOT_COUNT] = {
     { 704, 0, 256, 256 },
     SMALL_SLOTS_8(0) SMALL_SLOTS_8(8) SMALL_SLOTS_8(16) SMALL_SLOTS_8(24)
     WIDE_SLOTS_8(0) WIDE_SLOTS_8(8) WIDE_SLOTS_8(16) WIDE_SLOTS_8(24)
     SQUARE_SLOT(0) SQUARE_SLOT(1) SQUARE_SLOT(2) SQUARE_SLOT(3) SQUARE_SLOT(4)
+    BUTTON_ICON_SLOT(0) BUTTON_ICON_SLOT(1) BUTTON_ICON_SLOT(2) BUTTON_ICON_SLOT(3)
+    BUTTON_ICON_SLOT(4) BUTTON_ICON_SLOT(5) BUTTON_ICON_SLOT(6) BUTTON_ICON_SLOT(7)
+    BUTTON_WIDE_SLOT(0) BUTTON_WIDE_SLOT(1) BUTTON_WIDE_SLOT(2) BUTTON_WIDE_SLOT(3) BUTTON_WIDE_SLOT(4)
+    BUTTON_WIDE_SLOT(5) BUTTON_WIDE_SLOT(6) BUTTON_WIDE_SLOT(7) BUTTON_WIDE_SLOT(8) BUTTON_WIDE_SLOT(9)
 };
 
 psx_vram_rect_t psx_vram_layout_region(psx_vram_region_t region) {

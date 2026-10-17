@@ -181,6 +181,46 @@ static void test_faults_of_the_second_kind_each_fail_their_condition(void) {
     assert_passed("gpu-capture-deterministic");
 }
 
+#define REPORT_DISPLAY \
+    "display f7 mask display calls 4 differ 0 (0.0\xe2\x80\xb0) near1 0 near2 0 far 0 bbox - offpalette 0 nonuniform 0\n"
+
+/* A display entry draws nothing of its own: like all, it is exempt from the family rule. */
+static void test_a_display_capture_needs_no_call_of_its_label(void) {
+    setup();
+    write_file(DIR "/list.txt", "replay pad_slipway\ncls 1 cls\nrect 5 cls,rect\ndisplay 7 display\n");
+    write_file(DIR "/pc/capture_script.txt", "1 0001\n5 0009\n7 8000\n");
+    write_file(DIR "/pc/counts.txt", "1 cls 1\n1 rect 0\n5 cls 1\n5 rect 2\n7 cls 1\n7 rect 3\n");
+    write_file(DIR "/gpu.tty.txt", "psx-replay: capture 1 0001\npsx-replay: capture 5 0009\n"
+                                   "psx-replay: capture 7 8000\npsx-replay: done pad_slipway 10 vsyncs 50\n");
+    write_capture(RUN "/gpu.f7.vram", "psx-vram 320 240 16\n", 0x00);
+    write_capture(DIR "/repeat/gpu.f7.vram", "psx-vram 320 240 16\n", 0x00);
+    write_file(RUN "/gpu-captures/report.txt", REPORT_CLS REPORT_RECT("3", "0") REPORT_DISPLAY);
+    write_file(RUN "/gpu-captures/display-f7.diff.txt", "x");
+    write_file(RUN "/gpu-captures/display-f7.ppm", "x");
+    write_file(DIR "/ceilings.txt", "cls 1 0\nrect 5 3\ndisplay 7 0\n");
+    assert(check() == 0);
+    assert_passed("gpu-capture-list");
+    assert_logged("gpu-captures: ok, 3 capture(s)");
+    assert_logged("pending human acceptance: display f7");
+}
+
+/* A second capture replay's conditions carry its prefix, so both lists share one conditions file. */
+static void test_a_prefix_names_every_condition_of_its_list(void) {
+    setup();
+    remove(RUN "/conditions.txt");
+    assert(system(CHECK " message-box- > " LOG " 2>&1") == 0);
+    const char *conditions[] = { "gpu-capture-list", "gpu-captures", "gpu-capture-deterministic", "gpu-capture-clean",
+                                 "gpu-capture-report", "gpu-capture-ceilings", "gpu-capture-references" };
+    for (size_t i = 0; i < sizeof conditions / sizeof conditions[0]; i++) {
+        char name[64];
+        snprintf(name, sizeof name, "message-box-%s", conditions[i]);
+        assert_passed(name);
+        snprintf(name, sizeof name, "psx-check: message-box-%s: ok", conditions[i]);
+        assert_logged(name);
+    }
+    assert_logged("message-box-pending human acceptance: cls f1");
+}
+
 static const char *sha256_of(const char *path) {
     static char hash[65];
     char command[256];
@@ -260,14 +300,45 @@ static void test_the_acceptance_writer_needs_a_green_run(void) {
     assert_logged("pending human acceptance: cls f1");
 }
 
+/* The second list's run lives in RUN/message-box; its conditions share RUN/conditions.txt. */
+static int record_second(const char *kind, const char *label, const char *file) {
+    char command[512];
+    snprintf(command, sizeof command, RECORD "%s " RUN " %s %s message-box > " LOG " 2>&1", kind, label, file);
+    return system(command);
+}
+
+static void test_the_writers_address_a_second_list_by_its_name(void) {
+    setup();
+    assert(system("mkdir -p " RUN "/message-box/gpu-captures") == 0);
+    write_file(RUN "/message-box/gpu-captures/report.txt", REPORT_RECT("0", "0"));
+    write_capture(RUN "/message-box/gpu.f5.vram", "psx-vram 320 240 16\n", 0x42);
+    write_file(RUN "/conditions.txt", ALL_OK "gpu-capture-ceilings ok\nmessage-box-gpu-capture-ceilings failed\n");
+    write_file(DIR "/ceilings.txt", "");
+    assert(record_second("ceilings", "rect", DIR "/ceilings.txt") == 0);
+    assert(strcmp(read_file(DIR "/ceilings.txt"), "rect 5 0\n") == 0 && "the second run's count, not the first's 3");
+
+    write_file(RUN "/conditions.txt", ALL_OK "gpu-capture-ceilings failed\nmessage-box-gpu-capture-ceilings ok\n");
+    assert(record_second("ceilings", "rect", DIR "/ceilings.txt") != 0 && "the first list's ceilings failing refuses");
+    assert(record_second("references", "rect", DIR "/references.txt") != 0);
+
+    write_file(RUN "/conditions.txt", ALL_OK "gpu-capture-ceilings ok\nmessage-box-gpu-capture-ceilings ok\n");
+    assert(record_second("references", "rect", DIR "/references.txt") == 0);
+    char expected[160];
+    snprintf(expected, sizeof expected, "rect 5 %s\n", sha256_of(RUN "/message-box/gpu.f5.vram"));
+    assert(strcmp(read_file(DIR "/references.txt"), expected) == 0);
+}
+
 int main(void) {
+    test_a_display_capture_needs_no_call_of_its_label();
     test_a_good_run_passes_with_every_capture_pending();
     test_faults_of_the_first_kind_each_fail_their_condition();
     test_faults_of_the_second_kind_each_fail_their_condition();
     test_a_count_below_its_ceiling_and_a_matching_reference_pass();
+    test_a_prefix_names_every_condition_of_its_list();
     test_the_ceiling_writer_touches_its_label_only();
     test_the_ceiling_writer_refuses_a_run_failing_elsewhere_or_missing();
     test_the_acceptance_writer_needs_a_green_run();
+    test_the_writers_address_a_second_list_by_its_name();
     printf("test_psx_capture_check: ok\n");
     return 0;
 }

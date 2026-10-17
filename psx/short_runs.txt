@@ -1,9 +1,19 @@
 # The short runs of make psx-short-runs: "<name> prefix <first> <last> <end>" or
 # "<name> resume <first> <last>", frames of worst-case/full_game.json (format
 # and cut rule in src/devtools/short_run_cut.h).
-start prefix 12 12 99
-update-4737 resume 4737 4737
-update-5500 resume 5500 5500
-draw-5564 resume 5564 5578
-update-5719 resume 5719 5719
-draw-6000 resume 6000 6014
+start prefix 14 14 101
+update-4737 resume 4739 4739
+update-5500 resume 5502 5502
+draw-5564 resume 5566 5580
+update-5719 resume 5721 5721
+draw-6000 resume 6002 6016
+# no representative run: map-rest (best try map-rest-5581: representative failed, draw -15.6%, update -13.0%)
+map-rest-5581 resume 5583 5597
+map-move-1057 resume 1059 1073
+# no representative run: slipway-aim (best try slipway-aim-5123: label differs frame 5125 run map-move full slipway-aim, draw not measured, update not measured)
+# no representative run: build (best try build-5752: representative failed, draw -23.5%, update -9.0%)
+build-5752 resume 5754 5768
+menu-5954 resume 5956 5970
+tech-panel-5895 resume 5897 5905
+# no representative run: score-panel (best try score-panel-5876: representative failed, draw -11.6%, update -3.2%)
+score-panel-5876 resume 5878 5878

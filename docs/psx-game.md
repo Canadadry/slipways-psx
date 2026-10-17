@@ -152,7 +152,9 @@ slots (`src/game/image_slot.h`, checked against the runtime count): slot 0,
 128×8, outlined text (`text_image.c`); 65, 16×16, the planet disc; 66–69,
 16×16, one colony ring per ring colour, built once on the first planet drawn
 with no fill pattern (a planet drawn under a fill pattern keeps its
-`circfill`/`circ`). The meter, filter, breakdown timing and call
+`circfill`/`circ`); 70–77, 16×11, icon buttons, and 78–87, 112×11, text
+buttons (`button_image.c`), keyed by the serials of the button's rows and
+its colours. The meter, filter, breakdown timing and call
 profile follow the copy as one `spr` and the build's calls under their own
 families.
 
@@ -250,8 +252,8 @@ have them), `psx_gpu_frame_end`
 `psx_gpu_frame_begin`. The capture handshake's time and vsyncs are taken out
 of submit and of the frame's vsyncs. The input advance and the progress line
 fall outside every part; the progress line runs while the GPU draws, so the
-next frame's submit may wait a little less (23 of `full_game`'s 6,059
-frames). Each frame also records the vsyncs it spanned, so a frame of 249
+next frame's submit may wait a little less (23 frames of one `full_game`
+run). Each frame also records the vsyncs it spanned, so a frame of 249
 vsyncs or more (where the 16-bit counter may wrap) is detected.
 
 The records go to a static table (`src/devtools/frame_times.c`, pure,
@@ -305,7 +307,8 @@ point, no `malloc`):
   endpoints after the camera, unclipped (the GPU clips to the draw area),
   sent when its box meets the screen, so its stepping is the GPU's, not
   PICO-8's (the plan's accepted divergence, measured by its capture);
-  `circ` is one `TILE_1` per on-screen pixel and a plain `circfill` one
+  `circ` is one `TILE` per run of pixels on a row or column, a `TILE_1`
+  for a lone pixel, and a plain `circfill` one
   `TILE` span per screen row, both from the software backend's midpoint
   loop (`psx_tiles.c`, host-tested pixel for pixel), so circles match the
   PC exactly; `spr` (and `map` through it) is one `SPRT` from the sheet's
@@ -317,7 +320,12 @@ point, no `malloc`):
   (`src/platform/psx_clut_cache.c`, built by `psx_gpu_textures_clut`, one
   cache per primitive buffer), and uploaded to their palette CLUT lines
   with `LoadImage` after the previous frame's `DrawSync` and before this
-  frame's `DrawOTag`, so no line changes while a frame reads it; more than
+  frame's `DrawOTag`, so no line changes while a frame reads it, and only
+  when its words differ from what that line last received
+  (`src/platform/psx_slot_uploads.c`, host-tested, one record for both
+  buffers, since both upload to the same lines); asserts-on builds read
+  back, each frame, the lines, tiles and pattern CLUTs the previous frame
+  drew with and assert they hold its words; more than
   `GPU_CLUT_SLOTS` distinct palettes in a frame is a `p8_fatal` naming the
   frame; `print` is one `SPRT` per glyph with a lit texel that shows, walked
   as the software walks the string, after the camera and clipped to the
@@ -341,7 +349,9 @@ point, no `malloc`):
   pattern tiles and CLUTs are cached by `p8_draw_cost_pattern_key`
   (`src/platform/psx_pattern_cache.c`, built by `psx_gpu_textures_pattern`
   and `psx_gpu_textures_pattern_clut`, one cache per primitive buffer) and
-  uploaded with the spr CLUTs to the pattern slots and pattern CLUT lines;
+  uploaded with the spr CLUTs to the pattern slots and pattern CLUT lines,
+  a tile or a pattern CLUT only when its words differ from what its slot
+  holds;
   more than `GPU_PATTERN_SLOTS` in a frame is a `p8_fatal` naming the
   frame;
 - the cost model's byte sizes are checked against the SDK's `sizeof` at
@@ -359,7 +369,7 @@ VRAM layout (`src/platform/psx_vram_layout.c`, host-tested by
 | font | (512, 128) | 32x128 | same page, v 128..255 |
 | pattern slots | (544, 0) | 32x256, 2x8 a slot | same page, u 128..255 |
 | CLUTs | (640, 0) | 16x64, 16x1 each | `GPU_CLUT_SLOTS` draw palettes, 16 font colours, `GPU_PATTERN_SLOTS` pattern CLUTs |
-| images | (704, 0) | 256x512 | 15-bit image slots, each 16-aligned on its own page: slot 0 is (704, 0) 256x256, page (704, 0); the 48x8 slots five a band from (704, 256); the 128x8 slots two a band from (704, 312); the five 16x16 slots in a row from (704, 440); free: (944, 256) 16x56, (800, 304) 144x8, (784, 440) 176x16 and (704, 456) 256x56 |
+| images | (704, 0) | 256x512 | 15-bit image slots, each 16-aligned on its own page: slot 0 is (704, 0) 256x256, page (704, 0); the 48x8 slots five a band from (704, 256); the 128x8 slots two a band from (704, 312); the five 16x16 slots in a row from (704, 440); the eight 16x11 button slots in a row from (784, 440); the ten 112x11 button slots two a band from (704, 456); free: (944, 256) 16x56, (800, 304) 144x8, (912, 440) 48x16, (784, 451) 128x5, (928, 456) 32x56 and (704, 511) 224x1 |
 
 ## Until-exit boot mode
 
@@ -536,15 +546,32 @@ mask.
   A family label's mask holds `cls` and that family (the `pattern` label adds
   `rectfill` and `circfill`, the `circfill` label `line`, since its colour-0
   discs only show where they cut a slipway), so its report does not move
-  when another family changes. Three `all` captures (f100, f188, f265) draw
+  when another family changes. Three `all` captures (f102, f190, f267) draw
   every family together, for the interactions: sprites over the grid, text
-  over fills, draw order. No captured frame is one the `DIGEST=` screen
+  over fills, draw order. `all 12` is the loading screen of the difficulty
+  press, and `display 14` proves it is what the console shows while f14
+  generates the galaxy. The `circ` label has two captures, f316 a whole
+  ring and f245 a ring cut by the top edge. The `rectfill` label has two
+  captures too: f11 draws only the title's button fills, f300 the map
+  panel's fills and bars in game. No captured frame is one the `DIGEST=` screen
   lines sample (every 32nd and the last): the PC draws a captured frame
   filtered.
   With `CAPTURE_LIST=` and `CAPTURE_DIR=`, `tmp/replay` refuses a bad list
   naming its line, and writes `pc_frames.bin` (the listed frames, screencast
   format), `counts.txt` (`<frame> <family> <calls>`) and `capture_script.txt`
   (`<frame> <mask hex>`).
+- **Display capture** `display <F> display` (F >= 2, mask `8000` in the
+  capture script): the GPU replay runs the handshake at the top of frame F,
+  before its input step, without `psx_gpu_frame_show_last()`, so the
+  screenshot is what the console displays while F's update runs, the frame
+  drawn at F−2: each `psx_gpu_frame_end` displays the previous frame's
+  buffer before it starts drawing its own, so the frame drawn at F−1 is
+  shown only from F's `psx_gpu_frame_end`, one frame later than the PC
+  shows it (the same `psx_gpu_frame_end` ends every frame of `psx-game`
+  too). Its PC frame
+  is F−2 drawn unfiltered, with F−2's call counts; the parser refuses one
+  after a capture at F−1 (shown by `psx_gpu_frame_show_last()`) or a masked
+  capture at F−2.
 - **Frame-locked capture**: the GPU replay and `tools/psx_capture_frames.lua`
   hand over on three scratchpad words below the pad script's
   (`src/platform/psx_capture_protocol.h`; `test_psx_capture_protocol` checks
@@ -575,6 +602,17 @@ mask.
   lines only. A count below its ceiling prints `below ceiling`, so the
   ceiling can be lowered with the same target; raising one is a regression
   to explain in its commit.
+- **Second capture replay** `psx/gpu_captures_message_box.txt` (`replay
+  pad_message_box`): `pad_slipway` never opens a message box, and its
+  recording cannot change, so the box's text is captured on
+  `tests/e2e/pad_message_box.json`: `print 142` and `all 143` (the settled
+  year box, "year 3421" and "5 years remain"), `all 155` (the tech panel's
+  buttons over the year box, in screen space, with side tooltips), `all 164`
+  (the score box's rows). It has its own ceilings and references,
+  `psx/gpu_capture_ceilings_message_box.txt` and
+  `psx/gpu_capture_references_message_box.txt`, in the same formats; the
+  two targets below address them with `CAPTURES=message_box`.
+  `psx-gpu-capture-report` stays on `pad_slipway`.
 - **Acceptance**: `make psx-gpu-capture-accept LABEL=<label>`, after a green
   `make psx-check`, writes the sha256 of every capture of that label (all of
   them for `pattern` and `all`) into `psx/gpu_capture_references.txt`, other
@@ -587,7 +625,7 @@ mask.
 
 | Target | What it proves | Time |
 |---|---|---|
-| `make psx-check` | every condition below, on `pad_slipway.json` and the title script, the game booted from its CD image; six boots | ~110 s |
+| `make psx-check` | every condition below, on `pad_slipway.json` and the title script, the game booted from its CD image, and the capture conditions on `pad_message_box.json`; eight boots | ~120 s |
 | `make psx-game-check` | the seven `game-*` conditions alone, the game EXE booted on `PSX_GAME_SCRIPT` (outputs in `tmp/psx/game`) | ~10 s |
 | `make psx-game-cd-check` | the seven `game-*` conditions on the CD boot, then `cue` and `cd-exe` (outputs in `tmp/psx/game-cd`) | ~15 s |
 | `make psx-game-cd` | builds the CD image and prints its paths | build |
@@ -595,22 +633,29 @@ mask.
 | `make psx-replay-check` | the replay proof alone (game lines and digests), on `PSX_EVENTS` (outputs in `tmp/psx/replay`) | ~45 s |
 | `make psx-pad-check` | the pad proof alone (outputs in `tmp/psx/pad`) | ~5 s |
 | `make psx-full-game-check` | its conditions on `worst-case/full_game.json`, the replay and the GPU replay booted (the GPU replay without asserts unless `PSX_FULL_GAME_ASSERTS=on`), the GPU replay's frame times and MIPS sizes judged (outputs in `tmp/psx/full-game/run`) | ~20 min |
+| `make psx-real-game-budget [FRAMES=] [SITUATIONS=]` | `real-game-budget`'s figures and verdict on a committed frame table (defaults `psx/perf/full-run-frames.txt` and `psx/perf/full-run-situations.txt`), fails when red; boots nothing | ~1 s |
 | `make psx-short-runs-cut` | the five short runs cut out of `full_game.json`, each embedded and replayed on PC, the game match reported (outputs in `tmp/psx/short-runs`) | ~25 s |
 | `make psx-short-runs` | the short runs' GPU replays booted, judged and their draw split per family (outputs in `tmp/psx/short-runs`) | ~4 min |
 | `make psx-probe-baseline` | the probe build of unpatched `HEAD` booted on the short runs, as the probes' baseline (outputs in `tmp/psx/probe/baseline`) | ~2 min |
 | `make psx-probe PATCH=<file>` | a throwaway patch measured on the short runs against the probe baseline, built in a temporary worktree (outputs in `tmp/psx/probe/<label>`) | ~2 min |
+| `make situations [EVENTS=] [SITUATIONS_OUT=]` | writes the situation table of a replay (default `full_game.json`, into `tmp/situations-table/`), host only; see "Situations" | ~2 s |
+| `make situations-check` | the full game's regenerated situation table equals `psx/perf/full-run-situations.txt`, else the first differing frame is named | ~2 s |
+| `make situation-report [FRAMES=] [SITUATIONS=]` | per-situation frames, overruns and means, one-off occurrences and runs, verdicts `frame-count`, `families`, `one-off-runs` | ~1 s |
 
 `make psx-check` is the PSX check target: new PSX work adds its own
 condition to it. It builds the PS-EXEs, writes the PC references with
 `STATE=`, `DIGEST=` and `CAPTURE_LIST=` in one run of the current
 `tmp/replay`, boots the replay, the GPU replay (twice, both with the capture
 script), the probe, the game's CD image (with `PSX_GAME_SCRIPT`) and
-`psx-largest-slots` until they exit, six boots, then checks every condition before
+`psx-largest-slots` until they exit, six boots, then the second capture
+replay's GPU replay twice (about 10 s with its build), then checks every condition before
 concluding, one line each (`tools/psx_check.sh`, outputs in
 `tmp/psx/game-check`, conditions also in `run/conditions.txt`):
 
 - `magic`: the five `.exe` start with `PS-X EXE`;
-- `asserts-on`: the replay printed `asserts on`;
+- `asserts-on`: the replay and the first boot of each GPU capture replay
+  (`pad_slipway`, `pad_message_box`) printed `asserts on`, so the slot
+  readback assert runs; a failure names each TTY that lacks it;
 - `format`: its self-test string equals the PC's;
 - `replay-done`: the boot exited with 0, its `done` line has the PC's frame
   count, and no `stopped p8_fatal`;
@@ -632,7 +677,7 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   bytes left (`check_ram_room` of `tools/psx_conditions.sh`, shared with
   `game-ram-room` and `psx-full-game-check`'s `gpu-ram-room`);
 - `gpu-capture-list`: the list's replay is the PS-EXE's, the PC run wrote
-  its frames to the capture script, and each label but `all` has an
+  its frames to the capture script, and each label but `all` and `display` has an
   on-screen call of its family at its frame on PC;
 - `gpu-captures`: every listed frame has a well-formed `gpu.f<frame>.vram`,
   and the TTY's capture lines are exactly the list's frames, in order;
@@ -646,6 +691,12 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
 - `gpu-capture-references`: a capture with a reference matches it; one
   without prints `pending human acceptance: <label> f<frame>`; a reference
   for an unlisted capture fails;
+- `message-box-gpu-capture-list` ... `message-box-gpu-capture-references`:
+  the seven conditions above on the second capture replay, whose GPU replay
+  alone is built in `game-check/message-box/build` (same options as
+  `psx-build`) and booted twice (`PSX_MESSAGE_BOX_GPU_CEILING` vsyncs,
+  `PSX_MESSAGE_BOX_GPU_TIMEOUT` s; outputs in `run/message-box`); no other
+  condition runs on it;
 - `no-json`: the toolchain's `nm` (`PSX_NM`) finds no definition of
   `p8_load_gfx_json`, `p8_input_load`, `p8_input_save`, `p8_input_append` or
   `p8_input_free` in either replay ELF or the game ELF;
@@ -732,7 +783,13 @@ next run:
   `run/gpu-state/judged_state.txt`: its MIPS state with the zero `zone
   gpu_frame`, `zone gpu_build` and `cap gpu_*` lines replaced by the PC
   state's (below);
-- `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,059 embedded
+- `real-game-budget`: plan 22's judge of a 60-minute game (216,000 vsyncs),
+  from `run/frame-budget/frames.txt` and the situation table
+  `PSX_FULL_GAME_SITUATIONS` (default `psx/perf/full-run-situations.txt`,
+  see "Situations"): no `steady` frame over 263 hblanks, and the `one-off`
+  frames' vsyncs over 263 at most `PSX_REAL_GAME_ONE_OFF_VSYNCS` (10,800, 5%
+  of 216,000; below);
+- `gpu-ram-room`: `ram-room` on the full-game GPU ELF (its 6,061 embedded
   frames and the frame table included).
 
 `tools/psx_frame_budget.sh <gpu-tty> <gpu-psx-state> <expected-frames>
@@ -764,6 +821,34 @@ zone, budget and cap line, `ok margin <n>/8` or `over by <n>`. The 1/8 margin
 is information here, not a failure. The check prints every frame line behind
 `psx-full-game-check: frame ` and the summary behind `psx-full-game-check: `.
 
+`tools/psx_real_game_budget.sh <frames-table> <situations-table>
+<budget-hblanks> <one-off-allowance-vsyncs>` judges `real-game-budget`, for
+the check and for `make psx-real-game-budget` (host-tested by
+`test_psx_real_game_budget` in `make psx-tools-test`). It joins the two tables
+line by line and prints:
+
+```
+real-game steady-over <n> frames, worst steady frame <f> total <t> situation <name>
+real-game one-off-over <n> frames, vsyncs <sum> of <allowance>
+real-game-budget ok|failed <reason>
+```
+
+A frame is over when its `total` is above the budget. A one-off frame over
+counts `ceil(total / 263)` vsyncs, the vsyncs it holds the screen on a
+vsync-locked display; the measured `vsyncs` column is not used, it depends on
+where the frame started. With no steady frame over, the first line ends
+`worst steady frame -`. It is `failed` when a steady frame is over (`<n>
+steady frames over 263, one-off vsyncs <sum> of <allowance>`), when the sum
+is above the allowance (`one-off vsyncs <sum> over <allowance>`; both joined
+with `; `), or when the join fails, the figures then `-`: a missing table,
+a header other than `frame update draw submit total vsyncs` or `frame
+situation family`, `frame count <n> vs <m>`, `frame <k>: frame table has
+<a>, situation table has <b>`, a family neither `steady` nor `one-off`, or
+`no frame line`. It exits 0 once the verdict is printed, 1 on a usage error.
+The check prints the two figure lines behind `psx-full-game-check: ` and
+adds them to `measurements.txt` behind `gpu `. `frame-budget` is unchanged
+and still gating: plan 22's verdicts read `real-game-budget`.
+
 The unpatched pinned emulator aborts any boot at about 32,700 vsyncs (exit
 134, `An unknown exception occured`): each Lua event listener left two slots
 on its Lua thread per event, and the `GPU::Vsync` listener's thread
@@ -780,7 +865,8 @@ made before it must be removed and set up again.
 `psx-full-game-check`'s adds the GPU replay's `vsyncs`, the PC state's `zone
 gpu_frame`, `zone gpu_build` and `cap gpu_*` lines, the GPU replay's `gpu-peak bytes <b> cluts
 <c> patterns <p> build <k>`, `ram-room <used> <limit> <left>` and its ELF `size`, each
-behind `gpu `, then the frame summary behind `gpu frame `; `psx-check`'s
+behind `gpu `, then the frame summary behind `gpu frame `, then the two `real-game` figure
+lines behind `gpu `; `psx-check`'s
 adds the GPU replay's vsyncs, meter lines, `ram-room <used> <limit> <left>`
 and `size`, each behind `gpu `, then the capture report lines behind
 `gpu capture `, then the game's `vsyncs`, `frames`, `ram-room` and `size`,
@@ -827,6 +913,8 @@ background, about 13 minutes each.
 Ceilings and timeouts are the first measured run plus half again:
 `PSX_REPLAY_CEILING`/`PSX_REPLAY_TIMEOUT` for `pad_slipway`,
 `PSX_GPU_CEILING`/`PSX_GPU_TIMEOUT` for the GPU replay of `pad_slipway`,
+`PSX_MESSAGE_BOX_GPU_CEILING`/`PSX_MESSAGE_BOX_GPU_TIMEOUT` (333 vsyncs,
+8 s) for the GPU replay of `pad_message_box` (first run 222 vsyncs in about 5 s),
 `PSX_PAD_CEILING`/`PSX_PAD_TIMEOUT` for the probe,
 `PSX_GAME_CEILING`/`PSX_GAME_TIMEOUT` for the game EXE with the title script
 (`psx-game-check`), `PSX_GAME_CD_CEILING`/`PSX_GAME_CD_TIMEOUT` (1,140 vsyncs,
@@ -858,12 +946,75 @@ judge of sizes.
 **Manifest.** `psx/short_runs.txt`, one run a line, frames of
 `full_game.json`: `<name> prefix <first> <last> <end>` (its first `end + 1`
 frames) or `<name> resume <first> <last>` (a resume before the window
-`first..last`). The six runs: `start` (frames 0–99, the start spike at 12),
-`update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
-(the draw cluster 5564–5578) and `draw-6000` (frames 6000–6014, where
-`pset` is above 2% of draw on PC: a resume before the `pset` peak at
-5504–5552 starts without slipway transit dots, so it shows too little
-`pset`).
+`first..last`). Six runs for plan 21's spikes and clusters: `start`
+(frames 0–101, the start spike at 14), `update-4737`, `update-5500`, `update-5719` (update spikes), `draw-5564`
+(the draw cluster 5566–5580) and `draw-6000` (frames 6002–6016, where
+`pset` is above 2% of draw on PC; a resume before the `pset` peak at
+5506–5554 shows too little `pset`, for a cause not yet proven: see Still to
+do). Then the steady runs below, one line each, and the
+`# no representative run:` marks. A run's name keeps the first frame of its
+window when it was created: plan 22 step 6's loading screen moved every
+frame from 12 on by two, the windows with them, the names not.
+
+**Steady runs.** Each steady situation with frames over 263 is to get a
+resumed run named `<situation>-<first>` whose window lies in it.
+`make steady-windows` (`tools/steady_windows.sh`, host-tested by
+`test_steady_windows`) joins `psx/perf/full-run-frames.txt` with
+`psx/perf/full-run-situations.txt` and ranks, per steady situation over, every
+window of `min(15, stretch length)` frames inside one stretch of it (a
+stretch: consecutive frames with that label) by frames over 263, then summed
+total, then first frame; a window with no frame over is never a candidate.
+It keeps up to three non-overlapping candidates: `candidate <situation>
+<rank> <first> <last> frames <n> over <o> mean-update <u> mean-draw <d>`, then
+`situation <name> frames-over <o> candidates <c>`. `make short-run-situations
+[PSX_SHORT_RUNS=<names>]` (host only) runs the cut, labels each run's
+`run.json` with `tmp/situations` into `<name>/situations.txt`, and
+`tools/short_run_situations.sh` (host-tested by `test_short_run_situations`)
+compares every window frame, through `map.txt`, with the committed table:
+`short-run-situation <name> same <situation>`, `differs frame <full> run
+<label> full <label>` (the first difference), `mixed <labels>` (the full
+window itself spans several labels) or `not-steady <label>`; the target fails
+unless every run is `same`. A run stands for its situation once it is `same`
+and `psx-short-runs` against the full game's frame table gives
+`representative ok`.
+
+The steady runs, each tried in candidate order (a try: the line, the cut,
+`short-run-situations`, then, only on `same`, `psx-short-runs` against
+`psx/perf/full-run-frames.txt`; up to three tries, the third a `prefix` run
+when its window lies below frame 1,024), all `same`, draw and update gaps of
+the window sums to the full game:
+
+| Run | Window | Representative | Draw | Update |
+|---|---|---|---:|---:|
+| `map-rest-5581` | 5583–5597 | failed | −15.6% | −13.0% |
+| `map-move-1057` | 1059–1073 | ok | −0.6% | 0.0% |
+| `build-5752` | 5754–5768 | failed | −23.5% | −9.0% |
+| `menu-5954` | 5956–5970 | ok | +4.1% | −0.9% |
+| `tech-panel-5895` | 5897–5905 | ok | +0.9% | −1.7% |
+| `score-panel-5876` | 5878 | failed | −11.6% | −3.2% |
+
+**No representative run** (a `# no representative run:` line in the
+manifest): their levers are measured on `psx-full-game-check`, not
+`psx-probe`, and step 5 flags them as weaker evidence. A failed situation's
+best try stays in the manifest when its label check passed.
+
+- `map-rest`: best try `map-rest-5581` (draw −15.6%, update −13.0%);
+  `map-rest-5538` drew −27.5% (update −4.2%), `map-rest-5423` −29.1%
+  (update −1.5%).
+- `slipway-aim`: no run; no candidate keeps its label after the resume
+  (`slipway-aim-5123` and `-5015` read `map-move` then `map-rest`,
+  `-5715` reads `screen-change`), so none was booted. Best try
+  `slipway-aim-5123`, draw and update not measured.
+- `build`: best try `build-5752` (draw −23.5%, update −9.0%);
+  `build-5923` drew −23.7% (update −0.2%), `build-5054` −32.3% (update
+  −21.2%).
+- `score-panel`: best try `score-panel-5876` (draw −11.6%, update −3.2%);
+  `score-panel-5556` drew −38.4%, `score-panel-5441` −37.8% (update −3.3%
+  each).
+
+Every resumed try that failed drew less than the full game: on PC its window
+makes fewer `pset`, `rectfill` and `print` calls, `pset` by far the most
+(the same open finding as in Still to do).
 
 **Cut.** `make psx-short-runs-cut` (host only) replays `full_game.json` with
 `tmp/short_run_cut` (`src/devtools/short_run_cut.c`, pure, host-tested by
@@ -1026,7 +1177,13 @@ This build is `-O2` with asserts off, and the game, engine and PICO-8
 runtime are compiled with `-finstrument-functions`. Per frame, it writes the
 calls and PC time of each direct child of `cart_update60` and `cart_draw`
 (keyed by call site: `draw_layers#1`, `#2`) and of each draw family, counted
-as the breakdown counts them. The output goes to `tmp/frame-profile/<name>/`,
+as the breakdown counts them. It also splits each family per root child:
+`frame <f> child-family <root> <child> <family> <calls> <ns>` for the calls
+made while that child runs, at any depth, and `frame <f> self-family <root>
+<family> <calls> <ns>` for the root's own calls, one line per family with at
+least one call. These lines are kept only for the first 1,024 frames (a short
+run's cap); a longer recording has none past that. Every mode of
+`tools/frame_profile_check.sh` ignores them. The output goes to `tmp/frame-profile/<name>/`,
 and the end state is checked (`same-game`). The binary takes an optional
 fourth argument, a draw root other than `cart_draw` (for example
 `draw_layers`), named on the `root draw <symbol>` header line; an unknown or
@@ -1049,27 +1206,349 @@ ambiguous symbol, or `cart_update60`, exits 1.
   then each child called in the window with its calls per window frame
   (min–max) and its median share of the root's PC time, by decreasing
   share, then the root's self share. It never boots.
-- Its tests are in `make frame-profile-test`.
+- `make steady-profile [PSX_SHORT_RUNS=] [FRAME_PROFILE_REPEATS=]` splits
+  the window frames of the steady runs (every manifest run named after a
+  steady situation, by default) into game functions on the judge
+  (`tools/steady_profile.sh`, tested in `test_steady_profile`). It first
+  pools the breakdown boot's overhead over every steady run's window:
+  Σ(breakdown draw − plain draw) ÷ Σ backend calls (the nine families,
+  `pattern` apart), `tmp/frame-profile/steady/overhead.txt`. Per run it
+  profiles `run.json` K times rooted at `draw_layers`/`cart_update60` and K
+  times at `cart_draw`/`input_step_run` (`same-game` checked), checks each
+  profile's window calls against the breakdown boot (the `breakdown` rule),
+  and writes `tmp/frame-profile/steady/<run>/summary.txt`:
+  - each family's breakdown in-call time, minus the pooled overhead per
+    call, goes to the functions in proportion to their PC time in that
+    family (`child-family` lines); the breakdown boot's outside-calls time
+    goes in proportion to their PC time outside the primitives (whole child
+    time minus in-call time, so the PC hooks' own cost weighs on call-heavy
+    code). A function is a `draw_layers` child, a `cart_draw` child other
+    than `draw_layers`, or one of those two roots' self time, by base name
+    (`#<site>` and `@<address>` dropped); the `draw_layers` children are
+    scaled to the `cart_draw` profile's `draw_layers` figures. PC figures
+    are medians of the K profiles.
+  - each function belongs to a group of `psx/perf/draw-functions.txt`
+    (`planets`, `slipways`, `particles`, `hud`, `panels`, `map`,
+    `overlays`, `frame`); a symbol missing from it fails the run.
+  - the plain-1 boot's update is shared among `input_step_run`, the
+    `cart_update60` children and its self by PC time, a piece under 1% of
+    the window total folded into `update other`; submit is the plain-1
+    boot's.
+  - output, in hblanks per window frame and as a share of the plain-1
+    window total: `group <name> in-primitives <h> game-code <h> total <h>
+    share <pct>`, `function <symbol> group <name> in-primitives <h>
+    game-code <h> share <pct>` by decreasing total, `update <piece> <h>
+    share <pct>`, `submit <h> share <pct>`, then `adds-up ok|failed sum <S>
+    measured <M> residual <R> noise-floor <N>`. The noise floor is the
+    larger of 3 hblanks per window frame (one of rounding on each of
+    update, draw and submit) and 1% of the measured total. A run the
+    manifest marks "no representative run" gets a `flag
+    no-representative-run <situation>` line first.
+  - with `PSX_SHORT_RUNS` unset, a steady situation with no run in the
+    manifest, or one the manifest marks `# no representative run:`
+    (`map-rest`, `slipway-aim`, `build`, `score-panel`), is profiled
+    `no-run` into `tmp/frame-profile/steady/<situation>/summary.txt`, beside
+    its best-try run's own profile: over the full game's frames of that
+    situation over 263, `full_game.json` profiled K times the same way (once
+    for every such situation) and the judge table's
+    (`psx/perf/full-run-frames.txt`) draw shared by each function's whole PC
+    time. With no breakdown boot
+    there, it has no primitives/game-code split and no `adds-up` check
+    (`adds-up n/a no-run`), and the shares are PC time, not PSX cost.
+
+  It needs each run's `make psx-short-runs` boots and names the missing
+  ones; it fails when a run's profile fails or does not add up. It never
+  boots.
+- `make lever-estimate LEVERS= [FRAMES=] [SITUATIONS=]`
+  (`tools/lever_estimate.sh`) reads the one fenced `lever-table` block of
+  the markdown document passed as `LEVERS` (required: the target fails
+  without it): `lever <id> <estimated|measured|in-base> <S|M|L>
+  basis <calls|share> measure <run|psx-full-game-check> [probe <run|none>]
+  [after <id>]`, `gain <id> <steady situation> <update|draw|submit>
+  <percent>` and at most one `scale <calls|share> <ratio>` per basis. It
+  applies the gains to every steady frame of the committed frame table
+  joined with the situation table (title and one-off frames unchanged): per
+  part, the levers' gains add up (an `estimated` one times its basis's
+  scale, a `measured` one as is, an `in-base` one never), capped at 100%,
+  rounded half up. It prints the steady frames' mean cost and its 2%
+  threshold, ranks the levers greedily by the steady frames over 263 they
+  leave (then hblanks saved on the frames over, cost, id; `after` respected),
+  prints the steady frames over after each lever and at the end per
+  situation, nominal and pessimistic (every gain × 0.8), `order ok` or the
+  first rank where the document's order differs (the target fails), then
+  `real-game-budget` on both projected tables, written with the output to
+  `tmp/lever-estimate/`. It never boots.
+- Their tests are in `make frame-profile-test`.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
+## Situations
+
+Every frame of a replay gets a **situation** and a **family**: `steady`
+(what the player stays in) or `one-off` (an event and its bounded tail). The
+label is read from the game state only, never from input buttons or frame
+times. This is step 2's rule of plan 22, **frozen**: the rule and the
+committed table change only through step 6's renumbering (the loading screen
+frame).
+
+`tmp/situations` (`src/cmd/situations.c`, `src/devtools/situation.c`)
+replays an events file headless on PC, title or resume start, never booting
+the PSX. After each frame's `cart_update60()` it reads a snapshot: the screen
+mode (pad-metrics' `title`, `pause`, `placement`, `bar`, `tech`, `score`,
+`menu`, `jump`, `aim`, `slipway`) and whether the attract demo plays; whether
+a game world (economy) exists and has its end status; the year; the counts of
+colonised planets, built structures (protostars and structures in placement
+excluded), placed slipways, invented techs and probes; the camera position
+before shake, floored to pixels; the hovered and pad-focused entities; the
+open panel's layout (the focused item and every item reachable from it
+through pad neighbours, with their focus points; empty without a focus); and
+whether a shake runs (the camera's, or an on-screen planet's).
+
+For each frame, `before` is the previous frame's snapshot (frame 0: the
+snapshot after `cart_init()`, or after the resume), `after` this frame's:
+
+1. **Event frame.** The first that holds, in this order, labels the frame
+   with that one-off event:
+   1. `galaxy-generation`: no game world in `before`, one in `after`;
+   2. `return-to-title`: a game world in `before`, none in `after`;
+   3. `game-end`: the end status appears;
+   4. `new-year`: the year increased;
+   5. `research`: the invented tech count increased;
+   6. `colonise`: the colonised planet count increased;
+   7. `structure-built`: the built structure count increased;
+   8. `slipway-built`: the placed slipway count increased;
+   9. `probe`: the probe count changed;
+   10. `screen-change`: the screen mode or the attract flag changed.
+2. **Continuation.** Otherwise, if the previous frame was one-off and the
+   screen is still settling (the layout differs between `before` and
+   `after`, or a shake runs in `after`), the frame keeps the previous frame's
+   label. Frame 0's previous label is the steady label of the start
+   snapshot, so it never continues.
+3. **Steady.** Otherwise, by `after`'s screen: `attract` while the demo
+   plays; `title`; `pause`; `build` (bar or placement); `tech-panel`;
+   `score-panel`; `menu` (any other open panel or box); `slipway-aim`
+   (slipway started, target not chosen); on the map (jump or aim mode)
+   `map-move` when the camera position, the hovered or the focused entity
+   differs between `before` and `after`, else `map-rest`.
+
+The ten steady labels and the ten event labels are fixed families, never
+decided per frame.
+
+**Table.** `psx/perf/full-run-situations.txt`, the labels of
+`worst-case/full_game.json`: a `frame situation family` header, then
+`<frame> <situation> <family>` per frame, frames 0..6060 numbered like the
+frame table `psx/perf/full-run-frames.txt`. `test_situation_table` checks
+its shape and a list of hand-picked frames (frames 12 and 13, the loading
+screen, are `title`; frame 14 is `galaxy-generation`); `make
+situations-check` regenerates it and fails on any difference. The frozen
+table went through one renumbering, plan 22 step 6's loading screen: the
+same rule, two `title` frames inserted at 12, every later frame moved by
+two.
+
+**Report.** `make situation-report` (`tools/situation_report.sh`) joins a
+frame table and a situation table line by line. Per situation: frames,
+frames over 263 hblanks (total), mean update and draw. Per one-off
+situation: occurrences and longest run. A run is a stretch of consecutive
+frames with the same one-off label, counted as one occurrence: the table
+does not mark event frames, so two back-to-back events of one label make one
+longer run, and the check can only over-flag. A run longer than **31
+frames** is marked `long`: a planet project's burst sets a camera shake of 3,
+decaying 0.1 a frame for 30 frames, plus the event frame. Verdicts:
+`frame-count` (same count and numbering), `families` (known names, one
+family each), `one-off-runs` (no `long` run).
+
 ## Still to do
 
-- `make psx-full-game-check` is red on `frame-budget`; nobody raises
-  `PSX_FRAME_BUDGET_HBLANKS` to turn it green. Latest run (asserts off, O3,
-  draw filter and draw meter off): 1,764 of 6,059 frames over 263 hblanks,
-  worst frame 12 at 3,992 (galaxy generation; update 3,711), mean frame
-  233.6 hblanks against 263, mean overrun 76. Draw still dominates the
-  frames over (424,627 of their 598,793 hblanks), so the next work is draw.
-  Spike work (galaxy generation, saves, slipway drops, launches, image
-  builds) is not spread across frames. The thirteen other
-  conditions hold. The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
-  Flip (PCSX-ReARMed) was never measured.
+- **`real-game-budget` is red.** Every pixel-identical lever of plan 22 is
+  in the code and in the measured table (D3, N1, N2, N3, N7, G4, N6; N5 not
+  taken, under 2%). Latest `make psx-full-game-check` (asserts off, O3,
+  draw filter and draw meter off; table `psx/perf/full-run-frames.txt`):
+  198 steady frames over 263 (worst steady frame 4657, `build`, total 478),
+  293 one-off frames over for 674 of 10,800 vsyncs. `frame-budget` is red
+  too: 491 of 6,061 frames over 263, worst frame 14 at 2,304 (galaxy
+  generation; update 2,026), mean frame 187.1 against 263. Nobody raises
+  `PSX_FRAME_BUDGET_HBLANKS` to turn either green. The judge is pcsx-redux at
+  263 hblanks; the Miyoo Mini Flip (PCSX-ReARMed) was never measured.
 
-- `make psx-short-runs` is red on `representative` for the resumed runs:
-  the update spikes are not reproduced after the resume, and draw comes out
-  lower than in the full run. `done`, `deterministic`, `breakdown` and
-  `asserts` hold. The cut rule and the windows are not loosened.
+- **Steady situations still over** (frames whose total exceeds 263, from
+  that table joined with `psx/perf/full-run-situations.txt`; hblanks; a
+  frame is draw-bound when its draw exceeds its update):
+
+  | situation | over | worst | mean total | mean update / draw / submit | draw-bound | update-bound |
+  |---|--:|--:|--:|--:|--:|--:|
+  | map-rest | 60 | f2671, 428 | 284.4 | 63.6 / 218.2 / 2.7 | 53 | 7 |
+  | map-move | 43 | f3749, 467 | 312.8 | 149.7 / 160.7 / 2.5 | 29 | 14 |
+  | build | 38 | f4657, 478 | 280.5 | 31.6 / 245.7 / 3.2 | 37 | 1 |
+  | menu | 23 | f349, 388 | 292.3 | 70.3 / 219.1 / 2.9 | 21 | 2 |
+  | slipway-aim | 14 | f5718, 298 | 280.4 | 46.6 / 231.4 / 2.5 | 14 | 0 |
+  | tech-panel | 13 | f5579, 320 | 288.1 | 29.7 / 255.3 / 3.1 | 13 | 0 |
+  | score-panel | 7 | f5558, 353 | 321.3 | 102.6 / 216.1 / 2.6 | 6 | 1 |
+
+  Draw holds 173 of the 198 frames. The other 25 are held by update, and no
+  draw-only option can clear them: 24 are autosave frames whose update
+  alone is over 263 (274–298 h; `save_at_frame_end` is 64–89% of their PC
+  update time): map-rest f60, f739, f980, f2671, f2800, f3052, f4030;
+  map-move f584, f634, f687, f1026, f1073, f1127, f1597, f1957, f2587,
+  f2744, f3749, f3846, f3936, f4551; build f4657; menu f349, f2007. The
+  25th, score-panel f93 (update 200, `update_entities` 84%), would need its
+  draw cut from 139 to 60. So at least 25 steady frames stay over whatever
+  picture option is chosen; the situation rule (frozen) labels these
+  autosave frames steady.
+
+- **Picture-changing options, for the human to choose** (not ranked, not
+  combined, none implemented; each changes what the screen shows). Steady
+  frames still over with that option alone, nominal / pessimistic (every
+  saving × 0.8), against the 198 measured:
+
+  | option | map-rest | map-move | build | menu | slipway-aim | tech-panel | score-panel | total |
+  |---|--:|--:|--:|--:|--:|--:|--:|--:|
+  | measured today | 60 | 43 | 38 | 23 | 14 | 13 | 7 | 198 |
+  | P1 | 43 / 47 | 34 / 35 | 27 / 28 | 22 / 22 | 12 / 13 | 11 / 11 | 7 / 7 | 156 / 163 |
+  | P2 | 34 / 38 | 38 / 39 | 27 / 28 | 21 / 21 | 12 / 12 | 10 / 11 | 7 / 7 | 149 / 156 |
+  | P3 | 29 / 33 | 38 / 39 | 27 / 28 | 20 / 21 | 11 / 12 | 10 / 10 | 7 / 7 | 142 / 150 |
+  | P4, three rings | 53 / 54 | 18 / 18 | 37 / 37 | 19 / 19 | 14 / 14 | 13 / 13 | 7 / 7 | 161 / 162 |
+  | P4, two rings | 52 / 53 | 18 / 18 | 37 / 37 | 19 / 19 | 14 / 14 | 13 / 13 | 7 / 7 | 160 / 161 |
+  | P5 | 48 / 53 | 26 / 32 | 34 / 34 | 21 / 21 | 13 / 14 | 10 / 11 | 7 / 7 | 159 / 172 |
+
+  Per-frame savings below are hblanks, PSX per-call costs from `make
+  psx-short-runs` breakdown boots of the six steady runs, minus the pooled
+  breakdown overhead (0.0534 h a call); before the levers they were
+  estimated on profiles taken before any lever of plan 22.
+  - **P1, background grid baked into the background image, cut at 256.**
+    The grid and border would be part of the 256×256 image: the grid's
+    last column, last row and the stubs between 256 and 262 would no longer
+    be drawn as today. Saves the 18 `pattern` fills and the `rect` a frame:
+    now map-rest 3.6, map-move 3.8, build 5.5, menu 3.8, slipway-aim 3.9,
+    tech-panel 4.3, score-panel 3.6 h (before the levers: 3.6–5.6). The
+    larger image copy is assumed free. Computed per frame: the saving
+    taken off the draw of every steady frame of the situation in a copy of
+    the frame table, counted with `make situation-report`.
+  - **P2, slipways without their black border pass.** `slipway_draw` draws
+    four border segments, then four line segments; dropping the border
+    thins the outline. Saves the border's half of the slipways' `line`
+    segments: now map-rest 5.2, map-move 1.9, build 5.3, menu 7.1,
+    slipway-aim 7.0, tech-panel 5.8, score-panel 4.5 h (before: about 7 on
+    menu, 6 on map-rest, plus game code). The game code it would also save
+    is not counted (it cannot be split from the profile). Computed
+    proportionally: the saving as a percent of the source's mean draw, one
+    `lever-table` file for this option alone, `make lever-estimate
+    LEVERS=<file>`.
+  - **P3, transit dots without their black 2×2 backing.** Drops the
+    `rectfill` under each dot's `pset`; the dots lose their dark halo.
+    Saves one unpatterned `rectfill` a dot: now map-rest 7.1, map-move 1.9,
+    build 4.9, menu 8.7, slipway-aim 9.3, tech-panel 7.5, score-panel
+    6.3 h (before: about 6–10). Computed proportionally, as P2.
+  - **P4, fewer wormhole reveal rings.** `wormhole_draw` draws up to five
+    rings while a wormhole opens; drawing three, or two, changes the reveal
+    animation. A ring now costs 10.8 h (`map-move-1057`; 20.2 before N3),
+    so a five-ring frame saves 21.6 h with three rings, 32.4 h with two
+    (before: up to 40–60). Of the frames over, the ones drawing rings:
+    map-move 25 of 43, map-rest 8 of 60, menu 5 of 23, build 1, score-panel
+    1. Computed per frame: each steady frame's ring count from a PC profile
+    of `full_game.json` rooted at `wormhole_draw`, (rings − kept) × 10.8 h
+    taken off its draw in a copy of the frame table, counted with `make
+    situation-report`.
+  - **P5, fewer particles.** Halve what the emitters spawn; the particle
+    density changes. Saves half of the `particles` group (primitives and
+    game code): now map-rest 2.6, map-move 5.9, build 2.1, menu 5.3,
+    slipway-aim 0.6, tech-panel 5.8, score-panel 1.8 h (before: about half
+    of 7–20 on menu and tech-panel). Computed proportionally, as P2.
+
+  Sources, per situation: map-move, menu and tech-panel from their
+  representative runs (`map-move-1057`, `menu-5954`, `tech-panel-5895`);
+  map-rest, build, score-panel and slipway-aim from the full game's frames
+  over (`make steady-profile`'s `no-run`), with the per-call costs of their
+  best try (`map-rest-5581`, `build-5752`, `score-panel-5876`) or, for
+  slipway-aim, pooled over the three representative runs. Known error of
+  these estimates: the last projection from the short runs, before the
+  lever table was rebased on the measured table, said 361 nominal / 516
+  pessimistic steady frames over and 198 were measured (map-rest 116 / 202
+  vs 60, map-move 141 / 187 vs 43, build 36 / 56 vs 38, menu 27 / 27 vs 23,
+  slipway-aim 21 / 24 vs 14, tech-panel 14 / 14 vs 13, score-panel 6 / 6 vs
+  7): too pessimistic in the map situations, slightly optimistic in build
+  and score-panel. Known biases: `no-run` shares are PC time and overstate
+  primitive-heavy functions; the resumed runs draw 12–24% less than the full
+  game on the same frames; a representative window is not every frame of
+  its situation (against the full game's frames over, `map-move-1057`'s
+  window has fewer than half the slipway border segments and dots and three
+  times the particles, `menu-5954`'s 1.6 times the border segments and
+  dots and 2.5 times the particles, `tech-panel-5895`'s 2.6 times the
+  particles), so P2, P3 and P5 are the least certain in those three
+  situations.
+
+- **Open warn-review warnings of plan 22** (none fixed; each is a design
+  change or forces a full-game rerun):
+  - Phase 1 (measuring the real game): the frame-table/situation-table
+    join repeated in `tools/situation_report.sh`, `tools/steady_windows.sh`,
+    `tools/lever_estimate.sh`, `tools/psx_real_game_budget.sh` and
+    `tools/steady_profile.sh`, and the steady situation list in
+    `tools/situation_report.sh:32`, `tools/steady_windows.sh:37`,
+    `tools/lever_estimate.sh:246` and the Makefile's `STEADY_SITUATIONS`;
+    inline 263, 31, 15 and 3 (`tools/situation_report.sh:30-31`, the
+    Makefile's `steady-windows` and `frame-profile-spread` recipes); two
+    Makefile variables for one table (`SITUATIONS_TABLE`,
+    `PSX_FULL_GAME_SITUATIONS`); the `steady-profile` recipe's 55 lines
+    untested; `src/devtools/situation.c:166` testing `end_status != NULL`
+    next to its `has_end_status` bit; `src/devtools/pad_author.c` at 1,549
+    lines with no unit test.
+  - Phase 2 (loading screen): the display capture's mask `0x8000`
+    (`src/devtools/capture_list.h:14`) is a sentinel inside the family
+    bitmask, repeated as `8000` in `tools/psx_capture_frames.lua:6` and
+    inline in two awk scripts; `src/cmd/psx_gpu_replay.c:101` reads that
+    protocol value from the host's capture-list parser; `src/game/cart.c`
+    carries the difficulty as a whole `button_t` copied field by field
+    (`start_world`, :252, and :326) and duplicates `cart_update60`'s
+    prologue and epilogue; `src/game/loading_screen.c` and
+    `src/game/button_image.c` sit in the Makefile's `ENGINE_SRCS`, which
+    holds no game; e2e frame numbers written inline in capture lists,
+    recipes and tests. Still open from plan 21: the condition counts of
+    `psx-check` copied by hand.
+  - Phase 3 (pixel-identical levers): `src/game/ui_button.c:225` a
+    `through_text_image` flag choosing between two draw paths; :336 build
+    state passed through the global `g_building_look` though the callback
+    has a context; :358 a const cast on the button; :285 a text item's
+    pixel width recomputed apart from `src/game/layout.c:147` and `hud.c`'s
+    `aligned_x`; presence tested with `!= NULL` at :353, :247 and :238
+    instead of a `has` bit; `src/game/draw_functions.c:111` overriding the
+    `PRINT_OUTLINED` entry with a function-pointer parameter; parallel
+    `*_text_image` twins in `hud.h`, `draw_functions.h` and `layout.h`;
+    magic numbers in `src/engine/geom.c:24`, :28, :34 (`0x200000`,
+    `0x2000`, `0x100`) and `src/game/slipway_display.c:63` (32765); the button slot
+    sizes 16×11 and 112×11 repeated in `src/p8/image.h:12`,
+    `src/platform/psx_vram_layout.c:35` and :38 and
+    `src/game/button_image.h:10` with no compile-time tie;
+    `src/platform/psx_gpu.c:571` a VRAM readback inside an `assert`;
+    `src/engine/entity_list.c:125` `find_first` accepting NULL while
+    `entity_list_all` asserts; `src/game/ui_button.h`'s non-const pointer
+    fields `layout_row`, `side_tooltip` and `tooltip`.
+
+- **Open findings:**
+  - `make worst-case-peaks` is red: two lines frozen since plan 12 and
+    `zone frame` since plan 21 (`59fc46a`). The frozen table is stale, not
+    the code; re-baselining it is the human's call.
+  - D3's cold-cache rise: two score-panel frames draw more on the measured
+    table than on the table before the phase-3 levers (f4887 146 → 160,
+    f5275 130 → 147), neither over 263. Cause unproven (text slots built
+    on a cold cache right after a screen change).
+  - The resumed short runs draw less than the full game. `make
+    psx-short-runs` is red on `representative` for `map-rest-5581` (draw
+    −17.2%, update −12.5%) and `build-5752` (draw −22.0%); `done`,
+    `deterministic`, `breakdown` and `asserts` hold. The first map-rest try,
+    `map-rest-5538`, drew 27.5% less with half the `pset` calls; each
+    transit dot draws one `rectfill` and one `pset`, so missing dots would
+    leave equal gaps in both, yet it had 2,686 fewer `pset` and only 183
+    fewer `rectfill`: cause unproven (camera, selection, crosshair?).
+    `score-panel-5876` now passes `representative` (draw +4.0%, update
+    −3.4%) while the manifest still marks score-panel "no representative
+    run".
+  - Per-function family counts in a `tmp/frame_profile` profile stop after
+    1,024 frames (`CALL_PROFILE_CHILD_FAMILY_FRAME_CAP`): a per-frame count
+    of a primitive under one function later in `full_game.json` needs a
+    profile rooted at that function.
+  - `make psx-gpu-capture-ceilings` refuses a run where any condition but
+    its own list's `gpu-capture-ceilings` failed, so a new capture added to
+    both lists at once needs two `psx-check` passes (one list's new capture
+    taken out for the first).
 
 - The frame table's 54,784 bytes are in the GPU replays' ELFs only, so in
   `psx-check`'s `ram-room` and `psx-full-game-check`'s `gpu-ram-room`, not in

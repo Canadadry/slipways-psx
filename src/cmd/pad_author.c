@@ -11,6 +11,7 @@
 #include "engine/entity_registry.h"
 #include "game/economy_formulas.h"
 #include "p8/assets.h"
+#include "p8/draw_meter.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -229,6 +230,7 @@ int main(int argc, char **argv) {
     static p8_graphics_t graphics;
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
+    p8_draw_meter_install();
     assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

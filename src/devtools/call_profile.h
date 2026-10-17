@@ -5,12 +5,15 @@
 #include <stdint.h>
 
 #include "devtools/draw_filter.h"
+#include "devtools/draw_timing.h"
 #include "p8/draw_backend.h"
 
 /* full_game.json's 6,059 frames plus 1/8. */
 #define CALL_PROFILE_FRAME_CAP 6817
 #define CALL_PROFILE_CHILD_CAP 64
 #define CALL_PROFILE_DEPTH_CAP 256
+/* The per-child family table only keeps a short run's frames: it would not fit for a whole game. */
+#define CALL_PROFILE_CHILD_FAMILY_FRAME_CAP DRAW_TIMING_CAP
 
 typedef enum {
     CALL_PROFILE_UPDATE,
@@ -96,5 +99,17 @@ call_profile_family_figures_t call_profile_family_figures(int frame, draw_filter
 
 /* Every family's time but DRAW_FILTER_PATTERN's. */
 uint64_t call_profile_in_call_ns(int frame);
+
+/* The family figures of the calls made while child was the active direct child of root, at any
+ * depth below it. Zeros at or past CALL_PROFILE_CHILD_FAMILY_FRAME_CAP: those frames are not kept. */
+call_profile_family_figures_t call_profile_child_family_figures(int frame, call_profile_root_t root, int child,
+                                                                draw_filter_family_t family);
+
+/* The same for the calls made by root itself, outside any child. */
+call_profile_family_figures_t call_profile_self_family_figures(int frame, call_profile_root_t root,
+                                                               draw_filter_family_t family);
+
+/* Every family's time under child but DRAW_FILTER_PATTERN's. */
+uint64_t call_profile_child_in_call_ns(int frame, call_profile_root_t root, int child);
 
 #endif

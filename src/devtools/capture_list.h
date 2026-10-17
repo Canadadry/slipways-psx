@@ -5,7 +5,13 @@
 
 /* psx/gpu_captures.txt: "replay <name>", then one "<label> <frame> <mask>" a capture. The label is
  * a family name or "all"; the mask is "all" or a comma list of family names holding cls. Frames
- * strictly increase. Blank and '#' lines are skipped. */
+ * strictly increase. Blank and '#' lines are skipped.
+ * "display <frame> display" captures what the PSX displays at the top of <frame>, before its update:
+ * the picture drawn at <frame> - 2. */
+
+/* Outside the family bits: the GPU replay reads it in the capture script as "capture at the top of
+ * the frame, display untouched". */
+#define CAPTURE_LIST_DISPLAY_MASK 0x8000u
 
 enum {
     CAPTURE_LIST_MAX = 32,

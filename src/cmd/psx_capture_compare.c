@@ -49,7 +49,8 @@ int main(int argc, char **argv) {
     long index, frame, mask, calls;
     if (!parse_number(argv[3], 10, &index)) return fail("index is not a number", argv[3]);
     if (!parse_number(argv[5], 10, &frame)) return fail("frame is not a number", argv[5]);
-    if (!parse_number(argv[6], 16, &mask) || (unsigned long)mask > DRAW_FILTER_ALL) {
+    if (!parse_number(argv[6], 16, &mask)
+        || ((unsigned long)mask > DRAW_FILTER_ALL && (unsigned long)mask != CAPTURE_LIST_DISPLAY_MASK)) {
         return fail("mask is not a hex mask", argv[6]);
     }
     if (!parse_number(argv[7], 10, &calls)) return fail("calls is not a number", argv[7]);

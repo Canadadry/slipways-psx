@@ -50,20 +50,32 @@ static void draw_bar_entry(const data_row_t *e) {
     }
 }
 
+typedef void (*print_outlined_fn_t)(p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
+                                    p8_fixed_t a);
+
+static void print_outlined_direct(p8_graphics_t *gfx, p8_vram_t *mem, const char *t, p8_fixed_t x, p8_fixed_t y, int c,
+                                  p8_fixed_t a) {
+    hud_print_outlined(gfx, mem, t, x, y, c, a);
+}
+
 /* `a1` is often a number: substituting "" for one blanks the year and tech counter of the top bar. */
-static void print_outlined_entry(const data_row_t *e) {
+static void print_outlined_with(const data_row_t *e, print_outlined_fn_t print) {
     const data_item_t *a1 = draw_functions_arg(e, 1);
     char *owned = is_number(e, 1) ? p8_tostr_fixed(frame_zone(), number(e, 1)) : NULL;
     const char *t = a1 != NULL && a1->text != NULL ? a1->text : (owned != NULL ? owned : "");
     p8_fixed_t x = number(e, 2);
     p8_fixed_t y = number(e, 3);
     int c = p8_fixed_flr_int(number(e, 4));
-    if (is_number(e, 5)) {
-        p8_fixed_t a_val = number(e, 5);
-        hud_print_outlined(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c, a_val);
-    } else {
-        hud_print_outlined_default(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c);
-    }
+    p8_fixed_t a = is_number(e, 5) ? number(e, 5) : p8_fixed_from_int(0);
+    print(g_draw_functions_gfx, g_draw_functions_mem, t, x, y, c, a);
+}
+
+static void print_outlined_entry(const data_row_t *e) {
+    print_outlined_with(e, print_outlined_direct);
+}
+
+static void print_outlined_text_image_entry(const data_row_t *e) {
+    print_outlined_with(e, hud_print_outlined_text_image);
 }
 
 static void draw_help_frame_entry(const data_row_t *e) {
@@ -91,12 +103,12 @@ static const draw_functions_fn_t draw_functions_by_id[DRAW_FUNCTION_COUNT] = {
     [DRAW_FUNCTION_SPR] = spr_entry,
 };
 
-static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *e) {
+static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *e, draw_functions_fn_t print_outlined) {
     draw_functions_fn_t fn;
 
     assert((unsigned)e->draw_function < DRAW_FUNCTION_COUNT && "a row's draw_function is one of draw_function_t");
     assert(e->draw_function != DRAW_FUNCTION_DRAW_ROW && "a layout row is drawn by its message box");
-    fn = draw_functions_by_id[e->draw_function];
+    fn = e->draw_function == DRAW_FUNCTION_PRINT_OUTLINED ? print_outlined : draw_functions_by_id[e->draw_function];
     g_draw_functions_gfx = gfx;
     g_draw_functions_mem = mem;
 
@@ -106,13 +118,17 @@ static void draw_rows_dispatch_one(p8_graphics_t *gfx, p8_vram_t *mem, const dat
 }
 
 void draw_functions_draw_row(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *row) {
-    draw_rows_dispatch_one(gfx, mem, row);
+    draw_rows_dispatch_one(gfx, mem, row, print_outlined_entry);
+}
+
+void draw_functions_draw_row_text_image(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *row) {
+    draw_rows_dispatch_one(gfx, mem, row, print_outlined_text_image_entry);
 }
 
 void draw_functions_draw_rows_default(p8_graphics_t *gfx, p8_vram_t *mem, const data_row_t *const *rb, int n) {
     int i;
 
     for (i = 0; i < n; i++) {
-        draw_rows_dispatch_one(gfx, mem, rb[i]);
+        draw_rows_dispatch_one(gfx, mem, rb[i], print_outlined_entry);
     }
 }

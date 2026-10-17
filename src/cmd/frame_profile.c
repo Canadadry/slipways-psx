@@ -173,6 +173,26 @@ static void write_header(FILE *out, const report_t *report) {
     fprintf(out, "root update %s\n", report->update_root);
 }
 
+/* Only the families with at least one call; nothing past CALL_PROFILE_CHILD_FAMILY_FRAME_CAP. */
+static void write_child_families(FILE *out, const report_t *report, int frame) {
+    for (int root = 0; root < CALL_PROFILE_ROOT_COUNT; root++) {
+        for (int child = 0; child <= call_profile_child_count((call_profile_root_t)root); child++) {
+            int self = child == call_profile_child_count((call_profile_root_t)root);
+            for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+                call_profile_family_figures_t figures =
+                    self ? call_profile_self_family_figures(frame, (call_profile_root_t)root, (draw_filter_family_t)family)
+                         : call_profile_child_family_figures(frame, (call_profile_root_t)root, child,
+                                                             (draw_filter_family_t)family);
+                if (figures.calls == 0) continue;
+                if (self) fprintf(out, "frame %d self-family %s", frame, ROOT_NAMES[root]);
+                else fprintf(out, "frame %d child-family %s %s", frame, ROOT_NAMES[root], report->names[root][child]);
+                fprintf(out, " %s %lu %llu\n", capture_list_family_name((draw_filter_family_t)family),
+                        (unsigned long)figures.calls, (unsigned long long)figures.ns);
+            }
+        }
+    }
+}
+
 static void write_frames(FILE *out, const report_t *report) {
     write_header(out, report);
     for (int frame = 0; frame < call_profile_frame_count(); frame++) {
@@ -199,6 +219,7 @@ static void write_frames(FILE *out, const report_t *report) {
                     (unsigned long long)figures.ns, (unsigned long)figures.units, (unsigned long)figures.switches);
         }
         fprintf(out, "frame %d in-call %llu\n", frame, (unsigned long long)call_profile_in_call_ns(frame));
+        write_child_families(out, report, frame);
     }
 }
 

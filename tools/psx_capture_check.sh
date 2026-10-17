@@ -1,17 +1,17 @@
 #!/bin/sh
 # usage: psx_capture_check.sh <list> <pc-dir> <gpu-tty> <run-prefix> <repeat-prefix> <report-dir>
-#                             <ceilings> <references> <conditions>
+#                             <ceilings> <references> <conditions> [<prefix>]
 # The seven GPU capture conditions of make psx-check, from the files of one
 # run: gpu-capture-list, gpu-captures, gpu-capture-deterministic,
 # gpu-capture-clean, gpu-capture-report, gpu-capture-ceilings,
-# gpu-capture-references. One line per condition (ok on stdout, failure on
+# gpu-capture-references, each named behind <prefix> (default none). One line per condition (ok on stdout, failure on
 # stderr), and "<condition> ok|failed" appended to <conditions>. Exit 1 if
 # any failed.
 
 set -u
 
-usage="usage: psx_capture_check.sh <list> <pc-dir> <gpu-tty> <run-prefix> <repeat-prefix> <report-dir> <ceilings> <references> <conditions>"
-[ $# -eq 9 ] || { echo "psx-check: $usage" >&2; exit 1; }
+usage="usage: psx_capture_check.sh <list> <pc-dir> <gpu-tty> <run-prefix> <repeat-prefix> <report-dir> <ceilings> <references> <conditions> [<prefix>]"
+[ $# -eq 9 ] || [ $# -eq 10 ] || { echo "psx-check: $usage" >&2; exit 1; }
 list=$1
 pc_dir=$2
 gpu_tty=$3
@@ -21,16 +21,17 @@ report_dir=$6
 ceilings=$7
 references=$8
 conditions=$9
+name_prefix=${10:-}
 report=$report_dir/report.txt
 
 failed=0
 pass() {
-    echo "psx-check: $1: ok${2:+, $2}"
-    echo "$1 ok" >> "$conditions"
+    echo "psx-check: $name_prefix$1: ok${2:+, $2}"
+    echo "$name_prefix$1 ok" >> "$conditions"
 }
 fail() {
-    echo "psx-check: $1: $2" >&2
-    echo "$1 failed" >> "$conditions"
+    echo "psx-check: $name_prefix$1: $2" >&2
+    echo "$name_prefix$1 failed" >> "$conditions"
     failed=1
 }
 
@@ -59,7 +60,7 @@ else
         || problem="$problem$pc_dir/capture_script.txt does not hold the list's frames (did the PC run parse it?); "
     problem=$problem$(printf '%s\n' "$captures" | awk -v counts="$pc_dir/counts.txt" '
         BEGIN { while ((getline line < counts) > 0) { split(line, w, " "); calls[w[1] " " w[2]] = w[3] } }
-        NF == 2 && $1 != "all" && calls[$2 " " $1] + 0 < 1 { printf "%s f%s draws no %s call on PC; ", $1, $2, $1 }')
+        NF == 2 && $1 != "all" && $1 != "display" && calls[$2 " " $1] + 0 < 1 { printf "%s f%s draws no %s call on PC; ", $1, $2, $1 }')
 fi
 if [ -z "$problem" ]; then pass gpu-capture-list; else fail gpu-capture-list "$problem"; fi
 
@@ -179,7 +180,7 @@ while read -r kind label frame differ offpalette nonuniform ceiling reference ha
         *) continue ;;
     esac
     if [ "$reference" = - ]; then
-        pending="${pending}psx-check: pending human acceptance: $label f$frame
+        pending="${pending}psx-check: ${name_prefix}pending human acceptance: $label f$frame
 "
     elif [ "$hash" = "$reference" ]; then
         continue
@@ -193,7 +194,7 @@ while read -r kind label frame differ offpalette nonuniform ceiling reference ha
     elif [ "$differ" -gt "$ceiling" ]; then
         ceiling_problem="${ceiling_problem}$label f$frame differ $differ above its ceiling $ceiling; "
     elif [ "$differ" -lt "$ceiling" ]; then
-        notes="${notes}psx-check: below ceiling: $label f$frame $ceiling -> $differ
+        notes="${notes}psx-check: ${name_prefix}below ceiling: $label f$frame $ceiling -> $differ
 "
     fi
 done <<END

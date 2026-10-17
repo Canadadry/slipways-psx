@@ -84,6 +84,8 @@ src/platform/psx_gpu_textures.c | CLUTs, the font texture and the pattern tiles 
 src/platform/psx_gpu_textures.h | CLUTs, the font texture and the pattern tiles built for the PSX GPU backend, header of platform/psx_gpu_textures.c
 src/platform/psx_clut_cache.c | per-frame spr CLUT cache of the PSX GPU backend, PSX build and its host test
 src/platform/psx_clut_cache.h | per-frame spr CLUT cache of the PSX GPU backend, header of platform/psx_clut_cache.c
+src/platform/psx_slot_uploads.c | what each PSX CLUT and pattern VRAM slot holds, PSX build and its host test
+src/platform/psx_slot_uploads.h | what each PSX CLUT and pattern VRAM slot holds, header of platform/psx_slot_uploads.c
 src/platform/psx_pattern_cache.c | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, PSX build and its host test
 src/platform/psx_pattern_cache.h | per-frame fill-pattern tile and CLUT cache of the PSX GPU backend, header of platform/psx_pattern_cache.c
 src/platform/psx_gpu_peaks.c | per-frame peak bookkeeping of the PSX GPU backend, PSX build and its host test
@@ -95,7 +97,7 @@ src/devtools/draw_filter.h | family filter of the GPU captures, header of devtoo
 src/devtools/draw_timing.c | draw call timing of the PSX breakdown replay, written through the state sink, host-tested
 src/devtools/draw_timing.h | draw call timing of the PSX breakdown replay, header of devtools/draw_timing.c
 src/devtools/capture_list.c | GPU capture list parser, host tool
-src/devtools/capture_list.h | GPU capture list parser, header of devtools/capture_list.c
+src/devtools/capture_list.h | GPU capture list parser, header of devtools/capture_list.c, its display mask also read by the PSX GPU replay
 src/devtools/capture_compare.c | GPU capture comparator, host tool
 src/devtools/capture_compare.h | GPU capture comparator, header of devtools/capture_compare.c
 src/cmd/psx_capture_compare.c | entry point of psx_capture_compare, host tool
@@ -124,7 +126,10 @@ src/devtools/demo_source.h | demo loader of the demo generator, header of devtoo
 src/cmd/demo_generate.c | entry point of the demo generator, writes tmp/demo/demo.c through the libc, host tool
 src/devtools/short_run_cut.c | cut planner of make psx-short-runs-cut, host tool
 src/devtools/short_run_cut.h | cut planner of make psx-short-runs-cut, header of devtools/short_run_cut.c
+src/devtools/situation.c | frame situation classifier of the situations tool, host tool
+src/devtools/situation.h | header of devtools/situation.c
 src/cmd/short_run_cut.c | entry point of short_run_cut, which cuts the short runs out of the full game, host tool
 src/devtools/call_profile.c | call counts and PC time per root child and draw family of the PC frame profile, host tool
 src/devtools/call_profile.h | call counts and PC time per root child and draw family of the PC frame profile, header of devtools/call_profile.c
 src/cmd/frame_profile.c | entry point of frame_profile, the PC frame profile's instrumented replay, host tool
+src/cmd/situations.c | entry point of the situations tool, labels each frame of a replay, host tool

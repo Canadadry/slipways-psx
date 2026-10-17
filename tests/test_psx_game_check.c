@@ -15,12 +15,13 @@
 #define PC_STATE DIR "/pad_title_state.txt"
 #define TOOLS " " SCRIPT " ./tmp/psx_pad_log ./tmp/replay "
 
-/* pad_title.json: one press a frame from f10, X on "reasonable" at f18, 30 frames. */
+/* pad_title.json: one press a frame from f10, X on "reasonable" at f18 held through f20 (f18-19
+ * are the loading screen), 32 frames. */
 #define PAD_LINES_TO_UP                                                                                     \
     "psx-game: pad 0 000\r\npsx-game: pad 10 002\r\npsx-game: pad 11 000\r\npsx-game: pad 12 002\r\n"      \
     "psx-game: pad 13 000\r\npsx-game: pad 14 008\r\npsx-game: pad 15 000\r\npsx-game: pad 16 001\r\n"
-#define PAD_LINES PAD_LINES_TO_UP "psx-game: pad 17 000\r\npsx-game: pad 18 010\r\npsx-game: pad 19 000\r\n"
-#define DONE "psx-replay: done game 30 vsyncs 1\r\n"
+#define PAD_LINES PAD_LINES_TO_UP "psx-game: pad 17 000\r\npsx-game: pad 18 010\r\npsx-game: pad 21 000\r\n"
+#define DONE "psx-replay: done game 32 vsyncs 1\r\n"
 
 static void write_file(const char *path, const char *text) {
     FILE *file = fopen(path, "w");
@@ -91,8 +92,8 @@ static int run_check_expecting(const char *asserts) {
 }
 
 static void assert_other_conditions_pass(void) {
-    assert_line("psx-game-check: game-done: ok, 30 frames, 1 vsyncs");
-    assert_line("psx-game-check: game-pad-log: ok, 30 frames");
+    assert_line("psx-game-check: game-done: ok, 32 frames, 1 vsyncs");
+    assert_line("psx-game-check: game-pad-log: ok, 32 frames");
     assert_line("psx-game-check: game-pad-states: ok, 11 states");
     assert_line("psx-game-check: game-state-game-lines: ok");
     assert_line("psx-game-check: game-title-left: ok, difficulty reasonable, clock year 3401 month 1");
@@ -109,8 +110,8 @@ static void setup(void) {
 static void test_a_pad_title_run_passes_every_condition(void) {
     setup();
     assert(run_check(0, "reasonable") == 0);
-    assert_line("psx-game-check: game-done: ok, 30 frames, 1 vsyncs");
-    assert_line("psx-game-check: game-pad-log: ok, 30 frames");
+    assert_line("psx-game-check: game-done: ok, 32 frames, 1 vsyncs");
+    assert_line("psx-game-check: game-pad-log: ok, 32 frames");
     assert_line("psx-game-check: game-pad-states: ok, 11 states");
     assert_line("psx-game-check: game-state-game-lines: ok");
     assert_line("psx-game-check: game-title-left: ok, difficulty reasonable, clock year 3401 month 1");
@@ -149,10 +150,10 @@ static void test_a_dropped_pad_line_names_the_first_differing_state(void) {
     setup();
     write_tty("psx-game: pad 0 000\r\npsx-game: pad 10 002\r\npsx-game: pad 11 000\r\npsx-game: pad 14 008\r\n"
               "psx-game: pad 15 000\r\npsx-game: pad 16 001\r\npsx-game: pad 17 000\r\npsx-game: pad 18 010\r\n"
-              "psx-game: pad 19 000\r\n",
+              "psx-game: pad 21 000\r\n",
               DONE, PC_STATE);
     assert(run_check(0, "reasonable") != 0);
-    assert_line("psx-game-check: game-pad-log: ok, 30 frames");
+    assert_line("psx-game-check: game-pad-log: ok, 32 frames");
     assert_line("psx-game-check: game-pad-states: psx-pad-log: states: first differing state, 3: log 008 script 002");
 }
 

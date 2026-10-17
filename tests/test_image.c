@@ -224,12 +224,19 @@ static void test_a_48_by_8_slot_of_overlapping_sprites_copies_like_the_sprites_d
     }
 }
 
-enum { FIRST_SQUARE_SLOT = 1 + 32 + 32, SQUARE_SLOT_COUNT = 5 };
+enum { FIRST_SQUARE_SLOT = 1 + 32 + 32, SQUARE_SLOT_COUNT = 5, FIRST_BUTTON_SLOT = FIRST_SQUARE_SLOT + SQUARE_SLOT_COUNT };
 
 static void test_the_slots_after_the_48_by_8_ones_are_128_by_8(void) {
-    assert(P8_IMAGE_SLOT_COUNT == FIRST_SQUARE_SLOT + SQUARE_SLOT_COUNT);
+    assert(P8_IMAGE_SLOT_COUNT == FIRST_BUTTON_SLOT + 8 + 10);
     for (int slot = 1 + 32; slot < FIRST_SQUARE_SLOT; slot++) {
         assert(p8_image_size(slot).width == 128 && p8_image_size(slot).height == 8);
+    }
+}
+
+static void test_the_button_slots_follow_the_square_ones_eight_16_by_11_then_ten_112_by_11(void) {
+    for (int k = 0; k < 8 + 10; k++) {
+        p8_image_size_t size = p8_image_size(FIRST_BUTTON_SLOT + k);
+        assert(size.width == (k < 8 ? 16 : 112) && size.height == 11);
     }
 }
 
@@ -394,6 +401,7 @@ int main(int argc, char **argv) {
     test_an_outlined_print_in_a_build_copies_like_the_print_drawn_directly();
     test_a_48_by_8_slot_of_overlapping_sprites_copies_like_the_sprites_drawn_directly();
     test_the_slots_after_the_48_by_8_ones_are_128_by_8();
+    test_the_button_slots_follow_the_square_ones_eight_16_by_11_then_ten_112_by_11();
     test_the_16_by_16_slots_hold_circles_that_copy_like_the_circles_drawn_directly();
     test_every_map_write_on_any_vram_gives_a_map_version_never_seen();
     expect_fatal(argv[0], "cls", "image slot 0: cls during a build");

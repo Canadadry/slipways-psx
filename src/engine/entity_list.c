@@ -118,6 +118,22 @@ entity_list_t entity_list_filter(const allocator_t *zone, const entity_list_t *q
     return f;
 }
 
+entity_t *entity_list_find_first(const entity_list_t *entity_list, filter_entity_list_predicate_fn_t predicate,
+                                 void *ctx) {
+    entity_list_iter_t it;
+    entity_t *e;
+    if (entity_list == NULL) {
+        return NULL;
+    }
+    it = entity_list_all(entity_list);
+    while (entity_list_iter_next(&it, &e)) {
+        if (predicate(e, ctx)) {
+            return e;
+        }
+    }
+    return NULL;
+}
+
 entity_list_iter_t entity_list_all(const entity_list_t *entity_list) {
     entity_list_iter_t it;
     assert(entity_list != NULL && "entity_list primitive called on a NULL container");

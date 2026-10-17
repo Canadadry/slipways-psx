@@ -5,6 +5,8 @@
 #                     <pc-capture-dir> <compare-tool> <ceilings> <references> <game-exe> <game-script>
 #                     <game-ceiling> <game-timeout> <game-difficulty> <game-cue> <dumpsxiso> <game-disc-exe>
 #                     <pad-log-tool> <replay-tool> <largest-exe> <largest-ceiling> <largest-timeout> <out-dir>
+#                     [<name> <gpu-exe> <capture-list> <pc-capture-dir> <ceilings> <references> <gpu-ceiling>
+#                      <gpu-timeout>]...
 # Boots the replay PS-EXE, the GPU replay PS-EXE (twice, both driven by
 # <pc-capture-dir>/capture_script.txt), the pad probe and the game's CD image
 # <game-cue> (driven by <game-script>) and <largest-exe> until they exit, then
@@ -22,11 +24,15 @@
 # frames, RAM room and ELF size behind "game ", then the .bin's size and the
 # CD boot's vsyncs from power-on behind "game cd ", then the largest-slots
 # boot's bytes_<slot> lines behind "largest ".
+# Each trailing group is a second capture replay: its GPU replay booted twice
+# with its own capture script into <out-dir>/<name>, and only the seven GPU
+# capture conditions checked on it, named "<name>-gpu-capture-*", its report
+# lines in measurements.txt behind "<name> gpu capture ".
 
 set -u
 
 usage="usage: psx_check.sh <install-dir> <replay-exe> <gpu-exe> <pad-exe> <pc-state> <pc-digest> <pc-frames> <pc-format-line> <pad-script> <replay-ceiling> <replay-timeout> <gpu-ceiling> <gpu-timeout> <pad-ceiling> <pad-timeout> <size-tool> <nm-tool> <stack-reserve> <capture-list> <pc-capture-dir> <compare-tool> <ceilings> <references> <game-exe> <game-script> <game-ceiling> <game-timeout> <game-difficulty> <game-cue> <dumpsxiso> <game-disc-exe> <pad-log-tool> <replay-tool> <largest-exe> <largest-ceiling> <largest-timeout> <out-dir>"
-[ $# -eq 37 ] || { echo "psx-check: $usage" >&2; exit 1; }
+[ $# -ge 37 ] && [ $((($# - 37) % 8)) -eq 0 ] || { echo "psx-check: $usage [<name> <gpu-exe> <capture-list> <pc-capture-dir> <ceilings> <references> <gpu-ceiling> <gpu-timeout>]..." >&2; exit 1; }
 install_dir=$1
 replay_exe=$2
 gpu_exe=$3
@@ -68,6 +74,8 @@ largest_ceiling=$8
 largest_timeout=$9
 shift 9
 out_dir=$1
+shift 1
+extra_lists=$*
 script_dir=$(cd "$(dirname "$0")" && pwd)
 
 rm -rf "$out_dir"
@@ -87,6 +95,17 @@ echo "psx-check: booting the GPU replay PS-EXE again (at most ${gpu_timeout}s)"
 PSX_BOOT_TIMEOUT=$gpu_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --capture-script "$capture_script" --exe "$gpu_exe" "$gpu_ceiling" "$out_dir/gpu-repeat/gpu" \
     > "$out_dir/gpu-repeat.boot.txt" 2>&1
+set -- $extra_lists
+while [ $# -ge 8 ]; do
+    list_dir=$out_dir/$1
+    mkdir -p "$list_dir/gpu-repeat"
+    echo "psx-check: $1: booting its GPU replay PS-EXE twice (at most ${8}s each)"
+    for boot in gpu gpu-repeat/gpu; do
+        PSX_BOOT_TIMEOUT=$8 sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
+            --capture-script "$4/capture_script.txt" --exe "$2" "$7" "$list_dir/$boot" > "$list_dir/$boot.boot.txt" 2>&1
+    done
+    shift 8
+done
 echo "psx-check: booting the pad probe (at most ${pad_timeout}s)"
 pad_boot=$(PSX_BOOT_TIMEOUT=$pad_timeout sh "$script_dir/psx_boot.sh" "$install_dir" --until-exit \
     --pad-script "$pad_script" --exe "$pad_exe" "$pad_ceiling" "$out_dir/pad" 2>&1)
@@ -118,11 +137,22 @@ else
     report magic "not starting with PS-X EXE (elf2x failed?):$bad_magic"
 fi
 
-asserts=$(printf '%s\n' "$replay_lines" | sed -n 's/^psx-replay: asserts //p' | head -n 1)
-if [ "$asserts" = on ]; then
+# The GPU replays' readback assert is the only check that every slot upload G4 skipped was redundant.
+asserts_ttys="$tty $out_dir/gpu.tty.txt"
+set -- $extra_lists
+while [ $# -ge 8 ]; do
+    asserts_ttys="$asserts_ttys $out_dir/$1/gpu.tty.txt"
+    shift 8
+done
+asserts_failure=
+for asserts_tty in $asserts_ttys; do
+    asserts=$(tr -d '\r' < "$asserts_tty" 2>/dev/null | sed -n 's/^psx-replay: asserts //p' | head -n 1)
+    [ "$asserts" = on ] || asserts_failure="${asserts_failure}$asserts_tty: psx-replay: asserts ${asserts:-(no line)}; "
+done
+if [ -z "$asserts_failure" ]; then
     pass asserts-on
 else
-    report asserts-on "psx-replay: asserts ${asserts:-(no line)}"
+    report asserts-on "$asserts_failure"
 fi
 
 psx_format=$(printf '%s\n' "$replay_lines" | sed -n 's/^psx-replay: //p' | grep '^format ' | head -n 1)
@@ -270,6 +300,17 @@ check_largest_slots largest-slots "$largest_status" "$largest_boot" "$largest_tt
     [ -n "$boot_vsyncs" ] && echo "game cd boot-vsyncs $boot_vsyncs"
     printf '%s\n' "$largest_lines" | grep . | sed 's/^/largest /'
 } >> "$out_dir/measurements.txt"
+
+set -- $extra_lists
+while [ $# -ge 8 ]; do
+    list_dir=$out_dir/$1
+    [ -f "$list_dir/gpu.tty.txt" ] || : > "$list_dir/gpu.tty.txt"
+    sh "$script_dir/psx_capture_report.sh" "$compare_tool" "$3" "$4" "$list_dir/gpu" "$list_dir/gpu-captures"
+    sh "$script_dir/psx_capture_check.sh" "$3" "$4" "$list_dir/gpu.tty.txt" "$list_dir/gpu" \
+        "$list_dir/gpu-repeat/gpu" "$list_dir/gpu-captures" "$5" "$6" "$out_dir/conditions.txt" "$1-" || failed=1
+    sed "s/^/$1 gpu capture /" "$list_dir/gpu-captures/report.txt" >> "$out_dir/measurements.txt"
+    shift 8
+done
 
 echo "psx-check: measurements in $out_dir/measurements.txt"
 [ "$failed" -eq 0 ] || exit 1

@@ -21,6 +21,7 @@
 #include "game/hud.h"
 #include "engine/entity.h"
 #include "game/layout.h"
+#include "game/loading_screen.h"
 #include "p8/vram.h"
 #include "game/menu.h"
 #include "game/mouse.h"
@@ -40,6 +41,7 @@
 #include "game/slipway.h"
 #include "game/trade.h"
 #include "game/text_image.h"
+#include "game/button_image.h"
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "game/wormhole.h"
@@ -49,6 +51,10 @@
 static int g_title_built;
 static int g_save_cut;
 static int g_demo_frame = CART_NO_DEMO_FRAME;
+/* 0 when not loading, else the loading frame being played, from 1 (the press) to LOADING_SCREEN_FRAMES. */
+static int g_loading_frame;
+static button_t g_requested_option;
+static int g_has_requested_option;
 
 static void quit_game_zone(void) {
     entity_registry_abandon_live_entities();
@@ -66,6 +72,7 @@ void cart_load(void) {
     g_title_built = 0;
     g_save_cut = 0;
     g_demo_frame = CART_NO_DEMO_FRAME;
+    g_loading_frame = 0;
     entity_init();
     assert(entity_ready() && "cart_load: entity_init() must run before every class that extends entity_t");
     camera_init();
@@ -104,7 +111,7 @@ void cart_load(void) {
     structure_icon_init();
     menu_init();
 
-    help_set_start_game(cart_start_game);
+    help_set_start_game(cart_request_start_game);
     score_panel_set_init(cart_init_method);
 }
 
@@ -168,11 +175,12 @@ static button_fn_t title_resume_handler(void) {
 
 void cart_init(void) {
     assert(structure_icon_ready() && "cart_init: cart_load() must run first");
-    assert(help_start_game_field_value() == cart_start_game &&
+    assert(help_start_game_field_value() == cart_request_start_game &&
            score_panel_init_field_value() == cart_init_method &&
            "cart_init: help_init() and score_panel_init() reset these bridges, so cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
+    g_loading_frame = 0;
     if (!game_zone_pending() && game_zone_used() > 0) game_zone_flip();
     reset_world(NULL);
     research_expire_project_ids();
@@ -191,7 +199,7 @@ void cart_init(void) {
 }
 
 int cart_title_shown(void) {
-    return g_title_built && shown_message_box() == NULL && entity_registry_count_tagged(TAG_MESSAGE_BOX) == 0;
+    return g_title_built && g_loading_frame == 0 && shown_message_box() == NULL && entity_registry_count_tagged(TAG_MESSAGE_BOX) == 0;
 }
 
 /* Between frames only, never from a handler inside ui_update or update_entities: it releases
@@ -297,6 +305,23 @@ void cart_start_game(button_t *chosen_option) {
     recompute_economy();
 }
 
+void cart_request_start_game(button_t *chosen_option) {
+    g_has_requested_option = chosen_option != NULL;
+    g_requested_option = (button_t){0};
+    if (chosen_option != NULL) {
+        g_requested_option.name = chosen_option->name;
+        g_requested_option.has_trade = chosen_option->has_trade;
+        g_requested_option.trade = chosen_option->trade;
+        g_requested_option.has_type_bias = chosen_option->has_type_bias;
+        g_requested_option.type_bias = chosen_option->type_bias;
+    }
+    g_loading_frame = 1;
+}
+
+int cart_loading(void) {
+    return g_loading_frame != 0;
+}
+
 void cart_resume_game(const save_state_t *state) {
     button_t difficulty;
 
@@ -325,6 +350,18 @@ static void save_at_frame_end(void) {
 }
 
 void cart_update60(void) {
+    if (g_loading_frame > 0 && g_loading_frame < LOADING_SCREEN_FRAMES) {
+        g_loading_frame++;
+        return;
+    }
+    if (g_loading_frame == LOADING_SCREEN_FRAMES) {
+        frame_zone_reset();
+        cart_flush_exit_queue();
+        cart_start_game(g_has_requested_option ? &g_requested_option : NULL);
+        g_loading_frame = 0;
+        if (!g_save_cut) save_at_frame_end();
+        return;
+    }
     frame_zone_reset();
     cart_flush_exit_queue();
     update_entities();
@@ -335,7 +372,12 @@ void cart_update60(void) {
 void cart_draw(void) {
     p8_vram_t *mem = dispatch_context_mem();
 
+    if (g_loading_frame != 0) {
+        loading_screen_draw(dispatch_context_gfx(), mem);
+        return;
+    }
     text_image_frame_begin();
+    button_image_frame_begin();
     p8_cls(mem);
     hud_select_palette_block_default(mem);
     draw_layers(ENTITY_MESSAGE_DRAW);

@@ -24,6 +24,9 @@ entity_list_t entity_list_concat(const allocator_t *zone, const entity_list_t *a
 typedef int (*filter_entity_list_predicate_fn_t)(entity_t *e, void *ctx);
 entity_list_t entity_list_filter(const allocator_t *zone, const entity_list_t *qk,
                            filter_entity_list_predicate_fn_t ow, void *ctx);
+/* NULL when the list is NULL or nothing matches; asks the predicate about nothing after the match. */
+entity_t *entity_list_find_first(const entity_list_t *entity_list, filter_entity_list_predicate_fn_t predicate,
+                                 void *ctx);
 
 typedef struct {
     const entity_list_t *entity_list;

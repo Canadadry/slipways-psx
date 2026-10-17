@@ -551,7 +551,7 @@ static void test_research_project_layout_row_keys(void) {
         hash = fnv(hash, screen_hash());
     }
     p8_draw_backend_set(NULL);
-    assert(g_copies == 2 * 2 && "a button's row text and its side tooltip's text are copied");
+    assert(g_copies == 2 && "a button, its row text and its side tooltip's text included, is one image copy");
     check("research_project_layout_row_keys", hash, RESEARCH_PROJECT_LAYOUT_ROW_HASH);
 }
 
@@ -1037,6 +1037,23 @@ static void test_row_keeps_nothing_of_its_keys(void) {
     assert(row_count(lq) == 2 && drawn_by_draw_at(lq, vec_xy(64, 60), 0) == want);
 }
 
+/* A row's serial names its contents: every fill, by layout_row_new or in place, gets a new one. */
+static void test_every_filled_row_gets_its_own_serial(void) {
+    layout_row_cell_t cells[] = {str("hi"), num(12)};
+    layout_row_keys_t keys = positionals(2, cells);
+    layout_row_t *first = layout_row_new(&heap_allocator, &keys);
+    layout_row_t *second = layout_row_new(&heap_allocator, &keys);
+    layout_row_t in_place;
+    uint32_t before;
+
+    assert(first->serial != 0 && second->serial != 0 && first->serial != second->serial);
+    layout_row_init(&in_place, &heap_allocator, &keys);
+    before = in_place.serial;
+    assert(before != 0 && before != first->serial && before != second->serial);
+    layout_row_init(&in_place, &heap_allocator, NULL);
+    assert(in_place.serial != 0 && in_place.serial != before && "a row filled again in place is a new row");
+}
+
 static void tuple_of_row(void *e) {
     (void)layout_row_cell_row(e);
 }
@@ -1165,6 +1182,7 @@ int main(void) {
     in_fresh_child(test_row_keeps_nothing_of_its_keys);
     in_fresh_child(test_tuple_refuses_text_and_rows);
     in_fresh_child(test_placed_items_ignore_stale_zone_bytes);
+    in_fresh_child(test_every_filled_row_gets_its_own_serial);
 
     printf("test_layout_row: all tests passed\n");
     return 0;

@@ -509,6 +509,138 @@ static void test_family_calls_equal_the_breakdown_timing_on_the_same_calls(void)
     p8_draw_backend_set(NULL);
 }
 
+static void expect_child_family(int frame, int child, draw_filter_family_t family, uint32_t calls, uint64_t ns) {
+    call_profile_family_figures_t figures = call_profile_child_family_figures(frame, CALL_PROFILE_DRAW, child, family);
+    if (figures.calls != calls || figures.ns != ns) {
+        fprintf(stderr, "frame %d child %d family %d: calls %u ns %llu, expected %u %llu\n", frame, child, family,
+                (unsigned)figures.calls, (unsigned long long)figures.ns, (unsigned)calls, (unsigned long long)ns);
+        assert(0 && "child family figures");
+    }
+}
+
+static void test_a_family_call_under_a_child_counts_in_that_child_only(void) {
+    families_over(&NULL_BACKEND);
+    call_profile_enter(DRAW, MAIN);
+    call_profile_enter(CLS, SITE_A);
+    backend_cost = 7;
+    p8_spr(&gfx, &mem, 1, 0, 0, 1, 1);
+    call_profile_exit(CLS, SITE_A);
+    call_profile_enter(LAYERS, SITE_B);
+    backend_cost = 3;
+    p8_print(&gfx, &mem, "ab", 0, 0, 7);
+    call_profile_exit(LAYERS, SITE_B);
+    call_profile_exit(DRAW, MAIN);
+    call_profile_frame_end();
+    expect_child_family(0, 0, DRAW_FILTER_SPR, 1, 7);
+    expect_child_family(0, 0, DRAW_FILTER_PRINT, 0, 0);
+    expect_child_family(0, 1, DRAW_FILTER_PRINT, 1, 3);
+    expect_child_family(0, 1, DRAW_FILTER_SPR, 0, 0);
+    p8_draw_backend_set(NULL);
+}
+
+static void test_a_call_deep_under_a_child_counts_in_that_child(void) {
+    families_over(&NULL_BACKEND);
+    call_profile_enter(DRAW, MAIN);
+    call_profile_enter(LAYERS, SITE_A);
+    call_profile_enter(LEAF, SITE_B);
+    call_profile_enter(LEAF, SITE_A);
+    backend_cost = 9;
+    p8_line(&gfx, &mem, 0, 0, 5, 5, 7);
+    call_profile_exit(LEAF, SITE_A);
+    call_profile_exit(LEAF, SITE_B);
+    call_profile_exit(LAYERS, SITE_A);
+    call_profile_exit(DRAW, MAIN);
+    call_profile_frame_end();
+    assert(call_profile_child_count(CALL_PROFILE_DRAW) == 1);
+    expect_child_family(0, 0, DRAW_FILTER_LINE, 1, 9);
+    assert(call_profile_self_family_figures(0, CALL_PROFILE_DRAW, DRAW_FILTER_LINE).calls == 0);
+    p8_draw_backend_set(NULL);
+}
+
+static void test_a_call_from_the_root_itself_counts_as_its_self(void) {
+    families_over(&NULL_BACKEND);
+    call_profile_enter(DRAW, MAIN);
+    backend_cost = 4;
+    p8_cls(&mem);
+    call_profile_enter(LAYERS, SITE_A);
+    call_profile_exit(LAYERS, SITE_A);
+    p8_cls(&mem);
+    call_profile_exit(DRAW, MAIN);
+    p8_cls(&mem);
+    call_profile_frame_end();
+    call_profile_family_figures_t self = call_profile_self_family_figures(0, CALL_PROFILE_DRAW, DRAW_FILTER_CLS);
+    assert(self.calls == 2 && self.ns == 8 && "a call outside any root is nobody's");
+    assert(self.units == 2);
+    expect_child_family(0, 0, DRAW_FILTER_CLS, 0, 0);
+    assert(call_profile_family_figures(0, DRAW_FILTER_CLS).calls == 3);
+    p8_draw_backend_set(NULL);
+}
+
+static void test_the_children_and_self_in_call_times_add_up_to_the_frame_in_call(void) {
+    families_over(&NULL_BACKEND);
+    call_profile_enter(DRAW, MAIN);
+    backend_cost = 2;
+    p8_cls(&mem);
+    call_profile_enter(CLS, SITE_A);
+    backend_cost = 5;
+    p8_fillp(&gfx, 0xA5A5);
+    p8_rectfill(&gfx, &mem, 0, 0, 5, 5, 7);
+    p8_fillp_reset(&gfx);
+    p8_spr(&gfx, &mem, 1, 0, 0, 1, 1);
+    call_profile_exit(CLS, SITE_A);
+    call_profile_enter(LAYERS, SITE_B);
+    backend_cost = 11;
+    p8_circ(&gfx, &mem, 10, 10, 3, 7);
+    call_profile_exit(LAYERS, SITE_B);
+    call_profile_exit(DRAW, MAIN);
+    call_profile_frame_end();
+    assert(call_profile_family_figures(0, DRAW_FILTER_PATTERN).calls == 1);
+    expect_child_family(0, 0, DRAW_FILTER_PATTERN, 1, 5);
+    assert(call_profile_child_in_call_ns(0, CALL_PROFILE_DRAW, 0) == 10 && "pattern time is not added twice");
+    assert(call_profile_child_in_call_ns(0, CALL_PROFILE_DRAW, 1) == 11);
+    uint64_t self = 0;
+    for (int family = 0; family < DRAW_FILTER_FAMILY_COUNT; family++) {
+        if (family != DRAW_FILTER_PATTERN) {
+            self += call_profile_self_family_figures(0, CALL_PROFILE_DRAW, (draw_filter_family_t)family).ns;
+        }
+    }
+    assert(self == 2);
+    assert(call_profile_child_in_call_ns(0, CALL_PROFILE_DRAW, 0) + call_profile_child_in_call_ns(0, CALL_PROFILE_DRAW, 1) +
+               self == call_profile_in_call_ns(0));
+    p8_draw_backend_set(NULL);
+}
+
+static void test_a_child_carries_its_cost_model_units(void) {
+    families_over(&NULL_BACKEND);
+    call_profile_enter(DRAW, MAIN);
+    call_profile_enter(LAYERS, SITE_A);
+    p8_rect(&gfx, &mem, 0, 0, 5, 5, 7);
+    call_profile_exit(LAYERS, SITE_A);
+    call_profile_exit(DRAW, MAIN);
+    call_profile_frame_end();
+    call_profile_family_figures_t rect = call_profile_child_family_figures(0, CALL_PROFILE_DRAW, 0, DRAW_FILTER_RECT);
+    assert(rect.calls == 1 && rect.units == 4 && rect.switches == 0);
+    p8_draw_backend_set(NULL);
+}
+
+static void test_frames_past_the_child_family_cap_read_zeros(void) {
+    families_over(&NULL_BACKEND);
+    backend_cost = 1;
+    for (int frame = 0; frame <= CALL_PROFILE_CHILD_FAMILY_FRAME_CAP; frame++) {
+        call_profile_enter(DRAW, MAIN);
+        call_profile_enter(LAYERS, SITE_A);
+        p8_cls(&mem);
+        call_profile_exit(LAYERS, SITE_A);
+        call_profile_exit(DRAW, MAIN);
+        call_profile_frame_end();
+    }
+    int last = CALL_PROFILE_CHILD_FAMILY_FRAME_CAP - 1;
+    expect_child_family(last, 0, DRAW_FILTER_CLS, 1, 1);
+    expect_child_family(last + 1, 0, DRAW_FILTER_CLS, 0, 0);
+    assert(call_profile_family_figures(last + 1, DRAW_FILTER_CLS).calls == 1 && "the frame itself is kept");
+    p8_draw_backend_set(NULL);
+}
+
 static int case_frames(void) {
     fresh();
     for (int frame = 0; frame < CALL_PROFILE_FRAME_CAP; frame++) call_profile_frame_end();
@@ -604,6 +736,12 @@ int main(int argc, char **argv) {
     test_build_calls_count_under_their_families_and_a_copy_is_one_spr_unit();
     test_family_calls_equal_the_breakdown_timing_on_the_same_calls();
     test_a_dispatcher_root_keeps_forty_children();
+    test_a_family_call_under_a_child_counts_in_that_child_only();
+    test_a_call_deep_under_a_child_counts_in_that_child();
+    test_a_call_from_the_root_itself_counts_as_its_self();
+    test_the_children_and_self_in_call_times_add_up_to_the_frame_in_call();
+    test_a_child_carries_its_cost_model_units();
+    test_frames_past_the_child_family_cap_read_zeros();
     expect_fatal(argv[0], "frames", "call profile frame table full at frame 6817, capacity 6817");
     expect_fatal(argv[0], "children", "call profile: more than 64 children under one root");
     expect_fatal(argv[0], "depth", "call profile: call stack deeper than 256");

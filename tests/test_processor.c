@@ -214,7 +214,8 @@ static void start_game(void) {
 
 /* A game started from the title screen as a click on its second
  * difficulty button starts it: button_left_press runs the on_click that
- * help_screen_construct stamped, cart_start_game on that button. The trade
+ * help_screen_construct stamped, cart_request_start_game on that button, and
+ * the updates through the loading screen generate the game. The trade
  * income reads the difficulty's trade, which a NULL difficulty lacks. */
 static void clicked_game(void) {
     const entity_list_t *hd;
@@ -231,6 +232,7 @@ static void clicked_game(void) {
             break;
         }
     }
+    while (cart_loading()) cart_update60();
     assert(buttons == 2 && economy_score_difficulty() != NULL);
 }
 

@@ -1,6 +1,7 @@
 #include "engine/entity_list.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "heap_allocator.h"
@@ -124,6 +125,98 @@ static void test_filter_keeps_what_the_predicate_keeps_in_order(void) {
     entity_list_free(&src);
 }
 
+typedef struct {
+    const entity_t *cells;
+    int wanted;
+    int calls;
+    int saw_null;
+} find_first_ctx_t;
+
+static int rank_is_wanted(entity_t *e, void *ctx_ptr) {
+    find_first_ctx_t *ctx = ctx_ptr;
+    ctx->calls++;
+    if (e == NULL) {
+        ctx->saw_null = 1;
+        return 0;
+    }
+    return ((e - ctx->cells) % ctx->wanted) == ctx->wanted - 1;
+}
+
+static void test_find_first_returns_the_first_match_and_asks_nothing_after_it(void) {
+    entity_t cells[6];
+    entity_list_t src;
+    find_first_ctx_t ctx = {cells, 3, 0, 0};
+    int i;
+    entity_list_init(&src, &heap_allocator);
+    for (i = 0; i < 6; i++) {
+        entity_list_add(&src, &cells[i]);
+    }
+
+    assert(entity_list_find_first(&src, rank_is_wanted, &ctx) == &cells[2]);
+    assert(ctx.calls == 3 && "the predicate is not asked about any entity after the match");
+
+    ctx.wanted = 7;
+    ctx.calls = 0;
+    assert(entity_list_find_first(&src, rank_is_wanted, &ctx) == NULL);
+    assert(ctx.calls == 6);
+    assert(src.count == 6);
+    entity_list_free(&src);
+}
+
+static void test_find_first_is_null_on_an_empty_or_null_list(void) {
+    entity_t cells[1];
+    entity_list_t empty;
+    find_first_ctx_t ctx = {cells, 1, 0, 0};
+    entity_list_init(&empty, &heap_allocator);
+    assert(entity_list_find_first(&empty, rank_is_wanted, &ctx) == NULL);
+    assert(entity_list_find_first(NULL, rank_is_wanted, &ctx) == NULL);
+    assert(ctx.calls == 0);
+    entity_list_free(&empty);
+}
+
+static void test_find_first_hands_a_null_item_to_the_predicate(void) {
+    entity_t cells[3];
+    entity_list_t src;
+    find_first_ctx_t ctx = {cells, 1, 0, 0};
+    entity_list_init(&src, &heap_allocator);
+    entity_list_add(&src, NULL);
+    entity_list_add(&src, &cells[1]);
+    assert(entity_list_find_first(&src, rank_is_wanted, &ctx) == &cells[1]);
+    assert(ctx.saw_null && ctx.calls == 2);
+    entity_list_free(&src);
+}
+
+static void test_find_first_is_the_filters_first_item(void) {
+    entity_t cells[40];
+    uint32_t seed = 0x5eed1234u;
+    int round;
+    for (round = 0; round < 500; round++) {
+        entity_list_t src;
+        entity_list_t kept;
+        find_first_ctx_t ctx;
+        entity_t *first;
+        int count;
+        int i;
+        seed = seed * 1664525u + 1013904223u;
+        count = (int)((seed >> 8) % 41u);
+        entity_list_init(&src, &heap_allocator);
+        for (i = 0; i < count; i++) {
+            seed = seed * 1664525u + 1013904223u;
+            entity_list_add(&src, (seed >> 24) % 9u == 0 ? NULL : &cells[(seed >> 8) % 40u]);
+        }
+        seed = seed * 1664525u + 1013904223u;
+        ctx.cells = cells;
+        ctx.wanted = 1 + (int)((seed >> 8) % 50u);
+        ctx.calls = 0;
+        ctx.saw_null = 0;
+        kept = entity_list_filter(&heap_allocator, &src, rank_is_wanted, &ctx);
+        first = entity_list_find_first(&src, rank_is_wanted, &ctx);
+        assert(first == (kept.count > 0 ? kept.items[0] : NULL));
+        entity_list_free(&kept);
+        entity_list_free(&src);
+    }
+}
+
 static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_them(void) {
     entity_t cells[9];
     entity_list_t entity_list;
@@ -190,6 +283,10 @@ int main(void) {
     test_cat_copies_a_then_b_and_leaves_them();
     test_all_sees_each_when_the_returned_one_is_deleted();
     test_filter_keeps_what_the_predicate_keeps_in_order();
+    test_find_first_returns_the_first_match_and_asks_nothing_after_it();
+    test_find_first_is_null_on_an_empty_or_null_list();
+    test_find_first_hands_a_null_item_to_the_predicate();
+    test_find_first_is_the_filters_first_item();
     test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_them();
     test_reserved_list_fills_its_capacity_without_taking_then_grows();
     test_reserving_zero_takes_nothing();
