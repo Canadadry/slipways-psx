@@ -1357,23 +1357,23 @@ family each), `one-off-runs` (no `long` run).
 
 - `make psx-full-game-check` is red on `frame-budget`; nobody raises
   `PSX_FRAME_BUDGET_HBLANKS` to turn it green. Latest run (asserts off, O3,
-  draw filter and draw meter off; plan 22 step 6, with the loading screen):
-  1,763 of 6,061 frames over 263 hblanks, worst frame 14 at 3,989 (galaxy
-  generation; update 3,708), mean frame 233.5 hblanks against 263, mean
-  overrun 76. Draw still dominates the frames over (424,518 of their 598,543
-  hblanks), so the next work is draw.
+  draw filter and draw meter off; plan 22 step 8, every phase-3 lever in):
+  491 of 6,061 frames over 263 hblanks, worst frame 14 at 2,304 (galaxy
+  generation; update 2,026), mean frame 187.1 hblanks against 263, mean
+  overrun 101. Draw still dominates the frames over (98,324 of their 178,871
+  hblanks; update 79,133), so the next work is draw.
   Spike work (galaxy generation, saves, slipway drops, launches, image
   builds) is not spread across frames. The thirteen other
   conditions held. The judge is pcsx-redux at 263 hblanks; the Miyoo Mini
   Flip (PCSX-ReARMed) was never measured. Plan 22 judges by
-  `real-game-budget` instead; on that table it is red: 1,132 steady frames
-  over 263 (worst frame 4657, `build`, total 530), 631 one-off frames over
-  for 1,391 vsyncs of 10,800.
+  `real-game-budget` instead; on that table it is red: 198 steady frames
+  over 263 (worst frame 4657, `build`, total 478), 293 one-off frames over
+  for 674 vsyncs of 10,800.
 
 - The steady frames' levers, ranked and estimated, are in
   `docs/psx-levers.md` (`make lever-estimate` checks its order and projects
-  it). The pixel-identical list leaves 356 steady frames over 263 nominal,
-  513 pessimistic.
+  it). Every lever of the pixel-identical list is in the code and in the
+  measured base: 198 steady frames over 263 remain, measured.
 
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out

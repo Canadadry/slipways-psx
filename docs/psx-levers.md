@@ -1,26 +1,32 @@
 # PSX steady-frame levers
 
-Still to do: plan 22's phase 3 works down this list and updates it after each lever; plan 22's step 9 deletes it.
+Still to do: plan 22's phase 3 is done (every lever below is taken or skipped, and the projection is rebased on step 8's table); plan 22's step 9 deletes this document.
 
 This is the ranked list of pixel-identical levers for the **steady frames
 over 263 hblanks** that `real-game-budget` counts. It also gives the
 estimate each lever is measured against. `make lever-estimate` reads the
 `lever-table` block below, applies it to the committed frame table
-(`psx/perf/full-run-frames.txt`, plan 22 step 6's) joined with
+(`psx/perf/full-run-frames.txt`, plan 22 step 8's) joined with
 `psx/perf/full-run-situations.txt`, and checks that this document's order
 is the greedy ranking. Everything outside that block is for people.
 
-Starting point on the committed table: **1,132 steady frames over 263**
-(map-rest 429, map-move 387, build 155, menu 91, slipway-aim 41, tech-panel
-21, score-panel 8; worst steady frame 4657, `build`, 530). The one-off
-frames use 1,391 of their 10,800 vsyncs, and no lever here touches them.
+Starting point on step 6's table, the one every lever was judged on:
+**1,132 steady frames over 263** (map-rest 429, map-move 387, build 155,
+menu 91, slipway-aim 41, tech-panel 21, score-panel 8; worst steady frame
+4657, `build`, 530). The one-off frames used 1,391 of their 10,800 vsyncs.
+Step 8's table, with every lever in the code, measures **198 steady frames
+over 263** (map-rest 60, map-move 43, build 38, menu 23, slipway-aim 14,
+tech-panel 13, score-panel 7; worst steady frame 4657, `build`, 478), and
+293 one-off frames over for 674 vsyncs.
 
 ## Inputs
 
 ### Steady frames' mean cost and the 2% threshold
 
-From `make lever-estimate`: **M = 218.8 hblanks** (mean `total` over the
-4,278 steady frames, `title` included), so **T = 0.02 × M = 4.4 hblanks**.
+Step 6's table, the base every lever was judged on (not recomputed on
+step 8's). From `make lever-estimate` on it: **M = 218.8 hblanks** (mean
+`total` over the 4,278 steady frames, `title` included), so **T = 0.02 ×
+M = 4.4 hblanks**.
 Per situation, the mean of its steady frames, for reference (rule (b)
 below uses the profile source's own total):
 
@@ -617,10 +623,11 @@ root's PC time.
 
 ## Ranked levers
 
-The order is the one `make lever-estimate` computes (greedy, steady frames
-over first). "Alone" is what the lever removes by itself, nominal, on the
-committed table. Percentages are of that part of the situation's frame in
-its source: run window, or `no-run` frames over. Draw parts: map-rest 251.8,
+The order is the one `make lever-estimate` computed on step 6's table
+(greedy, steady frames over first). "Alone" is what the lever removes by
+itself, nominal, on step 6's table. Percentages are of that part of the
+situation's frame in its source: run window, or `no-run` frames over.
+Draw parts: map-rest 251.8,
 map-move 222.7, slipway-aim 247.1, build 262.9, menu 281.0, tech-panel
 327.6, score-panel 247.9. Update parts: 50.5, 125.5, 77.6, 41.1, 22.3,
 31.8, 106.8. Submit 5.9–7.8. Costs: S under 50 changed lines in one module;
@@ -884,6 +891,12 @@ runtime or backend entry.
   frames (estimate: 75): map-rest 15, build 14, slipway-aim 3,
   tech-panel 2, score-panel 1. Ranked 5th by the greedy order on its
   measured gain; it is in the code, and no later step takes it again.
+- **Cold-cache risk (plan 22 step 8): reproduced, open.** Of the full
+  game's 17 score-panel frames, 252 menu frames and 80 screen-change
+  frames opening them, two rose by more than 3 h of draw against step 6's
+  table: f4887 146 → 160 and f5275 130 → 147, both score-panel, neither
+  total over 263 (238 → 244, 225 → 233); score-panel and menu mean draw
+  fell 12.9% and 23.1%. Not reverted; step 9 carries it.
 
 ### 6. G4 — upload only the slots that changed
 
@@ -959,32 +972,38 @@ runtime or backend entry.
   0.148 × 9.3 = 1.4 h per steady frame, under T = 4.4; rule (b): build 9.3
   above 6.2 (slipway-aim, derived, 2.38 × 9.3 = 22.2 above 6.6).
   Verdict: build.
-- **Measured (probe, provisional):** `psx-probe` of N6 on all 12 runs,
-  all valid, `game-state same`, text +336 bytes: build-5752 update 490 →
-  436 (−54 over 15, −3.6 h a frame), draw −1, submit +3, total −52; every
-  other run's total within −5 / +4 over its window. m = 54 ÷ 490 = 11.0%
-  of update against 18.9% estimated: ratio 0.58. Build update 11.0%,
-  slipway-aim update 23.9 × 0.58 = 13.9%. Provisional: probe on
-  `build-5752`. Its full-game measure is step 8's `psx-full-game-check`
-  (N6 is the only full-game-measured lever, a group of one, the last
-  group), which replaces these gains.
-- **Hand-off to step 8:** N6 is a group of one, so no split by probe
-  gains. Step 8's `psx-full-game-check` table is compared with step 6's
-  (`make situation-report` on both); N6's full-game gain in build and in
-  slipway-aim is the situation's mean **update** delta minus what this
-  table books for the other taken levers' update gains there (N2: 6.8% in
-  both; every other taken lever books draw or submit only). The rest is
-  N6's; its lines replace the provisional ones before the rebase marks
-  every lever `in-base`. If that leaves no update gain in build or
-  slipway-aim, the revert rule applies to N6 at step 8, and step 8's PRD
-  decides how. The rebase is step 8's, done once.
+- **Probe (plan 22 step 3.7):** `psx-probe` of N6 on all 12 runs, all
+  valid, `game-state same`, text +336 bytes: build-5752 update 490 → 436
+  (−54 over 15, −3.6 h a frame, 11.0% of update, ratio 0.58 against
+  18.9%), draw −1, submit +3, total −52; every other run's total within
+  −5 / +4 over its window. Kept on this probe: its update delta is
+  negative and beyond the 3.0 h noise floor.
+- **Measured on the full game (plan 22 step 8):** a group of one, step
+  8's `psx-full-game-check` against step 6's table (`make
+  situation-report` on both, exact means). Mean update: build 36.14 →
+  25.45 h (r = 29.6%), slipway-aim 73.59 → 40.32 (r = 45.2%). Two
+  isolations from N2, the only other lever booking update:
+  - minus N2's booked 6.8%: g = 22.8% (build) and 38.4% (slipway-aim),
+    W = 6,152 h over the 477 frames, 12.9 h a frame;
+  - split by N2's and N6's own build-5752 update deltas (−256 and −54
+    over 15; N6's share 54 ÷ 310 = 17.4%): g = 5.2% and 7.9%, W = 1,325 h,
+    2.8 h a frame, under the 3 h noise floor.
+  The two disagree because N2's booked 6.8% is a scaled figure while N2
+  cut 34.5% of build-5752's update: the subtraction credits N6 with most
+  of N2's real update gain. **Booked: the split** (the conservative
+  figure); kept, its keep resting on the probe above, the full-game
+  figures not contradicting it (W > 0 either way). Measured-to-estimated
+  against the unscaled 18.9 / 23.9: 0.28 / 0.33 by the split (1.21 / 1.61
+  by the subtraction).
 - **Cost:** S. **Risk:** pixel identity `none`. Game state `e2e decides`:
   every e2e hash and `.end-state` unchanged, `game-state same` on every
   probed run.
 - **Measured by:** `psx-full-game-check`, **probe** `build-5752`: no
   representative run tracks a target (`ui_handle_button` is 0–2% of
   `ui_update` on map-move-1057, menu-5954 and tech-panel-5895).
-  **Evidence:** `weaker` until step 8.
+  **Evidence:** the full game (step 8), isolated by the split. Alone on
+  step 6's table it removes 9 frames (build 6, slipway-aim 3), 3 at its
+  rank. It is in the code, and no later step takes it again.
 
 ### N5 — on-screen test against the frame's screen box: not taken, under 2%
 
@@ -1016,7 +1035,7 @@ runtime or backend entry.
 # scale <calls|share> <ratio>
 scale share 0.96
 scale calls 0.77
-lever N1 measured S basis share measure map-move-1057
+lever N1 in-base S basis share measure map-move-1057
 gain N1 map-rest draw 2.8
 gain N1 map-move draw 1.2
 gain N1 build draw 3.0
@@ -1024,7 +1043,7 @@ gain N1 menu draw 4.2
 gain N1 tech-panel draw 2.8
 gain N1 score-panel draw 1.9
 gain N1 slipway-aim draw 3.1
-lever N2 measured M basis share measure map-move-1057 after N1
+lever N2 in-base M basis share measure map-move-1057 after N1
 gain N2 map-rest draw 13.0
 gain N2 map-move draw 7.4
 gain N2 build draw 14.5
@@ -1039,25 +1058,25 @@ gain N2 menu update 9.9
 gain N2 tech-panel update 9.2
 gain N2 score-panel update 6.8
 gain N2 slipway-aim update 6.8
-lever N3 measured M basis calls measure map-move-1057
+lever N3 in-base M basis calls measure map-move-1057
 gain N3 map-move draw 3.2
 gain N3 map-rest draw 0.6
 gain N3 menu draw 0.4
 gain N3 score-panel draw 1.4
-lever N7 measured L basis calls measure tech-panel-5895
+lever N7 in-base L basis calls measure tech-panel-5895
 gain N7 tech-panel draw 5.5
 gain N7 menu draw 2.3
 gain N7 map-move draw 1.6
 gain N7 map-rest draw 1.3
 gain N7 build draw 1.3
 gain N7 score-panel draw 1.3
-lever D3 measured M basis calls measure tech-panel-5895
+lever D3 in-base M basis calls measure tech-panel-5895
 gain D3 map-rest draw 2.0
 gain D3 build draw 2.6
 gain D3 tech-panel draw 2.4
 gain D3 score-panel draw 6.5
 gain D3 slipway-aim draw 2.8
-lever G4 measured M basis share measure map-move-1057
+lever G4 in-base M basis share measure map-move-1057
 gain G4 map-rest submit 57.6
 gain G4 map-move submit 55.6
 gain G4 build submit 57.6
@@ -1065,52 +1084,66 @@ gain G4 menu submit 56.7
 gain G4 tech-panel submit 61.4
 gain G4 score-panel submit 57.6
 gain G4 slipway-aim submit 57.6
-lever N6 measured S basis share measure psx-full-game-check probe build-5752 after N2
-gain N6 build update 11.0
-gain N6 slipway-aim update 13.9
+lever N6 in-base S basis share measure psx-full-game-check probe build-5752 after N2
+gain N6 build update 5.2
+gain N6 slipway-aim update 7.9
 ```
 
 ## Projection
 
-From `make lever-estimate` on this document (the committed frame table, budget 263, one-off allowance 10,800; pessimistic is every gain × 0.8). After each lever, cumulative:
+From `make lever-estimate` on this document (the committed frame table,
+step 8's, budget 263, one-off allowance 10,800; pessimistic is every gain
+× 0.8). Every lever is `in-base`: its code is in the measured table, so
+nothing is applied, and start, end and pessimistic all equal
+`real-game-budget`'s measured count. The gain and `scale` lines stay for
+the record; no `estimated` lever is left for the scales to act on.
 
 ```
-mean-cost steady 218.8 threshold 4.4
-situation-threshold map-rest mean 215.2 threshold 4.3
-situation-threshold map-move mean 207.6 threshold 4.2
-situation-threshold slipway-aim mean 269.4 threshold 5.4
-situation-threshold build mean 258.7 threshold 5.2
-situation-threshold menu mean 239.1 threshold 4.8
-situation-threshold tech-panel mean 281.5 threshold 5.6
-situation-threshold score-panel mean 296.9 threshold 5.9
-start steady-over 1132 one-off-vsyncs 1391
-in-base none
-lever 1 N1 measured basis share steady-over 1076 pessimistic 1088 saved 6754
-lever 2 N2 measured basis share steady-over 597 pessimistic 701 saved 43463
-lever 3 N3 measured basis calls steady-over 526 pessimistic 660 saved 46815
-lever 4 N7 measured basis calls steady-over 466 pessimistic 618 saved 51008
-lever 5 D3 measured basis calls steady-over 417 pessimistic 571 saved 54783
-lever 6 G4 measured basis share steady-over 364 pessimistic 521 saved 58502
-lever 7 N6 measured basis share steady-over 356 pessimistic 513 saved 59668
+mean-cost steady 175.4 threshold 3.5
+situation-threshold map-rest mean 171.4 threshold 3.4
+situation-threshold map-move mean 170.3 threshold 3.4
+situation-threshold slipway-aim mean 195.3 threshold 3.9
+situation-threshold build mean 203.4 threshold 4.1
+situation-threshold menu mean 185.2 threshold 3.7
+situation-threshold tech-panel mean 212.8 threshold 4.3
+situation-threshold score-panel mean 262.8 threshold 5.3
+start steady-over 198 one-off-vsyncs 674
+in-base N1 N2 N3 N7 D3 G4 N6
 situation title over 0 end 0 pessimistic 0
-situation map-rest over 429 end 116 pessimistic 202
-situation map-move over 387 end 141 pessimistic 187
-situation slipway-aim over 41 end 19 pessimistic 23
-situation build over 155 end 33 pessimistic 54
-situation menu over 91 end 27 pessimistic 27
-situation tech-panel over 21 end 14 pessimistic 14
-situation score-panel over 8 end 6 pessimistic 6
+situation map-rest over 60 end 60 pessimistic 60
+situation map-move over 43 end 43 pessimistic 43
+situation slipway-aim over 14 end 14 pessimistic 14
+situation build over 38 end 38 pessimistic 38
+situation menu over 23 end 23 pessimistic 23
+situation tech-panel over 13 end 13 pessimistic 13
+situation score-panel over 7 end 7 pessimistic 7
 order ok
-end steady-over 356 pessimistic 513
-nominal: real-game steady-over 356 frames, worst steady frame 3749 total 463 situation map-move
-nominal: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-nominal: real-game-budget failed 356 steady frames over 263, one-off vsyncs 1391 of 10800
-pessimistic: real-game steady-over 513 frames, worst steady frame 3749 total 471 situation map-move
-pessimistic: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-pessimistic: real-game-budget failed 513 steady frames over 263, one-off vsyncs 1391 of 10800
+end steady-over 198 pessimistic 198
+nominal: real-game steady-over 198 frames, worst steady frame 4657 total 478 situation build
+nominal: real-game one-off-over 293 frames, vsyncs 674 of 10800
+nominal: real-game-budget failed 198 steady frames over 263, one-off vsyncs 674 of 10800
+pessimistic: real-game steady-over 198 frames, worst steady frame 4657 total 478 situation build
+pessimistic: real-game one-off-over 293 frames, vsyncs 674 of 10800
+pessimistic: real-game-budget failed 198 steady frames over 263, one-off vsyncs 674 of 10800
 ```
 
-**The pixel-identical list does not reach zero.** Nominal, it leaves 356 steady frames over 263 (pessimistic 513): map-move 141 (187), map-rest 116 (202), build 33 (54), menu 27 (27), slipway-aim 19 (23), tech-panel 14 (14), score-panel 6 (6). The worst steady frame becomes 3749 (`map-move`), 463 (471). Every lever of the list is taken: D3, N1, N2, G4, N3, N7 and N6 are measured, at 0.42, 0.81, 2.47, 1.11, 0.77, 1.62 and 0.58 of their estimates; N5 is not taken (its residual is under 2%, see its entry). N6's gains are provisional, from its probe on `build-5752`: step 8's `psx-full-game-check` measures it on the full game and replaces them. The `share` scale is 0.96, the median of N1's, N2's, G4's and N6's ratios, and the `calls` scale 0.77, the median of D3's, N3's and N7's; no `estimated` lever is left for either to scale. N6 removes 8 frames at its rank (12 alone: 8 in build, 4 in slipway-aim; estimated 26 scaled). The close then weighs the picture-changing ideas below for what is left.
+**Measured with every lever in: 198 steady frames over 263** (step 6:
+1,132): map-rest 60, map-move 43, build 38, menu 23, slipway-aim 14,
+tech-panel 13, score-panel 7; worst steady frame 4657 (`build`), 478. The
+last projection before the rebase, on step 6's table with N6 booked from
+the full game, was 361 nominal / 516 pessimistic (map-rest 116 / 202,
+map-move 141 / 187, build 36 / 56, menu 27 / 27, slipway-aim 21 / 24,
+tech-panel 14 / 14, score-panel 6 / 6). Its nominal figure left more
+frames over than measured everywhere but build (38 measured against 36)
+and score-panel (7 against 6): the
+booked draw gains were close in map-rest, slipway-aim, menu and
+tech-panel (measured 19.5, 19.7, 23.1, 25.0% against 19.7, 18.3, 22.7,
+25.0), under the measure in map-move (18.8 against 13.4) and over it in
+build (18.7 against 21.4) and score-panel (12.9 against 25.0); update fell
+far more than booked in map-rest, build and slipway-aim (18.4, 29.6, 45.2%
+against 6.8, 12.0, 14.7), N2's helper inlining being worth more there than
+its scaled 6.8%. Every lever is in the base (D3, N1, N2, G4, N3, N7, N6;
+N5 not taken). The picture-changing ideas below are for the close.
 
 ## Picture-changing ideas (unranked, for the close)
 

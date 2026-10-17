@@ -1068,3 +1068,126 @@ in `docs/psx-game.md` left open (only the "Still to do" figure changes);
 hand-copied condition counts left open (still 39); the Makefile warnings
 left open (the Makefile is not changed); every other warning left open,
 outside N6's files. No guideline decision.
+
+### Step 3.8
+
+End-of-phase `psx-full-game-check` on `7ef28c9` (N6's commit, the last
+lever), clean tree, asserts off, O3, draw filter and meter off. Every
+`H-N6-k` held (N6 kept provisionally, build 11.0% / slipway-aim 13.9%,
+`scale share 0.96`, `scale calls 0.77`, order N1, N2, N3, N7, D3, G4, N6,
+projection 356 / 513, no rebase yet, N6's files as listed, `make
+test-all` and `psx-check` (39) green), with one correction to the PRD's
+isolation of N6, below. `make test-all` and `make situations-check` green
+before the run.
+Verdicts: `frame-budget` and `real-game-budget` failed, as expected; the
+thirteen other conditions held (`replay-done`, `state-game-lines`,
+`sprite-sheet`, `screen`, `map`, `gpu-replay-done`,
+`gpu-state-game-lines`, `gpu-draw-filter`, `gpu-draw-meter`, `timer`,
+`zone-sizes`, `cap-sizes`, `gpu-ram-room`). 6,061 frames (`frame-count
+ok 6061 frames`); the table replaces `psx/perf/full-run-frames.txt` byte
+for byte.
+Frame budget against step 6: 491 frames over (1,763), worst frame 14 at
+2,304, update 2,026, draw 272, submit 6 (3,989 / 3,708 / 275), mean frame
+187.1 (233.5), mean overrun 101 (76: fewer frames over, the ones left
+are the far ones), parts of the frames over: update 79,133, draw 98,324,
+submit 1,414 of 178,871 (draw 424,518 of 598,543).
+`real-game-budget`: `real-game steady-over 198 frames, worst steady frame
+4657 total 478 situation build`; `real-game one-off-over 293 frames,
+vsyncs 674 of 10800`; failed (step 6: 1,132, f4657 530; 631 one-off
+frames, 1,391 vsyncs). Replay 26,938 vsyncs, GPU replay 4,318 vsyncs,
+`gpu-ram-room` 125,952 bytes left (step 6's run outputs were not kept,
+so no figure to compare).
+
+Steady frames over 263 per situation, `make situation-report` on both
+tables; projections on step 6's table, nominal / pessimistic:
+
+| situation | step 6 | measured | N6's projection | before the rebase |
+|---|--:|--:|--:|--:|
+| map-rest | 429 | 60 | 116 / 202 | 116 / 202 |
+| map-move | 387 | 43 | 141 / 187 | 141 / 187 |
+| build | 155 | 38 | 33 / 54 | 36 / 56 |
+| menu | 91 | 23 | 27 / 27 | 27 / 27 |
+| slipway-aim | 41 | 14 | 19 / 23 | 21 / 24 |
+| tech-panel | 21 | 13 | 14 / 14 | 14 / 14 |
+| score-panel | 8 | 7 | 6 / 6 | 6 / 6 |
+| title | 0 | 0 | 0 / 0 | 0 / 0 |
+| total | 1,132 | 198 | 356 / 513 | 361 / 516 |
+
+Exact means per steady situation (old → new, h a frame) and the measured
+reduction against what the lever table books (with N6 as booked below):
+
+| situation | update | measured / booked | draw | measured / booked | submit measured / booked |
+|---|--:|--:|--:|--:|--:|
+| map-rest | 41.1 → 33.5 | 18.4 / 6.8% | 168.1 → 135.2 | 19.5 / 19.7% | 57.3 / 57.6% |
+| map-move | 41.3 → 37.7 | 8.8 / 5.6% | 160.1 → 130.1 | 18.8 / 13.4% | 57.6 / 55.6% |
+| build | 36.1 → 25.4 | 29.6 / 12.0% | 215.3 → 175.0 | 18.7 / 21.4% | 59.1 / 57.6% |
+| menu | 29.3 → 26.3 | 10.4 / 9.9% | 203.0 → 156.2 | 23.1 / 22.7% | 58.7 / 56.7% |
+| slipway-aim | 73.6 → 40.3 | 45.2 / 14.7% | 189.7 → 152.3 | 19.7 / 18.3% | 57.1 / 57.6% |
+| tech-panel | 31.2 → 27.9 | 10.6 / 9.2% | 242.7 → 181.9 | 25.0 / 25.0% | 60.3 / 61.4% |
+| score-panel | 98.2 → 92.4 | 5.9 / 6.8% | 192.7 → 167.8 | 12.9 / 25.0% | 56.9 / 57.6% |
+
+Draw landed near its booking except map-move (more) and build and
+score-panel (less); update fell far more than booked in map-rest, build
+and slipway-aim, so the short runs underrated N2's inlining there. The
+throwaway join (sums of each steady situation's frames over its count,
+old and new table, one decimal; update, draw, submit old and new;
+`old-frames.txt` is `git show 81ed458:psx/perf/full-run-frames.txt`):
+
+```
+awk 'FILENAME==ARGV[1]&&FNR>1{ou[$1]=$2;od[$1]=$3;os[$1]=$4;next}
+FILENAME==ARGV[2]&&FNR>1{nu[$1]=$2;nd[$1]=$3;ns[$1]=$4;next}
+FNR>1&&$3=="steady"{s=$2;n[s]++;a[s]+=ou[$1];b[s]+=nu[$1];c[s]+=od[$1];
+d[s]+=nd[$1];e[s]+=os[$1];f[s]+=ns[$1]}END{for(s in n)printf "%s %.1f %.1f %.1f %.1f %.1f %.1f\n",
+s,a[s]/n[s],b[s]/n[s],c[s]/n[s],d[s]/n[s],e[s]/n[s],f[s]/n[s]}' \
+  old-frames.txt psx/perf/full-run-frames.txt psx/perf/full-run-situations.txt
+```
+
+N6's full-game measure, a group of one: mean update build 36.14 → 25.45
+(r = 29.6%, 366 frames), slipway-aim 73.59 → 40.32 (r = 45.2%, 111
+frames). Two isolations from N2: minus N2's booked 6.8% (the PRD's), g =
+22.8% and 38.4%, W = 6,152 h, 12.9 h a frame; split by N2's and N6's own
+build-5752 update deltas (−256 and −54 over 15, N6 17.4%), g = 5.2% and
+7.9%, W = 1,325 h, 2.8 h a frame, within the 3 h noise floor. They
+disagree: N2's booked 6.8% is scaled, but N2 cut 34.5% of build-5752's
+update, so the subtraction credits N6 with most of N2's real gain.
+Deviation from the PRD, decided by the pilot: the keep rests on N6's own
+probe on build-5752 (−3.6 h a frame, beyond noise), which the full-game
+figures do not contradict (W > 0 either way), and the booking uses the
+split, the conservative figure: `gain N6 build update 5.2`, `gain N6
+slipway-aim update 7.9` (ratio 0.28 / 0.33 against the unscaled 18.9 /
+23.9; 1.21 / 1.61 by the subtraction). **Kept.** On step 6's table it
+removes 3 frames at its rank, 9 alone; booked by the subtraction, the
+projection would have ended at 346 / 500.
+
+Rebase: before it, `make lever-estimate FRAMES=` step 6's table with N6's
+full-game booking ended at 361 / 516 (N6's own projection: 356 / 513).
+Then the new table, every lever `in-base` (N1, N2, N3, N7, D3, G4, N6),
+gain and `scale` lines kept for the record. After: `in-base N1 N2 N3 N7
+D3 G4 N6`, nothing ranked, `order ok`, `start steady-over 198` = `end
+steady-over 198 pessimistic 198` = `real-game-budget`'s 198, one-off
+vsyncs 674. Measured 198 against 361 / 516 before the rebase: the short
+runs' projection was too pessimistic in map-rest and map-move, a little
+optimistic in build (38 against 36) and score-panel (7 against 6).
+
+Situation rule: step 2's, renumbered once by step 6. `git diff ebb57ae
+HEAD` on `src/devtools/situation.{c,h}` and `src/cmd/situations.c` empty,
+`psx/perf/full-run-situations.txt` unchanged since `81ed458`, `make
+situations-check` equal, `test_situation_table` green, `docs/psx-game.md`'s
+"Situations" section unchanged since phase 3 began.
+
+D3's cold-cache risk: **reproduced, open.** Of the 17 score-panel frames,
+252 menu frames and 80 screen-change frames right before a score-panel or
+menu stretch, two rose by more than 3 h of draw: f4887 score-panel 146 →
+160 (total 238 → 244) and f5275 score-panel 130 → 147 (total 225 →
+233), neither over 263 on either table; score-panel and menu mean draw
+fell (12.9%, 23.1%). Whole game: no other frame's total rose by more than
+3 h (2 frames, both these). D3 not reverted (its keep rests on its short
+run); step 9 carries the finding to "Still to do".
+
+Docs: `docs/psx-levers.md` (header, starting point, inputs labelled as
+step 6's, N6's entry, D3's risk, the rebased table and projection, the
+closing paragraph), `docs/psx-game.md`'s "Still to do" (latest run and
+the measured steady count). No fix, no revert, no code change. Warn-review
+warnings: "one frame late" vs F−2 in `docs/psx-game.md` left open (not in
+the lines edited); every other warning left open, outside the files
+changed. No guideline decision.
