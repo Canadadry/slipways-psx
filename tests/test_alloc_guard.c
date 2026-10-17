@@ -89,6 +89,7 @@ static void test_unlisted_allocating_file_fails_with_the_line_to_add(void) {
     const char *out = read_file(OUT);
     assert(strstr(out, "src/allocs.c 3\n") != NULL);
     assert(strstr(out, "clean") == NULL);
+    assert(strstr(out, "alloc_guard: if intended, edit " LIST " by hand\n") != NULL);
 }
 
 static void test_listed_count_above_actual_fails(void) {

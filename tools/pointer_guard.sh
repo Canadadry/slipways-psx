@@ -181,4 +181,4 @@ END {
         arrays_total > summary
 }' "$@" | LC_ALL=C sort > "$report"
 cat "$report" "$summary"
-[ ! -s "$report" ]
+[ ! -s "$report" ] || { echo "pointer_guard: if intended, edit $list by hand"; exit 1; }

@@ -180,7 +180,7 @@ while read -r kind label frame differ offpalette nonuniform ceiling reference ha
         *) continue ;;
     esac
     if [ "$reference" = - ]; then
-        pending="${pending}psx-check: ${name_prefix}pending human acceptance: $label f$frame
+        pending="${pending}psx-check: ${name_prefix}pending acceptance: $label f$frame
 "
     elif [ "$hash" = "$reference" ]; then
         continue

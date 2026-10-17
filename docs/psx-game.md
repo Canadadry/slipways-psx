@@ -11,7 +11,7 @@ RAM, that its frame captures are deterministic and within their recorded
 divergence from the PC, that scripted pad input reaches a PS-EXE, and that the
 game, booted from its CD image and driven by a pad script, leaves the title
 screen and plays what the PC plays from the same input. Toolchain, emulator, setups and the plain boot mode are
-in `docs/psx-hello-world.md`. `docs/make-targets.md` and the usage header of each
+in `docs/psx-hello-world.md`. `make help` and the usage header of each
 `tools/psx_*.sh` script hold the per-option detail.
 
 ## Build
@@ -693,7 +693,7 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   ceiling and its `differ` is not above it (`below ceiling: ...` is printed
   when lower); a ceiling for an unlisted capture fails;
 - `gpu-capture-references`: a capture with a reference matches it; one
-  without prints `pending human acceptance: <label> f<frame>`; a reference
+  without prints `pending acceptance: <label> f<frame>`; a reference
   for an unlisted capture fails;
 - `message-box-gpu-capture-list` ... `message-box-gpu-capture-references`:
   the seven conditions above on the second capture replay, whose GPU replay

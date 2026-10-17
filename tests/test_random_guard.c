@@ -61,6 +61,7 @@ static void test_draw_in_unlisted_file_after_a_comment_fails(void) {
     write_file(SRC "/game/hud.c", "/* a\n b */ int hud(void) { return p8_fixed_rnd_default(); }\n");
     assert(run_guard() == 1);
     assert(strstr(read_file(OUT), SRC "/game/hud.c uses the game family 1 time(s), not listed\n") != NULL);
+    assert(strstr(read_file(OUT), "random_guard: if intended, edit " LIST " by hand\n") != NULL);
 }
 
 static void test_empty_list_is_an_error_not_a_pass(void) {

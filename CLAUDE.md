@@ -2,8 +2,8 @@
 
 ## The port
 
-- Active target: **PC via raylib, software rendering** — see the `README`. The C code is the reference: the game is covered by the e2e replays, and `pico8/lua.lua` (the cart's decompiled source) stays as an archive. Game objects are flat C structs: a shared core (`entity_t`), one `static const` archetype per kind, and components held by pointer.
-- PSX is **paused**, not abandoned: we come back to it once a PC/C build is playable end to end. `psx-hello/` is a toolchain test project — see `docs/psx-hello-world.md`.
+- Two finished ports: **PC via raylib, software rendering** — see the `README` — and **PSX** — see `docs/psx-game.md`. The C code is the reference: the game is covered by the e2e replays, and `pico8/lua.lua` (the cart's decompiled source) stays as an archive. Game objects are flat C structs: a shared core (`entity_t`), one `static const` archetype per kind, and components held by pointer.
+- `psx-hello/` is a toolchain test project — see `docs/psx-hello-world.md`.
 - Audio (`sfx`, `music`) is **out of scope**, not postponed.
 - **The e2e replays are the source of truth, not the unit tests.** A change that improves the port and keeps every `*.sha256` in `tests/e2e/` unchanged may break a unit test that froze the old behavior: update that test.
 
@@ -25,7 +25,8 @@ Everything written in the repository is in English: code, comments, docs, e2e no
 
 ## Build
 
-- `make test` is the fast loop (unit tests and static checks, ~5 s). `make e2e` replays the e2e files of `tests/e2e/` from the title screen (~1 s). `make test-all` runs both. `make help` lists the targets; `docs/make-targets.md` holds their detail.
+- `make test` is the fast loop (unit tests and static checks, ~5 s). `make e2e` replays the e2e files of `tests/e2e/` from the title screen (~1 s). `make test-all` runs both. `make help` lists the targets: each public target carries a one-line `## ` description of at most 20 words.
+- `test`, `e2e`, `test-all`, `pad-author` and `demo-check` hold `tmp/make.lock` through `flock` (macOS: `brew install flock`): a second one fails at once.
 - `make raylib` compiles and links the interactive binary without ever running it; run `make raylib-vendor-setup` first — see `docs/raylib-vendoring.md`.
 
 ## Docs

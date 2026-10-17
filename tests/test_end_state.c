@@ -164,7 +164,7 @@ static void test_baseline_writes_missing_references_only_from_clean_states(void)
                "absent.json " DIR "/absent.txt " DIR "/absent.ref") != 0);
     const char *out = read_file(OUT);
     assert(strstr(out, "end-state: a.json reference written " DIR "/a.ref\n") != NULL);
-    assert(strstr(out, "end-state: kept.json reference kept " DIR "/kept.ref\n") != NULL);
+    assert(strstr(out, "end-state: kept.json reference kept " DIR "/kept.ref (delete it to re-baseline)\n") != NULL);
     assert(strstr(out, "end-state: stopped.json stopped\n") != NULL);
     assert(strstr(out, "end-state: unknown.json unknown line: fuel 12\n") != NULL);
     assert(strstr(out, "end-state: absent.json no state\n") != NULL);

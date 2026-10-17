@@ -6,7 +6,8 @@
 #   ceilings   "<label> <frame> <differ>" from gpu-captures/report.txt; refused
 #              unless every condition but gpu-capture-ceilings passed;
 #   references "<label> <frame> <sha256 of gpu.f<frame>.vram>"; refused unless
-#              every condition passed. The human's command: no agent runs it.
+#              every condition passed and every capture of <label> differs 0
+#              from the PC.
 # Refused too when the run is missing or has no capture of <label>.
 
 set -u
@@ -36,6 +37,12 @@ report=$capture_dir/gpu-captures/report.txt
 [ -f "$conditions" ] && [ -f "$report" ] || fail "no make psx-check run in $run_dir"
 failed=$(awk -v allowed="$allowed" '$2 != "ok" && $1 != allowed { printf "%s ", $1 }' "$conditions")
 [ -z "$failed" ] || fail "the run in $run_dir failed: $failed"
+
+if [ "$kind" = references ]; then
+    off=$(awk -v label="$label" '$1 == label { for (i = 1; i < NF; i++) if ($i == "differ" && $(i + 1) != 0) {
+        printf "%s %s differs %s from the PC; ", $1, $2, $(i + 1) } }' "$report")
+    [ -z "$off" ] || fail "${off}only an exact match is accepted"
+fi
 
 lines=$(awk -v label="$label" '$1 == label { sub(/^f/, "", $2); print $2 }' "$report" | while read -r frame; do
     if [ "$kind" = ceilings ]; then

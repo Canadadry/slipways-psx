@@ -1,6 +1,22 @@
 .DEFAULT_GOAL := help
 
-help: ## lists the targets, detail in docs/make-targets.md
+# Reruns make under flock: one make of LOCKED_GOALS at a time over tmp/.
+LOCKED_GOALS := test e2e test-all pad-author demo-check
+
+ifneq ($(if $(MAKE_LOCK_HELD),,$(filter $(LOCKED_GOALS),$(MAKECMDGOALS))),)
+$(MAKECMDGOALS): make-lock ; @:
+
+make-lock:
+	@command -v flock > /dev/null || { echo "make: flock missing (macOS: brew install flock)" >&2; exit 1; }
+	@mkdir -p tmp
+	@flock -n -E 75 tmp/make.lock $(MAKE) --no-print-directory MAKE_LOCK_HELD=1 $(MAKECMDGOALS); \
+	status=$$?; \
+	[ $$status -ne 75 ] || echo "make: tmp/ is in use by another make of $(LOCKED_GOALS)" >&2; \
+	exit $$status
+
+.PHONY: make-lock
+else
+help: ## lists the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "%-30s %s\n", $$1, $$2}' | LC_ALL=C sort
 
 .PHONY: help psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
@@ -2464,3 +2480,4 @@ raylib: $(TMP_DIR)/game ## compiles and links the interactive binary, never runs
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*/*.d $(OBJ_COVERAGE_DIR)/tmp/bindings/*.d $(OBJ_COVERAGE_DIR)/tmp/demo/*.d)
 -include $(wildcard $(OBJ_PROFILE_DIR)/src/*/*.d $(OBJ_PROFILE_PLAIN_DIR)/src/*/*.d $(OBJ_PROFILE_PLAIN_DIR)/tmp/bindings/*.d $(OBJ_PROFILE_PLAIN_DIR)/tmp/demo/*.d)
 
+endif

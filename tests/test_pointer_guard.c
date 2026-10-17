@@ -142,6 +142,7 @@ static void test_every_difference_fails_with_its_line(void) {
                      "entity-lists " CMP "/gone.c 5\n");
     assert(run_guard(CMP_SOURCES) == 1);
     const char *out = read_file(OUT);
+    assert(strstr(out, "pointer_guard: if intended, edit " LIST " by hand\n") != NULL);
     assert_line(out, "add", "", HELD, 2);
     assert_line(out, "write", "", LISTS, 1);
     assert_line(out, "remove", "", CLEAN, 1);

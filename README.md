@@ -17,7 +17,7 @@ Left alone on the title for 20 seconds, the game plays a short captioned demo of
 
 ## PlayStation build
 
-A PSX build (`docs/psx-game.md`) runs in the pcsx-redux emulator, not yet at 60 fps: its contract is every frame within 263 hblanks there. The Miyoo Mini Flip (PCSX-ReARMed) was never measured.
+The PSX build (`docs/psx-game.md`) packs the game into a CD image, `slipways.bin`/`.cue`, checked in the pcsx-redux emulator, where every frame's budget is 263 hblanks. The Miyoo Mini Flip (PCSX-ReARMed) was never measured.
 
 ## Controls
 

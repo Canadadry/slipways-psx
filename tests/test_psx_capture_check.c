@@ -131,8 +131,8 @@ static void test_a_good_run_passes_with_every_capture_pending(void) {
     assert_logged("gpu-capture-report: ok");
     assert_logged("gpu-capture-ceilings: ok");
     assert_logged("gpu-capture-references: ok");
-    assert_logged("pending human acceptance: cls f1");
-    assert_logged("pending human acceptance: rect f5");
+    assert_logged("pending acceptance: cls f1");
+    assert_logged("pending acceptance: rect f5");
     assert(strstr(read_file(LOG), "below ceiling") == NULL && "a count equal to its ceiling is silent");
     assert(strstr(read_file(RUN "/conditions.txt"), "failed") == NULL);
 }
@@ -201,7 +201,7 @@ static void test_a_display_capture_needs_no_call_of_its_label(void) {
     assert(check() == 0);
     assert_passed("gpu-capture-list");
     assert_logged("gpu-captures: ok, 3 capture(s)");
-    assert_logged("pending human acceptance: display f7");
+    assert_logged("pending acceptance: display f7");
 }
 
 /* A second capture replay's conditions carry its prefix, so both lists share one conditions file. */
@@ -218,7 +218,7 @@ static void test_a_prefix_names_every_condition_of_its_list(void) {
         snprintf(name, sizeof name, "psx-check: message-box-%s: ok", conditions[i]);
         assert_logged(name);
     }
-    assert_logged("message-box-pending human acceptance: cls f1");
+    assert_logged("message-box-pending acceptance: cls f1");
 }
 
 static const char *sha256_of(const char *path) {
@@ -240,8 +240,8 @@ static void test_a_count_below_its_ceiling_and_a_matching_reference_pass(void) {
     write_file(DIR "/ceilings.txt", "cls 1 -1\nrect 5 4\n");
     assert(check() == 0 && "a capture matching its reference ignores its ceiling");
     assert_logged("below ceiling: rect f5 4 -> 3");
-    assert_logged("pending human acceptance: rect f5");
-    assert(strstr(read_file(LOG), "pending human acceptance: cls f1") == NULL);
+    assert_logged("pending acceptance: rect f5");
+    assert(strstr(read_file(LOG), "pending acceptance: cls f1") == NULL);
 }
 
 static int record(const char *kind, const char *label, const char *file) {
@@ -280,7 +280,7 @@ static void test_the_ceiling_writer_refuses_a_run_failing_elsewhere_or_missing(v
     assert_logged("no make psx-check run");
 }
 
-static void test_the_acceptance_writer_needs_a_green_run(void) {
+static void test_the_acceptance_writer_needs_a_green_run_and_an_exact_match(void) {
     setup();
     write_file(RUN "/conditions.txt", ALL_OK "gpu-capture-ceilings failed\n");
     assert(record("references", "rect", DIR "/references.txt") != 0);
@@ -288,6 +288,11 @@ static void test_the_acceptance_writer_needs_a_green_run(void) {
 
     write_file(RUN "/conditions.txt", ALL_OK "gpu-capture-ceilings ok\n");
     write_file(DIR "/references.txt", "cls 1 abc\n");
+    assert(record("references", "rect", DIR "/references.txt") != 0 && "under its ceiling, still 3 pixels off");
+    assert_logged("rect f5 differs 3 from the PC");
+    assert(strcmp(read_file(DIR "/references.txt"), "cls 1 abc\n") == 0);
+
+    write_file(RUN "/gpu-captures/report.txt", REPORT_CLS REPORT_RECT("0", "0"));
     assert(record("references", "rect", DIR "/references.txt") == 0);
     char expected[160];
     snprintf(expected, sizeof expected, "cls 1 abc\nrect 5 %s\n", sha256_of(RUN "/gpu.f5.vram"));
@@ -296,8 +301,8 @@ static void test_the_acceptance_writer_needs_a_green_run(void) {
     snprintf(expected, sizeof expected, "rect 5 %s\n", sha256_of(RUN "/gpu.f5.vram"));
     write_file(DIR "/references.txt", expected);
     assert(check() == 0);
-    assert(strstr(read_file(LOG), "pending human acceptance: rect f5") == NULL);
-    assert_logged("pending human acceptance: cls f1");
+    assert(strstr(read_file(LOG), "pending acceptance: rect f5") == NULL);
+    assert_logged("pending acceptance: cls f1");
 }
 
 /* The second list's run lives in RUN/message-box; its conditions share RUN/conditions.txt. */
@@ -337,7 +342,7 @@ int main(void) {
     test_a_prefix_names_every_condition_of_its_list();
     test_the_ceiling_writer_touches_its_label_only();
     test_the_ceiling_writer_refuses_a_run_failing_elsewhere_or_missing();
-    test_the_acceptance_writer_needs_a_green_run();
+    test_the_acceptance_writer_needs_a_green_run_and_an_exact_match();
     test_the_writers_address_a_second_list_by_its_name();
     printf("test_psx_capture_check: ok\n");
     return 0;
