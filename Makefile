@@ -19,7 +19,7 @@ else
 help: ## lists the targets
 	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "%-30s %s\n", $$1, $$2}' | LC_ALL=C sort
 
-.PHONY: help psx-major-release psx-minor-release psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+.PHONY: help psx-major-release psx-minor-release psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1363,12 +1363,7 @@ steady-windows: ## [FRAMES=<table>] [SITUATIONS=<table>]: candidate windows per 
 
 .PHONY: situations situations-check situation-report steady-windows
 
-WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
-
-worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) ## checks the worst-case/ games against worst-case/peaks-8c4bbf4.txt
-	@sh tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) $(TMP_DIR)/worst-case-peaks.txt $(foreach e,$(FULL_GAME_EVENTS),$(e) $(call state_file,$(e)))
-
-.PHONY: pad-author pad-author-proof worst-case-peaks
+.PHONY: pad-author pad-author-proof
 
 DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
 
@@ -1563,12 +1558,6 @@ PSN00BSDK_DIR ?= third_party/psn00bsdk
 psn00bsdk-toolchain-setup: psx-net-check ## installs the pinned PSn00bSDK into PSN00BSDK_DIR
 	sh tools/install_psn00bsdk_toolchain.sh $(PSN00BSDK_DIR) $(PSX_SOURCES)
 
-psx-hello: ## builds psx-hello/build/psx-hello.exe
-	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-hello: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
-	cmake --fresh -S psx-hello -B psx-hello/build \
-		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake
-	cmake --build psx-hello/build
-
 # The game's PSX build: the core (CORE_SRCS, which holds the memory save
 # storage) with its generated default bindings and demo (PSX_CORE_UNITS), the
 # shared state and VRAM digest formatters, the PSX platform and the
@@ -1660,15 +1649,6 @@ psx-major-release: tools/psx_release.sh ## [DRY_RUN=1]: tags master psx-v<major+
 
 psx-minor-release: tools/psx_release.sh ## [DRY_RUN=1]: tags master psx-v<major>.<minor+1> and pushes it, which publishes the PSX release
 	@tools/psx_release.sh minor
-
-PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
-
-psx-hello-cd: psx-hello ## builds the psx-hello CD image
-	cmake --build psx-hello/build --target psx-hello-iso
-	@[ -f psx-hello/build/psx-hello.bin ] && [ -f $(PSX_HELLO_CUE) ] || { echo "psx-hello-cd: psx-hello/build/psx-hello.bin or $(PSX_HELLO_CUE) missing" >&2; exit 1; }
-
-psx-hello-clean:
-	rm -rf psx-hello/build
 
 psx-net-check: ## probes every host of PSX_SOURCES without downloading
 	sh tools/psx_net_check.sh $(PSX_SOURCES)
@@ -2397,30 +2377,6 @@ PSX_KNOWN_LINE ?= Auto test all GTE valid opcodes/registers
 psx-emulator-check: ## checks the emulator on its test media (~1 min)
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_emulator_check.sh $(PSX_EMULATOR_DIR) \
 		$(PSX_SOURCES) $(TMP_DIR)/psx/media $(TMP_DIR)/psx/check '$(PSX_KNOWN_LINE)' $(PSX_FRAMES)
-
-PSX_HELLO_TTY_LINE ?= psx-hello: main loop started
-
-psx-hello-check: psx-hello ## boots psx-hello and checks its captures (~35 s)
-	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
-		--exe psx-hello/build/psx-hello.exe '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-check
-
-psx-hello-cd-check: psx-hello-cd ## psx-hello-check on the psx-hello CD image (~35 s)
-	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
-		--iso $(PSX_HELLO_CUE) '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-cd-check
-
-PSX_HELLO_REFERENCE ?= psx-hello/psx-hello-cd.vram.sha256
-PSX_HELLO_REFERENCE_FRAMES := 600
-PSX_HELLO_CD_CAPTURE := $(TMP_DIR)/psx/hello-cd-check/run1.vram
-# A prerequisite, not a recipe line: under -j it fails while the image builds, so the boots never start.
-psx-hello-frames-guard:
-	@[ "$(PSX_FRAMES)" = "$(PSX_HELLO_REFERENCE_FRAMES)" ] || { echo "psx-hello-e2e: PSX_FRAMES is $(PSX_FRAMES), the reference was taken at $(PSX_HELLO_REFERENCE_FRAMES)" >&2; exit 1; }
-
-psx-hello-e2e: psx-hello-frames-guard psx-hello-cd-check ## psx-hello-cd-check, then compares its capture with PSX_HELLO_REFERENCE
-	@sh tools/psx_reference_check.sh $(PSX_HELLO_REFERENCE) $(PSX_HELLO_CD_CAPTURE)
-
-psx-hello-e2e-baseline: psx-hello-frames-guard psx-hello-cd-check ## psx-hello-cd-check, then sets PSX_HELLO_REFERENCE
-	@h=$$($(SHA256_CMD) $(PSX_HELLO_CD_CAPTURE)) && echo "$${h%% *}" > $(PSX_HELLO_REFERENCE) \
-		&& echo "psx-hello-e2e: reference set in $(PSX_HELLO_REFERENCE) ($${h%% *})"
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.

@@ -2,8 +2,8 @@
 
 ## The port
 
-- Two finished ports: **PC via raylib, software rendering** — see the `README` — and **PSX** — see `docs/psx-game.md`. The C code is the reference: the game is covered by the e2e replays, and `pico8/lua.lua` (the cart's decompiled source) stays as an archive. Game objects are flat C structs: a shared core (`entity_t`), one `static const` archetype per kind, and components held by pointer.
-- `psx-hello/` is a toolchain test project — see `docs/psx-hello-world.md`.
+- Two finished ports: **PC via raylib, software rendering** — see the `README` — and **PSX** — see `docs/psx-game.md`. The C code is the reference: the game is covered by the e2e replays, and the cart's decompiled source is in git only: `git show 536ddd4:pico8/lua.lua`. Game objects are flat C structs: a shared core (`entity_t`), one `static const` archetype per kind, and components held by pointer.
+- The PSX toolchain, emulator and headless capture are in `docs/psx-toolchain.md`.
 - Audio (`sfx`, `music`) is **out of scope**, not postponed.
 - **The e2e replays are the source of truth, not the unit tests.** A change that improves the port and keeps every `*.sha256` in `tests/e2e/` unchanged may break a unit test that froze the old behavior: update that test.
 

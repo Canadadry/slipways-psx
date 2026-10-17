@@ -1,23 +1,10 @@
-# psx-hello: PSX toolchain, emulator and capture
+# PSX toolchain, emulator and capture
 
-`psx-hello/` is the PSX toolchain test project: it proves that the pinned
-toolchain builds a PS-EXE and a CD image, and that the pinned emulator boots
-them headless into a capture an agent can check. Everything below runs in the
-cloud sandbox, without a window. `make help` and the usage header of
-each `tools/psx_*.sh` script hold the per-option detail.
-
-## What psx-hello is
-
-`psx-hello/main.c`, built by `psx-hello/CMakeLists.txt` into a PS-EXE, then
-into a CD image by `psx-hello/iso.xml` and `psx-hello/system.cnf`. It sets up
-a 320×240 GPU double buffer, starts the BIOS pad driver and draws the pad
-status as text. Its first controller mapping emulates the PICO-8 mouse: Cross
-toggles mouse mode, the D-pad moves a cursor while it is on, Circle flashes a
-click.
-
-Before its main loop it prints the TTY line `psx-hello: main loop started`.
-The checks grep for that line verbatim, and plan 10 does too: changing it
-breaks them.
+The pinned toolchain that builds PS-EXEs and CD images, and the pinned
+emulator that boots them headless into a capture an agent can check.
+Everything below runs in the cloud sandbox, without a window. The game's own
+build and checks are in `docs/psx-game.md`; `make help` and the usage header
+of each `tools/psx_*.sh` script hold the per-option detail.
 
 ## Sources and network
 
@@ -65,24 +52,14 @@ needs sudo: the toolchain build needs only the Command Line Tools, `cmake`,
 `git` and `curl`; the emulator takes its libraries from the user's Homebrew
 and builds OpenBIOS with the `mipsel-none-elf` GCC of `PSN00BSDK_DIR`, so the
 toolchain setup comes first. That OpenBIOS differs from the Linux one, built
-with `mipsel-linux-gnu`, yet gives the same captures (`psx-hello-e2e` and
-`psx-check` green with it). Both exit 0 at once
+with `mipsel-linux-gnu`, yet gives the same captures (`psx-check` green
+with it). Both exit 0 at once
 when the directory holds the stamp of a complete install for the same pins,
 and refuse, deleting nothing, a non-empty directory without that stamp: look
 at what is there before removing it.
 
 No build or check target ever runs a setup; a missing install fails with a
 message naming the setup target.
-
-## Build
-
-- `make psx-hello` builds `psx-hello/build/psx-hello.exe`, reconfigured from
-  scratch each time; it fails naming `make psn00bsdk-toolchain-setup` when
-  the SDK is missing.
-- `make psx-hello-cd` then builds the CD image `psx-hello/build/psx-hello.bin`
-  and its `.cue` (`PSX_HELLO_CUE`, default `psx-hello/build/psx-hello.cue`);
-  `SYSTEM.CNF` boots `PSXHELLO.EXE`.
-- `make psx-hello-clean` removes `psx-hello/build/`.
 
 ## Boot and capture
 
@@ -107,32 +84,6 @@ that leave the emulator themselves is in `docs/psx-game.md`.
 | Target | What it proves | Time |
 |---|---|---|
 | `make psx-emulator-check` | the emulator itself: the pinned test media boot deterministically, the test TTY line appears, the CD capture differs from an empty boot | ~1 min |
-| `make psx-hello-check` | the freshly built `.exe` runs: the five conditions below, with `magic` | ~35 s |
-| `make psx-hello-cd-check` | the freshly built CD image boots and runs: the five conditions, with `cue` | ~35 s |
-| `make psx-hello-e2e` | `psx-hello-cd-check`, then the first CD capture's sha256 equals the committed reference | ~35 s |
-
-The `psx-hello` proof boots the input twice and nothing once, checks every
-condition before concluding and prints one line per condition:
-
-- `magic` (`.exe`): the file starts with the PS-EXE magic; or `cue` (CD): the
-  `.cue` names a `.bin` of whole 2352-byte sectors (`tools/psx_cue_check.sh`,
-  shared with the game's disc check);
-- `deterministic`: both captures are identical;
-- `differs-from-empty`: they differ from the empty boot's;
-- `not-uniform`: they are not one color;
-- `tty-line`: the TTY holds `psx-hello: main loop started`.
-
-The reference is `psx-hello/psx-hello-cd.vram.sha256` (`PSX_HELLO_REFERENCE`):
-one line, the sha256 of the whole capture file, header included. The
-comparison is `tools/psx_reference_check.sh <reference> <capture>`, usable on
-any capture; a mismatch names the expected and actual hashes and
-`make psx-hello-e2e-baseline`, and a missing reference fails. The reference
-holds for the pinned emulator, BIOS and SDK at 600 frames: both targets refuse
-any other `PSX_FRAMES` before booting.
-
-`make psx-hello-e2e-baseline` is the only writer of the reference, and writes
-it only after the proof passed. An intended visual change runs it and commits
-the new reference with the change; the file is never edited by hand.
 
 None of these targets is in `make test-all`, and none runs a setup.
 
@@ -155,12 +106,3 @@ None of these targets is in `make test-all`, and none runs a setup.
   with a `GPU::Vsync` listener aborts at about 32,700 vsyncs (LuaJIT stack
   overflow, `An unknown exception occured`). Upstream still has the bug.
   Every patch is in the install stamp, so changing one rebuilds.
-
-## Still to do
-
-- No target drives psx-hello's pad, so its mouse mapping (Cross, D-pad,
-  Circle) is not checked by anything. Scripted pad input itself is proven on
-  the game's pad probe: see `docs/psx-game.md`.
-
-Playing `psx-hello` in a windowed emulator is a human's job; agents never open
-a window.

@@ -1,5 +1,5 @@
-/* tools/psx_cue_check.sh, the cue condition of psx-hello and of the game's
- * disc, on crafted .cue/.bin pairs: no emulator, no toolchain. */
+/* tools/psx_cue_check.sh, the cue condition of the game's disc, on crafted
+ * .cue/.bin pairs: no emulator, no toolchain. */
 
 #include <assert.h>
 #include <stdio.h>
