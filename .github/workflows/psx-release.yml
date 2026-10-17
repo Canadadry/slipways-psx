@@ -1,0 +1,29 @@
+name: PSX release
+
+on:
+  push:
+    tags: ['psx-*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: third_party/psn00bsdk
+          key: psn00bsdk-${{ runner.os }}-${{ hashFiles('tools/install_psn00bsdk_toolchain.sh', 'tools/psx_sources.txt') }}
+      - name: make psn00bsdk-toolchain-setup
+        run: make psn00bsdk-toolchain-setup
+      - name: make psx-game-cd
+        run: make psx-game-cd
+      - name: Publish slipways.bin and slipways.cue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          tmp/psx/build/slipways.bin tmp/psx/build/slipways.cue
+          --title "$GITHUB_REF_NAME" --generate-notes
