@@ -1,6 +1,8 @@
 # slipways-love
 
-*Slipways* (PICO-8 edition) ported to C, running on PC through raylib.
+*Slipways* (PICO-8 edition) ported to C, running on PC through raylib and on the PlayStation.
+
+![A planet's build menu](docs/img/build-menu.png) ![A slipway network mid-game](docs/img/network.png)
 
 ## Running the game
 
