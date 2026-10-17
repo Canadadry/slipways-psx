@@ -1236,3 +1236,98 @@ at step 9's HEAD before any option estimate; P1 and P4 applied per frame
 with the estimates' known error quoted; a one-line-per-warning ledger;
 an explicit order with a full-game rerun if warning fixes touch the
 game or the backend.
+
+### Step 4.9
+
+Close. `real-game-budget` is red: 198 steady frames over 263 after every
+pixel-identical lever (D3, N1, N2, N3, N7, G4, N6; N5 not taken), one-off
+674 of 10,800 vsyncs. `docs/psx-game.md`'s "Still to do" lists the steady
+situations still over (map-rest 60, map-move 43, build 38, menu 23,
+slipway-aim 14, tech-panel 13, score-panel 7) with worst, mean and bound:
+173 draw-bound, 25 update-bound (24 autosave frames whose update alone is
+over 263, and score-panel f93), which no picture option clears. P1–P5
+re-estimated each alone on profiles re-taken at this step's HEAD
+(steady frames still over, nominal / pessimistic): P1 156 / 163, P2 149 /
+156, P3 142 / 150, P4 161 / 162 (three rings) or 160 / 161 (two), P5 159
+/ 172; P1 and P4 applied per frame, P2, P3, P5 through `lever-estimate
+LEVERS=`; the estimates' known error (361 / 516 projected against 198)
+quoted. Decision: no code warning fixed at the close (each is a design
+change or would force a full-game rerun), so step 8's table stays the
+base; acted on: the "one frame late" vs F−2 wording (84712c2). A `fix:`
+commit (a9a01e2) added `button_image_frame_begin` to
+`psx/perf/draw-functions.txt`, which N7 had missed. `make lever-estimate`
+kept for pass 2 with `LEVERS` required; `docs/psx-levers.md` deleted.
+Checks: `make test-all`, `make frame-profile-test`, `psx-check` (39) green;
+no `.sha256` or `.end-state` changed since step 8; `grep psx-levers` finds
+only plan files. Ledger (every warning and open finding, where it ends;
+phases 1 and 3 recorded 13 and 16 warnings, of which 10 and 15 can be
+told apart without guessing — the shortfall lines point to the same
+"Still to do" entries):
+    Plan 22 close ledger: every warn-review warning of phases 1-3 and every open finding, one line each, with where it ends.
+    Targets: "Step x.y note" = a "### Step ..." heading in docs/plan-22.md; "Still to do: ..." = the first words of a bullet of docs/psx-game.md's "## Still to do" (warnings: under "Open warn-review warnings of plan 22", in that phase's sub-bullet).
+    
+    Phase 1 warnings (recorded 13; split per constant gives 10, a further per-file split overshoots: 14 with the five scripts and the Makefile one line each, 17 per copy):
+    phase 1 tools/{situation_report,steady_windows,lever_estimate,psx_real_game_budget,steady_profile}.sh: frame-table/situation-table join duplicated across five scripts -> Still to do: "Phase 1 (measuring the real game): the frame-table/situation-table join repeated"
+    phase 1 tools/situation_report.sh:32, tools/steady_windows.sh:37, tools/lever_estimate.sh:246, Makefile STEADY_SITUATIONS: steady situation list duplicated -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 tools/situation_report.sh:30, Makefile steady-windows and frame-profile-spread recipes: budget 263 inline -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 tools/situation_report.sh:31: long-run bound 31 inline -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 Makefile steady-windows recipe: window length 15 inline -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 Makefile steady-windows recipe: 3 inline -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 Makefile SITUATIONS_TABLE / PSX_FULL_GAME_SITUATIONS: two variables for one table -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 Makefile steady-profile: 55 recipe lines untested -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 src/devtools/situation.c:166: end_status != NULL tested next to its has_end_status bit -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 src/devtools/pad_author.c: 1,540 lines (1,549 today) -> Still to do: "Phase 1 (measuring the real game)"
+    phase 1 shortfall 3: the paragraph "End of phase 1" of docs/plan-22.md's Step 1.5 note names 13 warnings but only the 10 above can be told apart without guessing; that paragraph is the only record of the split -> Still to do: "Phase 1 (measuring the real game)" (every file it names is listed there)
+    
+    Phase 2 warnings (recorded 13, 13 lines):
+    phase 2 src/devtools/capture_list.h:14: display mask 0x8000 is a sentinel inside the family bitmask -> Still to do: "Phase 2 (loading screen): the display capture's mask"
+    phase 2 tools/psx_capture_frames.lua:6: the sentinel repeated as 8000 -> Still to do: "Phase 2 (loading screen)"
+    phase 2 awk script 1 (the display label special-cased at tools/psx_capture_check.sh:63): sentinel inline -> Still to do: "Phase 2 (loading screen)"
+    phase 2 awk script 2 (the display label special-cased at tools/psx_capture_report.sh:29): sentinel inline -> Still to do: "Phase 2 (loading screen)"
+    phase 2 src/cmd/psx_gpu_replay.c:101: reads a protocol value from the host's capture-list parser -> Still to do: "Phase 2 (loading screen)"
+    phase 2 src/game/cart.c:326: a whole button_t as the difficulty carrier -> Still to do: "Phase 2 (loading screen)"
+    phase 2 src/game/cart.c:252 (start_world): the carrier's fields copied one by one -> Still to do: "Phase 2 (loading screen)"
+    phase 2 src/game/cart.c: cart_update60's prologue and epilogue duplicated -> Still to do: "Phase 2 (loading screen)"
+    phase 2 docs/psx-game.md display-capture bullet: "one frame late" vs F-2 wording -> Step 4.9 note (acted on: the bullet now says F-2 throughout, commit 84712c2)
+    phase 2 Makefile ENGINE_SRCS: src/game/loading_screen.c in a list that holds no game (src/game/button_image.c added by N7) -> Still to do: "Phase 2 (loading screen)"
+    phase 2 capture lists, recipes, tests: e2e frame numbers inline everywhere -> Still to do: "Phase 2 (loading screen)"
+    phase 2 src/devtools/pad_author.c: 1,549 lines -> Still to do: "Phase 1 (measuring the real game)" (same file, same entry)
+    phase 2 src/devtools/pad_author.c: no unit test -> Still to do: "Phase 1 (measuring the real game)" (same entry: "with no unit test")
+    
+    Phase 3 warnings (recorded 16; split per constant gives 15, a further per-file or per-site split overshoots: 17 or more):
+    phase 3 src/game/ui_button.c:225: through_text_image flag choosing between two draw paths -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/draw_functions.c:111: PRINT_OUTLINED entry overridden with a function-pointer parameter -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/hud.h, draw_functions.h, layout.h: parallel *_text_image twins -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/ui_button.c:336: build state through the global g_building_look though the callback has a context -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/ui_button.c:358: const cast on the button -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/ui_button.c:285: text item's pixel width recomputed apart from layout.c:147 and hud.c's aligned_x -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/engine/geom.c:24: magic 0x200000 -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/engine/geom.c:28: magic 0x2000 -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/engine/geom.c:34: magic 0x100 -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/slipway_display.c:63: magic 32765 -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/p8/image.h:12, src/platform/psx_vram_layout.c:35/:38, src/game/button_image.h:10: slot sizes 16x11 / 112x11 repeated, no compile-time tie -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/platform/psx_gpu.c:571: VRAM readback inside an assert expression -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/engine/entity_list.c:125: find_first accepts NULL while entity_list_all asserts -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/ui_button.h: non-const pointer fields layout_row, side_tooltip, tooltip (rule 11) -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 src/game/ui_button.c:353, :247, :238: presence tested with != NULL instead of a has bit (rule 13) -> Still to do: "Phase 3 (pixel-identical levers)"
+    phase 3 shortfall 1: the paragraph "End of phase 3" of docs/plan-22.md's Step 3.8 note says 16 warnings but names the 15 above without guessing; that paragraph is the only record of the split -> Still to do: "Phase 3 (pixel-identical levers)" (every file it names is listed there)
+    
+    Open findings from the step notes:
+    step 1.2 pad_author's self-check failing since plan 10 (draw-meter lines): fixed -> Step 1.2 note (fix: commit 6e54f9c)
+    step 1.4 resumed runs draw less, transit-dot cause unproven (map-rest-5538: 2,686 fewer pset, 183 fewer rectfill) -> Still to do: "The resumed short runs draw less than the full game."
+    step 1.4 no representative run for map-rest, slipway-aim, build, score-panel (best tries flagged in psx/short_runs.txt) -> Still to do: "The resumed short runs draw less than the full game." (score-panel-5876 now passes while the manifest still marks it)
+    step 1.4 slipway_draw_method's game code may be overstated by PC hook cost -> Still to do: "Picture-changing options, for the human to choose" (P2 counts none of that game code; no other estimate uses it)
+    step 1.5 no-run shares are PC time and overstate primitive-heavy functions; no-run vs best-try shares differ by more than a fifth -> Still to do: "Picture-changing options, for the human to choose" ("Known biases")
+    step 1.5 pass 1 cannot reach real-game-budget on the estimates -> Still to do: "real-game-budget is red." (measured: 198 steady frames over)
+    step 1.5 estimates resting on assumptions or weaker evidence (D3, N1, N2, N3, G4, N6) -> Step 3.8 note (every lever measured on psx-full-game-check and in-base)
+    step 2.6 make worst-case-peaks red (two lines frozen since plan 12, zone frame since 59fc46a); re-baselining is the human's call -> Still to do: "make worst-case-peaks is red"
+    step 3.7 D3 score-panel-5876 +36 h, cold-cache risk -> Still to do: "D3's cold-cache rise" (reproduced in the Step 3.8 note: f4887 146 -> 160, f5275 130 -> 147)
+    step 3.7 N2 caution: scale share 1.64 makes G4, N5, N6 estimates likely optimistic -> Step 3.8 note (all measured, in-base; N5 not taken, Step 3.7 — N5 note)
+    step 3.7 N7 largest-slots failing on MIPS (zone slot button full, slot row full) -> Step 3.7 — N7 note (32-bit slot sizes raised in the step)
+    step 3.7 N7 psx-gpu-capture-ceilings needs two psx-check passes for a new capture in each list -> Still to do: "make psx-gpu-capture-ceilings refuses a run"
+    step 3.7 N7 make e2e reads 0.08 s slower in the main tree (make parses its .d files, not the code) -> Step 3.7 — N7 note (measured on clean copies, no change)
+    step 3.7 N6 provisional keep (ratio 0.58) -> Step 3.8 note (kept on its own probe, booked 5.2% / 7.9%)
+    step 3.8 N6's two full-game isolations disagree (22.8% / 38.4% vs 5.2% / 7.9%) -> Step 3.8 note (decided: conservative split)
+    step 3.8 make frame-profile-test red since 5a206c1 (frames frozen without a loading screen) -> Step 3.8 note (fix: commit 986b5d2)
+    step 4.9 steady-profile's function table missed button_image_frame_begin -> fix: commit a9a01e2
+    step 4.9 per-function family counts stop after 1,024 frames (CALL_PROFILE_CHILD_FAMILY_FRAME_CAP = DRAW_TIMING_CAP) -> Still to do: "Per-function family counts in a tmp/frame_profile profile stop after 1,024 frames"

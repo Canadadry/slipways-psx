@@ -38,10 +38,10 @@
   - [x] Step 3.8 — End-of-phase full-game check
     - [x] Full-game check, N6 measured, rebase
     - [x] fix: frame-profile-test knows the loading frames
-- [ ] Phase 4 — Close
-  - [ ] Step 4.9 — Close the plan
+- [x] Phase 4 — Close
+  - [x] Step 4.9 — Close the plan
     - [x] Phase 3's warnings recorded, step 9's method amended
     - [x] fix: steady-profile knows button_image_frame_begin
     - [x] Fresh profiles, option estimates, Still to do
     - [x] lever-estimate re-sourced, docs/psx-levers.md deleted
-    - [ ] Ledger and final checks
+    - [x] Ledger and final checks
