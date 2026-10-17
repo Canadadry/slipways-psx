@@ -23,7 +23,7 @@
     - [x] The loading screen and the re-record
     - [x] The renumbering and the PSX proofs
 - [ ] Phase 3 — Pixel-identical levers, in impact order
-  - [ ] Step 3.7 — Ranked levers, one by one
+  - [x] Step 3.7 — Ranked levers, one by one
     - [x] D3 — second capture replay, residual probe
     - [x] D3 — the lever, measured
     - [x] N1 — slipway lines on integer end points, measured
@@ -34,6 +34,7 @@
     - [x] N5 — on-screen test against the screen box, skipped, under 2%
     - [x] N7 — button captures (rectfill 300, message box all 155)
     - [x] N7 — buttons drawn from image slots, measured
+    - [x] N6 — slipway target box pre-reject, probed (full game at step 8)
   - [ ] Step 3.8 — End-of-phase full-game check
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan

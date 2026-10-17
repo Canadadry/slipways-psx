@@ -965,3 +965,106 @@ hand-copied condition counts (still 39); "one frame late" vs F−2 in
 `gpu_sizes.h`, changed by their sizing rules, carry no open warning.
 Every other warning left open, outside N7's files. No guideline
 decision.
+
+### Step 3.7 — N6
+
+Lever N6, slipway target test pre-rejected by its box: **taken and kept**
+(ratio 0.58, provisional). `geom_near_segment` returns 0 before its
+projection when `fh` is at most 1/256, every coordinate is inside ±32 map
+units and the point lies more than 1/8 map unit outside the box of the two
+end points on either axis; otherwise today's code runs. A new
+`entity_list_find_first` returns the first entity a predicate accepts, in
+`entity_list_all` order, asking nothing after it (NULL for a NULL list or
+no match), and `targeting_track` takes its slipway target from it instead
+of building the whole filtered list in the frame zone. `slipway_obstruction`
+is not edited; its node filter gains the pre-reject through
+`geom_near_segment`.
+Hypotheses on N5 checked: N5 skipped (H-N5-1), `scale share 1.11`
+unchanged (H-N5-3); then N7 ran before N6 (H-N5-4's allowed case), kept
+and measured, `scale calls 0.77`, so N6's note follows N7's and compares
+against N7's projection (347 / 506), not N5's (H-N5-2 and H-N5-12 hold with
+N7 in between). N7 changed none of N6's files and books draw gains only, so
+the step-8 hand-off still subtracts only N2's update gain (H-N5-6's
+conclusion holds). No `psx-full-game-check`, no rebase, no `in-base`
+(H-N5-7); `psx-check` green with 39 conditions at N7's end (H-N5-8); no
+warning acted on since phase 2 (H-N5-9).
+Baseline: the one the pilot re-took after N7's commit (`6aa0b96`),
+fingerprint matching `HEAD` on all 12 runs, reused. Covered? No: N2
+inlined the vector and fixed-point helpers but left `p8_fixed_div`, the
+out-of-line `geom_near_segment`, the end lookups and the list the filter
+builds. Residual probe (throwaway: `targeting_track` runs its slipway
+filter a second time and writes the count to a `volatile` sink), all 12
+valid, `game-state same`, text +48 bytes: build-5752 update 490 → 630
+(+140 over 15, +9.3 h a frame, 28.6% of its update), draw 0, submit +3;
+every other run within ±3 hblanks over its window (update +2 at most). An
+upper bound: the whole filter, part of which N6 keeps. Rule (a): 0.148 ×
+9.3 = 1.4 h per steady frame, under T = 4.4; rule (b): build 9.3 above
+6.2, and slipway-aim, derived not measured, 2.38 × 9.3 = 22.2 above 6.6.
+Verdict: build, on rule (b), as the PRD expected.
+Probe of N6 (the diff of `src/` and `tests/` against `6aa0b96`), all 12
+valid, `game-state same`, text +336 bytes on each. Window deltas (update,
+draw, submit, total): build-5752 490 → 436 (−54 over 15, −3.6 h a frame),
+−1, +3, −52; map-move-1057 +1, +1, −2, 0; map-rest-5581 0, 0, 0, 0;
+menu-5954 0, 0, −2, −2; tech-panel-5895 −1, −2, +3, 0 (over 9); draw-5564
+0, 0, 0, 0; draw-6000 +2, 0, +2, +4 (over 15); one frame: start 0 / 0,
+update-4737 0 / 0, update-5500 −5 / −5, update-5719 0 / 0,
+score-panel-5876 0 / −1 (update / total). m = 54 ÷ 490 = 11.0% of
+update against 18.9% estimated: ratio 0.58. N6 removes 39% of the
+residual (54 of 140): the end lookups and the iteration stay. Kept:
+build-5752's update delta negative and beyond its 3.0 h noise floor, no
+run's total positive beyond its floor (largest +4 over draw-6000's 15
+frames), `game-state same` everywhere, every e2e hash unchanged.
+Provisional gains: build update 11.0%, slipway-aim update 23.9 × 0.58 =
+13.9%; draw and submit not booked.
+N6's full-game check is step 8's: N6 is the only lever measured on
+`psx-full-game-check`, a group of one and the last group. Method, written
+into N6's entry in `docs/psx-levers.md`: step 8's table against step 6's
+(`make situation-report` on both); N6's gain in build and in slipway-aim
+is the situation's mean update delta minus the other taken levers' booked
+update gains there (N2's 6.8% in both; every other taken lever books draw
+or submit only); its lines replace the provisional ones before the rebase;
+no update gain left in build or slipway-aim → the revert rule applies at
+step 8, whose PRD decides how.
+`scale share 0.96`: the median of N1's 0.81, N2's 2.47, G4's 1.11 and
+N6's 0.58 (mean of 0.81 and 1.11); no `estimated` lever is left, so it
+scales nothing and stays for the record. `scale calls` stays 0.77.
+Steady frames over: N6 removes 8 at its rank (estimated 17 at N7's
+projection) and 12 alone (8 build, 4 slipway-aim; estimated 26 scaled, 16
+in build); after all seven taken levers, the end of the list, 356 nominal
+/ 513 pessimistic (N7's projection: 347 / 506); build ends at 33 (was 25),
+slipway-aim 19 (was 18). Order unchanged (`order ok`), no re-rank.
+`psx-check` green, all 39 conditions, every capture of both lists
+matching its reference, no reference, ceiling or limit changed;
+`game-gpu-cost` bytes 7,512 of 7,552, build 11,172 of 11,700 (unchanged).
+`ram-room` 123,280 → 122,900 bytes left, `game-ram-room` 279,832 →
+279,496. `make raylib` links. Every e2e `.sha256` and `.end-state`
+unchanged.
+Tests: `test_geom` checks `geom_near_segment` against a copy of the old
+body on 6,000 seeded cases (game-like segments with the point near them
+and at the box edges ± 1/8 ± a few ulps, degenerate, horizontal and
+vertical segments, coordinates just inside and outside ±32, raw values
+near the int32 edges, anywhere; thresholds `0xd1`, `0x100`, `0x101`, 1.0
+and 4.0); a pinned wrapped case (coordinates near −2,650 map units, the
+point 11 map units right of the box, the old code answers near) and a
+pinned match at the farthest point from the box (a vertical segment, the
+point `0x0fff` ulps beside it, `fh` 1/256, both sides and both axes).
+`test_entity_list`: first match in order, no call after it, NULL for no
+match, an empty and a NULL list, a NULL item handed to the predicate, and
+500 seeded lists equal to `entity_list_filter`'s first item. Mutation
+proof (throwaway): the ±32 guard removed fails the random equality (and
+the pinned wrap case); the threshold limit widened to 1.0 fails the random
+equality; the margin shrunk to `0x0f00` or `0x0ffe` fails the pinned
+farthest match. Deviation from the PRD's proof: a computed square under
+`fh` already bounds each axis's gap (|x| < 64 · √fh in ulps, `0x1000` for
+1/256, `0x2000` for 1/64), so a margin of `0x1000` and a threshold limit
+up to `0x400` are still exact and no test can fail on them; the bound of
+0.0628 the PRD gave was a loose one.
+Fast loop, warm, clean copies of `6aa0b96` and N6 interleaved, mean of
+four: `make test` 6.67 → 6.68 s, `make e2e` 0.397 → 0.387 s: within noise.
+`docs/psx-game.md`: the "Still to do" figure (356 / 513).
+Warn-review warnings in N6's files: none in `geom.c`, `entity_list.{c,h}`,
+`probe.c`, `test_geom.c` or `test_entity_list.c`; "one frame late" vs F−2
+in `docs/psx-game.md` left open (only the "Still to do" figure changes);
+hand-copied condition counts left open (still 39); the Makefile warnings
+left open (the Makefile is not changed); every other warning left open,
+outside N6's files. No guideline decision.

@@ -1372,8 +1372,8 @@ family each), `one-off-runs` (no `long` run).
 
 - The steady frames' levers, ranked and estimated, are in
   `docs/psx-levers.md` (`make lever-estimate` checks its order and projects
-  it). The pixel-identical list leaves 347 steady frames over 263 nominal,
-  506 pessimistic.
+  it). The pixel-identical list leaves 356 steady frames over 263 nominal,
+  513 pessimistic.
 
 - `make psx-short-runs` is red on `representative` for the resumed runs:
   the update spikes are not reproduced after the resume, and draw comes out

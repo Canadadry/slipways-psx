@@ -195,18 +195,12 @@ void targeting_track(entity_t *self, mouse_pos_t mouse) {
         target = candidate;
     } else {
         targeting_track_ctx_t ctx;
-        entity_list_t filtered;
-        int have_first = 0;
-        entity_t *first = NULL;
+        entity_t *first;
 
         ctx.self_map_pos = p_vec;
-        filtered = entity_list_filter(frame_zone(), entities_by_tag(TAG_SLIPWAY), targeting_track_slipway_predicate, &ctx);
-        if (filtered.count > 0) {
-            first = filtered.items[0];
-            have_first = 1;
-        }
+        first = entity_list_find_first(entities_by_tag(TAG_SLIPWAY), targeting_track_slipway_predicate, &ctx);
 
-        if (have_first && first != NULL) {
+        if (first != NULL) {
             target = first;
         } else {
             if (!probe_panel_box_contains(mouse_pos_screen(mouse))) {

@@ -601,7 +601,7 @@ root's PC time.
 | `background_draw_method` | no pixel-identical lever found | the grid (18 pattern fills and one rect, 3.6–5.6 h a frame) reaches 262, past the 256-pixel background image, so baking it in still leaves 18 stub fills. The image itself is one GPU copy. Its `no-run` 32–54 h is mostly PC blit time (Known biases). See picture-changing idea P1 |
 | `planet_draw_method` | N2 only | every primitive is already one call (19 `spr`, 15 row images, 8 image copies a frame on menu-5954; D6, D8, D9 taken) |
 | `score_panel_draw_method` | no pixel-identical lever found | D4's residual is 2.6 h a frame, under T (Plan 21's levers) |
-| update `ui_update` | N6 | in build-5752, `targeting_track`'s slipway filter is 53% of 98% of `ui_handle_button`, which is 74% of `ui_update` |
+| update `ui_update` | N6 (taken) | in build-5752, `targeting_track`'s slipway filter is 53% of 98% of `ui_handle_button`, which is 74% of `ui_update` |
 | `message_box_draw_overlay_method` | D3 (taken) | 13 outlined `print` a frame at about 1.7–1.8 h each; through the text image cache, −7.8 h a frame on tech-panel-5895 |
 | update `input_step_run` | N2 only | `pad_nav_step`'s panel questions are already memoised (O2). What remains is spread over `run_step`'s helpers (`foreign_panel_open` 40%, `bar_or_cycle_step` 39% on score-panel-5876): update code, each under T outside score-panel's 8 frames |
 | update `save_at_frame_end` | no pixel-identical lever found | `save_state_encode` 56% and `save_state_capture` 39% on map-move-1057, once per save. U4 is taken, and the rest is the save itself (spreading work across frames is out of scope) |
@@ -934,25 +934,57 @@ runtime or backend entry.
 ### 7. N6 — slipway target test pre-rejected by its box (after N2)
 
 - **Function:** update `ui_update` (build, slipway-aim).
-- **Location:** `targeting_track_slipway_predicate` /
-  `targeting_track`, `src/game/probe.c`; `geom_near_segment`,
-  `src/engine/geom.c`.
-- **Change:** reject a slipway whose end points' box, widened by the attach
-  distance, cannot hold the cursor, before `geom_near_segment`'s
-  projection. Stop the filter at the first match: only the first is read.
+- **Location:** `targeting_track`, `src/game/probe.c`;
+  `geom_near_segment`, `src/engine/geom.c`; `entity_list_find_first`,
+  `src/engine/entity_list.c`.
+- **Change (made):** `geom_near_segment` returns 0 before the projection
+  when `fh` is at most 1/256, every coordinate is inside ±32 map units and
+  the cursor lies more than 1/8 map unit outside the box of the two end
+  points on either axis (a match is never farther than 0.0628 from that
+  box there; nothing wraps). `targeting_track` takes the first matching
+  slipway with `entity_list_find_first` instead of building the whole
+  filtered list. `slipway_obstruction`'s node filter gains the pre-reject
+  through `geom_near_segment`.
 - **Estimated gain (`share`):** the filter is 53.5% of `targeting_track`
   (build-5752), which is 72% of `ui_update`. Assuming most slipways are
   rejected by the box, about 35% of `ui_update` goes, or 32.6% of what N2
   leaves. Build 7.8 h (18.9% of update), slipway-aim 18.6 h (23.9%; split
-  from build-5752). Not re-derived after N2: scaled by 1.11 (N1, N2, G4),
-  build 21.0%, slipway-aim 26.5% of update.
+  from build-5752).
+- **Residual (plan 22 step 3.7):** a throwaway probe running
+  `targeting_track`'s slipway filter a second time into a `volatile`
+  sink, all 12 runs valid, `game-state same`, text +48 bytes:
+  build-5752 update 490 → 630 (+140 over 15, +9.3 h a frame, 28.6% of its
+  update), draw 0, submit +3; every other run within ±3 over its window.
+  The whole filter, part of which N6 keeps, so an upper bound. Rule (a):
+  0.148 × 9.3 = 1.4 h per steady frame, under T = 4.4; rule (b): build 9.3
+  above 6.2 (slipway-aim, derived, 2.38 × 9.3 = 22.2 above 6.6).
+  Verdict: build.
+- **Measured (probe, provisional):** `psx-probe` of N6 on all 12 runs,
+  all valid, `game-state same`, text +336 bytes: build-5752 update 490 →
+  436 (−54 over 15, −3.6 h a frame), draw −1, submit +3, total −52; every
+  other run's total within −5 / +4 over its window. m = 54 ÷ 490 = 11.0%
+  of update against 18.9% estimated: ratio 0.58. Build update 11.0%,
+  slipway-aim update 23.9 × 0.58 = 13.9%. Provisional: probe on
+  `build-5752`. Its full-game measure is step 8's `psx-full-game-check`
+  (N6 is the only full-game-measured lever, a group of one, the last
+  group), which replaces these gains.
+- **Hand-off to step 8:** N6 is a group of one, so no split by probe
+  gains. Step 8's `psx-full-game-check` table is compared with step 6's
+  (`make situation-report` on both); N6's full-game gain in build and in
+  slipway-aim is the situation's mean **update** delta minus what this
+  table books for the other taken levers' update gains there (N2: 6.8% in
+  both; every other taken lever books draw or submit only). The rest is
+  N6's; its lines replace the provisional ones before the rebase marks
+  every lever `in-base`. If that leaves no update gain in build or
+  slipway-aim, the revert rule applies to N6 at step 8, and step 8's PRD
+  decides how. The rebase is step 8's, done once.
 - **Cost:** S. **Risk:** pixel identity `none`. Game state `e2e decides`:
-  fixed-point products wrap, so the pre-test must reject only what
-  `geom_near_segment` rejects. Any hash change reverts it.
+  every e2e hash and `.end-state` unchanged, `game-state same` on every
+  probed run.
 - **Measured by:** `psx-full-game-check`, **probe** `build-5752`: no
   representative run tracks a target (`ui_handle_button` is 0–2% of
-  `ui_update` on map-move-1057, menu-5954 and tech-panel-5895), and build
-  is where it removes the most (16 of 26 scaled). **Evidence:** `weaker`.
+  `ui_update` on map-move-1057, menu-5954 and tech-panel-5895).
+  **Evidence:** `weaker` until step 8.
 
 ### N5 — on-screen test against the frame's screen box: not taken, under 2%
 
@@ -982,7 +1014,7 @@ runtime or backend entry.
 # lever <id> <estimated|measured|in-base> <S|M|L> basis <calls|share> measure <run|psx-full-game-check> [probe <run|none>] [after <id>]
 # gain <id> <situation> <update|draw|submit> <percent>
 # scale <calls|share> <ratio>
-scale share 1.11
+scale share 0.96
 scale calls 0.77
 lever N1 measured S basis share measure map-move-1057
 gain N1 map-rest draw 2.8
@@ -1033,9 +1065,9 @@ gain G4 menu submit 56.7
 gain G4 tech-panel submit 61.4
 gain G4 score-panel submit 57.6
 gain G4 slipway-aim submit 57.6
-lever N6 estimated S basis share measure psx-full-game-check probe build-5752 after N2
-gain N6 build update 18.9
-gain N6 slipway-aim update 23.9
+lever N6 measured S basis share measure psx-full-game-check probe build-5752 after N2
+gain N6 build update 11.0
+gain N6 slipway-aim update 13.9
 ```
 
 ## Projection
@@ -1059,26 +1091,26 @@ lever 3 N3 measured basis calls steady-over 526 pessimistic 660 saved 46815
 lever 4 N7 measured basis calls steady-over 466 pessimistic 618 saved 51008
 lever 5 D3 measured basis calls steady-over 417 pessimistic 571 saved 54783
 lever 6 G4 measured basis share steady-over 364 pessimistic 521 saved 58502
-lever 7 N6 estimated basis share steady-over 347 pessimistic 506 saved 60692
+lever 7 N6 measured basis share steady-over 356 pessimistic 513 saved 59668
 situation title over 0 end 0 pessimistic 0
 situation map-rest over 429 end 116 pessimistic 202
 situation map-move over 387 end 141 pessimistic 187
-situation slipway-aim over 41 end 18 pessimistic 21
-situation build over 155 end 25 pessimistic 49
+situation slipway-aim over 41 end 19 pessimistic 23
+situation build over 155 end 33 pessimistic 54
 situation menu over 91 end 27 pessimistic 27
 situation tech-panel over 21 end 14 pessimistic 14
 situation score-panel over 8 end 6 pessimistic 6
 order ok
-end steady-over 347 pessimistic 506
-nominal: real-game steady-over 347 frames, worst steady frame 3749 total 463 situation map-move
+end steady-over 356 pessimistic 513
+nominal: real-game steady-over 356 frames, worst steady frame 3749 total 463 situation map-move
 nominal: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-nominal: real-game-budget failed 347 steady frames over 263, one-off vsyncs 1391 of 10800
-pessimistic: real-game steady-over 506 frames, worst steady frame 3749 total 471 situation map-move
+nominal: real-game-budget failed 356 steady frames over 263, one-off vsyncs 1391 of 10800
+pessimistic: real-game steady-over 513 frames, worst steady frame 3749 total 471 situation map-move
 pessimistic: real-game one-off-over 631 frames, vsyncs 1391 of 10800
-pessimistic: real-game-budget failed 506 steady frames over 263, one-off vsyncs 1391 of 10800
+pessimistic: real-game-budget failed 513 steady frames over 263, one-off vsyncs 1391 of 10800
 ```
 
-**The pixel-identical list does not reach zero.** Nominal, it leaves 347 steady frames over 263 (pessimistic 506): map-move 141 (187), map-rest 116 (202), build 25 (49), menu 27 (27), slipway-aim 18 (21), tech-panel 14 (14), score-panel 6 (6). The worst steady frame becomes 3749 (`map-move`), 463 (471). D3, N1, N2, G4, N3 and N7 are taken and measured, at 0.42, 0.81, 2.47, 1.11, 0.77 and 1.62 of their estimates; N5 is not taken (its residual is under 2%, see its entry); the remaining `share` lever (N6) is scaled by 1.11, the median of N1's, N2's and G4's ratios. The `calls` scale is 0.77, the median of D3's, N3's and N7's, and no `calls` lever is left for it to scale. Measured at 1.62, N7 (33 frames alone, 16 in map-move) moves up to 4th, before D3 and G4. Phase 3 still runs the whole list. The close then weighs the picture-changing ideas below for what is left.
+**The pixel-identical list does not reach zero.** Nominal, it leaves 356 steady frames over 263 (pessimistic 513): map-move 141 (187), map-rest 116 (202), build 33 (54), menu 27 (27), slipway-aim 19 (23), tech-panel 14 (14), score-panel 6 (6). The worst steady frame becomes 3749 (`map-move`), 463 (471). Every lever of the list is taken: D3, N1, N2, G4, N3, N7 and N6 are measured, at 0.42, 0.81, 2.47, 1.11, 0.77, 1.62 and 0.58 of their estimates; N5 is not taken (its residual is under 2%, see its entry). N6's gains are provisional, from its probe on `build-5752`: step 8's `psx-full-game-check` measures it on the full game and replaces them. The `share` scale is 0.96, the median of N1's, N2's, G4's and N6's ratios, and the `calls` scale 0.77, the median of D3's, N3's and N7's; no `estimated` lever is left for either to scale. N6 removes 8 frames at its rank (12 alone: 8 in build, 4 in slipway-aim; estimated 26 scaled). The close then weighs the picture-changing ideas below for what is left.
 
 ## Picture-changing ideas (unranked, for the close)
 
