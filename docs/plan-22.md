@@ -238,9 +238,20 @@ generation runs.
    so. If not, list the steady situations still over, with their frames,
    worst and mean, what bounds them, and the picture-changing options
    from step 5's separate section with their gains, re-estimated on step
-   8's frame table and profiles; for each option alone, the steady frames
-   still over (nominal and pessimistic, per situation) from
-   `lever_estimate.sh` run on a lever-table file in `tmp/` (`LEVERS=`),
+   8's frame table and on profiles taken at step 9's HEAD: `make
+   steady-profile` (its no-run shares then cover step 8's frames over,
+   its runs give the post-lever per-call costs) run before any estimate,
+   the note giving each option's old and new per-frame saving; for each
+   option alone, the steady frames still over (nominal and pessimistic,
+   per situation) from `lever_estimate.sh` run on a lever-table file in
+   `tmp/` (`LEVERS=`) for an option whose saving is proportional to the
+   frame's draw or update; an option whose saving is a fixed amount per
+   frame (P1) or falls only on some frames (P4: the frames that draw a
+   wormhole, from the PC replay's per-frame call counts as N3 did) is
+   applied per frame to a copy of step 8's table in `tmp/` and counted
+   with `make situation-report`; "Still to do" says which way each option
+   was computed and quotes phase 3's projected-against-measured figures
+   (361 / 516 against 198, per situation) as the estimates' known error;
    options kept unranked, in the section's order; for the human to
    choose from; put that list in `docs/psx-game.md`'s "Still to do".
    Update `docs/psx-game.md`; delete `docs/psx-levers.md`. The
@@ -251,11 +262,21 @@ generation runs.
    this plan already touches (as for plan 21's). Those still open at the
    close are listed in `docs/psx-game.md`'s "Still to do", together with
    the open findings that step notes recorded but no doc carries yet
-   (step 2.6's red `make worst-case-peaks`). Verified when `make test-all` and
+   (found by reading every step note for findings left open or handed to
+   step 9 — at least step 2.6's red `make worst-case-peaks` and step
+   3.8's D3 cold-cache rise). The step's note lists every warning of
+   phases 1–3 and every such finding on one line each, with where it
+   ends: the step note that acted on it, or its "Still to do" line.
+   Order: warning fixes in code first; if any changes `src/game`,
+   `src/p8` or the PSX backend, `psx-full-game-check` is rerun and its
+   table replaces step 8's for everything below; then the option
+   estimates; then the `lever-estimate` re-source or removal. Verified
+   when `make test-all` and
    `psx-check` are green, `grep -rn psx-levers Makefile tools docs src
-   tests` finds nothing outside plan files, every warn-review warning of
-   the plan is either named as acted on in a step note or listed in
-   "Still to do", and the docs describe only what is true.
+   tests` finds nothing outside plan files, every line of that list
+   points to a step note or a "Still to do" entry that exists, `make
+   frame-profile-test` is green, and the docs describe only what is
+   true.
 
 ## 4. Done when
 
@@ -1191,3 +1212,27 @@ the measured steady count). No fix, no revert, no code change. Warn-review
 warnings: "one frame late" vs F−2 in `docs/psx-game.md` left open (not in
 the lines edited); every other warning left open, outside the files
 changed. No guideline decision.
+
+End of phase 3: warn-review raised 16 warnings on the levers' code —
+ui_button.c:225 a `through_text_image` flag choosing two draw paths;
+draw_functions.c:111 overriding the PRINT_OUTLINED entry with a
+function-pointer parameter; parallel `*_text_image` twins in hud.h,
+draw_functions.h and layout.h; ui_button.c:336 build state through the
+global `g_building_look` though the callback has a context; :358 a
+const cast on the button; :285 a text item's pixel width recomputed
+apart from layout.c:147 and hud.c's aligned_x; inline magic numbers in
+geom.c:24, :28, :34 (0x200000, 0x2000, 0x100) and slipway_display.c:63
+(32765); button slot sizes 16x11 and 112x11 repeated in p8/image.h:12,
+psx_vram_layout.c:35 and :38 and button_image.h:10 with no compile-time
+tie; psx_gpu.c:571 a VRAM readback inside an assert expression;
+entity_list.c:125 find_first accepting NULL while entity_list_all
+asserts; ui_button.h's non-const pointer fields layout_row, side_tooltip
+and tooltip (rule 11, pre-existing); presence tested with != NULL at
+ui_button.c:353, :247 and :238 instead of a `has` bit (rule 13). A
+pre-existing failure, `make frame-profile-test` red since 5a206c1 (the
+test froze frames without a loading screen), was fixed in its own `fix:`
+commit. plan-review: four changes to step 9 accepted — fresh profiles
+at step 9's HEAD before any option estimate; P1 and P4 applied per frame
+with the estimates' known error quoted; a one-line-per-warning ledger;
+an explicit order with a full-game rerun if warning fixes touch the
+game or the backend.

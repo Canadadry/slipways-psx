@@ -40,3 +40,4 @@
     - [x] fix: frame-profile-test knows the loading frames
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan
+    - [x] Phase 3's warnings recorded, step 9's method amended
