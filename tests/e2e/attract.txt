@@ -15,7 +15,7 @@ The four frames plan 18 step 12 names:
 The save is pad_tech_costs.json's `initial_save`, copied byte for byte:
 a record cut from a real game, never typed (pad_tech_costs.txt gives
 its cut command), year 3407 month 1, credits 100, 90 nodes, a galaxy
-other than the demo record's (pico8/demo_record.hex, year 3412). Not
+other than the demo record's (demo/demo_record.hex, year 3412). Not
 the demo record itself: a demo that wrote its own record over the save
 would then go unnoticed. `replay` seeds storage from it, so the boot
 title shows the `resume` row from f0.
@@ -29,7 +29,7 @@ the file can be rebuilt: empty x153 (f0-152), X x10 (f153-162), empty
   resumed and demo frame 0 is played. State after f3: year 3412 month
   1, credits 86, science 12, income 48, techs space folding and
   geneseeds, 16 colonies, 18 slipways, 75 planets.
-- f4-152: demo frames 1-149, all empty in pico8/demo.json and all under
+- f4-152: demo frames 1-149, all empty in demo/demo.json and all under
   caption 0 (demo frames 0-299). State after f152: the same, but 74
   planets (p46, still vanishing in the record, is gone).
 - f153: X down while playing: the title comes back at the top of the

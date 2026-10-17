@@ -15,7 +15,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "engine/entity_id.h"
 #include "engine/bootstrap.h"
 #include "game/cart.h"
@@ -646,7 +646,7 @@ static void test_leaving_gives_back_its_particles(void) {
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

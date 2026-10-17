@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/draw_backend.h"
 #include "game/data_init.h"
 #include "engine/dispatch_context.h"
@@ -200,7 +200,7 @@ static void test_line_is_centered_on_the_screen(void) {
 
 int main(void) {
     p8_vram_init(&memory);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     data_init();
     layout_init();
 

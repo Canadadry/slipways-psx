@@ -1,22 +1,9 @@
 #include "p8/sprite_sheet.h"
-#include "p8/assets.h"
 #include "p8/vram.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-
-static void test_load_equals_the_json_sheet(void) {
-    static p8_vram_t embedded;
-    static p8_vram_t from_json;
-    p8_vram_init(&embedded);
-    p8_vram_init(&from_json);
-    assert(p8_load_gfx_json(&from_json, "pico8/gfx.json"));
-
-    p8_sprite_sheet_load(&embedded);
-
-    assert(memcmp(embedded.sprite_sheet, from_json.sprite_sheet, sizeof(embedded.sprite_sheet)) == 0);
-}
 
 static void test_load_leaves_the_rest_of_the_vram_initial(void) {
     static p8_vram_t loaded;
@@ -36,7 +23,6 @@ static int packed_pixel(int x, int y) {
     return (x % 2 == 0) ? (byte & 0x0F) : (byte >> 4);
 }
 
-/* (23, 0) is 3 and its even neighbour (22, 0) is 0 in pico8/gfx.json. */
 static void test_packed_bytes_hold_the_left_pixel_in_the_low_nibble(void) {
     assert(packed_pixel(16, 0) == 3);
     assert(packed_pixel(2, 64) == 1);
@@ -47,7 +33,6 @@ static void test_packed_bytes_hold_the_left_pixel_in_the_low_nibble(void) {
 }
 
 int main(void) {
-    test_load_equals_the_json_sheet();
     test_load_leaves_the_rest_of_the_vram_initial();
     test_packed_bytes_hold_the_left_pixel_in_the_low_nibble();
 

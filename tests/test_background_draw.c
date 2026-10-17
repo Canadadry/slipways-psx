@@ -1,4 +1,4 @@
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "game/background.h"
 #include "p8/draw_backend.h"
 #include "p8/gfx.h"
@@ -18,11 +18,9 @@ static unsigned char screen_at(const p8_vram_t *mem, int x, int y) {
 }
 
 static void setup_sky(p8_vram_t *mem, p8_graphics_t *gfx) {
-    int ok;
     p8_vram_init(mem);
     p8_gfx_init(gfx);
-    ok = p8_load_gfx_json(mem, "pico8/gfx.json");
-    assert(ok);
+    p8_sprite_sheet_load(mem);
     p8_mset(mem, BACKGROUND_STAR_CELL_X, BACKGROUND_STAR_CELL_Y, BACKGROUND_STAR_SPRITE);
 }
 

@@ -111,7 +111,6 @@ DEMO_UNIT := $(TMP_DIR)/demo/demo.c
 ENGINE_SRCS := \
     $(BINDINGS_CORE_UNIT) \
     $(DEMO_UNIT) \
-    src/p8/assets.c \
     src/p8/sprite_sheet.c \
     src/game/attract.c \
     src/game/background.c \
@@ -214,7 +213,7 @@ ENGINE_SRCS := \
 # The ported core, free of floating point: the engine closure minus the host
 # tools, which keep the libc. constants-check, float-guard, alloc-guard and
 # float-grep all read this list.
-CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) $(DEMO_UNIT) src/p8/assets.c src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
+CORE_SRCS := $(filter-out $(BINDINGS_CORE_UNIT) $(DEMO_UNIT) src/devtools/dump.c src/platform/fatal_pc.c src/devtools/input_json.c,$(ENGINE_SRCS))
 
 # A narrower closure: what data_init() reaches to build a real game state,
 # without calling cart_load().
@@ -263,13 +262,12 @@ $(TMP_DIR):
 $(TMP_DIR)/test_vram: $(call objs,tests/test_vram.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/p8/assets.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_sprite_sheet: $(call objs,tests/test_sprite_sheet.c src/p8/sprite_sheet.c src/p8/assets.c src/p8/vram.c) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_sprite_sheet: $(call objs,tests/test_sprite_sheet.c src/p8/sprite_sheet.c src/p8/vram.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+$(TMP_DIR)/test_gfx: $(call objs,tests/test_gfx.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/sprite_sheet.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_draw_backend: $(call objs,tests/test_draw_backend.c src/p8/draw_cost.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
@@ -317,7 +315,7 @@ $(TMP_DIR)/test_steady_windows: $(call objs,tests/test_steady_windows.c) tools/s
 $(TMP_DIR)/test_short_run_situations: $(call objs,tests/test_short_run_situations.c) tools/short_run_situations.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_situations: $(call objs,tests/test_situations.c) $(TMP_DIR)/situations tests/e2e/pad_score.json tests/e2e/pad_probe.json tests/e2e/pad_game_end.json pico8/demo_record.hex | $(TMP_DIR)
+$(TMP_DIR)/test_situations: $(call objs,tests/test_situations.c) $(TMP_DIR)/situations tests/e2e/pad_score.json tests/e2e/pad_probe.json tests/e2e/pad_game_end.json demo/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_capture_compare: $(call objs,tests/test_capture_compare.c src/devtools/capture_compare.c src/platform/psx_colour.c src/p8/palette.c) | $(TMP_DIR)
@@ -431,7 +429,7 @@ $(TMP_DIR)/test_replay_from_title: $(call objs,tests/test_replay_from_title.c sr
 $(TMP_DIR)/test_replay_usage: $(call objs,tests/test_replay_usage.c) $(TMP_DIR)/replay tests/fixtures/title_pick_forgiving.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_replay_from_resume: $(call objs,tests/test_replay_from_resume.c) $(TMP_DIR)/replay pico8/demo_record.hex bindings.default.cfg tools/end_state.sh tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
+$(TMP_DIR)/test_replay_from_resume: $(call objs,tests/test_replay_from_resume.c) $(TMP_DIR)/replay demo/demo_record.hex bindings.default.cfg tools/end_state.sh tests/fixtures/title_pick_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/frames_tool: $(call objs,src/cmd/frames.c src/devtools/screencast.c src/devtools/dump.c src/p8/vram.c) | $(TMP_DIR)
@@ -541,7 +539,7 @@ $(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools
 $(TMP_DIR)/test_palette: $(call objs,tests/test_palette.c src/p8/palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_hud: $(call objs,tests/test_hud.c src/game/hud.c src/game/text_image.c src/p8/image.c src/platform/fatal_pc.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/fixed.c src/p8/assets.c) | $(TMP_DIR)
+$(TMP_DIR)/test_hud: $(call objs,tests/test_hud.c src/game/hud.c src/game/text_image.c src/p8/image.c src/platform/fatal_pc.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/fixed.c src/p8/sprite_sheet.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_vec: $(call objs,tests/test_vec.c src/engine/vec.c src/p8/fixed.c src/devtools/fixed_test_double.c) | $(TMP_DIR)
@@ -683,16 +681,16 @@ $(TMP_DIR)/test_burst: $(call objs,tests/test_burst.c $(ENGINE_SRCS)) | $(TMP_DI
 
 STATE_SRCS := src/devtools/state.c src/devtools/state_format.c
 
-$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) tests/e2e/pad_colonise.json pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_rng_sync: $(call objs,tests/test_rng_sync.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) tests/e2e/pad_colonise.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_worst_case: $(call objs,tests/test_save_worst_case.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_fuzz: $(call objs,tests/test_save_fuzz.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_resume_check: $(call objs,tests/test_resume_check.c src/devtools/save_check.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_probe: $(call objs,tests/test_probe.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -767,20 +765,20 @@ $(TMP_DIR)/test_pad_metrics: $(call objs,tests/test_pad_metrics.c src/devtools/p
 $(TMP_DIR)/test_frame_times: $(call objs,tests/test_frame_times.c src/devtools/frame_times.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pad_caption: $(call objs,tests/test_pad_caption.c src/devtools/pad_caption.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pad_caption: $(call objs,tests/test_pad_caption.c src/devtools/pad_caption.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/sprite_sheet.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_demo_source: $(call objs,tests/test_demo_source.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+$(TMP_DIR)/test_demo_source: $(call objs,tests/test_demo_source.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/sprite_sheet.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/demo_generate: $(call objs,src/cmd/demo_generate.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/assets.c) | $(TMP_DIR)
+$(TMP_DIR)/demo_generate: $(call objs,src/cmd/demo_generate.c src/devtools/demo_source.c src/devtools/pad_caption.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/devtools/input_json.c src/p8/input.c src/game/bindings.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/p8/sprite_sheet.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(DEMO_UNIT): pico8/demo.json $(TMP_DIR)/demo_generate
+$(DEMO_UNIT): demo/demo.json $(TMP_DIR)/demo_generate
 	@mkdir -p $(@D)
 	$(TMP_DIR)/demo_generate $< $@
 
-$(TMP_DIR)/test_demo_data: $(call objs,tests/test_demo_data.c src/devtools/replay_source.c src/devtools/pad_caption.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/demo.json | $(TMP_DIR)
+$(TMP_DIR)/test_demo_data: $(call objs,tests/test_demo_data.c src/devtools/replay_source.c src/devtools/pad_caption.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) demo/demo.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pad_build: $(call objs,tests/test_pad_build.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -798,7 +796,7 @@ $(TMP_DIR)/test_demo_overlay: $(call objs,tests/test_demo_overlay.c src/game/dem
 $(TMP_DIR)/test_draw_layers_camera: $(call objs,tests/test_draw_layers_camera.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/assets.c src/p8/gfx.c src/p8/gfx_software.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_demo: $(call objs,tests/test_demo.c src/p8/vram.c src/p8/sprite_sheet.c src/p8/gfx.c src/p8/gfx_software.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c src/devtools/dump.c) tests/fixtures/demo_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 REPLAY_SRCS := src/cmd/replay.c src/devtools/record_start.c src/devtools/pad_metrics.c src/devtools/screencast.c src/devtools/vram_digest.c src/devtools/draw_filter.c src/devtools/capture_list.c $(STATE_SRCS) src/devtools/replay_source.c $(BINDINGS_DEFAULT_UNIT) $(ENGINE_SRCS)
@@ -838,10 +836,10 @@ $(call embedded,test_embed_replay_save): tests/e2e/pad_resume_at_start.json $(TM
 
 TEST_EMBED_REPLAY_SRCS := tests/test_embed_replay.c src/devtools/replay_source.c src/devtools/save_storage_memory.c src/p8/input.c src/devtools/input_json.c src/game/bindings.c
 
-$(TMP_DIR)/test_embed_replay: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_pad)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json pico8/demo.json tests/e2e/pad_swap_aim_menu.json | $(TMP_DIR)
+$(TMP_DIR)/test_embed_replay: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_pad)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json demo/demo.json tests/e2e/pad_swap_aim_menu.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_embed_replay_save: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_save)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json pico8/demo.json tests/e2e/pad_swap_aim_menu.json | $(TMP_DIR)
+$(TMP_DIR)/test_embed_replay_save: $(call objs,$(TEST_EMBED_REPLAY_SRCS) $(call embedded,test_embed_replay_save)) $(TMP_DIR)/embed_replay tests/fixtures/events_mouse_recording_refused.json demo/demo.json tests/e2e/pad_swap_aim_menu.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/format_self_test: $(call objs,src/cmd/format_self_test.c src/devtools/format_self_test.c) | $(TMP_DIR)
@@ -859,22 +857,22 @@ $(TMP_DIR)/test_format: $(call objs,tests/test_format.c src/p8/format.c) | $(TMP
 $(TMP_DIR)/test_state: $(call objs,tests/test_state.c $(STATE_SRCS) $(ENGINE_SRCS)) $(TMP_DIR)/replay | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_state_format: $(call objs,tests/test_state_format.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)) tests/e2e/pad_slipway.json pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_state_format: $(call objs,tests/test_state_format.c $(STATE_SRCS) src/devtools/replay_source.c $(ENGINE_SRCS)) tests/e2e/pad_slipway.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_check: $(call objs,tests/test_save_check.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_save_load: $(call objs,tests/test_save_load.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
+$(TMP_DIR)/test_cart: $(call objs,tests/test_cart.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) demo/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_attract_demo: $(call objs,tests/test_attract_demo.c src/devtools/replay_source.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json | $(TMP_DIR)
+$(TMP_DIR)/test_attract_demo: $(call objs,tests/test_attract_demo.c src/devtools/replay_source.c src/devtools/save_check.c $(STATE_SRCS) $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_record_start: $(call objs,tests/test_record_start.c src/devtools/record_start.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) pico8/gfx.json pico8/demo_record.hex | $(TMP_DIR)
+$(TMP_DIR)/test_record_start: $(call objs,tests/test_record_start.c src/devtools/record_start.c $(ENGINE_SRCS) $(BINDINGS_DEFAULT_UNIT)) demo/demo_record.hex | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_background_draw: $(call objs,tests/test_background_draw.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -918,13 +916,12 @@ $(TMP_DIR)/test_probe_spawn_particle_order: $(call objs,tests/test_probe_spawn_p
 
 # A reduced source list rather than $(ENGINE_SRCS): this test never calls
 # cart_load(). Measured by linking, not guessed.
-$(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/assets.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/p8/gfx_software.c src/game/hud.c src/game/layout.c src/game/text_image.c src/p8/image.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
+$(TMP_DIR)/test_layout_nil_item_draws_nothing: $(call objs,tests/test_layout_nil_item_draws_nothing.c tests/heap_allocator.c src/p8/sprite_sheet.c src/engine/collect.c src/engine/dispatch_context.c src/p8/fixed.c src/engine/geom.c src/p8/gfx.c src/p8/gfx_software.c src/game/hud.c src/game/layout.c src/game/text_image.c src/p8/image.c src/engine/pointer_list.c src/game/map_tables.c src/p8/vram.c src/p8/str.c src/engine/vec.c src/engine/allocator.c src/engine/zone.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # The longest first: under `-j`, make starts it first.
 UNIT_TESTS := \
     test_vram \
-    test_asset_loading \
     test_sprite_sheet \
     test_gfx \
     test_draw_backend \
@@ -1280,7 +1277,7 @@ pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay ## [SCRIPT=<script> [OUT=<ev
 else
 pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
 	@$(foreach s,$(PAD_AUTHOR_SCRIPTS),./$(TMP_DIR)/pad_author $(s) $(s:.pad=.json) || exit 1; ) true
-	@./$(TMP_DIR)/pad_author pico8/demo.pad pico8/demo.json --no-aim-budget
+	@./$(TMP_DIR)/pad_author demo/demo.pad demo/demo.json --no-aim-budget
 endif
 
 PAD_AUTHOR_SELF_CHECK_SCRIPT := tools/pad_author_proofs/pad_probe.frames.pad
@@ -1367,8 +1364,8 @@ steady-windows: ## [FRAMES=<table>] [SITUATIONS=<table>]: candidate windows per 
 
 DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
 
-demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json pico8/demo_record.hex worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state tools/demo_check_run.sh tools/demo_check.sh tools/end_state.sh ## checks the attract demo end to end, files in tmp/demo-check/ (never alongside test-all or pad-author)
-	@sh tools/demo_check_run.sh $(DEMO_CHECK_DIR) ./$(TMP_DIR)/test_demo_check ./$(TMP_DIR)/test_attract_demo ./$(TMP_DIR)/pad_author ./$(TMP_DIR)/replay ./$(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state '$(SHA256_CMD)'
+demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(TMP_DIR)/replay_sanitize demo/demo.pad demo/demo.json demo/demo_record.hex worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state tools/demo_check_run.sh tools/demo_check.sh tools/end_state.sh ## checks the attract demo end to end, files in tmp/demo-check/ (never alongside test-all or pad-author)
+	@sh tools/demo_check_run.sh $(DEMO_CHECK_DIR) ./$(TMP_DIR)/test_demo_check ./$(TMP_DIR)/test_attract_demo ./$(TMP_DIR)/pad_author ./$(TMP_DIR)/replay ./$(TMP_DIR)/replay_sanitize demo/demo.pad demo/demo.json worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state '$(SHA256_CMD)'
 
 .PHONY: demo-check
 
@@ -1542,15 +1539,6 @@ sin-table: $(TMP_DIR)/gen_quarter_wave ## regenerates src/p8/quarter_wave.h
 
 .PHONY: sin-table
 
-$(TMP_DIR)/gen_sprite_sheet: $(call objs,tools/gen_sprite_sheet.c src/p8/assets.c src/p8/vram.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-# Writes the committed header only when the generator succeeded.
-sprite-sheet: $(TMP_DIR)/gen_sprite_sheet ## regenerates src/p8/sprite_sheet_packed.h from pico8/gfx.json
-	./$(TMP_DIR)/gen_sprite_sheet pico8/gfx.json > $(TMP_DIR)/sprite_sheet_packed.h
-	mv $(TMP_DIR)/sprite_sheet_packed.h src/p8/sprite_sheet_packed.h
-
-.PHONY: sprite-sheet
 
 PSX_SOURCES ?= tools/psx_sources.txt
 PSN00BSDK_DIR ?= third_party/psn00bsdk
@@ -2221,7 +2209,7 @@ lever-estimate: tools/lever_estimate.sh tools/psx_real_game_budget.sh ## LEVERS=
 		projected=$(LEVER_ESTIMATE_DIR) > $$out; status=$$?; \
 	cat $$out; echo "$@: wrote $$out"; exit $$status
 
-$(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json pico8/demo_record.hex tools/end_state.sh | $(TMP_DIR)
+$(TMP_DIR)/test_frame_profile: $(call objs,tests/test_frame_profile.c) $(TMP_DIR)/frame_profile $(TMP_DIR)/replay tests/e2e/pad_title.json demo/demo_record.hex tools/end_state.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_frame_profile_check: $(call objs,tests/test_frame_profile_check.c) tools/frame_profile_check.sh | $(TMP_DIR)

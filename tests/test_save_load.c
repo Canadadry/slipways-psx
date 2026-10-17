@@ -25,7 +25,7 @@
 #include "game/ui_button.h"
 #include "game/ui_zone.h"
 #include "game/wormhole.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -58,7 +58,7 @@ static void play_compared_frame(save_check_snapshot_t *snapshot) {
 static void load_cart_to_title(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     p8_input_init(&input);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);

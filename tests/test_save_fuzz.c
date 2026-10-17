@@ -9,7 +9,7 @@
 #include "game/input_step.h"
 #include "game/save_state.h"
 #include "game/save_storage.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -218,7 +218,7 @@ static int fuzz_game(const char *path, int cores) {
 
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     p8_input_init(&recording);
     p8_input_init(&idle_input);
     idle_input.frames = &idle_frame;

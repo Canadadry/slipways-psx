@@ -5,7 +5,7 @@
 #include <sys/wait.h>
 
 #define DRIVER "./tmp/replay"
-#define RECORD "pico8/demo_record.hex"
+#define RECORD "demo/demo_record.hex"
 #define RESUME_EVENTS "tmp/test_replay_from_resume.json"
 #define STATE "tmp/test_replay_from_resume_state.txt"
 #define DUMP "tmp/test_replay_from_resume_dump.txt"

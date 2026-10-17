@@ -78,12 +78,12 @@ PCSX-Redux log that character twice, which broke a state line.
 
 No asset is read from a file, on PC or PSX. The sprite sheet is
 `src/p8/sprite_sheet_packed.h`, 8,192 bytes at 4 bits per pixel (the PSX GPU's
-4-bit texture layout), regenerated from `pico8/gfx.json` by `make sprite-sheet`;
-`p8_sprite_sheet_load` unpacks it into `p8_vram_t.sprite_sheet`. The map has no
-data: `background.c` builds it at runtime with `p8_mset`. The font is the
+4-bit texture layout), the left pixel in the low nibble;
+`p8_sprite_sheet_load` unpacks it into `p8_vram_t.sprite_sheet`. The map has
+no data: `background.c` builds it at runtime with `p8_mset`. The font is the
 `static const` glyph tables of `src/p8/gfx_software.c`, read by both
-backends through `p8_font_glyph_rows`. No JSON loader
-(`src/p8/assets.c`, `src/devtools/input_json.c`) is in `CORE_SRCS`, and
+backends through `p8_font_glyph_rows`. The JSON loader of recordings
+(`src/devtools/input_json.c`) is not in `CORE_SRCS`, and
 `psx-check`'s `no-json` checks the ELF for it.
 
 ## Embedded replay
@@ -700,8 +700,7 @@ concluding, one line each (`tools/psx_check.sh`, outputs in
   `PSX_MESSAGE_BOX_GPU_TIMEOUT` s; outputs in `run/message-box`); no other
   condition runs on it;
 - `no-json`: the toolchain's `nm` (`PSX_NM`) finds no definition of
-  `p8_load_gfx_json`, `p8_input_load`, `p8_input_save`, `p8_input_append` or
-  `p8_input_free` in either replay ELF or the game ELF;
+  `p8_input_load`, `p8_input_save`, `p8_input_append` or `p8_input_free` in either replay ELF or the game ELF;
 - `pad-script`: the probe's ordered pad states equal the script's
   (`tools/psx_pad_compare.sh`);
 - the seven game conditions, on the CD boot, from `tools/psx_game_check.sh` (outputs in

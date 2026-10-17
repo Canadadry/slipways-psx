@@ -5,8 +5,6 @@
 src/cmd/replay.c | entry point of the headless replay, host tool
 src/cmd/frames.c | entry point of frames_tool, which prints a frame of a capture, host tool
 src/cmd/game.c | entry point of the interactive raylib driver
-src/p8/assets.c | host tool, loads the assets through the libc
-src/p8/assets.h | host tool, header of p8/assets.c
 src/devtools/dump.c | host tool, text dump of the framebuffer
 src/devtools/dump.h | host tool, header of devtools/dump.c
 src/devtools/input_json.c | reads and writes events.json, host tool
@@ -121,7 +119,7 @@ src/devtools/pad_metrics.c | pad metrics of the generator, writes its totals thr
 src/devtools/pad_metrics.h | pad metrics of the generator, header of devtools/pad_metrics.c
 src/devtools/pad_caption.c | caption rules of the generator, formats its refusals and JSON member, host tool
 src/devtools/pad_caption.h | caption rules of the generator, header of devtools/pad_caption.c
-src/devtools/demo_source.c | demo loader of the demo generator, reads pico8/demo.json through the libc, host tool
+src/devtools/demo_source.c | demo loader of the demo generator, reads demo/demo.json through the libc, host tool
 src/devtools/demo_source.h | demo loader of the demo generator, header of devtools/demo_source.c
 src/cmd/demo_generate.c | entry point of the demo generator, writes tmp/demo/demo.c through the libc, host tool
 src/devtools/short_run_cut.c | cut planner of make psx-short-runs-cut, host tool

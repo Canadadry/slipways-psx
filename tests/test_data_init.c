@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "game/map_tables.h"
 #include "p8/vram.h"
 #include "game/research.h"

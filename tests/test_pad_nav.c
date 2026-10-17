@@ -36,7 +36,7 @@
 #include "game/ui.h"
 #include "game/ui_button.h"
 #include "game/wormhole.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/vram.h"
@@ -7042,7 +7042,7 @@ static void test_the_bar_leaves_the_game_stream_unchanged(void) {
 int main(void) {
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
     cart_load();

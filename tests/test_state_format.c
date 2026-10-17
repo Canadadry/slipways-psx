@@ -8,7 +8,7 @@
 #include "game/cart.h"
 #include "game/input_step.h"
 #include "game/save_state.h"
-#include "p8/assets.h"
+#include "p8/sprite_sheet.h"
 #include "p8/draw_backend.h"
 #include "p8/draw_meter.h"
 #include "p8/gpu_sizes.h"
@@ -159,7 +159,7 @@ int main(void) {
     static p8_graphics_t graphics;
     p8_vram_init(&memory);
     p8_gfx_init(&graphics);
-    assert(p8_load_gfx_json(&memory, "pico8/gfx.json"));
+    p8_sprite_sheet_load(&memory);
     dispatch_context_set_gfx(&graphics);
     dispatch_context_set_mem(&memory);
     play_short_fixture();

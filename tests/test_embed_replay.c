@@ -105,7 +105,7 @@ static void test_empty_recording_is_refused(void) {
 }
 
 static void test_resume_start_is_refused(void) {
-    assert_refused("pico8/demo.json");
+    assert_refused("demo/demo.json");
 }
 
 static void test_bindings_member_is_refused(void) {
