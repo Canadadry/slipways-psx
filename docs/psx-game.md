@@ -11,7 +11,7 @@ RAM, that its frame captures are deterministic and within their recorded
 divergence from the PC, that scripted pad input reaches a PS-EXE, and that the
 game, booted from its CD image and driven by a pad script, leaves the title
 screen and plays what the PC plays from the same input. Toolchain, emulator, setups and the plain boot mode are
-in `docs/psx-hello-world.md`. `make help` and the usage header of each
+in `docs/psx-toolchain.md`. `make help` and the usage header of each
 `tools/psx_*.sh` script hold the per-option detail.
 
 ## Build
@@ -395,7 +395,7 @@ guest's own counters, so the `done` line's frame count and vsyncs, come back
 with the state. The two options exclude each other, need `--until-exit`, and are
 refused naming the argument before the emulator starts when the vsync is not a
 positive integer below the ceiling or the file to load is missing.
-Without `--until-exit`, `psx_boot.sh` behaves as `docs/psx-hello-world.md`
+Without `--until-exit`, `psx_boot.sh` behaves as `docs/psx-toolchain.md`
 describes.
 
 ## Pad script
@@ -485,7 +485,7 @@ is fixed by lengthening the offsets.
 ## CD image
 
 `psx/CMakeLists.txt`'s `psn00bsdk_add_cd_image(psx-game-iso slipways iso.xml
-DEPENDS psx-game system.cnf)`, the call `psx-hello` uses, is in `ALL`: every
+DEPENDS psx-game system.cnf)` is in `ALL`: every
 `make psx-build` writes `slipways.bin` and `slipways.cue`
 (`PSX_GAME_BIN`, `PSX_GAME_CUE`) after `psx-game.exe`, and fails naming
 either when it is missing. `make psx-game-cd` is the named target: it runs
@@ -515,7 +515,7 @@ either when it is missing. `make psx-game-cd` is the named target: it runs
 an image after the build, without the emulator, one `psx-cd-check:` line per
 condition:
 
-- `cue`: `tools/psx_cue_check.sh` (shared with `psx-hello`): the `.cue`'s
+- `cue`: `tools/psx_cue_check.sh`: the `.cue`'s
   first `FILE` line names a non-empty `.bin`, next to it, of whole 2,352-byte
   sectors;
 - `cd-exe`: `dumpsxiso -x <out-dir>/disc <bin>` (`PSX_DUMPSXISO`, shipped
@@ -1530,9 +1530,6 @@ family each), `one-off-runs` (no `long` run).
     fields `layout_row`, `side_tooltip` and `tooltip`.
 
 - **Open findings:**
-  - `make worst-case-peaks` is red: two lines frozen since plan 12 and
-    `zone frame` since plan 21 (`59fc46a`). The frozen table is stale, not
-    the code; re-baselining it is the human's call.
   - D3's cold-cache rise: two score-panel frames draw more on the measured
     table than on the table before the phase-3 levers (f4887 146 → 160,
     f5275 130 → 147), neither over 263. Cause unproven (text slots built

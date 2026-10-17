@@ -16,8 +16,7 @@ build system (`third_party/raylib/src/Makefile`, `PLATFORM_DESKTOP`).
 
 `make raylib` never runs the binary it produces — see `CLAUDE.md`. It requires
 `third_party/raylib/src/libraylib.a` to exist already: without vendoring, it
-fails with a plain "no rule to make target", just like `psx-hello` without its
-toolchain.
+fails with a plain "no rule to make target".
 
 ## Per OS
 

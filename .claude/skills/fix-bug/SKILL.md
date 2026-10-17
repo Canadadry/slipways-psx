@@ -36,7 +36,7 @@ Put these in each sub-agent prompt — a fresh agent knows none of them:
 - **Never launch the raylib app interactively** (`CLAUDE.md`). Reproduction is headless: fixed frame count, scripted `events.json`, framebuffer dumped as text.
 - **Only the orchestrator touches git.** Sub-agents never commit, stage, stash, branch or push.
 - **The suite is `make test`** — prefer the Makefile target over invoking a runner directly.
-- **The C is the reference.** A bug is judged against the established behaviour of the C, as covered by the tests and the e2e replays, and against the port's own conventions, cited from a real site in the tree. `pico8/lua.lua` remains as an archive: consult it to understand an intent, never as the yardstick a fix must match.
+- **The C is the reference.** A bug is judged against the established behaviour of the C, as covered by the tests and the e2e replays, and against the port's own conventions, cited from a real site in the tree. The cart's decompiled source is in git only (`git show 536ddd4:pico8/lua.lua`): consult it to understand an intent, never as the yardstick a fix must match.
 - Throwaway repro programs go in `tmp/`, never in `src/` or `tests/`.
 
 ## Pipeline
