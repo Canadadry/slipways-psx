@@ -25,7 +25,7 @@ Everything written in the repository is in English: code, comments, docs, e2e no
 
 ## Build
 
-- `make test` is the fast loop (unit tests and static checks, ~5 s). `make e2e` replays the e2e files of `tests/e2e/` from the title screen (~1 s). `make test-all` runs both. The target legend is at the top of the `Makefile`.
+- `make test` is the fast loop (unit tests and static checks, ~5 s). `make e2e` replays the e2e files of `tests/e2e/` from the title screen (~1 s). `make test-all` runs both. `make help` lists the targets; `docs/make-targets.md` holds their detail.
 - `make raylib` compiles and links the interactive binary without ever running it; run `make raylib-vendor-setup` first — see `docs/raylib-vendoring.md`.
 
 ## Docs

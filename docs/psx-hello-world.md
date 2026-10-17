@@ -3,7 +3,7 @@
 `psx-hello/` is the PSX toolchain test project: it proves that the pinned
 toolchain builds a PS-EXE and a CD image, and that the pinned emulator boots
 them headless into a capture an agent can check. Everything below runs in the
-cloud sandbox, without a window. The Makefile legend and the usage header of
+cloud sandbox, without a window. `docs/make-targets.md` and the usage header of
 each `tools/psx_*.sh` script hold the per-option detail.
 
 ## What psx-hello is

@@ -11,7 +11,7 @@ RAM, that its frame captures are deterministic and within their recorded
 divergence from the PC, that scripted pad input reaches a PS-EXE, and that the
 game, booted from its CD image and driven by a pad script, leaves the title
 screen and plays what the PC plays from the same input. Toolchain, emulator, setups and the plain boot mode are
-in `docs/psx-hello-world.md`. The Makefile legend and the usage header of each
+in `docs/psx-hello-world.md`. `docs/make-targets.md` and the usage header of each
 `tools/psx_*.sh` script hold the per-option detail.
 
 ## Build

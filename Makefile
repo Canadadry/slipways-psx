@@ -1,841 +1,9 @@
-# Everything runs in parallel (`-j` set to the number of cores, output grouped
-# per target).
-#
-# make test          -> unit + constants-check + float-grep + float-guard +
-#                       alloc-guard + pointer-guard + random-guard +
-#                       button-guard + data-guard + p8-guard +
-#                       pad-author-self-check, the fast loop
-# make e2e           -> replays each e2e of tests/e2e/ from the title screen,
-#                       with the `-O0` binary of make test, and compares the
-#                       sha256 of its capture to <name>.json.sha256; also fails
-#                       if an e2e lacks its .txt or its .json.sha256, or runs
-#                       past 180 frames (600 if listed in
-#                       tools/e2e_long_exceptions.txt, whose "N frames:"
-#                       must match and exceed 180), or if an e2e does
-#                       not declare "input": "pad" or carries a mouse field;
-#                       an e2e whose header names a fixture ("bindings":
-#                       "<file>.cfg", read from its directory) reruns when
-#                       that fixture changes, through the .d file replay
-#                       writes next to the capture
-# make test-all      -> test + e2e, the full suite
-# make unit          -> the binaries of tests/, built and run
-# make replay EVENTS=<events> -> replays that file in the headless engine,
-#                       framebuffer dump in tmp/replay_dump.txt, outside the
-#                       suite; with SAVE_HEX=<file>, also writes the stored
-#                       record at the end as one line of hex (the
-#                       initial_save format) and prints its decoded
-#                       "save:" summary; fails when there is no record or
-#                       it does not decode; with DIGEST=<file>, also writes
-#                       the FNV-1a lines of src/devtools/vram_digest.h
-#                       ("sprite-sheet", "screen <frame>" every 32nd frame
-#                       of the recording and the last, "map"); the binary
-#                       also reads CAPTURE_LIST=<list> with CAPTURE_DIR=<dir>
-#                       (psx-check): draws each listed frame with its draw
-#                       filter mask and writes pc_frames.bin, counts.txt and
-#                       capture_script.txt there, exiting 1 on a bad list;
-#                       refuses a recording whose header
-#                       says "bindings": "personal"; a file whose header says
-#                       "start": "resume" (pad_author's from-record) starts
-#                       from its initial_save at the first frame, not on the
-#                       title; with REPLAY_STARTS=2, plays it, returns to the
-#                       title, idles 30 frames and plays it again, and takes
-#                       no capture but /dev/null, so a dump path can follow
-#                       it; with ATTRACT_STATE=<file> on a title-start file,
-#                       writes the state on the last frame of each complete
-#                       demo playback to <file>.1, <file>.2, ..., then, on the
-#                       frame of its return to the title, the state to
-#                       <file>.<n>.return and the stored record (SAVE_HEX's
-#                       format and failures) to <file>.<n>.return.hex
-# make state EVENTS=<events> -> make replay with STATE set, which also writes
-#                       the state of the last frame (clock, difficulty,
-#                       planets, slipways, structures, counts), zone and cap
-#                       use, then the cheat activation count, to
-#                       tmp/state.txt, with the draw meter's lines
-#                       (zone gpu_frame: GPU bytes a frame against
-#                       GPU_FRAME_BUFFER_BYTES; cap gpu_cluts, cap
-#                       gpu_patterns: distinct draw palettes and fill
-#                       patterns a frame), outside the suite; takes
-#                       SAVE_HEX=<file>, DIGEST=<file>, REPLAY_STARTS and
-#                       ATTRACT_STATE as make replay does; with
-#                       REPLAY_STARTS=2, the first playback's state goes to
-#                       tmp/state.txt.start1
-# make state         -> replays the worst-case/ games (FULL_GAME_EVENTS) and
-#                       every e2e of tests/e2e/, each state in
-#                       tmp/state/<name>.txt, then
-#                       writes to tmp/state.txt the peak of each zone and cap
-#                       over them all, its limit and the replay holding it,
-#                       and prints the bytes left under ZONE_BUDGET_BYTES,
-#                       then the two GPU primitive buffers' total, outside it;
-#                       fails if a replay stops or a peak eats its 1/8
-#                       margin (9 x peak > 8 x limit), outside the suite
-# make end-state     -> replays every file make state replays, normalizes
-#                       each last-frame state with tools/end_state.sh (game
-#                       fields and cheat activations kept; camera, screen,
-#                       visible, zone, budget and cap dropped; sorted) and
-#                       compares it with the committed <events>.end-state;
-#                       fails on any difference, a stopped replay, a missing
-#                       reference or a state line the script does not know,
-#                       after examining every replay, outside the suite
-# make end-state EVENTS=<events> [REFERENCE=<reference>] -> the same check
-#                       for that file alone, against <events>.end-state or
-#                       REFERENCE, state in tmp/end-state/, outside the suite
-# make end-state-baseline -> same replays, writes each missing
-#                       <events>.end-state and never overwrites one (delete a
-#                       reference to re-baseline it); refuses a stopped
-#                       replay or an unknown line, outside the suite
-# make e2e-baseline  -> sets or resets the .json.sha256 of tests/e2e/ from the
-#                       current code, never run by make test
-# make e2e-ref       -> for each diverging e2e, replays the commit that set its
-#                       reference (git blame), leaves that capture in
-#                       tmp/frames/<events>.ref.bin and gives the first
-#                       diverging frame, outside the suite
-# make data-guard    -> none of the patterns of the pre-composition model
-#                       (DATA_GUARD_PATTERN) in src/ or tests/, in make test
-# make p8-guard      -> none of the PICO-8-only APIs (P8_GUARD_PATTERN: audio,
-#                       p8_stat, peek/poke, PICO-8 addresses, string-keyed
-#                       tags/messages/states, map.json) in src/ or tests/, in
-#                       make test; entity_state_name's table is the accepted
-#                       exception (text for make state and frozen hashes)
-# make sanitize-net  -> replays the e2e of tests/e2e/ under ASan+UBSan (`-O2`);
-#                       passes when every replay exits cleanly; also runs
-#                       test_live_slots (slots returned after each replay,
-#                       ~17 s), outside the suite
-# make coverage      -> builds tmp/replay_coverage (`--coverage -O0`), replays
-#                       COVERAGE_EVENTS (default: every e2e of tests/e2e/)
-#                       one after the other, writes tmp/coverage/lines.txt
-#                       (`<path>:<line> <0|1>` per executable line of
-#                       src/game/ and src/engine/, headers included) and
-#                       prints the totals, outside the suite
-# make coverage-compare -> make coverage, then maps each line hit at
-#                       COVERAGE_BASELINE_COMMIT (default 6346485) to the
-#                       current tree through `git diff -U0 -M --histogram`
-#                       of src/game/ and src/engine/ (the default algorithm
-#                       pairs a closing brace with another function's) and
-#                       tools/coverage_compare.sh: prints the unhit and
-#                       deleted ones (a rewritten line is deleted) and the
-#                       totals, full report in
-#                       tmp/coverage-compare/report.txt; fails if a line is
-#                       unhit; the baseline's lines are built once from a
-#                       worktree of that commit and kept in
-#                       tmp/coverage-baseline-<commit>/, outside the suite
-# make full-game     -> replays each worst-case/ game (FULL_GAME_EVENTS:
-#                       full_game.json, then the same game followed by a new
-#                       game from the title, cut short by pause ->
-#                       restart -> new game, and cut short by a pause menu
-#                       left open 300 frames; plus title_idle.json, the
-#                       title screen left alone 300 frames) to its last
-#                       frame with the `-O0`
-#                       binary of make test; passes when every replay exits
-#                       cleanly (fails on any p8_fatal, a full zone or cap),
-#                       outside the suite
-# make pad-author    -> builds tmp/pad_author, plays each worst-case/<game>.pad
-#                       headless and rewrites worst-case/<game>.json from the
-#                       frames it pressed, then replays each JSON with
-#                       tmp/replay and fails unless the two last-frame states
-#                       are byte-identical; also fails on a refused input (a
-#                       button 5 + 6 chord, a jump-mode D-pad press into an
-#                       empty cone, a back action (button 6 in the default
-#                       bindings) that changes nothing unless
-#                       `back --required`), a failed command check, more than
-#                       7200 frames, or 25% or more of the frames in aim
-#                       mode; a `caption` (`/` breaks the line, `caption -`
-#                       clears; written as a "captions" header member) is
-#                       refused with a line over 32 characters, more than 2
-#                       lines, the letter v, a character with no font glyph,
-#                       fewer than 150 frames shown, or a button down fewer
-#                       than 90 frames after it appears; the per-frame mode
-#                       log and the totals go to
-#                       tmp/pad-author/<game>.modes.txt, outside the suite;
-#                       then the same for pico8/demo.pad -> pico8/demo.json,
-#                       without the aim budget
-# make pad-author SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>] -> the same
-#                       for one script, written to OUT (default
-#                       tmp/pad-author/<name>.json), ending at its first
-#                       `label <STOP_AT>` (no aim budget then); a failed
-#                       command writes the frames so far to
-#                       tmp/pad-author/<name>.failed.json and the state to
-#                       tmp/pad-author/<name>.state.txt
-# make pad-author-proof -> runs tools/pad_author_proofs/: each <e2e>.frames.pad
-#                       must be byte-identical to tests/e2e/<e2e>.json, each
-#                       <e2e>.end-state.pad must pass tools/end_state.sh
-#                       against tests/e2e/<e2e>.json.end-state (both without
-#                       the aim budget), and each <name>.refused.pad must fail
-#                       with the error its `# expect:` first line names;
-#                       each <name>.record.pad (a script that starts with
-#                       from-record) must pass pad_author's self-check, then
-#                       replay with REPLAY_STARTS=2 to pad_author's normalized
-#                       end state at both ends, outside the suite
-# make demo-check    -> tools/demo_check_run.sh, files and dumps in
-#                       tmp/demo-check/, every check always run, outside the
-#                       suite: tests/test_demo_check; tests/test_attract_demo
-#                       (the whole demo through the attract mode twice, one
-#                       interruption per command range, the player's save
-#                       untouched) also writes the full cycle at the default
-#                       threshold over tests/e2e/pad_tech_costs.json's
-#                       initial_save, which must equal
-#                       worst-case/attract_cycle.json byte for byte; that
-#                       file is replayed to its end by the `-O0` replay (with
-#                       ATTRACT_STATE, capture hashed) and by replay_sanitize
-#                       (clean exit): each playback passes
-#                       tools/demo_check.sh and ends at the resumed replay's
-#                       normalized end state, no third playback, each return
-#                       and the file's end equal
-#                       worst-case/title_idle.json.end-state with the stored
-#                       record equal to the initial_save; pico8/demo.json,
-#                       replayed with REPLAY_STARTS=2, passes
-#                       tools/demo_check.sh at both ends (at most 3600
-#                       frames, the seven captions pinned in
-#                       tools/demo_check.sh, in order, tiling the demo, a
-#                       180-frame closing card, exactly one more year,
-#                       colony, slipway and tech than the state at the
-#                       `probe` label, no cheat); pico8/demo.pad
-#                       regenerates pico8/demo.json byte for byte (no aim
-#                       budget), a failure that fails the target but does
-#                       not hold back the hash; last, and only when the
-#                       content checks above pass, the capture hash is
-#                       compared with worst-case/attract_cycle.json.sha256,
-#                       a missing one failing; to rebaseline after reading
-#                       the checks: cp tmp/demo-check/attract_cycle.json
-#                       worst-case/ and cp tmp/demo-check/attract_cycle.sha256
-#                       worst-case/attract_cycle.json.sha256; never alongside
-#                       make test-all (both rebuild binaries in tmp/) or
-#                       make pad-author (both write tmp/pad-author/)
-# make pad-metrics EVENTS=<events.json> [CHECK=1] -> replays the file with
-#                       PAD_METRICS and prints its report (time per mode, dead
-#                       presses by group, hold repeats, section 4 verdict),
-#                       kept in tmp/pad-metrics/<name>.txt; with CHECK=1, fails
-#                       when the verdict reads fail; outside the suite
-# make pad-metrics-worst-case -> the same with CHECK=1 for the four
-#                       re-authored worst-case/ games, printing each section 4
-#                       block, outside the suite
-# make pad-metrics-check -> regenerates tests/e2e/pad_colonise.json from its
-#                       proof script, then fails unless the report's `total `
-#                       lines equal the generator's and its required group is
-#                       exactly f18's button 7, f19's button 6 (aim mode,
-#                       nothing known) and f295's button 6, outside the suite
-# make worst-case-peaks -> replays the worst-case/ games (FULL_GAME_EVENTS)
-#                       as make state does and prints, per line of
-#                       worst-case/peaks-8c4bbf4.txt, the table's peak, the
-#                       highest peak over those games and its holder, and ok
-#                       or short; fails on any short line or a stopped game,
-#                       outside the suite
-# make rng-sync-probe -> builds and runs tests/test_rng_sync (pad_colonise
-#                       replayed to a save frame, forked, rnd_state compared
-#                       with and without the state a save never holds);
-#                       red while saving rnd_state is not enough, outside the
-#                       suite
-# make save-worst-case -> builds and runs tests/test_save_worst_case: replays
-#                       each worst-case/ game (FULL_GAME_EVENTS), and at every
-#                       frame of a running game with no wormhole captures,
-#                       encodes, decodes and re-encodes the save; fails if a
-#                       record exceeds 8 KiB or does not decode back to the
-#                       same bytes, prints the largest record with its game
-#                       and frame, outside the suite
-# make save-fuzz      -> builds and runs tests/test_save_fuzz: replays
-#                       worst-case/full_game.json, and at every frame that
-#                       writes a save resumes the stored record into a fresh
-#                       game after the title and compares it with the
-#                       original at that frame (bytes, state dump, screen
-#                       with particles hidden when no box is open); fails on
-#                       any mismatch, outside the suite
-# make resume-check EVENTS=<events> BEFORE=<frame> AFTER=<frame> -> builds
-#                       and runs tests/test_resume_check: replays that file
-#                       headless and compares the game after frame BEFORE
-#                       (the stored record, state dump, screen with particles
-#                       hidden) with the game the recording resumed by frame
-#                       AFTER; fails on any difference, on a storage write
-#                       between BEFORE and the resume, with no game at
-#                       either frame or no title between them, outside
-#                       the suite
-# make constants-check -> compares each P8_FIXED_LIT of the core with its
-#                       recorded hex value
-#                       (tools/pico8_reference_probe_out.txt); fails unless
-#                       the mismatches are exactly
-#                       tools/constants_expected_gaps.txt, in make test
-# make float-guard   -> rewrites tools/float_guard.txt; fails if a file of the
-#                       core needs floating point (it does not compile under
-#                       `-mgeneral-regs-only`), in make test
-# make alloc-guard   -> counts the malloc/calloc/realloc/free calls of each
-#                       object of the core; fails on any difference, higher or
-#                       lower, from tools/alloc_guard_exceptions.txt (a
-#                       ratchet, updated by hand), in make test
-# make pointer-guard -> counts the data pointers and entity_list_t
-#                       declarations in the struct fields and file-scope
-#                       variables of src/game/ and entity_class.h, and the
-#                       local entity_t *name[...] arrays; fails on
-#                       any difference, higher or lower, from
-#                       tools/pointer_guard_exceptions.txt (a ratchet,
-#                       updated by hand), in make test
-# make float-grep    -> searches the core (CORE_SRCS and the headers that `-MM`
-#                       finds for them) for any floating-point type or call,
-#                       the rest of src/ excluded by
-#                       tools/float_grep_exclusions.txt, in make test
-# make random-guard  -> counts, per file of src/, the names of the game
-#                       stream (p8_fixed_rnd*, p8_fixed_set_rnd_state), of
-#                       the generator on a caller's state
-#                       (p8_fixed_rnd_from_state) and of the visual stream
-#                       (visual_random_draw*), comments and strings left
-#                       out; fails on any difference from
-#                       tools/random_guard_exceptions.txt (strict counts,
-#                       updated by hand), in make test
-# make button-guard  -> counts, per file of src/game/, the P8_PAD_BUTTON_*
-#                       names, comments and strings left out; fails when a
-#                       file other than cheat.c and the bindings module
-#                       names one, in make test
-# make float-link    -> links the objects of tmp/replay without `-lm` into a
-#                       throwaway binary, never run; outside the suite: make
-#                       test already builds tmp/replay, with the same link
-# make sin-table     -> regenerates src/p8/quarter_wave.h (the sine and cosine
-#                       table of the core) from tools/gen_quarter_wave.c,
-#                       outside the suite
-# make sprite-sheet  -> regenerates src/p8/sprite_sheet_packed.h (the sprite
-#                       sheet embedded in the core, 4 bits per pixel) from
-#                       pico8/gfx.json with tools/gen_sprite_sheet.c, outside
-#                       the suite
-# make raylib        -> compiles and LINKS the interactive binary, never runs
-#                       it (needs make raylib-vendor-setup first); prints the
-#                       bindings and keymap files it compiled: <name>.cfg
-#                       when present, else <name>.default.cfg; every other
-#                       target compiles bindings.default.cfg, and only
-#                       test_keymap compiles keymap.default.cfg; a game built
-#                       with bindings.cfg writes "bindings": "personal" in
-#                       every recording, which replay refuses; also links
-#                       pico8/demo.json, compiled into tmp/demo/demo.c;
-#                       every binary, game included, also links
-#                       bindings.default.cfg as the default table the demo
-#                       plays on
-# make psn00bsdk-toolchain-setup -> runs psx-net-check, then installs the
-#                       pinned PSn00bSDK release of PSX_SOURCES (prebuilt GCC,
-#                       elf2x, mkpsxiso, libpsn00b) into PSN00BSDK_DIR
-#                       (default third_party/psn00bsdk); on macOS, a prebuilt
-#                       arm64 GCC 14.2.0 and PSn00bSDK built with it (no
-#                       sudo); with PSN00BSDK_FROM_SOURCE, GCC 12.3.0 built
-#                       from source too (30-60 min); apt via sudo on Linux
-#                       unless PSN00BSDK_SKIP_APT is set; exits 0 at once on a
-#                       complete install, fails on a non-empty directory
-#                       without its stamp, outside the suite
-# make psx-build [EVENTS=<events>] [PSX_BUILD_DRAW_FILTER=ON|OFF]
-#                [PSX_BUILD_DRAW_METER=ON|OFF]
-#                [PSX_BUILD_GAME_ASSERTS=ON|OFF] [PSX_BUILD_OPT=O2|O3|Os]
-#                    -> builds,
-#                       in tmp/psx/build, the game's
-#                       PS-EXEs replaying that recording (default
-#                       tests/e2e/pad_slipway.json, embedded through
-#                       tmp/embed_replay), psx-replay drawing in RAM,
-#                       psx-gpu-replay through the GPU backend and
-#                       psx-gpu-replay-breakdown (the same, timing each
-#                       backend call per draw family), both with the draw
-#                       filter (PSX_GPU_REPLAY_DRAW_FILTER) unless
-#                       PSX_BUILD_DRAW_FILTER=OFF and with the draw meter
-#                       (PSX_GPU_REPLAY_DRAW_METER) unless
-#                       PSX_BUILD_DRAW_METER=OFF, the pad
-#                       probe, psx-game (the game read from the pad, no draw
-#                       meter, built without asserts unless
-#                       PSX_BUILD_GAME_ASSERTS=ON),
-#                       psx-largest-slots (the largest-case scenarios of
-#                       src/devtools/largest_slots.c on MIPS), and the
-#                       game's CD image (PSX_GAME_BIN, PSX_GAME_CUE:
-#                       slipways.bin/.cue from psx/iso.xml and
-#                       psx/system.cnf, booting SLIPWAYS.EXE, a copy of
-#                       psx-game.exe), against
-#                       PSN00BSDK_DIR, psx-game and both GPU replays at
-#                       PSX_BUILD_OPT (default O3, refused unless O2, O3 or
-#                       Os), the other targets at the SDK's O2; then reads
-#                       those three levels with tools/psx_opt_level.sh,
-#                       prints "psx-build: opt psx-game <l> psx-gpu-replay
-#                       <l> psx-gpu-replay-breakdown <l>" and fails naming
-#                       a target whose level is not PSX_BUILD_OPT, then
-#                       prints their ELF sizes and the
-#                       image paths; never boots them; fails naming a missing
-#                       image file, or pointing at
-#                       psn00bsdk-toolchain-setup when the SDK is missing,
-#                       outside the suite
-# make psx-game-cd   -> runs psx-build, then fails unless PSX_GAME_BIN and
-#                       PSX_GAME_CUE exist and prints them; the .bin is never
-#                       hashed (mkpsxiso stamps the build time in it), outside
-#                       the suite
-# make psx-replay-check -> runs psx-build, writes the PC state and VRAM
-#                       digests of PSX_EVENTS with tmp/replay (STATE=,
-#                       DIGEST=), boots the replay PS-EXE until it exits
-#                       (ceiling PSX_REPLAY_CEILING vsyncs, timeout
-#                       PSX_REPLAY_TIMEOUT s, both set for pad_slipway), then
-#                       compares its game lines with the PC's through
-#                       tools/psx_state_compare.sh and its digest lines through
-#                       tools/psx_digest_compare.sh (outputs and
-#                       measurements.txt, with the ELF size, in
-#                       tmp/psx/replay, ~45 s); never
-#                       runs a setup, outside the suite
-# make psx-tools-test -> host tests of the PSX check scripts, outside make
-#                       test-all; a prerequisite of psx-check and
-#                       psx-game-check
-# make psx-game-check -> runs psx-build, boots the game PS-EXE until it exits
-#                       while tools/psx_pad_play.lua plays PSX_GAME_SCRIPT
-#                       (default psx/game_title_script.txt; ceiling
-#                       PSX_GAME_CEILING vsyncs, timeout PSX_GAME_TIMEOUT s),
-#                       then tools/psx_game_check.sh: game-done,
-#                       game-pad-log (the TTY pad log turned into
-#                       game_events.json by tmp/psx_pad_log), game-pad-states,
-#                       game-state-game-lines (that recording replayed by
-#                       tmp/replay with STATE=), game-title-left (difficulty
-#                       PSX_GAME_DIFFICULTY, default reasonable), game-asserts
-#                       (the TTY's asserts mode is PSX_BUILD_GAME_ASSERTS's,
-#                       off by default), game-gpu-cost (the TTY's gpu-peak
-#                       bytes, CLUTs, patterns and build bytes within the PC replay's
-#                       metered peaks); outputs in
-#                       tmp/psx/game, ~10 s; never runs a setup, outside the
-#                       suite
-# make psx-game-cd-check -> runs psx-game-cd, boots PSX_GAME_CUE until it
-#                       exits with PSX_GAME_SCRIPT as psx-game-check does
-#                       (ceiling PSX_GAME_CD_CEILING vsyncs, timeout
-#                       PSX_GAME_CD_TIMEOUT s), then the seven game-*
-#                       conditions of tools/psx_game_check.sh and the cue and
-#                       cd-exe conditions of tools/psx_cd_check.sh (SLIPWAYS.EXE
-#                       extracted by PSX_DUMPSXISO equals psx-game.exe); outputs
-#                       in tmp/psx/game-cd, never runs a setup, outside the
-#                       suite
-# make psx-check     -> the PSX check: runs psx-build (draw filter on, for the
-#                       masked captures, and draw meter on, for gpu-cost),
-#                       writes the PC state
-#                       and VRAM digests of PSX_EVENTS in one tmp/replay run
-#                       (STATE=, DIGEST=, and CAPTURE_LIST=psx/gpu_captures.txt
-#                       for the PC frames, family call counts and capture
-#                       script), boots the replay PS-EXE, the GPU replay PS-EXE
-#                       twice with that capture script (ceiling PSX_GPU_CEILING
-#                       vsyncs, timeout PSX_GPU_TIMEOUT s), the pad probe and
-#                       the game's CD image PSX_GAME_CUE with PSX_GAME_SCRIPT
-#                       (as psx-game-cd-check does) and psx-largest-slots
-#                       (ceiling PSX_LARGEST_SLOTS_CEILING vsyncs, timeout
-#                       PSX_LARGEST_SLOTS_TIMEOUT s) until they exit, six
-#                       boots, then, for the second capture replay
-#                       tests/e2e/pad_message_box.json (its PC run with
-#                       CAPTURE_LIST=psx/gpu_captures_message_box.txt, its GPU
-#                       replay alone built in tmp/psx/game-check/message-box/build,
-#                       booted twice, ceiling PSX_MESSAGE_BOX_GPU_CEILING vsyncs,
-#                       timeout PSX_MESSAGE_BOX_GPU_TIMEOUT s), two more, then
-#                       prints one line per condition
-#                       (magic, asserts-on, format against
-#                       tmp/format_self_test, replay-done, state-game-lines, sprite-sheet, screen, map,
-#                       gpu-replay-done, gpu-state-game-lines, gpu-cost: its
-#                       meter lines equal the PC's, ram-room: 64 KiB kernel +
-#                       GPU ELF (PSX_SIZE) + PSX_STACK_RESERVE <= 2 MiB, the
-#                       seven gpu-capture-* conditions of
-#                       tools/psx_capture_check.sh against
-#                       psx/gpu_capture_ceilings.txt and
-#                       psx/gpu_capture_references.txt, the same seven
-#                       as message-box-gpu-capture-* on the second replay
-#                       against psx/gpu_capture_ceilings_message_box.txt and
-#                       psx/gpu_capture_references_message_box.txt,
-#                       no-json through PSX_NM on both replay ELFs and the game
-#                       ELF, pad-script, the seven game-* conditions of
-#                       tools/psx_game_check.sh on the CD boot (game-gpu-cost:
-#                       the CD game's gpu-peak figures within the PC replay's
-#                       metered peaks for its pad log), game-cue and game-cd-exe of
-#                       tools/psx_cd_check.sh, game-ram-room: ram-room on
-#                       the game ELF, largest-slots: psx-largest-slots exits
-#                       with 0, asserts on, and each of its bytes_button and
-#                       bytes_row peaks fits its size) through
-#                       tools/psx_check.sh; fails if any
-#                       fails; measurements.txt (MIPS zone/budget/cap, vsyncs,
-#                       size of the ELF, then the GPU replay's vsyncs, meter
-#                       lines, RAM room, size and capture reports behind "gpu
-#                       ", then the game's vsyncs, frames, RAM room and size
-#                       behind "game ", the .bin's bytes and sectors and the
-#                       CD boot's vsyncs from power-on behind "game cd ",
-#                       then the bytes_<slot> lines behind "largest ") and
-#                       conditions.txt in
-#                       tmp/psx/game-check/run, the capture reports, diff maps
-#                       and images in its gpu-captures/, the game's outputs
-#                       in its game/ and the extracted disc in its game-cd/,
-#                       ~125 s; never runs a setup, outside the
-#                       suite
-# make psx-gpu-capture-ceilings LABEL=<label> [CAPTURES=message_box]
-#                    -> writes the differ counts of
-#                       that label's captures from the last psx-check run into
-#                       psx/gpu_capture_ceilings.txt (with CAPTURES=message_box,
-#                       the second replay's into
-#                       psx/gpu_capture_ceilings_message_box.txt), other labels untouched;
-#                       refused unless every other condition passed
-# make psx-gpu-capture-accept LABEL=<label> [CAPTURES=message_box]
-#                    -> accepts a label (CAPTURES as above, into
-#                       psx/gpu_capture_references_message_box.txt), run by an
-#                       agent only when all its captures differ 0 from the PC,
-#                       otherwise by the human: after a green psx-check, writes the sha256 of
-#                       that label's captures (every frame of a label such as
-#                       all or pattern) into psx/gpu_capture_references.txt,
-#                       other labels untouched
-# make psx-gpu-capture-report -> one PC run and one GPU capture boot of
-#                       psx/gpu_captures.txt, then the comparator, without the
-#                       other conditions (outputs in tmp/psx/gpu-capture,
-#                       ~20 s); outside the suite
-# make psx-full-game-check [PSX_FULL_GAME_ASSERTS=on|off]
-#                    -> refuses any PSX_FULL_GAME_ASSERTS but off (default) or
-#                       on; builds the PS-EXEs of PSX_FULL_GAME_EVENTS
-#                       (worst-case/full_game.json) in tmp/psx/full-game/build,
-#                       the GPU replays always without the draw filter and
-#                       the draw meter and always at O3 (PSX_BUILD_OPT=O3),
-#                       off building the measured GPU replays without asserts
-#                       while the CPU-path replay keeps them,
-#                       writes its PC state and digest, boots the replay
-#                       (ceiling PSX_FULL_GAME_CEILING vsyncs, timeout
-#                       PSX_FULL_GAME_TIMEOUT s) and the GPU replay with an
-#                       empty capture script (PSX_FULL_GAME_GPU_CEILING,
-#                       PSX_FULL_GAME_GPU_TIMEOUT) until they exit, then checks
-#                       its conditions (replay-done, state-game-lines,
-#                       sprite-sheet, screen, map, gpu-replay-done,
-#                       gpu-state-game-lines, gpu-draw-filter and
-#                       gpu-draw-meter: the GPU boot printed draw-filter off
-#                       and draw-meter off, then on the GPU boot's
-#                       psx-frame: lines and MIPS state, its gpu_* lines
-#                       taken from the PC state, through
-#                       tools/psx_frame_budget.sh: timer, frame-budget: no
-#                       frame above PSX_FRAME_BUDGET_HBLANKS, zone-sizes,
-#                       cap-sizes, then real-game-budget: frames.txt joined
-#                       with PSX_FULL_GAME_SITUATIONS (default
-#                       psx/perf/full-run-situations.txt), no steady frame
-#                       above PSX_FRAME_BUDGET_HBLANKS and the one-off frames'
-#                       vsyncs over it at most PSX_REAL_GAME_ONE_OFF_VSYNCS,
-#                       then gpu-ram-room: ram-room on the GPU ELF)
-#                       through tools/psx_full_game_check.sh, printing every
-#                       frame line, the frame summary and the real-game
-#                       figures; measurements.txt
-#                       gains the PC's gpu_* lines and the GPU replay's
-#                       gpu-peak line behind "gpu ", the summary behind
-#                       "gpu frame ", the real-game figures behind "gpu " (outputs in
-#                       tmp/psx/full-game/run, ~20 min); not run by psx-check,
-#                       outside the suite
-# make psx-real-game-budget [FRAMES=<frame table>] [SITUATIONS=<situation table>]
-#                    -> tools/psx_real_game_budget.sh on the two tables
-#                       (defaults psx/perf/full-run-frames.txt and
-#                       PSX_FULL_GAME_SITUATIONS): steady frames over
-#                       PSX_FRAME_BUDGET_HBLANKS with the worst one, one-off
-#                       frames over it and their vsyncs against
-#                       PSX_REAL_GAME_ONE_OFF_VSYNCS, the verdict; fails when
-#                       it is failed; never boots or builds, outside the suite
-# make psx-short-runs-cut [PSX_SHORT_RUNS=<names>] -> cuts each run of
-#                       psx/short_runs.txt (or those named) out of
-#                       PSX_FULL_GAME_EVENTS with tmp/short_run_cut into
-#                       tmp/psx/short-runs/<name>/: run.json (a prefix, or
-#                       the title resume of the last save at least 9 frames
-#                       before the window whose next frame is idle, then the
-#                       full game's frames up to the window's end),
-#                       reference.json (the full game's frames up to the
-#                       matching frame) and map.txt; then, per run, both
-#                       must pass tmp/embed_replay and replay with STATE=;
-#                       prints per run whether the two tools/end_state.sh
-#                       normalized states are the same, with the differing
-#                       lines (reported, not gating: a save holds no camera,
-#                       jump selection or crosshair); fails on a refused
-#                       cut, an embed failure, a stopped replay or a missing
-#                       file, ~25 s; never boots, outside the suite
-# make psx-short-runs [PSX_SHORT_RUNS=<names>] [PSX_SHORT_RUN_ASSERTS=on|off]
-#                       [PSX_SHORT_RUN_OPT=O2|O3|Os]
-#                    -> refuses any PSX_SHORT_RUN_ASSERTS but off (default) or
-#                       on and any PSX_SHORT_RUN_OPT but O3 (default), O2
-#                       (the SDK's level) or Os, runs psx-short-runs-cut, then
-#                       per run builds psx-gpu-replay and
-#                       psx-gpu-replay-breakdown with its run.json embedded
-#                       in tmp/psx/short-runs/<name>/build, both without the
-#                       draw filter and the draw meter (off: without
-#                       asserts, unused-* warnings not errors; O3/Os: at that
-#                       level; every other target keeps asserts and O2),
-#                       fails the run unless
-#                       tools/psx_opt_level.sh reads PSX_SHORT_RUN_OPT as the
-#                       last -O of both targets' flags, prints "opt <level>"
-#                       and both ELFs' text/data/bss, boots the plain one
-#                       twice and the breakdown once with an empty capture
-#                       script (ceiling PSX_SHORT_RUN_CEILING vsyncs, default
-#                       1080, timeout PSX_SHORT_RUN_TIMEOUT s, default 20;
-#                       exit ok|failed, wall time and vsyncs in boots.txt; a
-#                       failed boot fails its run), then
-#                       tools/psx_short_run.sh into <name>/analysis: done
-#                       (each boot's state dump complete), deterministic,
-#                       representative (against PSX_SHORT_RUN_REFERENCE,
-#                       default psx-full-game-check's frames.txt; empty skips
-#                       it, a missing file fails), breakdown, asserts (every boot
-#                       reports PSX_SHORT_RUN_ASSERTS's mode), then the
-#                       window's plain update, draw and submit sums, draw
-#                       split, overhead and best cases; fails after every run
-#                       when a boot or a condition failed, ~4 min; never runs a setup,
-#                       outside the suite and psx-check
-# make psx-probe-baseline [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut,
-#                       then per run builds the probe build (psx-gpu-replay
-#                       with -DPSX_PROBE=ON, asserts off, O3, no draw filter,
-#                       no draw meter) of
-#                       unpatched HEAD
-#                       from a temporary git worktree, boots it once with an
-#                       empty capture script (ceiling PSX_PROBE_CEILING
-#                       vsyncs, timeout PSX_PROBE_TIMEOUT s) unless
-#                       tools/psx_opt_level.sh reads another level than O3
-#                       (invalid "opt <level>, not O3"), checks it with
-#                       tools/psx_probe.sh against itself and, when valid,
-#                       stamps tmp/psx/probe/baseline/<name>/fingerprint.txt
-#                       with the tree ids of src/ and psx/, the blob id of
-#                       PSX_FULL_GAME_EVENTS and "opt O3"; fails if a run is
-#                       invalid;
-#                       removes the worktree on every exit, outside the suite
-# make psx-probe PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]
-#                    -> the same pipeline on HEAD with the patch git apply'd
-#                       in the worktree, outputs in tmp/psx/probe/<label>/
-#                       (default label: the patch's base name; baseline is
-#                       reserved), then per run tools/psx_probe.sh against
-#                       the baseline boot plus the ELF text sizes: window
-#                       draw, update, submit and total deltas, game-state
-#                       same or differs, delay / calls when the patch used
-#                       platform/psx_probe.h; a run is invalid when the patch
-#                       does not apply, the build fails or is not at O3, its
-#                       baseline is missing or stale, or tools/psx_probe.sh
-#                       says so; fails
-#                       after every run if one is invalid, outside the suite
-#                       and psx-check
-# make frame-profile [EVENTS=<events>] [REFERENCE=<end-state>] -> builds
-#                       tmp/frame_profile (`-O2`, asserts off, game, engine
-#                       and PICO-8 runtime built with -finstrument-functions)
-#                       and replays that recording (default
-#                       worst-case/full_game.json) as tmp/replay does; writes
-#                       in tmp/frame-profile/<name>/ frames.txt (per frame:
-#                       update and draw PC time, calls, time, net time and
-#                       calls below of each direct child of cart_update60 and
-#                       cart_draw, self time, calls, time, cost-model units
-#                       and texture-window switches per draw family,
-#                       in-call) and summary.txt (the run's totals and shares),
-#                       then checks the last state against <events>.end-state
-#                       or REFERENCE with tools/end_state.sh: prints
-#                       same-game yes, no (fails) or unchecked (no
-#                       reference), outside the suite
-# make frame-profile-breakdown-check [PSX_SHORT_RUNS=<names>] -> runs
-#                       psx-short-runs-cut, then per run (default draw-5564)
-#                       profiles its run.json into
-#                       tmp/frame-profile/short-runs/<name>/ (same-game
-#                       against its run.end-state) and, through
-#                       tools/frame_profile_check.sh breakdown, compares the
-#                       PC per-family calls with the psx-draw: lines of the
-#                       run's last breakdown boot frame by frame over the
-#                       window: calls-match ok with the window totals side by
-#                       side, or the first mismatch; a missing breakdown TTY
-#                       fails naming the make psx-short-runs to run; never
-#                       boots, outside the suite
-# make frame-profile-coverage [FRAME_PROFILE_THRESHOLD=<pct>] [FRAME_PROFILE_REPEATS=<k>]
-#                    -> runs psx-short-runs-cut, profiles full_game.json and the
-#                       start and every draw-* run of psx/short_runs.txt k
-#                       times each (default 4, ~1 min) into
-#                       tmp/frame-profile/coverage/<name>/<k>/, then
-#                       tools/frame_profile_check.sh coverage (also in
-#                       tmp/frame-profile/coverage.txt): per cart_draw child
-#                       and draw family, frames above the threshold (default
-#                       2 %) of cart_draw's PC time in all k full profiles
-#                       (per-frame minimum), mean and max share, share in
-#                       each draw window (median of its k profiles), verdict
-#                       covered, uncovered (with a proposed 15-frame resume
-#                       window), sporadic (under 15 frames, listed) or
-#                       below, then the windows
-#                       to add; fails while anything is uncovered, outside
-#                       the suite
-# make frame-profile-subtree ROOT=<symbol> [PART=draw|update] [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
-#                    -> runs psx-short-runs-cut, profiles each run's run.json
-#                       (default start and every draw-* run of
-#                       psx/short_runs.txt) k times (default 4) with that
-#                       function as the draw root (default) into
-#                       tmp/frame-profile/subtree/<symbol>/<name>/<k>/, or
-#                       with PART=update as the update root (draw root
-#                       cart_draw) into tmp/frame-profile/subtree-update/
-#                       (same-game against its run.end-state), then
-#                       tools/frame_profile_check.sh subtree (also in
-#                       summary.txt of that <symbol> directory): per
-#                       run, the root's PC time per window frame, then per
-#                       child its calls per window frame and median share of
-#                       the root's PC time, and the root's self share; fails
-#                       on an unknown or ambiguous symbol; never boots,
-#                       outside the suite
-# make frame-profile-unit-cost [PSX_SHORT_RUNS=<names>] -> runs
-#                       psx-short-runs-cut, then per run (default every run of
-#                       psx/short_runs.txt) profiles its run.json into
-#                       tmp/frame-profile/unit-cost/<name>/ (same-game against
-#                       its run.end-state) and, through
-#                       tools/frame_profile_check.sh unit-cost, joins the PC
-#                       units with the run's last breakdown boot over the
-#                       window into <name>/unit-cost.txt: per family calls,
-#                       units, switches, hblanks, hblanks per call and per
-#                       unit, or the first calls mismatch; then the runs
-#                       summed in tmp/frame-profile/unit-cost/pooled.txt; a
-#                       missing breakdown TTY fails naming the make
-#                       psx-short-runs to run; never boots, outside the suite
-# make frame-profile-spikes [FRAME_PROFILE_REPEATS=<k>] [FRAME_PROFILE_SPIKE_THRESHOLD=<hblanks>]
-#                    -> profiles full_game.json k times (default 4) with
-#                       cart_update60 as the update root into
-#                       tmp/frame-profile/spikes/cart_update60/<k>/, then
-#                       tools/frame_profile_check.sh spikes on the latest
-#                       judge table psx/perf/full-run-frames.txt: every frame
-#                       whose update exceeds the threshold (default 263) walked
-#                       down to the child holding half its PC time; while a
-#                       frame is open on a symbol, profiles that symbol k
-#                       times as update root into spikes/<symbol>/<k>/ (one
-#                       that does not resolve goes to spikes/unresolvable.txt
-#                       and closes the walk) and runs it again, 16 levels at
-#                       most; writes tmp/frame-profile/spikes/spikes.txt,
-#                       fails while a frame is open; never boots, outside the
-#                       suite
-# make frame-profile-spread DRAW_GAINS=<gains> [UPDATE_RATIOS=<ratios>] [SPREAD_LABEL=<label>]
-#                    -> tools/frame_profile_check.sh spread on the judge table
-#                       and tmp/frame-profile/spikes/spikes.txt: per spike frame,
-#                       its class's work (PC share times the ratio of its
-#                       cart_update60 child, <child>=<ratio>,...) and the frames
-#                       it takes under 263 hblanks with draw cut by the gains
-#                       (default=<pct>[,<first>-<last>=<pct>]...), or
-#                       does-not-fit past 600 frames; writes
-#                       spikes/spread-<label>.txt (label default "default");
-#                       a missing spikes.txt fails naming make
-#                       frame-profile-spikes; never boots, outside the suite
-# make frame-profile-ordinary [FRAME_PROFILE_REPEATS=<k>] [FRAME_PROFILE_THRESHOLD=<pct>] [FRAME_PROFILE_SPIKE_THRESHOLD=<hblanks>] [UPDATE_RATIOS=<ratios>]
-#                    -> profiles full_game.json k times (default 4) with
-#                       cart_update60, then input_step_run as the update root
-#                       into tmp/frame-profile/ordinary/<symbol>/<k>/, then
-#                       tools/frame_profile_check.sh ordinary on the judge
-#                       table's frames with update at most the spike
-#                       threshold (default 263) and the windows draw-5564@27.0
-#                       and draw-6000@19.6: per node of both roots, PSX cost
-#                       from PC shares times the ratios
-#                       (<piece>=<r>[:<a>-<b>],..., default 1), calls,
-#                       runs-on, above or under the threshold (default 2 % of
-#                       the mean frame); while a node above is open, profiles
-#                       that symbol k times as update root (one that does not
-#                       resolve goes to ordinary/unresolvable.txt) and runs it
-#                       again, 16 levels at most; writes
-#                       tmp/frame-profile/ordinary/ordinary.txt, fails while a
-#                       node is open; never boots, outside the suite
-# make lever-estimate LEVERS=<document> [FRAMES=<frame table>] [SITUATIONS=<situation table>]
-#                    -> tools/lever_estimate.sh: applies the lever-table block
-#                       of LEVERS (required, no default) to the frame
-#                       table joined with the situation table (defaults
-#                       psx/perf/full-run-frames.txt and
-#                       psx/perf/full-run-situations.txt), budget 263, one-off
-#                       allowance 10800; prints the steady mean cost and 2%
-#                       threshold, the steady frames over after each lever in
-#                       the greedy ranking and at the end, nominal and
-#                       pessimistic (every gain x 0.8), whether the
-#                       document's order is the ranking, and real-game-budget
-#                       on both projected tables; writes
-#                       tmp/lever-estimate/estimate.txt and the projected
-#                       tables; fails on a stale order or a malformed input;
-#                       never boots, outside the suite
-# make situations [EVENTS=<events>] [SITUATIONS_OUT=<file>] -> builds
-#                       tmp/situations and replays the file (default
-#                       worst-case/full_game.json) headless, writing one
-#                       "<frame> <situation> <family>" line per frame under a
-#                       "frame situation family" header to SITUATIONS_OUT
-#                       (default tmp/situations-table/<name>.txt), outside the
-#                       suite
-# make situations-check -> regenerates worst-case/full_game.json's situation
-#                       table into tmp/situations-table/full_game.txt and
-#                       fails on any difference with
-#                       psx/perf/full-run-situations.txt, naming the first
-#                       differing frame (~2 s), outside the suite
-# make situation-report [FRAMES=<frame table>] [SITUATIONS=<situation table>]
-#                       -> tools/situation_report.sh: per situation its frames,
-#                       frames over 263, mean update and draw; per one-off its
-#                       occurrences and longest run (long past 31 frames);
-#                       verdicts frame-count, families, one-off-runs (defaults
-#                       psx/perf/full-run-frames.txt and
-#                       psx/perf/full-run-situations.txt), outside the suite
-# make steady-windows [FRAMES=<frame table>] [SITUATIONS=<situation table>]
-#                       -> tools/steady_windows.sh on the two tables (same
-#                       defaults), budget 263, windows of 15, 3 candidates:
-#                       per steady situation over, its candidate windows,
-#                       outside the suite
-# make short-run-situations [PSX_SHORT_RUNS=<names>] -> runs psx-short-runs-cut
-#                       and builds tmp/situations, then per run labels its
-#                       run.json into <run>/situations.txt and checks with
-#                       tools/short_run_situations.sh that every window frame
-#                       carries the full game's steady situation of
-#                       psx/perf/full-run-situations.txt; fails when a run is
-#                       not "same"; never boots, outside the suite
-# make steady-profile [PSX_SHORT_RUNS=<names>] [FRAME_PROFILE_REPEATS=<k>]
-#                    -> pools the breakdown-vs-plain overhead per backend call
-#                       over every manifest run named after a steady
-#                       situation (tmp/frame-profile/steady/overhead.txt),
-#                       then per run (default those runs) profiles run.json K
-#                       times rooted at draw_layers/cart_update60 and at
-#                       cart_draw/input_step_run and runs
-#                       tools/steady_profile.sh profile with
-#                       psx/perf/draw-functions.txt into
-#                       tmp/frame-profile/steady/<run>/summary.txt: per
-#                       function group and function, hblanks inside the
-#                       primitives and in the game's code, the update pieces,
-#                       submit and the adds-up line; flags a run the manifest
-#                       marks "no representative run"; with PSX_SHORT_RUNS
-#                       unset, a steady situation with no run, or one the
-#                       manifest marks "no representative run", is shared by
-#                       PC time over the full game's frames over 263 (no-run,
-#                       tmp/frame-profile/steady/<situation>/summary.txt);
-#                       needs make psx-short-runs, fails on a missing boot or
-#                       an adds-up failed; never boots, outside the suite
-# make frame-profile-test -> host tests of the PC frame profile tool,
-#                       outside make test, make test-all, make e2e and
-#                       psx-tools-test
-# make psx-pad-check -> runs psx-build, boots the pad probe until it exits
-#                       while tools/psx_pad_play.lua plays PSX_PAD_SCRIPT
-#                       (default psx/pad_probe_script.txt) from the probe's
-#                       handshake (ceiling PSX_PAD_CEILING vsyncs, timeout
-#                       PSX_PAD_TIMEOUT s), then compares the probe's pad
-#                       states with the script's through
-#                       tools/psx_pad_compare.sh (outputs in tmp/psx/pad,
-#                       ~5 s); never runs a setup, outside the suite
-# make psx-hello     -> builds psx-hello/build/psx-hello.exe against
-#                       PSN00BSDK_DIR, reconfigured from scratch each time;
-#                       fails pointing at psn00bsdk-toolchain-setup when the
-#                       SDK is missing, outside the suite
-# make psx-hello-cd  -> builds psx-hello, then its CD image
-#                       psx-hello/build/psx-hello.bin and PSX_HELLO_CUE
-#                       (default psx-hello/build/psx-hello.cue), outside the
-#                       suite
-# make psx-net-check -> probes every host of PSX_SOURCES (default
-#                       tools/psx_sources.txt) without downloading; fails,
-#                       naming each unreachable host, outside the suite
-# make psx-emulator-setup -> runs psx-net-check, then builds the pinned
-#                       PCSX-Redux and its OpenBIOS from PSX_SOURCES into
-#                       PSX_EMULATOR_DIR (default third_party/pcsx-redux),
-#                       with every tools/pcsx-redux-*.patch applied,
-#                       ~10 min; apt via sudo on Linux unless
-#                       PSX_EMULATOR_SKIP_APT is set, the user's Homebrew on
-#                       macOS (after psn00bsdk-toolchain-setup); exits 0 at once on a complete install, fails on
-#                       a non-empty directory without its stamp, outside the
-#                       suite
-# make psx-boot [PSX_EXE=<exe> | PSX_ISO=<cue>] -> boots that input (or
-#                       nothing) headless in PSX_EMULATOR_DIR for PSX_FRAMES
-#                       vsyncs (default 600), writes PSX_OUT.vram (capture:
-#                       "psx-vram <w> <h> <depth>" line, then raw bytes),
-#                       PSX_OUT.tty.txt and PSX_OUT.log (default PSX_OUT
-#                       tmp/psx/boot); fails naming the input after
-#                       PSX_BOOT_TIMEOUT s (default 120), outside the suite
-# make psx-emulator-check -> fetches the test media of PSX_SOURCES into
-#                       tmp/psx/media (sha256-checked), boots the test .exe
-#                       twice, the test .cue twice and nothing once in
-#                       PSX_EMULATOR_DIR (outputs in tmp/psx/check, ~1 min);
-#                       fails, one line per failed condition, unless both
-#                       pairs of captures match, PSX_KNOWN_LINE is in the exe
-#                       TTY and the .cue capture differs from the empty one;
-#                       never runs the setup, outside the suite
-# make psx-hello-check -> builds psx-hello, boots it twice and nothing once in
-#                       PSX_EMULATOR_DIR (outputs in tmp/psx/hello-check,
-#                       ~35 s); fails, one line per failed condition, unless
-#                       the .exe has the PS-EXE magic, its captures match,
-#                       differ from the empty one and are not one color, and
-#                       PSX_HELLO_TTY_LINE is in its TTY; never runs a setup,
-#                       outside the suite
-# make psx-hello-cd-check -> builds psx-hello-cd, then the same check on
-#                       PSX_HELLO_CUE (outputs in tmp/psx/hello-cd-check,
-#                       ~35 s), with a cue condition (the .cue names a .bin
-#                       of whole 2352-byte sectors) in place of the magic;
-#                       never runs a setup, outside the suite
-# make psx-hello-e2e -> runs psx-hello-cd-check, then compares the sha256 of
-#                       its first capture with PSX_HELLO_REFERENCE (default
-#                       psx-hello/psx-hello-cd.vram.sha256); fails on a failed
-#                       proof, a mismatch, a missing reference or a PSX_FRAMES
-#                       other than 600; never runs a setup, ~35 s, outside
-#                       the suite
-# make psx-hello-e2e-baseline -> same proof, then sets PSX_HELLO_REFERENCE;
-#                       never run by any other target
+.DEFAULT_GOAL := help
 
-.PHONY: psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
+help: ## lists the targets, detail in docs/make-targets.md
+	@grep -hE '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "%-30s %s\n", $$1, $$2}' | LC_ALL=C sort
+
+.PHONY: help psx-tools-test psn00bsdk-toolchain-setup psx-build psx-game-cd psx-game-cd-check psx-check psx-game-check psx-gpu-capture-ceilings psx-gpu-capture-accept psx-gpu-capture-report psx-replay-check psx-full-game-check psx-short-runs-cut psx-short-runs psx-probe-baseline psx-probe psx-pad-check psx-hello psx-hello-cd psx-hello-check psx-hello-cd-check psx-hello-e2e psx-hello-e2e-baseline psx-hello-frames-guard psx-hello-clean psx-net-check psx-emulator-setup psx-boot psx-emulator-check unit replay state test e2e test-all raylib-vendor-setup raylib e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -1908,14 +1076,14 @@ UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
 UNIT_RUNS_SPECIAL := unit-run-test_zone unit-run-test_allocator unit-run-test_frame_zone unit-run-test_ui_zone unit-run-test_particle_zone unit-run-test_game_zone unit-run-test_exit_queue unit-run-test_toast unit-run-test_message_box unit-run-test_live_slots unit-run-test_trade
 
-unit: $(UNIT_RUNS)
+unit: $(UNIT_RUNS) ## builds and runs the binaries of tests/
 
 PSX_TOOLS_TESTS := test_psx_state_compare test_psx_pad_compare test_psx_digest_compare test_psx_capture_check test_psx_capture_protocol \
 	test_psx_pad_protocol test_psx_game_check test_psx_cue_check test_psx_cd_check test_psx_boot \
 	test_psx_full_game_check test_psx_frame_budget test_psx_real_game_budget test_psx_emulator_setup test_psx_conditions test_psx_short_run \
 	test_psx_probe test_psx_opt_level test_steady_windows test_short_run_situations
 
-psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS))
+psx-tools-test: $(addprefix $(TMP_DIR)/,$(PSX_TOOLS_TESTS)) ## host tests of the PSX check scripts
 	@for t in $(PSX_TOOLS_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 $(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS)): unit-run-%: $(TMP_DIR)/%
@@ -1968,12 +1136,12 @@ ifneq ($(filter replay,$(MAKECMDGOALS)),)
     endif
 endif
 
-replay: $(TMP_DIR)/replay
+replay: $(TMP_DIR)/replay ## EVENTS=<events> [SAVE_HEX=<file>] [DIGEST=<file>]: replays one file headless, dump in tmp/replay_dump.txt
 	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )./$(TMP_DIR)/replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard pad-author-self-check
+test: unit constants-check float-grep float-guard alloc-guard pointer-guard random-guard button-guard data-guard p8-guard pad-author-self-check ## fast loop: unit tests and static guards (~5 s)
 
-test-all: test e2e
+test-all: test e2e ## test + e2e, the full suite
 
 # The e2e: <name>.json (the same format as a raylib recording), <name>.txt
 # (what the replay does, the frames of the key actions) and <name>.json.sha256.
@@ -2023,17 +1191,17 @@ frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
 $(FRAMES_DIR)/%.sha256: $(FRAMES_DIR)/%.bin
 	$(frames_hash)
 
-e2e: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) tools/e2e_limits.sh tools/frames_check.sh $(E2E_EXCEPTIONS)
+e2e: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) tools/e2e_limits.sh tools/frames_check.sh $(E2E_EXCEPTIONS) ## replays tests/e2e/ and checks each capture against its .json.sha256 (~1 s)
 	@status=0; \
 	sh tools/e2e_limits.sh $(E2E_EXCEPTIONS) $(E2E_EVENTS) || status=1; \
 	sh tools/frames_check.sh $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e))) || status=1; \
 	echo "e2e: $(words $(E2E_EVENTS)) e2e in $(E2E_DIR)"; \
 	exit $$status
 
-e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
+e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) ## sets or resets the .json.sha256 of tests/e2e/ from the current code
 	@$(foreach e,$(E2E_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "e2e: reference set in $(call frames_reference,$(e))" && ) true
 
-e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh
+e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh ## for each diverging e2e, replays the commit that set its reference and gives the first diverging frame
 	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
 
 # offsetof, void *self, a field read by name, a spec or defaults table: the
@@ -2042,7 +1210,7 @@ e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))
 DATA_GUARD_PATTERN := \boffsetof\b|\bvoid[[:space:]]*\*[[:space:]]*(const[[:space:]]+)?self|\b[a-z0-9_]*field_truthy\(|(->|\.)(set_)?field\b|\b[a-z0-9_]+_take_[a-z0-9_]+\(|\boverrides\b|\bg_[a-z0-9_]+_(spec|defaults)\b|\b[a-z0-9_]+_default_(fixed|table|vec|string|box|list|bool|hf)\b
 
 # grep returns 1 when nothing matches; anything above is an error.
-data-guard:
+data-guard: ## fails on a pre-composition model pattern in src/ or tests/
 	@status=0; grep -rnE '$(DATA_GUARD_PATTERN)' --include='*.c' --include='*.h' src tests || status=$$?; \
 	if [ $$status -eq 0 ]; then echo "data-guard: pre-composition pattern above"; exit 1; fi; \
 	[ $$status -eq 1 ] || exit $$status; \
@@ -2052,7 +1220,7 @@ data-guard:
 
 P8_GUARD_PATTERN := \bp8_(stat|sfx|music|play_sfx|peek|poke|memcpy|memory_t)\b|\bP8_ADDR_[A-Z_]+|\b0x(5[fF]80|3101|5[fF]2[dD])\b|\b(entities_by_tag|entities_by_message|draw_layers|entity_set_state|entity_init_instance)\("|\bentity_state_of\b|map\.json
 
-p8-guard:
+p8-guard: ## fails on a PICO-8-only API in src/ or tests/
 	@status=0; grep -rnE '$(P8_GUARD_PATTERN)' --include='*.c' --include='*.h' src tests || status=$$?; \
 	if [ $$status -eq 0 ]; then echo "p8-guard: PICO-8-only pattern above"; exit 1; fi; \
 	[ $$status -eq 1 ] || exit $$status; \
@@ -2070,7 +1238,7 @@ $(SANITIZE_RUNS): sanitize-run-%: % $(TMP_DIR)/replay_sanitize
 	@mkdir -p $(SANITIZE_DIR)/$(<D)
 	@./$(TMP_DIR)/replay_sanitize $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< dirty"; exit 1; }
 
-sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots
+sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots ## replays tests/e2e/ under ASan+UBSan, then test_live_slots (~17 s)
 	@echo "sanitize: $(words $(SANITIZE_RUNS)) clean"
 
 .PHONY: sanitize-net $(SANITIZE_RUNS)
@@ -2078,7 +1246,7 @@ sanitize-net: $(SANITIZE_RUNS) unit-run-test_live_slots
 FULL_GAME_EVENTS := worst-case/full_game.json worst-case/full_game_new_game.json worst-case/full_game_pause_restart.json worst-case/full_game_pause_idle.json worst-case/title_idle.json
 FULL_GAME_DIR := $(TMP_DIR)/full-game
 
-full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay
+full-game: $(FULL_GAME_EVENTS) $(TMP_DIR)/replay ## replays the worst-case/ games to their last frame, fails on any p8_fatal or full zone
 	@mkdir -p $(FULL_GAME_DIR)
 	@$(foreach e,$(FULL_GAME_EVENTS),./$(TMP_DIR)/replay $(e) /dev/null $(FULL_GAME_DIR)/$(notdir $(e)).dump.txt > $(FULL_GAME_DIR)/$(notdir $(e)).log 2>&1 || { cat $(FULL_GAME_DIR)/$(notdir $(e)).log; echo "full-game: $(e) stopped"; exit 1; }; echo "full-game: $(e) clean"; ) true
 
@@ -2091,7 +1259,7 @@ $(TMP_DIR)/pad_author: $(call objs,$(PAD_AUTHOR_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 ifneq ($(strip $(SCRIPT)),)
-pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
+pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay ## [SCRIPT=<script> [OUT=<events>] [STOP_AT=<label>]]: regenerates the .json of the .pad scripts
 	./$(TMP_DIR)/pad_author $(SCRIPT) $(or $(OUT),$(TMP_DIR)/pad-author/$(basename $(notdir $(SCRIPT))).json)$(if $(STOP_AT), --stop-at $(STOP_AT))
 else
 pad-author: $(TMP_DIR)/pad_author $(TMP_DIR)/replay
@@ -2116,7 +1284,7 @@ pad_author_proof_stem = $(TMP_DIR)/pad-author/$(notdir $(1:.pad=))
 pad_author_proof_e2e = $(E2E_DIR)/$(basename $(basename $(notdir $(1)))).json
 
 # A refusal proof's first line is `# expect: <text of the error>`.
-pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) $(PAD_AUTHOR_RECORD_PROOFS) tools/end_state.sh
+pad-author-proof: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_AUTHOR_FRAME_PROOFS) $(PAD_AUTHOR_END_STATE_PROOFS) $(PAD_AUTHOR_REFUSAL_PROOFS) $(PAD_AUTHOR_RECORD_PROOFS) tools/end_state.sh ## runs the pad_author proofs of tools/pad_author_proofs/
 	@mkdir -p $(TMP_DIR)/pad-author
 	@$(foreach p,$(PAD_AUTHOR_FRAME_PROOFS),./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; cmp $(call pad_author_proof_json,$(p)) $(call pad_author_proof_e2e,$(p)) || exit 1; echo "pad-author-proof: $(p) regenerates $(call pad_author_proof_e2e,$(p))"; ) true
 	@$(foreach p,$(PAD_AUTHOR_END_STATE_PROOFS),STATE=$(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) ./$(TMP_DIR)/pad_author $(p) $(call pad_author_proof_json,$(p)) --no-aim-budget > /dev/null || exit 1; sh tools/end_state.sh check $(call pad_author_proof_e2e,$(p)) $(TMP_DIR)/pad-author/$(notdir $(p:.pad=.state.txt)) $(call pad_author_proof_e2e,$(p)).end-state || exit 1; echo "pad-author-proof: $(p) reaches $(call pad_author_proof_e2e,$(p)).end-state"; ) true
@@ -2132,16 +1300,16 @@ PAD_METRICS_PROOF := tools/pad_author_proofs/pad_colonise.frames.pad
 PAD_METRICS_PROOF_E2E := $(E2E_DIR)/pad_colonise.json
 PAD_METRICS_PROOF_REQUIRED := dead f18 press 7 aim required;dead f19 press 6 aim required;dead f295 press 6 jump required
 
-pad-metrics: $(TMP_DIR)/replay
+pad-metrics: $(TMP_DIR)/replay ## EVENTS=<events> [CHECK=1]: pad usage report in tmp/pad-metrics/
 	@test -n "$(EVENTS)" || { echo "pad-metrics: EVENTS=<events.json> is required"; exit 2; }
 	@mkdir -p $(PAD_METRICS_DIR)
 	@$(call pad_metrics_run,$(EVENTS),$(CHECK),)
 
-pad-metrics-worst-case: $(TMP_DIR)/replay $(PAD_METRICS_GAMES)
+pad-metrics-worst-case: $(TMP_DIR)/replay $(PAD_METRICS_GAMES) ## pad-metrics with CHECK=1 on the re-authored worst-case/ games
 	@mkdir -p $(PAD_METRICS_DIR)
 	@$(foreach e,$(PAD_METRICS_GAMES),$(call pad_metrics_run,$(e),1,^section4 )) true
 
-pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) $(PAD_METRICS_PROOF_E2E)
+pad-metrics-check: $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(PAD_METRICS_PROOF) $(PAD_METRICS_PROOF_E2E) ## regenerates pad_colonise.json and checks its pad-metrics report
 	@mkdir -p $(PAD_METRICS_DIR)
 	@./$(TMP_DIR)/pad_author $(PAD_METRICS_PROOF) $(PAD_METRICS_DIR)/pad_colonise.frames.json --no-aim-budget > /dev/null
 	@cmp $(PAD_METRICS_DIR)/pad_colonise.frames.json $(PAD_METRICS_PROOF_E2E)
@@ -2159,51 +1327,51 @@ SITUATIONS_EVENTS := worst-case/full_game.json
 $(TMP_DIR)/situations: $(call objs,$(SITUATIONS_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-situations: $(TMP_DIR)/situations
+situations: $(TMP_DIR)/situations ## [EVENTS=<events>] [SITUATIONS_OUT=<file>]: one situation line per frame
 	@events=$(or $(EVENTS),$(SITUATIONS_EVENTS)); out=$(or $(SITUATIONS_OUT),$(TMP_DIR)/situations-table/$$(basename $$events .json).txt); \
 	mkdir -p $$(dirname $$out) && ./$(TMP_DIR)/situations $$events $$out && echo "situations: $$events -> $$out"
 
 SITUATIONS_TABLE := psx/perf/full-run-situations.txt
 
-situations-check: $(TMP_DIR)/situations
+situations-check: $(TMP_DIR)/situations ## checks the full_game.json situation table against psx/perf/
 	@out=$(TMP_DIR)/situations-table/full_game.txt; mkdir -p $$(dirname $$out) && ./$(TMP_DIR)/situations $(SITUATIONS_EVENTS) $$out || exit 1; \
 	first=$$(diff $(SITUATIONS_TABLE) $$out | sed -n 's/^[<>] \([0-9][0-9]*\) .*/\1/p' | sort -n | head -1); \
 	if cmp -s $(SITUATIONS_TABLE) $$out; then echo "situations-check: $$out equals $(SITUATIONS_TABLE)"; \
 	else echo "situations-check: $$out differs from $(SITUATIONS_TABLE), first at frame $${first:-header}"; exit 1; fi
 
-situation-report:
+situation-report: ## [FRAMES=<table>] [SITUATIONS=<table>]: frames and costs per situation
 	@sh tools/situation_report.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) $(or $(SITUATIONS),$(SITUATIONS_TABLE))
 
-steady-windows:
+steady-windows: ## [FRAMES=<table>] [SITUATIONS=<table>]: candidate windows per steady situation
 	@sh tools/steady_windows.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) $(or $(SITUATIONS),$(SITUATIONS_TABLE)) 263 15 3
 
 .PHONY: situations situations-check situation-report steady-windows
 
 WORST_CASE_PEAKS_TABLE := worst-case/peaks-8c4bbf4.txt
 
-worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE)
+worst-case-peaks: $(addprefix state-run-,$(FULL_GAME_EVENTS)) tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) ## checks the worst-case/ games against worst-case/peaks-8c4bbf4.txt
 	@sh tools/worst_case_peaks.sh $(WORST_CASE_PEAKS_TABLE) $(TMP_DIR)/worst-case-peaks.txt $(foreach e,$(FULL_GAME_EVENTS),$(e) $(call state_file,$(e)))
 
 .PHONY: pad-author pad-author-proof worst-case-peaks
 
 DEMO_CHECK_DIR := $(TMP_DIR)/demo-check
 
-demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json pico8/demo_record.hex worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state tools/demo_check_run.sh tools/demo_check.sh tools/end_state.sh
+demo-check: $(TMP_DIR)/test_demo_check $(TMP_DIR)/test_attract_demo $(TMP_DIR)/pad_author $(TMP_DIR)/replay $(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json pico8/demo_record.hex worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state tools/demo_check_run.sh tools/demo_check.sh tools/end_state.sh ## checks the attract demo end to end, files in tmp/demo-check/ (never alongside test-all or pad-author)
 	@sh tools/demo_check_run.sh $(DEMO_CHECK_DIR) ./$(TMP_DIR)/test_demo_check ./$(TMP_DIR)/test_attract_demo ./$(TMP_DIR)/pad_author ./$(TMP_DIR)/replay ./$(TMP_DIR)/replay_sanitize pico8/demo.pad pico8/demo.json worst-case/attract_cycle.json tests/e2e/pad_tech_costs.json worst-case/title_idle.json.end-state '$(SHA256_CMD)'
 
 .PHONY: demo-check
 
-rng-sync-probe: $(TMP_DIR)/test_rng_sync
+rng-sync-probe: $(TMP_DIR)/test_rng_sync ## runs tests/test_rng_sync
 	./$<
 
 .PHONY: rng-sync-probe
 
-save-worst-case: $(TMP_DIR)/test_save_worst_case $(FULL_GAME_EVENTS)
+save-worst-case: $(TMP_DIR)/test_save_worst_case $(FULL_GAME_EVENTS) ## fails if a save record of a worst-case/ game exceeds 8 KiB or does not round-trip
 	./$< $(FULL_GAME_EVENTS)
 
 .PHONY: save-worst-case
 
-save-fuzz: $(TMP_DIR)/test_save_fuzz worst-case/full_game.json
+save-fuzz: $(TMP_DIR)/test_save_fuzz worst-case/full_game.json ## resumes every save of full_game.json and compares it with the original
 	./$< worst-case/full_game.json
 
 .PHONY: save-fuzz
@@ -2220,7 +1388,7 @@ ifneq ($(filter resume-check,$(MAKECMDGOALS)),)
     endif
 endif
 
-resume-check: $(TMP_DIR)/test_resume_check $(EVENTS)
+resume-check: $(TMP_DIR)/test_resume_check $(EVENTS) ## EVENTS=<events> BEFORE=<frame> AFTER=<frame>: compares a game with its resumed copy
 	./$< $(EVENTS) $(BEFORE) $(AFTER)
 
 .PHONY: resume-check
@@ -2230,7 +1398,7 @@ $(TMP_DIR)/replay_coverage: $(call coverage_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 
 COVERAGE_EVENTS ?= $(E2E_EVENTS)
 
-coverage: $(TMP_DIR)/replay_coverage tools/coverage.sh $(COVERAGE_EVENTS)
+coverage: $(TMP_DIR)/replay_coverage tools/coverage.sh $(COVERAGE_EVENTS) ## [COVERAGE_EVENTS=<files>]: line coverage of src/game/ and src/engine/ in tmp/coverage/lines.txt
 	@sh tools/coverage.sh ./$(TMP_DIR)/replay_coverage $(OBJ_COVERAGE_DIR) $(TMP_DIR)/coverage "$(REPLAY_SRCS)" $(COVERAGE_EVENTS)
 
 .PHONY: coverage
@@ -2247,7 +1415,7 @@ $(COVERAGE_BASELINE_DIR)/lines.txt:
 	cp $(COVERAGE_BASELINE_DIR)/tree/$(TMP_DIR)/coverage/lines.txt $@
 	git worktree remove --force $(COVERAGE_BASELINE_DIR)/tree
 
-coverage-compare: coverage $(COVERAGE_BASELINE_DIR)/lines.txt tools/coverage_compare.sh
+coverage-compare: coverage $(COVERAGE_BASELINE_DIR)/lines.txt tools/coverage_compare.sh ## [COVERAGE_BASELINE_COMMIT=<commit>]: fails on a line hit at the baseline commit and unhit now
 	@mkdir -p $(COVERAGE_COMPARE_DIR)
 	@git diff --no-ext-diff --no-color --no-relative -U0 -M --histogram --src-prefix=a/ --dst-prefix=b/ $(COVERAGE_BASELINE_COMMIT) -- src/game src/engine > $(COVERAGE_COMPARE_DIR)/diff.txt
 	@sh tools/coverage_compare.sh $(COVERAGE_BASELINE_DIR)/lines.txt $(TMP_DIR)/coverage/lines.txt $(COVERAGE_COMPARE_DIR)/diff.txt > $(COVERAGE_COMPARE_DIR)/report.txt; status=$$?; grep -v '^hit ' $(COVERAGE_COMPARE_DIR)/report.txt; echo "coverage-compare: report in $(COVERAGE_COMPARE_DIR)/report.txt"; exit $$status
@@ -2269,7 +1437,7 @@ $(STATE_RUNS): state-run-%: % $(TMP_DIR)/replay
 .PHONY: $(STATE_RUNS)
 
 ifneq ($(strip $(EVENTS)),)
-state: $(TMP_DIR)/replay
+state: $(TMP_DIR)/replay ## [EVENTS=<events>]: last-frame state in tmp/state.txt; without EVENTS, zone and cap peaks over every replay
 	$(if $(ATTRACT_STATE),ATTRACT_STATE=$(ATTRACT_STATE) )$(if $(REPLAY_STARTS),REPLAY_STARTS=$(REPLAY_STARTS) )$(if $(SAVE_HEX),SAVE_HEX=$(SAVE_HEX) )$(if $(DIGEST),DIGEST=$(DIGEST) )STATE=$(TMP_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS)
 else
 state: $(STATE_RUNS) tools/state_peaks.sh
@@ -2281,7 +1449,7 @@ END_STATE_DIR := $(TMP_DIR)/end-state
 end_state_triples = $(foreach e,$(1),$(e) $(call state_file,$(e)) $(e).end-state)
 
 ifneq ($(strip $(EVENTS)),)
-end-state: $(TMP_DIR)/replay tools/end_state.sh
+end-state: $(TMP_DIR)/replay tools/end_state.sh ## [EVENTS=<events> [REFERENCE=<file>]]: compares last-frame states with the committed .end-state files
 	@mkdir -p $(END_STATE_DIR)
 	@rm -f $(END_STATE_DIR)/state.txt
 	@STATE=$(END_STATE_DIR)/state.txt ./$(TMP_DIR)/replay $(EVENTS) /dev/null $(END_STATE_DIR)/dump.txt > $(END_STATE_DIR)/log.txt 2>&1 || true
@@ -2291,13 +1459,13 @@ end-state: $(STATE_RUNS) tools/end_state.sh
 	@sh tools/end_state.sh check $(call end_state_triples,$(STATE_EVENTS))
 endif
 
-end-state-baseline: $(STATE_RUNS) tools/end_state.sh
+end-state-baseline: $(STATE_RUNS) tools/end_state.sh ## writes each missing .end-state, never overwrites one
 	@sh tools/end_state.sh baseline $(call end_state_triples,$(STATE_EVENTS))
 
 .PHONY: end-state end-state-baseline
 
 # The core sources, where the comparator reads the P8_FIXED_LIT calls.
-constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR)
+constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c src/p8/fixed.h $(CORE_SRCS) | $(TMP_DIR) ## compares each P8_FIXED_LIT with its recorded PICO-8 value
 	@sh tools/constants_check.sh tools/constants_expected_gaps.txt tools/pico8_reference_probe_out.txt src/p8/fixed.c $(TMP_DIR)/constants_check \
 	    $(CORE_SRCS)
 
@@ -2307,7 +1475,7 @@ FLOAT_GUARD := tools/float_guard.txt
 
 # The report is rewritten even when the guard fails; the exit status of the
 # script is returned after the move.
-float-guard: tools/float_guard.sh | $(TMP_DIR)
+float-guard: tools/float_guard.sh | $(TMP_DIR) ## fails if a core file needs floating point
 	@status=0; sh tools/float_guard.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-guard $(CORE_SRCS) > $(TMP_DIR)/float_guard.txt || status=$$?; \
 	mv $(TMP_DIR)/float_guard.txt $(FLOAT_GUARD); \
 	grep '^float-guard ' $(FLOAT_GUARD); \
@@ -2317,7 +1485,7 @@ float-guard: tools/float_guard.sh | $(TMP_DIR)
 
 ALLOC_GUARD_EXCEPTIONS := tools/alloc_guard_exceptions.txt
 
-alloc-guard: tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(call objs,$(CORE_SRCS))
+alloc-guard: tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(call objs,$(CORE_SRCS)) ## ratchet on the malloc/free calls of the core (tools/alloc_guard_exceptions.txt)
 	@sh tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(OBJ_DIR) $(call objs,$(CORE_SRCS))
 
 .PHONY: alloc-guard
@@ -2325,31 +1493,31 @@ alloc-guard: tools/alloc_guard.sh $(ALLOC_GUARD_EXCEPTIONS) $(call objs,$(CORE_S
 POINTER_GUARD_EXCEPTIONS := tools/pointer_guard_exceptions.txt
 POINTER_GUARD_SRCS := $(wildcard src/game/*.[ch]) src/engine/entity_class.h
 
-pointer-guard: tools/pointer_guard.sh $(POINTER_GUARD_EXCEPTIONS) $(POINTER_GUARD_SRCS)
+pointer-guard: tools/pointer_guard.sh $(POINTER_GUARD_EXCEPTIONS) $(POINTER_GUARD_SRCS) ## ratchet on data pointers in src/game/ (tools/pointer_guard_exceptions.txt)
 	@sh tools/pointer_guard.sh $(POINTER_GUARD_EXCEPTIONS) $(POINTER_GUARD_SRCS)
 
 .PHONY: pointer-guard
 
 FLOAT_GREP_EXCLUSIONS := tools/float_grep_exclusions.txt
 
-float-grep: tools/float_grep.sh $(FLOAT_GREP_EXCLUSIONS)
+float-grep: tools/float_grep.sh $(FLOAT_GREP_EXCLUSIONS) ## fails on any floating-point type or call in the core
 	@sh tools/float_grep.sh "$(CC)" "$(CFLAGS)" $(FLOAT_GREP_EXCLUSIONS) src $(CORE_SRCS)
 
 .PHONY: float-grep
 
 RANDOM_GUARD_EXCEPTIONS := tools/random_guard_exceptions.txt
 
-random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS)
+random-guard: tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS) ## ratchet on the random stream names per file (tools/random_guard_exceptions.txt)
 	@sh tools/random_guard.sh $(RANDOM_GUARD_EXCEPTIONS) src
 
 .PHONY: random-guard
 
-button-guard: tools/button_guard.sh
+button-guard: tools/button_guard.sh ## fails when a src/game/ file other than cheat.c and the bindings names a P8_PAD_BUTTON_*
 	@sh tools/button_guard.sh src/game
 
 .PHONY: button-guard
 
-float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh
+float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh ## links the replay objects without -lm, never run
 	@sh tools/float_link.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-link/replay $(call objs,$(REPLAY_SRCS))
 
 .PHONY: float-link
@@ -2357,7 +1525,7 @@ float-link: $(call objs,$(REPLAY_SRCS)) tools/float_link.sh
 $(TMP_DIR)/gen_quarter_wave: tools/gen_quarter_wave.c | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $< -lm
 
-sin-table: $(TMP_DIR)/gen_quarter_wave
+sin-table: $(TMP_DIR)/gen_quarter_wave ## regenerates src/p8/quarter_wave.h
 	./$(TMP_DIR)/gen_quarter_wave > $(TMP_DIR)/quarter_wave.h
 	mv $(TMP_DIR)/quarter_wave.h src/p8/quarter_wave.h
 
@@ -2367,7 +1535,7 @@ $(TMP_DIR)/gen_sprite_sheet: $(call objs,tools/gen_sprite_sheet.c src/p8/assets.
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Writes the committed header only when the generator succeeded.
-sprite-sheet: $(TMP_DIR)/gen_sprite_sheet
+sprite-sheet: $(TMP_DIR)/gen_sprite_sheet ## regenerates src/p8/sprite_sheet_packed.h from pico8/gfx.json
 	./$(TMP_DIR)/gen_sprite_sheet pico8/gfx.json > $(TMP_DIR)/sprite_sheet_packed.h
 	mv $(TMP_DIR)/sprite_sheet_packed.h src/p8/sprite_sheet_packed.h
 
@@ -2376,10 +1544,10 @@ sprite-sheet: $(TMP_DIR)/gen_sprite_sheet
 PSX_SOURCES ?= tools/psx_sources.txt
 PSN00BSDK_DIR ?= third_party/psn00bsdk
 
-psn00bsdk-toolchain-setup: psx-net-check
+psn00bsdk-toolchain-setup: psx-net-check ## installs the pinned PSn00bSDK into PSN00BSDK_DIR
 	sh tools/install_psn00bsdk_toolchain.sh $(PSN00BSDK_DIR) $(PSX_SOURCES)
 
-psx-hello:
+psx-hello: ## builds psx-hello/build/psx-hello.exe
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-hello: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	cmake --fresh -S psx-hello -B psx-hello/build \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath $(PSN00BSDK_DIR))/lib/libpsn00b/cmake/sdk.cmake
@@ -2435,7 +1603,7 @@ $(error psx-build: PSX_BUILD_OPT must be O2, O3 or Os, not '$(PSX_BUILD_OPT)')
 endif
 PSX_BUILD_OPT_TARGETS := psx-game psx-gpu-replay psx-gpu-replay-breakdown
 
-psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS) tools/psx_opt_level.sh
+psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS) tools/psx_opt_level.sh ## [EVENTS=<events>] [PSX_BUILD_*=...]: builds the PSX PS-EXEs in tmp/psx/build
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-build: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@mkdir -p $(dir $(PSX_EMBEDDED_REPLAY))
 	./$(TMP_DIR)/embed_replay $(PSX_EVENTS) $(PSX_REPLAY_NAME) $(PSX_EMBEDDED_REPLAY)
@@ -2467,32 +1635,32 @@ psx-build: $(TMP_DIR)/embed_replay $(PSX_CORE_UNITS) tools/psx_opt_level.sh
 	@for f in $(PSX_GAME_BIN) $(PSX_GAME_CUE); do \
 		[ -f "$$f" ] || { echo "psx-build: CD image $$f missing" >&2; exit 1; }; echo "psx-build: CD image $$f"; done
 
-psx-game-cd: psx-build
+psx-game-cd: psx-build ## psx-build, then checks the game CD image exists
 	@[ -f $(PSX_GAME_BIN) ] && [ -f $(PSX_GAME_CUE) ] || { echo "psx-game-cd: $(PSX_GAME_BIN) or $(PSX_GAME_CUE) missing" >&2; exit 1; }
 	@echo "psx-game-cd: $(PSX_GAME_BIN) $(PSX_GAME_CUE)"
 
 PSX_HELLO_CUE ?= psx-hello/build/psx-hello.cue
 
-psx-hello-cd: psx-hello
+psx-hello-cd: psx-hello ## builds the psx-hello CD image
 	cmake --build psx-hello/build --target psx-hello-iso
 	@[ -f psx-hello/build/psx-hello.bin ] && [ -f $(PSX_HELLO_CUE) ] || { echo "psx-hello-cd: psx-hello/build/psx-hello.bin or $(PSX_HELLO_CUE) missing" >&2; exit 1; }
 
 psx-hello-clean:
 	rm -rf psx-hello/build
 
-psx-net-check:
+psx-net-check: ## probes every host of PSX_SOURCES without downloading
 	sh tools/psx_net_check.sh $(PSX_SOURCES)
 
 PSX_EMULATOR_DIR ?= third_party/pcsx-redux
 
-psx-emulator-setup: psx-net-check
+psx-emulator-setup: psx-net-check ## builds the pinned PCSX-Redux into PSX_EMULATOR_DIR
 	PSN00BSDK_DIR=$(PSN00BSDK_DIR) sh tools/install_psx_emulator.sh $(PSX_EMULATOR_DIR) $(PSX_SOURCES)
 
 PSX_FRAMES ?= 600
 PSX_OUT ?= $(TMP_DIR)/psx/boot
 PSX_BOOT_TIMEOUT ?= 120
 
-psx-boot:
+psx-boot: ## [PSX_EXE=<exe> | PSX_ISO=<cue>]: boots headless for PSX_FRAMES vsyncs, VRAM in PSX_OUT.vram
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) \
 		$(if $(PSX_EXE),--exe $(PSX_EXE)) $(if $(PSX_ISO),--iso $(PSX_ISO)) \
 		$(PSX_FRAMES) $(PSX_OUT)
@@ -2501,7 +1669,7 @@ PSX_REPLAY_OUT := $(TMP_DIR)/psx/replay
 PSX_REPLAY_CEILING ?= 4001
 PSX_REPLAY_TIMEOUT ?= 68
 
-psx-replay-check: psx-build $(TMP_DIR)/replay
+psx-replay-check: psx-build $(TMP_DIR)/replay ## boots the replay PS-EXE and compares its state and VRAM with the PC
 	@mkdir -p $(PSX_REPLAY_OUT)
 	STATE=$(PSX_REPLAY_OUT)/pc_state.txt DIGEST=$(PSX_REPLAY_OUT)/pc_digest.txt ./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_REPLAY_OUT)/pc.dump.txt > $(PSX_REPLAY_OUT)/pc.log 2>&1
 	PSX_BOOT_TIMEOUT=$(PSX_REPLAY_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
@@ -2531,7 +1699,7 @@ endif
 endif
 
 # Its own build directory, so that it never overwrites psx-check's PS-EXEs.
-psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
+psx-full-game-check: psx-tools-test $(TMP_DIR)/replay ## [PSX_FULL_GAME_ASSERTS=on|off]: replays full_game.json on the PSX
 	+$(MAKE) psx-build PSX_EVENTS=$(PSX_FULL_GAME_EVENTS) PSX_BUILD_DIR=$(PSX_FULL_GAME_DIR)/build \
 		PSX_BUILD_MEASURED_REPLAY_ASSERTS=$(if $(filter off,$(PSX_FULL_GAME_ASSERTS)),OFF,ON) PSX_BUILD_DRAW_FILTER=OFF \
 		PSX_BUILD_DRAW_METER=OFF PSX_BUILD_OPT=O3
@@ -2546,7 +1714,7 @@ psx-full-game-check: psx-tools-test $(TMP_DIR)/replay
 			$(PSX_FULL_GAME_SITUATIONS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) $(PSX_SIZE) \
 			$(PSX_STACK_RESERVE) $(PSX_FULL_GAME_DIR)/run
 
-psx-real-game-budget:
+psx-real-game-budget: ## [FRAMES=<table>] [SITUATIONS=<table>]: steady frames over budget per situation
 	@out=$$(sh tools/psx_real_game_budget.sh $(or $(FRAMES),psx/perf/full-run-frames.txt) \
 		$(or $(SITUATIONS),$(PSX_FULL_GAME_SITUATIONS)) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS)) \
 		|| exit 1; printf '%s\n' "$$out"; ! printf '%s\n' "$$out" | grep -q '^real-game-budget failed'
@@ -2563,7 +1731,7 @@ $(TMP_DIR)/short_run_cut: $(call objs,$(SHORT_RUN_CUT_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Per run: both recordings must embed and replay; a differing end state is reported, never a failure.
-psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_replay tools/end_state.sh $(PSX_SHORT_RUNS_MANIFEST) $(PSX_FULL_GAME_EVENTS)
+psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_replay tools/end_state.sh $(PSX_SHORT_RUNS_MANIFEST) $(PSX_FULL_GAME_EVENTS) ## [PSX_SHORT_RUNS=<names>]: cuts the short runs out of full_game.json
 	@mkdir -p $(PSX_SHORT_RUNS_DIR)
 	./$(TMP_DIR)/short_run_cut $(PSX_FULL_GAME_EVENTS) $(PSX_SHORT_RUNS_MANIFEST) $(PSX_SHORT_RUNS_DIR) $(PSX_SHORT_RUNS)
 	@failed=0; \
@@ -2589,7 +1757,7 @@ psx-short-runs-cut: $(TMP_DIR)/short_run_cut $(TMP_DIR)/replay $(TMP_DIR)/embed_
 	done; \
 	exit $$failed
 
-short-run-situations: psx-short-runs-cut $(TMP_DIR)/situations tools/short_run_situations.sh $(SITUATIONS_TABLE)
+short-run-situations: psx-short-runs-cut $(TMP_DIR)/situations tools/short_run_situations.sh $(SITUATIONS_TABLE) ## [PSX_SHORT_RUNS=<names>]: labels the short runs with their situations
 	@failed=; \
 	for name in $${PSX_SHORT_RUNS:-$$(awk '!/^[[:space:]]*(#|$$)/ {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
 		dir=$(PSX_SHORT_RUNS_DIR)/$$name; \
@@ -2622,7 +1790,7 @@ endif
 psx_short_run_list = $(call psx_cmake_list,$(filter-out $(PSX_EMBEDDED_REPLAY),$(1)))
 
 # A failed boot or analysis fails the run but never stops the loop: every run is booted.
-psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_short_run.sh tools/psx_opt_level.sh
+psx-short-runs: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_short_run.sh tools/psx_opt_level.sh ## [PSX_SHORT_RUNS=<names>]: boots each short run on the PSX and times it
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "psx-short-runs: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@[ -z "$(PSX_SHORT_RUN_REFERENCE)" ] || [ -f "$(PSX_SHORT_RUN_REFERENCE)" ] \
 		|| { echo "psx-short-runs: no reference frame table $(PSX_SHORT_RUN_REFERENCE): run make psx-full-game-check" >&2; exit 1; }
@@ -2702,6 +1870,8 @@ psx_probe_worktree = $(abspath $(PSX_PROBE_DIR)/$(psx_probe_label)/worktree)
 psx_probe_list = $(subst $(space),;,$(strip $(patsubst $(abspath src)/%,$(psx_probe_worktree)/src/%,$(abspath $(filter-out $(PSX_EMBEDDED_REPLAY),$(1))))))
 
 # Every run is built, booted and analyzed even when an earlier one is invalid.
+psx-probe-baseline: ## [PSX_SHORT_RUNS=<names>]: probe timings of the short runs on HEAD
+psx-probe: ## PATCH=<file> [PSX_SHORT_RUNS=<names>] [PSX_PROBE_LABEL=<label>]: psx-probe-baseline with a patch applied
 psx-probe-baseline psx-probe: psx-tools-test psx-short-runs-cut $(PSX_CORE_UNITS) tools/psx_boot.sh tools/psx_probe.sh tools/psx_opt_level.sh
 	@[ -f $(PSN00BSDK_DIR)/psn00bsdk.stamp ] || { echo "$@: no PSn00bSDK in $(PSN00BSDK_DIR); run make psn00bsdk-toolchain-setup" >&2; exit 1; }
 	@label=$(psx_probe_label); out=$(PSX_PROBE_DIR)/$$label; wt=$(psx_probe_worktree); \
@@ -2795,12 +1965,12 @@ frame_profile_function = profile() { \
 	[ $$same != no ]; \
 }
 
-frame-profile: $(TMP_DIR)/frame_profile tools/end_state.sh
+frame-profile: $(TMP_DIR)/frame_profile tools/end_state.sh ## [EVENTS=<events>] [REFERENCE=<end-state>]: PC per-function frame profile
 	@$(frame_profile_function); events=$(or $(EVENTS),$(FRAME_PROFILE_EVENTS)); \
 	profile $$events $(or $(REFERENCE),$$events.end-state) $(FRAME_PROFILE_DIR)/$$(basename $$events .json)
 
 # Each short run gets its own directory: every run's recording is named run.json.
-frame-profile-breakdown-check: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+frame-profile-breakdown-check: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut ## [PSX_SHORT_RUNS=<names>]: profiles each short run against its breakdown
 	@$(frame_profile_function); failed=; \
 	for name in $${PSX_SHORT_RUNS:-draw-5564}; do \
 		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$(FRAME_PROFILE_DIR)/short-runs/$$name; \
@@ -2821,7 +1991,7 @@ FRAME_PROFILE_REPEATS ?= 4
 
 # The draw windows are start and every draw-* run of the manifest; each recording is profiled
 # FRAME_PROFILE_REPEATS times into coverage/<name>/<k>.
-frame-profile-coverage: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+frame-profile-coverage: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut ## [FRAME_PROFILE_THRESHOLD=<pct>] [FRAME_PROFILE_REPEATS=<k>]: profile coverage of the draw runs
 	@$(frame_profile_function); \
 	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
 	repeats=$$(seq 1 $(FRAME_PROFILE_REPEATS)); \
@@ -2849,7 +2019,7 @@ PART ?= draw
 
 # Each run's recording is profiled FRAME_PROFILE_REPEATS times into subtree/<ROOT>/<name>/<k>
 # (subtree-update/ with PART=update, where cart_draw stays the draw root).
-frame-profile-subtree: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+frame-profile-subtree: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut ## ROOT=<symbol> [PART=draw|update]: profiles one call subtree over the short runs
 	@$(frame_profile_function); \
 	case "$(ROOT)" in ''|*[!A-Za-z0-9_]*) echo "$@: ROOT is not a function symbol: '$(ROOT)'"; exit 1;; esac; \
 	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
@@ -2870,7 +2040,7 @@ frame-profile-subtree: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_p
 	sh tools/frame_profile_check.sh subtree part=$(PART) $$runs > $$out/summary.txt; status=$$?; \
 	cat $$out/summary.txt; exit $$status
 
-frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut
+frame-profile-unit-cost: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh psx-short-runs-cut ## [PSX_SHORT_RUNS=<names>]: unit cost per backend call over the short runs
 	@$(frame_profile_function); failed=; outputs=; out=$(FRAME_PROFILE_DIR)/unit-cost; \
 	for name in $${PSX_SHORT_RUNS:-$$(awk '$$1 !~ /^#/ && NF {print $$1}' $(PSX_SHORT_RUNS_MANIFEST))}; do \
 		short=$(PSX_SHORT_RUNS_DIR)/$$name; dir=$$out/$$name; \
@@ -2895,7 +2065,7 @@ FRAME_PROFILE_SPIKE_LEVELS := 16
 # Each update root (cart_update60, then every open symbol) is profiled FRAME_PROFILE_REPEATS times
 # into spikes/<symbol>/<k>; a symbol frame_profile cannot resolve (no text symbol, or several
 # addresses) goes to spikes/unresolvable.txt and closes the walk.
-frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+frame-profile-spikes: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES) ## profiles the update spikes of full_game.json
 	@$(frame_profile_function); \
 	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
 	case "$(FRAME_PROFILE_SPIKE_THRESHOLD)" in ''|*[!0-9]*) echo "$@: FRAME_PROFILE_SPIKE_THRESHOLD is not a count of hblanks: '$(FRAME_PROFILE_SPIKE_THRESHOLD)'"; exit 1;; esac; \
@@ -2930,7 +2100,7 @@ FRAME_PROFILE_ORDINARY_WINDOWS := draw-5564=5566-5580@27.0,draw-6000=6002-6016@1
 
 # Like frame-profile-spikes, with two base roots (cart_update60 and input_step_run) and its own
 # ordinary/<symbol>/<k> profiles, so neither target stales the other's.
-frame-profile-ordinary: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+frame-profile-ordinary: $(TMP_DIR)/frame_profile tools/end_state.sh tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES) ## profiles the ordinary frames of full_game.json
 	@$(frame_profile_function); \
 	case "$(FRAME_PROFILE_REPEATS)" in ''|*[!0-9]*|0) echo "$@: FRAME_PROFILE_REPEATS is not a positive count: '$(FRAME_PROFILE_REPEATS)'"; exit 1;; esac; \
 	case "$(FRAME_PROFILE_SPIKE_THRESHOLD)" in ''|*[!0-9]*) echo "$@: FRAME_PROFILE_SPIKE_THRESHOLD is not a count of hblanks: '$(FRAME_PROFILE_SPIKE_THRESHOLD)'"; exit 1;; esac; \
@@ -2969,6 +2139,7 @@ STEADY_PROFILE_DIR := $(FRAME_PROFILE_DIR)/steady
 # the runs profiled. A steady situation with no run of the manifest, or marked "no representative
 # run", is profiled on the full game's frames over the budget (no-run), only when PSX_SHORT_RUNS is
 # unset.
+steady-profile: ## [PSX_SHORT_RUNS=<names>]: breakdown overhead per backend call over the steady runs
 steady-profile: $(TMP_DIR)/frame_profile tools/end_state.sh tools/steady_profile.sh tools/frame_profile_check.sh \
 		psx-short-runs-cut $(STEADY_PROFILE_GROUPS) $(FRAME_PROFILE_JUDGE_FRAMES) $(SITUATIONS_TABLE)
 	@$(frame_profile_function); \
@@ -3023,7 +2194,7 @@ steady-profile: $(TMP_DIR)/frame_profile tools/end_state.sh tools/steady_profile
 
 SPREAD_LABEL ?= default
 
-frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES)
+frame-profile-spread: tools/frame_profile_check.sh $(FRAME_PROFILE_JUDGE_FRAMES) ## DRAW_GAINS=<gains> [UPDATE_RATIOS=<ratios>]: spreads the spike frames over the budget
 	@spikes=$(FRAME_PROFILE_DIR)/spikes/spikes.txt; \
 	[ -f $$spikes ] || { echo "$@: missing $$spikes: run make frame-profile-spikes first"; exit 1; }; \
 	[ -n "$(DRAW_GAINS)" ] || { echo "$@: DRAW_GAINS is required: default=<pct>[,<first>-<last>=<pct>]..."; exit 1; }; \
@@ -3041,7 +2212,7 @@ $(error lever-estimate: LEVERS missing: make lever-estimate LEVERS=<document hol
 endif
 endif
 
-lever-estimate: tools/lever_estimate.sh tools/psx_real_game_budget.sh
+lever-estimate: tools/lever_estimate.sh tools/psx_real_game_budget.sh ## LEVERS=<document> [FRAMES=<table>] [SITUATIONS=<table>]: estimates a lever table
 	@mkdir -p $(LEVER_ESTIMATE_DIR); out=$(LEVER_ESTIMATE_DIR)/estimate.txt; \
 	sh tools/lever_estimate.sh $(or $(FRAMES),$(FRAME_PROFILE_JUDGE_FRAMES)) $(or $(SITUATIONS),$(SITUATIONS_TABLE)) \
 		$(LEVERS) $(PSX_FRAME_BUDGET_HBLANKS) $(PSX_REAL_GAME_ONE_OFF_VSYNCS) \
@@ -3063,7 +2234,7 @@ $(TMP_DIR)/test_steady_profile: $(call objs,tests/test_steady_profile.c) tools/s
 $(TMP_DIR)/test_call_profile: $(call objs,tests/test_call_profile.c src/devtools/call_profile.c src/p8/draw_cost.c src/devtools/draw_timing.c src/p8/image.c src/p8/gfx.c src/p8/gfx_software.c src/p8/vram.c src/platform/fatal_pc.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS))
+frame-profile-test: $(addprefix $(TMP_DIR)/,$(FRAME_PROFILE_TESTS)) ## host tests of the PC frame profile tool
 	@for t in $(FRAME_PROFILE_TESTS); do ./$(TMP_DIR)/$$t || exit 1; done
 
 .PHONY: frame-profile-test frame-profile frame-profile-breakdown-check frame-profile-coverage frame-profile-subtree \
@@ -3075,7 +2246,7 @@ PSX_PAD_OUT := $(TMP_DIR)/psx/pad
 PSX_PAD_CEILING ?= 306
 PSX_PAD_TIMEOUT ?= 6
 
-psx-pad-check: psx-build
+psx-pad-check: psx-build ## boots the pad probe driven by PSX_PAD_SCRIPT
 	PSX_BOOT_TIMEOUT=$(PSX_PAD_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_PAD_SCRIPT) --exe $(PSX_BUILD_DIR)/psx-pad-probe.exe $(PSX_PAD_CEILING) $(PSX_PAD_OUT)/run
 	sh tools/psx_pad_compare.sh $(PSX_PAD_SCRIPT) $(PSX_PAD_OUT)/run.tty.txt
@@ -3087,7 +2258,7 @@ PSX_GAME_CEILING ?= 545
 PSX_GAME_TIMEOUT ?= 10
 
 # The boot's failure is the game-done condition's, not make's: every condition is still printed.
-psx-game-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_log
+psx-game-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_log ## boots the game PS-EXE driven by PSX_GAME_SCRIPT and compares it with the PC
 	@mkdir -p $(PSX_GAME_OUT)
 	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_GAME_SCRIPT) --exe $(PSX_BUILD_DIR)/psx-game.exe $(PSX_GAME_CEILING) $(PSX_GAME_OUT)/run 2>&1); \
@@ -3100,7 +2271,7 @@ PSX_GAME_CD_CEILING ?= 1140
 PSX_GAME_CD_TIMEOUT ?= 20
 
 # The boot's failure is game-done's, not make's: every condition is still printed.
-psx-game-cd-check: psx-tools-test psx-game-cd $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_log
+psx-game-cd-check: psx-tools-test psx-game-cd $(TMP_DIR)/replay $(TMP_DIR)/psx_pad_log ## psx-game-check on the game CD image
 	@mkdir -p $(PSX_GAME_CD_OUT)
 	@boot=$$(PSX_BOOT_TIMEOUT=$(PSX_GAME_CD_TIMEOUT) sh tools/psx_boot.sh $(PSX_EMULATOR_DIR) --until-exit \
 		--pad-script $(PSX_GAME_SCRIPT) --iso $(PSX_GAME_CUE) $(PSX_GAME_CD_CEILING) $(PSX_GAME_CD_OUT)/run 2>&1); \
@@ -3129,6 +2300,7 @@ PSX_MESSAGE_BOX_CAPTURE_REFERENCES := psx/gpu_capture_references_message_box.txt
 PSX_MESSAGE_BOX_GPU_CEILING ?= 333
 PSX_MESSAGE_BOX_GPU_TIMEOUT ?= 8
 
+psx-check: ## the PSX check: state, VRAM, GPU captures and costs against the PC
 psx-check: psx-tools-test psx-build $(TMP_DIR)/replay $(TMP_DIR)/embed_replay $(TMP_DIR)/format_self_test $(TMP_DIR)/psx_capture_compare \
 		$(TMP_DIR)/psx_pad_log
 	@rm -rf $(PSX_CHECK_OUT)/pc-captures && mkdir -p $(PSX_CHECK_OUT)/pc-captures
@@ -3176,17 +2348,17 @@ endif
 endif
 psx_capture_record_target = $(if $(CAPTURES),$(PSX_MESSAGE_BOX_CAPTURE_$(1)) message-box,$(PSX_CAPTURE_$(1)))
 
-psx-gpu-capture-ceilings:
+psx-gpu-capture-ceilings: ## LABEL=<label> [CAPTURES=message_box]: records the differ counts of a label
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-ceilings: LABEL missing: make psx-gpu-capture-ceilings LABEL=<label>" >&2; exit 1; }
 	sh tools/psx_capture_record.sh ceilings $(PSX_CHECK_OUT)/run $(LABEL) $(call psx_capture_record_target,CEILINGS)
 
-psx-gpu-capture-accept:
+psx-gpu-capture-accept: ## LABEL=<label> [CAPTURES=message_box]: accepts a label whose captures differ 0 from the PC
 	@[ -n "$(LABEL)" ] || { echo "psx-gpu-capture-accept: LABEL missing: make psx-gpu-capture-accept LABEL=<label>" >&2; exit 1; }
 	sh tools/psx_capture_record.sh references $(PSX_CHECK_OUT)/run $(LABEL) $(call psx_capture_record_target,REFERENCES)
 
 PSX_CAPTURE_REPORT_OUT := $(TMP_DIR)/psx/gpu-capture
 
-psx-gpu-capture-report: psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_capture_compare
+psx-gpu-capture-report: psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_capture_compare ## one PC run and one GPU capture boot, then the comparator (~20 s)
 	@rm -rf $(PSX_CAPTURE_REPORT_OUT) && mkdir -p $(PSX_CAPTURE_REPORT_OUT)/pc-captures
 	CAPTURE_LIST=$(PSX_CAPTURE_LIST) CAPTURE_DIR=$(PSX_CAPTURE_REPORT_OUT)/pc-captures \
 		./$(TMP_DIR)/replay $(PSX_EVENTS) /dev/null $(PSX_CAPTURE_REPORT_OUT)/pc.dump.txt > $(PSX_CAPTURE_REPORT_OUT)/pc.log 2>&1 \
@@ -3200,17 +2372,17 @@ psx-gpu-capture-report: psx-build $(TMP_DIR)/replay $(TMP_DIR)/psx_capture_compa
 
 PSX_KNOWN_LINE ?= Auto test all GTE valid opcodes/registers
 
-psx-emulator-check:
+psx-emulator-check: ## checks the emulator on its test media (~1 min)
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_emulator_check.sh $(PSX_EMULATOR_DIR) \
 		$(PSX_SOURCES) $(TMP_DIR)/psx/media $(TMP_DIR)/psx/check '$(PSX_KNOWN_LINE)' $(PSX_FRAMES)
 
 PSX_HELLO_TTY_LINE ?= psx-hello: main loop started
 
-psx-hello-check: psx-hello
+psx-hello-check: psx-hello ## boots psx-hello and checks its captures (~35 s)
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
 		--exe psx-hello/build/psx-hello.exe '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-check
 
-psx-hello-cd-check: psx-hello-cd
+psx-hello-cd-check: psx-hello-cd ## psx-hello-check on the psx-hello CD image (~35 s)
 	PSX_BOOT_TIMEOUT=$(PSX_BOOT_TIMEOUT) sh tools/psx_hello_check.sh $(PSX_EMULATOR_DIR) \
 		--iso $(PSX_HELLO_CUE) '$(PSX_HELLO_TTY_LINE)' $(PSX_FRAMES) $(TMP_DIR)/psx/hello-cd-check
 
@@ -3221,16 +2393,16 @@ PSX_HELLO_CD_CAPTURE := $(TMP_DIR)/psx/hello-cd-check/run1.vram
 psx-hello-frames-guard:
 	@[ "$(PSX_FRAMES)" = "$(PSX_HELLO_REFERENCE_FRAMES)" ] || { echo "psx-hello-e2e: PSX_FRAMES is $(PSX_FRAMES), the reference was taken at $(PSX_HELLO_REFERENCE_FRAMES)" >&2; exit 1; }
 
-psx-hello-e2e: psx-hello-frames-guard psx-hello-cd-check
+psx-hello-e2e: psx-hello-frames-guard psx-hello-cd-check ## psx-hello-cd-check, then compares its capture with PSX_HELLO_REFERENCE
 	@sh tools/psx_reference_check.sh $(PSX_HELLO_REFERENCE) $(PSX_HELLO_CD_CAPTURE)
 
-psx-hello-e2e-baseline: psx-hello-frames-guard psx-hello-cd-check
+psx-hello-e2e-baseline: psx-hello-frames-guard psx-hello-cd-check ## psx-hello-cd-check, then sets PSX_HELLO_REFERENCE
 	@h=$$($(SHA256_CMD) $(PSX_HELLO_CD_CAPTURE)) && echo "$${h%% *}" > $(PSX_HELLO_REFERENCE) \
 		&& echo "psx-hello-e2e: reference set in $(PSX_HELLO_REFERENCE) ($${h%% *})"
 
 # Clones a pinned raylib version into third_party/ (gitignored) and builds its
 # static library. Slow, network, once, deliberately outside `make test`.
-raylib-vendor-setup:
+raylib-vendor-setup: ## vendors raylib, see docs/raylib-vendoring.md
 	sh tools/install_raylib_vendor.sh
 
 # Link only: this target never runs the binary (no ./$(TMP_DIR)/... line), see
@@ -3279,7 +2451,7 @@ GAME_SRCS := \
 $(TMP_DIR)/game: $(GAME_SRCS) $(wildcard src/*/*.h) third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ $(GAME_SRCS) third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
-raylib: $(TMP_DIR)/game
+raylib: $(TMP_DIR)/game ## compiles and links the interactive binary, never runs it (raylib-vendor-setup first)
 	@echo "bindings: $(BINDINGS_CHOSEN)$(if $(wildcard bindings.cfg), (personal))"
 	@echo "keymap: $(KEYMAP_CHOSEN)$(if $(wildcard keymap.cfg), (personal))"
 
