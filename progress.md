@@ -41,3 +41,4 @@
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan
     - [x] Phase 3's warnings recorded, step 9's method amended
+    - [x] fix: steady-profile knows button_image_frame_begin

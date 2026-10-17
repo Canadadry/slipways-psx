@@ -30,5 +30,6 @@ game_data_fixed_seq_at frame
 dispatch_context_gfx frame
 dispatch_context_mem frame
 text_image_frame_begin frame
+button_image_frame_begin frame
 p8_cls frame
 loading_screen_draw frame
