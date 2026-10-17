@@ -37,5 +37,6 @@
     - [x] N6 — slipway target box pre-reject, probed (full game at step 8)
   - [x] Step 3.8 — End-of-phase full-game check
     - [x] Full-game check, N6 measured, rebase
+    - [x] fix: frame-profile-test knows the loading frames
 - [ ] Phase 4 — Close
   - [ ] Step 4.9 — Close the plan

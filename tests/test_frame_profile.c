@@ -284,7 +284,20 @@ static void check_child_families_add_up(const char *frames, int frame_count) {
     free(family_calls), free(attributed);
 }
 
-static void check_profile(const char *events, const char *dir) {
+static int is_loading_frame(const char *frames, int frame) {
+    char line[LINE_CAP];
+    snprintf(line, sizeof line, "frame %d child draw loading_screen_draw 1 ", frame);
+    return has_line_starting(frames, line);
+}
+
+/* A loading frame draws only through loading_screen_draw, and the update after it skips ui_update. */
+static int count_loading_frames(const char *frames, int frame_count) {
+    int count = 0;
+    for (int i = 0; i < frame_count; i++) count += is_loading_frame(frames, i);
+    return count;
+}
+
+static void check_profile(const char *events, const char *dir, int expected_loading_frames) {
     char state[LINE_CAP], replay_state[LINE_CAP];
     snprintf(state, sizeof state, "mkdir -p %s", dir);
     assert(run(state) == 0);
@@ -299,11 +312,13 @@ static void check_profile(const char *events, const char *dir) {
     expect_line(frames, line);
     assert(strstr(frames, " clock monotonic-ns\n") != NULL);
     expect_line(frames, "root draw cart_draw\nroot update cart_update60\n");
+    int loading_frames = count_loading_frames(frames, frame_count);
     for (int i = 0; i < frame_count; i++) {
         snprintf(line, sizeof line, "frame %d update ", i);
         expect_line(frames, line);
+        int loading = is_loading_frame(frames, i);
         for (int c = 0; c < COUNT(DRAW_CHILDREN); c++) {
-            snprintf(line, sizeof line, "frame %d child draw %s 1 ", i, DRAW_CHILDREN[c]);
+            snprintf(line, sizeof line, "frame %d child draw %s %d ", i, DRAW_CHILDREN[c], loading ? 0 : 1);
             expect_line(frames, line);
         }
         for (int c = 0; c < COUNT(UPDATE_CHILDREN); c++) {
@@ -321,6 +336,11 @@ static void check_profile(const char *events, const char *dir) {
         snprintf(line, sizeof line, "frame %d in-call ", i);
         expect_line(frames, line);
     }
+    if (loading_frames != expected_loading_frames) {
+        fprintf(stderr, "test_frame_profile: %s: %d loading frame(s), expected %d\n", events, loading_frames,
+                expected_loading_frames);
+        assert(0 && "loading frame count");
+    }
     check_times_add_up(frames, frame_count);
     check_family_units(frames, 1);
     check_child_families_add_up(frames, frame_count);
@@ -331,7 +351,7 @@ static void check_profile(const char *events, const char *dir) {
     snprintf(line, sizeof line, "profile %s frames %d hook-pair-ns ", events, frame_count);
     expect_line(summary, line);
     expect_line(summary, "root draw cart_draw\nroot update cart_update60\n");
-    snprintf(line, sizeof line, "child draw draw_layers#2 %d ", frame_count);
+    snprintf(line, sizeof line, "child draw draw_layers#2 %d ", frame_count - loading_frames);
     expect_line(summary, line);
     snprintf(line, sizeof line, "family cls %d ", frame_count);
     expect_line(summary, line);
@@ -362,12 +382,12 @@ static void check_profile(const char *events, const char *dir) {
 }
 
 static void test_a_title_start_recording(void) {
-    check_profile(TITLE_EVENTS, OUT "/title");
+    check_profile(TITLE_EVENTS, OUT "/title", 2);
 }
 
 static void test_a_resume_start_recording(void) {
     write_resume_events();
-    check_profile(RESUME_EVENTS, OUT "/resume");
+    check_profile(RESUME_EVENTS, OUT "/resume", 0);
 }
 
 static void test_a_draw_layers_root_lists_the_draw_methods_it_dispatches(void) {
@@ -402,7 +422,8 @@ static void test_a_ui_update_root_lists_the_functions_ui_update_calls(void) {
     char *summary = profile_file(dir, "summary.txt");
     expect_line(summary, "root draw cart_draw\nroot update ui_update\n");
     char line[LINE_CAP];
-    snprintf(line, sizeof line, "child update ui_update_hover %d ", replay_frames(TITLE_EVENTS, OUT "/ui_update_replay_state.txt"));
+    int frame_count = replay_frames(TITLE_EVENTS, OUT "/ui_update_replay_state.txt");
+    snprintf(line, sizeof line, "child update ui_update_hover %d ", frame_count - count_loading_frames(frames, frame_count));
     expect_line(summary, line);
     free(summary), free(frames);
 }
