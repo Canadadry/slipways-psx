@@ -1,4 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
+/* Darwin hides mkdtemp under a bare _POSIX_C_SOURCE; glibc ignores this. */
+#define _DARWIN_C_SOURCE
 
 #include "game/save_state.h"
 #include "game/save_storage.h"
