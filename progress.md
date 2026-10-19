@@ -1,0 +1,10 @@
+- [ ] Phase 1 — Delete
+  - [ ] Step 1 — list keep/delete files and CI jobs
+  - [ ] Step 2 — delete PSX
+  - [ ] Step 3 — delete raylib
+  - [ ] Step 4 — delete demo authoring, pad_author, profiling, unused tools
+  - [ ] Step 5 — rewrite CLAUDE.md, README, docs and remaining mentions
+- [ ] Phase 2 — Measure from the C
+  - [ ] Step 6 — export sprites.png and font.png
+  - [ ] Step 7 — tests/e2e/order.txt
+  - [ ] Step 8 — replace the history (only if section 5 is answered yes)
