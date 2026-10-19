@@ -1,5 +1,7 @@
 - [ ] Phase 1 — Delete
   - [ ] Step 1 — list keep/delete files and CI jobs
+    - [x] Chunk 1 — list mode and the full list
+    - [ ] Chunk 2 — build mode and correcting the marks
   - [ ] Step 2 — delete PSX
   - [ ] Step 3 — delete raylib
   - [ ] Step 4 — delete demo authoring, pad_author, profiling, unused tools

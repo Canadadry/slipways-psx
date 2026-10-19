@@ -515,6 +515,9 @@ $(TMP_DIR)/test_coverage_compare: $(call objs,tests/test_coverage_compare.c) too
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_gen_quarter_wave: $(call objs,tests/test_gen_quarter_wave.c) $(TMP_DIR)/gen_quarter_wave src/p8/quarter_wave.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_alloc_guard: $(call objs,tests/test_alloc_guard.c) tools/alloc_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -1022,6 +1025,7 @@ UNIT_TESTS := \
     test_button \
     test_planet \
     test_gen \
+    test_gen_quarter_wave \
     test_visual_random \
     test_save_state \
     test_save_storage_memory \
