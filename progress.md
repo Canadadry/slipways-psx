@@ -1,5 +1,5 @@
 - [ ] Phase 1 — Delete
-  - [ ] Step 1 — list keep/delete files and CI jobs
+  - [x] Step 1 — list keep/delete files and CI jobs
     - [x] Chunk 1 — list mode and the full list
     - [x] Chunk 2 — build mode and correcting the marks
   - [ ] Step 2 — delete PSX

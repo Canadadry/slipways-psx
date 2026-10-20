@@ -86,3 +86,23 @@ replays pass. The shared design is in `docs/love-port/design.md`; read it first.
   To be answered by the human before step 1 runs; a yes enables step 8.
 
 ## 6. Step notes
+
+### Step 1.1
+
+- Before the step, three bugs fixed (`fix:` commits): `mkdtemp` undeclared
+  on macOS (`tests/test_save_storage_file.c`); `tools/float_guard.sh`
+  detecting nothing on Apple clang (it lowers FP to soft-float under
+  `-mgeneral-regs-only`; now scans the -O0 disassembly there, GCC path
+  unchanged); `make sin-table` re-adding a header comment.
+- Section 5 unanswered (unattended run): `guideline` decided step 8 is
+  skipped, history kept.
+- `docs/love-port/plan-0-files.txt`: 907 entries, `<kind> <mark> <tag>
+  <name>`, delete tags `psx`/`raylib`/`tool` for steps 2/3/4 (180/19/104
+  entries). `tools/plan0_files_check.sh list` (format, coverage, CI) and
+  `build` (pruned copy, 155 kept goal runs, byte identity, reach check,
+  ~1m40). Neither is wired into make; step 5 deletes both.
+- Deviations: `e2e-ref` kept (`check-e2e` uses it); `demo/demo_record.hex`
+  kept (kept tests read it); `src/platform/fatal_pc.c` kept;
+  `.github/workflows/ci.yml` is `keep plan`. In the copy,
+  `tools/float_grep_exclusions.txt` drops its delete lines (`guideline`);
+  steps 2 to 4 must remove those lines in the real tree as they delete.
