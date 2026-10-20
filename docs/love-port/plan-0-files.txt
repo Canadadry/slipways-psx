@@ -48,7 +48,8 @@ file keep plan .claude/skills/tdd/refactoring.md
 file keep plan .claude/skills/tdd/tests.md
 file keep plan .claude/skills/to-prd/SKILL.md
 file keep plan .claude/skills/warn-review/SKILL.md
-file keep build .github/workflows/ci.yml
+# The workflow of the kept CI job: CI reads it, no make goal does.
+file keep plan .github/workflows/ci.yml
 file delete psx .github/workflows/psx-release.yml
 file keep plan .gitignore
 file keep plan CLAUDE.md
